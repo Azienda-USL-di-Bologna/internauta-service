@@ -21,9 +21,11 @@ import org.springframework.stereotype.Component;
  * @author Giovanni
  */
 @Entity
+@EntityListeners(BaseOdataJpaQueryExtension.class)
 @Table(name = "utente", catalog = "organigramma", schema = "organigramma")
 //@EntityListeners(BaseOdataJpaQueryExtension.class)
 @XmlRootElement
+
 @NamedQueries({
     @NamedQuery(name = "Utente.findAll", query = "SELECT u FROM Utente u")
     , @NamedQuery(name = "Utente.findById", query = "SELECT u FROM Utente u WHERE u.id = :id")
@@ -108,10 +110,9 @@ public class Utente implements Serializable, UserDetails {
     @JoinColumn(name = "id_ruolo", referencedColumnName = "id")
     @ManyToOne(optional = false)
     private Ruolo idRuolo;
-    
+
 //    @Column(name = "id_ruolo", insertable = false, updatable = true)
 //    private Integer fkIdRuolo1;
-    
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "idUtente", fetch = FetchType.LAZY)
     private List<UtenteStruttura> utenteStrutturaList;
 
@@ -138,7 +139,6 @@ public class Utente implements Serializable, UserDetails {
     public void setId(Integer id) {
         this.id = id;
     }
-
 
     // Override per userdetails
     @Override
@@ -315,7 +315,6 @@ public class Utente implements Serializable, UserDetails {
 //    public void setFkIdRuolo1(Integer fkIdRuolo1) {
 //        this.fkIdRuolo1 = fkIdRuolo1;
 //    }
-
     @Override
     public int hashCode() {
         int hash = 0;
@@ -340,5 +339,5 @@ public class Utente implements Serializable, UserDetails {
     public String toString() {
         return "it.nextsw.entities.Utente[ id=" + id + " ]";
     }
-    
+
 }

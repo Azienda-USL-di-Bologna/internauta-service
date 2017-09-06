@@ -5,10 +5,12 @@
  */
 package it.bologna.ausl.baborg.entities;
 
+import it.nextsw.olingo.interceptor.queryextension.BaseOdataJpaQueryExtension;
 import java.io.Serializable;
 import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EntityListeners;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -24,7 +26,9 @@ import javax.persistence.Table;
  * @author gdm
  */
 @Entity
+@EntityListeners(BaseOdataJpaQueryExtension.class)
 @Table(name = "utente_struttura", catalog = "babel", schema = "organigramma")
+
 @NamedQueries({
     @NamedQuery(name = "UtenteStruttura.findAll", query = "SELECT u FROM UtenteStruttura u")})
 public class UtenteStruttura implements Serializable {
@@ -108,5 +112,5 @@ public class UtenteStruttura implements Serializable {
     public String toString() {
         return "it.bologna.ausl.baborg.entities.UtenteStruttura[ id=" + id + " ]";
     }
-    
+
 }

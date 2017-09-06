@@ -23,7 +23,7 @@
         <java.version>1.8</java.version>
         <spring.boot.version>1.5.2.RELEASE</spring.boot.version>
         <olingo.version>4.3.0</olingo.version>
-        <olingo.odata2.version>2.0.8</olingo.odata2.version>
+        <olingo.odata2.version>2.0.9</olingo.odata2.version>
     </properties>
 
     <profiles>
@@ -48,6 +48,7 @@
                 <settings.db.connectionURL>jdbc:postgresql://gdml:5432/babel?stringtype=unspecified</settings.db.connectionURL>
                 <settings.db.username>postgres</settings.db.username>
                 <settings.db.password>siamofreschi</settings.db.password>
+                <settings.db.hibernate.dialect>org.hibernate.dialect.PostgreSQL94Dialect</settings.db.hibernate.dialect>
                 <!--Cors setting-->
                 <settings.cors.allow.origin>*</settings.cors.allow.origin>
             </properties>
@@ -160,12 +161,6 @@
             <groupId>org.apache.olingo</groupId>
             <artifactId>olingo-odata2-api</artifactId>
             <version>${olingo.odata2.version}</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>it.nextsw</groupId>
-            <artifactId>next-olingo-middleware</artifactId>
-            <version>${olingo.odata2.version}.alfa3</version>
             <type>jar</type>
         </dependency>
         <dependency>
@@ -284,7 +279,11 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-
+        <dependency>
+            <groupId>it.nextsw</groupId>
+            <artifactId>next-olingo-middleware</artifactId>
+            <version>2.0.9.alfa4</version>
+        </dependency>
     </dependencies>
 
     <build>
