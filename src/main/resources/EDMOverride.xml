@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<JPAEDMMappingModel xmlns="http://www.apache.org/olingo/odata2/jpa/processor/api/model/mapping">
+    <PersistenceUnit name="Model">
+        <EDMSchemaNamespace>Model</EDMSchemaNamespace>
+        <JPAEntityTypes>
+            <JPAEntityType name="Utente">
+                <!--<EDMEntityType>hasStream</EDMEntityType>-->
+                <!--<EDMEntityType>SalesOrder</EDMEntityType>-->
+                <!--<EDMEntitySet>SalesOrders</EDMEntitySet>-->
+                <JPAAttributes>
+                    <JPAAttribute name="id" >IDDI</JPAAttribute>
+                    <!--<JPAAttribute name="netAmount">NetAmount</JPAAttribute>-->
+                    <!--<JPAAttribute name="buyerAddress">BuyerAddressInfo</JPAAttribute>-->
+                </JPAAttributes>
+                <JPARelationships>
+                    <!--<JPARelationship name="salesOrderItem">SalesOrderLineItemDetails</JPARelationship>-->
+                    <!--<JPARelationship name="notes">NotesDetails</JPARelationship>-->
+                </JPARelationships>
+            </JPAEntityType>
+        </JPAEntityTypes>
+        <JPAEmbeddableTypes>
+            <JPAEmbeddableType name="Address">
+                <EDMComplexType>AddressInfo</EDMComplexType>
+                <JPAAttributes>
+                    <JPAAttribute name="houseNumber">Number</JPAAttribute>
+                    <JPAAttribute name="streetName">Street</JPAAttribute>
+                </JPAAttributes>
+            </JPAEmbeddableType>
+        </JPAEmbeddableTypes>
+    </PersistenceUnit>
+</JPAEDMMappingModel>
