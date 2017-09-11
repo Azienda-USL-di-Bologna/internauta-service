@@ -8,7 +8,7 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
     <bean id="logOutbound" class="org.apache.cxf.interceptor.LoggingOutInterceptor"/>
 
     <context:annotation-config />
-    <!--<context:component-scan base-package="it.bologna.ausl"/>-->
+    <context:component-scan base-package="it.nextsw"/>
 
 
 

@@ -9,12 +9,12 @@
         http://www.springframework.org/schema/mvc
         http://www.springframework.org/schema/mvc/spring-mvc.xsd">
 
-    <!--<context:component-scan base-package="it.bologna.ausl" />-->
+    <context:component-scan base-package="it.nextsw" />
     <mvc:annotation-driven />
 
 
     <!--<odata:server address="/OData.svc" factory="jPAServiceFactory" id="SomeIdForTheService"/>-->
-    <bean name="jPAServiceFactory" class="it.bologna.ausl.baborg.odata.processor.JPAServiceFactory"/>
+    <bean name="jPAServiceFactory" class="it.nextsw.odata.processor.JPAServiceFactory"/>
 
     <bean id="rootLocator" class="org.apache.olingo.odata2.spring.OlingoRootLocator" >
         <property name="serviceFactory" ref="jPAServiceFactory" />

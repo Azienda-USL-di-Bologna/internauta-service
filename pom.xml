@@ -2,13 +2,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>it.bologna.ausl</groupId>
-    <artifactId>baborg-service</artifactId>
-    <version>0.0.1</version>
+    <groupId>it.nextsw</groupId>
+    <artifactId>next-springlingo-castelmaggiore</artifactId>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>baborg-service</name>
-    <description>BabOrg Server</description>
+    <description>Next backend con Olingo e Spring - castelmaggiore</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -29,28 +29,56 @@
     <profiles>
         <profile>
             <id>local</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <properties>
                 <settings.db.driverClass>com.mysql.jdbc.Driver</settings.db.driverClass>
                 <settings.db.connectionURL>jdbc:mysql://localhost:3306/organigramma</settings.db.connectionURL>
-                <settings.db.username>orgauser</settings.db.username>
-                <settings.db.password>orgapass</settings.db.password>
+                <settings.db.username>root</settings.db.username>
+                <settings.db.password>root</settings.db.password>
+                <settings.db.hibernate.dialect>org.hibernate.dialect.MySQL5Dialect</settings.db.hibernate.dialect>
                 <!--Cors setting-->
                 <settings.cors.allow.origin>http://localhost:4200</settings.cors.allow.origin>
+
+                <!-- Email settings -->
+                <!--<settings.system.email.address>prova@prova.it</settings.system.email.address>-->
+                <settings.email.thread.pool.size>1</settings.email.thread.pool.size>
+                <settings.mail.sender.host>smtp.gmail.com</settings.mail.sender.host>
+                <settings.mail.sender.port>465</settings.mail.sender.port>
+                <settings.mail.sender.protocol>smtps</settings.mail.sender.protocol>
+                <settings.mail.sender.username>username</settings.mail.sender.username>
+                <settings.mail.sender.password>password</settings.mail.sender.password>
+                <settings.mail.sender.smtps.auth>true</settings.mail.sender.smtps.auth>
+                <settings.mail.sender.smtp.auth.mechanisms>LOGIN PLAIN</settings.mail.sender.smtp.auth.mechanisms>
+                <!--<settings.mail.sender.smtps.starttls.enable>false</settings.mail.sender.smtps.starttls.enable>-->
             </properties>
         </profile>
         <profile>
             <id>postgres local</id>
-             <activation>
+            <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
                 <settings.db.driverClass>org.postgresql.Driver</settings.db.driverClass>
-                <settings.db.connectionURL>jdbc:postgresql://gdml:5432/babel?stringtype=unspecified</settings.db.connectionURL>
+                <settings.db.connectionURL>jdbc:postgresql://gdml:5432/babel?stringtype=unspecified
+                </settings.db.connectionURL>
                 <settings.db.username>postgres</settings.db.username>
                 <settings.db.password>siamofreschi</settings.db.password>
                 <settings.db.hibernate.dialect>org.hibernate.dialect.PostgreSQL94Dialect</settings.db.hibernate.dialect>
                 <!--Cors setting-->
                 <settings.cors.allow.origin>*</settings.cors.allow.origin>
+
+                <!-- Email settings -->
+                <!--<settings.system.email.address>prova@prova.it</settings.system.email.address>-->
+                <settings.email.thread.pool.size>1</settings.email.thread.pool.size>
+                <settings.mail.sender.host>smtp.gmail.com</settings.mail.sender.host>
+                <settings.mail.sender.port>465</settings.mail.sender.port>
+                <settings.mail.sender.protocol>smtps</settings.mail.sender.protocol>
+                <settings.mail.sender.username>username</settings.mail.sender.username>
+                <settings.mail.sender.password>password</settings.mail.sender.password>
+                <settings.mail.sender.smtps.auth>true</settings.mail.sender.smtps.auth>
+                <settings.mail.sender.smtp.auth.mechanisms>LOGIN PLAIN</settings.mail.sender.smtp.auth.mechanisms>
             </properties>
         </profile>
     </profiles>
@@ -164,6 +192,12 @@
             <type>jar</type>
         </dependency>
         <dependency>
+            <groupId>it.nextsw</groupId>
+            <artifactId>next-olingo-middleware</artifactId>
+            <version>${olingo.odata2.version}.alfa4</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
             <groupId>org.eclipse.persistence</groupId>
             <artifactId>eclipselink</artifactId>
             <version>2.6.4</version>
@@ -176,7 +210,7 @@
         <dependency>
             <groupId>org.apache.olingo</groupId>
             <artifactId>olingo-odata2-spring</artifactId>
-            <version>2.0.8</version>
+            <version>${olingo.odata2.version}</version>
         </dependency>
         <!-- CXF -->
         <dependency>
@@ -199,9 +233,9 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
         <!--<dependency>-->
-            <!--<groupId>org.apache.cxf</groupId>-->
-            <!--<artifactId>cxf-bundle-jaxrs</artifactId>-->
-            <!--<version>2.7.17</version>-->
+        <!--<groupId>org.apache.cxf</groupId>-->
+        <!--<artifactId>cxf-bundle-jaxrs</artifactId>-->
+        <!--<version>2.7.17</version>-->
         <!--</dependency>-->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -234,6 +268,12 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-net</groupId>
+            <artifactId>commons-net</artifactId>
+            <version>3.6</version>
         </dependency>
 
         <!--        <dependency>
@@ -279,11 +319,24 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- email -->
         <dependency>
-            <groupId>it.nextsw</groupId>
-            <artifactId>next-olingo-middleware</artifactId>
-            <version>2.0.9.alfa4</version>
+            <groupId>javax.mail</groupId>
+            <artifactId>javax.mail-api</artifactId>
+            <version>1.5.1</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.integration</groupId>
+            <artifactId>spring-integration-mail</artifactId>
+            <version>4.3.11.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.5.5</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -291,17 +344,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring.boot.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-                        <configuration>
-                            <classifier>exec</classifier>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
