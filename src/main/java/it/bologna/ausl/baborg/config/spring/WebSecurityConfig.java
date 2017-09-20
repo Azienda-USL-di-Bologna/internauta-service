@@ -1,12 +1,12 @@
 package it.bologna.ausl.baborg.config.spring;
 
 
-import it.bologna.ausl.baborg.security.auth.LogoutSuccess;
-import it.bologna.ausl.baborg.security.auth.RestAuthenticationEntryPoint;
 import it.bologna.ausl.baborg.security.auth.AuthenticationFailureHandler;
-import it.bologna.ausl.baborg.security.auth.CustomUserDetailsService;
-import it.bologna.ausl.baborg.security.auth.TokenAuthenticationFilter;
 import it.bologna.ausl.baborg.security.auth.AuthenticationSuccessHandler;
+import it.bologna.ausl.baborg.security.auth.CustomUserDetailsService;
+import it.bologna.ausl.baborg.security.auth.LogoutSuccess;
+import it.bologna.ausl.baborg.security.auth.TokenAuthenticationFilter;
+import it.bologna.ausl.baborg.security.auth.RestAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

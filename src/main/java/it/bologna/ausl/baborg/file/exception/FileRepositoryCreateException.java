@@ -5,4 +5,11 @@ package it.bologna.ausl.baborg.file.exception;
  */
 public class FileRepositoryCreateException extends Exception {
 
+    public FileRepositoryCreateException(String message) {
+        super(message);
+    }
+
+    public FileRepositoryCreateException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

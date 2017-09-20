@@ -1,7 +1,7 @@
 package it.bologna.ausl.baborg.odata.interceptor;
 
 import com.querydsl.core.types.Predicate;
-import it.bologna.ausl.baborg.entities.Utente;
+//import it.nextsw.entities.Utente;
 import it.bologna.ausl.baborg.odata.contex.CustomOdataJpaContextBase;
 import it.nextsw.olingo.interceptor.OlingoInterceptorOperation;
 import it.nextsw.olingo.interceptor.OlingoRequestInterceptorImpl;
@@ -241,11 +241,11 @@ public abstract class OlingoRequestInterceptorBase extends OlingoRequestIntercep
         return null;
     }
 
-    protected Utente getUtente() {
-        if (SecurityContextHolder.getContext().getAuthentication().getPrincipal() != null && Utente.class.isAssignableFrom(SecurityContextHolder.getContext().getAuthentication().getPrincipal().getClass()))
-            return (Utente) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return null;
-    }
+//    protected Utente getUtente() {
+//        if (SecurityContextHolder.getContext().getAuthentication().getPrincipal() != null && Utente.class.isAssignableFrom(SecurityContextHolder.getContext().getAuthentication().getPrincipal().getClass()))
+//            return (Utente) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+//        return null;
+//    }
 
 
 }

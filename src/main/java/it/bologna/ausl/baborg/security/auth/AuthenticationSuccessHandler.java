@@ -2,11 +2,11 @@ package it.bologna.ausl.baborg.security.auth;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.bologna.ausl.baborg.entities.Utente;
 import it.bologna.ausl.baborg.security.UserTokenState;
 import it.bologna.ausl.baborg.security.login.bean.LoginResponseDTO;
 import it.bologna.ausl.baborg.security.login.bean.LoginStatus;
 import it.bologna.ausl.baborg.security.utils.TokenHelper;
+import it.bologna.ausl.entities.baborg.Utente;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;

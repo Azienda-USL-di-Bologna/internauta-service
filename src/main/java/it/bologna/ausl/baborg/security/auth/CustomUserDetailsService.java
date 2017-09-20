@@ -1,7 +1,7 @@
 package it.bologna.ausl.baborg.security.auth;
 
-import it.bologna.ausl.baborg.entities.Utente;
 import it.bologna.ausl.baborg.service.UtenteRepository;
+import it.bologna.ausl.entities.baborg.Utente;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

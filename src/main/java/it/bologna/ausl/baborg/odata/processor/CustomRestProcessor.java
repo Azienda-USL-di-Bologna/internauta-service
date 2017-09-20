@@ -1,6 +1,6 @@
 package it.bologna.ausl.baborg.odata.processor;
 
-import it.bologna.ausl.baborg.entities.Utente;
+//import it.nextsw.entities.Utente;
 import it.bologna.ausl.baborg.odata.bean.CustomExtendOperationBase;
 import it.bologna.ausl.baborg.odata.complextypes.OrderValue;
 
@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Scope("prototype")
-@EdmFunctionImportClass
+//@EdmFunctionImportClass
 public class CustomRestProcessor extends CustomExtendOperationBase {
 
     private static final Logger logger = Logger.getLogger(CustomRestProcessor.class);
@@ -80,30 +80,30 @@ public class CustomRestProcessor extends CustomExtendOperationBase {
         return orderValues;
     }
 
-    @EdmFunctionImport(
-            name = "UtentiNome",
-            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.ENTITY, isCollection = true),
-            httpMethod = EdmFunctionImport.HttpMethod.GET,
-            entitySet = "Utentes"
-    )
-    public List<Utente> getFuncUtente(
-            @EdmFunctionImportParameter(name = "nomeutente", facets = @EdmFacets(nullable = true))
-                    String nome,
-            @EdmFunctionImportParameter(name = "skip", facets = @EdmFacets(nullable = true))
-                    Integer skip,
-            @EdmFunctionImportParameter(name = "top", facets = @EdmFacets(nullable = true))
-                    Integer top
-    ) {
-        try {
-//            JPAQuery<Utente> query = new JPAQuery<>(em);
-//            QUtente utenteRicerca = QUtente.utente;
-//            List<Utente> utenteTrovato = query.from(utenteRicerca)
-//                    .where(utenteRicerca.nome.eq(nome)).offset(skip).limit(top).fetch();
-//            return utenteTrovato;
-            return null;
-        } catch (Exception e) {
-            System.out.println("Eccezione nella function: " + e.getMessage());
-            return null;
-        }
-    }
+//    @EdmFunctionImport(
+//            name = "UtentiNome",
+//            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.ENTITY, isCollection = true),
+//            httpMethod = EdmFunctionImport.HttpMethod.GET,
+//            entitySet = "Utentes"
+//    )
+//    public List<Utente> getFuncUtente(
+//            @EdmFunctionImportParameter(name = "nomeutente", facets = @EdmFacets(nullable = true))
+//                    String nome,
+//            @EdmFunctionImportParameter(name = "skip", facets = @EdmFacets(nullable = true))
+//                    Integer skip,
+//            @EdmFunctionImportParameter(name = "top", facets = @EdmFacets(nullable = true))
+//                    Integer top
+//    ) {
+//        try {
+////            JPAQuery<Utente> query = new JPAQuery<>(em);
+////            QUtente utenteRicerca = QUtente.utente;
+////            List<Utente> utenteTrovato = query.from(utenteRicerca)
+////                    .where(utenteRicerca.nome.eq(nome)).offset(skip).limit(top).fetch();
+////            return utenteTrovato;
+//            return null;
+//        } catch (Exception e) {
+//            System.out.println("Eccezione nella function: " + e.getMessage());
+//            return null;
+//        }
+//    }
 }

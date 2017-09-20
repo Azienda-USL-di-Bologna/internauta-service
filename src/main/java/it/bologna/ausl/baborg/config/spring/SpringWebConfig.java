@@ -1,17 +1,16 @@
 package it.bologna.ausl.baborg.config.spring;
 
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @Configuration
-//@ComponentScan("it.bologna.ausl.entities")
-//@ComponentScan(basePackages = {"it.nextsw", "it.bologna.ausl"})
+//@ComponentScan(basePackages = "it.nextsw")
 //@EnableAutoConfiguration
 @EnableJpaRepositories(basePackages = {"it.bologna.ausl.baborg.service"})
-@ImportResource("classpath:spring/spring.xml")
+@EntityScan(basePackages = "it.bologna.ausl.entities")
+@ImportResource({"classpath:spring/spring.xml", "classpath:spring/mail-config.xml"})
 public class SpringWebConfig {
 
 

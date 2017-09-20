@@ -16,7 +16,7 @@ import java.util.Set;
 @Service
 public class ReflectionUtils {
 
-    private String basePackage="it.bologna.ausl";
+    private String basePackage="it.nextws";
     //private Reflections reflections;
 
 //    @PostConstruct

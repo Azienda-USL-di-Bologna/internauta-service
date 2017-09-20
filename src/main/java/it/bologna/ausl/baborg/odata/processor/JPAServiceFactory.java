@@ -28,7 +28,6 @@ public class JPAServiceFactory extends ODataJPAServiceFactory {
 
     private static final Logger logger = Logger.getLogger(JPAServiceFactory.class);
 
-    @Value("")
     public static final String DEFAULT_ENTITY_UNIT_NAME = "Model";
     public static final String ENTITY_MANAGER_FACTORY_ID = "entityManagerFactory";
     private static final String MAPPING_MODEL = "SalesOrderProcessingMappingModel.xml";
@@ -96,5 +95,6 @@ public class JPAServiceFactory extends ODataJPAServiceFactory {
             return (T) new CustomOdataDebugCallback();
         return null;
     }
-    
+
+
 }
