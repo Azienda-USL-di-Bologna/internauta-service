@@ -23,7 +23,8 @@
         <java.version>1.8</java.version>
         <spring.boot.version>1.5.2.RELEASE</spring.boot.version>
         <olingo.version>4.3.0</olingo.version>
-        <olingo.odata2.version>2.0.9</olingo.odata2.version>
+        <olingo.odata2.version>2.0.10-NEXT-SNAPSHOT</olingo.odata2.version>
+        <eclipse.link.version>2.7.0</eclipse.link.version>
     </properties>
 
     <profiles>
@@ -65,7 +66,6 @@
                 </settings.db.connectionURL>
                 <settings.db.username>postgres</settings.db.username>
                 <settings.db.password>siamofreschi</settings.db.password>
-                <settings.db.hibernate.dialect>org.hibernate.dialect.PostgreSQL94Dialect</settings.db.hibernate.dialect>
                 <!--Cors setting-->
                 <settings.cors.allow.origin>*</settings.cors.allow.origin>
 
@@ -79,6 +79,10 @@
                 <settings.mail.sender.password>password</settings.mail.sender.password>
                 <settings.mail.sender.smtps.auth>true</settings.mail.sender.smtps.auth>
                 <settings.mail.sender.smtp.auth.mechanisms>LOGIN PLAIN</settings.mail.sender.smtp.auth.mechanisms>
+                <setting.db.eclipselink.weaving>true</setting.db.eclipselink.weaving>
+                <setting.db.eclipselink.dialect>PostgreSQL</setting.db.eclipselink.dialect>
+                <setting.db.eclipselink.ddl.generation>none</setting.db.eclipselink.ddl.generation>
+               
             </properties>
         </profile>
     </profiles>
@@ -98,6 +102,22 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
             <version>${spring.boot.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>hibernate-entitymanager</artifactId>
+                    <groupId>org.hibernate</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.persistence</groupId>
+            <artifactId>eclipselink</artifactId>
+            <version>${eclipse.link.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-instrument</artifactId>
+            <version>4.3.11.RELEASE</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -194,7 +214,7 @@
         <dependency>
             <groupId>it.nextsw</groupId>
             <artifactId>next-olingo-middleware</artifactId>
-            <version>${olingo.odata2.version}.alfa4</version>
+            <version>${olingo.odata2.version}.alfa5</version>
             <type>jar</type>
         </dependency>
         <dependency>
@@ -397,6 +417,17 @@
         <repository>
             <id>snapshots</id>
             <url>https://repository.apache.org/content/repositories/snapshots</url>
+        </repository>
+        <repository>
+            <id>Next Apache olingo repo</id>
+            <url>https://raw.githubusercontent.com/nextswsrl/olingo-odata2/mvn-repo/</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
         </repository>
     </repositories>
 
