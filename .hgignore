@@ -6,3 +6,4 @@ next-springlingo-castelmaggiore.iml
 .hgignore.orig
 *.orig
 nbactions.xml
+nb-configuration.xml
