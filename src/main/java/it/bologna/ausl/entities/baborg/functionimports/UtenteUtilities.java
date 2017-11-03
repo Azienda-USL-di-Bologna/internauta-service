@@ -33,23 +33,24 @@ public class UtenteUtilities extends EdmFunctionImportClassBase{
 //    @Autowired
 //    UtenteRepository utenteRepository;
 
-    @EdmFunctionImport(
-            name = "GetUtentiByAzienda",
-            entitySet = "Utentes",
+//    @EdmFunctionImport(
+//            name = "GetUtentiByAzienda",
+//            entitySet = "Utentes",
             returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.ENTITY, formatResult = EdmFunctionImport.FormatResult.PAGINATED_COLLECTION, EdmEntityTypeName = "Utente"),
-            httpMethod = EdmFunctionImport.HttpMethod.GET
-    )
+//            httpMethod = EdmFunctionImport.HttpMethod.GET
+//    )
     public JPAQueryInfo getUtentiByAzienda(
-            @EdmFunctionImportParameter(name = "idAzienda",  facets = @EdmFacets(nullable = false))
-            final Integer idAzienda
-    ){
-        logger.info("sono in getUtentiByAzienda, idAzienda: " + idAzienda);
+//            @EdmFunctionImportParameter(name = "idAzienda",  facets = @EdmFacets(nullable = false))
+//            final Integer idAzienda
+//    ){
+//        logger.info("sono in getUtentiByAzienda, idAzienda: " + idAzienda);
         JPAQuery queryDSL=new JPAQuery(em);
         queryDSL.select(QUtenteStruttura.utenteStruttura.idUtente).from(QUtenteStruttura.utenteStruttura).where(QUtenteStruttura.utenteStruttura.idStruttura.idAzienda.id.eq(idAzienda));
 //        Query query=queryDSL.createQuery();
 //        Query countQuery =queryDSL.clone(em).select(QUtenteStruttura.utenteStruttura.idUtente.count()).createQuery();
-
+////        List<Utente> utenti=em.createQuery("select u from Utente as u where u.id<12700").getResultList();
         return createQueryInfo(queryDSL,QUtenteStruttura.utenteStruttura.idUtente.count(),em);
+    }
     }
 
 }
