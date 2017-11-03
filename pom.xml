@@ -67,7 +67,7 @@
                 <settings.db.username>postgres</settings.db.username>
                 <settings.db.password>siamofreschi</settings.db.password>
                 <!--Cors setting-->
-                <settings.cors.allow.origin>*</settings.cors.allow.origin>
+                <settings.cors.allow.origin>http://localhost:4200</settings.cors.allow.origin>
 
                 <!-- Email settings -->
                 <!--<settings.system.email.address>prova@prova.it</settings.system.email.address>-->
@@ -154,7 +154,6 @@
             <artifactId>spring-security-openid</artifactId>
             <version>4.2.3.RELEASE</version>
         </dependency>
-
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt</artifactId>
@@ -214,7 +213,7 @@
         <dependency>
             <groupId>it.nextsw</groupId>
             <artifactId>next-olingo-middleware</artifactId>
-            <version>${olingo.odata2.version}.alfa5</version>
+            <version>${olingo.odata2.version}.alfa6</version>
             <type>jar</type>
         </dependency>
         <dependency>

@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Scope("prototype")
-//@EdmFunctionImportClass
+//@EdmFunctionImportClass ESEMPIO DA NON CONSIDERARE
 public class CustomRestProcessor extends CustomExtendOperationBase {
 
     private static final Logger logger = Logger.getLogger(CustomRestProcessor.class);
@@ -61,7 +61,8 @@ public class CustomRestProcessor extends CustomExtendOperationBase {
 //
     @EdmFunctionImport(
             name = "pippo",
-            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.COMPLEX, isCollection = true),
+            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.COMPLEX, 
+                    formatResult=EdmFunctionImport.FormatResult.COLLECTION),
             httpMethod = EdmFunctionImport.HttpMethod.GET
     )
     public List<OrderValue> getOrderValue(

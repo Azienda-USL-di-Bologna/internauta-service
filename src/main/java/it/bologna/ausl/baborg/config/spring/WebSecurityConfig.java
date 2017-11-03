@@ -3,7 +3,7 @@ package it.bologna.ausl.baborg.config.spring;
 
 import it.bologna.ausl.baborg.security.auth.AuthenticationFailureHandler;
 import it.bologna.ausl.baborg.security.auth.AuthenticationSuccessHandler;
-import it.bologna.ausl.baborg.security.auth.CustomUserDetailsService;
+import it.bologna.ausl.baborg.security.jwt.CustomUserDetailsService;
 import it.bologna.ausl.baborg.security.auth.LogoutSuccess;
 import it.bologna.ausl.baborg.security.auth.TokenAuthenticationFilter;
 import it.bologna.ausl.baborg.security.auth.RestAuthenticationEntryPoint;
@@ -27,9 +27,11 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @Configuration
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+    
+    
 
-    @Value("${jwt.cookie}")
-    private String TOKEN_COOKIE;
+//    @Value("${jwt.cookie}")
+//    private String TOKEN_COOKIE;
 
     @Bean
     public TokenAuthenticationFilter jwtAuthenticationTokenFilter() throws Exception {
@@ -58,26 +60,27 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http
-                .csrf()
-                //todo csrf disabilitato in attesa di implementazione lato front end
-                .disable()
-                //.ignoringAntMatchers("/auth/login")
-                //.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()).and()
-                .sessionManagement().sessionCreationPolicy( SessionCreationPolicy.STATELESS ).and()
-                .exceptionHandling().authenticationEntryPoint( restAuthenticationEntryPoint ).and()
-                .addFilterBefore(jwtAuthenticationTokenFilter(), BasicAuthenticationFilter.class)
-                .authorizeRequests()
-                .anyRequest()
-                .authenticated().and()
-                .formLogin()
-                .loginPage("/auth/login")
-                .successHandler(authenticationSuccessHandler)
-                .failureHandler(authenticationFailureHandler).and()
-                .logout()
-                .logoutRequestMatcher(new AntPathRequestMatcher("/auth/logout"))
-                .logoutSuccessHandler(logoutSuccess)
-                .deleteCookies(TOKEN_COOKIE);
+//        http
+//                .csrf()
+//                //todo csrf disabilitato in attesa di implementazione lato front end
+//                .disable()
+//                //.ignoringAntMatchers("/auth/login")
+//                //.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()).and()
+//                .sessionManagement().sessionCreationPolicy( SessionCreationPolicy.STATELESS ).and()
+//                .exceptionHandling().authenticationEntryPoint( restAuthenticationEntryPoint ).and()
+//                .addFilterBefore(jwtAuthenticationTokenFilter(), BasicAuthenticationFilter.class)
+//                .authorizeRequests()
+//                .anyRequest()
+//                .authenticated().and()
+//                .formLogin()
+//                .loginPage("/auth/login")
+//                .successHandler(authenticationSuccessHandler)
+//                .failureHandler(authenticationFailureHandler).and()
+//                .logout()
+//                .logoutRequestMatcher(new AntPathRequestMatcher("/auth/logout"))
+//                .logoutSuccessHandler(logoutSuccess)
+//                .deleteCookies(TOKEN_COOKIE);
+        http.csrf().disable().authorizeRequests().anyRequest().permitAll();
 
     }
 

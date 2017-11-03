@@ -55,8 +55,7 @@ public class JPAServiceFactory extends ODataJPAServiceFactory {
         // mapping model????
         // oDataJPAContext.setJPAEdmMappingModel(MAPPING_MODEL);
 
-        // normalmente un contesto odataJPA ha associato un oggetto di tipo JPAEdmExtension_NU standard
-        // settando un nuovo oggetto di una classe custom che estende JPAEdmExtension_NU posso ottenere
+        // settando un nuovo oggetto di una classe custom che estende JPAEdmExtension posso ottenere
         // dei comportamenti customizzati
         oDataJPAContext.setJPAEdmExtension(applicationContext.getBean(CustomProcessingEdmExtension.class));
 

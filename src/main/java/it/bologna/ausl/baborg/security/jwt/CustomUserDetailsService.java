@@ -1,4 +1,4 @@
-package it.bologna.ausl.baborg.security.auth;
+package it.bologna.ausl.baborg.security.jwt;
 
 import it.bologna.ausl.baborg.service.UtenteRepository;
 import it.bologna.ausl.entities.baborg.Utente;
@@ -25,5 +25,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         } else {
             return user;
         }
+    }
+    
+    public UserDetails loadByParameter(String field,String value){
+        return utenteRepository.getByCodiceFiscale(value);    
     }
 }
