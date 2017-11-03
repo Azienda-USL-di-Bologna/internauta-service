@@ -15,22 +15,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
+public class JwtFilter extends GenericFilterBean {
 
-public class  JwtFilter extends GenericFilterBean {
-
-    
     private String SECRET_KEY;
-    
-    JwtFilter(String secretKey){
+
+    JwtFilter(String secretKey) {
         super();
-        this.SECRET_KEY=secretKey;
+        this.SECRET_KEY = secretKey;
     }
-    
+
     @Override
     public void doFilter(final ServletRequest req,
             final ServletResponse res,
             final FilterChain chain) throws IOException, ServletException {
-        
+
         final HttpServletRequest request = (HttpServletRequest) req;
 
         final String authHeader = request.getHeader("Authorization");
@@ -39,12 +37,13 @@ public class  JwtFilter extends GenericFilterBean {
             throw new ServletException("Missing or invalid Authorization header.");
         }
 
-        final String token = authHeader.substring(7); // la parte dopo "Bearer "
+        // la parte dopo "Bearer "
+        final String token = authHeader.substring(7);
 
         try {
             final Claims claims = Jwts.parser().setSigningKey(SECRET_KEY)
                     .parseClaimsJws(token).getBody();
-            
+
             request.setAttribute("claims", claims);
         } catch (final SignatureException e) {
             throw new ServletException("Invalid token.");

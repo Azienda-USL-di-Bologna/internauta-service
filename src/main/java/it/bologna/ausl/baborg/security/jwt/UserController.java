@@ -10,16 +10,13 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Date;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.cxf.common.util.ReflectionInvokationHandler;
-import org.apache.http.HttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -30,18 +27,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-    // dati fake prim di essere inserire i dati da DB
-    //private final Map<String, List<String>> userDb = new HashMap<>();
     private SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
 
     @Value("${jwt.secret}")
     private String SECRET_KEY;
 
-    @Value("${saml.user.field:CodiceFiscale}")
+    @Value("${jwt.saml.user.field:CodiceFiscale}")
     private String samlUser;
 
-    @Value("${saml.db.login_field:cf}")
+    @Value("${jwt.saml.db.login_field:cf}")
     private String dbField;
+
+    @Value("${jwt.saml.enabled:false}")
+    private boolean samlEnabled;
 
     @Autowired
     CustomUserDetailsService userDb;
@@ -50,7 +48,7 @@ public class UserController {
     }
 
     @RequestMapping(value = "login", method = RequestMethod.POST)
-    public LoginResponse loginPOST(@RequestBody final UserLogin userLogin) throws ServletException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public ResponseEntity<LoginResponse> loginPOST(@RequestBody final UserLogin userLogin) throws ServletException, NoSuchAlgorithmException, InvalidKeySpecException {
         UserDetails ud = null;
 
         logger.debug("login username: " + userLogin.username);
@@ -70,27 +68,29 @@ public class UserController {
             throw new ServletException("Invalid login");
         }
 
-        logger.info(String.format("User: %s logged in %s ", ud.getUsername(), ((Utente) ud).getDescrizione()));
-        return new LoginResponse(Jwts.builder().setSubject(ud.getUsername())
+        return new ResponseEntity(new LoginResponse(Jwts.builder().setSubject(ud.getUsername())
                 .claim("roles", "admin").setIssuedAt(new Date())
                 .signWith(SIGNATURE_ALGORITHM, SECRET_KEY).compact(),
-                ud.getUsername());
+                ud.getUsername()), HttpStatus.OK);
     }
 
     @RequestMapping(value = "login", method = RequestMethod.GET)
-    public LoginResponse loginGET(HttpServletRequest request) throws ServletException, NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+    public ResponseEntity<LoginResponse> loginGET(HttpServletRequest request) throws ServletException, NoSuchAlgorithmException, InvalidKeySpecException, IOException {
         UserDetails ud = null;
         //LOGIN SAML
+        if (!samlEnabled) {
+            return new ResponseEntity("SAML authentication not enabled", HttpStatus.UNAUTHORIZED);
+        }
         String user = request.getAttribute(samlUser).toString();
         ud = userDb.loadByParameter(dbField, user);
         if (ud == null) {
             throw new ServletException("User not found");
         }
         logger.info(String.format("User: %s logged in %s ", ud.getUsername(), ((Utente) ud).getDescrizione()));
-        return new LoginResponse(Jwts.builder().setSubject(ud.getUsername())
+        return new ResponseEntity(new LoginResponse(Jwts.builder().setSubject(ud.getUsername())
                 .claim("roles", "admin").setIssuedAt(new Date())
                 .signWith(SIGNATURE_ALGORITHM, SECRET_KEY).compact(),
-                ud.getUsername());
+                ud.getUsername()), HttpStatus.OK);
     }
 
     @SuppressWarnings("unused")

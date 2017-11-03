@@ -5,14 +5,11 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class JwtUtils {
-    
+
     @Value("${jwt.secret}")
     private static String SECRET_KEY;
 
     public static String getSECRET_KEY() {
         return SECRET_KEY;
     }
-
-    
-    
 }
