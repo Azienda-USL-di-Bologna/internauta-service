@@ -7,7 +7,6 @@ import it.bologna.ausl.baborg.odata.complextypes.OrderValue;
 import java.util.ArrayList;
 import java.util.List;
 
-
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
@@ -32,7 +31,6 @@ public class CustomRestProcessor extends CustomExtendOperationBase {
     private EntityManager em;
     @Autowired
     private UtenteRepository utenteRepository;
-
 
     //    @EdmFunctionImport(
 //            name = "TransazioneConAnnotation",
@@ -61,8 +59,8 @@ public class CustomRestProcessor extends CustomExtendOperationBase {
 //
 //    @EdmFunctionImport(
 //            name = "pippo",
-            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.COMPLEX, 
-                    formatResult=EdmFunctionImport.FormatResult.COLLECTION),
+//            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.COMPLEX, 
+//                    formatResult=EdmFunctionImport.FormatResult.COLLECTION),
 //    )
 //    public List<OrderValue> getOrderValue(
 //            @EdmFunctionImportParameter(name = "nameContains", facets = @EdmFacets(nullable = true))
@@ -79,7 +77,6 @@ public class CustomRestProcessor extends CustomExtendOperationBase {
 //        }
 //        return orderValues;
 //    }
-
 //    @EdmFunctionImport(
 //            name = "UtentiNome",
 //            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.ENTITY, isCollection = true),
