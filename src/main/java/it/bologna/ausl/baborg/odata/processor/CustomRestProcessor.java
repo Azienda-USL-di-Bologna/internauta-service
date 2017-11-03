@@ -59,26 +59,26 @@ public class CustomRestProcessor extends CustomExtendOperationBase {
 //        return "Check FI con POST";
 //    }
 //
-    @EdmFunctionImport(
-            name = "pippo",
-            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.COMPLEX, isCollection = true),
-            httpMethod = EdmFunctionImport.HttpMethod.GET
-    )
-    public List<OrderValue> getOrderValue(
-            @EdmFunctionImportParameter(name = "nameContains", facets = @EdmFacets(nullable = true))
-                    String nameToFind
-    ) {
-        logger.info("sono nella pippo");
-        List<OrderValue> orderValues = new ArrayList<>();
-        OrderValue orderValue;
-        for (int i = 0; i < 100; i++) {
-            orderValue = new OrderValue();
-            orderValue.setAmount(1.5d * i);
-            orderValues.add(orderValue);
-            orderValue.setCurrency("SOFFITEIR" + i);
-        }
-        return orderValues;
-    }
+//    @EdmFunctionImport(
+//            name = "pippo",
+//            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.COMPLEX, isCollection = true),
+//            httpMethod = EdmFunctionImport.HttpMethod.GET
+//    )
+//    public List<OrderValue> getOrderValue(
+//            @EdmFunctionImportParameter(name = "nameContains", facets = @EdmFacets(nullable = true))
+//                    String nameToFind
+//    ) {
+//        logger.info("sono nella pippo");
+//        List<OrderValue> orderValues = new ArrayList<>();
+//        OrderValue orderValue;
+//        for (int i = 0; i < 100; i++) {
+//            orderValue = new OrderValue();
+//            orderValue.setAmount(1.5d * i);
+//            orderValues.add(orderValue);
+//            orderValue.setCurrency("SOFFITEIR" + i);
+//        }
+//        return orderValues;
+//    }
 
 //    @EdmFunctionImport(
 //            name = "UtentiNome",

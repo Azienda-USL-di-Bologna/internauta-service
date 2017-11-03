@@ -30,25 +30,25 @@ public class UtenteUtilities {
 //    @Autowired
 //    UtenteRepository utenteRepository;
 
-    @EdmFunctionImport(
-            name = "GetUtentiByAzienda",
-            entitySet = "Utentes",
-            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.ENTITY, isCollection = true),
-            httpMethod = EdmFunctionImport.HttpMethod.GET
-    )
-    public List<Utente> getUtentiByAzienda(
-            @EdmFunctionImportParameter(name = "idAzienda",  facets = @EdmFacets(nullable = false))
-            final Integer idAzienda
-    ){
-        logger.info("sono in getUtentiByAzienda, idAzienda: " + idAzienda);
-        JPQLQuery query=new JPAQuery(em);
-        query.select(QUtenteStruttura.utenteStruttura.idUtente).from(QUtenteStruttura.utenteStruttura).where(QUtenteStruttura.utenteStruttura.idStruttura.idAzienda.id.eq(idAzienda));
-        List<Utente> utenti=query.fetch();
-
-//        List<Utente> utenti=em.createQuery("select u from Utente as u where u.id<12700").getResultList();
-//        List<Utente> utenti=em.createQuery("select us.idUtente from UtenteStruttura as us where us.idStruttura.id="+idAzienda).getResultList();
-        return utenti;
-    }
+//    @EdmFunctionImport(
+//            name = "GetUtentiByAzienda",
+//            entitySet = "Utentes",
+//            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.ENTITY, isCollection = true),
+//            httpMethod = EdmFunctionImport.HttpMethod.GET
+//    )
+//    public List<Utente> getUtentiByAzienda(
+//            @EdmFunctionImportParameter(name = "idAzienda",  facets = @EdmFacets(nullable = false))
+//            final Integer idAzienda
+//    ){
+//        logger.info("sono in getUtentiByAzienda, idAzienda: " + idAzienda);
+//        JPQLQuery query=new JPAQuery(em);
+//        query.select(QUtenteStruttura.utenteStruttura.idUtente).from(QUtenteStruttura.utenteStruttura).where(QUtenteStruttura.utenteStruttura.idStruttura.idAzienda.id.eq(idAzienda));
+//        List<Utente> utenti=query.fetch();
+//
+////        List<Utente> utenti=em.createQuery("select u from Utente as u where u.id<12700").getResultList();
+////        List<Utente> utenti=em.createQuery("select us.idUtente from UtenteStruttura as us where us.idStruttura.id="+idAzienda).getResultList();
+//        return utenti;
+//    }
 }
 
 
