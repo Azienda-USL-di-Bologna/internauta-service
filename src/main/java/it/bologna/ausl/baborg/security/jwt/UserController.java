@@ -86,7 +86,7 @@ public class UserController {
         if (ud == null) {
             throw new ServletException("User not found");
         }
-        logger.info(String.format("User: %s logged in %s ", ud.getUsername(), ((Utente) ud).getDescrizione()));
+        //logger.info(String.format("User: %s logged in %s ", ud.getUsername(), ((Utente) ud).getDescrizione()));
         return new ResponseEntity(new LoginResponse(Jwts.builder().setSubject(ud.getUsername())
                 .claim("roles", "admin").setIssuedAt(new Date())
                 .signWith(SIGNATURE_ALGORITHM, SECRET_KEY).compact(),
