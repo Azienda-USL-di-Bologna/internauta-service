@@ -1,6 +1,5 @@
 package it.bologna.ausl.baborg.odata.processor;
 
-
 import it.bologna.ausl.baborg.odata.contex.CustomOdataJpaContextBase;
 import it.bologna.ausl.baborg.odata.utils.ODataContextUtil;
 import it.nextsw.olingo.edmextension.CustomProcessingEdmExtension;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Component;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
-
 @Component
 public class JPAServiceFactory extends ODataJPAServiceFactory {
 
@@ -41,7 +39,6 @@ public class JPAServiceFactory extends ODataJPAServiceFactory {
     @PersistenceContext
     private EntityManager entityManager;
 
-
     @Override
     public ODataJPAContext initializeODataJPAContext() throws ODataJPARuntimeException {
 
@@ -54,7 +51,6 @@ public class JPAServiceFactory extends ODataJPAServiceFactory {
 
         // mapping model????
         // oDataJPAContext.setJPAEdmMappingModel(MAPPING_MODEL);
-
         // settando un nuovo oggetto di una classe custom che estende JPAEdmExtension posso ottenere
         // dei comportamenti customizzati
         oDataJPAContext.setJPAEdmExtension(applicationContext.getBean(CustomProcessingEdmExtension.class));
@@ -82,18 +78,16 @@ public class JPAServiceFactory extends ODataJPAServiceFactory {
         return customOdataJpaProcessor;
     }
 
-
     private void setErrorLevel() {
         setDetailErrors(true);
     }
 
-
     @Override
     public <T extends ODataCallback> T getCallback(final Class<T> callbackInterface) {
-        if (callbackInterface.isAssignableFrom(CustomOdataDebugCallback.class))
+        if (callbackInterface.isAssignableFrom(CustomOdataDebugCallback.class)) {
             return (T) new CustomOdataDebugCallback();
+        }
         return null;
     }
-
 
 }

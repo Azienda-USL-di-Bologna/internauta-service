@@ -12,17 +12,17 @@ public class RegistrationBean {
     private String ROOT_NAME;
     @Value("${jwt.secret:secret}")
     private String SECRET_KEY;
-    
-@Bean
+
+    @Bean
     public FilterRegistrationBean jwtFilter() {
-        
+
         final FilterRegistrationBean registrationBean = new FilterRegistrationBean();
 
         registrationBean.setFilter(new JwtFilter(SECRET_KEY));
-        
+
         // intercetta tutte le chiamate che iniziano per...
         registrationBean.addUrlPatterns(ROOT_NAME);
 
         return registrationBean;
-    }    
+    }
 }

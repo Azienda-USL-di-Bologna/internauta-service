@@ -28,9 +28,6 @@ public class SpringWebConfig {
 //        return registrationBean;
 //    }
 
-
-
-
     //    @Bean
 //    public WebMvcConfigurer corsConfigurer() {
 //        return new WebMvcConfigurerAdapter() {
@@ -45,7 +42,6 @@ public class SpringWebConfig {
 //            }
 //        };
 //    }
-
 //    @Override
 //    public void addCorsMappings(CorsRegistry registry) {
 //        registry.addMapping("/**")

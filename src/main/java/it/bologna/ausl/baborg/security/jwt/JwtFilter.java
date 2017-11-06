@@ -19,7 +19,7 @@ public class JwtFilter extends GenericFilterBean {
 
     private String SECRET_KEY;
 
-    JwtFilter(String secretKey) {
+    public JwtFilter(String secretKey) {
         super();
         this.SECRET_KEY = secretKey;
     }

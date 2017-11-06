@@ -27,11 +27,10 @@ public class CustomRestProcessor extends CustomExtendOperationBase {
 
     private static final Logger logger = Logger.getLogger(CustomRestProcessor.class);
 
-    @PersistenceContext
-    private EntityManager em;
-    @Autowired
-    private UtenteRepository utenteRepository;
-
+//    @PersistenceContext
+//    private EntityManager em;
+//    @Autowired
+//    private UtenteRepository utenteRepository;
     //    @EdmFunctionImport(
 //            name = "TransazioneConAnnotation",
 //            returnType = @EdmFunctionImport.ReturnType(type = EdmFunctionImport.ReturnType.Type.SIMPLE),
