@@ -56,7 +56,7 @@
             </properties>
         </profile>
         <profile>
-            <id>postgree local</id>
+            <id>postgres local</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
