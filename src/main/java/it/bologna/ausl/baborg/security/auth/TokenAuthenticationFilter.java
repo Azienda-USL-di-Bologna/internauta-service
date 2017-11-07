@@ -61,29 +61,27 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
     @Override
     public void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
 
-
-        String authToken = tokenHelper.getToken(request);
-        if (authToken != null && !skipPathRequest(request, pathsToSkip)) {
-            // get username from token
-            try {
-                String username = tokenHelper.getUsernameFromToken(authToken);
-                // get user
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                // create authentication
-                TokenBasedAuthentication authentication = new TokenBasedAuthentication(userDetails);
-                authentication.setToken(authToken);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } catch (Exception e) {
-                SecurityContextHolder.getContext().setAuthentication(new AnonAuthentication());
-            }
-        } else {
-            SecurityContextHolder.getContext().setAuthentication(new AnonAuthentication());
-        }
-
+//        String authToken = tokenHelper.getToken(request);
+//        if (authToken != null && !skipPathRequest(request, pathsToSkip)) {
+//            // get username from token
+//            try {
+//                String username = tokenHelper.getUsernameFromToken(authToken);
+//                // get user
+//                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+//                // create authentication
+//                TokenBasedAuthentication authentication = new TokenBasedAuthentication(userDetails);
+//                authentication.setToken(authToken);
+//                SecurityContextHolder.getContext().setAuthentication(authentication);
+//            } catch (Exception e) {
+//                SecurityContextHolder.getContext().setAuthentication(new AnonAuthentication());
+//            }
+//        } else {
+//            SecurityContextHolder.getContext().setAuthentication(new AnonAuthentication());
+//        }
         chain.doFilter(request, response);
     }
 
-    private boolean skipPathRequest(HttpServletRequest request, List<String> pathsToSkip ) {
+    private boolean skipPathRequest(HttpServletRequest request, List<String> pathsToSkip) {
         Assert.notNull(pathsToSkip);
         List<RequestMatcher> m = pathsToSkip.stream().map(path -> new AntPathRequestMatcher(path)).collect(Collectors.toList());
         OrRequestMatcher matchers = new OrRequestMatcher(m);

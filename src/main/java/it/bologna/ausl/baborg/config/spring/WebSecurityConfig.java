@@ -29,10 +29,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 //    @Value("${jwt.cookie}")
 //    private String TOKEN_COOKIE;
 //
-//    @Bean
-//    public TokenAuthenticationFilter jwtAuthenticationTokenFilter() throws Exception {
-//        return new TokenAuthenticationFilter();
-//    }
+    @Bean
+    public TokenAuthenticationFilter jwtAuthenticationTokenFilter() throws Exception {
+        return new TokenAuthenticationFilter();
+    }
 //
 //    @Autowired
 //    private CustomUserDetailsService jwtUserDetailsService;
@@ -53,6 +53,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 //
 //    @Autowired
 //    private AuthenticationFailureHandler authenticationFailureHandler;
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
 //        http
