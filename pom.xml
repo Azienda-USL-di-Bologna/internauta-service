@@ -226,11 +226,14 @@
             <artifactId>javax.persistence</artifactId>
             <version>2.1.1</version>
         </dependency>
+
+  
         <dependency>
             <groupId>org.apache.olingo</groupId>
             <artifactId>olingo-odata2-spring</artifactId>
             <version>${olingo.odata2.version}</version>
         </dependency>
+
         <!-- CXF -->
         <dependency>
             <groupId>org.apache.cxf</groupId>

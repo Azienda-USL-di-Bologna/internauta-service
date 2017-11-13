@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 //@ComponentScan(basePackages = "it.nextsw")
 //@EnableAutoConfiguration
 @EnableJpaRepositories(basePackages = {"it.bologna.ausl.baborg.service"})
-@EntityScan(basePackages = "it.bologna.ausl.entities")
+@EntityScan(basePackages = {"it.bologna.ausl.entities", "it.bologna.ausl.views"})
 @ImportResource({"classpath:spring/spring.xml", "classpath:spring/mail-config.xml"})
 public class SpringWebConfig {
 //    @Bean
@@ -21,7 +21,7 @@ public class SpringWebConfig {
 //        final FilterRegistrationBean registrationBean = new FilterRegistrationBean();
 //
 //        registrationBean.setFilter(new JwtFilter());
-//        
+//
 //        // intercetta tutte le chiamate che iniziano per...
 //        registrationBean.addUrlPatterns("/baborg/*");
 //
