@@ -3,7 +3,6 @@ package it.bologna.ausl.baborg.security.jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import it.bologna.ausl.baborg.utils.PasswordHash;
-import it.bologna.ausl.entities.baborg.Utente;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
@@ -56,16 +55,16 @@ public class UserController {
         // considera username
         ud = userDb.loadUserByUsername(userLogin.username);
         if (userLogin.username == null || ud == null) {
-            throw new ServletException("Invalid login");
+            return new ResponseEntity("Bad Credential", HttpStatus.UNAUTHORIZED);
         }
 
         // considera password
         if (userLogin.password == null || ud == null) {
-            throw new ServletException("Invalid login");
+            return new ResponseEntity("Bad Credential", HttpStatus.UNAUTHORIZED);
         }
 
         if (!PasswordHash.validatePassword(userLogin.password, ud.getPassword())) {
-            throw new ServletException("Invalid login");
+            return new ResponseEntity("Bad Credential", HttpStatus.UNAUTHORIZED);
         }
 
         return new ResponseEntity(new LoginResponse(Jwts.builder().setSubject(ud.getUsername())
@@ -84,7 +83,7 @@ public class UserController {
         String user = request.getAttribute(samlUser).toString();
         ud = userDb.loadByParameter(dbField, user);
         if (ud == null) {
-            throw new ServletException("User not found");
+            return new ResponseEntity("User not found", HttpStatus.UNAUTHORIZED);
         }
         //logger.info(String.format("User: %s logged in %s ", ud.getUsername(), ((Utente) ud).getDescrizione()));
         return new ResponseEntity(new LoginResponse(Jwts.builder().setSubject(ud.getUsername())

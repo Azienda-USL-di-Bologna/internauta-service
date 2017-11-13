@@ -213,7 +213,7 @@
         <dependency>
             <groupId>it.nextsw</groupId>
             <artifactId>next-olingo-middleware</artifactId>
-            <version>${olingo.odata2.version}.alfa6</version>
+            <version>${olingo.odata2.version}.alfa7</version>
             <type>jar</type>
         </dependency>
         <dependency>
