@@ -2,7 +2,7 @@ package it.bologna.ausl.baborg.odata.interceptor;
 
 import com.querydsl.core.types.Predicate;
 //import it.nextsw.entities.Utente;
-import it.bologna.ausl.baborg.odata.contex.CustomOdataJpaContextBase;
+import it.bologna.ausl.baborg.odata.context.CustomOdataJpaContextBase;
 import it.nextsw.olingo.interceptor.OlingoInterceptorOperation;
 import it.nextsw.olingo.interceptor.OlingoRequestInterceptorImpl;
 import it.nextsw.olingo.interceptor.bean.OlingoQueryObject;

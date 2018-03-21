@@ -1,6 +1,6 @@
 package it.bologna.ausl.baborg.odata.processor;
 
-import it.bologna.ausl.baborg.odata.contex.CustomOdataJpaContextBase;
+import it.bologna.ausl.baborg.odata.context.CustomOdataJpaContextBase;
 import it.bologna.ausl.baborg.odata.utils.ODataContextUtil;
 import it.nextsw.olingo.edmextension.CustomProcessingEdmExtension;
 import it.nextsw.olingo.processor.CustomJpaProcessorImpl;
@@ -14,7 +14,6 @@ import org.apache.olingo.odata2.jpa.processor.api.ODataJPAServiceFactory;
 import org.apache.olingo.odata2.jpa.processor.api.access.JPAProcessor;
 import org.apache.olingo.odata2.jpa.processor.api.exception.ODataJPARuntimeException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -28,11 +27,6 @@ public class JPAServiceFactory extends ODataJPAServiceFactory {
 
     public static final String DEFAULT_ENTITY_UNIT_NAME = "Model";
     public static final String ENTITY_MANAGER_FACTORY_ID = "entityManagerFactory";
-    private static final String MAPPING_MODEL = "SalesOrderProcessingMappingModel.xml";
-
-    // Error set
-    private static final String SHOW_DETAIL_ERROR = "showDetailError";
-    private static final String CONFIG = "serviceConfig";
 
     @Autowired
     private ApplicationContext applicationContext;

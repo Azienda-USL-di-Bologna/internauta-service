@@ -1,4 +1,4 @@
-package it.bologna.ausl.baborg.odata.contex;
+package it.bologna.ausl.baborg.odata.context;
 
 import it.nextsw.olingo.context.CustomOdataJpaContextImpl;
 import org.apache.olingo.odata2.api.processor.ODataContext;

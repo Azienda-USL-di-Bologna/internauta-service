@@ -1,4 +1,4 @@
-<beans xmlns="http://www.springframework.org/schema/beans"
+<!--<beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:cxf="http://cxf.apache.org/core" xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://cxf.apache.org/core http://cxf.apache.org/schemas/core.xsd
@@ -8,10 +8,6 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
     <bean id="logOutbound" class="org.apache.cxf.interceptor.LoggingOutInterceptor"/>
 
     <context:annotation-config />
-    <!--<context:component-scan base-package="it.nextsw"/>-->
-    <!--<context:component-scan base-package="{it.bologna.ausl,it.nextsw}"/>-->
-
-
 
     <cxf:bus>
         <cxf:inInterceptors>
@@ -27,4 +23,4 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
             <ref bean="logInbound"/>
         </cxf:inFaultInterceptors>
     </cxf:bus>
-</beans>
+</beans>-->

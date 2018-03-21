@@ -8,11 +8,9 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.util.concurrent.*;
 
-/**
- *
- */
 @Service("threadPool")
 public class ThreadPool {
+
     public static final String DEFAULT_SHUTDOWN_ERROR_MESSAGE = "Il thread pool non si è fermato entro il timeout";
     public static final int MIN_CORE_THREADS = 10;
     private ExecutorService threadPool;

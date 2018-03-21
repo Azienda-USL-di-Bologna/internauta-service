@@ -13,9 +13,11 @@ import org.springframework.orm.jpa.vendor.EclipseLinkJpaVendorAdapter;
 import org.springframework.transaction.jta.JtaTransactionManager;
 
 import javax.sql.DataSource;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.eclipse.persistence.config.PersistenceUnitProperties;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.sql2o.Sql2o;
 
 @SuppressWarnings("SpringJavaAutowiringInspection")
 @Configuration
@@ -49,7 +51,7 @@ public class EclipseLinkJPAConfig extends JpaBaseConfiguration {
         properties.put("eclipselink.ddl-generation", ddlGeneration);
         properties.put("eclipselink.logging.level", logginLevel);
         properties.put("eclipselink.logging.level.sql", logginLevelSQL);
-        //properties.put("eclipselink.target-database",dataBaseDialect);
+        properties.put(PersistenceUnitProperties.TARGET_DATABASE_PROPERTIES, "shouldBindLiterals=false");
         return properties;
     }
 
@@ -57,5 +59,13 @@ public class EclipseLinkJPAConfig extends JpaBaseConfiguration {
     public InstrumentationLoadTimeWeaver loadTimeWeaver() throws Throwable {
         InstrumentationLoadTimeWeaver loadTimeWeaver = new InstrumentationLoadTimeWeaver();
         return loadTimeWeaver;
+    }
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Bean
+    Sql2o sql2o() {
+        return new Sql2o(dataSource);
     }
 }

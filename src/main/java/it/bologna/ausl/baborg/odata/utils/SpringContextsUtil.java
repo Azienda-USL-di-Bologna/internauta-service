@@ -9,54 +9,52 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 /**
- * NOTE:
- * This Class should only be used in those Object not managed by SIC
+ * NOTE: This Class should only be used in those Object not managed by SIC
  */
-
 @Component
 public class SpringContextsUtil implements ApplicationContextAware {
-	final Logger logger = LoggerFactory.getLogger(SpringContextsUtil.class);
 
-	private static ApplicationContext applicationContext;
+    final Logger logger = LoggerFactory.getLogger(SpringContextsUtil.class);
 
-	public SpringContextsUtil(){
-		logger.debug("Loading SpringContextsUtil");
-	}
+    private static ApplicationContext applicationContext;
 
-	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-		logger.debug("Inject ApplicationContext: {} into SpringContextsUtil", applicationContext);
-		SpringContextsUtil.applicationContext = applicationContext;
-	}
+    public SpringContextsUtil() {
+        logger.debug("Loading SpringContextsUtil");
+    }
 
-	public static ApplicationContext getApplicationContext() {
-		return applicationContext;
-	}
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        logger.debug("Inject ApplicationContext: {} into SpringContextsUtil", applicationContext);
+        SpringContextsUtil.applicationContext = applicationContext;
+    }
 
-	public static Object getBean(String name) throws BeansException {
-		return applicationContext.getBean(name);
-	}
+    public static ApplicationContext getApplicationContext() {
+        return applicationContext;
+    }
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static Object getBean(String name, Class requiredType) throws BeansException {
-		return applicationContext.getBean(name, requiredType);
-	}
+    public static Object getBean(String name) throws BeansException {
+        return applicationContext.getBean(name);
+    }
 
-	public static boolean containsBean(String name) {
-		return applicationContext.containsBean(name);
-	}
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static Object getBean(String name, Class requiredType) throws BeansException {
+        return applicationContext.getBean(name, requiredType);
+    }
 
-	public static boolean isSingleton(String name) throws NoSuchBeanDefinitionException {
-		return applicationContext.isSingleton(name);
-	}
+    public static boolean containsBean(String name) {
+        return applicationContext.containsBean(name);
+    }
 
-	@SuppressWarnings("rawtypes")
-	public static Class getType(String name) throws NoSuchBeanDefinitionException {
-		return applicationContext.getType(name);
-	}
+    public static boolean isSingleton(String name) throws NoSuchBeanDefinitionException {
+        return applicationContext.isSingleton(name);
+    }
 
-	public static String[] getAliases(String name) throws NoSuchBeanDefinitionException {
-		return applicationContext.getAliases(name);
-	}
+    @SuppressWarnings("rawtypes")
+    public static Class getType(String name) throws NoSuchBeanDefinitionException {
+        return applicationContext.getType(name);
+    }
 
+    public static String[] getAliases(String name) throws NoSuchBeanDefinitionException {
+        return applicationContext.getAliases(name);
+    }
 }

@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>it.nextsw</groupId>
     <artifactId>baborg-service</artifactId>
-    <version>0.0.1</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>baborg-service</name>
@@ -24,7 +24,7 @@
         <spring.boot.version>1.5.2.RELEASE</spring.boot.version>
         <olingo.version>4.3.0</olingo.version>
         <olingo.odata2.version>2.0.10-NEXT-SNAPSHOT</olingo.odata2.version>
-        <eclipse.link.version>2.7.0</eclipse.link.version>
+        <eclipse.link.version>2.7.1</eclipse.link.version>
     </properties>
 
     <profiles>
@@ -53,6 +53,9 @@
                 <settings.mail.sender.smtps.auth>true</settings.mail.sender.smtps.auth>
                 <settings.mail.sender.smtp.auth.mechanisms>LOGIN PLAIN</settings.mail.sender.smtp.auth.mechanisms>
                 <!--<settings.mail.sender.smtps.starttls.enable>false</settings.mail.sender.smtps.starttls.enable>-->
+				<setting.db.eclipselink.weaving>true</setting.db.eclipselink.weaving>
+                <setting.db.eclipselink.dialect>PostgreSQL</setting.db.eclipselink.dialect>
+                <setting.db.eclipselink.ddl.generation>none</setting.db.eclipselink.ddl.generation>
             </properties>
         </profile>
         <profile>
@@ -62,12 +65,13 @@
             </activation>
             <properties>
                 <settings.db.driverClass>org.postgresql.Driver</settings.db.driverClass>
-                <settings.db.connectionURL>jdbc:postgresql://gdml:5432/babel?stringtype=unspecified
+                <settings.db.connectionURL>jdbc:postgresql://gdml:5432/internauta?stringtype=unspecified
                 </settings.db.connectionURL>
-                <settings.db.username>postgres</settings.db.username>
+                <settings.db.username>organigramma</settings.db.username>
                 <settings.db.password>siamofreschi</settings.db.password>
+				<!--<settings.db.hibernate.dialect>org.hibernate.dialect.PostgreSQL94Dialect</settings.db.hibernate.dialect>-->
                 <!--Cors setting-->
-                <settings.cors.allow.origin>http://localhost:4200</settings.cors.allow.origin>
+                <settings.cors.allow.origin>*</settings.cors.allow.origin>
 
                 <!-- Email settings -->
                 <!--<settings.system.email.address>prova@prova.it</settings.system.email.address>-->
@@ -88,6 +92,13 @@
     </profiles>
 
     <dependencies>
+        
+        <dependency>
+    <groupId>org.apache.cxf</groupId>
+    <artifactId>cxf-spring-boot-starter-jaxrs</artifactId>
+    <version>3.1.12</version>
+</dependency>
+        
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-rest-hal-browser</artifactId>
@@ -117,7 +128,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-instrument</artifactId>
-            <version>4.3.11.RELEASE</version>
+            <version>5.0.2.RELEASE</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -138,6 +149,12 @@
             <type>jar</type>
         </dependency>
 
+
+
+
+
+
+
         <!-- Spring Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -154,6 +171,7 @@
             <artifactId>spring-security-openid</artifactId>
             <version>4.2.3.RELEASE</version>
         </dependency>
+
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt</artifactId>
@@ -217,14 +235,9 @@
             <type>jar</type>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.persistence</groupId>
-            <artifactId>eclipselink</artifactId>
-            <version>2.6.4</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.persistence</groupId>
+            <groupId>org.eclipse.persistence</groupId>        
             <artifactId>javax.persistence</artifactId>
-            <version>2.1.1</version>
+            <version>2.2.0</version>
         </dependency>
 
   
@@ -272,7 +285,7 @@
         <dependency>
             <groupId>org.eclipse.persistence</groupId>
             <artifactId>org.eclipse.persistence.jpa.modelgen.processor</artifactId>
-            <version>2.5.2</version>
+            <version>2.7.1</version>
             <scope>provided</scope>
         </dependency>
         <!-- apache commons utils -->
@@ -322,6 +335,7 @@
             <groupId>com.querydsl</groupId>
             <artifactId>querydsl-jpa</artifactId>
             <version>4.1.4</version>
+			<type>jar</type>
         </dependency>
 
         <dependency>
@@ -331,16 +345,27 @@
         </dependency>
 
 
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>5.1.36</version>
-        </dependency>
+
+       
+	   
+	   
+	   
+	   
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+			<version>42.2.1</version>
             <scope>runtime</scope>
         </dependency>
+
+
+		<!-- sql2O -->
+        <dependency>
+            <groupId>org.sql2o</groupId>
+            <artifactId>sql2o</artifactId>
+            <version>1.5.4</version>
+        </dependency>
+
 
         <!-- email -->
         <dependency>
@@ -358,9 +383,59 @@
             <artifactId>javax.mail</artifactId>
             <version>1.5.5</version>
         </dependency>
+
+
+     
+
+        <dependency>
+            <groupId>it.bologna.ausl.iodaobjectlibrary</groupId>
+            <artifactId>IodaObjectLibrary</artifactId>
+            <version>1</version>
+        </dependency>
+
+
+        <!--da tenere-->
+        <!-- https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>3.9.1</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/joda-time/joda-time -->
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.9.9</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-joda</artifactId>
+            <version>2.5.3</version>
+        </dependency>
+<!--        PER LA CACHE
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <version>1.5.9.RELEASE</version>
+        </dependency>
+
+         https://mvnrepository.com/artifact/redis.clients/jedis
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>2.9.0</version>
+        </dependency>
+         https://mvnrepository.com/artifact/org.projectlombok/lombok
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.16.20</version>
+            <scope>provided</scope>
+        </dependency>-->
         
         <dependency>
-            <groupId>it.nextsw</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>entities</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
@@ -369,14 +444,14 @@
 
     <build>
         <plugins>
-            <plugin>
+		  <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <executable>true</executable>
                 </configuration>
             </plugin>
-            <plugin>
+			<plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.0.1</version>
@@ -389,7 +464,7 @@
                     <useDefaultDelimiters>false</useDefaultDelimiters>
                 </configuration>
             </plugin>
-            <plugin>
+			<plugin>
                 <groupId>com.mysema.maven</groupId>
                 <artifactId>apt-maven-plugin</artifactId>
                 <version>1.1.3</version>
@@ -406,7 +481,21 @@
                     </execution>
                 </executions>
             </plugin>
+		 <plugin>
+                <!-- Per avere versione di hg come property-->
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>hgchangeset</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
+		
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
