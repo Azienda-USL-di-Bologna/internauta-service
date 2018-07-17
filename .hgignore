@@ -1,9 +1,6 @@
 syntax: glob
-pom.xml.orig
-.idea
-target
-next-springlingo-castelmaggiore.iml
-.hgignore.orig
-*.orig
-nbactions.xml
-nb-configuration.xml
+.gitignore
+target/
+.mvn/
+mvnw
+mvnw.cmd
