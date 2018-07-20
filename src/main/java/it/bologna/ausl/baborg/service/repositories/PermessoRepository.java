@@ -7,7 +7,11 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.CustomQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-@RepositoryRestResource(collectionResourceRel = "permesso", path = "permesso", exported = true, excerptProjection = PermessoWithPlainFields.class)
+/**
+ * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
+ * nome tutto in minuscolo
+ */
+@RepositoryRestResource(collectionResourceRel = "permesso", path = "permesso", exported = false, excerptProjection = PermessoWithPlainFields.class)
 public interface PermessoRepository extends
         CustomQueryDslRepository<Permesso, Integer, QPermesso>,
         JpaRepository<Permesso, Integer> {

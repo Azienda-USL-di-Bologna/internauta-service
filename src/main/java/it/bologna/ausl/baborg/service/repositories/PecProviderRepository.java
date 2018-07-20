@@ -7,7 +7,11 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.CustomQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-@RepositoryRestResource(collectionResourceRel = "pecprovider", path = "pecprovider", exported = true, excerptProjection = PecProviderWithPlainFields.class)
+/**
+ * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
+ * nome tutto in minuscolo
+ */
+@RepositoryRestResource(collectionResourceRel = "pecprovider", path = "pecprovider", exported = false, excerptProjection = PecProviderWithPlainFields.class)
 public interface PecProviderRepository extends
         CustomQueryDslRepository<PecProvider, Integer, QPecProvider>,
         JpaRepository<PecProvider, Integer> {

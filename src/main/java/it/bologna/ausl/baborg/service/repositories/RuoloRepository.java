@@ -7,7 +7,11 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.CustomQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-@RepositoryRestResource(collectionResourceRel = "ruolo", path = "ruolo", exported = true, excerptProjection = RuoloWithPlainFields.class)
+/**
+ * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
+ * nome tutto in minuscolo
+ */
+@RepositoryRestResource(collectionResourceRel = "ruolo", path = "ruolo", exported = false, excerptProjection = RuoloWithPlainFields.class)
 public interface RuoloRepository extends
         CustomQueryDslRepository<Ruolo, Integer, QRuolo>,
         JpaRepository<Ruolo, Integer> {

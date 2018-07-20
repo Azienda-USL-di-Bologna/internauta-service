@@ -7,7 +7,11 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.CustomQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-@RepositoryRestResource(collectionResourceRel = "utentestruttura", path = "utentestruttura", exported = true, excerptProjection = UtenteStrutturaWithPlainFields.class)
+/**
+ * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
+ * nome tutto in minuscolo
+ */
+@RepositoryRestResource(collectionResourceRel = "utentestruttura", path = "utentestruttura", exported = false, excerptProjection = UtenteStrutturaWithPlainFields.class)
 public interface UtenteStrutturaRepository extends
         CustomQueryDslRepository<UtenteStruttura, Integer, QUtenteStruttura>,
         JpaRepository<UtenteStruttura, Integer> {

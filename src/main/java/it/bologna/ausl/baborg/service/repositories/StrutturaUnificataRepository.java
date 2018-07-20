@@ -7,7 +7,11 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.CustomQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-@RepositoryRestResource(collectionResourceRel = "strutturaunificata", path = "strutturaunificata", exported = true, excerptProjection = StrutturaUnificataWithPlainFields.class)
+/**
+ * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
+ * nome tutto in minuscolo
+ */
+@RepositoryRestResource(collectionResourceRel = "strutturaunificata", path = "strutturaunificata", exported = false, excerptProjection = StrutturaUnificataWithPlainFields.class)
 public interface StrutturaUnificataRepository extends
         CustomQueryDslRepository<StrutturaUnificata, Integer, QStrutturaUnificata>,
         JpaRepository<StrutturaUnificata, Integer> {

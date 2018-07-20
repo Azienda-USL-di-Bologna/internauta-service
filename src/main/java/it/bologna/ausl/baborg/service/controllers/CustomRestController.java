@@ -124,11 +124,25 @@ public class CustomRestController extends RestControllerEngine {
     @RequestMapping(value = {"azienda", "azienda/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> azienda(
+            /**
+             * il predicate è la rappresentazione dei filtri passati. In questo
+             * modo si va a reperire il repository e in base al metodo customize
+             * viene elaborato il filtro utilizzando l'oggetto Q
+             */
             @QuerydslPredicate(root = Azienda.class) Predicate predicate,
+            // se non si passano in automatico avrà valore null
             Pageable pageable,
+            // nome della projection da usare; non obbligatoria perchè c'è comunque quella di default
             @RequestParam(required = false) String projection,
+            // campo racchiuso tra {}
             @PathVariable(required = false) Integer id,
+            // richiesta http
             HttpServletRequest request,
+            /**
+             * stringa ma deve essere rappresentata come
+             * key=value,key=value,ecc...
+             * esempio...&additionalData=key1=value1,key2=value2
+             */
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException {
 
         Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QAzienda.azienda, Azienda.class);

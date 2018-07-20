@@ -7,7 +7,11 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.CustomQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-@RepositoryRestResource(collectionResourceRel = "azienda", path = "azienda", exported = true, excerptProjection = AziendaWithPlainFields.class)
+/**
+ * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
+ * nome tutto in minuscolo
+ */
+@RepositoryRestResource(collectionResourceRel = "azienda", path = "azienda", exported = false, excerptProjection = AziendaWithPlainFields.class)
 public interface AziendaRepository extends
         CustomQueryDslRepository<Azienda, Integer, QAzienda>,
         JpaRepository<Azienda, Integer> {
