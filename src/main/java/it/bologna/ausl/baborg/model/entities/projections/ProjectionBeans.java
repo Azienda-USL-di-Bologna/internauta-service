@@ -1,5 +1,6 @@
 package it.bologna.ausl.baborg.model.entities.projections;
 
+import it.bologna.ausl.baborg.model.entities.Struttura;
 import it.bologna.ausl.baborg.model.entities.Utente;
 import it.bologna.ausl.baborg.model.entities.UtenteStruttura;
 import it.bologna.ausl.baborg.model.entities.projections.generated.StrutturaWithIdAzienda;
