@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
  * nome tutto in minuscolo
  */
+//@RepositoryRestResource(collectionResourceRel = "persona", path = "persona", exported = true)
 @RepositoryRestResource(collectionResourceRel = "persona", path = "persona", exported = false, excerptProjection = PersonaWithPlainFields.class)
 public interface PersonaRepository extends
         CustomQueryDslRepository<Persona, Integer, QPersona>,

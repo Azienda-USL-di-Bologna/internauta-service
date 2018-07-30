@@ -23,9 +23,9 @@ public class StrutturaInterceptor extends EmptyInterceptor {
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) {
         System.out.println("in: afterSelectQueryInterceptor di " + entity.getClass().getSimpleName());
         
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Utente utente = (Utente) authentication.getPrincipal();
-        System.out.println("utente Connesso: " + utente.getUsername());
+//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//        Utente utente = (Utente) authentication.getPrincipal();
+//        System.out.println("utente Connesso: " + utente.getUsername());
         
         Struttura struttura = (Struttura) entity;
         return struttura;

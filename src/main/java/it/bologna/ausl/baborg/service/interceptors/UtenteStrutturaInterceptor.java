@@ -2,16 +2,11 @@ package it.bologna.ausl.baborg.service.interceptors;
 
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.baborg.model.entities.QUtenteStruttura;
-import it.bologna.ausl.baborg.model.entities.Struttura;
-import it.bologna.ausl.baborg.model.entities.Utente;
 import it.bologna.ausl.baborg.model.entities.UtenteStruttura;
 import it.nextsw.common.annotations.Interceptor;
 import it.nextsw.common.interceptors.EmptyInterceptor;
-import it.nextsw.common.interceptors.exceptions.RollBackInterceptorException;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,7 +20,8 @@ public class UtenteStrutturaInterceptor extends EmptyInterceptor {
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) {
         System.out.println("in: beforeSelectQueryInterceptor di UtenteStruttura");
-        return QUtenteStruttura.utenteStruttura.id.ne(3023029).and(initialPredicate);
+//        return QUtenteStruttura.utenteStruttura.id.ne(3023029).and(initialPredicate);
+    return initialPredicate;
     }
 
     @Override
