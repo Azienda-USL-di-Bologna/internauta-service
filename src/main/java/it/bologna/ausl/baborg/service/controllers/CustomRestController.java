@@ -115,7 +115,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -190,7 +190,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -249,7 +249,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -308,7 +308,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -367,7 +367,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -426,7 +426,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -485,7 +485,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -544,7 +544,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -604,7 +604,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -663,7 +663,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -723,7 +723,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -782,7 +782,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -841,7 +841,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -901,7 +901,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
@@ -960,7 +960,7 @@ public class CustomRestController extends RestControllerEngine {
         Object entity = get(id, request);
         if (entity != null) {
             delete(entity, request, additionalData);
-            return new ResponseEntity(entity, HttpStatus.OK);
+            return new ResponseEntity(HttpStatus.OK);
         }
         return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
