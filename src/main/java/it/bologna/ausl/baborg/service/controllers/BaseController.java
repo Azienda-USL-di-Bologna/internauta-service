@@ -55,9 +55,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(value = "${custom.mapping.url.root}")
-public class CustomRestController extends RestControllerEngine {
+public class BaseController extends RestControllerEngine {
 
-    private static final Logger log = LoggerFactory.getLogger(CustomRestController.class);
+    private static final Logger log = LoggerFactory.getLogger(RestController.class);
 
     @RequestMapping(value = {"afferenzastruttura", "afferenzastruttura/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = Error.class)
