@@ -33,7 +33,7 @@ public class CustomController {
     @Autowired
     StrutturaRepository strutturaRepository;
             
-            
+      
     @RequestMapping(value = "struttureAntenate/{idStruttura}",method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> struttureAntenate(
         @PathVariable(required = true) Integer idStruttura){
@@ -41,13 +41,15 @@ public class CustomController {
         String struttureAntenate = strutturaRepository.getStruttureAntenate(idStruttura);
         System.out.println("struttureAntenate: " + struttureAntenate);
         
-
+        // trasformiamo la stringa restituita in un array
         String[] struttureAntenateArray = struttureAntenate.split(",");
         
         List<Integer> struttureAntenateList = Arrays.stream(struttureAntenateArray)
                 .map(Integer::parseInt)
                 .collect(Collectors.toList());
         
+        // invertiamo l'ordine degli elementi nell'array in modo che
+        // l'id della struttura radice sia in prima posizione, quello della struttura passata in ultima
         Collections.reverse(struttureAntenateList);
         
        
