@@ -71,6 +71,7 @@ public class LoginController {
         logger.debug("login username: " + userLogin.password);
 
         Utente utente = userInfoService.loadUtente(userLogin.username, hostname);
+        utente.setRuoli(userInfoService.getRuoli(utente));
         if (utente == null)
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         if (!PasswordHashUtils.validatePassword(userLogin.password, utente.getPasswordHash())) {

@@ -7,9 +7,13 @@ import it.bologna.ausl.baborg.model.entities.Persona;
 import it.bologna.ausl.baborg.model.entities.Utente;
 import it.bologna.ausl.baborg.model.entities.QUtente;
 import it.bologna.ausl.baborg.model.entities.QAzienda;
+import it.bologna.ausl.baborg.model.entities.Ruolo;
 import it.bologna.ausl.baborg.service.repositories.AziendaRepository;
 import it.bologna.ausl.baborg.service.repositories.PersonaRepository;
+import it.bologna.ausl.baborg.service.repositories.RuoloRepository;
 import it.bologna.ausl.baborg.service.repositories.UtenteRepository;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import javax.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +38,9 @@ public class UserInfoService {
     
     @Autowired
     UtenteRepository utenteRepository;
+    
+    @Autowired
+    RuoloRepository ruoloRepository;
 
     /**
      * carica l'azienda a partire dal path che ha effettuato la richiesta
@@ -120,5 +127,22 @@ public class UserInfoService {
             return null;
         }
     }
-
+    
+    @Cacheable(value = "ruoli", key = "{#utente.getId()}")
+    public List<Ruolo> getRuoli(Utente utente) {
+        List<Ruolo> res = new ArrayList<>();
+        List<Ruolo> ruoliAll = ruoloRepository.findAll();
+        for (Ruolo ruolo : ruoliAll) {
+            if (ruolo.getSuperAziendale()) {
+                if ((utente.getIdPersona().getBitRuoli() & ruolo.getMascheraBit()) > 0) {
+                    res.add(ruolo);
+                }
+            } else {
+                if ((utente.getBitRuoli() & ruolo.getMascheraBit()) > 0) {
+                    res.add(ruolo);
+                }
+            }
+        }
+        return res;
+    }
 }

@@ -7,12 +7,14 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import it.bologna.ausl.baborg.model.entities.Azienda;
 import it.bologna.ausl.baborg.model.entities.AziendaParametriJson;
+import it.bologna.ausl.baborg.model.entities.Ruolo;
 import it.bologna.ausl.baborg.model.entities.Utente;
 import it.bologna.ausl.baborg.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.baborg.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.baborg.service.repositories.UtenteRepository;
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import org.joda.time.DateTime;
 
@@ -76,6 +78,7 @@ public class AuthorizationUtils {
 
         Integer idUtente = Integer.parseInt(claims.getSubject());
         Utente user = userInfoService.loadUtente(idUtente);
+        user.setRuoli(userInfoService.getRuoli(user));
         TokenBasedAuthentication authentication = new TokenBasedAuthentication(user);
         authentication.setToken(token);
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -97,7 +100,7 @@ public class AuthorizationUtils {
         Class<?> entityClass = Class.forName(entityClassName);
 
         Utente user = userInfoService.loadUtente(entityClass, field, ssoFieldValue, azienda);
-
+        user.setRuoli(userInfoService.getRuoli(user));
         if (user == null) {
             throw new ObjectNotFoundException("User not found");
         }
