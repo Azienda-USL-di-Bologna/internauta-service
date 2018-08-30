@@ -119,7 +119,7 @@ public class AuthorizationUtils {
                                 .claim(AuthorizationUtils.TokenClaims.USER_FIELD.name(), field)
                                 .claim(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name(), ssoFieldValue)
                                 .setIssuedAt(currentDateTime.toDate())
-                                .setExpiration(currentDateTime.plusSeconds(tokenExpireSeconds).toDate())
+                                .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate(): null)
                                 .signWith(SIGNATURE_ALGORITHM, secretKey).compact(),
                         user.getUsername(),
                         user),

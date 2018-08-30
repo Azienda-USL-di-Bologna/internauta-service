@@ -83,7 +83,7 @@ public class LoginController {
                 .claim(AuthorizationUtils.TokenClaims.SSO_LOGIN.name(), false)
                 .claim(AuthorizationUtils.TokenClaims.COMPANY.name(), utente.getIdAzienda().getId())
                 .setIssuedAt(currentDateTime.toDate())
-                .setExpiration(currentDateTime.plusSeconds(tokenExpireSeconds).toDate())
+                .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate(): null)
                 .signWith(SIGNATURE_ALGORITHM, secretKey)
                 .compact();
         

@@ -5,13 +5,16 @@ package it.bologna.ausl.baborg.service.authorization.jwt;
  * @author spritz
  */
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-import org.springframework.http.HttpMethod;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.GenericFilterBean;
 
 public class JwtFilter extends GenericFilterBean {
@@ -37,7 +40,8 @@ public class JwtFilter extends GenericFilterBean {
             final String authHeader = request.getHeader("Authorization");
 
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                throw new ServletException("Missing or invalid Authorization header.");
+                setResponseError(req, res, HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header.");
+                return;
             }
 
             // la parte dopo "Bearer "
@@ -48,9 +52,25 @@ public class JwtFilter extends GenericFilterBean {
                 request.setAttribute("claims", claims);
             } catch (ClassNotFoundException ex) {
                 throw new ServletException("Invalid token", ex);
+            } catch (ExpiredJwtException ex) {
+                System.out.println("token scaduto");
+                setResponseError(req, res, HttpServletResponse.SC_UNAUTHORIZED, ex.getMessage());
+                return;
             }
         }
 
         chain.doFilter(req, res);
+    }
+    
+    private void setResponseError(ServletRequest req, ServletResponse res, int status, String errorMessage) throws IOException {
+        HttpServletResponse response=(HttpServletResponse) res;
+        response.setStatus(status);
+        String headerOrigin = ((HttpServletRequest)req).getHeader("Origin");
+        if (StringUtils.hasText(headerOrigin)) {
+            response.setHeader("Access-Control-Allow-Origin", headerOrigin);
+        }
+        try (PrintWriter writer = res.getWriter()) {
+            writer.print(errorMessage);
+        }
     }
 }
