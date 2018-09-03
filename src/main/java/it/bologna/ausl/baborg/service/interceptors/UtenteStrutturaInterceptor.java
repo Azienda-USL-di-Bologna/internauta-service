@@ -1,10 +1,9 @@
 package it.bologna.ausl.baborg.service.interceptors;
 
 import com.querydsl.core.types.Predicate;
-import it.bologna.ausl.baborg.model.entities.QUtenteStruttura;
 import it.bologna.ausl.baborg.model.entities.UtenteStruttura;
-import it.nextsw.common.annotations.Interceptor;
-import it.nextsw.common.interceptors.EmptyInterceptor;
+import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
@@ -14,9 +13,14 @@ import org.springframework.stereotype.Component;
  * @author gdm
  */
 @Component
-@Interceptor(target = UtenteStruttura.class, name = "utentestruttura-interceptorTest")
-public class UtenteStrutturaInterceptor extends EmptyInterceptor {
+@NextSdrInterceptor(name = "utentestruttura-interceptorTest")
+public class UtenteStrutturaInterceptor extends NextSdrEmptyControllerInterceptor {
 
+    @Override
+    public Class getTargetEntityClass() {
+        return UtenteStruttura.class;
+    }
+    
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) {
         System.out.println("in: beforeSelectQueryInterceptor di UtenteStruttura");

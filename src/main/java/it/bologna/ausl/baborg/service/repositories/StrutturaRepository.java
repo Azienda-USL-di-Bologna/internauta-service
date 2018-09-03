@@ -3,22 +3,20 @@ package it.bologna.ausl.baborg.service.repositories;
 import it.bologna.ausl.baborg.model.entities.QStruttura;
 import it.bologna.ausl.baborg.model.entities.Struttura;
 import it.bologna.ausl.baborg.model.entities.projections.generated.StrutturaWithPlainFields;
+import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
-import it.nextsw.common.repositories.CustomQueryDslRepository;
-import java.sql.Array;
-import java.util.List;
-import java.util.Set;
+import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.query.Procedure;
-import org.springframework.data.repository.query.Param;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
  * nome tutto in minuscolo
  */
+@NextSdrRepository(repositoryPath = "struttura", defaultProjection = StrutturaWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "struttura", path = "struttura", exported = false, excerptProjection = StrutturaWithPlainFields.class)
 public interface StrutturaRepository extends
-        CustomQueryDslRepository<Struttura, Integer, QStruttura>,
+        NextSdrQueryDslRepository<Struttura, Integer, QStruttura>,
         JpaRepository<Struttura, Integer> {
     
     

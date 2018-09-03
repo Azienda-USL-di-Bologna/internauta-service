@@ -3,8 +3,8 @@ package it.bologna.ausl.baborg.service.interceptors;
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.baborg.model.entities.Azienda;
 import it.bologna.ausl.baborg.model.entities.QAzienda;
-import it.nextsw.common.annotations.Interceptor;
-import it.nextsw.common.interceptors.EmptyInterceptor;
+import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
@@ -14,8 +14,13 @@ import org.springframework.stereotype.Component;
  * @author gdm
  */
 @Component
-@Interceptor(target = Azienda.class, name = "azienda-interceptorTest")
-public class AziendaInterceptor extends EmptyInterceptor {
+@NextSdrInterceptor(name = "azienda-interceptorTest")
+public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
+
+    @Override
+    public Class getTargetEntityClass() {
+        return Azienda.class;
+    }
 
 //    @Override
 //    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) {

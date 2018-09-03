@@ -3,8 +3,9 @@ package it.bologna.ausl.baborg.service.repositories;
 import it.bologna.ausl.baborg.model.entities.AfferenzaStruttura;
 import it.bologna.ausl.baborg.model.entities.QAfferenzaStruttura;
 import it.bologna.ausl.baborg.model.entities.projections.generated.AfferenzaStrutturaWithPlainFields;
+import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
-import it.nextsw.common.repositories.CustomQueryDslRepository;
+import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
@@ -14,7 +15,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * JpaRepository: permette di fare le operazioni base (insert, delete, update,
  * select)
  *
- * CustomQueryDslRepository: serve per fare le query con gli oggetti Q
+ * NextSdrQueryDslRepository: serve per fare le query con gli oggetti Q
  *
  *
  * exported: definisce se si esporta il repository. Nel nostro framework si
@@ -25,8 +26,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * projection, è valida quella indicata.
  *
  */
-@RepositoryRestResource(collectionResourceRel = "afferenzastruttura", path = "afferenzastruttura", exported = false, excerptProjection = AfferenzaStrutturaWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "afferenzastruttura", defaultProjection = AfferenzaStrutturaWithPlainFields.class)
+@RepositoryRestResource(collectionResourceRel = "afferenzastruttura", path = "afferenzastruttura", exported = false)
 public interface AfferenzaStrutturaRepository extends
-        CustomQueryDslRepository<AfferenzaStruttura, Integer, QAfferenzaStruttura>,
+        NextSdrQueryDslRepository<AfferenzaStruttura, Integer, QAfferenzaStruttura>,
         JpaRepository<AfferenzaStruttura, Integer> {
 }

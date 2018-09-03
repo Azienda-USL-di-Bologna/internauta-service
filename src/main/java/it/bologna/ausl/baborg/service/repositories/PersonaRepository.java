@@ -3,17 +3,18 @@ package it.bologna.ausl.baborg.service.repositories;
 import it.bologna.ausl.baborg.model.entities.QPersona;
 import it.bologna.ausl.baborg.model.entities.Persona;
 import it.bologna.ausl.baborg.model.entities.projections.generated.PersonaWithPlainFields;
+import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
-import it.nextsw.common.repositories.CustomQueryDslRepository;
+import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
  * nome tutto in minuscolo
  */
-//@RepositoryRestResource(collectionResourceRel = "persona", path = "persona", exported = true)
+@NextSdrRepository(repositoryPath = "persona", defaultProjection = PersonaWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "persona", path = "persona", exported = false, excerptProjection = PersonaWithPlainFields.class)
 public interface PersonaRepository extends
-        CustomQueryDslRepository<Persona, Integer, QPersona>,
+        NextSdrQueryDslRepository<Persona, Integer, QPersona>,
         JpaRepository<Persona, Integer> {
 }
