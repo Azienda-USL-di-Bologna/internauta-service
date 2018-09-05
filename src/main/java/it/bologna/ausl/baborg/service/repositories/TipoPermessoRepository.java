@@ -1,8 +1,8 @@
 package it.bologna.ausl.baborg.service.repositories;
 
-import it.bologna.ausl.baborg.model.entities.QTipoPermesso;
-import it.bologna.ausl.baborg.model.entities.TipoPermesso;
-import it.bologna.ausl.baborg.model.entities.projections.generated.TipoPermessoWithPlainFields;
+import it.bologna.ausl.model.entities.baborg.QTipoPermesso;
+import it.bologna.ausl.model.entities.baborg.TipoPermesso;
+import it.bologna.ausl.model.entities.baborg.projections.generated.TipoPermessoWithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;

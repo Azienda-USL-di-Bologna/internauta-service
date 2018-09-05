@@ -1,18 +1,13 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.baborg.model.entities.projections;
 
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
 import org.springframework.data.rest.core.config.Projection;
-import it.bologna.ausl.baborg.model.entities.projections.generated.UtenteWithIdPersona;
 
 /**
  *
  * @author gdm
  */
-@Projection(name = "UtenteCustom", types = it.bologna.ausl.baborg.model.entities.Utente.class)
+@Projection(name = "UtenteCustom", types = it.bologna.ausl.model.entities.baborg.Utente.class)
 public interface UtenteCustom extends UtenteWithIdPersona{
 
     @Override

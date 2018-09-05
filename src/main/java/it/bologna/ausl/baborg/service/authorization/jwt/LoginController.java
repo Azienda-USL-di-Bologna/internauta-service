@@ -3,7 +3,7 @@ import it.bologna.ausl.baborg.service.authorization.UserInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import it.bologna.ausl.baborg.model.entities.Utente;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.baborg.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.baborg.service.repositories.AziendaRepository;
 import it.bologna.ausl.baborg.service.repositories.UtenteRepository;
@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.transaction.annotation.Transactional;
 /**
  *
  * @author gdm

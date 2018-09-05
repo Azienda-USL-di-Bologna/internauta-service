@@ -1,12 +1,8 @@
 package it.bologna.ausl.baborg.service.interceptors;
 
-import com.querydsl.core.types.Predicate;
-import it.bologna.ausl.baborg.model.entities.Azienda;
-import it.bologna.ausl.baborg.model.entities.QAzienda;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
-import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 
 /**

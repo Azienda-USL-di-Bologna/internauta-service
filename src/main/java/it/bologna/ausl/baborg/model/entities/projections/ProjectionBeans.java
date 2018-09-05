@@ -1,10 +1,10 @@
 package it.bologna.ausl.baborg.model.entities.projections;
 
-import it.bologna.ausl.baborg.model.entities.Struttura;
-import it.bologna.ausl.baborg.model.entities.Utente;
-import it.bologna.ausl.baborg.model.entities.UtenteStruttura;
-import it.bologna.ausl.baborg.model.entities.projections.generated.StrutturaWithIdAzienda;
-import it.bologna.ausl.baborg.model.entities.projections.generated.UtenteWithIdPersona;
+import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithIdAzienda;
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;

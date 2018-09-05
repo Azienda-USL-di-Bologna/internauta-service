@@ -5,8 +5,8 @@
  */
 package it.bologna.ausl.baborg.service.controllers;
 
-import it.bologna.ausl.baborg.model.entities.Ruolo;
-import it.bologna.ausl.baborg.model.entities.Utente;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.baborg.service.repositories.RibaltoniDaLanciareRepository;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;

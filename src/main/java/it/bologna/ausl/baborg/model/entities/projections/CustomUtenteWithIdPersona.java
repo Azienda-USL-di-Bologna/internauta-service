@@ -4,16 +4,15 @@
 package it.bologna.ausl.baborg.model.entities.projections;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import it.bologna.ausl.baborg.model.entities.Persona;
-
-import it.bologna.ausl.baborg.model.entities.Utente;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Utente;
 
 import org.springframework.beans.factory.annotation.Value;
 
 import org.springframework.data.rest.core.config.Projection;
 
 
-@Projection(name = "CustomUtenteWithIdPersona", types = it.bologna.ausl.baborg.model.entities.Utente.class)
+@Projection(name = "CustomUtenteWithIdPersona", types = it.bologna.ausl.model.entities.baborg.Utente.class)
 public interface CustomUtenteWithIdPersona {
     public Boolean getAttivo();
 
