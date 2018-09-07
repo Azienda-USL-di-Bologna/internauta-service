@@ -1,36 +1,36 @@
 package it.bologna.ausl.baborg.service.controllers;
 
 import com.querydsl.core.types.Predicate;
-import it.bologna.ausl.baborg.model.entities.QAfferenzaStruttura;
-import it.bologna.ausl.baborg.model.entities.QAzienda;
-import it.bologna.ausl.baborg.model.entities.QIdpEntityId;
-import it.bologna.ausl.baborg.model.entities.QPec;
-import it.bologna.ausl.baborg.model.entities.QPecProvider;
-import it.bologna.ausl.baborg.model.entities.QPecStruttura;
-import it.bologna.ausl.baborg.model.entities.QPecUtente;
-import it.bologna.ausl.baborg.model.entities.QPermesso;
-import it.bologna.ausl.baborg.model.entities.QPersona;
-import it.bologna.ausl.baborg.model.entities.QRuolo;
-import it.bologna.ausl.baborg.model.entities.QStruttura;
-import it.bologna.ausl.baborg.model.entities.QStrutturaUnificata;
-import it.bologna.ausl.baborg.model.entities.QTipoPermesso;
-import it.bologna.ausl.baborg.model.entities.QUtente;
-import it.bologna.ausl.baborg.model.entities.QUtenteStruttura;
-import it.bologna.ausl.baborg.model.entities.AfferenzaStruttura;
-import it.bologna.ausl.baborg.model.entities.Azienda;
-import it.bologna.ausl.baborg.model.entities.IdpEntityId;
-import it.bologna.ausl.baborg.model.entities.Pec;
-import it.bologna.ausl.baborg.model.entities.PecProvider;
-import it.bologna.ausl.baborg.model.entities.PecStruttura;
-import it.bologna.ausl.baborg.model.entities.PecUtente;
-import it.bologna.ausl.baborg.model.entities.Permesso;
-import it.bologna.ausl.baborg.model.entities.Persona;
-import it.bologna.ausl.baborg.model.entities.Ruolo;
-import it.bologna.ausl.baborg.model.entities.Struttura;
-import it.bologna.ausl.baborg.model.entities.StrutturaUnificata;
-import it.bologna.ausl.baborg.model.entities.TipoPermesso;
-import it.bologna.ausl.baborg.model.entities.Utente;
-import it.bologna.ausl.baborg.model.entities.UtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.QAfferenzaStruttura;
+import it.bologna.ausl.model.entities.baborg.QAzienda;
+import it.bologna.ausl.model.entities.baborg.QIdpEntityId;
+import it.bologna.ausl.model.entities.baborg.QPec;
+import it.bologna.ausl.model.entities.baborg.QPecProvider;
+import it.bologna.ausl.model.entities.baborg.QPecStruttura;
+import it.bologna.ausl.model.entities.baborg.QPecUtente;
+import it.bologna.ausl.model.entities.baborg.QPermesso;
+import it.bologna.ausl.model.entities.baborg.QPersona;
+import it.bologna.ausl.model.entities.baborg.QRuolo;
+import it.bologna.ausl.model.entities.baborg.QStruttura;
+import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
+import it.bologna.ausl.model.entities.baborg.QTipoPermesso;
+import it.bologna.ausl.model.entities.baborg.QUtente;
+import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.IdpEntityId;
+import it.bologna.ausl.model.entities.baborg.Pec;
+import it.bologna.ausl.model.entities.baborg.PecProvider;
+import it.bologna.ausl.model.entities.baborg.PecStruttura;
+import it.bologna.ausl.model.entities.baborg.PecUtente;
+import it.bologna.ausl.model.entities.baborg.Permesso;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
+import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
+import it.bologna.ausl.model.entities.baborg.TipoPermesso;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 
 import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
@@ -268,22 +268,23 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"pec"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Exception.class, Error.class})
     public ResponseEntity<?> pec(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, RollBackInterceptorException {
         Object entity = null;
         try {
             entity = insert(data, Pec.class, request, additionalData);
         } catch (RollBackInterceptorException ex) {
-            log.error("isert error", ex);
+            log.error("insert error", ex);
+            throw ex;
         }
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
     @RequestMapping(value = {"pec/{id}"}, method = RequestMethod.PATCH)
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Exception.class, Error.class})
     public ResponseEntity<?> pec(
             @PathVariable(required = true) Integer id,
             @RequestBody Map<String, Object> data,

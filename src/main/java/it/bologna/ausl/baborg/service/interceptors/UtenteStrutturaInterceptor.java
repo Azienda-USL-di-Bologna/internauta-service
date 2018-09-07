@@ -1,7 +1,7 @@
 package it.bologna.ausl.baborg.service.interceptors;
 
 import com.querydsl.core.types.Predicate;
-import it.bologna.ausl.baborg.model.entities.UtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
 import java.util.Map;

@@ -1,8 +1,8 @@
 package it.bologna.ausl.baborg.service.repositories;
 
-import it.bologna.ausl.baborg.model.entities.IdpEntityId;
-import it.bologna.ausl.baborg.model.entities.QIdpEntityId;
-import it.bologna.ausl.baborg.model.entities.projections.generated.IdpEntityIdWithPlainFields;
+import it.bologna.ausl.model.entities.baborg.IdpEntityId;
+import it.bologna.ausl.model.entities.baborg.QIdpEntityId;
+import it.bologna.ausl.model.entities.baborg.projections.generated.IdpEntityIdWithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;

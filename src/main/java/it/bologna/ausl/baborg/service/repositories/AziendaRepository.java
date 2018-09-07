@@ -1,8 +1,8 @@
 package it.bologna.ausl.baborg.service.repositories;
 
-import it.bologna.ausl.baborg.model.entities.Azienda;
-import it.bologna.ausl.baborg.model.entities.QAzienda;
-import it.bologna.ausl.baborg.model.entities.projections.generated.AziendaWithPlainFields;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.QAzienda;
+import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;

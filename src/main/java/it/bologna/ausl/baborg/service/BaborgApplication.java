@@ -7,7 +7,7 @@ import org.springframework.cache.annotation.EnableCaching;
 
 @SpringBootApplication(scanBasePackages = {"it.bologna.ausl", "it.nextsw"})
 //@EnableJpaRepositories("it.bologna.ausl.baborg.service.repositories")
-@EntityScan("it.bologna.ausl.baborg.model.entities")
+@EntityScan("it.bologna.ausl.model.entities")
 @EnableCaching
 public class BaborgApplication {
 

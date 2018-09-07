@@ -1,8 +1,8 @@
 package it.bologna.ausl.baborg.service.repositories;
 
-import it.bologna.ausl.baborg.model.entities.QPecUtente;
-import it.bologna.ausl.baborg.model.entities.PecUtente;
-import it.bologna.ausl.baborg.model.entities.projections.generated.PecUtenteWithPlainFields;
+import it.bologna.ausl.model.entities.baborg.QPecUtente;
+import it.bologna.ausl.model.entities.baborg.PecUtente;
+import it.bologna.ausl.model.entities.baborg.projections.generated.PecUtenteWithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;

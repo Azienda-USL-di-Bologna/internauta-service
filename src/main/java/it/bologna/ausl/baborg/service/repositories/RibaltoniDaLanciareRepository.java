@@ -1,6 +1,6 @@
 package it.bologna.ausl.baborg.service.repositories;
 
-import it.bologna.ausl.baborg.model.entities.RibaltoniDaLanciare;
+import it.bologna.ausl.model.entities.baborg.RibaltoniDaLanciare;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.query.Procedure;
 

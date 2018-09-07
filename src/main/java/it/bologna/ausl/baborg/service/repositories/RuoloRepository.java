@@ -1,8 +1,8 @@
 package it.bologna.ausl.baborg.service.repositories;
 
-import it.bologna.ausl.baborg.model.entities.QRuolo;
-import it.bologna.ausl.baborg.model.entities.Ruolo;
-import it.bologna.ausl.baborg.model.entities.projections.generated.RuoloWithPlainFields;
+import it.bologna.ausl.model.entities.baborg.QRuolo;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
+import it.bologna.ausl.model.entities.baborg.projections.generated.RuoloWithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;

@@ -1,6 +1,6 @@
 package it.bologna.ausl.baborg.service.interceptors;
 
-import it.bologna.ausl.baborg.model.entities.Struttura;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.RollBackInterceptorException;
