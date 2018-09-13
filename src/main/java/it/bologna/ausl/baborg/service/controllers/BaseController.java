@@ -33,6 +33,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 
 import it.nextsw.common.controller.RestControllerEngine;
+import it.nextsw.common.controller.exceptions.NotFoundResourceException;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
 import it.nextsw.common.interceptors.exceptions.RollBackInterceptorException;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
@@ -57,7 +58,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "${custom.mapping.url.root}")
 public class BaseController extends RestControllerEngine {
 
-    private static final Logger log = LoggerFactory.getLogger(RestController.class);
+    private static final Logger log = LoggerFactory.getLogger(BaseController.class);
 
     @RequestMapping(value = {"afferenzastruttura", "afferenzastruttura/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = Error.class)
@@ -96,13 +97,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        // carichiamo l'entità e poi dobbiamo fare il merge
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"afferenzastruttura/{id}"}, method = RequestMethod.DELETE)
@@ -172,12 +173,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"azienda/{id}"}, method = RequestMethod.DELETE)
@@ -231,12 +233,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"idpentityid/{id}"}, method = RequestMethod.DELETE)
@@ -291,12 +294,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"pec/{id}"}, method = RequestMethod.DELETE)
@@ -350,12 +354,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"pecprovider/{id}"}, method = RequestMethod.DELETE)
@@ -409,12 +414,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"pecstruttura/{id}"}, method = RequestMethod.DELETE)
@@ -468,12 +474,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"pecutente/{id}"}, method = RequestMethod.DELETE)
@@ -527,12 +534,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"permesso/{id}"}, method = RequestMethod.DELETE)
@@ -587,12 +595,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"persona/{id}"}, method = RequestMethod.DELETE)
@@ -646,12 +655,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"ruolo/{id}"}, method = RequestMethod.DELETE)
@@ -706,12 +716,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"struttura/{id}"}, method = RequestMethod.DELETE)
@@ -765,12 +776,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"strutturaunificata/{id}"}, method = RequestMethod.DELETE)
@@ -824,12 +836,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"tipopermesso/{id}"}, method = RequestMethod.DELETE)
@@ -884,12 +897,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"utente/{id}"}, method = RequestMethod.DELETE)
@@ -943,12 +957,13 @@ public class BaseController extends RestControllerEngine {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
 
-        Object entity = get(id, request);
-        if (entity != null) {
-            Object update = update(id, entity, data, request, additionalData);
+        try {
+            Object update = update(id, data, request, additionalData);
             return new ResponseEntity(update, HttpStatus.OK);
         }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
+        catch (NotFoundResourceException ex) {
+            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = {"utentestruttura/{id}"}, method = RequestMethod.DELETE)

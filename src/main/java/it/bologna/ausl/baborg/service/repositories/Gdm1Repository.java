@@ -1,8 +1,8 @@
 package it.bologna.ausl.baborg.service.repositories;
 
-import it.bologna.ausl.model.entities.scrivania.Attivita;
-import it.bologna.ausl.model.entities.scrivania.QAttivita;
-import it.bologna.ausl.model.entities.scrivania.projections.generated.AttivitaWithPlainFields;
+import it.bologna.ausl.model.entities.baborg.Gdm1;
+import it.bologna.ausl.model.entities.baborg.QGdm1;
+import it.bologna.ausl.model.entities.baborg.projections.generated.Gdm1WithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
@@ -26,9 +26,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * projection, è valida quella indicata.
  *
  */
-@NextSdrRepository(repositoryPath = "attivita", defaultProjection = AttivitaWithPlainFields.class)
-@RepositoryRestResource(collectionResourceRel = "attivita", path = "attivita", exported = false)
-public interface AttivitaRepository extends
-        NextSdrQueryDslRepository<Attivita, Integer, QAttivita>,
-        JpaRepository<Attivita, Integer> {
+@NextSdrRepository(repositoryPath = "gdm1", defaultProjection = Gdm1WithPlainFields.class)
+@RepositoryRestResource(collectionResourceRel = "gdm1", path = "gdm1", exported = false)
+public interface Gdm1Repository extends
+        NextSdrQueryDslRepository<Gdm1, String, QGdm1>,
+        JpaRepository<Gdm1, String> {
 }
