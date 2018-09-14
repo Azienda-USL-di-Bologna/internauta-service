@@ -6,7 +6,6 @@ import it.bologna.ausl.baborg.service.repositories.AttivitaRepository;
 import it.bologna.ausl.baborg.service.repositories.AziendaRepository;
 import it.bologna.ausl.baborg.service.repositories.Gdm1Repository;
 import it.bologna.ausl.baborg.service.repositories.Gdm2Repository;
-import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Gdm1;
 import it.bologna.ausl.model.entities.baborg.Gdm2;
 import it.bologna.ausl.model.entities.baborg.QGdm1;
@@ -15,14 +14,11 @@ import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.configuration.QApplicazione;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import it.bologna.ausl.model.entities.scrivania.QAttivita;
-
+import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
-import it.nextsw.common.controller.exceptions.NotFoundResourceException;
+
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
-import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
-import java.util.List;
-import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
@@ -31,12 +27,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -44,9 +38,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(value = "${custom.mapping.url.root}")
-public class BaseControllerTest extends RestControllerEngine {
+public class BaseControllerTest extends BaseCrudController {
 
-    private static final Logger log = LoggerFactory.getLogger(RestController.class);
+    private final Logger log = LoggerFactory.getLogger(BaseControllerTest.class);
     
     @Autowired
     AttivitaRepository attivitaRepository;
@@ -66,7 +60,7 @@ public class BaseControllerTest extends RestControllerEngine {
     
     @PersistenceContext
     EntityManager entityManager;
-
+    
     @RequestMapping(value = {"attivita", "attivita/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> attivita(
@@ -79,53 +73,6 @@ public class BaseControllerTest extends RestControllerEngine {
 
         Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QAttivita.attivita, Attivita.class);
         return ResponseEntity.ok(resource);
-    }
-
-    @RequestMapping(value = {"attivita"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> attivita(
-            @RequestBody Map<String, Object> data,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, Attivita.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("insert error", ex);
-        }
-        return new ResponseEntity(entity, HttpStatus.CREATED);
-    }
-
-    @RequestMapping(value = {"attivita/{id}"}, method = RequestMethod.PATCH)
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> attivita(
-            @PathVariable(required = true) Integer id,
-            @RequestBody Map<String, Object> data,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-
-        try {
-            Object update = update(id, data, request, additionalData);
-            return new ResponseEntity(update, HttpStatus.OK);
-        }
-        catch (NotFoundResourceException ex) {
-            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
-        }
-    }
-
-    @RequestMapping(value = {"attivita/{id}"}, method = RequestMethod.DELETE)
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> attivita(
-            @PathVariable(required = true) Integer id,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
-
-        Object entity = get(id, request);
-        if (entity != null) {
-            delete(entity, request, additionalData);
-            return new ResponseEntity(HttpStatus.OK);
-        }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
     }
 
     @RequestMapping(value = {"applicazione", "applicazione/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -155,53 +102,7 @@ public class BaseControllerTest extends RestControllerEngine {
         Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QApplicazione.applicazione, Applicazione.class);
         return ResponseEntity.ok(resource);
     }
-
-    @RequestMapping(value = {"applicazione"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> applicazione(
-            @RequestBody Map<String, Object> data,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, Applicazione.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
-        return new ResponseEntity(entity, HttpStatus.CREATED);
-    }
-
-    @RequestMapping(value = {"applicazione/{id}"}, method = RequestMethod.PATCH)
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> applicazione(
-            @PathVariable(required = true) String id,
-            @RequestBody Map<String, Object> data,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-
-        try {
-            Object update = update(id, data, request, additionalData);
-            return new ResponseEntity(update, HttpStatus.OK);
-        }
-        catch (NotFoundResourceException ex) {
-            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
-        }
-    }
-
-    @RequestMapping(value = {"applicazione/{id}"}, method = RequestMethod.DELETE)
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> applicazione(
-            @PathVariable(required = true) String id,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
-
-        Object entity = get(id, request);
-        if (entity != null) {
-            delete(entity, request, additionalData);
-            return new ResponseEntity(HttpStatus.OK);
-        }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
-    }
+    
     
     @RequestMapping(value = {"gdm1", "gdm1/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {Error.class})
@@ -231,53 +132,6 @@ public class BaseControllerTest extends RestControllerEngine {
         return ResponseEntity.ok(resource);
     }
 
-    @RequestMapping(value = {"gdm1"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> gdm1(
-            @RequestBody Map<String, Object> data,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, Gdm1.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
-        return new ResponseEntity(entity, HttpStatus.CREATED);
-    }
-
-    @RequestMapping(value = {"gdm1/{id}"}, method = RequestMethod.PATCH)
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> gdm1(
-            @PathVariable(required = true) String id,
-            @RequestBody Map<String, Object> data,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-
-        try {
-            Object update = update(id, data, request, additionalData);
-            return new ResponseEntity(update, HttpStatus.OK);
-        }
-        catch (NotFoundResourceException ex) {
-            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
-        }
-    }
-
-    @RequestMapping(value = {"gdm1/{id}"}, method = RequestMethod.DELETE)
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> gdm1(
-            @PathVariable(required = true) String id,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
-
-        Object entity = get(id, request);
-        if (entity != null) {
-            delete(entity, request, additionalData);
-            return new ResponseEntity(HttpStatus.OK);
-        }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
-    }
-    
     @RequestMapping(value = {"gdm2", "gdm2/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> gdm2(
@@ -305,53 +159,8 @@ public class BaseControllerTest extends RestControllerEngine {
         Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QGdm2.gdm2, Gdm2.class);
         return ResponseEntity.ok(resource);
     }
-
-    @RequestMapping(value = {"gdm2"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> gdm2(
-            @RequestBody Map<String, Object> data,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, Gdm2.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
-        return new ResponseEntity(entity, HttpStatus.CREATED);
-    }
-
-    @RequestMapping(value = {"gdm2/{id}"}, method = RequestMethod.PATCH)
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> gdm2(
-            @PathVariable(required = true) String id,
-            @RequestBody Map<String, Object> data,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-
-        try {
-            Object update = update(id, data, request, additionalData);
-            return new ResponseEntity(update, HttpStatus.OK);
-        }
-        catch (NotFoundResourceException ex) {
-            return new ResponseEntity(ex.getMessage(), HttpStatus.NOT_FOUND);
-        }
-    }
-
-    @RequestMapping(value = {"gdm2/{id}"}, method = RequestMethod.DELETE)
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> gdm2(
-            @PathVariable(required = true) String id,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
-
-        Object entity = get(id, request);
-        if (entity != null) {
-            delete(entity, request, additionalData);
-            return new ResponseEntity(HttpStatus.OK);
-        }
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
-    }
+    
+    
     
     @RequestMapping(value = {"test"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 //    @Transactional(rollbackFor = {Error.class})

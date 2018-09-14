@@ -75,17 +75,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"afferenzastruttura"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> afferenzastruttura(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, AfferenzaStruttura.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("insert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -151,17 +146,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"azienda"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> azienda(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, Azienda.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -211,17 +201,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"idpentityid"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> idpentityid(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, IdpEntityId.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -276,13 +261,7 @@ public class BaseController extends RestControllerEngine {
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
-        Object entity = null;
-        try {
-            entity = insert(data, Pec.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("insert error", ex);
-            throw ex;
-        }
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -332,17 +311,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"pecprovider"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> pecprovider(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, PecProvider.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -392,17 +366,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"pecstruttura"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> pecstruttura(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, PecStruttura.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -452,17 +421,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"pecutente"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> pecutente(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, PecUtente.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -512,17 +476,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"permesso"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> permesso(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, Permesso.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -573,17 +532,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"persona"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> persona(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, Persona.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -633,17 +587,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"ruolo"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> ruolo(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, Ruolo.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -694,17 +643,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"struttura"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> struttura(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, Struttura.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -754,17 +698,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"strutturaunificata"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> strutturaunificata(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, StrutturaUnificata.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -814,17 +753,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"tipopermesso"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> tipopermesso(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, TipoPermesso.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -875,17 +809,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"utente"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> utente(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, Utente.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("isert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
@@ -935,17 +864,12 @@ public class BaseController extends RestControllerEngine {
     }
 
     @RequestMapping(value = {"utentestruttura"}, method = {RequestMethod.POST, RequestMethod.PUT})
-    @Transactional(rollbackFor = {Error.class})
+    @Transactional(rollbackFor = {Error.class, Exception.class})
     public ResponseEntity<?> registroAccessi(
             @RequestBody Map<String, Object> data,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException {
-        Object entity = null;
-        try {
-            entity = insert(data, UtenteStruttura.class, request, additionalData);
-        } catch (AbortSaveInterceptorException ex) {
-            log.error("insert error", ex);
-        }
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
+        Object entity = insert(data, request, additionalData);
         return new ResponseEntity(entity, HttpStatus.CREATED);
     }
 
