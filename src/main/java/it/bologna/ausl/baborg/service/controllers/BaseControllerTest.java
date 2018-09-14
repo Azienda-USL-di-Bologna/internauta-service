@@ -19,7 +19,7 @@ import it.bologna.ausl.model.entities.scrivania.QAttivita;
 import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.NotFoundResourceException;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
-import it.nextsw.common.interceptors.exceptions.RollBackInterceptorException;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
 import java.util.List;
 import java.util.Map;
@@ -90,7 +90,7 @@ public class BaseControllerTest extends RestControllerEngine {
         Object entity = null;
         try {
             entity = insert(data, Attivita.class, request, additionalData);
-        } catch (RollBackInterceptorException ex) {
+        } catch (AbortSaveInterceptorException ex) {
             log.error("insert error", ex);
         }
         return new ResponseEntity(entity, HttpStatus.CREATED);
@@ -118,7 +118,7 @@ public class BaseControllerTest extends RestControllerEngine {
     public ResponseEntity<?> attivita(
             @PathVariable(required = true) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, RollBackInterceptorException {
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
 
         Object entity = get(id, request);
         if (entity != null) {
@@ -165,7 +165,7 @@ public class BaseControllerTest extends RestControllerEngine {
         Object entity = null;
         try {
             entity = insert(data, Applicazione.class, request, additionalData);
-        } catch (RollBackInterceptorException ex) {
+        } catch (AbortSaveInterceptorException ex) {
             log.error("isert error", ex);
         }
         return new ResponseEntity(entity, HttpStatus.CREATED);
@@ -193,7 +193,7 @@ public class BaseControllerTest extends RestControllerEngine {
     public ResponseEntity<?> applicazione(
             @PathVariable(required = true) String id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, RollBackInterceptorException {
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
 
         Object entity = get(id, request);
         if (entity != null) {
@@ -240,7 +240,7 @@ public class BaseControllerTest extends RestControllerEngine {
         Object entity = null;
         try {
             entity = insert(data, Gdm1.class, request, additionalData);
-        } catch (RollBackInterceptorException ex) {
+        } catch (AbortSaveInterceptorException ex) {
             log.error("isert error", ex);
         }
         return new ResponseEntity(entity, HttpStatus.CREATED);
@@ -268,7 +268,7 @@ public class BaseControllerTest extends RestControllerEngine {
     public ResponseEntity<?> gdm1(
             @PathVariable(required = true) String id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, RollBackInterceptorException {
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
 
         Object entity = get(id, request);
         if (entity != null) {
@@ -315,7 +315,7 @@ public class BaseControllerTest extends RestControllerEngine {
         Object entity = null;
         try {
             entity = insert(data, Gdm2.class, request, additionalData);
-        } catch (RollBackInterceptorException ex) {
+        } catch (AbortSaveInterceptorException ex) {
             log.error("isert error", ex);
         }
         return new ResponseEntity(entity, HttpStatus.CREATED);
@@ -343,7 +343,7 @@ public class BaseControllerTest extends RestControllerEngine {
     public ResponseEntity<?> gdm2(
             @PathVariable(required = true) String id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, RollBackInterceptorException {
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
 
         Object entity = get(id, request);
         if (entity != null) {

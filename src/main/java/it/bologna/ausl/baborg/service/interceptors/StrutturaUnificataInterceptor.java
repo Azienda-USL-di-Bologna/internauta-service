@@ -9,7 +9,7 @@ import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
-import it.nextsw.common.interceptors.exceptions.RollBackInterceptorException;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -100,7 +100,7 @@ public class StrutturaUnificataInterceptor extends NextSdrEmptyControllerInterce
     }
     
     @Override
-    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws RollBackInterceptorException {
+    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         System.out.println("in: beforeCreateEntityInterceptor di Struttura-Unificata");
         
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -108,14 +108,14 @@ public class StrutturaUnificataInterceptor extends NextSdrEmptyControllerInterce
         List<Ruolo> ruoli = utente.getRuoli();
         Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
         if (!isCI) {
-            throw new RollBackInterceptorException();
+            throw new AbortSaveInterceptorException();
         }
         
         return entity;
     }
     
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws RollBackInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         System.out.println("in: beforeUpdateEntityInterceptor di Struttura-Unificata");
          
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -123,7 +123,7 @@ public class StrutturaUnificataInterceptor extends NextSdrEmptyControllerInterce
         List<Ruolo> ruoli = utente.getRuoli();
         Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
         if (!isCI) {
-            throw new RollBackInterceptorException();
+            throw new AbortSaveInterceptorException();
         }
         
         return entity;
