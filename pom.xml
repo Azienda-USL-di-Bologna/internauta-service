@@ -3,13 +3,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>it.bologna.ausl.baborg.service</groupId>
-    <artifactId>baborg-service</artifactId>
+    <groupId>it.bologna.ausl.internauta.service</groupId>
+    <artifactId>internauta-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>baborg-service</name>
-    <description>Servizio dei servizi</description>
+    <name>internauta-service</name>
+    <description>servizio internauta</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
