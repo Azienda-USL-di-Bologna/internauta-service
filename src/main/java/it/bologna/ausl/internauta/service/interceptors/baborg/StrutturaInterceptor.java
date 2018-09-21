@@ -41,7 +41,7 @@ public class StrutturaInterceptor extends NextSdrEmptyControllerInterceptor {
     }
 
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         System.out.println("in: beforeUpdateInterceptor di " + entity.getClass().getSimpleName());
         Struttura struttura = (Struttura) entity;
         return struttura;

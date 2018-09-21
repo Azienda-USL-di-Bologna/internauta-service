@@ -1,8 +1,18 @@
 package it.bologna.ausl.internauta.service.interceptors.baborg;
 
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
+import java.util.Map;
+import java.util.Optional;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -13,6 +23,12 @@ import org.springframework.stereotype.Component;
 @NextSdrInterceptor(name = "azienda-interceptorTest")
 public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
 
+    @Autowired
+    AziendaRepository aziendaRepository;
+    
+    @Autowired
+    EntityManager em;
+    
     @Override
     public Class getTargetEntityClass() {
         return Azienda.class;
@@ -39,7 +55,37 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
 //        else
 //            return entity;
 //    }
-    
-    
-    
+
+    @Override
+    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+        Azienda a = (Azienda) entity;
+        return a;
+    }
+
+    @Override
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+        Azienda a = (Azienda) entity;
+        Azienda aOld = (Azienda) beforeUpdateEntity;
+        
+        Optional<Azienda> findOne = aziendaRepository.findOne(QAzienda.azienda.aoo.eq("messamo"));
+        if (findOne.isPresent())
+            System.out.println("messamo trovata: " + findOne.get());
+        
+        Azienda one = aziendaRepository.getOne(17);
+        if (one != null)
+            System.out.println("aoo rp della 17: " + one.getAoo());
+        
+        Azienda find = em.find(Azienda.class, 17);
+        if (find != null)
+            System.out.println("aoo em della 17: " + find.getAoo());
+        
+        System.out.println("aoo em della 17old: " + aOld.getAoo());
+        return a;
+    }
+
+    @Override
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        Azienda a = (Azienda) entity;
+        throw new SkipDeleteInterceptorException("non la voglio cancellare l'aziedna con id: " + a.getId());
+    }
 }

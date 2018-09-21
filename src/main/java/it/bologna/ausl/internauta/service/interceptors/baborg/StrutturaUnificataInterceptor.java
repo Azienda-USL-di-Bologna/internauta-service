@@ -118,7 +118,7 @@ public class StrutturaUnificataInterceptor extends NextSdrEmptyControllerInterce
     }
 
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         System.out.println("in: beforeUpdateEntityInterceptor di Struttura-Unificata");
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
