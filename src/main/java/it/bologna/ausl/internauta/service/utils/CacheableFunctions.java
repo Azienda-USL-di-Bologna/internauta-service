@@ -1,13 +1,10 @@
 package it.bologna.ausl.internauta.service.utils;
 
-import org.springframework.stereotype.Component;
-
 /**
  *
- * @author Utente
+ * @author spritz
  */
 //@Component
 public class CacheableFunctions {
 
-    
 }

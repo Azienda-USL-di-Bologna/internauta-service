@@ -10,7 +10,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  *
- * @author Utente
+ * @author spritz
  */
 @Configuration
 public class PageableConfiguration implements WebMvcConfigurer {

@@ -116,4 +116,11 @@ public class ScrivaniaBaseController extends BaseCrudController {
         return ResponseEntity.ok(resource);
     }
 
+//    @RequestMapping(value = {"test"}, method = RequestMethod.GET)
+//    public String test() throws Http400ResponseException {
+//        if (true) {
+//            throw new Http400ResponseException("12345", "nostro messaggio");
+//        }
+//        return "test";
+//    }
 }
