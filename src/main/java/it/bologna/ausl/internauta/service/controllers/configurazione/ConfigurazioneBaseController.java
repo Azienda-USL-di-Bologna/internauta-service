@@ -30,15 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class ConfigurazioneBaseController extends BaseCrudController {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigurazioneBaseController.class);
-
-    @Value("${configurazione.mapping.url.root}")
-    private String baseUrl;
-
-    @Override
-    public String getBaseUrl() {
-        return this.baseUrl;
-    }
-
     /*
      *
      * PARAMETRO AZIENDE

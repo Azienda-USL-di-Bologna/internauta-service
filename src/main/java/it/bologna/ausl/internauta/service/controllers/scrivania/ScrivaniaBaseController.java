@@ -33,14 +33,6 @@ public class ScrivaniaBaseController extends BaseCrudController {
 
     private static final Logger log = LoggerFactory.getLogger(ScrivaniaBaseController.class);
 
-    @Value("${scrivania.mapping.url.root}")
-    private String baseUrl;
-
-    @Override
-    public String getBaseUrl() {
-        return this.baseUrl;
-    }
-
     /*
      * ATTIVITA'
      *
