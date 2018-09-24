@@ -55,14 +55,6 @@ public class BaborgBaseController extends BaseCrudController {
 
     private static final Logger log = LoggerFactory.getLogger(BaborgBaseController.class);
 
-    @Value("${baborg.mapping.url.root}")
-    private String baseUrl;
-
-    @Override
-    public String getBaseUrl() {
-        return this.baseUrl;
-    }
-
     @RequestMapping(value = {"afferenzastruttura", "afferenzastruttura/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> afferenzastruttura(
