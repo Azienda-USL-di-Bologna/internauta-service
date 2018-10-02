@@ -22,7 +22,7 @@ public interface StrutturaRepository extends
     // la store procedure prende in ingresso un idStruttura e restituisce una stringa in cui sono presenti gli id delle strutture antenate della struttura passata
     // la stringa è formata dagli id numerici separati dal carattere ','
     // l'id della struttura pasasta è in prima posizione, quello della struttura radice in ultima
-    @Procedure("organigramma.get_strutture_antenate")
+    @Procedure("baborg.get_strutture_antenate")
     String getStruttureAntenate(Integer idStruttura);
 
 }
