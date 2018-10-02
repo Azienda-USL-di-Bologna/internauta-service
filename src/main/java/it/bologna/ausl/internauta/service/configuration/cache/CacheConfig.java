@@ -64,7 +64,7 @@ public class CacheConfig {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofSeconds(expireTime))
                 .computePrefixWith((cacheName) -> {
-                    return "baborg_cache_" + cacheName + "::";
+                    return "internauta_cache_" + cacheName + "::";
                 });
 //                .disableCachingNullValues();
         if (jsonSerialization) {

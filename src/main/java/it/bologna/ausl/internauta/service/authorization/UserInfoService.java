@@ -50,7 +50,7 @@ public class UserInfoService {
      * @param path
      * @return
      */
-    @Cacheable(value = "aziendaInfo", key = "{#path}")
+    @Cacheable(value = "aziendaInfo__ribaltorg__", key = "{#path}")
     public Azienda loadAziendaByPath(String path) {
         BooleanExpression filter = Expressions.booleanTemplate("arraycontains({0}, string_to_array({1}, ','))=true", QAzienda.azienda.path, path);
         Optional<Azienda> aziendaOp = aziendaRepository.findOne(filter);
@@ -67,7 +67,7 @@ public class UserInfoService {
      * @param id
      * @return
      */
-    @Cacheable(value = "userInfo", key = "{#id}")
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#id}")
     public Utente loadUtente(Integer id) {
         Optional<Utente> utenteOp = utenteRepository.findById(id);
         if (utenteOp.isPresent()) {
@@ -85,7 +85,7 @@ public class UserInfoService {
      * @param aziendaPath
      * @return
      */
-    @Cacheable(value = "userInfo", key = "{#username, #aziendaPath}")
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
     public Utente loadUtente(String username, String aziendaPath) {
         Utente res = null;
         Azienda azienda = loadAziendaByPath(aziendaPath);
@@ -110,7 +110,7 @@ public class UserInfoService {
      * @param azienda campo che identifica l'azienda
      * @return
      */
-    @Cacheable(value = "userInfo", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId()}")
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId()}")
     public Utente loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda) {
 
         BooleanExpression filter;
@@ -132,7 +132,7 @@ public class UserInfoService {
         }
     }
 
-    @Cacheable(value = "ruoli", key = "{#utente.getId()}")
+    @Cacheable(value = "ruoli__ribaltorg__", key = "{#utente.getId()}")
     public List<Ruolo> getRuoli(Utente utente) {
         List<Ruolo> res = new ArrayList<>();
         List<Ruolo> ruoliAll = ruoloRepository.findAll();
