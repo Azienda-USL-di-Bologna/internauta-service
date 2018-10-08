@@ -15,12 +15,10 @@ import it.nextsw.common.utils.exceptions.EntityReflectionException;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -38,7 +36,6 @@ public class ScrivaniaBaseController extends BaseCrudController {
      *
      */
     @RequestMapping(value = {"attivita", "attivita/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> attivita(
             @QuerydslPredicate(root = Attivita.class) Predicate predicate,
             Pageable pageable,
@@ -57,7 +54,6 @@ public class ScrivaniaBaseController extends BaseCrudController {
      *
      */
     @RequestMapping(value = {"attivitafatta", "attivitafatta/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> attivitafatta(
             @QuerydslPredicate(root = AttivitaFatta.class) Predicate predicate,
             Pageable pageable,
@@ -76,7 +72,6 @@ public class ScrivaniaBaseController extends BaseCrudController {
      *
      */
     @RequestMapping(value = {"parametroaziende", "parametroaziende/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> parametroaziende(
             @QuerydslPredicate(root = ParametroAziende.class) Predicate predicate,
             Pageable pageable,
@@ -95,7 +90,6 @@ public class ScrivaniaBaseController extends BaseCrudController {
      *
      */
     @RequestMapping(value = {"applicazione", "applicazione/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> applicazione(
             @QuerydslPredicate(root = Applicazione.class) Predicate predicate,
             Pageable pageable,

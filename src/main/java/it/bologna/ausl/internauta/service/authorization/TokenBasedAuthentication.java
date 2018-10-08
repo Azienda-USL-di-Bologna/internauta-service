@@ -8,10 +8,35 @@ public class TokenBasedAuthentication extends AbstractAuthenticationToken {
 
     private String token;
     private final UserDetails user;
+    private final UserDetails realUser;
+    private int idSessionLog;
 
     public TokenBasedAuthentication(Utente user) {
         super(user.getAuthorities());
         this.user = user;
+        this.realUser = user;
+//        super.setDetails(userInfo);
+    }
+
+    public TokenBasedAuthentication(Utente user, Utente realUser) {
+        super(user.getAuthorities());
+        this.user = user;
+        this.realUser = realUser;
+//        super.setDetails(userInfo);
+    }
+
+    public TokenBasedAuthentication(Utente user, int idSessionLog) {
+        super(user.getAuthorities());
+        this.user = user;
+        this.realUser = this.user;
+        this.idSessionLog = idSessionLog;
+    }
+
+    public TokenBasedAuthentication(Utente user, Utente realUser, int idSessionLog) {
+        super(user.getAuthorities());
+        this.user = user;
+        this.realUser = realUser;
+        this.idSessionLog = idSessionLog;
 //        super.setDetails(userInfo);
     }
 
@@ -38,4 +63,15 @@ public class TokenBasedAuthentication extends AbstractAuthenticationToken {
         return user;
     }
 
+    public UserDetails getRealUser() {
+        return realUser;
+    }
+
+    public int getIdSessionLog() {
+        return idSessionLog;
+    }
+
+    public void setIdSessionLog(int idSessionLog) {
+        this.idSessionLog = idSessionLog;
+    }
 }
