@@ -38,7 +38,6 @@ public class ScrivaniaBaseController extends BaseCrudController {
      *
      */
     @RequestMapping(value = {"attivita", "attivita/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> attivita(
             @QuerydslPredicate(root = Attivita.class) Predicate predicate,
             Pageable pageable,
@@ -57,7 +56,6 @@ public class ScrivaniaBaseController extends BaseCrudController {
      *
      */
     @RequestMapping(value = {"attivitafatta", "attivitafatta/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> attivitafatta(
             @QuerydslPredicate(root = AttivitaFatta.class) Predicate predicate,
             Pageable pageable,
@@ -76,7 +74,6 @@ public class ScrivaniaBaseController extends BaseCrudController {
      *
      */
     @RequestMapping(value = {"parametroaziende", "parametroaziende/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> parametroaziende(
             @QuerydslPredicate(root = ParametroAziende.class) Predicate predicate,
             Pageable pageable,
@@ -95,7 +92,6 @@ public class ScrivaniaBaseController extends BaseCrudController {
      *
      */
     @RequestMapping(value = {"applicazione", "applicazione/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> applicazione(
             @QuerydslPredicate(root = Applicazione.class) Predicate predicate,
             Pageable pageable,
