@@ -2,10 +2,13 @@ package it.bologna.ausl.internauta.service.configuration.cache;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -57,7 +60,8 @@ public class CacheConfig {
     }
 
     @Bean
-    public CacheManager cacheManager(RedisConnectionFactory jedisConnectionFactory) {
+    @Primary
+    public CacheManager defaultCacheManager(RedisConnectionFactory jedisConnectionFactory) {
 
         RedisSerializer<Object> defaultSerializer = new JdkSerializationRedisSerializer(getClass().getClassLoader());
         RedisSerializer<Object> jsonSerializer = new GenericJackson2JsonRedisSerializer();
@@ -75,9 +79,38 @@ public class CacheConfig {
         RedisCacheManager cm = RedisCacheManager.builder(jedisConnectionFactory)
                 .cacheDefaults(config)
                 .withInitialCacheConfigurations(Collections.singletonMap("predefined", config))
+//                .withInitialCacheConfigurations(cacheNamesConfigurationMap)
                 .transactionAware()
                 .build();
-
         return cm;
     }
+    
+    @Bean
+    public CacheManager expirationOneMinuteCacheManager(RedisConnectionFactory jedisConnectionFactory) {
+        RedisSerializer<Object> defaultSerializer = new JdkSerializationRedisSerializer(getClass().getClassLoader());
+        RedisSerializer<Object> jsonSerializer = new GenericJackson2JsonRedisSerializer();
+        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofSeconds(60))
+                .computePrefixWith((cacheName) -> {
+                    return "internauta_cache_one_minute_ttl_" + cacheName + "::";
+                });
+//                .disableCachingNullValues();
+        if (jsonSerialization) {
+            config = config.serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer));
+        } else {
+            config = config.serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(defaultSerializer));
+        }
+       
+        Map<String, RedisCacheConfiguration> cacheNamesConfigurationMap = new HashMap<>();
+        
+        RedisCacheManager cm = RedisCacheManager.builder(jedisConnectionFactory)
+                .cacheDefaults(config)
+                .withInitialCacheConfigurations(Collections.singletonMap("predefined", config))
+                .withInitialCacheConfigurations(cacheNamesConfigurationMap)
+                .transactionAware()
+                .build();
+        
+        return cm;
+    }
+    
 }
