@@ -25,10 +25,10 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
 
     @Autowired
     AziendaRepository aziendaRepository;
-    
+
     @Autowired
     EntityManager em;
-    
+
     @Override
     public Class getTargetEntityClass() {
         return Azienda.class;
@@ -38,7 +38,6 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
 //    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) {
 //        return QAzienda.azienda.id.eq(2).and(initialPredicate);
 //    }
-
 //    @Override
 //    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) {
 //        if (entity != null) {
@@ -55,7 +54,6 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
 //        else
 //            return entity;
 //    }
-
     @Override
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         Azienda a = (Azienda) entity;
@@ -66,19 +64,22 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         Azienda a = (Azienda) entity;
         Azienda aOld = (Azienda) beforeUpdateEntity;
-        
+
         Optional<Azienda> findOne = aziendaRepository.findOne(QAzienda.azienda.aoo.eq("messamo"));
-        if (findOne.isPresent())
+        if (findOne.isPresent()) {
             System.out.println("messamo trovata: " + findOne.get());
-        
+        }
+
         Azienda one = aziendaRepository.getOne(17);
-        if (one != null)
+        if (one != null) {
             System.out.println("aoo rp della 17: " + one.getAoo());
-        
+        }
+
         Azienda find = em.find(Azienda.class, 17);
-        if (find != null)
+        if (find != null) {
             System.out.println("aoo em della 17: " + find.getAoo());
-        
+        }
+
         System.out.println("aoo em della 17old: " + aOld.getAoo());
         return a;
     }

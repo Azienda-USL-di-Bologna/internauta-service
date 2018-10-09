@@ -5,26 +5,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.repositories.scrivania.CounterRepository;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
+import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteWithIdPersonaAndIdAzienda;
+import it.bologna.ausl.model.entities.logs.Counter;
 import java.io.IOException;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import org.joda.time.DateTime;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.projection.ProjectionFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -40,7 +43,8 @@ public class AuthorizationUtils {
         USER_ENTITY_CLASS,
         USER_FIELD,
         USER_SSO_FIELD_VALUE,
-        REAL_USER
+        REAL_USER,
+        ID_SESSION_LOG
     }
 
     private final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
@@ -56,6 +60,12 @@ public class AuthorizationUtils {
 
     @Value("${jwt.expires-seconds}")
     private Integer tokenExpireSeconds;
+
+    @Autowired
+    CounterRepository counterRepository;
+
+    @Autowired
+    ProjectionFactory factory;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizationUtils.class);
 
@@ -76,17 +86,19 @@ public class AuthorizationUtils {
                 getBody();
 
         Integer idUtente = Integer.parseInt(claims.getSubject());
+        Integer idSessionLog = Integer.parseInt((String) claims.get(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name()));
         Utente user = userInfoService.loadUtente(idUtente);
         user.setRuoli(userInfoService.getRuoli(user));
         TokenBasedAuthentication authentication = new TokenBasedAuthentication(user);
         authentication.setToken(token);
+        authentication.setIdSessionLog(idSessionLog);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         return claims;
     }
 
     public ResponseEntity generateResponseEntityFromSAML(String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr) throws IOException, ClassNotFoundException, ObjectNotFoundException {
 
-        Utente userInfoUtenteImpersonato = null;
+        Utente impersonatedUser = null;
         boolean isSuperDemiurgo = false;
 
         Azienda azienda = userInfoService.loadAziendaByPath(path);
@@ -122,6 +134,7 @@ public class AuthorizationUtils {
         }
 
         user.setPasswordHash(null);
+        CustomUtenteWithIdPersonaAndIdAzienda userLoginSSOWithPersonaAndAzienda = factory.createProjection(CustomUtenteWithIdPersonaAndIdAzienda.class, user);
 
         // controlla se è stato passato il parametro di utente impersonato
         if (utenteImpersonatoStr != null && !utenteImpersonatoStr.equals("")) {
@@ -138,10 +151,12 @@ public class AuthorizationUtils {
 
             if (isSuperDemiurgo) {
                 logger.info(String.format("utente %s ha ruolo SD", realUserSubject));
-                userInfoUtenteImpersonato = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda);
-                userInfoUtenteImpersonato.setPasswordHash(null);
+                impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda);
+                impersonatedUser.setPasswordHash(null);
 
-                String impersonateUserSubject = String.valueOf(userInfoUtenteImpersonato.getId());
+                CustomUtenteWithIdPersonaAndIdAzienda impersonatedUserWithPersonaAndAzienda = factory.createProjection(CustomUtenteWithIdPersonaAndIdAzienda.class, impersonatedUser);
+
+                String impersonateUserSubject = String.valueOf(impersonatedUser.getId());
 
                 // se utente reale = utente impersonato allora non si fa il cambia utente
                 if (realUserSubject.equals(impersonateUserSubject)) {
@@ -151,20 +166,20 @@ public class AuthorizationUtils {
 
                 // ritorna utente impersonato con informazioni dell'utente reale
                 return new ResponseEntity(
-                        generateLoginResponse(userInfoUtenteImpersonato, user, azienda, entityClass, field, utenteImpersonatoStr, secretKey),
+                        generateLoginResponse(impersonatedUserWithPersonaAndAzienda, userLoginSSOWithPersonaAndAzienda, azienda, entityClass, field, utenteImpersonatoStr, secretKey),
                         HttpStatus.OK);
             } else {
                 // ritorna l'utente stesso perchè non ha i permessi per fare il cambia utente
                 logger.info(String.format("utente %s non ha ruolo SD, ritorna se stesso nel token", realUserSubject));
                 return new ResponseEntity(
-                        generateLoginResponse(user, null, azienda, entityClass, field, ssoFieldValue, secretKey),
+                        generateLoginResponse(userLoginSSOWithPersonaAndAzienda, null, azienda, entityClass, field, ssoFieldValue, secretKey),
                         HttpStatus.OK);
             }
 
         } else {
             // ritorna l'utente reale perchè non è stato passato l'utente impersonato
             return new ResponseEntity(
-                    generateLoginResponse(user, null, azienda, entityClass, field, ssoFieldValue, secretKey),
+                    generateLoginResponse(userLoginSSOWithPersonaAndAzienda, null, azienda, entityClass, field, ssoFieldValue, secretKey),
                     HttpStatus.OK);
         }
         //        DateTime currentDateTime = DateTime.now();
@@ -192,8 +207,8 @@ public class AuthorizationUtils {
     }
 
     private LoginController.LoginResponse generateLoginResponse(
-            Utente currentUser,
-            Utente realUser,
+            CustomUtenteWithIdPersonaAndIdAzienda currentUser,
+            CustomUtenteWithIdPersonaAndIdAzienda realUser,
             Azienda azienda,
             Class<?> entityClass,
             String field,
@@ -217,11 +232,20 @@ public class AuthorizationUtils {
                         .claim(AuthorizationUtils.TokenClaims.USER_ENTITY_CLASS.name(), entityClass)
                         .claim(AuthorizationUtils.TokenClaims.USER_FIELD.name(), field)
                         .claim(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name(), ssoFieldValue)
+                        .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), String.valueOf(createIdSessionLog().getId()))
                         .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserStr)
                         .setIssuedAt(currentDateTime.toDate())
                         .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)
                         .signWith(SIGNATURE_ALGORITHM, secretKey).compact(),
                 currentUser.getUsername(),
                 currentUser);
+    }
+
+    public Counter createIdSessionLog() {
+        Counter counter = new Counter();
+        counter.setOggetto("generate_after_login");
+
+        return counterRepository.save(counter);
+
     }
 }

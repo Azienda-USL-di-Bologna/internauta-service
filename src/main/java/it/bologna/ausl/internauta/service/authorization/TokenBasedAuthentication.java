@@ -9,7 +9,7 @@ public class TokenBasedAuthentication extends AbstractAuthenticationToken {
     private String token;
     private final UserDetails user;
     private final UserDetails realUser;
-    private int idSessionLog;
+    private Integer idSessionLog;
 
     public TokenBasedAuthentication(Utente user) {
         super(user.getAuthorities());
@@ -67,11 +67,11 @@ public class TokenBasedAuthentication extends AbstractAuthenticationToken {
         return realUser;
     }
 
-    public int getIdSessionLog() {
+    public Integer getIdSessionLog() {
         return idSessionLog;
     }
 
-    public void setIdSessionLog(int idSessionLog) {
+    public void setIdSessionLog(Integer idSessionLog) {
         this.idSessionLog = idSessionLog;
     }
 }
