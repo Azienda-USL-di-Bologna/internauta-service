@@ -42,7 +42,7 @@ public class AttivitaFattaInterceptor extends NextSdrEmptyControllerInterceptor 
 
     @Override
     public Class getTargetEntityClass() {
-        return Attivita.class;
+        return AttivitaFatta.class;
     }
 
     @Override
