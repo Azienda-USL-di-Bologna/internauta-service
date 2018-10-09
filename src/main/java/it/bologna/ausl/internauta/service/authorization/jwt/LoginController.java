@@ -8,6 +8,9 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.model.entities.baborg.projections.ProjectionBeans;
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithPlainFields;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,7 +27,9 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.HttpStatus;
+import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteWithIdPersonaAndIdAzienda;
 
 /**
  *
@@ -67,6 +72,12 @@ public class LoginController {
     @Autowired
     AziendaRepository aziendaRepository;
 
+    @Autowired
+    ProjectionBeans projectionBeans;
+
+    @Autowired
+    ProjectionFactory factory;
+
     @RequestMapping(value = "${security.login.path}", method = RequestMethod.POST)
     public ResponseEntity<LoginResponse> loginPOST(@RequestBody final UserLogin userLogin, javax.servlet.http.HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException {
         String hostname = commonUtils.getHostname(request);
@@ -75,6 +86,8 @@ public class LoginController {
         logger.debug("login username: " + userLogin.password);
 
         Utente utente = userInfoService.loadUtente(userLogin.username, hostname);
+        CustomUtenteWithIdPersonaAndIdAzienda utenteWithPersona = factory.createProjection(CustomUtenteWithIdPersonaAndIdAzienda.class, utente);
+
         utente.setRuoli(userInfoService.getRuoli(utente));
         if (utente == null) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
@@ -87,6 +100,7 @@ public class LoginController {
                 .setSubject(String.valueOf(utente.getId()))
                 .claim(AuthorizationUtils.TokenClaims.SSO_LOGIN.name(), false)
                 .claim(AuthorizationUtils.TokenClaims.COMPANY.name(), utente.getIdAzienda().getId())
+                .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), String.valueOf(authorizationUtils.createIdSessionLog().getId()))
                 .setIssuedAt(currentDateTime.toDate())
                 .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)
                 .signWith(SIGNATURE_ALGORITHM, secretKey)
@@ -97,7 +111,7 @@ public class LoginController {
                 new LoginResponse(
                         token,
                         utente.getUsername(),
-                        utente),
+                        utenteWithPersona),
                 HttpStatus.OK);
     }
 
@@ -137,9 +151,9 @@ public class LoginController {
 
         public String token;
         public String username;
-        public Utente userInfo;
+        public Object userInfo;
 
-        public LoginResponse(final String token, final String username, Utente userInfo) {
+        public LoginResponse(final String token, final String username, Object userInfo) {
             this.token = token;
             this.username = username;
             this.userInfo = userInfo;

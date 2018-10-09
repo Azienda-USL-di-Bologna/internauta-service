@@ -9,11 +9,11 @@ import it.bologna.ausl.model.entities.configuration.QConfigurazioneAmbiente;
 import it.bologna.ausl.model.entities.configuration.QParametroAziende;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
+import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.MediaType;
@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ConfigurazioneBaseController extends BaseCrudController {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigurazioneBaseController.class);
+
     /*
      *
      * PARAMETRO AZIENDE
@@ -43,7 +44,7 @@ public class ConfigurazioneBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException {
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QParametroAziende.parametroAziende, ParametroAziende.class);
         return ResponseEntity.ok(resource);
@@ -62,7 +63,7 @@ public class ConfigurazioneBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException {
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QApplicazione.applicazione, Applicazione.class);
         return ResponseEntity.ok(resource);
@@ -81,7 +82,7 @@ public class ConfigurazioneBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException {
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QConfigurazioneAmbiente.configurazioneAmbiente, ConfigurazioneAmbiente.class);
         return ResponseEntity.ok(resource);

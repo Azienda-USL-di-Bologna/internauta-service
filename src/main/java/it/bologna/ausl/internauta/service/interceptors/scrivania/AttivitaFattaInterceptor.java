@@ -6,6 +6,7 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
+import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
@@ -28,8 +29,8 @@ import org.springframework.stereotype.Component;
  * @author Sal
  */
 @Component
-@NextSdrInterceptor(name = "attivita-interceptor")
-public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
+@NextSdrInterceptor(name = "attivitafatta-interceptor")
+public class AttivitaFattaInterceptor extends NextSdrEmptyControllerInterceptor {
 
     private static final String LOGIN_SSO_URL = "/Shibboleth.sso/Login?entityID=";
     private static final String SSO_TARGET = "/idp/shibboleth&target=";
@@ -67,20 +68,20 @@ public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
         fromURL = HTTPS + getURLByIdAzienda(user.getIdAzienda());
 
         for (Object entity : entities) {
-            Attivita attivita = (Attivita) entity;
+            AttivitaFatta attivitaFatta = (AttivitaFatta) entity;
 
-            if (attivita.getTipo().equals(Attivita.TipoAttivita.ATTIVITA.toString())) {
+            if (attivitaFatta.getTipo().equals(AttivitaFatta.TipoAttivitaFatta.ATTIVITA.toString())) {
                 // composizione dell'indirizzo dell'azienda di destinazione
-                destinationURL = HTTPS + getURLByIdAzienda(attivita.getIdAzienda());
+                destinationURL = HTTPS + getURLByIdAzienda(attivitaFatta.getIdAzienda());
 
                 // composizione dell'applicazione (es: /Procton/Procton.htm)
-                applicationURL = attivita.getIdApplicazione().getBaseUrl() + "/" + attivita.getIdApplicazione().getIndexPage();
+                applicationURL = attivitaFatta.getIdApplicazione().getBaseUrl() + "/" + attivitaFatta.getIdApplicazione().getIndexPage();
 
                 JSONParser parser = new JSONParser();
 
                 try {
-                    if (attivita.getUrls() != null) {
-                        jsonArray = (JSONArray) parser.parse(attivita.getUrls());
+                    if (attivitaFatta.getUrls() != null) {
+                        jsonArray = (JSONArray) parser.parse(attivitaFatta.getUrls());
 
                         if (jsonArray != null) {
                             // per ogni url del campo urls di attivita, componi e fai encode dell'url calcolato
@@ -88,9 +89,9 @@ public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
 
                                 JSONObject json = (JSONObject) jsonArray.get(i);
                                 if (json != null && !json.toString().equals("")) {
-                                    String urlAttivita = (String) json.get("url");
+                                    String urlAttivitaFatta = (String) json.get("url");
 
-                                    String stringToEncode = applicationURL + urlAttivita;
+                                    String stringToEncode = applicationURL + urlAttivitaFatta;
 
                                     stringToEncode += "&utente=" + person.getCodiceFiscale();
 
@@ -114,11 +115,11 @@ public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
                                 jsonArray.set(i, json);
                             }
                             // risetta gli urls aggiornati
-                            attivita.setUrls(jsonArray.toJSONString());
+                            attivitaFatta.setUrls(jsonArray.toJSONString());
                         }
                     }
                 } catch (ParseException | UnsupportedEncodingException ex) {
-                    throw new AbortLoadInterceptorException("errore in AttivitaInterceptor in afterSelectQueryInterceptor: ", ex);
+                    throw new AbortLoadInterceptorException("errore in AttivitaFattaInterceptor in afterSelectQueryInterceptor: ", ex);
                 }
             }
         }
