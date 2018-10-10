@@ -50,7 +50,6 @@ public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
         String destinationURL;
         String fromURL;
         String applicationURL;
-        String randomGuid = UUID.randomUUID().toString();
         JSONArray jsonArray;
 
         // si prende utente reale e utente impersonato dal token
@@ -94,7 +93,7 @@ public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
 
                                     stringToEncode += "&utente=" + person.getCodiceFiscale();
 
-                                    stringToEncode += "&richiesta=" + randomGuid;
+                                    stringToEncode += "&richiesta=" + UUID.randomUUID().toString();
 
                                     stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
 
