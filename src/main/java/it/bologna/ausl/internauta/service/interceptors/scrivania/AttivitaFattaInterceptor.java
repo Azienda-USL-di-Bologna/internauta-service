@@ -70,7 +70,13 @@ public class AttivitaFattaInterceptor extends NextSdrEmptyControllerInterceptor 
         for (Object entity : entities) {
             AttivitaFatta attivitaFatta = (AttivitaFatta) entity;
 
-            if (attivitaFatta.getTipo().equals(AttivitaFatta.TipoAttivitaFatta.ATTIVITA.toString())) {
+            // Se sono attività, o notifiche di applicazioni pico/dete/deli, allora...
+            if (attivitaFatta.getTipo().equals(AttivitaFatta.TipoAttivitaFatta.ATTIVITA.toString()) 
+                || (attivitaFatta.getTipo().equals(AttivitaFatta.TipoAttivitaFatta.NOTIFICA.toString())
+                    && (attivitaFatta.getIdApplicazione().getId().equals(AttivitaFatta.IdApplicazione.PICO.toString()) 
+                    || attivitaFatta.getIdApplicazione().getId().equals(AttivitaFatta.IdApplicazione.DELI.toString())
+                    || attivitaFatta.getIdApplicazione().getId().equals(AttivitaFatta.IdApplicazione.DETE.toString())
+                    ))) {
                 // composizione dell'indirizzo dell'azienda di destinazione
                 destinationURL = HTTPS + getURLByIdAzienda(attivitaFatta.getIdAzienda());
 
@@ -95,7 +101,7 @@ public class AttivitaFattaInterceptor extends NextSdrEmptyControllerInterceptor 
 
                                     stringToEncode += "&utente=" + person.getCodiceFiscale();
 
-                                    stringToEncode += "&richiesta=" + randomGuid;
+                                    // stringToEncode += "&richiesta=" + randomGuid;
 
                                     stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
 
