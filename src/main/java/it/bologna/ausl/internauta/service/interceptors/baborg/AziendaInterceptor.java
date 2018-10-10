@@ -9,10 +9,16 @@ import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
+import org.eclipse.persistence.internal.jpa.EntityManagerImpl;
+import static org.hibernate.jpa.AvailableSettings.PERSISTENCE_UNIT_NAME;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,7 +32,7 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
     @Autowired
     AziendaRepository aziendaRepository;
 
-    @Autowired
+    @PersistenceContext
     EntityManager em;
 
     @Override
@@ -38,10 +44,10 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
 //    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) {
 //        return QAzienda.azienda.id.eq(2).and(initialPredicate);
 //    }
-//    @Override
-//    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) {
-//        if (entity != null) {
-//            Azienda azienda = (Azienda) entity;
+    @Override
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) {
+        if (entity != null) {
+            Azienda azienda = (Azienda) entity;
 //            if (azienda.getId() != 2) {
 //                System.out.println("222222222222222222");
 //                return null;
@@ -50,10 +56,17 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
 //                System.out.println("hahahahahahayh");
 //                return azienda;
 //            }
-//        }
-//        else
-//            return entity;
-//    }
+            azienda.setAoo(UUID.randomUUID().toString().substring(0, 15));
+//            EntityManager createEntityManager = em.getEntityManagerFactory().createEntityManager();
+//            createEntityManager.merge(azienda);
+            aziendaRepository.save(azienda);
+
+            return azienda;
+        } else {
+            return entity;
+        }
+    }
+
     @Override
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         Azienda a = (Azienda) entity;

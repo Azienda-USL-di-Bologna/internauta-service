@@ -1,7 +1,6 @@
 package it.bologna.ausl.internauta.service.authorization;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.BooleanTemplate;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.PathBuilder;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
@@ -17,7 +16,6 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import javax.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
@@ -28,9 +26,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class UserInfoService {
-
-    @Autowired
-    EntityManager em;
 
     @Autowired
     AziendaRepository aziendaRepository;
