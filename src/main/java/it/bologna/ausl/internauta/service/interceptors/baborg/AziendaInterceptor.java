@@ -56,10 +56,10 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
 //                System.out.println("hahahahahahayh");
 //                return azienda;
 //            }
-            azienda.setAoo(UUID.randomUUID().toString().substring(0, 15));
+//            azienda.setAoo(UUID.randomUUID().toString().substring(0, 15));
 //            EntityManager createEntityManager = em.getEntityManagerFactory().createEntityManager();
 //            createEntityManager.merge(azienda);
-            aziendaRepository.save(azienda);
+//            aziendaRepository.save(azienda);
 
             return azienda;
         } else {
