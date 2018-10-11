@@ -97,7 +97,7 @@ public class AttivitaFattaInterceptor extends NextSdrEmptyControllerInterceptor 
                                 if (json != null && !json.toString().equals("")) {
                                     String urlAttivitaFatta = (String) json.get("url");
 
-                                    String stringToEncode = applicationURL + urlAttivitaFatta;
+                                    String stringToEncode = urlAttivitaFatta;
 
                                     stringToEncode += "&utente=" + person.getCodiceFiscale();
 
@@ -114,7 +114,7 @@ public class AttivitaFattaInterceptor extends NextSdrEmptyControllerInterceptor 
                                     stringToEncode += "&modalitaAmministrativa=0";
 
                                     String encode = URLEncoder.encode(stringToEncode, "UTF-8");
-                                    String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + encode;
+                                    String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
 
                                     json.put("url", assembledURL);
                                 }
