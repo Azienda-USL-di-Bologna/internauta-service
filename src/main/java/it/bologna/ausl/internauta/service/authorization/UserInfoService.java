@@ -13,11 +13,13 @@ import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.bologna.ausl.model.entities.baborg.QUtente;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -38,6 +40,9 @@ public class UserInfoService {
 
     @Autowired
     RuoloRepository ruoloRepository;
+
+    @Autowired
+    ProjectionFactory factory;
 
     /**
      * carica l'azienda a partire dal path che ha effettuato la richiesta
@@ -127,7 +132,7 @@ public class UserInfoService {
         }
     }
 
-    @Cacheable(value = "ruoli__ribaltorg__", key = "{#utente.getId()}")
+    @Cacheable(value = "getRuoli__ribaltorg__", key = "{#utente.getId()}")
     public List<Ruolo> getRuoli(Utente utente) {
         List<Ruolo> res = new ArrayList<>();
         List<Ruolo> ruoliAll = ruoloRepository.findAll();
@@ -141,6 +146,20 @@ public class UserInfoService {
                     res.add(ruolo);
                 }
             }
+        }
+        return res;
+    }
+
+    @Cacheable(value = "getAziendePersona__ribaltorg__", key = "{#utente.getId()}")
+    public List<AziendaWithPlainFields> getAziendePersona(Utente utente) {
+        List<AziendaWithPlainFields> res = new ArrayList();
+
+        List<Utente> utenti = utente.getIdPersona().getUtenteList();
+
+        if (utenti != null && !utenti.isEmpty()) {
+            utenti.stream().forEach(u -> {
+                res.add(factory.createProjection(AziendaWithPlainFields.class, u.getIdAzienda()));
+            });
         }
         return res;
     }
