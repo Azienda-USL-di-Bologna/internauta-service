@@ -88,7 +88,7 @@ public class LoginController {
         Utente utente = userInfoService.loadUtente(userLogin.username, hostname);
         CustomUtenteWithIdPersonaAndIdAzienda utenteWithPersona = factory.createProjection(CustomUtenteWithIdPersonaAndIdAzienda.class, utente);
 
-        utente.setRuoli(userInfoService.getRuoli(utente));
+//        utente.setRuoli(userInfoService.getRuoli(utente));
         if (utente == null) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }

@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.repositories.scrivania;
+package it.bologna.ausl.internauta.service.repositories.logs;
 
 import it.bologna.ausl.model.entities.logs.Counter;
 import it.bologna.ausl.model.entities.logs.QCounter;
@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
  * nome tutto in minuscolo
  */
-@NextSdrRepository(repositoryPath = "counter", baseUrl = "${scrivania.mapping.url.root}", defaultProjection = CounterWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "counter", baseUrl = "${logs.mapping.url.root}", defaultProjection = CounterWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "counter", path = "counter", exported = false, excerptProjection = CounterWithPlainFields.class)
 public interface CounterRepository extends
         NextSdrQueryDslRepository<Counter, Integer, QCounter>,

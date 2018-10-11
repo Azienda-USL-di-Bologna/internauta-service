@@ -9,7 +9,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
-import it.bologna.ausl.internauta.service.repositories.scrivania.CounterRepository;
+import it.bologna.ausl.internauta.service.repositories.logs.CounterRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
@@ -124,8 +124,6 @@ public class AuthorizationUtils {
 
         // prendi ID dell'utente reale
         String realUserSubject = String.valueOf(user.getId());
-        // rimuovi l'informazione sulla password
-        user.setPasswordHash(null);
 
         user.setRuoli(userInfoService.getRuoli(user));
 
@@ -133,7 +131,6 @@ public class AuthorizationUtils {
             throw new ObjectNotFoundException("User not found");
         }
 
-        user.setPasswordHash(null);
         CustomUtenteWithIdPersonaAndIdAzienda userLoginSSOWithPersonaAndAzienda = factory.createProjection(CustomUtenteWithIdPersonaAndIdAzienda.class, user);
 
         // controlla se è stato passato il parametro di utente impersonato

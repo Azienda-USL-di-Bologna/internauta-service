@@ -14,6 +14,8 @@ import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
 import org.jose4j.json.internal.json_simple.JSONArray;
 import org.jose4j.json.internal.json_simple.JSONObject;
@@ -38,6 +40,9 @@ public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
 
     @Autowired
     CachedEntities cachedEntities;
+
+    @PersistenceContext
+    EntityManager em;
 
     @Override
     public Class getTargetEntityClass() {
@@ -70,11 +75,10 @@ public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
 
             // Se sono attività, o notifiche di applicazioni pico/dete/deli, allora...
             if (attivita.getTipo().equals(Attivita.TipoAttivita.ATTIVITA.toString())
-                    || (attivita.getTipo().equals(Attivita.TipoAttivita.NOTIFICA.toString()) 
-                        && attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.PICO.toString())
-                        || attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.DETE.toString())
-                        || attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.DELI.toString())
-                    )) {
+                    || (attivita.getTipo().equals(Attivita.TipoAttivita.NOTIFICA.toString())
+                    && attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.PICO.toString())
+                    || attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.DETE.toString())
+                    || attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.DELI.toString()))) {
                 // composizione dell'indirizzo dell'azienda di destinazione
                 destinationURL = HTTPS + getURLByIdAzienda(attivita.getIdAzienda());
 
@@ -100,7 +104,6 @@ public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
                                     stringToEncode += "&utente=" + person.getCodiceFiscale();
 
                                     // stringToEncode += "&richiesta=" + UUID.randomUUID().toString();
-
                                     stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
 
                                     stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale();
