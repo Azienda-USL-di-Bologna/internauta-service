@@ -26,7 +26,7 @@ public interface CustomUtenteWithIdPersonaAndIdAzienda extends UtenteWithIdAzien
     @Value("#{@userInfoService.getRuoli(target)}")
     public List<Ruolo> getRuoli();
 
-    @Value("#{@userInfoService.getAziendePersona(target)}")
+    @Value("#{@userInfoService.getAziendePersonaWithPlainField(target)}")
     public List<AziendaWithPlainFields> getAziende();
 
 }

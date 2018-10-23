@@ -1,11 +1,14 @@
 package it.bologna.ausl.internauta.service.interceptors.scrivania;
 
+import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
+import it.bologna.ausl.model.entities.scrivania.QAttivita;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
@@ -49,6 +52,18 @@ public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
         return Attivita.class;
     }
 
+    private TokenBasedAuthentication getTokenBasedAuthentication() {
+        return (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
+    }
+    
+    @Override
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+        TokenBasedAuthentication authentication = getTokenBasedAuthentication();
+        Utente user = (Utente) authentication.getPrincipal();
+        BooleanExpression filterUtenteConnesso = QAttivita.attivita.idPersona.id.eq(user.getIdPersona().getId());
+        return filterUtenteConnesso.and(initialPredicate);
+    }
+
     @Override
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
 
@@ -58,7 +73,7 @@ public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
         JSONArray jsonArray;
 
         // si prende utente reale e utente impersonato dal token
-        TokenBasedAuthentication authentication = (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        TokenBasedAuthentication authentication = getTokenBasedAuthentication();
         Utente user = (Utente) authentication.getPrincipal();
         Utente realUser = (Utente) authentication.getRealUser();
         int idSessionLog = authentication.getIdSessionLog();

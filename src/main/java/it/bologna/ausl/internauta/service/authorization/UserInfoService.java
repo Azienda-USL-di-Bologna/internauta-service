@@ -150,15 +150,30 @@ public class UserInfoService {
         return res;
     }
 
-    @Cacheable(value = "getAziendePersona__ribaltorg__", key = "{#utente.getId()}")
-    public List<AziendaWithPlainFields> getAziendePersona(Utente utente) {
+    public List<AziendaWithPlainFields> getAziendePersonaWithPlainField(Utente utente) {
         List<AziendaWithPlainFields> res = new ArrayList();
 
+//        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
         List<Utente> utenti = utente.getIdPersona().getUtenteList();
 
         if (utenti != null && !utenti.isEmpty()) {
             utenti.stream().forEach(u -> {
                 res.add(factory.createProjection(AziendaWithPlainFields.class, u.getIdAzienda()));
+            });
+        }
+        return res;
+    }
+    
+    @Cacheable(value = "getAziendePersona__ribaltorg__", key = "{#utente.getId()}")
+    public List<Azienda> getAziendePersona(Utente utente) {
+        List<Azienda> res = new ArrayList();
+
+        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
+        List<Utente> utenti = refreshedUtente.getIdPersona().getUtenteList();
+
+        if (utenti != null && !utenti.isEmpty()) {
+            utenti.stream().forEach(u -> {
+                res.add(u.getIdAzienda());
             });
         }
         return res;
