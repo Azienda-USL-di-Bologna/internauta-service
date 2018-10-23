@@ -65,7 +65,7 @@ public class UserInfoService {
     public Azienda loadAziendaByPath(String path) {
         BooleanExpression filter;
         
-        if (path.equals(pathAziendaDefault) && internautaMode.equalsIgnoreCase("test")){
+        if ((path.equals(pathAziendaDefault)  || path.equals("localhost")) && internautaMode.equalsIgnoreCase("test")){
             filter = QAzienda.azienda.codice.eq(codiceAziendaDefault);
         } else {
             filter = Expressions.booleanTemplate("arraycontains({0}, string_to_array({1}, ','))=true", QAzienda.azienda.path, path);
