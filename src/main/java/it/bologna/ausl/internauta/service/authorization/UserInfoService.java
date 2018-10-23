@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
@@ -43,7 +44,17 @@ public class UserInfoService {
 
     @Autowired
     ProjectionFactory factory;
-
+    
+    @Value("${nextsdr.request.default.azienda-path}")
+    String pathAziendaDefault;
+    
+    @Value("${nextsdr.request.default.azienda-codice}")
+    String codiceAziendaDefault;
+    
+    @Value("${internauta.mode}")
+    String internautaMode;
+    
+    
     /**
      * carica l'azienda a partire dal path che ha effettuato la richiesta
      *
@@ -52,7 +63,14 @@ public class UserInfoService {
      */
     @Cacheable(value = "aziendaInfo__ribaltorg__", key = "{#path}")
     public Azienda loadAziendaByPath(String path) {
-        BooleanExpression filter = Expressions.booleanTemplate("arraycontains({0}, string_to_array({1}, ','))=true", QAzienda.azienda.path, path);
+        BooleanExpression filter;
+        
+        if ((path.equals(pathAziendaDefault)  || path.equals("localhost")) && internautaMode.equalsIgnoreCase("test")){
+            filter = QAzienda.azienda.codice.eq(codiceAziendaDefault);
+        } else {
+            filter = Expressions.booleanTemplate("arraycontains({0}, string_to_array({1}, ','))=true", QAzienda.azienda.path, path);
+        }
+        
         Optional<Azienda> aziendaOp = aziendaRepository.findOne(filter);
         if (aziendaOp.isPresent()) {
             return aziendaOp.get();

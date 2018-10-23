@@ -17,6 +17,6 @@ public interface StrutturaCustom extends StrutturaWithPlainFields{
 
 
     @Value("#{@projectionBeans.getUtenteStrutturaCustom(target.getId)}")
-    public List<UtenteStrutturaCustom> getUtenteStrutturaSet();
+    public List<UtenteStrutturaWithIdAfferenzaStrutturaCustom> getUtenteStrutturaSet();
 
 }

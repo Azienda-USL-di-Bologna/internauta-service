@@ -23,11 +23,14 @@ public class ProjectionBeans {
         return factory.createProjection(UtenteWithIdPersona.class, utente);
     }
     
-    public UtenteStrutturaCustom getUtenteStrutturaCustom(UtenteStruttura utenteStruttura){
-        return factory.createProjection(UtenteStrutturaCustom.class, utenteStruttura);
+    public UtenteStrutturaWithIdAfferenzaStrutturaCustom 
+        getUtenteStrutturaWithIdAfferenzaStrutturaCustom(UtenteStruttura utenteStruttura){
+        return factory.createProjection(UtenteStrutturaWithIdAfferenzaStrutturaCustom.class, utenteStruttura);
     }
     
     public StrutturaWithIdAzienda getStrutturaConAzienda(Struttura struttura){
         return factory.createProjection(StrutturaWithIdAzienda.class, struttura);
     }
+    
+        
 }
