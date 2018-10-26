@@ -128,7 +128,7 @@ public class MenuInterceptor extends NextSdrEmptyControllerInterceptor {
         initializeClassProperties();
         Menu menu = (Menu) entity;
         
-        String stringToEncode = ""; // url
+        String stringToEncode = menu.getOpenCommand(); // url
         stringToEncode += "&utente=" + person.getCodiceFiscale();
         stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
         stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale();
