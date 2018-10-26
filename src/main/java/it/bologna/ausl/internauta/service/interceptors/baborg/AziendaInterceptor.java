@@ -78,22 +78,22 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
         Azienda a = (Azienda) entity;
         Azienda aOld = (Azienda) beforeUpdateEntity;
 
-        Optional<Azienda> findOne = aziendaRepository.findOne(QAzienda.azienda.aoo.eq("messamo"));
-        if (findOne.isPresent()) {
-            System.out.println("messamo trovata: " + findOne.get());
-        }
-
-        Azienda one = aziendaRepository.getOne(17);
-        if (one != null) {
-            System.out.println("aoo rp della 17: " + one.getAoo());
-        }
-
-        Azienda find = em.find(Azienda.class, 17);
-        if (find != null) {
-            System.out.println("aoo em della 17: " + find.getAoo());
-        }
-
-        System.out.println("aoo em della 17old: " + aOld.getAoo());
+//        Optional<Azienda> findOne = aziendaRepository.findOne(QAzienda.azienda.aoo.eq("messamo"));
+//        if (findOne.isPresent()) {
+//            System.out.println("messamo trovata: " + findOne.get());
+//        }
+//
+//        Azienda one = aziendaRepository.getOne(17);
+//        if (one != null) {
+//            System.out.println("aoo rp della 17: " + one.getAoo());
+//        }
+//
+//        Azienda find = em.find(Azienda.class, 17);
+//        if (find != null) {
+//            System.out.println("aoo em della 17: " + find.getAoo());
+//        }
+//
+//        System.out.println("aoo em della 17old: " + aOld.getAoo());
         return a;
     }
 
