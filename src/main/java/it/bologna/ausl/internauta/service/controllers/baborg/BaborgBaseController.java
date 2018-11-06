@@ -56,7 +56,7 @@ public class BaborgBaseController extends BaseCrudController {
     private static final Logger log = LoggerFactory.getLogger(BaborgBaseController.class);
 
     @RequestMapping(value = {"afferenzastruttura", "afferenzastruttura/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = Error.class)
+//    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> afferenzastruttura(
             @QuerydslPredicate(root = AfferenzaStruttura.class) Predicate predicate,
             Pageable pageable,
@@ -71,7 +71,7 @@ public class BaborgBaseController extends BaseCrudController {
 
     // gestione Azienda
     @RequestMapping(value = {"azienda", "azienda/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = {Error.class})
+//    @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> azienda(
             /**
              * il predicate è la rappresentazione dei filtri passati. In questo
@@ -177,7 +177,7 @@ public class BaborgBaseController extends BaseCrudController {
     }
 
     @RequestMapping(value = {"persona", "persona/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = {Error.class})
+//    @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> persona(
             @QuerydslPredicate(root = Persona.class) Predicate predicate,
             Pageable pageable,
@@ -204,7 +204,7 @@ public class BaborgBaseController extends BaseCrudController {
     }
 
     @RequestMapping(value = {"struttura", "struttura/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = {Error.class})
+//    @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> struttura(
             @QuerydslPredicate(root = Struttura.class) Predicate predicate,
             Pageable pageable,
@@ -244,7 +244,7 @@ public class BaborgBaseController extends BaseCrudController {
     }
 
     @RequestMapping(value = {"utente", "utente/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = {Error.class})
+//    @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> utente(
             @QuerydslPredicate(root = Utente.class) Predicate predicate,
             Pageable pageable,

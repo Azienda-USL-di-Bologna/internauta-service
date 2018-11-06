@@ -32,8 +32,8 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
     @Autowired
     AziendaRepository aziendaRepository;
 
-    @PersistenceContext
-    EntityManager em;
+//    @PersistenceContext
+//    EntityManager em;
 
     @Override
     public Class getTargetEntityClass() {
@@ -44,10 +44,10 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
 //    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) {
 //        return QAzienda.azienda.id.eq(2).and(initialPredicate);
 //    }
-    @Override
-    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) {
-        if (entity != null) {
-            Azienda azienda = (Azienda) entity;
+//    @Override
+//    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) {
+//        if (entity != null) {
+//            Azienda azienda = (Azienda) entity;
 //            if (azienda.getId() != 2) {
 //                System.out.println("222222222222222222");
 //                return null;
@@ -61,17 +61,17 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
 //            createEntityManager.merge(azienda);
 //            aziendaRepository.save(azienda);
 
-            return azienda;
-        } else {
-            return entity;
-        }
-    }
-
-    @Override
-    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
-        Azienda a = (Azienda) entity;
-        return a;
-    }
+//            return azienda;
+//        } else {
+//            return entity;
+//        }
+//    }
+//
+//    @Override
+//    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+//        Azienda a = (Azienda) entity;
+//        return a;
+//    }
 
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
@@ -97,9 +97,9 @@ public class AziendaInterceptor extends NextSdrEmptyControllerInterceptor {
         return a;
     }
 
-    @Override
-    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
-        Azienda a = (Azienda) entity;
-        throw new SkipDeleteInterceptorException("non la voglio cancellare l'aziedna con id: " + a.getId());
-    }
+//    @Override
+//    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+//        Azienda a = (Azienda) entity;
+//        throw new SkipDeleteInterceptorException("non la voglio cancellare l'aziedna con id: " + a.getId());
+//    }
 }
