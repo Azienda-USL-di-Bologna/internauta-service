@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.authorization;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.PathBuilder;
+import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.RuoloRepository;
@@ -17,6 +18,8 @@ import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPl
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -53,6 +56,8 @@ public class UserInfoService {
     
     @Value("${internauta.mode}")
     String internautaMode;
+    
+    private static final Logger log = LoggerFactory.getLogger(LoginController.class);
     
     
     /**
@@ -176,7 +181,8 @@ public class UserInfoService {
 
         if (utenti != null && !utenti.isEmpty()) {
             utenti.stream().forEach(u -> {
-                res.add(factory.createProjection(AziendaWithPlainFields.class, u.getIdAzienda()));
+                if (u.getAttivo())
+                    res.add(factory.createProjection(AziendaWithPlainFields.class, u.getIdAzienda()));
             });
         }
         return res;
@@ -191,7 +197,8 @@ public class UserInfoService {
 
         if (utenti != null && !utenti.isEmpty()) {
             utenti.stream().forEach(u -> {
-                res.add(u.getIdAzienda());
+                if(u.getAttivo())
+                    res.add(u.getIdAzienda());
             });
         }
         return res;
