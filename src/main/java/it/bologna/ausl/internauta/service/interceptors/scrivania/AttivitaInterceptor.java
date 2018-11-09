@@ -33,7 +33,7 @@ import org.springframework.stereotype.Component;
  * @author Sal
  */
 @Component
-@NextSdrInterceptor(name = "attivita-interceptor")
+//@NextSdrInterceptor(name = "attivita-interceptor")
 public class AttivitaInterceptor extends NextSdrEmptyControllerInterceptor {
 
     private static final String LOGIN_SSO_URL = "/Shibboleth.sso/Login?entityID=";
