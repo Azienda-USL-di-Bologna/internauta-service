@@ -82,7 +82,7 @@ public class MenuInterceptor extends NextSdrEmptyControllerInterceptor {
     }
     
     /**
-     * Le voci del menu verranno filtrare in base ai permessi dell'utente connesso sulle aziende a cui appartiene
+     * Le voci del menu verranno filtrare in base ai permessi dell'utente ed alle aziende a cui appartiene
      * @param initialPredicate
      * @param additionalData
      * @param request
@@ -103,14 +103,19 @@ public class MenuInterceptor extends NextSdrEmptyControllerInterceptor {
         if (utentiPersona != null && !utentiPersona.isEmpty()) {
             for (Utente up : utentiPersona) {
                 try {
+                    // I permessi di interesse sono quelli di tipo FLUSSO e con ambito PICO-DETE-DELI.
                     List<String> predicatiAzienda = permissionManager.getPermission(up, ambiti, "FLUSSO");
                     BooleanTemplate booleanTemplate;
+                    
+                    // Creo un filtro che sarà True quando tra i permessi dell'utente ci sarà almeno una voce dei permessiNecessari della voce di menù.
                     if (predicatiAzienda != null)
                         booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", 
                             QMenu.menu.permessiNecessari, String.join(",", predicatiAzienda));
                     else
+                        // Se l'utente non ha permessi il filtro sarà smepre false
                         booleanTemplate = Expressions.booleanTemplate("false = true");
                     
+                    // La voce di menù, di tale azienda, sarà tenuta qualora permessiNecessari sarà null o booleanTemplate sarà True. 
                     if (filterAziendaUtente == null)
                         filterAziendaUtente = QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId()).and(QMenu.menu.permessiNecessari.isNull().or(booleanTemplate));
                     else
@@ -123,6 +128,7 @@ public class MenuInterceptor extends NextSdrEmptyControllerInterceptor {
             }
         }
         
+        // Aggiungo il filtro al predicato. Se il filtro è vuoto allora nulla dev'essere visibile all'utente quindi il predicato di ritorno è una espressione False.
         return filterAziendaUtente != null ? filterAziendaUtente.and(initialPredicate): Expressions.FALSE.eq(Boolean.TRUE);
     }
     
