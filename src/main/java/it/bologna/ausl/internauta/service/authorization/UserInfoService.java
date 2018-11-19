@@ -5,6 +5,7 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.PathBuilder;
 import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PermessoRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.RuoloRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
@@ -199,6 +200,22 @@ public class UserInfoService {
             utenti.stream().forEach(u -> {
                 if(u.getAttivo())
                     res.add(u.getIdAzienda());
+            });
+        }
+        return res;
+    }
+    
+    @Cacheable(value = "getUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
+    public List<Utente> getUtentiPersona(Utente utente) {
+        List<Utente> res = new ArrayList();
+
+        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
+        List<Utente> utenti = refreshedUtente.getIdPersona().getUtenteList();
+
+        if (utenti != null && !utenti.isEmpty()) {
+            utenti.stream().forEach(u -> {
+                if(u.getAttivo())
+                    res.add(u);
             });
         }
         return res;
