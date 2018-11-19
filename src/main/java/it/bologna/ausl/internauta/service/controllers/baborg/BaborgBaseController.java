@@ -42,7 +42,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -163,8 +162,8 @@ public class BaborgBaseController extends BaseCrudController {
         return ResponseEntity.ok(resource);
     }
 
-    @RequestMapping(value = {"permesso", "permesso/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> permesso(
+    @RequestMapping(value = {"permessoold", "permessoold/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> permessoold(
             @QuerydslPredicate(root = Permesso.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,

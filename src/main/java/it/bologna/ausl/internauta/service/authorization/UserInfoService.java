@@ -5,7 +5,6 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.PathBuilder;
 import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.PermessoRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.RuoloRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
@@ -26,6 +25,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
+import it.bologna.ausl.internauta.service.repositories.baborg.PermessoRepositoryOld;
 
 /**
  * Service per la creazione dell'oggetto UserInfoOld TODO: descrivere la
@@ -188,22 +188,22 @@ public class UserInfoService {
         }
         return res;
     }
-    
-    @Cacheable(value = "getAziendePersona__ribaltorg__", key = "{#utente.getId()}")
-    public List<Azienda> getAziendePersona(Utente utente) {
-        List<Azienda> res = new ArrayList();
-
-        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
-        List<Utente> utenti = refreshedUtente.getIdPersona().getUtenteList();
-
-        if (utenti != null && !utenti.isEmpty()) {
-            utenti.stream().forEach(u -> {
-                if(u.getAttivo())
-                    res.add(u.getIdAzienda());
-            });
-        }
-        return res;
-    }
+//    
+//    @Cacheable(value = "getAziendePersona__ribaltorg__", key = "{#utente.getId()}")
+//    public List<Azienda> getAziendePersona(Utente utente) {
+//        List<Azienda> res = new ArrayList();
+//
+//        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
+//        List<Utente> utenti = refreshedUtente.getIdPersona().getUtenteList();
+//
+//        if (utenti != null && !utenti.isEmpty()) {
+//            utenti.stream().forEach(u -> {
+//                if(u.getAttivo())
+//                    res.add(u.getIdAzienda());
+//            });
+//        }
+//        return res;
+//    }
     
     @Cacheable(value = "getUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
     public List<Utente> getUtentiPersona(Utente utente) {
