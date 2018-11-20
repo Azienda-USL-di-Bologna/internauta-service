@@ -92,17 +92,17 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
                     // Creo un filtro che sarà True quando tra i permessi dell'utente ci sarà almeno una voce dei permessiNecessari della voce di menù.
                     if (predicatiAzienda != null)
                         booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", 
-                            QMenu.menu.permessiNecessari, String.join(",", predicatiAzienda));
+                            QMenu.menu.permessiSufficienti, String.join(",", predicatiAzienda));
                     else
                         // Se l'utente non ha permessi il filtro sarà smepre false
                         booleanTemplate = Expressions.FALSE.eq(Boolean.TRUE);
                     
                     // La voce di menù, di tale azienda, sarà tenuta qualora permessiNecessari sarà null o booleanTemplate sarà True. 
                     if (filterAziendaUtente == null)
-                        filterAziendaUtente = QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId()).and(QMenu.menu.permessiNecessari.isNull().or(booleanTemplate));
+                        filterAziendaUtente = QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId()).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate));
                     else
                         filterAziendaUtente = filterAziendaUtente.or(
-                            QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId()).and(QMenu.menu.permessiNecessari.isNull().or(booleanTemplate)));
+                            QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId()).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate)));
                 } catch (BlackBoxPermissionException ex) {
                     LOGGER.error("errore nel calcolo del predicato", ex);
                     throw new AbortLoadInterceptorException("errore nel calcolo del predicato", ex);
