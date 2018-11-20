@@ -1,7 +1,9 @@
 package it.bologna.ausl.internauta.service.interceptors.scrivania;
 
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
+import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -30,15 +32,12 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @NextSdrInterceptor(name = "attivitafatta-interceptor")
-public class AttivitaFattaInterceptor extends NextSdrEmptyControllerInterceptor {
+public class AttivitaFattaInterceptor extends InternautaBaseInterceptor {
 
     private static final String LOGIN_SSO_URL = "/Shibboleth.sso/Login?entityID=";
     private static final String SSO_TARGET = "/idp/shibboleth&target=";
     private static final String FROM = "&from=INTERNAUTA";
     private static final String HTTPS = "https://";
-
-    @Autowired
-    CachedEntities cachedEntities;
 
     @Override
     public Class getTargetEntityClass() {
@@ -55,17 +54,10 @@ public class AttivitaFattaInterceptor extends NextSdrEmptyControllerInterceptor 
         JSONArray jsonArray;
 
         // si prende utente reale e utente impersonato dal token
-        TokenBasedAuthentication authentication = (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        Utente user = (Utente) authentication.getPrincipal();
-        Utente realUser = (Utente) authentication.getRealUser();
-        int idSessionLog = authentication.getIdSessionLog();
-
-        // si prendono le entity di Persona per avere il codice fiscale (usando la funzione con la cache)
-        Persona person = cachedEntities.getPersona(user.getIdPersona().getId());
-        Persona realPerson = cachedEntities.getPersona(realUser.getIdPersona().getId());
-
+        getAuthenticatedUserProperties();
+        
         // composizione dell'indirizzo dell'azienda di provenienza
-        fromURL = HTTPS + getURLByIdAzienda(user.getIdAzienda());
+        fromURL = HTTPS + InternautaUtils.getURLByIdAzienda(user.getIdAzienda());
 
         for (Object entity : entities) {
             AttivitaFatta attivitaFatta = (AttivitaFatta) entity;
@@ -78,7 +70,7 @@ public class AttivitaFattaInterceptor extends NextSdrEmptyControllerInterceptor 
                     || attivitaFatta.getIdApplicazione().getId().equals(AttivitaFatta.IdApplicazione.DETE.toString())
                     ))) {
                 // composizione dell'indirizzo dell'azienda di destinazione
-                destinationURL = HTTPS + getURLByIdAzienda(attivitaFatta.getIdAzienda());
+                destinationURL = HTTPS + InternautaUtils.getURLByIdAzienda(attivitaFatta.getIdAzienda());
 
                 // composizione dell'applicazione (es: /Procton/Procton.htm)
                 applicationURL = attivitaFatta.getIdApplicazione().getBaseUrl() + "/" + attivitaFatta.getIdApplicazione().getIndexPage();
@@ -130,22 +122,6 @@ public class AttivitaFattaInterceptor extends NextSdrEmptyControllerInterceptor 
             }
         }
         return entities;
-    }
-
-    /**
-     * Ottiene URL dell'azienda passata come parametro.
-     * Questo perchè ci possono essere più url che si riferiscono alla stessa azienda, ma per il nostro scopo basta sapere il primo.
-     * @param azienda
-     * @return il primo URL dell'azienda corrispondente
-     */
-    private String getURLByIdAzienda(Azienda azienda) {
-        String res = null;
-
-        String[] paths = azienda.getPath();
-        if (paths != null && paths.length > 0) {
-            res = paths[0];
-        }
-        return res;
     }
 
 }

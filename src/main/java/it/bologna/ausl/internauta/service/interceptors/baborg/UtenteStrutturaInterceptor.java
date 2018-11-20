@@ -2,10 +2,10 @@ package it.bologna.ausl.internauta.service.interceptors.baborg;
 
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.nextsw.common.annotations.NextSdrInterceptor;
-import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @NextSdrInterceptor(name = "utentestruttura-interceptorTest")
-public class UtenteStrutturaInterceptor extends NextSdrEmptyControllerInterceptor {
+public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
 
     private static final String FILTER_COMBO = "filterCombo";
     
@@ -41,11 +41,5 @@ public class UtenteStrutturaInterceptor extends NextSdrEmptyControllerIntercepto
         
         
     return initialPredicate;
-    }
-
-    @Override
-    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) {
-        System.out.println("in: afterSelectQueryInterceptor di " + entity.getClass().getSimpleName());
-        return entity;
     }
 }
