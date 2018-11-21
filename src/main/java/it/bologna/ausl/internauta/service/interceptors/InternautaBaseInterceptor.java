@@ -14,8 +14,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
  */
 public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerInterceptor {
 
-    // ThreadLocal fa si che la variabile rimanga settata solamente nel thread corrente (nella singola chiamata), e venga poi svuotata al termine
-    // se non facessi così rimarebbe memorizzato sempre lo stesso utente.
+    // ThreadLocal fa si che la variabile valga solo per il thread corrente (nella singola chiamata). 
+    // Dato che il bean è unico per tutti i thread in questo modo ogni thread ha la sua copia della variabile
     protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
     protected Utente user, realUser;
     protected Persona person, realPerson;
@@ -27,17 +27,17 @@ public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerIn
     protected void getAuthenticatedUserProperties() {
         // TODO add url
 
-        if (threadLocalAuthentication.get() == null) {
+        //if (threadLocalAuthentication.get() == null) {
             setAuthentication();
             user = (Utente) threadLocalAuthentication.get().getPrincipal();
             realUser = (Utente) threadLocalAuthentication.get().getRealUser();
             idSessionLog = threadLocalAuthentication.get().getIdSessionLog();
             person = cachedEntities.getPersona(user.getIdPersona().getId());
             realPerson = cachedEntities.getPersona(realUser.getIdPersona().getId());
-        }
+        //}
     }
 
     private void setAuthentication() {
-        this.threadLocalAuthentication.set((TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        threadLocalAuthentication.set((TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication());
     }
 }
