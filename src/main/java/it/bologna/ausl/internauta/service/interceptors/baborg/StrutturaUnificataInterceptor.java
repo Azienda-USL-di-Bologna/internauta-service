@@ -3,20 +3,19 @@ package it.bologna.ausl.internauta.service.interceptors.baborg;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
-import it.bologna.ausl.model.entities.baborg.Utente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
-import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,8 +24,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @NextSdrInterceptor(name = "struttura-unificata-interceptor")
-public class StrutturaUnificataInterceptor extends NextSdrEmptyControllerInterceptor {
-
+public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(StrutturaUnificataInterceptor.class);
+    
     private static final String GET_DATA_BY_STATO = "getDataByStato";
 
     private static enum Stati {
@@ -40,21 +40,19 @@ public class StrutturaUnificataInterceptor extends NextSdrEmptyControllerInterce
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) {
-        System.out.println("in: beforeSelectQueryInterceptor di Struttura-Unificata");
+        LOGGER.info("in: beforeSelectQueryInterceptor di Struttura-Unificata");
 
         String getDataByStatoValue = additionalData.get(GET_DATA_BY_STATO);
 
         if (getDataByStatoValue != null) {
             LocalDateTime today = LocalDate.now().atTime(0, 0);
             QStrutturaUnificata strutturaUnificata = QStrutturaUnificata.strutturaUnificata;
+            getAuthenticatedUserProperties();
 
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            Utente utente = (Utente) authentication.getPrincipal();
-            List<Ruolo> ruoli = utente.getRuoli();
+            Boolean isCA = isCA();
+            Boolean isCI = isCI();
+            
             BooleanExpression customFilter;
-            Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
-            Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
-
             if (getDataByStatoValue.equals(Stati.Bozza.toString())) {
                 /*  La bozza ha la data disattivazione a null.
                     La data attivazione può essere null.
@@ -104,13 +102,9 @@ public class StrutturaUnificataInterceptor extends NextSdrEmptyControllerInterce
 
     @Override
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
-        System.out.println("in: beforeCreateEntityInterceptor di Struttura-Unificata");
+        LOGGER.info("in: beforeCreateEntityInterceptor di Struttura-Unificata");
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Utente utente = (Utente) authentication.getPrincipal();
-        List<Ruolo> ruoli = utente.getRuoli();
-        Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
-        if (!isCI) {
+        if (!isCI()) {
             throw new AbortSaveInterceptorException();
         }
 
@@ -119,16 +113,25 @@ public class StrutturaUnificataInterceptor extends NextSdrEmptyControllerInterce
 
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
-        System.out.println("in: beforeUpdateEntityInterceptor di Struttura-Unificata");
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Utente utente = (Utente) authentication.getPrincipal();
-        List<Ruolo> ruoli = utente.getRuoli();
-        Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
-        if (!isCI) {
+        LOGGER.info("in: beforeUpdateEntityInterceptor di Struttura-Unificata");
+        if (!isCI()) {
             throw new AbortSaveInterceptorException();
         }
 
         return entity;
+    }
+    
+    private boolean isCI() {
+        getAuthenticatedUserProperties();
+        List<Ruolo> ruoli = super.user.getRuoli();
+        Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
+        return isCI;
+    }
+    
+    private boolean isCA() {
+        getAuthenticatedUserProperties();
+        List<Ruolo> ruoli = super.user.getRuoli();
+        Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
+        return isCA;
     }
 }

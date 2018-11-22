@@ -32,9 +32,4 @@ public class RestConfiguration {
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }
-
-    @Bean
-    public SpelAwareProxyProjectionFactory projectionFactory() {
-        return new SpelAwareProxyProjectionFactory();
-    }
 }
