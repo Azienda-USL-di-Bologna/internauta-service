@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.controllers.baborg;
 
 import com.querydsl.core.types.Predicate;
+import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.model.entities.baborg.QAfferenzaStruttura;
 import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.bologna.ausl.model.entities.baborg.QIdpEntityId;
@@ -32,12 +33,14 @@ import it.bologna.ausl.model.entities.baborg.TipoPermesso;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.nextsw.common.controller.BaseCrudController;
+import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.MediaType;
@@ -52,8 +55,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "${baborg.mapping.url.root}")
 public class BaborgBaseController extends BaseCrudController {
 
-    private static final Logger log = LoggerFactory.getLogger(BaborgBaseController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(BaborgBaseController.class);
 
+    @Autowired
+    private RestControllerEngineImpl restControllerEngine;
+
+    @Override
+    public RestControllerEngine getRestControllerEngine() {
+        return restControllerEngine;
+    }
+    
     @RequestMapping(value = {"afferenzastruttura", "afferenzastruttura/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 //    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> afferenzastruttura(
@@ -64,7 +75,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QAfferenzaStruttura.afferenzaStruttura, AfferenzaStruttura.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAfferenzaStruttura.afferenzaStruttura, AfferenzaStruttura.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -93,7 +104,7 @@ public class BaborgBaseController extends BaseCrudController {
              */
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QAzienda.azienda, Azienda.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAzienda.azienda, Azienda.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -106,7 +117,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QIdpEntityId.idpEntityId, IdpEntityId.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QIdpEntityId.idpEntityId, IdpEntityId.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -119,7 +130,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QPec.pec, Pec.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPec.pec, Pec.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -132,7 +143,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QPecProvider.pecProvider, PecProvider.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPecProvider.pecProvider, PecProvider.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -145,7 +156,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QPecStruttura.pecStruttura, PecStruttura.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPecStruttura.pecStruttura, PecStruttura.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -158,7 +169,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QPecUtente.pecUtente, PecUtente.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPecUtente.pecUtente, PecUtente.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -171,7 +182,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QPermesso.permesso, Permesso.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPermesso.permesso, Permesso.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -185,7 +196,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QPersona.persona, Persona.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPersona.persona, Persona.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -198,7 +209,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QRuolo.ruolo, Ruolo.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRuolo.ruolo, Ruolo.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -212,7 +223,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QStruttura.struttura, Struttura.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QStruttura.struttura, Struttura.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -225,7 +236,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QStrutturaUnificata.strutturaUnificata, StrutturaUnificata.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QStrutturaUnificata.strutturaUnificata, StrutturaUnificata.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -238,7 +249,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QTipoPermesso.tipoPermesso, TipoPermesso.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QTipoPermesso.tipoPermesso, TipoPermesso.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -252,7 +263,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QUtente.utente, Utente.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QUtente.utente, Utente.class);
         return ResponseEntity.ok(resource);
     }
 
@@ -265,7 +276,7 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = getResources(request, id, projection, predicate, pageable, additionalData, QUtenteStruttura.utenteStruttura, UtenteStruttura.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QUtenteStruttura.utenteStruttura, UtenteStruttura.class);
         return ResponseEntity.ok(resource);
     }
 }
