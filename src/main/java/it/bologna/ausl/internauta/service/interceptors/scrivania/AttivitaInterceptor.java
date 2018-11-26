@@ -18,6 +18,13 @@ import org.jose4j.json.internal.json_simple.JSONObject;
 import org.jose4j.json.internal.json_simple.parser.JSONParser;
 import org.jose4j.json.internal.json_simple.parser.ParseException;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 
 /**
  *
@@ -37,11 +44,21 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
         return Attivita.class;
     }
     
+    
+    @Autowired
+    UserInfoService userInfoService;
+    
+    
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         BooleanExpression filterUtenteConnesso = QAttivita.attivita.idPersona.id.eq(user.getIdPersona().getId());
-        return filterUtenteConnesso.and(initialPredicate);
+        BooleanExpression filterPersonaAttiva = QAttivita.attivita.idPersona.attiva.eq(true);
+ //       BooleanExpression filterUtenteAttivo = userInfoService.getUtentiPersona(user).stream().filter((u) -> { return Objects.equals(u.getIdAzienda().getId(), QAttivita.attivita.idAzienda.id) && u.getAttivo(); }).findFirst().orElse(null).;
+        
+        
+        
+        return filterUtenteConnesso.and(filterPersonaAttiva).and(initialPredicate);
     }
 
     @Override
@@ -57,10 +74,20 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
         // composizione dell'indirizzo dell'azienda di provenienza
         fromURL = HTTPS + InternautaUtils.getURLByIdAzienda(user.getIdAzienda());
-
+        
+        Collection<Object> entitiesRtn = new ArrayList<Object>();
+        
         for (Object entity : entities) {
             Attivita attivita = (Attivita) entity;
-
+            
+            boolean utenteAttivo = attivita.getIdPersona().getUtenteList().stream().filter((Utente u) -> { return u.getIdAzienda().getId() == attivita.getIdAzienda().getId() && u.getAttivo(); }).findFirst().orElse(null) != null;
+            
+            if(!utenteAttivo) continue;
+            
+            
+            
+            
+            
             // Se sono attività, o notifiche di applicazioni pico/dete/deli, allora...
             if (attivita.getTipo().equals(Attivita.TipoAttivita.ATTIVITA.toString())
                     || (attivita.getTipo().equals(Attivita.TipoAttivita.NOTIFICA.toString())
@@ -113,6 +140,8 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                             attivita.setUrls(jsonArray.toJSONString());
                         }
                     }
+                    
+                    entitiesRtn.add(entity);
                 } catch (ParseException | UnsupportedEncodingException ex) {
                     throw new AbortLoadInterceptorException("errore in AttivitaInterceptor in afterSelectQueryInterceptor: ", ex);
                 }
