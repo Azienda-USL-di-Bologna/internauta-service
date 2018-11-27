@@ -18,6 +18,15 @@ import org.jose4j.json.internal.json_simple.JSONObject;
 import org.jose4j.json.internal.json_simple.parser.JSONParser;
 import org.jose4j.json.internal.json_simple.parser.ParseException;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 
 /**
  *
@@ -37,11 +46,19 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
         return Attivita.class;
     }
     
+    
+    @Autowired
+    UserInfoService userInfoService;
+    
+    
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         BooleanExpression filterUtenteConnesso = QAttivita.attivita.idPersona.id.eq(user.getIdPersona().getId());
-        return filterUtenteConnesso.and(initialPredicate);
+        List<Integer> collect = userInfoService.getUtentiPersona(user).stream().map(x -> x.getIdAzienda().getId()).collect(Collectors.toList());
+        BooleanExpression filterUtenteAttivo = QAttivita.attivita.idAzienda.id.in(collect);   
+        
+        return filterUtenteConnesso.and(filterUtenteAttivo).and(initialPredicate);
     }
 
     @Override
@@ -57,10 +74,10 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
         // composizione dell'indirizzo dell'azienda di provenienza
         fromURL = HTTPS + InternautaUtils.getURLByIdAzienda(user.getIdAzienda());
-
+        
         for (Object entity : entities) {
             Attivita attivita = (Attivita) entity;
-
+            
             // Se sono attività, o notifiche di applicazioni pico/dete/deli, allora...
             if (attivita.getTipo().equals(Attivita.TipoAttivita.ATTIVITA.toString())
                     || (attivita.getTipo().equals(Attivita.TipoAttivita.NOTIFICA.toString())
