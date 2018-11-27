@@ -26,7 +26,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * projection, è valida quella indicata.
  *
  */
-@NextSdrRepository(repositoryPath = "afferenzastruttura", baseUrl = "${baborg.mapping.url.root}", defaultProjection = AfferenzaStrutturaWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "${baborg.mapping.url.root}/afferenzastruttura", defaultProjection = AfferenzaStrutturaWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "afferenzastruttura", path = "afferenzastruttura", exported = false)
 public interface AfferenzaStrutturaRepository extends
         NextSdrQueryDslRepository<AfferenzaStruttura, Integer, QAfferenzaStruttura>,

@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
  * nome tutto in minuscolo
  */
-@NextSdrRepository(repositoryPath = "attivita", baseUrl = "${scrivania.mapping.url.root}", defaultProjection = AttivitaWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "${scrivania.mapping.url.root}/attivita", defaultProjection = AttivitaWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "attivita", path = "attivita", exported = false, excerptProjection = AttivitaWithPlainFields.class)
 public interface AttivitaRepository extends
         NextSdrQueryDslRepository<Attivita, Integer, QAttivita>,

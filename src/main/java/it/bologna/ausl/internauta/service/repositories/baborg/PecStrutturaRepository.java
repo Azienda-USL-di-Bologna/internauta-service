@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
  * nome tutto in minuscolo
  */
-@NextSdrRepository(repositoryPath = "pecstruttura", baseUrl = "${baborg.mapping.url.root}", defaultProjection = PecStrutturaWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "${baborg.mapping.url.root}/pecstruttura", defaultProjection = PecStrutturaWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "pecstruttura", path = "pecstruttura", exported = false, excerptProjection = PecStrutturaWithPlainFields.class)
 public interface PecStrutturaRepository extends
         NextSdrQueryDslRepository<PecStruttura, Integer, QPecStruttura>,

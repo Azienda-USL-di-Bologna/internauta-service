@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
  * nome tutto in minuscolo
  */
-@NextSdrRepository(repositoryPath = "counter", baseUrl = "${logs.mapping.url.root}", defaultProjection = CounterWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "${logs.mapping.url.root}/counter", defaultProjection = CounterWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "counter", path = "counter", exported = false, excerptProjection = CounterWithPlainFields.class)
 public interface CounterRepository extends
         NextSdrQueryDslRepository<Counter, Integer, QCounter>,

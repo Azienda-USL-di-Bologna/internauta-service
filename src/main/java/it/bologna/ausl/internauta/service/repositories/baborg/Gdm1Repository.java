@@ -26,7 +26,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * projection, è valida quella indicata.
  *
  */
-@NextSdrRepository(repositoryPath = "gdm1", baseUrl = "${baborg.mapping.url.root}", defaultProjection = Gdm1WithPlainFields.class)
+@NextSdrRepository(repositoryPath = "${baborg.mapping.url.root}/gdm1", defaultProjection = Gdm1WithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "gdm1", path = "gdm1", exported = false)
 public interface Gdm1Repository extends
         NextSdrQueryDslRepository<Gdm1, String, QGdm1>,
