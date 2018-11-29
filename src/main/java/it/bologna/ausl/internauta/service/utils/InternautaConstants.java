@@ -24,4 +24,10 @@ public class InternautaConstants {
             FLUSSO, PEC, FASCICOLO
         }
     }
+    
+    public static class Configurazione {
+        public enum ParametriAzienda {
+            crossUrlTemplate
+        }
+    }
 }

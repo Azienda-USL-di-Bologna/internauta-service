@@ -8,12 +8,15 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.scrivania.Menu;
 import it.bologna.ausl.model.entities.scrivania.QMenu;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -38,8 +41,6 @@ import org.springframework.stereotype.Component;
 public class MenuInterceptor extends InternautaBaseInterceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MenuInterceptor.class);
-    private static final String LOGIN_SSO_URL = "/Shibboleth.sso/Login?entityID=";
-    private static final String SSO_TARGET = "/idp/shibboleth&target=";
     private static final String FROM = "&from=INTERNAUTA";
     private static final String HTTPS = "https://";
     
@@ -48,6 +49,9 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     PermissionManager permissionManager;
+    
+    @Autowired
+    ParametriAziende parametriAziende;
     
     @Override
     public Class getTargetEntityClass() {
@@ -114,15 +118,6 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         return filterAziendaUtente != null ? filterAziendaUtente.and(initialPredicate): Expressions.FALSE.eq(Boolean.TRUE);
     }
     
-    
-//    private Utente getUtente(){
-//        TokenBasedAuthentication authentication = (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
-//        Utente user = (Utente) authentication.getPrincipal();
-//        return user;
-//    }
-    
-
-    
     private String getURLByIdAzienda(Azienda azienda) {
         String res = null;
 
@@ -139,6 +134,17 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         Menu menu = (Menu) entity;
+        String crossUrlTemplate;
+        
+        try {
+            List<ParametroAziende> parametriAzienda = parametriAziende.getParameters(InternautaConstants.Configurazione.ParametriAzienda.crossUrlTemplate.toString());
+            ParametroAziende parametroAzienda = parametriAzienda.get(0);
+            crossUrlTemplate = parametriAziende.getValue(parametroAzienda, String.class);
+        }
+        catch (IOException ex) {
+            throw new AbortLoadInterceptorException("errore nella lettura del crossUrlTemplate", ex);
+        }
+         
         
         String stringToEncode = menu.getOpenCommand(); // url
         stringToEncode += "&utente=" + person.getCodiceFiscale();
@@ -148,15 +154,21 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         stringToEncode += FROM;
         stringToEncode += "&modalitaAmministrativa=0";
         String destinationURL = HTTPS + getURLByIdAzienda(menu.getIdAzienda());
-        String encode = "";
+        String encodedParams = "";
         try {
-            encode = URLEncoder.encode(stringToEncode, "UTF-8");
+            encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
         } catch (UnsupportedEncodingException ex) {
             LOGGER.error("errore nella creazione del link", ex);
+            throw new AbortLoadInterceptorException("errore nella creazione del link", ex);
         }
         String fromURL = HTTPS + getURLByIdAzienda(user.getIdAzienda());
         String applicationURL = menu.getIdApplicazione().getBaseUrl() + "/" + menu.getIdApplicazione().getIndexPage();
-        String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
+//        String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
+        String assembledURL = crossUrlTemplate.
+            replace("[target-path]", destinationURL).
+            replace("[source-path]", fromURL).
+            replace("[app]", applicationURL).
+            replace("[encoded-params]", encodedParams);
         menu.setOpenCommand(assembledURL);
         return menu;
     }
