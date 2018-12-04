@@ -1,5 +1,8 @@
 package it.bologna.ausl.internauta.service.utils;
 
+import java.util.Map;
+import org.springframework.util.StringUtils;
+
 /**
  *
  * @author gdm
@@ -13,7 +16,7 @@ public class InternautaConstants {
      */
     public static class Permessi {
         public enum Predicati {
-            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA
+            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, SCRIVE, LEGGE
         }
         
         public enum Ambiti {
@@ -28,6 +31,23 @@ public class InternautaConstants {
     public static class Configurazione {
         public enum ParametriAzienda {
             crossUrlTemplate
+        }
+    }
+    
+    public static class AdditionalData {
+        public enum Keys {
+            OperationRequested, Data
+        }
+        public enum OperationsRequested {
+            GetPermessiGestoriPec, GetPermessiDiFlusso
+        }
+        public static OperationsRequested getOperationRequested(Keys key, Map<String, String> additionalData) {
+            if (additionalData != null) {
+                String value = additionalData.get(key.toString());
+                if (StringUtils.hasText(value)) 
+                    return OperationsRequested.valueOf(value);
+            }
+            return null;
         }
     }
 }

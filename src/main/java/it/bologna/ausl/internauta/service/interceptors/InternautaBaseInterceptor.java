@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.interceptors;
 
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
+import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -22,7 +23,10 @@ public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerIn
     protected int idSessionLog;
 
     @Autowired
-    CachedEntities cachedEntities;
+    protected CachedEntities cachedEntities;
+    
+    @Autowired
+    protected HttpSessionData httpSessionData;
 
     protected void getAuthenticatedUserProperties() {
         // TODO add url
