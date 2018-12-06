@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.interceptors.baborg;
 
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import edu.emory.mathcs.backport.java.util.Arrays;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
@@ -18,11 +19,9 @@ import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -33,7 +32,7 @@ import org.springframework.stereotype.Component;
 
 /**
  *
- * @author g.russo@nsi.it with collaboration of GDM and Gus
+ * @author Giuseppe Russo <g.russo@nsi.it> with GDM and Gus collaboration
  */
 @Component
 @NextSdrInterceptor(name = "persona-interceptor")
@@ -66,9 +65,7 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
-        
-        this.httpSessionData.putData("testPut", "ciao a tutti");
-        
+                
         AdditionalData.OperationsRequested operationRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationRequested != null) {        
             switch (operationRequested) {
@@ -79,19 +76,21 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
                     try {
                         List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(
                             Arrays.asList(new Pec[]{pec}),
-                            Arrays.asList(new String[]{Predicati.ELIMINA.toString(), Predicati.LEGGE.toString(), Predicati.SCRIVE.toString()}),
+                            Arrays.asList(new String[]{Predicati.ELIMINA.toString(), Predicati.LEGGE.toString(), Predicati.RISPONDE.toString()}),
                             Arrays.asList(new String[]{Ambiti.PECG.toString()}),
-                            Arrays.asList(new String[]{Tipi.PEC.toString()}));
-                        
-                        BooleanExpression permessoFilter = QPersona.persona.id.in(
-                            subjectsWithPermissionsOnObject
-                                .stream()
-                                .map(p -> Integer.parseInt(p.getSoggetto().getIdProvenienza())).collect(Collectors.toList()));
-                        initialPredicate = permessoFilter.and(initialPredicate);
-                        
+                            Arrays.asList(new String[]{Tipi.PEC.toString()}), false);
+                        if (subjectsWithPermissionsOnObject == null){
+                            initialPredicate = Expressions.FALSE.eq(true);
+                        }
+                        else {
+                            BooleanExpression permessoFilter = QPersona.persona.id.in(
+                                subjectsWithPermissionsOnObject
+                                    .stream()
+                                    .map(p -> Integer.parseInt(p.getSoggetto().getIdProvenienza())).collect(Collectors.toList()));
+                            initialPredicate = permessoFilter.and(initialPredicate);
+                        }
                         /* Conserviamo i dati estratti dalla BlackBox */
-                        this.httpSessionData.putData("personeWithPecPermissions", subjectsWithPermissionsOnObject);
-                        
+                        this.httpSessionData.putData(HttpSessionData.Keys.PersoneWithPecPermissions.toString(), subjectsWithPermissionsOnObject);
                     } catch (BlackBoxPermissionException ex) {
                         LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                         throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
@@ -105,26 +104,25 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
 //        permissionManager.getPermission(entity, additionalData, ambiti, tipi);
+        Persona persona = (Persona) entity;        
         AdditionalData.OperationsRequested operationRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationRequested != null) {        
             switch (operationRequested) {
                 case GetPermessiGestoriPec:
-                    List<PermessoEntitaStoredProcedure> personeConPermesso =
-                            Arrays.asList((PermessoEntitaStoredProcedure[])this.httpSessionData.getData("personeWithPecPermissions"));
+                    List<PermessoEntitaStoredProcedure> personeConPermesso = 
+                            (List<PermessoEntitaStoredProcedure>) this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions.toString());
                     if (personeConPermesso != null && !personeConPermesso.isEmpty()) {
-                        Persona persona = (Persona) entity;
-                        List<PermessoEntitaStoredProcedure> permessiPersona = new ArrayList();
-                        for (PermessoEntitaStoredProcedure p : personeConPermesso) {
-                            if (Integer.parseInt(p.getSoggetto().getIdProvenienza()) == persona.getId()) 
-                                permessiPersona.add(p);
-                        }
+                        List<PermessoEntitaStoredProcedure> permessiPersona = 
+                                personeConPermesso.stream().filter(p -> 
+                                        new Integer(Integer.parseInt(p.getSoggetto().getIdProvenienza()))
+                                        .equals(persona.getId()))
+                                        .collect(Collectors.toList());
                         persona.setPermessi(permessiPersona);
                     }
                     break;
             }
         }          
-        return super.afterSelectQueryInterceptor(entity, additionalData, request); //To change body of generated methods, choose Tools | Templates.
- //To change body of generated methods, choose Tools | Templates.
+        return persona;
     }
 
     @Override
@@ -134,15 +132,14 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
         if (operationRequested != null) {        
             switch (operationRequested) {
                 case GetPermessiGestoriPec: 
-                    if (this.httpSessionData.getData("personeWithPecPermissions") != null) {
+                    if (this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions.toString()) != null) {
                         for (Object entity : entities) {
                             entity = afterSelectQueryInterceptor(entity, additionalData, request);
                         }
-                    } else {
-                        throw new AbortLoadInterceptorException("Errore nella gestione dei permessi PEC");
                     }
+                    break;
             }
         }
-        return super.afterSelectQueryInterceptor(entities, additionalData, request); //To change body of generated methods, choose Tools | Templates.
+        return entities;
     }
 }

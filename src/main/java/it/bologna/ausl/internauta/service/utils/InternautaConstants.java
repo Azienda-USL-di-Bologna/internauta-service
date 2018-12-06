@@ -16,7 +16,7 @@ public class InternautaConstants {
      */
     public static class Permessi {
         public enum Predicati {
-            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, SCRIVE, LEGGE
+            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE
         }
         
         public enum Ambiti {
@@ -48,6 +48,12 @@ public class InternautaConstants {
                     return OperationsRequested.valueOf(value);
             }
             return null;
+        }
+    }
+    
+    public static class HttpSessionData {
+        public enum Keys {
+            PersoneWithPecPermissions
         }
     }
 }
