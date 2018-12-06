@@ -17,7 +17,7 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
  *
  * @author fayssel
  */
-@NextSdrRepository(repositoryPath = "menu", baseUrl = "${scrivania.mapping.url.root}", defaultProjection = MenuWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "${scrivania.mapping.url.root}/menu", defaultProjection = MenuWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "menu", path = "attivita", exported = false, excerptProjection = MenuWithPlainFields.class)
 public interface MenuRepository extends 
         NextSdrQueryDslRepository<Menu, Integer, QMenu>,

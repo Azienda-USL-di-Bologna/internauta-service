@@ -177,8 +177,8 @@ public class UserInfoService {
     public List<AziendaWithPlainFields> getAziendePersonaWithPlainField(Utente utente) {
         List<AziendaWithPlainFields> res = new ArrayList();
 
-//        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
-        List<Utente> utenti = utente.getIdPersona().getUtenteList();
+        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
+        List<Utente> utenti = refreshedUtente.getIdPersona().getUtenteList();
 
         if (utenti != null && !utenti.isEmpty()) {
             utenti.stream().forEach(u -> {

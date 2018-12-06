@@ -18,6 +18,21 @@ import org.jose4j.json.internal.json_simple.JSONObject;
 import org.jose4j.json.internal.json_simple.parser.JSONParser;
 import org.jose4j.json.internal.json_simple.parser.ParseException;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.ParametriAziende;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.ParametroAziende;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
 
 /**
  *
@@ -27,8 +42,6 @@ import org.springframework.stereotype.Component;
 @NextSdrInterceptor(name = "attivita-interceptor")
 public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
-    private static final String LOGIN_SSO_URL = "/Shibboleth.sso/Login?entityID=";
-    private static final String SSO_TARGET = "/idp/shibboleth&target=";
     private static final String FROM = "&from=INTERNAUTA";
     private static final String HTTPS = "https://";
 
@@ -37,11 +50,21 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
         return Attivita.class;
     }
     
+    @Autowired
+    UserInfoService userInfoService;
+    
+    @Autowired
+    ParametriAziende parametriAziende;
+    
+    
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         BooleanExpression filterUtenteConnesso = QAttivita.attivita.idPersona.id.eq(user.getIdPersona().getId());
-        return filterUtenteConnesso.and(initialPredicate);
+        List<Integer> collect = userInfoService.getUtentiPersona(user).stream().map(x -> x.getIdAzienda().getId()).collect(Collectors.toList());
+        BooleanExpression filterUtenteAttivo = QAttivita.attivita.idAzienda.id.in(collect);   
+        
+        return filterUtenteConnesso.and(filterUtenteAttivo).and(initialPredicate);
     }
 
     @Override
@@ -51,16 +74,27 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
         String fromURL;
         String applicationURL;
         JSONArray jsonArray;
-
+        String crossUrlTemplate;
+        // [target-path]/Shibboleth.sso/Login?entityID=[source-path]/simplesaml/saml2/idp/metadata.php&target=[app][encoded-params]
+        
+        try {
+            List<ParametroAziende> parametriAzienda = parametriAziende.getParameters(InternautaConstants.Configurazione.ParametriAzienda.crossUrlTemplate.toString());
+            ParametroAziende parametroAzienda = parametriAzienda.get(0);
+            crossUrlTemplate = parametriAziende.getValue(parametroAzienda, String.class);
+        }
+        catch (IOException ex) {
+            throw new AbortLoadInterceptorException("errore nella lettura del crossUrlTemplate", ex);
+        }
+        
         // si prende utente reale e utente impersonato dal token
         getAuthenticatedUserProperties();
 
         // composizione dell'indirizzo dell'azienda di provenienza
         fromURL = HTTPS + InternautaUtils.getURLByIdAzienda(user.getIdAzienda());
-
+        
         for (Object entity : entities) {
             Attivita attivita = (Attivita) entity;
-
+            
             // Se sono attività, o notifiche di applicazioni pico/dete/deli, allora...
             if (attivita.getTipo().equals(Attivita.TipoAttivita.ATTIVITA.toString())
                     || (attivita.getTipo().equals(Attivita.TipoAttivita.NOTIFICA.toString())
@@ -98,13 +132,17 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
                                     stringToEncode += "&idSessionLog=" + idSessionLog;
 
-                                    stringToEncode += this.FROM;
+                                    stringToEncode += FROM;
 
                                     stringToEncode += "&modalitaAmministrativa=0";
 
-                                    String encode = URLEncoder.encode(stringToEncode, "UTF-8");
-                                    String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
-
+                                    String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
+//                                    String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
+                                    String assembledURL = crossUrlTemplate.
+                                            replace("[target-path]", destinationURL).
+                                            replace("[source-path]", fromURL).
+                                            replace("[app]", applicationURL).
+                                            replace("[encoded-params]", encodedParams);
                                     json.put("url", assembledURL);
                                 }
                                 jsonArray.set(i, json);

@@ -144,7 +144,7 @@
         <dependency>
             <groupId>it.nextsw</groupId>
             <artifactId>next-spring-data-rest-framework</artifactId>
-            <version>1.4.alfa</version>
+            <version>1.5.alfa</version>
         </dependency>
         <dependency>
             <groupId>it.bologna.ausl.blackbox</groupId>

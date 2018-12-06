@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
  * nome tutto in minuscolo
  */
-@NextSdrRepository(repositoryPath = "utente", baseUrl = "${baborg.mapping.url.root}", defaultProjection = UtenteWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "${baborg.mapping.url.root}/utente", defaultProjection = UtenteWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "utente", path = "utente", exported = false, excerptProjection = UtenteWithPlainFields.class)
 public interface UtenteRepository extends
         NextSdrQueryDslRepository<Utente, Integer, QUtente>,

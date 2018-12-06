@@ -1,20 +1,18 @@
 package it.bologna.ausl.internauta.service.interceptors.scrivania;
 
-import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
-import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.scrivania.Attivita;
+import it.bologna.ausl.internauta.service.utils.ParametriAziende;
+import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
 import it.nextsw.common.annotations.NextSdrInterceptor;
-import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
@@ -23,7 +21,6 @@ import org.jose4j.json.internal.json_simple.JSONObject;
 import org.jose4j.json.internal.json_simple.parser.JSONParser;
 import org.jose4j.json.internal.json_simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -39,6 +36,9 @@ public class AttivitaFattaInterceptor extends InternautaBaseInterceptor {
     private static final String FROM = "&from=INTERNAUTA";
     private static final String HTTPS = "https://";
 
+    @Autowired
+    ParametriAziende parametriAziende;
+    
     @Override
     public Class getTargetEntityClass() {
         return AttivitaFatta.class;
@@ -52,6 +52,16 @@ public class AttivitaFattaInterceptor extends InternautaBaseInterceptor {
         String applicationURL;
         String randomGuid = UUID.randomUUID().toString();
         JSONArray jsonArray;
+        String crossUrlTemplate;
+        
+        try {
+            List<ParametroAziende> parametriAzienda = parametriAziende.getParameters(InternautaConstants.Configurazione.ParametriAzienda.crossUrlTemplate.toString());
+            ParametroAziende parametroAzienda = parametriAzienda.get(0);
+            crossUrlTemplate = parametriAziende.getValue(parametroAzienda, String.class);
+        }
+        catch (IOException ex) {
+            throw new AbortLoadInterceptorException("errore nella lettura del crossUrlTemplate", ex);
+        }
 
         // si prende utente reale e utente impersonato dal token
         getAuthenticatedUserProperties();
@@ -101,13 +111,17 @@ public class AttivitaFattaInterceptor extends InternautaBaseInterceptor {
 
                                     stringToEncode += "&idSessionLog=" + idSessionLog;
 
-                                    stringToEncode += this.FROM;
+                                    stringToEncode += FROM;
 
                                     stringToEncode += "&modalitaAmministrativa=0";
 
-                                    String encode = URLEncoder.encode(stringToEncode, "UTF-8");
-                                    String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
-
+                                    String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
+//                                    String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
+                                    String assembledURL = crossUrlTemplate.
+                                            replace("[target-path]", destinationURL).
+                                            replace("[source-path]", fromURL).
+                                            replace("[app]", applicationURL).
+                                            replace("[encoded-params]", encodedParams);
                                     json.put("url", assembledURL);
                                 }
                                 jsonArray.set(i, json);
