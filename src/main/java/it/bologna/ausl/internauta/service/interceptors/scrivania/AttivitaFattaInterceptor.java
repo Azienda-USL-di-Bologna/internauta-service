@@ -54,6 +54,8 @@ public class AttivitaFattaInterceptor extends InternautaBaseInterceptor {
         return filterUtenteConnesso.and(initialPredicate);
     }
     
+    /*
+     * commentato perché per ora non vogliamo mostrare i link nella attività nello storico, non cancellarlo perché si prevedono cambiamenti di idea
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
@@ -155,4 +157,5 @@ public class AttivitaFattaInterceptor extends InternautaBaseInterceptor {
         }
         return entities;
     }
+    */
 }
