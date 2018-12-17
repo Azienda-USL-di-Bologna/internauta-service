@@ -14,13 +14,13 @@ import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -101,7 +101,12 @@ public class AttivitaFattaInterceptor extends InternautaBaseInterceptor {
 //                        jsonArray = (JSONArray) parser.parse(attivita.getUrls());
                     List compiledUrls;
                     if (urls != null) {
-                        compiledUrls = new ArrayList();
+                        if (StringUtils.hasText(attivitaFatta.getCompiledUrls())) {
+                            compiledUrls = objectMapper.readValue(attivitaFatta.getCompiledUrls(), ArrayList.class);
+                        }
+                        else {
+                            compiledUrls = new ArrayList();
+                        }
                         // per ogni url del campo urls di attivita, componi e fai encode dell'url calcolato
                         for (Object url: urls) {
                             Map compiledUrlMap = new HashMap();

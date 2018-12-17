@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.util.StringUtils;
 
 
 /**
@@ -101,7 +102,12 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 //                        jsonArray = (JSONArray) parser.parse(attivita.getUrls());
                     List compiledUrls;
                     if (urls != null) {
-                        compiledUrls = new ArrayList();
+                        if (StringUtils.hasText(attivita.getCompiledUrls())) {
+                            compiledUrls = objectMapper.readValue(attivita.getCompiledUrls(), ArrayList.class);
+                        }
+                        else {
+                            compiledUrls = new ArrayList();
+                        }
                         // per ogni url del campo urls di attivita, componi e fai encode dell'url calcolato
                         for (Object url: urls) {
                             Map compiledUrlMap = new HashMap();

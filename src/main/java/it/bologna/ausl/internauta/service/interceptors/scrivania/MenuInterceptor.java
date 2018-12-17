@@ -156,7 +156,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
             replace("[entity-id]", entityId).
             replace("[app]", applicationURL).
             replace("[encoded-params]", encodedParams);
-        menu.setCompiledUrls(assembledURL);
+        menu.setCompiledUrl(assembledURL);
         return menu;
     }
 

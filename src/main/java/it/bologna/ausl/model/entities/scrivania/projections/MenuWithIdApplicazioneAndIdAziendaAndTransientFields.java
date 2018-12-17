@@ -11,5 +11,5 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "MenuWithIdApplicazioneAndIdAziendaAndTransientFields", types = Menu.class)
 public interface MenuWithIdApplicazioneAndIdAziendaAndTransientFields extends MenuWithIdApplicazioneAndIdAzienda{
 
-    public String getCompiledUrls();
+    public String getCompiledUrl();
 }
