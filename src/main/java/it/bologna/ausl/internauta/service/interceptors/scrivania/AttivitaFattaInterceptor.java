@@ -1,43 +1,43 @@
 package it.bologna.ausl.internauta.service.interceptors.scrivania;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.service.utils.InternautaUtils;
-import it.bologna.ausl.internauta.service.utils.ParametriAziende;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
+import it.bologna.ausl.model.entities.scrivania.QAttivitaFatta;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
-import org.jose4j.json.internal.json_simple.JSONArray;
-import org.jose4j.json.internal.json_simple.JSONObject;
-import org.jose4j.json.internal.json_simple.parser.JSONParser;
-import org.jose4j.json.internal.json_simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  *
  * @author Sal
+ * @Refactoring by gdm
  */
 @Component
 @NextSdrInterceptor(name = "attivitafatta-interceptor")
 public class AttivitaFattaInterceptor extends InternautaBaseInterceptor {
 
-    private static final String LOGIN_SSO_URL = "/Shibboleth.sso/Login?entityID=";
-    private static final String SSO_TARGET = "/idp/shibboleth&target=";
     private static final String FROM = "&from=INTERNAUTA";
-    private static final String HTTPS = "https://";
-
+    
     @Autowired
-    ParametriAziende parametriAziende;
+    UserInfoService userInfoService;
+    
+    @Autowired
+    ObjectMapper objectMapper;
     
     @Override
     public Class getTargetEntityClass() {
@@ -45,97 +45,122 @@ public class AttivitaFattaInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
-
-        String destinationURL;
-        String fromURL;
-        String applicationURL;
-        String randomGuid = UUID.randomUUID().toString();
-        JSONArray jsonArray;
-        String crossUrlTemplate;
-        
-        try {
-            List<ParametroAziende> parametriAzienda = parametriAziende.getParameters(InternautaConstants.Configurazione.ParametriAzienda.crossUrlTemplate.toString());
-            ParametroAziende parametroAzienda = parametriAzienda.get(0);
-            crossUrlTemplate = parametriAziende.getValue(parametroAzienda, String.class);
-        }
-        catch (IOException ex) {
-            throw new AbortLoadInterceptorException("errore nella lettura del crossUrlTemplate", ex);
-        }
-
-        // si prende utente reale e utente impersonato dal token
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
+        BooleanExpression filterUtenteConnesso = QAttivitaFatta.attivitaFatta.idPersona.id.eq(user.getIdPersona().getId());
+//        List<Integer> collect = userInfoService.getUtentiPersona(user).stream().map(x -> x.getIdAzienda().getId()).collect(Collectors.toList());
+//        BooleanExpression filterUtenteAttivo = QAttivitaFatta.attivitaFatta.idAzienda.id.in(collect);   
         
-        // composizione dell'indirizzo dell'azienda di provenienza
-        fromURL = HTTPS + InternautaUtils.getURLByIdAzienda(user.getIdAzienda());
+        return filterUtenteConnesso.and(initialPredicate);
+    }
+    
+    /*
+     * commentato perché per ora non vogliamo mostrare i link nella attività nello storico, non cancellarlo perché si prevedono cambiamenti di idea
+    @Override
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+        getAuthenticatedUserProperties();
+        AziendaParametriJson parametriAziendaOrigine = (AziendaParametriJson) this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda);
+        if (parametriAziendaOrigine == null) {
+            try {
+                parametriAziendaOrigine = AziendaParametriJson.parse(this.objectMapper, user.getIdAzienda().getParametri());
+                this.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda, parametriAziendaOrigine);
+            }
+            catch (IOException ex) {
+                throw new AbortLoadInterceptorException("errore nella lettura dei parametri dell'azienda origine", ex);
+            }
+        }
+        String targetLoginPath;
+        String applicationURL;
+        String entityId = parametriAziendaOrigine.getEntityId();
+        String crossLoginUrlTemplate = parametriAziendaOrigine.getCrossLoginUrlTemplate();
+        AttivitaFatta attivitaFatta = (AttivitaFatta) entity;
 
-        for (Object entity : entities) {
-            AttivitaFatta attivitaFatta = (AttivitaFatta) entity;
-
-            // Se sono attività, o notifiche di applicazioni pico/dete/deli, allora...
-            if (attivitaFatta.getTipo().equals(AttivitaFatta.TipoAttivitaFatta.ATTIVITA.toString()) 
+        // Se sono attività, o notifiche di applicazioni pico/dete/deli, allora...
+        if (attivitaFatta.getTipo().equals(AttivitaFatta.TipoAttivitaFatta.ATTIVITA.toString()) 
                 || (attivitaFatta.getTipo().equals(AttivitaFatta.TipoAttivitaFatta.NOTIFICA.toString())
                     && (attivitaFatta.getIdApplicazione().getId().equals(AttivitaFatta.IdApplicazione.PICO.toString()) 
                     || attivitaFatta.getIdApplicazione().getId().equals(AttivitaFatta.IdApplicazione.DELI.toString())
                     || attivitaFatta.getIdApplicazione().getId().equals(AttivitaFatta.IdApplicazione.DETE.toString())
                     ))) {
+            try {
                 // composizione dell'indirizzo dell'azienda di destinazione
-                destinationURL = HTTPS + InternautaUtils.getURLByIdAzienda(attivitaFatta.getIdAzienda());
 
-                // composizione dell'applicazione (es: /Procton/Procton.htm)
-                applicationURL = attivitaFatta.getIdApplicazione().getBaseUrl() + "/" + attivitaFatta.getIdApplicazione().getIndexPage();
-
-                JSONParser parser = new JSONParser();
-
-                try {
-                    if (attivitaFatta.getUrls() != null) {
-                        jsonArray = (JSONArray) parser.parse(attivitaFatta.getUrls());
-
-                        if (jsonArray != null) {
-                            // per ogni url del campo urls di attivita, componi e fai encode dell'url calcolato
-                            for (int i = 0; i < jsonArray.size(); i++) {
-
-                                JSONObject json = (JSONObject) jsonArray.get(i);
-                                if (json != null && !json.toString().equals("")) {
-                                    String urlAttivitaFatta = (String) json.get("url");
-
-                                    String stringToEncode = urlAttivitaFatta;
-
-                                    stringToEncode += "&utente=" + person.getCodiceFiscale();
-
-                                    // stringToEncode += "&richiesta=" + randomGuid;
-
-                                    stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
-
-                                    stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale();
-
-                                    stringToEncode += "&idSessionLog=" + idSessionLog;
-
-                                    stringToEncode += FROM;
-
-                                    stringToEncode += "&modalitaAmministrativa=0";
-
-                                    String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
-//                                    String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
-                                    String assembledURL = crossUrlTemplate.
-                                            replace("[target-path]", destinationURL).
-                                            replace("[source-path]", fromURL).
-                                            replace("[app]", applicationURL).
-                                            replace("[encoded-params]", encodedParams);
-                                    json.put("url", assembledURL);
-                                }
-                                jsonArray.set(i, json);
-                            }
-                            // risetta gli urls aggiornati
-                            attivitaFatta.setUrls(jsonArray.toJSONString());
-                        }
-                    }
-                } catch (ParseException | UnsupportedEncodingException ex) {
-                    throw new AbortLoadInterceptorException("errore in AttivitaFattaInterceptor in afterSelectQueryInterceptor: ", ex);
-                }
+                AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(this.objectMapper, attivitaFatta.getIdAzienda().getParametri());
+                targetLoginPath = parametriAziendaTarget.getLoginPath();
+//                targetLoginPath = HTTPS + InternautaUtils.getURLByIdAzienda(attivita.getIdAzienda());
+            } catch (IOException ex) {
+                throw new AbortLoadInterceptorException("errore nella lettura dei parametri dell'azienda target", ex);
             }
+
+            // composizione dell'applicazione (es: /Procton/Procton.htm)
+            applicationURL = attivitaFatta.getIdApplicazione().getBaseUrl() + "/" + attivitaFatta.getIdApplicazione().getIndexPage();
+
+            try {
+                if (attivitaFatta.getUrls() != null) {
+                    List urls = objectMapper.readValue(attivitaFatta.getUrls(), List.class);
+//                        jsonArray = (JSONArray) parser.parse(attivita.getUrls());
+                    List compiledUrls;
+                    if (urls != null) {
+                        if (StringUtils.hasText(attivitaFatta.getCompiledUrls())) {
+                            compiledUrls = objectMapper.readValue(attivitaFatta.getCompiledUrls(), ArrayList.class);
+                        }
+                        else {
+                            compiledUrls = new ArrayList();
+                        }
+                        // per ogni url del campo urls di attivita, componi e fai encode dell'url calcolato
+                        for (Object url: urls) {
+                            Map compiledUrlMap = new HashMap();
+                            Map urlMap = (Map) url;
+                            if (!urlMap.isEmpty()) {
+                                compiledUrlMap.putAll(urlMap);
+                                String urlAttivita = (String) urlMap.get("url");
+
+                                String stringToEncode = urlAttivita;
+
+                                stringToEncode += "&utente=" + person.getCodiceFiscale();
+
+                                // stringToEncode += "&richiesta=" + UUID.randomUUID().toString();
+                                stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
+
+                                stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale();
+
+                                stringToEncode += "&idSessionLog=" + idSessionLog;
+
+                                stringToEncode += FROM;
+
+                                stringToEncode += "&modalitaAmministrativa=0";
+
+                                String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
+//                                    String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
+                                String assembledURL = crossLoginUrlTemplate.
+                                        replace("[target-login-path]", targetLoginPath).
+                                        replace("[entity-id]", entityId).
+                                        replace("[app]", applicationURL).
+                                        replace("[encoded-params]", encodedParams);
+                                compiledUrlMap.put("url", assembledURL);
+                                compiledUrls.add(compiledUrlMap);
+                            }
+                        }
+                        // risetta gli urls aggiornati
+                        attivitaFatta.setCompiledUrls(objectMapper.writeValueAsString(compiledUrls));
+                    }
+                }
+            } catch (Exception ex) {
+                throw new AbortLoadInterceptorException("errore in AttivitaInterceptor in afterSelectQueryInterceptor: ", ex);
+            }
+        }
+        return attivitaFatta;
+    }
+
+    @Override
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+        // si prende utente reale e utente impersonato dal token
+        getAuthenticatedUserProperties();
+        
+        for (Object entity : entities) {
+            this.afterSelectQueryInterceptor(entity, additionalData, request);
         }
         return entities;
     }
-
+    */
 }

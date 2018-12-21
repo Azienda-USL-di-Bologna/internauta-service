@@ -86,11 +86,11 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
                             BooleanExpression permessoFilter = QPersona.persona.id.in(
                                 subjectsWithPermissionsOnObject
                                     .stream()
-                                    .map(p -> Integer.parseInt(p.getSoggetto().getIdProvenienza())).collect(Collectors.toList()));
+                                    .map(p -> p.getSoggetto().getIdProvenienza()).collect(Collectors.toList()));
                             initialPredicate = permessoFilter.and(initialPredicate);
                         }
                         /* Conserviamo i dati estratti dalla BlackBox */
-                        this.httpSessionData.putData(HttpSessionData.Keys.PersoneWithPecPermissions.toString(), subjectsWithPermissionsOnObject);
+                        this.httpSessionData.putData(HttpSessionData.Keys.PersoneWithPecPermissions, subjectsWithPermissionsOnObject);
                     } catch (BlackBoxPermissionException ex) {
                         LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                         throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
@@ -110,11 +110,11 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
             switch (operationRequested) {
                 case GetPermessiGestoriPec:
                     List<PermessoEntitaStoredProcedure> personeConPermesso = 
-                            (List<PermessoEntitaStoredProcedure>) this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions.toString());
+                            (List<PermessoEntitaStoredProcedure>) this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions);
                     if (personeConPermesso != null && !personeConPermesso.isEmpty()) {
                         List<PermessoEntitaStoredProcedure> permessiPersona = 
                                 personeConPermesso.stream().filter(p -> 
-                                        new Integer(Integer.parseInt(p.getSoggetto().getIdProvenienza()))
+                                        p.getSoggetto().getIdProvenienza()
                                         .equals(persona.getId()))
                                         .collect(Collectors.toList());
                         persona.setPermessi(permessiPersona);
@@ -132,7 +132,7 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
         if (operationRequested != null) {        
             switch (operationRequested) {
                 case GetPermessiGestoriPec: 
-                    if (this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions.toString()) != null) {
+                    if (this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions) != null) {
                         for (Object entity : entities) {
                             entity = afterSelectQueryInterceptor(entity, additionalData, request);
                         }

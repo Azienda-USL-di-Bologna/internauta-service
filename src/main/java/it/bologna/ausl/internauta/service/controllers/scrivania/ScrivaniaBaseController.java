@@ -45,7 +45,7 @@ public class ScrivaniaBaseController extends BaseCrudController {
             @QuerydslPredicate(root = Attivita.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
-            @PathVariable(required = false) Object id,
+            @PathVariable(required = false) Integer id,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
@@ -58,7 +58,7 @@ public class ScrivaniaBaseController extends BaseCrudController {
             @QuerydslPredicate(root = AttivitaFatta.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
-            @PathVariable(required = false) Object id,
+            @PathVariable(required = false) Integer id,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
@@ -71,7 +71,7 @@ public class ScrivaniaBaseController extends BaseCrudController {
             @QuerydslPredicate(root = Menu.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
-            @PathVariable(required = false) Object id,
+            @PathVariable(required = false) Integer id,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 

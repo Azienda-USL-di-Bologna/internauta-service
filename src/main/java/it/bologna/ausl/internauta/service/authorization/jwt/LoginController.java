@@ -106,7 +106,7 @@ public class LoginController {
                 .signWith(SIGNATURE_ALGORITHM, secretKey)
                 .compact();
 
-        utente.setPasswordHash(null);
+//        utente.setPasswordHash(null);
         return new ResponseEntity(
                 new LoginResponse(
                         token,

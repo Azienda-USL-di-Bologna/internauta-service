@@ -29,4 +29,8 @@ public interface CustomUtenteWithIdPersonaAndIdAzienda extends UtenteWithIdAzien
     @Value("#{@userInfoService.getAziendePersonaWithPlainField(target)}")
     public List<AziendaWithPlainFields> getAziende();
 
+    @Override
+    @Value("#{null}")
+    public String getPasswordHash();
+    
 }

@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.interceptors.scrivania;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -10,8 +11,8 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.scrivania.Menu;
 import it.bologna.ausl.model.entities.scrivania.QMenu;
 import it.nextsw.common.annotations.NextSdrInterceptor;
@@ -23,8 +24,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,29 +41,19 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MenuInterceptor.class);
     private static final String FROM = "&from=INTERNAUTA";
-    private static final String HTTPS = "https://";
     
     @Autowired
     UserInfoService userInfoService;
     
     @Autowired
-    PermissionManager permissionManager;
+    ObjectMapper objectMapper;
     
     @Autowired
-    ParametriAziende parametriAziende;
+    PermissionManager permissionManager;
     
     @Override
     public Class getTargetEntityClass() {
         return Menu.class;
-    }
-
-    @Override
-    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
-        getAuthenticatedUserProperties();
-        for (Object entity : entities) {
-            entity = afterSelectQueryInterceptor(entity, additionalData, request);
-        }
-        return entities;
     }
     
     /**
@@ -118,32 +107,25 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         return filterAziendaUtente != null ? filterAziendaUtente.and(initialPredicate): Expressions.FALSE.eq(Boolean.TRUE);
     }
     
-    private String getURLByIdAzienda(Azienda azienda) {
-        String res = null;
-
-        String[] paths = azienda.getPath();
-        if (paths != null && paths.length > 0) {
-            res = paths[0];
-        }
-        return res;
-    }
-
-
-    
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
+
+        AziendaParametriJson parametriAziendaOrigine = (AziendaParametriJson) this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda);
+        if (parametriAziendaOrigine == null) {
+            try {
+                parametriAziendaOrigine = AziendaParametriJson.parse(this.objectMapper, user.getIdAzienda().getParametri());
+                this.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda, parametriAziendaOrigine);
+            }
+            catch (IOException ex) {
+                throw new AbortLoadInterceptorException("errore nella lettura dei parametri dell'azienda origine", ex);
+            }
+        }
+        String targetLoginPath;
+        String applicationURL;
+        String entityId = parametriAziendaOrigine.getEntityId();
+        String crossLoginUrlTemplate = parametriAziendaOrigine.getCrossLoginUrlTemplate();
         Menu menu = (Menu) entity;
-        String crossUrlTemplate;
-        
-        try {
-            List<ParametroAziende> parametriAzienda = parametriAziende.getParameters(InternautaConstants.Configurazione.ParametriAzienda.crossUrlTemplate.toString());
-            ParametroAziende parametroAzienda = parametriAzienda.get(0);
-            crossUrlTemplate = parametriAziende.getValue(parametroAzienda, String.class);
-        }
-        catch (IOException ex) {
-            throw new AbortLoadInterceptorException("errore nella lettura del crossUrlTemplate", ex);
-        }
          
         
         String stringToEncode = menu.getOpenCommand(); // url
@@ -153,7 +135,13 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         stringToEncode += "&idSessionLog=" + idSessionLog;
         stringToEncode += FROM;
         stringToEncode += "&modalitaAmministrativa=0";
-        String destinationURL = HTTPS + getURLByIdAzienda(menu.getIdAzienda());
+        
+        try {
+            AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(this.objectMapper, menu.getIdAzienda().getParametri());
+            targetLoginPath = parametriAziendaTarget.getLoginPath();
+        } catch (IOException ex) {
+            throw new AbortLoadInterceptorException("errore nella lettura dei parametri dell'azienda target", ex);
+        }
         String encodedParams = "";
         try {
             encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
@@ -161,16 +149,24 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
             LOGGER.error("errore nella creazione del link", ex);
             throw new AbortLoadInterceptorException("errore nella creazione del link", ex);
         }
-        String fromURL = HTTPS + getURLByIdAzienda(user.getIdAzienda());
-        String applicationURL = menu.getIdApplicazione().getBaseUrl() + "/" + menu.getIdApplicazione().getIndexPage();
+        applicationURL = menu.getIdApplicazione().getBaseUrl() + "/" + menu.getIdApplicazione().getIndexPage();
 //        String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
-        String assembledURL = crossUrlTemplate.
-            replace("[target-path]", destinationURL).
-            replace("[source-path]", fromURL).
+        String assembledURL = crossLoginUrlTemplate.
+            replace("[target-login-path]", targetLoginPath).
+            replace("[entity-id]", entityId).
             replace("[app]", applicationURL).
             replace("[encoded-params]", encodedParams);
-        menu.setOpenCommand(assembledURL);
+        menu.setCompiledUrl(assembledURL);
         return menu;
     }
 
+    @Override
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+        getAuthenticatedUserProperties();
+        for (Object entity : entities) {
+            entity = afterSelectQueryInterceptor(entity, additionalData, request);
+        }
+        return entities;
+    }
+    
 }

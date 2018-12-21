@@ -149,7 +149,7 @@ public class AuthorizationUtils {
             if (isSuperDemiurgo) {
                 logger.info(String.format("utente %s ha ruolo SD", realUserSubject));
                 impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda);
-                impersonatedUser.setPasswordHash(null);
+//                impersonatedUser.setPasswordHash(null);
 
                 CustomUtenteWithIdPersonaAndIdAzienda impersonatedUserWithPersonaAndAzienda = factory.createProjection(CustomUtenteWithIdPersonaAndIdAzienda.class, impersonatedUser);
 
