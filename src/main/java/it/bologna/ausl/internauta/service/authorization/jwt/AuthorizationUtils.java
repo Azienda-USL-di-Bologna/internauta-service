@@ -85,11 +85,24 @@ public class AuthorizationUtils {
                 parseClaimsJws(token).
                 getBody();
 
-        Integer idUtente = Integer.parseInt(claims.getSubject());
+        Integer userId = Integer.parseInt(claims.getSubject());
+        Integer realUserId = null;
+        Object realUserString = claims.get(AuthorizationUtils.TokenClaims.REAL_USER.name());
+        if (realUserString != null && !((String)realUserString).isEmpty()) {
+            realUserId =  Integer.parseInt((String)realUserString);
+        }
         Integer idSessionLog = Integer.parseInt((String) claims.get(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name()));
-        Utente user = userInfoService.loadUtente(idUtente);
+        Utente user = userInfoService.loadUtente(userId);
         user.setRuoli(userInfoService.getRuoli(user));
-        TokenBasedAuthentication authentication = new TokenBasedAuthentication(user);
+        TokenBasedAuthentication authentication;
+        if (realUserId != null && !realUserId.equals(userId)) {
+            Utente realUser = userInfoService.loadUtente(realUserId);
+            user.setRuoli(userInfoService.getRuoli(realUser));
+            authentication = new TokenBasedAuthentication(user, realUser);
+        } else {
+            authentication = new TokenBasedAuthentication(user);
+        }
+        
         authentication.setToken(token);
         authentication.setIdSessionLog(idSessionLog);
         SecurityContextHolder.getContext().setAuthentication(authentication);
