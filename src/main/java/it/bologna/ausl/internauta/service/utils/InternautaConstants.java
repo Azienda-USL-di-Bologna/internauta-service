@@ -1,5 +1,8 @@
 package it.bologna.ausl.internauta.service.utils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import org.springframework.util.StringUtils;
 
@@ -16,7 +19,7 @@ public class InternautaConstants {
      */
     public static class Permessi {
         public enum Predicati {
-            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE
+            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE
         }
         
         public enum Ambiti {
@@ -27,33 +30,42 @@ public class InternautaConstants {
             FLUSSO, PEC, FASCICOLO
         }
     }
-    
+
     public static class Configurazione {
         public enum ParametriAzienda {
             crossUrlTemplate
         }
     }
-    
+
     public static class AdditionalData {
         public enum Keys {
             OperationRequested, Data
         }
         public enum OperationsRequested {
-            GetPermessiGestoriPec, GetPermessiDiFlusso
+            GetPermessiGestoriPec, GetPermessiDiFlusso, GetPermessiStrutturePec, FilterPecPerPermissionOfSubject, AddPermissionsOnPec, AddGestoriOnPec
         }
-        public static OperationsRequested getOperationRequested(Keys key, Map<String, String> additionalData) {
+        public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
             if (additionalData != null) {
-                String value = additionalData.get(key.toString());
-                if (StringUtils.hasText(value)) 
-                    return OperationsRequested.valueOf(value);
+                String values = additionalData.get(key.toString());
+                if (StringUtils.hasText(values)) {
+                    List<String> operationsRequestedStr = Arrays.asList(values.split(":"));  // Divide sui due punti
+                    //Arrays.asList(values.split("\\s*,\\s*")); // Divide sulla virgola
+                    List<OperationsRequested> operationsRequested = new ArrayList();
+                    operationsRequestedStr.stream().forEach((t) -> {
+                        operationsRequested.add(OperationsRequested.valueOf(t));
+                    });
+                    
+                    return operationsRequested;
+                }
             }
+            
             return null;
         }
     }
-    
+
     public static class HttpSessionData {
         public enum Keys {
-            PersoneWithPecPermissions, ParametriAzienda
+            PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject
         }
     }
 }
