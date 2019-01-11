@@ -122,14 +122,19 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
             }
         }
         String targetLoginPath;
-        String applicationURL;
         String entityId = parametriAziendaOrigine.getEntityId();
         String crossLoginUrlTemplate = parametriAziendaOrigine.getCrossLoginUrlTemplate();
         Menu menu = (Menu) entity;
          
         
-        String stringToEncode = menu.getOpenCommand(); // url
-        stringToEncode += "&utente=" + person.getCodiceFiscale();
+        String stringToEncode = "";
+        if(menu.getOpenCommand() != null && !menu.getOpenCommand().equals("")){
+            stringToEncode = menu.getOpenCommand();
+        }
+        if(person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0){
+            stringToEncode += stringToEncode.length() > 0 ? "&utente=" : "?utente=";
+            stringToEncode += person.getCodiceFiscale();
+        }
         stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
         stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale();
         stringToEncode += "&idSessionLog=" + idSessionLog;
@@ -149,7 +154,13 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
             LOGGER.error("errore nella creazione del link", ex);
             throw new AbortLoadInterceptorException("errore nella creazione del link", ex);
         }
-        applicationURL = menu.getIdApplicazione().getBaseUrl() + "/" + menu.getIdApplicazione().getIndexPage();
+        
+        String applicationURL = menu.getIdApplicazione().getBaseUrl();
+        
+        String indexPage = menu.getIdApplicazione().getIndexPage();
+        if(indexPage != null && indexPage.length() > 0){
+            applicationURL += "/" + indexPage;
+        }
 //        String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
         String assembledURL = crossLoginUrlTemplate.
             replace("[target-login-path]", targetLoginPath).

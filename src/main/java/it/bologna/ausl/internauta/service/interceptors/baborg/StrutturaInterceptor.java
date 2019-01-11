@@ -13,12 +13,10 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Amb
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Predicati;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi;
 import it.bologna.ausl.model.entities.baborg.Pec;
-import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.QPersona;
+import it.bologna.ausl.model.entities.baborg.QStruttura;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
-import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
-import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -32,20 +30,20 @@ import org.springframework.stereotype.Component;
 
 /**
  *
- * @author Giuseppe Russo <g.russo@nsi.it> with GDM and Gus collaboration
+ * @author gusgus
  */
 @Component
-@NextSdrInterceptor(name = "persona-interceptor")
+@NextSdrInterceptor(name = "struttura-interceptor")
 @Order(1)
-public class PersonaInterceptor extends InternautaBaseInterceptor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(PersonaInterceptor.class);
+public class StrutturaInterceptor extends InternautaBaseInterceptor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(StrutturaInterceptor.class);
     
     @Autowired
     PermissionManager permissionManager;
     
     @Override
     public Class getTargetEntityClass() {
-        return Persona.class;
+        return Struttura.class;
     }
 
     @Override
@@ -55,33 +53,33 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
-                    case GetPermessiGestoriPec: 
-                        /* Nel caso di GetPermessiGestoriPec in Data avremo l'id della PEC della quale si chiedono i permessi */
+                    case GetPermessiStrutturePec: 
+                        /* Nel caso di GetPermessiStrutturePec in Data avremo l'id della PEC della quale si chiedono i permessi */
                         String idPec = additionalData.get(AdditionalData.Keys.Data.toString());
                         Pec pec = new Pec(Integer.parseInt(idPec));
                         try {
                             List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(
                                 Arrays.asList(new Pec[]{pec}),
-                                Arrays.asList(new String[]{Predicati.ELIMINA.toString(), Predicati.LEGGE.toString(), Predicati.RISPONDE.toString()}),
+                                Arrays.asList(new String[]{Predicati.SPEDISCE.toString(), Predicati.SPEDISCE_PRINCIPALE.toString()}),
                                 Arrays.asList(new String[]{Ambiti.PECG.toString()}),
                                 Arrays.asList(new String[]{Tipi.PEC.toString()}), false);
                             if (subjectsWithPermissionsOnObject == null){
                                 initialPredicate = Expressions.FALSE.eq(true);
                             }
                             else {
-                                BooleanExpression permessoFilter = QPersona.persona.id.in(
+                                BooleanExpression permessoFilter = QStruttura.struttura.id.in(
                                     subjectsWithPermissionsOnObject
                                         .stream()
                                         .map(p -> p.getSoggetto().getIdProvenienza()).collect(Collectors.toList()));
                                 initialPredicate = permessoFilter.and(initialPredicate);
                             }
                             /* Conserviamo i dati estratti dalla BlackBox */
-                            this.httpSessionData.putData(HttpSessionData.Keys.PersoneWithPecPermissions, subjectsWithPermissionsOnObject);
+                            this.httpSessionData.putData(HttpSessionData.Keys.StruttureWithPecPermissions, subjectsWithPermissionsOnObject);
                         } catch (BlackBoxPermissionException ex) {
                             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                         }
-                        break;
+                    break;
                 }
             }
         }
@@ -90,37 +88,35 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
    
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
-//        permissionManager.getPermission(entity, additionalData, ambiti, tipi);
-        Persona persona = (Persona) entity;        
+        Struttura struttura = (Struttura) entity;        
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
-                    case GetPermessiGestoriPec:
-                        List<PermessoEntitaStoredProcedure> personeConPermesso = 
-                                (List<PermessoEntitaStoredProcedure>) this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions);
-                        if (personeConPermesso != null && !personeConPermesso.isEmpty()) {
-                            List<PermessoEntitaStoredProcedure> permessiPersona = 
-                                    personeConPermesso.stream().filter(p -> 
+                    case GetPermessiStrutturePec:
+                        List<PermessoEntitaStoredProcedure> struttureConPermesso = 
+                                (List<PermessoEntitaStoredProcedure>) this.httpSessionData.getData(HttpSessionData.Keys.StruttureWithPecPermissions);
+                        if (struttureConPermesso != null && !struttureConPermesso.isEmpty()) {
+                            List<PermessoEntitaStoredProcedure> permessiStruttura = 
+                                    struttureConPermesso.stream().filter(p -> 
                                             p.getSoggetto().getIdProvenienza()
-                                            .equals(persona.getId()))
+                                            .equals(struttura.getId()))
                                             .collect(Collectors.toList());
-                            persona.setPermessi(permessiPersona);
+                            struttura.setPermessi(permessiStruttura);
                         }
-                        break;
+                    break;
                 }
-            }
+            }  
         }          
-        return persona;
+        return struttura;
     }
 
     @Override
-    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
-        
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {    
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
-            if (operationsRequested.contains(AdditionalData.OperationsRequested.GetPermessiGestoriPec)) {
-                if (this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions) != null) {
+            if (operationsRequested.contains(AdditionalData.OperationsRequested.GetPermessiStrutturePec)) {
+                if (this.httpSessionData.getData(HttpSessionData.Keys.StruttureWithPecPermissions) != null) {
                     for (Object entity : entities) {
                         entity = afterSelectQueryInterceptor(entity, additionalData, request);
                     }
