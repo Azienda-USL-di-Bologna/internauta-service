@@ -1,5 +1,8 @@
 package it.bologna.ausl.internauta.service.authorization.jwt;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JavaType;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
@@ -8,7 +11,9 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
-import it.bologna.ausl.model.entities.baborg.projections.ProjectionBeans;
+import it.bologna.ausl.internauta.service.utils.ProjectionBeans;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithPlainFields;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +34,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.HttpStatus;
-import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteWithIdPersonaAndIdAzienda;
+import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
+import java.util.List;
+import org.springframework.util.StringUtils;
+import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 
 /**
  *
@@ -79,22 +87,38 @@ public class LoginController {
     ProjectionFactory factory;
 
     @RequestMapping(value = "${security.login.path}", method = RequestMethod.POST)
-    public ResponseEntity<LoginResponse> loginPOST(@RequestBody final UserLogin userLogin, javax.servlet.http.HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public ResponseEntity<LoginResponse> loginPOST(@RequestBody final UserLogin userLogin, javax.servlet.http.HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException, IOException {
         String hostname = commonUtils.getHostname(request);
 
         logger.debug("login username: " + userLogin.username);
         logger.debug("login username: " + userLogin.password);
+        logger.debug("login username: " + userLogin.realUser);
 
+        
+        userInfoService.loadUtenteRemoveCache(userLogin.username, hostname);       
         Utente utente = userInfoService.loadUtente(userLogin.username, hostname);
-        CustomUtenteWithIdPersonaAndIdAzienda utenteWithPersona = factory.createProjection(CustomUtenteWithIdPersonaAndIdAzienda.class, utente);
-
-//        utente.setRuoli(userInfoService.getRuoli(utente));
         if (utente == null) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
         if (!PasswordHashUtils.validatePassword(userLogin.password, utente.getPasswordHash())) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
+        userInfoService.getRuoliRemoveCache(utente);
+        userInfoService.loadUtenteRemoveCache(utente.getId());
+        userInfoService.getUtentiPersonaRemoveCache(utente);
+        if (StringUtils.hasText(userLogin.realUser)) {
+            // TODO: controllare che l'utente possa fare il cambia utente
+            userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname);       
+            Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname);
+            userInfoService.getRuoliRemoveCache(utenteReale);
+            userInfoService.loadUtenteRemoveCache(utenteReale.getId());
+            userInfoService.getUtentiPersonaRemoveCache(utenteReale);
+            utente.setUtenteReale(utenteReale);
+        }
+        CustomUtenteLogin utenteWithPersona = factory.createProjection(CustomUtenteLogin.class, utente);
+
+//        utente.setRuoli(userInfoService.getRuoli(utente));
+
         DateTime currentDateTime = DateTime.now();
         String token = Jwts.builder()
                 .setSubject(String.valueOf(utente.getId()))
@@ -143,6 +167,7 @@ public class LoginController {
     public static class UserLogin {
 
         public String username;
+        public String realUser;
         public String password;
     }
 

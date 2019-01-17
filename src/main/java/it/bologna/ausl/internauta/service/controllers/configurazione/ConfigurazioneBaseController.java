@@ -4,9 +4,11 @@ import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.configuration.ConfigurazioneAmbiente;
+import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.configuration.QApplicazione;
 import it.bologna.ausl.model.entities.configuration.QConfigurazioneAmbiente;
+import it.bologna.ausl.model.entities.configuration.QImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configuration.QParametroAziende;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
@@ -90,4 +92,16 @@ public class ConfigurazioneBaseController extends BaseCrudController {
         return ResponseEntity.ok(resource);
     }
 
+    @RequestMapping(value = {"impostazioniapplicazioni", "impostazioniapplicazioni/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> impostazioniapplicazioni(
+            @QuerydslPredicate(root = ImpostazioniApplicazioni.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QImpostazioniApplicazioni.impostazioniApplicazioni, ImpostazioniApplicazioni.class);
+        return ResponseEntity.ok(resource);
+    }
 }

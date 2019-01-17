@@ -13,7 +13,6 @@ import it.bologna.ausl.internauta.service.repositories.logs.CounterRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
-import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteWithIdPersonaAndIdAzienda;
 import it.bologna.ausl.model.entities.logs.Counter;
 import java.io.IOException;
 import java.util.List;
@@ -29,6 +28,8 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -111,9 +112,10 @@ public class AuthorizationUtils {
 
     public ResponseEntity generateResponseEntityFromSAML(String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr) throws IOException, ClassNotFoundException, ObjectNotFoundException {
 
-        Utente impersonatedUser = null;
+        Utente impersonatedUser;
         boolean isSuperDemiurgo = false;
 
+        //userInfoService.loadAziendaByPathRemoveCache(path);
         Azienda azienda = userInfoService.loadAziendaByPath(path);
 
         AziendaParametriJson aziendaParams = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
@@ -129,8 +131,11 @@ public class AuthorizationUtils {
         Class<?> entityClass = Class.forName(entityClassName);
 
         // carica l'utente vero che si è loggato con SSO
+        userInfoService.loadUtenteRemoveCache(entityClass, field, ssoFieldValue, azienda);
         Utente user = userInfoService.loadUtente(entityClass, field, ssoFieldValue, azienda);
-
+        userInfoService.loadUtenteRemoveCache(user.getId());
+        userInfoService.getRuoliRemoveCache(user);
+        
         if (user == null) {
             throw new ObjectNotFoundException("User not found");
         }
@@ -144,10 +149,10 @@ public class AuthorizationUtils {
             throw new ObjectNotFoundException("User not found");
         }
 
-        CustomUtenteWithIdPersonaAndIdAzienda userLoginSSOWithPersonaAndAzienda = factory.createProjection(CustomUtenteWithIdPersonaAndIdAzienda.class, user);
+        
 
         // controlla se è stato passato il parametro di utente impersonato
-        if (utenteImpersonatoStr != null && !utenteImpersonatoStr.equals("")) {
+        if (StringUtils.hasText(utenteImpersonatoStr)) {
             // solo se l'utente reale è super demiurgo allora può fare il cambia utente
             List<Ruolo> ruoli = user.getRuoli();
 
@@ -161,35 +166,42 @@ public class AuthorizationUtils {
 
             if (isSuperDemiurgo) {
                 logger.info(String.format("utente %s ha ruolo SD", realUserSubject));
+                userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, azienda);
                 impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda);
+                userInfoService.loadUtenteRemoveCache(impersonatedUser.getId());
+                userInfoService.getRuoliRemoveCache(impersonatedUser);
+                
+                impersonatedUser.setUtenteReale(user);
+                
 //                impersonatedUser.setPasswordHash(null);
 
-                CustomUtenteWithIdPersonaAndIdAzienda impersonatedUserWithPersonaAndAzienda = factory.createProjection(CustomUtenteWithIdPersonaAndIdAzienda.class, impersonatedUser);
+//                CustomUtenteLogin impersonatedUserWithPersonaAndAzienda = factory.createProjection(CustomUtenteLogin.class, impersonatedUser);
 
                 String impersonateUserSubject = String.valueOf(impersonatedUser.getId());
 
                 // se utente reale = utente impersonato allora non si fa il cambia utente
                 if (realUserSubject.equals(impersonateUserSubject)) {
                     logger.info(String.format("utente reale %s == utente impersonato %s", realUserSubject, impersonateUserSubject));
-                    user = null;
+//                    user = null;
                 }
 
                 // ritorna utente impersonato con informazioni dell'utente reale
                 return new ResponseEntity(
-                        generateLoginResponse(impersonatedUserWithPersonaAndAzienda, userLoginSSOWithPersonaAndAzienda, azienda, entityClass, field, utenteImpersonatoStr, secretKey),
+                        generateLoginResponse(impersonatedUser, realUserSubject, azienda, entityClass, field, utenteImpersonatoStr, secretKey),
                         HttpStatus.OK);
             } else {
                 // ritorna l'utente stesso perchè non ha i permessi per fare il cambia utente
                 logger.info(String.format("utente %s non ha ruolo SD, ritorna se stesso nel token", realUserSubject));
                 return new ResponseEntity(
-                        generateLoginResponse(userLoginSSOWithPersonaAndAzienda, null, azienda, entityClass, field, ssoFieldValue, secretKey),
+                        generateLoginResponse(user, null, azienda, entityClass, field, ssoFieldValue, secretKey),
                         HttpStatus.OK);
             }
+            
 
         } else {
             // ritorna l'utente reale perchè non è stato passato l'utente impersonato
             return new ResponseEntity(
-                    generateLoginResponse(userLoginSSOWithPersonaAndAzienda, null, azienda, entityClass, field, ssoFieldValue, secretKey),
+                    generateLoginResponse(user, null, azienda, entityClass, field, ssoFieldValue, secretKey),
                     HttpStatus.OK);
         }
         //        DateTime currentDateTime = DateTime.now();
@@ -217,8 +229,8 @@ public class AuthorizationUtils {
     }
 
     private LoginController.LoginResponse generateLoginResponse(
-            CustomUtenteWithIdPersonaAndIdAzienda currentUser,
-            CustomUtenteWithIdPersonaAndIdAzienda realUser,
+            Utente currentUser,
+            String realUser,
             Azienda azienda,
             Class<?> entityClass,
             String field,
@@ -226,14 +238,15 @@ public class AuthorizationUtils {
             String secretKey) {
         DateTime currentDateTime = DateTime.now();
 
-        String realUserStr = null;
+//        String realUserStr = null;
+//
+//        if (realUser != null) {
+//            realUserStr = realUser;
+//        } else {
+//            realUserStr = String.valueOf(currentUser.getId());
+//        }
 
-        if (realUser != null) {
-            realUserStr = String.valueOf(realUser.getId());
-        } else {
-            realUserStr = String.valueOf(currentUser.getId());
-        }
-
+        CustomUtenteLogin customUtenteLogin = factory.createProjection(CustomUtenteLogin.class, currentUser);
         return new LoginController.LoginResponse(
                 Jwts.builder()
                         .setSubject(String.valueOf(currentUser.getId()))
@@ -243,12 +256,12 @@ public class AuthorizationUtils {
                         .claim(AuthorizationUtils.TokenClaims.USER_FIELD.name(), field)
                         .claim(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name(), ssoFieldValue)
                         .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), String.valueOf(createIdSessionLog().getId()))
-                        .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserStr)
+                        .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUser)
                         .setIssuedAt(currentDateTime.toDate())
                         .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)
                         .signWith(SIGNATURE_ALGORITHM, secretKey).compact(),
                 currentUser.getUsername(),
-                currentUser);
+                customUtenteLogin);
     }
 
     public Counter createIdSessionLog() {

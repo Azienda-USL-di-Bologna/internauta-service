@@ -26,6 +26,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.repositories.baborg.PermessoRepositoryOld;
+import org.springframework.cache.annotation.CacheEvict;
 
 /**
  * Service per la creazione dell'oggetto UserInfoOld TODO: descrivere la
@@ -85,6 +86,9 @@ public class UserInfoService {
         }
     }
 
+    @CacheEvict(value = "aziendaInfo__ribaltorg__", key = "{#path}")
+    public void loadAziendaByPathRemoveCache(String path) {}
+
     /**
      * carica l'utente a partire dall'id
      *
@@ -100,6 +104,9 @@ public class UserInfoService {
             return null;
         }
     }
+    
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#id}")
+    public void loadUtenteRemoveCache(Integer id) {}
 
     /**
      * carica l'utente a partire dallo username e dal path dell'azienda dalla
@@ -122,6 +129,15 @@ public class UserInfoService {
         }
         return res;
     }
+    
+    /**
+     * invalida la cache della funzione loadUtente(String username, String aziendaPath)
+     *
+     * @param username
+     * @param aziendaPath
+     */
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
+    public void loadUtenteRemoveCache(String username, String aziendaPath) {}
 
     /**
      * carica l'utente cachable a partire dai campi configurati per il login SSO
@@ -155,6 +171,17 @@ public class UserInfoService {
             return null;
         }
     }
+    
+    /**
+     * invalida la cache della funzione loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda)
+     * 
+     * @param entityClass
+     * @param field
+     * @param ssoFieldValue
+     * @param azienda 
+     */
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId()}")
+    public void loadUtenteRemoveCache(Class entityClass, String field, String ssoFieldValue, Azienda azienda) {}
 
     @Cacheable(value = "getRuoli__ribaltorg__", key = "{#utente.getId()}")
     public List<Ruolo> getRuoli(Utente utente) {
@@ -173,6 +200,9 @@ public class UserInfoService {
         }
         return res;
     }
+    
+    @CacheEvict(value = "getRuoli__ribaltorg__", key = "{#utente.getId()}")
+    public void getRuoliRemoveCache(Utente utente) {}
 
     public List<AziendaWithPlainFields> getAziendePersonaWithPlainField(Utente utente) {
         List<AziendaWithPlainFields> res = new ArrayList();
@@ -220,4 +250,8 @@ public class UserInfoService {
         }
         return res;
     }
+    
+    @CacheEvict(value = "getUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
+    public void getUtentiPersonaRemoveCache(Utente utente) {}
+    
 }
