@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
@@ -81,7 +82,7 @@ public class AuthorizationUtils {
      * @throws java.lang.ClassNotFoundException
      */
     @Transactional(rollbackFor = {Error.class})
-    public Claims setInSecurityContext(String token, String secretKey, String applicazione) throws ClassNotFoundException {
+    public Claims setInSecurityContext(String token, String secretKey, String applicazione) throws ClassNotFoundException, BlackBoxPermissionException {
         Claims claims = Jwts.parser().
                 setSigningKey(secretKey).
                 parseClaimsJws(token).
@@ -96,10 +97,12 @@ public class AuthorizationUtils {
         Integer idSessionLog = Integer.parseInt((String) claims.get(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name()));
         Utente user = userInfoService.loadUtente(userId, applicazione);
         user.setRuoli(userInfoService.getRuoli(user));
+        user.setPermessi(userInfoService.getPermessiDiFlusso(user));
         TokenBasedAuthentication authentication;
         if (realUserId != null && !realUserId.equals(userId)) {
             Utente realUser = userInfoService.loadUtente(realUserId, applicazione);
             user.setRuoli(userInfoService.getRuoli(realUser));
+            user.setPermessi(userInfoService.getPermessiDiFlusso(realUser));
             authentication = new TokenBasedAuthentication(user, realUser);
         } else {
             authentication = new TokenBasedAuthentication(user);
@@ -111,7 +114,7 @@ public class AuthorizationUtils {
         return claims;
     }
 
-    public ResponseEntity generateResponseEntityFromSAML(String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione) throws IOException, ClassNotFoundException, ObjectNotFoundException {
+    public ResponseEntity generateResponseEntityFromSAML(String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException {
 
         Utente impersonatedUser;
         boolean isSuperDemiurgo = false;
@@ -136,7 +139,8 @@ public class AuthorizationUtils {
         Utente user = userInfoService.loadUtente(entityClass, field, ssoFieldValue, azienda, applicazione);
         userInfoService.loadUtenteRemoveCache(user.getId(), applicazione);
         userInfoService.getRuoliRemoveCache(user);
-        
+        // TODO: rimuovere permessi cache
+        userInfoService.getPermessiDiFlussoRemoveCache(user);
         if (user == null) {
             throw new ObjectNotFoundException("User not found");
         }
@@ -145,6 +149,7 @@ public class AuthorizationUtils {
         String realUserSubject = String.valueOf(user.getId());
 
         user.setRuoli(userInfoService.getRuoli(user));
+        user.setPermessi(userInfoService.getPermessiDiFlusso(user));
 
         if (user == null) {
             throw new ObjectNotFoundException("User not found");
@@ -171,7 +176,8 @@ public class AuthorizationUtils {
                 impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda, applicazione);
                 userInfoService.loadUtenteRemoveCache(impersonatedUser.getId(), applicazione);
                 userInfoService.getRuoliRemoveCache(impersonatedUser);
-                
+                // TODO: funzione di rimozione permessi cache
+                userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
                 impersonatedUser.setUtenteReale(user);
                 
 //                impersonatedUser.setPasswordHash(null);
