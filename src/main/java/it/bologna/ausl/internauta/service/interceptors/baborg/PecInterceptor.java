@@ -84,6 +84,9 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
+        
+        // se loggedUser è CI o CA restituisco tutte le caselle pec, senza limite di azienda, altrimenti non restituisco niente
+        
         return initialPredicate;
     }
 
