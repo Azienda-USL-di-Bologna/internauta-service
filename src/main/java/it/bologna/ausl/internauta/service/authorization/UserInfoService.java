@@ -26,6 +26,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.repositories.baborg.PermessoRepositoryOld;
+import org.springframework.cache.annotation.CacheEvict;
 
 /**
  * Service per la creazione dell'oggetto UserInfoOld TODO: descrivere la
@@ -85,21 +86,29 @@ public class UserInfoService {
         }
     }
 
+    @CacheEvict(value = "aziendaInfo__ribaltorg__", key = "{#path}")
+    public void loadAziendaByPathRemoveCache(String path) {}
+
     /**
      * carica l'utente a partire dall'id
      *
      * @param id
+     * @param applicazione
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#id}")
-    public Utente loadUtente(Integer id) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#id, #applicazione}")
+    public Utente loadUtente(Integer id, String applicazione) {
+        Utente res = null;
         Optional<Utente> utenteOp = utenteRepository.findById(id);
         if (utenteOp.isPresent()) {
-            return utenteOp.get();
-        } else {
-            return null;
+            res = utenteOp.get();
+            res.getIdPersona().setApplicazione(applicazione);
         }
+        return res;
     }
+    
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#id, #applicazione}")
+    public void loadUtenteRemoveCache(Integer id, String applicazione) {}
 
     /**
      * carica l'utente a partire dallo username e dal path dell'azienda dalla
@@ -107,10 +116,11 @@ public class UserInfoService {
      *
      * @param username
      * @param aziendaPath
+     * @param applicazione
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
-    public Utente loadUtente(String username, String aziendaPath) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath, #applicazione}")
+    public Utente loadUtente(String username, String aziendaPath, String applicazione) {
         Utente res = null;
         Azienda azienda = loadAziendaByPath(aziendaPath);
         if (azienda != null) {
@@ -118,10 +128,20 @@ public class UserInfoService {
             Optional<Utente> utenteOp = utenteRepository.findOne(utenteFilter);
             if (utenteOp.isPresent()) {
                 res = utenteOp.get();
+                res.getIdPersona().setApplicazione(applicazione);
             }
         }
         return res;
     }
+    
+    /**
+     * invalida la cache della funzione loadUtente(String username, String aziendaPath)
+     *
+     * @param username
+     * @param aziendaPath
+     */
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath, #applicazione}")
+    public void loadUtenteRemoveCache(String username, String aziendaPath, String applicazione) {}
 
     /**
      * carica l'utente cachable a partire dai campi configurati per il login SSO
@@ -132,11 +152,13 @@ public class UserInfoService {
      * @param ssoFieldValue campo che identifica l'utente iniettato da shibbolet
      * nella richiesta
      * @param azienda campo che identifica l'azienda
+     * @param applicazione
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId()}")
-    public Utente loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId(), #applicazione}")
+    public Utente loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda, String applicazione) {
 
+        Utente res = null;
         BooleanExpression filter;
         PathBuilder<Utente> qUtente = new PathBuilder(Utente.class, "utente");
         if (entityClass.isAssignableFrom(Persona.class)) {
@@ -150,11 +172,24 @@ public class UserInfoService {
         Optional<Utente> utenteOp = utenteRepository.findOne(filter);
 
         if (utenteOp.isPresent()) {
+            res = utenteOp.get();
+            res.getIdPersona().setApplicazione(applicazione);
             return utenteOp.get();
-        } else {
-            return null;
         }
+        return res;
     }
+    
+    /**
+     * invalida la cache della funzione loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda)
+     * 
+     * @param entityClass
+     * @param field
+     * @param ssoFieldValue
+     * @param azienda 
+     * @param applicazione 
+     */
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId(), #applicazione}")
+    public void loadUtenteRemoveCache(Class entityClass, String field, String ssoFieldValue, Azienda azienda, String applicazione) {}
 
     @Cacheable(value = "getRuoli__ribaltorg__", key = "{#utente.getId()}")
     public List<Ruolo> getRuoli(Utente utente) {
@@ -173,6 +208,9 @@ public class UserInfoService {
         }
         return res;
     }
+    
+    @CacheEvict(value = "getRuoli__ribaltorg__", key = "{#utente.getId()}")
+    public void getRuoliRemoveCache(Utente utente) {}
 
     public List<AziendaWithPlainFields> getAziendePersonaWithPlainField(Utente utente) {
         List<AziendaWithPlainFields> res = new ArrayList();
@@ -220,4 +258,8 @@ public class UserInfoService {
         }
         return res;
     }
+    
+    @CacheEvict(value = "getUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
+    public void getUtentiPersonaRemoveCache(Utente utente) {}
+    
 }
