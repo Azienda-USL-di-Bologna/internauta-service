@@ -76,11 +76,12 @@ public class AuthorizationUtils {
      *
      * @param token il token
      * @param secretKey la chiave segreta per decifrare il token
+     * @param applicazione
      * @return i claims del token
      * @throws java.lang.ClassNotFoundException
      */
     @Transactional(rollbackFor = {Error.class})
-    public Claims setInSecurityContext(String token, String secretKey) throws ClassNotFoundException {
+    public Claims setInSecurityContext(String token, String secretKey, String applicazione) throws ClassNotFoundException {
         Claims claims = Jwts.parser().
                 setSigningKey(secretKey).
                 parseClaimsJws(token).
@@ -93,11 +94,11 @@ public class AuthorizationUtils {
             realUserId =  Integer.parseInt((String)realUserString);
         }
         Integer idSessionLog = Integer.parseInt((String) claims.get(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name()));
-        Utente user = userInfoService.loadUtente(userId);
+        Utente user = userInfoService.loadUtente(userId, applicazione);
         user.setRuoli(userInfoService.getRuoli(user));
         TokenBasedAuthentication authentication;
         if (realUserId != null && !realUserId.equals(userId)) {
-            Utente realUser = userInfoService.loadUtente(realUserId);
+            Utente realUser = userInfoService.loadUtente(realUserId, applicazione);
             user.setRuoli(userInfoService.getRuoli(realUser));
             authentication = new TokenBasedAuthentication(user, realUser);
         } else {
@@ -110,7 +111,7 @@ public class AuthorizationUtils {
         return claims;
     }
 
-    public ResponseEntity generateResponseEntityFromSAML(String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr) throws IOException, ClassNotFoundException, ObjectNotFoundException {
+    public ResponseEntity generateResponseEntityFromSAML(String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione) throws IOException, ClassNotFoundException, ObjectNotFoundException {
 
         Utente impersonatedUser;
         boolean isSuperDemiurgo = false;
@@ -131,9 +132,9 @@ public class AuthorizationUtils {
         Class<?> entityClass = Class.forName(entityClassName);
 
         // carica l'utente vero che si è loggato con SSO
-        userInfoService.loadUtenteRemoveCache(entityClass, field, ssoFieldValue, azienda);
-        Utente user = userInfoService.loadUtente(entityClass, field, ssoFieldValue, azienda);
-        userInfoService.loadUtenteRemoveCache(user.getId());
+        userInfoService.loadUtenteRemoveCache(entityClass, field, ssoFieldValue, azienda, applicazione);
+        Utente user = userInfoService.loadUtente(entityClass, field, ssoFieldValue, azienda, applicazione);
+        userInfoService.loadUtenteRemoveCache(user.getId(), applicazione);
         userInfoService.getRuoliRemoveCache(user);
         
         if (user == null) {
@@ -166,9 +167,9 @@ public class AuthorizationUtils {
 
             if (isSuperDemiurgo) {
                 logger.info(String.format("utente %s ha ruolo SD", realUserSubject));
-                userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, azienda);
-                impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda);
-                userInfoService.loadUtenteRemoveCache(impersonatedUser.getId());
+                userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, azienda, applicazione);
+                impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda, applicazione);
+                userInfoService.loadUtenteRemoveCache(impersonatedUser.getId(), applicazione);
                 userInfoService.getRuoliRemoveCache(impersonatedUser);
                 
                 impersonatedUser.setUtenteReale(user);

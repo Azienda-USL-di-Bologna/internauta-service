@@ -52,6 +52,7 @@ public class LoginController {
     private final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
 
     private final String IMPERSONATE_USER = "utenteImpersonato";
+    private final String APPLICAZIONE = "applicazione";
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -93,10 +94,11 @@ public class LoginController {
         logger.debug("login username: " + userLogin.username);
         logger.debug("login username: " + userLogin.password);
         logger.debug("login username: " + userLogin.realUser);
+        logger.debug("login username: " + userLogin.applicazione);
 
         
-        userInfoService.loadUtenteRemoveCache(userLogin.username, hostname);       
-        Utente utente = userInfoService.loadUtente(userLogin.username, hostname);
+        userInfoService.loadUtenteRemoveCache(userLogin.username, hostname, userLogin.applicazione);       
+        Utente utente = userInfoService.loadUtente(userLogin.username, hostname, userLogin.applicazione);
         if (utente == null) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
@@ -104,14 +106,14 @@ public class LoginController {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
         userInfoService.getRuoliRemoveCache(utente);
-        userInfoService.loadUtenteRemoveCache(utente.getId());
+        userInfoService.loadUtenteRemoveCache(utente.getId(), userLogin.applicazione);
         userInfoService.getUtentiPersonaRemoveCache(utente);
         if (StringUtils.hasText(userLogin.realUser)) {
             // TODO: controllare che l'utente possa fare il cambia utente
-            userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname);       
-            Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname);
+            userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname, userLogin.applicazione);       
+            Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname, userLogin.applicazione);
             userInfoService.getRuoliRemoveCache(utenteReale);
-            userInfoService.loadUtenteRemoveCache(utenteReale.getId());
+            userInfoService.loadUtenteRemoveCache(utenteReale.getId(), userLogin.applicazione);
             userInfoService.getUtentiPersonaRemoveCache(utenteReale);
             utente.setUtenteReale(utenteReale);
         }
@@ -143,7 +145,9 @@ public class LoginController {
     public ResponseEntity<LoginResponse> loginGET(HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, ClassNotFoundException {
 
         String impersonateUser = request.getParameter(IMPERSONATE_USER);
+        String applicazione = request.getParameter(APPLICAZIONE);
         logger.info("impersonate user: " + impersonateUser);
+        logger.info("applicazione: " + applicazione);
 
         //LOGIN SAML
         if (!samlEnabled) {
@@ -155,7 +159,7 @@ public class LoginController {
 
         ResponseEntity res;
         try {
-            res = authorizationUtils.generateResponseEntityFromSAML(hostname, secretKey, request, null, impersonateUser);
+            res = authorizationUtils.generateResponseEntityFromSAML(hostname, secretKey, request, null, impersonateUser, applicazione);
         } catch (ObjectNotFoundException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);
@@ -169,6 +173,7 @@ public class LoginController {
         public String username;
         public String realUser;
         public String password;
+        public String applicazione;
     }
 
     @SuppressWarnings("unused")

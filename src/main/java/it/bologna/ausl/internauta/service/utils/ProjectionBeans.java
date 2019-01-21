@@ -52,8 +52,8 @@ public class ProjectionBeans {
         user = (Utente) authentication.getPrincipal();
         realUser = (Utente) authentication.getRealUser();
         idSessionLog = authentication.getIdSessionLog();
-        person = cachedEntities.getPersona(user.getIdPersona().getId());
-        realPerson = cachedEntities.getPersona(realUser.getIdPersona().getId());
+        person = cachedEntities.getPersona(user);
+        realPerson = cachedEntities.getPersona(realUser);
     }
     
     public UtenteWithIdPersona getUtenteConPersona(Utente utente){
@@ -103,7 +103,8 @@ public class ProjectionBeans {
     public List<ImpostazioniApplicazioniWithPlainFields> getImpostazioniApplicazioniListWithPlainFields(Persona persona) {
         List<ImpostazioniApplicazioni> impostazioniApplicazioniList = persona.getImpostazioniApplicazioniList();
         if (impostazioniApplicazioniList != null && !impostazioniApplicazioniList.isEmpty()) {
-            return impostazioniApplicazioniList.stream().map(
+            return impostazioniApplicazioniList.stream().filter(imp -> imp.getIdApplicazione().getId().equals(persona.getApplicazione())).
+                    map(
                         imp -> factory.createProjection(ImpostazioniApplicazioniWithPlainFields.class, imp)
                     ).collect(Collectors.toList());
         } else
