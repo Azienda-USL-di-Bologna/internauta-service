@@ -38,6 +38,7 @@ public class JwtFilter extends GenericFilterBean {
         if (!request.getMethod().equalsIgnoreCase("OPTIONS")) {
         
             final String authHeader = request.getHeader("Authorization");
+            final String applicazione = request.getHeader("Application");
 
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 setResponseError(req, res, HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header.");
@@ -48,7 +49,7 @@ public class JwtFilter extends GenericFilterBean {
             final String token = authHeader.substring(7);
 
             try {
-                Claims claims = authorizationUtils.setInSecurityContext(token, secretKey);
+                Claims claims = authorizationUtils.setInSecurityContext(token, secretKey, applicazione);
                 request.setAttribute("claims", claims);
             } catch (ClassNotFoundException ex) {
                 throw new ServletException("Invalid token", ex);

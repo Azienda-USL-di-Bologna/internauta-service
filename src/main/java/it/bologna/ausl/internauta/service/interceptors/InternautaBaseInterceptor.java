@@ -36,8 +36,8 @@ public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerIn
             user = (Utente) threadLocalAuthentication.get().getPrincipal();
             realUser = (Utente) threadLocalAuthentication.get().getRealUser();
             idSessionLog = threadLocalAuthentication.get().getIdSessionLog();
-            person = cachedEntities.getPersona(user.getIdPersona().getId());
-            realPerson = cachedEntities.getPersona(realUser.getIdPersona().getId());
+            person = cachedEntities.getPersona(user);
+            realPerson = cachedEntities.getPersona(realUser);
         //}
     }
 
