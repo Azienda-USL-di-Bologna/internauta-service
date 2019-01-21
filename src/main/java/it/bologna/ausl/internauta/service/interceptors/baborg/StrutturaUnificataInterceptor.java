@@ -49,46 +49,31 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
             QStrutturaUnificata strutturaUnificata = QStrutturaUnificata.strutturaUnificata;
             getAuthenticatedUserProperties();
 
-            Boolean isCA = isCA();
-            Boolean isCI = isCI();
-            
             BooleanExpression customFilter;
             if (getDataByStatoValue.equals(Stati.Bozza.toString())) {
                 /*  La bozza ha la data disattivazione a null.
                     La data attivazione può essere null.
                     Se non è null deve essere maggiore di oggi
                     oppure può essere minore/uguale ad oggi purché la data accensione ativazione sia null sia disattivo.  */
-                if (isCI) {
-                    customFilter = strutturaUnificata.dataDisattivazione.isNull()
-                            .and(strutturaUnificata.dataAttivazione.isNull()
-                                    .or(strutturaUnificata.dataAttivazione.isNotNull().and(strutturaUnificata.dataAttivazione.gt(today))
-                                            .or(strutturaUnificata.dataAttivazione.isNotNull().and(strutturaUnificata.dataAttivazione.loe(today)).and(strutturaUnificata.dataAccensioneAttivazione.isNull()))));
-                } else {
-                    customFilter = Expressions.asBoolean(true).isFalse();
-                }
+                customFilter = strutturaUnificata.dataDisattivazione.isNull()
+                        .and(strutturaUnificata.dataAttivazione.isNull()
+                                .or(strutturaUnificata.dataAttivazione.isNotNull().and(strutturaUnificata.dataAttivazione.gt(today))
+                                        .or(strutturaUnificata.dataAttivazione.isNotNull().and(strutturaUnificata.dataAttivazione.loe(today)).and(strutturaUnificata.dataAccensioneAttivazione.isNull()))));
 
                 initialPredicate = customFilter.and(initialPredicate);
 
             } else if (getDataByStatoValue.equals(Stati.Corrente.toString())) {
-                if (isCA || isCI) {
-                    customFilter = strutturaUnificata.dataDisattivazione.isNull()
-                            .or(strutturaUnificata.dataDisattivazione.isNotNull().and(strutturaUnificata.dataDisattivazione.gt(today)))
-                            .and(strutturaUnificata.dataAttivazione.isNotNull()
-                                    .and(strutturaUnificata.dataAttivazione.loe(today)
-                                            .and(strutturaUnificata.dataAccensioneAttivazione.isNotNull())));
-                } else {
-                    customFilter = Expressions.asBoolean(true).isFalse();
-                }
+                customFilter = strutturaUnificata.dataDisattivazione.isNull()
+                        .or(strutturaUnificata.dataDisattivazione.isNotNull().and(strutturaUnificata.dataDisattivazione.gt(today)))
+                        .and(strutturaUnificata.dataAttivazione.isNotNull()
+                                .and(strutturaUnificata.dataAttivazione.loe(today)
+                                        .and(strutturaUnificata.dataAccensioneAttivazione.isNotNull())));
 
                 initialPredicate = customFilter.and(initialPredicate);
 
             } else if (getDataByStatoValue.equals(Stati.Storico.toString())) {
-                if (isCA || isCI) {
-                    customFilter = strutturaUnificata.dataDisattivazione.isNotNull()
-                            .and(strutturaUnificata.dataDisattivazione.loe(today));
-                } else {
-                    customFilter = Expressions.asBoolean(true).isFalse();
-                }
+                customFilter = strutturaUnificata.dataDisattivazione.isNotNull()
+                        .and(strutturaUnificata.dataDisattivazione.loe(today));
 
                 initialPredicate = customFilter.and(initialPredicate);
 
@@ -128,10 +113,10 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
         return isCI;
     }
     
-    private boolean isCA() {
-        getAuthenticatedUserProperties();
-        List<Ruolo> ruoli = super.user.getRuoli();
-        Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
-        return isCA;
-    }
+//    private boolean isCA() {
+//        getAuthenticatedUserProperties();
+//        List<Ruolo> ruoli = super.user.getRuoli();
+//        Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
+//        return isCA;
+//    }
 }
