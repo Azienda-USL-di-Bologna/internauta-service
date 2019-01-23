@@ -7,6 +7,7 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
@@ -38,6 +39,7 @@ import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
 import java.util.List;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
+import java.util.logging.Level;
 
 /**
  *
@@ -106,6 +108,8 @@ public class LoginController {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
         userInfoService.getRuoliRemoveCache(utente);
+        // TODO: permessi
+        userInfoService.getPermessiDiFlussoRemoveCache(utente);
         userInfoService.loadUtenteRemoveCache(utente.getId(), userLogin.applicazione);
         userInfoService.getUtentiPersonaRemoveCache(utente);
         if (StringUtils.hasText(userLogin.realUser)) {
@@ -113,6 +117,8 @@ public class LoginController {
             userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname, userLogin.applicazione);       
             Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname, userLogin.applicazione);
             userInfoService.getRuoliRemoveCache(utenteReale);
+            // TODO: permessi
+            userInfoService.getPermessiDiFlussoRemoveCache(utenteReale);
             userInfoService.loadUtenteRemoveCache(utenteReale.getId(), userLogin.applicazione);
             userInfoService.getUtentiPersonaRemoveCache(utenteReale);
             utente.setUtenteReale(utenteReale);
@@ -160,7 +166,7 @@ public class LoginController {
         ResponseEntity res;
         try {
             res = authorizationUtils.generateResponseEntityFromSAML(hostname, secretKey, request, null, impersonateUser, applicazione);
-        } catch (ObjectNotFoundException ex) {
+        } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);
         }

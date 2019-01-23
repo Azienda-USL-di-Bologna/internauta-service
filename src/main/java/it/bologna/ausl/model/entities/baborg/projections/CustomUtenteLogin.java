@@ -3,6 +3,7 @@
  */
 package it.bologna.ausl.model.entities.baborg.projections;
 
+import it.bologna.ausl.blackbox.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
@@ -27,6 +28,9 @@ public interface CustomUtenteLogin extends UtenteWithIdAziendaAndIdPersona {
 
     @Value("#{@userInfoService.getRuoli(target)}")
     public List<Ruolo> getRuoli();
+    
+    @Value("#{@userInfoService.getPermessiDiFlusso(target)}")
+    public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso();
 
     @Value("#{@userInfoService.getAziendePersonaWithPlainField(target)}")
     public List<AziendaWithPlainFields> getAziende();

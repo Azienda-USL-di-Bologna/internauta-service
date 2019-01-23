@@ -6,8 +6,11 @@ package it.bologna.ausl.internauta.service.authorization.jwt;
  */
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
@@ -51,7 +54,7 @@ public class JwtFilter extends GenericFilterBean {
             try {
                 Claims claims = authorizationUtils.setInSecurityContext(token, secretKey, applicazione);
                 request.setAttribute("claims", claims);
-            } catch (ClassNotFoundException ex) {
+            } catch (ClassNotFoundException | BlackBoxPermissionException ex) {
                 throw new ServletException("Invalid token", ex);
             } catch (ExpiredJwtException ex) {
                 System.out.println("token scaduto");

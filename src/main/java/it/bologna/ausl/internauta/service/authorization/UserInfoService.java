@@ -3,6 +3,10 @@ package it.bologna.ausl.internauta.service.authorization;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.PathBuilder;
+import edu.emory.mathcs.backport.java.util.Arrays;
+import it.bologna.ausl.blackbox.PermissionManager;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -26,6 +30,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.repositories.baborg.PermessoRepositoryOld;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import org.springframework.cache.annotation.CacheEvict;
 
 /**
@@ -49,6 +54,9 @@ public class UserInfoService {
 
     @Autowired
     ProjectionFactory factory;
+    
+    @Autowired
+    PermissionManager permissionManager;
     
     @Value("${nextsdr.request.default.azienda-path}")
     String pathAziendaDefault;
@@ -262,4 +270,16 @@ public class UserInfoService {
     @CacheEvict(value = "getUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
     public void getUtentiPersonaRemoveCache(Utente utente) {}
     
+    @CacheEvict(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId()}")
+    public void getPermessiDiFlussoRemoveCache(Utente utente) {}
+    
+    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId()}")
+    public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente) throws BlackBoxPermissionException {
+        return permissionManager.getPermissionsOfSubject(utente, null,
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
+                    InternautaConstants.Permessi.Ambiti.DETE.toString(),
+                    InternautaConstants.Permessi.Ambiti.DELI.toString()}),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
+                false);
+    }
 }
