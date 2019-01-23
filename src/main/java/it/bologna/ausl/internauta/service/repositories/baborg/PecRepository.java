@@ -7,6 +7,7 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.query.Procedure;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
@@ -17,4 +18,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PecRepository extends
         NextSdrQueryDslRepository<Pec, Integer, QPec>,
         JpaRepository<Pec, Integer> {
+    
+    @Procedure("baborg.get_pec_azienda")
+    String getPecAzienda(Integer idAzienda);
+    
+    
 }

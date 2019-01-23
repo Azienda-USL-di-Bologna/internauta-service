@@ -33,6 +33,10 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
         Bozza, Corrente, Storico
     };
 
+
+
+    
+
     @Override
     public Class getTargetEntityClass() {
         return StrutturaUnificata.class;
@@ -43,6 +47,7 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeSelectQueryInterceptor di Struttura-Unificata");
 
         String getDataByStatoValue = additionalData.get(GET_DATA_BY_STATO);
+        
 
         if (getDataByStatoValue != null) {
             LocalDateTime today = LocalDate.now().atTime(0, 0);
@@ -88,8 +93,8 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeCreateEntityInterceptor di Struttura-Unificata");
-
-        if (!isCI()) {
+        getAuthenticatedUserProperties();
+        if (!isCI(user)) {
             throw new AbortSaveInterceptorException();
         }
 
@@ -99,24 +104,12 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Struttura-Unificata");
-        if (!isCI()) {
+        getAuthenticatedUserProperties();
+        if (!isCI(user)) {
             throw new AbortSaveInterceptorException();
         }
 
         return entity;
     }
-    
-    private boolean isCI() {
-        getAuthenticatedUserProperties();
-        List<Ruolo> ruoli = super.user.getRuoli();
-        Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
-        return isCI;
-    }
-    
-//    private boolean isCA() {
-//        getAuthenticatedUserProperties();
-//        List<Ruolo> ruoli = super.user.getRuoli();
-//        Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
-//        return isCA;
-//    }
+   
 }
