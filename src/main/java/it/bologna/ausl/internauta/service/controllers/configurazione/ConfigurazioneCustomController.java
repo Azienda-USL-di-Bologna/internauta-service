@@ -4,10 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ImpostazioniApplicazioniRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configuration.QImpostazioniApplicazioni;
 import java.util.Map;
@@ -32,6 +35,13 @@ public class ConfigurazioneCustomController {
     private ImpostazioniApplicazioniRepository impostazioniApplicazioniRepository;
     
     @Autowired
+    private ApplicazioneRepository applicazioneRepository;
+    
+    @Autowired
+    private PersonaRepository personaRepository;
+    
+    
+    @Autowired
     private CachedEntities cachedEntities;
     
     @Autowired
@@ -52,15 +62,21 @@ public class ConfigurazioneCustomController {
     
     @RequestMapping(value = "setImpostazioniApplicazioni", method = RequestMethod.POST)
     @Transactional(rollbackFor = {Exception.class, Error.class})
-    public void setImpostazioniApplicazioni(@RequestBody Map impostazioniApplicazioni) throws JsonProcessingException {
+    public void setImpostazioniApplicazioni(@RequestBody Map impostazioniVisualizzazione) throws JsonProcessingException {
         this.setAuthenticatedUserProperties();
         BooleanExpression impostazioniFilter = QImpostazioniApplicazioni.impostazioniApplicazioni.idApplicazione.id.eq(this.realPerson.getApplicazione())
                 .and(QImpostazioniApplicazioni.impostazioniApplicazioni.idPersona.id.eq(this.realPerson.getId()));
         Optional<ImpostazioniApplicazioni> impostazioniOp = this.impostazioniApplicazioniRepository.findOne(impostazioniFilter);
+        ImpostazioniApplicazioni impostazioni;
         if (impostazioniOp.isPresent()) {
-            ImpostazioniApplicazioni impostazioni = impostazioniOp.get();
-            impostazioni.setImpostazioniVisualizzazione(objectMapper.writeValueAsString(impostazioniApplicazioni));
-            this.impostazioniApplicazioniRepository.save(impostazioni);
+            impostazioni = impostazioniOp.get();
         }
+        else {
+            impostazioni = new ImpostazioniApplicazioni();
+            impostazioni.setIdApplicazione(applicazioneRepository.getOne(this.realPerson.getApplicazione()));
+            impostazioni.setIdPersona(personaRepository.getOne(this.realPerson.getId()));
+        }
+        impostazioni.setImpostazioniVisualizzazione(objectMapper.writeValueAsString(impostazioniVisualizzazione));
+        this.impostazioniApplicazioniRepository.save(impostazioni);
     }
 }
