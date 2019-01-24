@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(value = "${internauta.mapping.url.debug}")
-public class DebugController {
+public class BaborgDebugController {
 
     @Autowired
     PecRepository pecRepository;
