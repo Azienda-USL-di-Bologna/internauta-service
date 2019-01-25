@@ -4,8 +4,10 @@ import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -36,12 +38,24 @@ public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerIn
             user = (Utente) threadLocalAuthentication.get().getPrincipal();
             realUser = (Utente) threadLocalAuthentication.get().getRealUser();
             idSessionLog = threadLocalAuthentication.get().getIdSessionLog();
-            person = cachedEntities.getPersona(user.getIdPersona().getId());
-            realPerson = cachedEntities.getPersona(realUser.getIdPersona().getId());
+            person = cachedEntities.getPersona(user);
+            realPerson = cachedEntities.getPersona(realUser);
         //}
     }
 
     private void setAuthentication() {
         threadLocalAuthentication.set((TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication());
+    }
+    
+    protected boolean isCI(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
+        return isCI;
+    }
+    
+    protected boolean isCA(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
+        return isCA;
     }
 }

@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.interceptors.baborg;
 
+import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -10,12 +11,15 @@ import it.bologna.ausl.blackbox.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPec;
+import it.bologna.ausl.model.entities.baborg.QPecAzienda;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -27,6 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+
 
 /**
  *
@@ -50,6 +56,20 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+//        getAuthenticatedUserProperties();
+//        if (!isCI(user)){
+//            QPec pec = QPec.pec;
+//           
+//            // se è CI restituisco le pec di tutte le aziende, altrimenti solo quelle delle sue aziende
+//            Persona persona = personaRepository.getOne(person.getId());
+//            List<Integer> aziende = persona.getUtenteList().stream().map(utente -> utente.getIdAzienda().getId()).collect(Collectors.toList());
+//            BooleanExpression filterAzienda = pec.pecAziendaList.any().idAzienda.id.in(aziende);
+//            
+//            
+//            initialPredicate = filterAzienda.and(initialPredicate);
+//            
+//        }   
+        
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
@@ -84,6 +104,9 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
+        
+        // se loggedUser è CI o CA restituisco tutte le caselle pec, senza limite di azienda, altrimenti non restituisco niente
+        
         return initialPredicate;
     }
 
@@ -149,5 +172,39 @@ public class PecInterceptor extends InternautaBaseInterceptor {
             }
         }
         return entities;
+    }
+    
+    @Override
+    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+        LOGGER.info("in: beforeCreateEntityInterceptor di Pec");
+        getAuthenticatedUserProperties();
+//        if (isCI(user)) {            
+//            // se è un CI può inserire Pec di qualsiasi azienda
+//            return entity;
+//        }
+//        if (isCA(user)) {
+//            // se è un CA può inserire una casella pec con associata alla sua azienda o associata a nessuna azienda
+//        } else {
+//            // se non è ne CA ne CI non può inserire una Pec
+//            throw new AbortSaveInterceptorException();
+//        }
+        return entity;
+    }
+
+    @Override
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+        LOGGER.info("in: beforeUpdateEntityInterceptor di Pec");
+//        getAuthenticatedUserProperties();
+//        if (isCI(user)) {
+//            // se è un CI può aggiornare Pec di qualsiasi azienda
+//            return entity;
+//        } 
+//        if (isCA(user)) {
+//            // se è un CA può aggiormare una casella pec con associata alla sua azienda o associata una Pec associata a nessuna azienda
+//        } else {
+//            // se non è ne CA ne CI non può aggiornare nessuna Pec
+//            throw new AbortSaveInterceptorException();
+//        }        
+        return entity;
     }
 }

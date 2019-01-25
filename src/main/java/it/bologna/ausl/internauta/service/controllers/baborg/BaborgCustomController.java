@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(value = "${baborg.mapping.url.root}")
-public class CustomController {
+public class BaborgCustomController {
 
     private static final Logger log = LoggerFactory.getLogger(RestController.class);
 

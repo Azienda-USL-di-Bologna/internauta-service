@@ -6,8 +6,11 @@ package it.bologna.ausl.internauta.service.authorization.jwt;
  */
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
@@ -38,6 +41,7 @@ public class JwtFilter extends GenericFilterBean {
         if (!request.getMethod().equalsIgnoreCase("OPTIONS")) {
         
             final String authHeader = request.getHeader("Authorization");
+            final String applicazione = request.getHeader("Application");
 
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 setResponseError(req, res, HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header.");
@@ -48,9 +52,9 @@ public class JwtFilter extends GenericFilterBean {
             final String token = authHeader.substring(7);
 
             try {
-                Claims claims = authorizationUtils.setInSecurityContext(token, secretKey);
+                Claims claims = authorizationUtils.setInSecurityContext(token, secretKey, applicazione);
                 request.setAttribute("claims", claims);
-            } catch (ClassNotFoundException ex) {
+            } catch (ClassNotFoundException | BlackBoxPermissionException ex) {
                 throw new ServletException("Invalid token", ex);
             } catch (ExpiredJwtException ex) {
                 System.out.println("token scaduto");

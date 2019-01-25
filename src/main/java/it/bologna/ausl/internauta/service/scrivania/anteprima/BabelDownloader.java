@@ -65,7 +65,7 @@ public class BabelDownloader {
     
     public BabelDownloaderRequestBody createRquestBody(String guid, String tipologia) {
         Utente loggedUser = getLoggedUser();
-        Persona persona = cachedEntities.getPersona(loggedUser.getIdPersona().getId());
+        Persona persona = cachedEntities.getPersona(loggedUser);
         return new BabelDownloaderRequestBody(guid, BabelDownloaderRequestBody.Tipologia.valueOf(tipologia), persona.getCodiceFiscale());
     }
     
