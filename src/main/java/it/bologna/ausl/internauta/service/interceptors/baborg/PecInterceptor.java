@@ -56,19 +56,19 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
-        getAuthenticatedUserProperties();
-        if (!isCI(user)){
-            QPec pec = QPec.pec;
-           
-            // se è CI restituisco le pec di tutte le aziende, altrimenti solo quelle delle sue aziende
-            Persona persona = personaRepository.getOne(person.getId());
-            List<Integer> aziende = persona.getUtenteList().stream().map(utente -> utente.getIdAzienda().getId()).collect(Collectors.toList());
-            BooleanExpression filterAzienda = pec.pecAziendaList.any().idAzienda.id.in(aziende);
-            
-            
-            initialPredicate = filterAzienda.and(initialPredicate);
-            
-        }   
+//        getAuthenticatedUserProperties();
+//        if (!isCI(user)){
+//            QPec pec = QPec.pec;
+//           
+//            // se è CI restituisco le pec di tutte le aziende, altrimenti solo quelle delle sue aziende
+//            Persona persona = personaRepository.getOne(person.getId());
+//            List<Integer> aziende = persona.getUtenteList().stream().map(utente -> utente.getIdAzienda().getId()).collect(Collectors.toList());
+//            BooleanExpression filterAzienda = pec.pecAziendaList.any().idAzienda.id.in(aziende);
+//            
+//            
+//            initialPredicate = filterAzienda.and(initialPredicate);
+//            
+//        }   
         
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
@@ -178,33 +178,33 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeCreateEntityInterceptor di Pec");
         getAuthenticatedUserProperties();
-        if (isCI(user)) {            
-            // se è un CI può inserire Pec di qualsiasi azienda
-            return entity;
-        }
-        if (isCA(user)) {
-            // se è un CA può inserire una casella pec con associata alla sua azienda o associata a nessuna azienda
-        } else {
-            // se non è ne CA ne CI non può inserire una Pec
-            throw new AbortSaveInterceptorException();
-        }
+//        if (isCI(user)) {            
+//            // se è un CI può inserire Pec di qualsiasi azienda
+//            return entity;
+//        }
+//        if (isCA(user)) {
+//            // se è un CA può inserire una casella pec con associata alla sua azienda o associata a nessuna azienda
+//        } else {
+//            // se non è ne CA ne CI non può inserire una Pec
+//            throw new AbortSaveInterceptorException();
+//        }
         return entity;
     }
 
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Pec");
-        getAuthenticatedUserProperties();
-        if (isCI(user)) {
-            // se è un CI può aggiornare Pec di qualsiasi azienda
-            return entity;
-        } 
-        if (isCA(user)) {
-            // se è un CA può aggiormare una casella pec con associata alla sua azienda o associata una Pec associata a nessuna azienda
-        } else {
-            // se non è ne CA ne CI non può aggiornare nessuna Pec
-            throw new AbortSaveInterceptorException();
-        }        
+//        getAuthenticatedUserProperties();
+//        if (isCI(user)) {
+//            // se è un CI può aggiornare Pec di qualsiasi azienda
+//            return entity;
+//        } 
+//        if (isCA(user)) {
+//            // se è un CA può aggiormare una casella pec con associata alla sua azienda o associata una Pec associata a nessuna azienda
+//        } else {
+//            // se non è ne CA ne CI non può aggiornare nessuna Pec
+//            throw new AbortSaveInterceptorException();
+//        }        
         return entity;
     }
 }
