@@ -2,7 +2,9 @@ package it.bologna.ausl.internauta.service.controllers.scrivania;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jmx.snmp.ServiceName;
+import it.bologna.ausl.blackbox.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.blackbox.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.blackbox.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.Http400ResponseException;
@@ -138,11 +140,26 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         
         List<Azienda> aziende = new ArrayList<>();
         if(permessiDiFlusso.size() > 0){ 
-            permessiDiFlusso.forEach(permesso -> {
-                Struttura struttura = strutturaRepository.getOne(permesso.getOggetto().getIdProvenienza());
-                Azienda azienda = aziendaRepository.getOne(struttura.getIdAzienda().getId());
-                aziende.add(azienda);
-            });
+            for (PermessoEntitaStoredProcedure permesso : permessiDiFlusso) {
+                List<CategoriaPermessiStoredProcedure> categorie = permesso.getCategorie();
+                if (categorie == null) {
+                    break;
+                }
+                for (CategoriaPermessiStoredProcedure categoria : categorie) {
+                    List<PermessoStoredProcedure> permessiVeri = categoria.getPermessi();
+                    if (permessiVeri == null) {
+                        break;
+                    }
+                    for (PermessoStoredProcedure permessoVero : permessiVeri) {
+                        String predicato = permessoVero.getPredicato();
+                        if (predicato.equals("FIRMA") || predicato.equals("AGDFIRMA")) {
+                            Struttura struttura = strutturaRepository.getOne(permesso.getOggetto().getIdProvenienza());
+                            Azienda azienda = aziendaRepository.getOne(struttura.getIdAzienda().getId());
+                            aziende.add(azienda);
+                        }
+                    }
+                }
+            }
         }
         JSONObject objResponse = new JSONObject();
         JSONArray jsonArrayAziende = new JSONArray();
