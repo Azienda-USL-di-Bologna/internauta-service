@@ -2,8 +2,12 @@ package it.bologna.ausl.internauta.service.controllers.scrivania;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jmx.snmp.ServiceName;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.blackbox.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.blackbox.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.Http403ResponseException;
@@ -12,6 +16,7 @@ import it.bologna.ausl.internauta.service.exceptions.Http500ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.internauta.service.interceptors.scrivania.MenuInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloader;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloaderResponseBody;
@@ -68,9 +73,6 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     private AziendaRepository aziendaRepository;
     
     @Autowired
-    private ProjectionFactory projectionFactory;
-    
-    @Autowired
     private StrutturaRepository strutturaRepository;
     
     @Autowired
@@ -78,6 +80,12 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     
     @Autowired
     protected CachedEntities cachedEntities;
+    
+    @Autowired
+    UserInfoService userInfoService;
+    
+    @Autowired
+    protected PersonaRepository personaRepository;
     
     protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
     
@@ -131,19 +139,18 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     }
     
     @RequestMapping(value = {"getFirmoneUrls"}, method = RequestMethod.GET)
-    public void getFirmoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException{
+    public void getFirmoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException{
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Utente utente = (Utente) authentication.getPrincipal();
-        List<PermessoEntitaStoredProcedure> permessiDiFlusso = utente.getPermessiDiFlusso();
-        
+        Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         List<Azienda> aziende = new ArrayList<>();
-        if(permessiDiFlusso.size() > 0){ 
-            permessiDiFlusso.forEach(permesso -> {
-                Struttura struttura = strutturaRepository.getOne(permesso.getOggetto().getIdProvenienza());
-                Azienda azienda = aziendaRepository.getOne(struttura.getIdAzienda().getId());
-                aziende.add(azienda);
-            });
+        for (Utente u : persona.getUtenteList()) {
+            List<Azienda> aziendeUtente = getAziendePerCuiFirmo(u);
+            if(aziendeUtente.size() > 0){
+                aziende.addAll(aziendeUtente);
+            }
         }
+        
         JSONObject objResponse = new JSONObject();
         JSONArray jsonArrayAziende = new JSONArray();
         Integer numeroAziende = 0;
@@ -207,6 +214,34 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         ServletOutputStream out = response.getOutputStream();
         out.print(objResponse.toJSONString());
         out.flush();
+    }
+    
+    private List<Azienda> getAziendePerCuiFirmo(Utente utente) throws BlackBoxPermissionException{
+        List<PermessoEntitaStoredProcedure> permessiDiFlusso = userInfoService.getPermessiDiFlusso(utente);
+        List<Azienda> aziende = new ArrayList<>();
+        if(permessiDiFlusso != null && permessiDiFlusso.size() > 0){ 
+            for (PermessoEntitaStoredProcedure permesso : permessiDiFlusso) {
+                List<CategoriaPermessiStoredProcedure> categorie = permesso.getCategorie();
+                if (categorie == null) {
+                    break;
+                }
+                for (CategoriaPermessiStoredProcedure categoria : categorie) {
+                    List<PermessoStoredProcedure> permessiVeri = categoria.getPermessi();
+                    if (permessiVeri == null) {
+                        break;
+                    }
+                    for (PermessoStoredProcedure permessoVero : permessiVeri) {
+                        String predicato = permessoVero.getPredicato();
+                        if (predicato.equals("FIRMA") || predicato.equals("AGDFIRMA")) {
+                            Struttura struttura = strutturaRepository.getOne(permesso.getOggetto().getIdProvenienza());
+                            Azienda azienda = aziendaRepository.getOne(struttura.getIdAzienda().getId());
+                            aziende.add(azienda);
+                        }
+                    }
+                }
+            }
+        }
+        return aziende;
     }
     
     
