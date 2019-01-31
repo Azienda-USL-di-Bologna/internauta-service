@@ -36,7 +36,9 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -67,7 +69,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "${scrivania.mapping.url.root}")
 public class ScrivaniaCustomController implements ControllerHandledExceptions {
     
-    private static final Logger LOGGER = LoggerFactory.getLogger(MenuInterceptor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScrivaniaCustomController.class);
     
     @Autowired
     private BabelDownloader babelDownloader;
@@ -93,6 +95,9 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     @Autowired
     protected PersonaRepository personaRepository;
     
+    @Autowired
+    private ApplicazioneRepository applicazioneRepository;
+    
     protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
     
     private final String CMD_APRI_FIRMONE = "?CMD=open_firmone_local";
@@ -109,9 +114,6 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         HttpServletRequest request,
         HttpServletResponse response) throws HttpInternautaResponseException, IOException {
 
-        JSONObject aa;
-        
-        
         BabelDownloaderResponseBody downloadUrlRsponseBody = babelDownloader.getDownloadUrl(babelDownloader.createRquestBody(guid, tipologia), idAzienda, idApplicazione);
         switch (downloadUrlRsponseBody.getStatus()) {
             case OK:
@@ -253,5 +255,14 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         return aziende;
     }
     
-    
+    @RequestMapping(value = {"getScrivaniaCommonParameters"}, method = RequestMethod.GET)
+    public Map<String, Object> getScrivaniaCommonParameters() {
+        Map res = new HashMap();
+        res.put(ScrivaniaCommonParameters.BABEL_APPLICATION.toString(), cachedEntities.getApplicazione("babel"));
+        return res;
+    }
+
+    public enum ScrivaniaCommonParameters {
+        BABEL_APPLICATION
+    }
 }
