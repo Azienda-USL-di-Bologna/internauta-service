@@ -18,15 +18,18 @@ import it.bologna.ausl.internauta.service.interceptors.scrivania.MenuInterceptor
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloader;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloaderResponseBody;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithIdAzienda;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -83,6 +86,9 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     
     @Autowired
     UserInfoService userInfoService;
+    
+    @Autowired
+    ApplicazioneRepository applicazioneRepository;
     
     @Autowired
     protected PersonaRepository personaRepository;
@@ -143,6 +149,8 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Utente utente = (Utente) authentication.getPrincipal();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
+        Azienda aziendaUtenteConnesso = utente.getIdAzienda();
+        AziendaParametriJson parametriAziendaUtenteConnesso = AziendaParametriJson.parse(this.objectMapper, aziendaUtenteConnesso.getParametri());
         List<Azienda> aziende = new ArrayList<>();
         for (Utente u : persona.getUtenteList()) {
             List<Azienda> aziendeUtente = getAziendePerCuiFirmo(u);
@@ -192,10 +200,11 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
                     try {
                         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(this.objectMapper, azienda.getParametri());
                         String targetLoginPath = parametriAzienda.getLoginPath();
-                        String applicationURL = HTTPS + azienda.getPath()[0];
+                        Applicazione applicazione = applicazioneRepository.getOne("babel");
+                        String applicationURL = applicazione.getBaseUrl() + "/" + applicazione.getIndexPage();
                         assembledURL = parametriAzienda.getCrossLoginUrlTemplate().
                             replace("[target-login-path]", targetLoginPath).
-                            replace("[entity-id]", parametriAzienda.getEntityId()).
+                            replace("[entity-id]", parametriAziendaUtenteConnesso.getEntityId()).
                             replace("[app]", applicationURL).
                             replace("[encoded-params]", encodedParams);
                     } catch (IOException ex) {
