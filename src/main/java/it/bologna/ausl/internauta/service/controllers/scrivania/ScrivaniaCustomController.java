@@ -94,9 +94,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     
     @Autowired
     protected PersonaRepository personaRepository;
-    
-    @Autowired
-    private ApplicazioneRepository applicazioneRepository;
+   
     
     protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
     
