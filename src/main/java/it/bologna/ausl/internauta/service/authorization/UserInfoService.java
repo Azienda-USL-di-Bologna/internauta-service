@@ -31,6 +31,8 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.repositories.baborg.PermessoRepositoryOld;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdAzienda;
+import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 
 /**
@@ -251,8 +253,8 @@ public class UserInfoService {
 //        return res;
 //    }
     
-    @Cacheable(value = "getUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
-    public List<Utente> getUtentiPersona(Utente utente) {
+    @Cacheable(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId()}")
+    public List<Utente> getUtentiPersonaByUtente(Utente utente) {
         List<Utente> res = new ArrayList();
 
         Utente refreshedUtente = utenteRepository.getOne(utente.getId());
@@ -267,8 +269,37 @@ public class UserInfoService {
         return res;
     }
     
-    @CacheEvict(value = "getUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
-    public void getUtentiPersonaRemoveCache(Utente utente) {}
+    @Cacheable(value = "getUtentiPersona__ribaltorg__", key = "{#persona.getId()}")
+    public List<Utente> getUtentiPersona(Persona persona) {
+        Persona refreshedPersona = personaRepository.getOne(persona.getId());
+        return refreshedPersona.getUtenteList();
+    }
+    
+    @Cacheable(value = "getAziendaUtente__ribaltorg__", key = "{#utente.getId()}")
+    public Azienda getAziendaUtente(Utente utente) {
+        Utente refreshUtente = utenteRepository.getOne(utente.getId());
+        return refreshUtente.getIdAzienda();
+    }
+    
+    @CacheEvict(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId()}")
+    public void getUtentiPersonaByUtenteRemoveCache(Utente utente) {}
+    
+    @Cacheable(value = "getAziendePersona__ribaltorg__", key = "{#persona.getId()}")
+    public List<Azienda> getAziendePersona(Persona persona) {
+        List<Azienda> res = new ArrayList();
+        List<Utente> utentiPersona = getUtentiPersona(persona);
+        
+        if (utentiPersona != null && !utentiPersona.isEmpty()) {
+            utentiPersona.stream().forEach(u -> {
+                if(u.getAttivo())
+                    res.add(getAziendaUtente(u));
+            });
+        }
+        
+        return res;
+    }
+    
+    
     
     @CacheEvict(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId()}")
     public void getPermessiDiFlussoRemoveCache(Utente utente) {}
@@ -281,5 +312,30 @@ public class UserInfoService {
                     InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
                 false);
+    }
+    
+    @Cacheable(value = "getAziendeWherePersonaIsCa__ribaltorg__", key = "{#persona.getId()}")
+    public List<Azienda> getAziendeWherePersonaIsCa(Persona persona) {
+        List<Azienda> aziende = null;
+        
+        aziende = persona.getUtenteList().stream().filter(
+                utente -> getRuoli(utente).stream().anyMatch(ruolo -> ruolo.getNomeBreve() == Ruolo.CodiciRuolo.CA)
+        ).map(utente -> utente.getIdAzienda()).collect(Collectors.toList());
+        
+        return aziende;
+    }
+    
+    @Cacheable(value = "isCI__ribaltorg__", key = "{#user.getId()}")
+    public boolean isCI(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
+        return isCI;
+    }
+    
+    @Cacheable(value = "isCA__ribaltorg__", key = "{#user.getId()}")
+    public boolean isCA(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
+        return isCA;
     }
 }
