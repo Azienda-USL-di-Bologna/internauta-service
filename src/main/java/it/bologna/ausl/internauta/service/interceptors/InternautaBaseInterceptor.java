@@ -58,4 +58,9 @@ public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerIn
         Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
         return isCA;
     }
+    
+//    protected List<Azienda> getAziendeWherePersonaIsCa() {
+//        Persona persona = personaRepository.getOne(person.getId());
+//        List<Integer> aziende = persona.getUtenteList().stream().map(utente -> utente.getIdAzienda().getId()).collect(Collectors.toList());
+//    }
 }

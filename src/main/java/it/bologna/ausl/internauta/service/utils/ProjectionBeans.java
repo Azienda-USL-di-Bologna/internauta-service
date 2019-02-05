@@ -4,7 +4,6 @@ import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ImpostazioniApplicazioniRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -13,7 +12,6 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaWithImpost
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaCustom;
 import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
-import it.bologna.ausl.model.entities.baborg.projections.generated.PecAziendaWithIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
 import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
@@ -112,17 +110,5 @@ public class ProjectionBeans {
         } else
             return null;
     }
-    
-    public List<PecAziendaWithIdAzienda> getPecAziendaListWithIdAzienda(List<PecAzienda> pecAziendaList){
-        if (pecAziendaList != null && !pecAziendaList.isEmpty()) {
-        return pecAziendaList.stream().map(pecAzienda -> factory.createProjection(PecAziendaWithIdAzienda.class, pecAzienda))
-                .collect(Collectors.toList());
-        } else{
-            return null;
-        }
-            
-    }
-    
-    
     
 }

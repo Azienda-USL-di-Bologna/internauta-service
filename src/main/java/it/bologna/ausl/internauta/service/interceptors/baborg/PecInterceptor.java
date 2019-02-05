@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.interceptors.baborg;
 
-import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -8,18 +7,18 @@ import edu.emory.mathcs.backport.java.util.Arrays;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPec;
-import it.bologna.ausl.model.entities.baborg.QPecAzienda;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -49,6 +48,9 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     @Autowired
     PersonaRepository personaRepository;
     
+    @Autowired
+    UserInfoService userInfoService;
+    
     @Override
     public Class getTargetEntityClass() {
         return Pec.class;
@@ -56,19 +58,12 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
-//        getAuthenticatedUserProperties();
-//        if (!isCI(user)){
-//            QPec pec = QPec.pec;
-//           
-//            // se è CI restituisco le pec di tutte le aziende, altrimenti solo quelle delle sue aziende
-//            Persona persona = personaRepository.getOne(person.getId());
-//            List<Integer> aziende = persona.getUtenteList().stream().map(utente -> utente.getIdAzienda().getId()).collect(Collectors.toList());
-//            BooleanExpression filterAzienda = pec.pecAziendaList.any().idAzienda.id.in(aziende);
-//            
-//            
-//            initialPredicate = filterAzienda.and(initialPredicate);
-//            
-//        }   
+        getAuthenticatedUserProperties();
+
+        // TODO: Se non sono ne CI ne CA(di qualsiasi azienda) allora potrò vedere solo le pec su cui ho un permesso? Non ne sono convinto, 
+        //          perché nel PU ad esmepio si può inserire un destinatario tramite pec anche se non si hanno permessi su una pec, ma la pec bisogna sceglierla.
+        //         Quindi?
+        
         
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
@@ -104,8 +99,6 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
-        
-        // se loggedUser è CI o CA restituisco tutte le caselle pec, senza limite di azienda, altrimenti non restituisco niente
         
         return initialPredicate;
     }
@@ -155,7 +148,10 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                     break;
                 }
             }
-        }          
+        }
+        
+        // TODO: Se non ho diritti particolare su una pec metto la password a null
+        
         return pec;
     }
 
@@ -174,37 +170,77 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         return entities;
     }
     
+    /**
+     * Condizioni per l'INSERT.
+     * Il CI può sempre inserire una PEC.
+     * Una persona che è CA in almeno un azienda può sempre inserire una PEC.
+     * NB: Il CA non può inserire una PEC con la pecAziendaList che contiene aziende non sue, ma questo controllo avviene nel PecAziendaInterceptor
+     */
     @Override
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeCreateEntityInterceptor di Pec");
         getAuthenticatedUserProperties();
-//        if (isCI(user)) {            
-//            // se è un CI può inserire Pec di qualsiasi azienda
-//            return entity;
-//        }
-//        if (isCA(user)) {
-//            // se è un CA può inserire una casella pec con associata alla sua azienda o associata a nessuna azienda
-//        } else {
-//            // se non è ne CA ne CI non può inserire una Pec
-//            throw new AbortSaveInterceptorException();
-//        }
+
+        if (!isCI(user)) {
+            Persona persona = personaRepository.getOne(person.getId());
+            List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
+            
+            if (idAziendeCA == null || idAziendeCA.isEmpty()) {
+                // Non sono ne CA ne CI fermo tutto.
+                throw new AbortSaveInterceptorException();
+            }
+        }
+        
         return entity;
     }
 
+    /**
+     * Condizioni per l'UPDATE.
+     * Il CI può fare l'UPDATE su qualsiasi PEC.
+     * Il CA può fare l'UPDATE sulle PEC che sono associate alla azienda di cui è CA e le stesse non devono essere associate con altre aziende.
+     * -- TODO: Condizione attualmente non vera: Oppure il CA può fare l'UPDATE se sta intervenendo solo su pecAziendaList. (Quali aziende ha aggiunto/cancellato lo controllo nel PecAziendaInterceptor)
+     * In qualsiasi altro caso l'UPDATE è impedito.
+     */
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Pec");
-//        getAuthenticatedUserProperties();
-//        if (isCI(user)) {
-//            // se è un CI può aggiornare Pec di qualsiasi azienda
-//            return entity;
-//        } 
-//        if (isCA(user)) {
-//            // se è un CA può aggiormare una casella pec con associata alla sua azienda o associata una Pec associata a nessuna azienda
-//        } else {
-//            // se non è ne CA ne CI non può aggiornare nessuna Pec
-//            throw new AbortSaveInterceptorException();
-//        }        
+        getAuthenticatedUserProperties();
+        
+        Pec pec = (Pec) entity;
+        
+        if (!isCI(user)) {
+            Persona persona = personaRepository.getOne(person.getId());
+            List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
+            
+            if (idAziendeCA == null || idAziendeCA.isEmpty()) {
+                // Non sono ne CA ne CI fermo tutto.
+                throw new AbortSaveInterceptorException();
+            } else {
+                // Qui devo controllare che la pec sia attaccata ad aziende di cui sono CA, oppure che non sia attaccata ad alcuna azienda.
+                // Se pecAziendaList è conenuta nella lista di aziendeCA l'UPDATE è permesso.
+                List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
+                
+                if (!idAziendeCA.containsAll(idAziendePec)) {
+                    // Non sono CA di tutte le aziende associate con la PEC
+                    // TODO: Quando avremo il Clone() nuovo delle entiries dovrà valere: L'UPDATE è permesso solo se non sto cambiando alcun campo tranne la pecAziendaList.
+                    throw new AbortSaveInterceptorException();
+                }
+                
+            }
+        }
+        
         return entity;
     }
+    
+    /**
+     * Condizioni per la DELETE.
+     * In nessuna circostanza permetto la DELETE.
+     */
+    @Override
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        LOGGER.info("in: beforeDeleteEntityInterceptor di Pec");
+        throw new AbortSaveInterceptorException();
+    }
+    
+    
 }

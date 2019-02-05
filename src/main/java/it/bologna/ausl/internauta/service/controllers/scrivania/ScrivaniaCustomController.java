@@ -2,8 +2,12 @@ package it.bologna.ausl.internauta.service.controllers.scrivania;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jmx.snmp.ServiceName;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.blackbox.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.blackbox.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.Http403ResponseException;
@@ -12,23 +16,29 @@ import it.bologna.ausl.internauta.service.exceptions.Http500ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.internauta.service.interceptors.scrivania.MenuInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloader;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloaderResponseBody;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithIdAzienda;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -59,16 +69,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "${scrivania.mapping.url.root}")
 public class ScrivaniaCustomController implements ControllerHandledExceptions {
     
-    private static final Logger LOGGER = LoggerFactory.getLogger(MenuInterceptor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScrivaniaCustomController.class);
     
     @Autowired
     private BabelDownloader babelDownloader;
 
     @Autowired
     private AziendaRepository aziendaRepository;
-    
-    @Autowired
-    private ProjectionFactory projectionFactory;
     
     @Autowired
     private StrutturaRepository strutturaRepository;
@@ -78,6 +85,16 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     
     @Autowired
     protected CachedEntities cachedEntities;
+    
+    @Autowired
+    UserInfoService userInfoService;
+    
+    @Autowired
+    ApplicazioneRepository applicazioneRepository;
+    
+    @Autowired
+    protected PersonaRepository personaRepository;
+   
     
     protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
     
@@ -95,9 +112,6 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         HttpServletRequest request,
         HttpServletResponse response) throws HttpInternautaResponseException, IOException {
 
-        JSONObject aa;
-        
-        
         BabelDownloaderResponseBody downloadUrlRsponseBody = babelDownloader.getDownloadUrl(babelDownloader.createRquestBody(guid, tipologia), idAzienda, idApplicazione);
         switch (downloadUrlRsponseBody.getStatus()) {
             case OK:
@@ -131,19 +145,20 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     }
     
     @RequestMapping(value = {"getFirmoneUrls"}, method = RequestMethod.GET)
-    public void getFirmoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException{
+    public void getFirmoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException{
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Utente utente = (Utente) authentication.getPrincipal();
-        List<PermessoEntitaStoredProcedure> permessiDiFlusso = utente.getPermessiDiFlusso();
-        
+        Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
+        Azienda aziendaUtenteConnesso = utente.getIdAzienda();
+        AziendaParametriJson parametriAziendaUtenteConnesso = AziendaParametriJson.parse(this.objectMapper, aziendaUtenteConnesso.getParametri());
         List<Azienda> aziende = new ArrayList<>();
-        if(permessiDiFlusso.size() > 0){ 
-            permessiDiFlusso.forEach(permesso -> {
-                Struttura struttura = strutturaRepository.getOne(permesso.getOggetto().getIdProvenienza());
-                Azienda azienda = aziendaRepository.getOne(struttura.getIdAzienda().getId());
-                aziende.add(azienda);
-            });
+        for (Utente u : persona.getUtenteList()) {
+            List<Azienda> aziendeUtente = getAziendePerCuiFirmo(u);
+            if(aziendeUtente.size() > 0){
+                aziende.addAll(aziendeUtente);
+            }
         }
+        
         JSONObject objResponse = new JSONObject();
         JSONArray jsonArrayAziende = new JSONArray();
         Integer numeroAziende = 0;
@@ -185,10 +200,11 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
                     try {
                         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(this.objectMapper, azienda.getParametri());
                         String targetLoginPath = parametriAzienda.getLoginPath();
-                        String applicationURL = HTTPS + azienda.getPath()[0];
+                        Applicazione applicazione = applicazioneRepository.getOne("babel");
+                        String applicationURL = applicazione.getBaseUrl() + "/" + applicazione.getIndexPage();
                         assembledURL = parametriAzienda.getCrossLoginUrlTemplate().
                             replace("[target-login-path]", targetLoginPath).
-                            replace("[entity-id]", parametriAzienda.getEntityId()).
+                            replace("[entity-id]", parametriAziendaUtenteConnesso.getEntityId()).
                             replace("[app]", applicationURL).
                             replace("[encoded-params]", encodedParams);
                     } catch (IOException ex) {
@@ -209,5 +225,42 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         out.flush();
     }
     
+    private List<Azienda> getAziendePerCuiFirmo(Utente utente) throws BlackBoxPermissionException{
+        List<PermessoEntitaStoredProcedure> permessiDiFlusso = userInfoService.getPermessiDiFlusso(utente);
+        List<Azienda> aziende = new ArrayList<>();
+        if(permessiDiFlusso != null && permessiDiFlusso.size() > 0){ 
+            for (PermessoEntitaStoredProcedure permesso : permessiDiFlusso) {
+                List<CategoriaPermessiStoredProcedure> categorie = permesso.getCategorie();
+                if (categorie == null) {
+                    break;
+                }
+                for (CategoriaPermessiStoredProcedure categoria : categorie) {
+                    List<PermessoStoredProcedure> permessiVeri = categoria.getPermessi();
+                    if (permessiVeri == null) {
+                        break;
+                    }
+                    for (PermessoStoredProcedure permessoVero : permessiVeri) {
+                        String predicato = permessoVero.getPredicato();
+                        if (predicato.equals("FIRMA") || predicato.equals("AGDFIRMA")) {
+                            Struttura struttura = strutturaRepository.getOne(permesso.getOggetto().getIdProvenienza());
+                            Azienda azienda = aziendaRepository.getOne(struttura.getIdAzienda().getId());
+                            aziende.add(azienda);
+                        }
+                    }
+                }
+            }
+        }
+        return aziende;
+    }
     
+    @RequestMapping(value = {"getScrivaniaCommonParameters"}, method = RequestMethod.GET)
+    public Map<String, Object> getScrivaniaCommonParameters() {
+        Map res = new HashMap();
+        res.put(ScrivaniaCommonParameters.BABEL_APPLICATION.toString(), cachedEntities.getApplicazione("babel"));
+        return res;
+    }
+
+    public enum ScrivaniaCommonParameters {
+        BABEL_APPLICATION
+    }
 }

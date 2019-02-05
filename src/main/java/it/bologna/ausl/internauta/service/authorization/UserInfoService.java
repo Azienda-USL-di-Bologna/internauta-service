@@ -31,8 +31,7 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.repositories.baborg.PermessoRepositoryOld;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import java.util.HashMap;
-import java.util.Map;
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdAzienda;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 
@@ -202,60 +201,22 @@ public class UserInfoService {
     @CacheEvict(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId(), #applicazione}")
     public void loadUtenteRemoveCache(Class entityClass, String field, String ssoFieldValue, Azienda azienda, String applicazione) {}
 
-    
-    /**
-     * restituisce i ruoli aziendali/interaziendali a seconda del parametro interaziendali o entrambi nel caso in cui il parametro sia null
-     * @param utente
-     * @param interaziendali
-     * @return la lista dei ruoli
-     */
     @Cacheable(value = "getRuoli__ribaltorg__", key = "{#utente.getId()}")
-    public List<Ruolo> getRuoli(Utente utente, Boolean interaziendali) {
+    public List<Ruolo> getRuoli(Utente utente) {
         List<Ruolo> res = new ArrayList<>();
         List<Ruolo> ruoliAll = ruoloRepository.findAll();
         for (Ruolo ruolo : ruoliAll) {
-            if(interaziendali == null ||interaziendali == true){
-                if (ruolo.getSuperAziendale()) {
-                    if ((utente.getIdPersona().getBitRuoli() & ruolo.getMascheraBit()) > 0) {
-                        res.add(ruolo);
-                    }
+            if (ruolo.getSuperAziendale()) {
+                if ((utente.getIdPersona().getBitRuoli() & ruolo.getMascheraBit()) > 0) {
+                    res.add(ruolo);
                 }
-            }
-            if(interaziendali == null || interaziendali == false) {
+            } else {
                 if ((utente.getBitRuoli() & ruolo.getMascheraBit()) > 0) {
                     res.add(ruolo);
                 }
             }
         }
         return res;
-    }
-    
-    
-    /**
-     * restituisce tutti i ruoli di tutte le aziende della persona dell'utente, divisi per interaziendali e aziendali.
-     * I ruoli aziendali sono raggruppati per azienda
-     * @param utente
-     * @return una mappa in cui la chiave è l'azienda e il valore la lista dei codici ruolo per quell'azienda
-     * nel caso dei ruoli interaziendali la chiave è 'interaziendali'
-     */
-    @Cacheable(value = "getRuoliUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
-    public Map<String, List<Ruolo.CodiciRuolo>> getRuoliUtentiPersona(Utente utente) {
-        
-//        Map<String, List<Ruolo>> map = new HashMap<>();
-//        utente.getIdPersona().getUtenteList().stream().forEach(e -> {
-//            map.put(e.getIdAzienda().getCodice(), getRuoli(e));
-//        });
-                               
-        Map<String, List<Ruolo.CodiciRuolo>> map = new HashMap<>();       
-        
-        map = utente.getIdPersona().getUtenteList().stream().collect(
-                Collectors.toMap(u -> 
-                        u.getIdAzienda().getCodice(), u -> 
-                                getRuoli(u, false).stream().map(r -> 
-                                        r.getNomeBreve()).collect(Collectors.toList())));
-        map.put("interaziendali", getRuoli(utente, true).stream().map(r -> r.getNomeBreve()).collect(Collectors.toList()));       
-        
-        return map;
     }
     
     @CacheEvict(value = "getRuoli__ribaltorg__", key = "{#utente.getId()}")
@@ -292,8 +253,8 @@ public class UserInfoService {
 //        return res;
 //    }
     
-    @Cacheable(value = "getUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
-    public List<Utente> getUtentiPersona(Utente utente) {
+    @Cacheable(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId()}")
+    public List<Utente> getUtentiPersonaByUtente(Utente utente) {
         List<Utente> res = new ArrayList();
 
         Utente refreshedUtente = utenteRepository.getOne(utente.getId());
@@ -308,8 +269,37 @@ public class UserInfoService {
         return res;
     }
     
-    @CacheEvict(value = "getUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
-    public void getUtentiPersonaRemoveCache(Utente utente) {}
+    @Cacheable(value = "getUtentiPersona__ribaltorg__", key = "{#persona.getId()}")
+    public List<Utente> getUtentiPersona(Persona persona) {
+        Persona refreshedPersona = personaRepository.getOne(persona.getId());
+        return refreshedPersona.getUtenteList();
+    }
+    
+    @Cacheable(value = "getAziendaUtente__ribaltorg__", key = "{#utente.getId()}")
+    public Azienda getAziendaUtente(Utente utente) {
+        Utente refreshUtente = utenteRepository.getOne(utente.getId());
+        return refreshUtente.getIdAzienda();
+    }
+    
+    @CacheEvict(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId()}")
+    public void getUtentiPersonaByUtenteRemoveCache(Utente utente) {}
+    
+    @Cacheable(value = "getAziendePersona__ribaltorg__", key = "{#persona.getId()}")
+    public List<Azienda> getAziendePersona(Persona persona) {
+        List<Azienda> res = new ArrayList();
+        List<Utente> utentiPersona = getUtentiPersona(persona);
+        
+        if (utentiPersona != null && !utentiPersona.isEmpty()) {
+            utentiPersona.stream().forEach(u -> {
+                if(u.getAttivo())
+                    res.add(getAziendaUtente(u));
+            });
+        }
+        
+        return res;
+    }
+    
+    
     
     @CacheEvict(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId()}")
     public void getPermessiDiFlussoRemoveCache(Utente utente) {}
@@ -322,5 +312,30 @@ public class UserInfoService {
                     InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
                 false);
+    }
+    
+    @Cacheable(value = "getAziendeWherePersonaIsCa__ribaltorg__", key = "{#persona.getId()}")
+    public List<Azienda> getAziendeWherePersonaIsCa(Persona persona) {
+        List<Azienda> aziende = null;
+        
+        aziende = persona.getUtenteList().stream().filter(
+                utente -> getRuoli(utente).stream().anyMatch(ruolo -> ruolo.getNomeBreve() == Ruolo.CodiciRuolo.CA)
+        ).map(utente -> utente.getIdAzienda()).collect(Collectors.toList());
+        
+        return aziende;
+    }
+    
+    @Cacheable(value = "isCI__ribaltorg__", key = "{#user.getId()}")
+    public boolean isCI(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
+        return isCI;
+    }
+    
+    @Cacheable(value = "isCA__ribaltorg__", key = "{#user.getId()}")
+    public boolean isCA(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
+        return isCA;
     }
 }

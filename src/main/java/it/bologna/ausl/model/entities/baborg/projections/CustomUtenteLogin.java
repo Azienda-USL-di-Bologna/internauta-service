@@ -12,7 +12,6 @@ import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPl
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdAziendaAndIdPersona;
 import it.bologna.ausl.model.entities.configuration.projections.generated.ImpostazioniApplicazioniWithPlainFields;
 import java.util.List;
-import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 
 import org.springframework.data.rest.core.config.Projection;
@@ -27,7 +26,7 @@ public interface CustomUtenteLogin extends UtenteWithIdAziendaAndIdPersona {
     @Override
     public Azienda getIdAzienda();
 
-    @Value("#{@userInfoService.getRuoli(target, null)}")
+    @Value("#{@userInfoService.getRuoli(target)}")
     public List<Ruolo> getRuoli();
     
     @Value("#{@userInfoService.getPermessiDiFlusso(target)}")
@@ -42,7 +41,4 @@ public interface CustomUtenteLogin extends UtenteWithIdAziendaAndIdPersona {
     
     @Value("#{@projectionBeans.getUtenteRealeWithIdPersonaImpostazioniApplicazioniList(target)}")
     public CustomUtenteLogin getUtenteReale();
-    
-    @Value("#{@userInfoService.getRuoliUtentiPersona(target)}")
-    public Map<String, List<Ruolo>> getRuoliUtentiPersona();
 }
