@@ -96,12 +96,13 @@ public class AuthorizationUtils {
         }
         Integer idSessionLog = Integer.parseInt((String) claims.get(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name()));
         Utente user = userInfoService.loadUtente(userId, applicazione);
-        user.setRuoli(userInfoService.getRuoli(user));
+        user.setRuoli(userInfoService.getRuoli(user, null));
+        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         TokenBasedAuthentication authentication;
         if (realUserId != null && !realUserId.equals(userId)) {
             Utente realUser = userInfoService.loadUtente(realUserId, applicazione);
-            user.setRuoli(userInfoService.getRuoli(realUser));
+            user.setRuoli(userInfoService.getRuoli(realUser, null));
             user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(realUser));
             authentication = new TokenBasedAuthentication(user, realUser);
         } else {
@@ -148,7 +149,7 @@ public class AuthorizationUtils {
         // prendi ID dell'utente reale
         String realUserSubject = String.valueOf(user.getId());
 
-        user.setRuoli(userInfoService.getRuoli(user));
+        user.setRuoli(userInfoService.getRuoli(user, null));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
 
         if (user == null) {
