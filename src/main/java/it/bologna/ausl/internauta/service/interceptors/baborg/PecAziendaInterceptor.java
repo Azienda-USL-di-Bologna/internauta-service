@@ -79,11 +79,19 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
     
     /**
      * Condizioni per l'UPDATE.
-     * In nessuna circostanza permetto l'UPDATE.
+     * L'UPDATE è permesso solo se è un finto UDPDATE. 
+     * L'azienda e la PEC dell'entity devono essere le stesse del beforeUpdateEntity.
      */
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
-        throw new AbortSaveInterceptorException();
+        PecAzienda dopo = (PecAzienda) entity;
+        PecAzienda prima = (PecAzienda) beforeUpdateEntity;
+        
+        if (!(dopo.getIdAzienda().getId().equals(prima.getIdAzienda().getId())) || !(dopo.getIdPec().getId().equals(prima.getIdPec().getId()))) {
+            throw new AbortSaveInterceptorException();
+        }
+        
+        return entity;
     }
     
     /**
