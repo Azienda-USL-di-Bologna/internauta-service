@@ -150,7 +150,21 @@ public class PecInterceptor extends InternautaBaseInterceptor {
             }
         }
         
-        // TODO: Se non ho diritti particolare su una pec metto la password a null
+        //Se non ho diritti particolari su una pec metto la password a null
+        if (!isCI(user)) {
+            Persona persona = personaRepository.getOne(person.getId());
+            List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
+            
+            if (idAziendeCA == null || idAziendeCA.isEmpty()) {
+                pec.setPassword(null);
+            } else {
+                List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
+                
+                if (!idAziendeCA.containsAll(idAziendePec)) {
+                    pec.setPassword(null);
+                }
+            }
+        }
         
         return pec;
     }
