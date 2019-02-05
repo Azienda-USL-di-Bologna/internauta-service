@@ -235,28 +235,42 @@ public class UserInfoService {
     /**
     * restituisce tutti i ruoli di tutte le aziende della persona dell'utente, divisi per interaziendali e aziendali.
     * I ruoli aziendali sono raggruppati per azienda
+    * Vale anche il viceversa: le aziende sono raggruppate per ruolo
     * @param utente
-    * @return una mappa in cui la chiave è l'azienda e il valore la lista dei codici ruolo per quell'azienda
-    * nel caso dei ruoli interaziendali la chiave è 'interaziendali'
+    * @return una mappa in cui la chiave è il codice azienda e il valore la lista dei codici ruolo per quell'azienda
+    * nel caso dei ruoli interaziendali la chiave è 'interaziendali' unita a una mappa in cui la chiave è il ruolo e il valore è una lista di codici azienda
     */
     @Cacheable(value = "getRuoliUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
-    public Map<String, List<Ruolo.CodiciRuolo>> getRuoliUtentiPersona(Utente utente) {
-    
-//      Map<String, List<Ruolo>> map = new HashMap<>();
-//      utente.getIdPersona().getUtenteList().stream().forEach(e -> {
-//          map.put(e.getIdAzienda().getCodice(), getRuoli(e));
-//      });
-                           
-        Map<String, List<Ruolo.CodiciRuolo>> map = new HashMap<>();       
+    public Map<String, List<String>> getRuoliUtentiPersona(Utente utente) {
+                               
+        Map<String, List<String>> mapAziendeRuoli = new HashMap<>();       
 
-        map = utente.getIdPersona().getUtenteList().stream().collect(
+        // popolo mappa azienda->listaRuoli
+        mapAziendeRuoli = utente.getIdPersona().getUtenteList().stream().collect(
                 Collectors.toMap(u -> 
                         u.getIdAzienda().getCodice(), u -> 
                                 getRuoli(u, false).stream().map(r -> 
-                                        r.getNomeBreve()).collect(Collectors.toList())));
-        map.put("interaziendali", getRuoli(utente, true).stream().map(r -> r.getNomeBreve()).collect(Collectors.toList())); 
-
-        return map;
+                                        r.getNomeBreve().toString()).collect(Collectors.toList())));
+        mapAziendeRuoli.put("interaziendali", getRuoli(utente, true).stream().map(r -> r.getNomeBreve().toString()).collect(Collectors.toList())); 
+        
+        // popolo mappa ruolo->listaAziene
+        Map<String, List<String>> mapRuoloAziende = new HashMap<>();
+        for(Map.Entry<String, List<String>> entry : mapAziendeRuoli.entrySet()){
+            for(String codiceRuolo: entry.getValue()){                                
+                List<String> listAziende = mapRuoloAziende.get(codiceRuolo);
+                if(listAziende == null){
+                    listAziende = new ArrayList<>();
+                }
+                listAziende.add(entry.getKey());                              
+                mapRuoloAziende.put(codiceRuolo, listAziende);
+            }
+        }
+        
+        // mergio le due mappe
+        Map<String, List<String>> finalMap = new HashMap<>(mapAziendeRuoli);
+        finalMap.putAll(mapRuoloAziende);
+        
+        return finalMap;
     }
 
     
