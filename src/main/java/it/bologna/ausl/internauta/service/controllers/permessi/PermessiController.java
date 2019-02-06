@@ -128,13 +128,13 @@ public class PermessiController implements ControllerHandledExceptions {
             throw new Http400ResponseException("3", "Errore nel casting del permesso.");
         }
         
-        if (permesso.getPredicato() == null) {
-            throw new Http400ResponseException("4", "Il permesso passato è sprovvisto del predicato.");
-        }
-        
-        if (permesso.getOriginePermesso()== null) {
-            throw new Http400ResponseException("5", "Il permesso passato è sprovvisto dell'origine_permesso.");
-        }
+//        if (permesso.getPredicato() == null) {
+//            throw new Http400ResponseException("4", "Il permesso passato è sprovvisto del predicato.");
+//        }
+//        
+//        if (permesso.getOriginePermesso()== null) {
+//            throw new Http400ResponseException("5", "Il permesso passato è sprovvisto dell'origine_permesso.");
+//        }
 
         if (pec.getPecAziendaList() == null) {
             throw new Http400ResponseException("6", "La pec passata non ha il campo pecAziendaList espanso.");
@@ -231,17 +231,17 @@ public class PermessiController implements ControllerHandledExceptions {
             throw new Http400ResponseException("3", "Errore nel casting del permesso.");
         }
         
-        if (permesso.getPredicato() == null) {
-            throw new Http400ResponseException("4", "Il permesso passato è sprovvisto del predicato.");
-        }
-        
-        if (permesso.getOriginePermesso()== null) {
-            throw new Http400ResponseException("5", "Il permesso passato è sprovvisto dell'origine_permesso.");
-        }
-        
-        if (permesso.getPropagaSoggetto()== null) {
-            throw new Http400ResponseException("6", "Il permesso passato è sprovvisto del propaga soggetto.");
-        }
+//        if (permesso.getPredicato() == null) {
+//            throw new Http400ResponseException("4", "Il permesso passato è sprovvisto del predicato.");
+//        }
+//        
+//        if (permesso.getOriginePermesso()== null) {
+//            throw new Http400ResponseException("5", "Il permesso passato è sprovvisto dell'origine_permesso.");
+//        }
+//        
+//        if (permesso.getPropagaSoggetto()== null) {
+//            throw new Http400ResponseException("6", "Il permesso passato è sprovvisto del propaga soggetto.");
+//        }
 
         if (pec.getPecAziendaList() == null) {
             throw new Http400ResponseException("7", "La pec passata non ha il campo pecAziendaList espanso.");
