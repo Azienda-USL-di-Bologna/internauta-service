@@ -34,9 +34,6 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     };
 
 
-
-    
-
     @Override
     public Class getTargetEntityClass() {
         return StrutturaUnificata.class;

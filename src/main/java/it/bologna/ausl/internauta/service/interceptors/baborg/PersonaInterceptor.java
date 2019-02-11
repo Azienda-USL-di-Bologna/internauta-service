@@ -72,7 +72,8 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
                                 BooleanExpression permessoFilter = QPersona.persona.id.in(
                                     subjectsWithPermissionsOnObject
                                         .stream()
-                                        .map(p -> p.getSoggetto().getIdProvenienza()).collect(Collectors.toList()));
+                                        .map(p -> p.getSoggetto().getIdProvenienza()).collect(Collectors.toList()))
+                                        .and(initialPredicate);
                                 initialPredicate = permessoFilter.and(initialPredicate);
                             }
                             /* Conserviamo i dati estratti dalla BlackBox */
@@ -97,6 +98,8 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
                     case GetPermessiGestoriPec:
+                        String idAzienda = null;
+                        idAzienda = additionalData.get(AdditionalData.Keys.FilterGestoriByAzienda.toString());
                         List<PermessoEntitaStoredProcedure> personeConPermesso = 
                                 (List<PermessoEntitaStoredProcedure>) this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions);
                         if (personeConPermesso != null && !personeConPermesso.isEmpty()) {

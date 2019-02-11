@@ -67,7 +67,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
-        List<Utente> utentiPersona = userInfoService.getUtentiPersona(super.user);              
+        List<Utente> utentiPersona = userInfoService.getUtentiPersonaByUtente(super.user);              
         BooleanExpression filterAziendaUtente = null;
         
         List<String> ambiti = new ArrayList();
