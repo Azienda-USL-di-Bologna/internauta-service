@@ -339,6 +339,11 @@ public class UserInfoService {
     @CacheEvict(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId()}")
     public void getUtentiPersonaByUtenteRemoveCache(Utente utente) {}
     
+    /**
+     * restituisce tutte le aziende degli utenti della persona passata
+     * @param persona
+     * @return 
+     */
     @Cacheable(value = "getAziendePersona__ribaltorg__", key = "{#persona.getId()}")
     public List<Azienda> getAziendePersona(Persona persona) {
         List<Azienda> res = new ArrayList();
@@ -369,6 +374,7 @@ public class UserInfoService {
                 false);
     }
     
+    
     @Cacheable(value = "getAziendeWherePersonaIsCa__ribaltorg__", key = "{#persona.getId()}")
     public List<Azienda> getAziendeWherePersonaIsCa(Persona persona) {
         List<Azienda> aziende = null;
@@ -378,7 +384,8 @@ public class UserInfoService {
         ).map(utente -> utente.getIdAzienda()).collect(Collectors.toList());
         
         return aziende;
-    }
+    } 
+    
     
     @Cacheable(value = "isCI__ribaltorg__", key = "{#user.getId()}")
     public boolean isCI(Utente user) {

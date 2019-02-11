@@ -15,6 +15,7 @@ import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPec;
 import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
@@ -123,6 +124,9 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                         }
                     break;
                     case AddGestoriOnPec:
+                        
+                        String idAzienda = null;
+                        idAzienda = additionalData.get(InternautaConstants.AdditionalData.Keys.FilterGestoriByAzienda.toString());
                         List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject;
                         
                         try {
@@ -143,7 +147,23 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                                 if (findById.isPresent())
                                     gestori.add(findById.get());
                             });
-                            pec.setGestori(gestori);
+                            
+                            List<Persona> gestoriAzienda = new ArrayList<>();
+                            
+                            if(idAzienda != null){                 
+                                for(Persona persona: gestori){
+                                    for(Utente utente: persona.getUtenteList()){
+                                        if(utente.getIdAzienda().getId().toString().equals(idAzienda)){
+                                            gestoriAzienda.add(persona);
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                gestoriAzienda = gestori;
+                            }
+                           
+                            pec.setGestori(gestoriAzienda);
                         }
                     break;
                 }

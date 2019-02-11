@@ -47,17 +47,31 @@ public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerIn
         threadLocalAuthentication.set((TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication());
     }
     
-    protected boolean isCI(Utente user) {
-        List<Ruolo> ruoli = user.getRuoli();
-        Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
-        return isCI;
-    }
     
+    // Forse sarebbe più bello fare un'unica funzione hasRole(utente, ruolo)
     protected boolean isCA(Utente user) {
         List<Ruolo> ruoli = user.getRuoli();
         Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
         return isCA;
     }
+    protected boolean isCI(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
+        return isCI;
+    }  
+    protected boolean isAS(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isAS = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.AS);
+        return isAS;
+    }  
+    protected boolean isSD(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isSD = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.SD);
+        return isSD;
+    }   
+
+    
+    
     
 //    protected List<Azienda> getAziendeWherePersonaIsCa() {
 //        Persona persona = personaRepository.getOne(person.getId());
