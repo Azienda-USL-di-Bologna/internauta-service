@@ -17,13 +17,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaFatteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
+import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -177,7 +176,7 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         Attivita attivita = (Attivita) entity;
         if(!attivita.getTipo().equals("notifica")){
             throw new AbortSaveInterceptorException("La riga che si sta tentando di eliminare non è una notifica");
