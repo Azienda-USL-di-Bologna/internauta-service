@@ -15,11 +15,16 @@ import javax.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaFatteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +48,9 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
         
     @Autowired
     ObjectMapper objectMapper;
+    
+    @Autowired
+    AttivitaFatteRepository attivitaFatteRepository;
 
     @Override
     public Class getTargetEntityClass() {
@@ -167,4 +175,39 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
         }
         return entities;
     }
+
+    @Override
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        Attivita attivita = (Attivita) entity;
+        if(!attivita.getTipo().equals("notifica")){
+            throw new AbortSaveInterceptorException("La riga che si sta tentando di eliminare non è una notifica");
+        }
+        
+        AttivitaFatta attivitaFatta = new AttivitaFatta();
+        attivitaFatta.setDatiAggiuntivi(attivita.getDatiAggiuntivi());
+        attivitaFatta.setDescrizione(attivita.getDescrizione());
+        attivitaFatta.setIdApplicazione(attivita.getIdApplicazione());
+        attivitaFatta.setIdAzienda(attivita.getIdAzienda());
+        attivitaFatta.setIdPersona(attivita.getIdPersona());
+        attivitaFatta.setNote(attivita.getNote());
+        attivitaFatta.setOggetto(attivita.getOggetto());
+        attivitaFatta.setOggettoEsterno(attivita.getOggettoEsterno());
+        attivitaFatta.setOggettoEsternoSecondario(attivita.getTipoOggettoEsternoSecondario());
+        attivitaFatta.setPriorita(attivita.getPriorita());
+        attivitaFatta.setProvenienza(attivita.getProvenienza());
+        attivitaFatta.setTags(attivita.getTags());
+        attivitaFatta.setTipo(attivita.getTipo());
+        attivitaFatta.setTipoOggettoEsterno(attivita.getTipoOggettoEsterno());
+        attivitaFatta.setTipoOggettoEsternoSecondario(attivita.getTipoOggettoEsternoSecondario());
+        attivitaFatta.setUrls(attivita.getUrls());
+        attivitaFatta.setAllegati(attivita.getAllegati());
+        attivitaFatta.setClasse(attivita.getClasse());
+        attivitaFatta.setData(attivita.getData());
+        attivitaFatta.setDataScadenza(attivita.getDataScadenza());
+        attivitaFatta.setDataUltimaModifica(attivita.getDataUltimaModifica());
+        attivitaFatta.setDataInserimentoRiga(LocalDateTime.now());
+        
+        attivitaFatteRepository.save(attivitaFatta);
+    }
+    
 }
