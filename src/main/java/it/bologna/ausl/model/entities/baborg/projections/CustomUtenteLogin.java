@@ -28,9 +28,11 @@ public interface CustomUtenteLogin extends UtenteWithIdAziendaAndIdPersona {
     public Azienda getIdAzienda();
 
     @Value("#{@userInfoService.getRuoli(target, null)}")
+    @Override
     public List<Ruolo> getRuoli();
     
     @Value("#{@userInfoService.getPermessiDiFlusso(target)}")
+    @Override
     public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso();
 
     @Value("#{@userInfoService.getAziendePersonaWithPlainField(target)}")
@@ -41,6 +43,7 @@ public interface CustomUtenteLogin extends UtenteWithIdAziendaAndIdPersona {
     public String getPasswordHash();
     
     @Value("#{@projectionBeans.getUtenteRealeWithIdPersonaImpostazioniApplicazioniList(target)}")
+    @Override
     public CustomUtenteLogin getUtenteReale();
 
     @Value("#{@userInfoService.getRuoliUtentiPersona(target)}")

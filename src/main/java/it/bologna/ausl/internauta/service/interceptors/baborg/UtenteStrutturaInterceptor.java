@@ -26,7 +26,7 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
     }
     
     @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) {
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) {
         System.out.println("in: beforeSelectQueryInterceptor di UtenteStruttura");
         
         String filterComboValue = additionalData.get(FILTER_COMBO);
