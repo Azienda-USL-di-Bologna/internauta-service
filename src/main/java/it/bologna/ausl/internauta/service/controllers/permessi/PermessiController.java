@@ -7,6 +7,7 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.blackbox.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.controllers.scrivania.ScrivaniaBaseController;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.Http403ResponseException;
@@ -20,12 +21,15 @@ import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,6 +45,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(value = "${permessi.mapping.url.root}")
 public class PermessiController implements ControllerHandledExceptions {
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(PermessiController.class);
     
     @Autowired
     PermissionRepositoryAccess permissionRepositoryAccess;
@@ -60,6 +66,8 @@ public class PermessiController implements ControllerHandledExceptions {
     @Autowired
     UtenteRepository utenteRepository;
     
+    @Autowired
+    ObjectMapper mapper;
     
     /**
      * E' il controller base.
@@ -107,24 +115,26 @@ public class PermessiController implements ControllerHandledExceptions {
         Persona persona;
         Pec pec;
         PermessoStoredProcedure permesso;
-        ObjectMapper mapper = new ObjectMapper();
 
         // Controllo che i dati nella richiesta rispettino gli standard richiesti
         try {
             persona = mapper.convertValue(json.get("persona"), Persona.class);
         } catch (IllegalArgumentException ex) {
+            LOGGER.error("Errore nel casting della persona.", ex);
             throw new Http400ResponseException("1", "Errore nel casting della persona.");
         }
 
         try {
             pec = mapper.convertValue(json.get("pec"), Pec.class);
         } catch (IllegalArgumentException ex) {
+            LOGGER.error("Errore nel casting della pec.", ex);
             throw new Http400ResponseException("2", "Errore nel casting della pec.");
         }
 
         try {
             permesso = mapper.convertValue(json.get("permesso"), PermessoStoredProcedure.class);
         } catch (IllegalArgumentException ex) {
+            LOGGER.error("Errore nel casting del permesso.", ex);
             throw new Http400ResponseException("3", "Errore nel casting del permesso.");
         }
         
@@ -180,8 +190,15 @@ public class PermessiController implements ControllerHandledExceptions {
                 }
             }
         }
+        
+        List<PermessoStoredProcedure> permessi;
+        if (permesso != null) {
+            permessi = Arrays.asList(new PermessoStoredProcedure[]{permesso});    
+        } else {
+            permessi = new ArrayList<>();
+        }
 
-        permissionManager.managePermissions(persona, pec, PECG.toString(), PEC.toString(), Arrays.asList(new PermessoStoredProcedure[]{permesso}));
+        permissionManager.managePermissions(persona, pec, PECG.toString(), PEC.toString(), permessi);
     }
     
     

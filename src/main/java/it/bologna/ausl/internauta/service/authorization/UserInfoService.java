@@ -1,5 +1,7 @@
 package it.bologna.ausl.internauta.service.authorization;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.PathBuilder;
@@ -32,8 +34,10 @@ import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.repositories.baborg.PermessoRepositoryOld;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdAzienda;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 
@@ -61,6 +65,9 @@ public class UserInfoService {
     
     @Autowired
     PermissionManager permissionManager;
+    
+    @Autowired
+    ObjectMapper objectMapper;
     
     @Value("${nextsdr.request.default.azienda-path}")
     String pathAziendaDefault;
@@ -316,9 +323,10 @@ public class UserInfoService {
         List<Utente> utenti = refreshedUtente.getIdPersona().getUtenteList();
 
         if (utenti != null && !utenti.isEmpty()) {
-            utenti.stream().forEach(u -> {
-                if(u.getAttivo())
+            utenti.stream().forEach( u -> {
+                if(u.getAttivo()) {
                     res.add(u);
+                }
             });
         }
         return res;

@@ -58,7 +58,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
 
         // TODO: Se non sono ne CI ne CA(di qualsiasi azienda) allora potrò vedere solo le pec su cui ho un permesso? Non ne sono convinto, 
@@ -204,14 +204,14 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         return entities;
     }
     
-    /**
+    /*
      * Condizioni per l'INSERT.
      * Il CI può sempre inserire una PEC.
      * Una persona che è CA in almeno un azienda può sempre inserire una PEC.
      * NB: Il CA non può inserire una PEC con la pecAziendaList che contiene aziende non sue, ma questo controllo avviene nel PecAziendaInterceptor
      */
     @Override
-    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeCreateEntityInterceptor di Pec");
         getAuthenticatedUserProperties();
 
@@ -228,7 +228,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         return entity;
     }
 
-    /**
+    /*
      * Condizioni per l'UPDATE.
      * Il CI può fare l'UPDATE su qualsiasi PEC.
      * Il CA può fare l'UPDATE sulle PEC che sono associate alla azienda di cui è CA e le stesse non devono essere associate con altre aziende.
@@ -266,12 +266,12 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         return entity;
     }
     
-    /**
+    /*
      * Condizioni per la DELETE.
      * In nessuna circostanza permetto la DELETE.
      */
     @Override
-    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         LOGGER.info("in: beforeDeleteEntityInterceptor di Pec");
         throw new AbortSaveInterceptorException();
     }

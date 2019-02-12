@@ -16,7 +16,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
+import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,10 +51,10 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
     
     
     @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         BooleanExpression filterUtenteConnesso = QAttivita.attivita.idPersona.id.eq(user.getIdPersona().getId());
-        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(user).stream().map(x -> x.getIdAzienda().getId()).collect(Collectors.toList());
+        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(user).stream().map(x -> ((AziendaWithPlainFields)x.getIdAzienda()).getId()).collect(Collectors.toList());
         BooleanExpression filterUtenteAttivo = QAttivita.attivita.idAzienda.id.in(collect);   
         
         return filterUtenteConnesso.and(filterUtenteAttivo).and(initialPredicate);

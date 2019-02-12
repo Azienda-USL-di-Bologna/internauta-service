@@ -42,18 +42,18 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortLoadInterceptorException {
         // TODO: Se non sono ne CA ne CI posso vedere le associazioni pec-aziende?
-        return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request); //To change body of generated methods, choose Tools | Templates.
+        return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity);
     }
     
-    /**
+    /*
      * Condizioni per l'INSERT.
      * Il CI può inserire qualsiasi associazioni.
      * Il CA può inserire solo associazioni con la/e sua/e azienda/e.
      */
     @Override
-    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeCreateEntityInterceptor di PecAzienda");
         getAuthenticatedUserProperties();
         
@@ -77,7 +77,7 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
         return entity;
     }
     
-    /**
+    /*
      * Condizioni per l'UPDATE.
      * L'UPDATE è permesso solo se è un finto UDPDATE. 
      * L'azienda e la PEC dell'entity devono essere le stesse del beforeUpdateEntity.
@@ -94,13 +94,13 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
         return entity;
     }
     
-    /**
+    /*
      * Condizioni per la DELETE.
      * Il CI può cancellare qualsiasi associazione.
      * Il CA può cancellare solo associazioni con la/e sua/e azienda/e.
      */
     @Override
-    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         getAuthenticatedUserProperties();
 
         if (!isCI(user)) {
@@ -113,7 +113,7 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
             } else {
                 PecAzienda pa = (PecAzienda) entity;
                 
-                if (!idAziendeCA.contains(pa.getIdAzienda())) {
+                if (!idAziendeCA.contains(pa.getIdAzienda().getId())) {
                     // Pur essendo CA non lo sono di questa azienda.
                     throw new AbortSaveInterceptorException();
                 }

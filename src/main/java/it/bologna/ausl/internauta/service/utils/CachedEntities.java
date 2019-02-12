@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.utils;
 
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -27,6 +28,10 @@ public class CachedEntities {
    
     @Autowired
     private PersonaRepository personaRepository;
+
+    @Autowired
+    private UtenteRepository utenteRepository;
+    
     
     @Cacheable(value = "azienda", key = "{#id}")
     public Azienda getAzienda(Integer id) {
@@ -40,6 +45,7 @@ public class CachedEntities {
 
     @Cacheable(value = "persona", key = "{#utente.getIdPersona().getId()}")
     public Persona getPersona(Utente utente) {
+//        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         persona.setApplicazione(utente.getIdPersona().getApplicazione());
         return persona;
