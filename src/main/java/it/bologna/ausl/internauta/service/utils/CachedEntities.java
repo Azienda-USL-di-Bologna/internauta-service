@@ -8,7 +8,7 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
-import java.util.List;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
@@ -35,27 +35,40 @@ public class CachedEntities {
     
     @Cacheable(value = "azienda", key = "{#id}")
     public Azienda getAzienda(Integer id) {
-        return aziendaRepository.getOne(id);
+        Optional<Azienda> azienda = aziendaRepository.findById(id);
+        if (azienda.isPresent())
+            return azienda.get();
+        else 
+            return null;
     }
 
     @Cacheable(value = "applicazione", key = "{#id}")
     public Applicazione getApplicazione(String id) {
-        return applicazioneRepository.getOne(id);
+        Optional<Applicazione> applicazione = applicazioneRepository.findById(id);
+        if (applicazione.isPresent())
+            return applicazione.get();
+        else 
+            return null;
     }
 
     @Cacheable(value = "persona__ribaltorg__", key = "{#utente.getId()}")
     public Persona getPersona(Utente utente) {
 //        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
-        Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
-        persona.setApplicazione(utente.getIdPersona().getApplicazione());
-        persona = (Persona) persona;
-        return persona;
+        Optional<Persona> persona = personaRepository.findById(utente.getIdPersona().getId());
+        if (persona.isPresent()) {
+            persona.get().setApplicazione(utente.getIdPersona().getApplicazione());
+            return persona.get();
+        } else
+            return null;
     }
 
     @Cacheable(value = "persona__ribaltorg__", key = "{#id, #applicazione}")
     public Persona getPersona(Integer id, String applicazione) {
-        Persona persona = personaRepository.getOne(id);
-        persona.setApplicazione(applicazione);
-        return persona;
+        Optional<Persona> persona = personaRepository.findById(id);
+        if (persona.isPresent()) {
+            persona.get().setApplicazione(applicazione);
+            return persona.get();
+        } else
+            return null;
     }
 }

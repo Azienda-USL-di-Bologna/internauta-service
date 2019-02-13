@@ -44,7 +44,7 @@ public class ConfigurazioneCustomController {
     ObjectMapper objectMapper;
     
     @RequestMapping(value = "setImpostazioniApplicazioni", method = RequestMethod.POST)
-//    @Transactional(rollbackFor = {Exception.class, Error.class})
+    @Transactional(rollbackFor = {Exception.class, Error.class})
     public void setImpostazioniApplicazioni(@RequestBody Map impostazioniVisualizzazione) throws JsonProcessingException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         LOGGER.info(String.format("realPerson: %s", objectMapper.writeValueAsString(authenticatedUserProperties.getRealPerson())));
