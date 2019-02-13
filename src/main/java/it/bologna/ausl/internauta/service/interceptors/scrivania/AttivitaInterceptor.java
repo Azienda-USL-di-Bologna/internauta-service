@@ -61,7 +61,7 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         BooleanExpression filterUtenteConnesso = QAttivita.attivita.idPersona.id.eq(user.getIdPersona().getId());
-        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(user).stream().map(x -> ((AziendaWithPlainFields)x.getIdAzienda()).getId()).collect(Collectors.toList());
+        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(user).stream().map(x -> x.getIdAzienda().getId()).collect(Collectors.toList());
         BooleanExpression filterUtenteAttivo = QAttivita.attivita.idAzienda.id.in(collect);   
         
         return filterUtenteConnesso.and(filterUtenteAttivo).and(initialPredicate);

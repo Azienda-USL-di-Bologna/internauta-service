@@ -43,15 +43,16 @@ public class CachedEntities {
         return applicazioneRepository.getOne(id);
     }
 
-    @Cacheable(value = "persona", key = "{#utente.getIdPersona().getId()}")
+    @Cacheable(value = "persona__ribaltorg__", key = "{#utente.getId()}")
     public Persona getPersona(Utente utente) {
 //        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         persona.setApplicazione(utente.getIdPersona().getApplicazione());
+        persona = (Persona) persona;
         return persona;
     }
 
-    @Cacheable(value = "persona", key = "{#id, #applicazione}")
+    @Cacheable(value = "persona__ribaltorg__", key = "{#id, #applicazione}")
     public Persona getPersona(Integer id, String applicazione) {
         Persona persona = personaRepository.getOne(id);
         persona.setApplicazione(applicazione);
