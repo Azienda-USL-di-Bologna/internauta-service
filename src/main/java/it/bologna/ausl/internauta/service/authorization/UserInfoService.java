@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.authorization;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -31,13 +30,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
-import it.bologna.ausl.internauta.service.repositories.baborg.PermessoRepositoryOld;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdAzienda;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 
@@ -79,8 +74,7 @@ public class UserInfoService {
     String internautaMode;
     
     private static final Logger log = LoggerFactory.getLogger(LoginController.class);
-    
-    
+
     /**
      * carica l'azienda a partire dal path che ha effettuato la richiesta
      *
