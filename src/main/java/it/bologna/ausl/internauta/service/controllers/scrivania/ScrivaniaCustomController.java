@@ -32,10 +32,13 @@ import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import it.bologna.ausl.model.entities.scrivania.Attivita.TipoAttivita;
 import it.bologna.ausl.model.entities.scrivania.QAttivita;
+import it.nextsw.common.annotations.NextSdrRepository;
 import it.nextsw.common.controller.exceptions.NotFoundResourceException;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
 import it.nextsw.common.interceptors.RestControllerInterceptorEngine;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.utils.CommonUtils;
+import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -102,7 +105,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     protected AttivitaRepository attivitaRepository;
     
     @Autowired
-    private RestControllerInterceptorEngine restControllerInterceptor;
+    private CommonUtils commonUtils;
     
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
@@ -313,15 +316,16 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     
     @Transactional
     @RequestMapping(value = {"cancellaNotifiche"}, method = RequestMethod.GET)
-    public void cancellaNotifiche(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException, RestControllerEngineException, AbortSaveInterceptorException, NotFoundResourceException{
+    public void cancellaNotifiche(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException, RestControllerEngineException, AbortSaveInterceptorException, NotFoundResourceException, ClassNotFoundException{
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Utente utente = (Utente) authentication.getPrincipal();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         BooleanExpression notifichePersona = QAttivita.attivita.idPersona.id.eq(persona.getId()).and(QAttivita.attivita.tipo.eq(TipoAttivita.NOTIFICA.toString()));
         Iterable<Attivita> notificheList = attivitaRepository.findAll(notifichePersona);
         for(Attivita notifica : notificheList) {
-            //restControllerEngine.delete(notifica, request, null, null, true);
-            attivitaRepository.delete(notifica);
+            String attivitaPath = commonUtils.resolvePlaceHolder(EntityReflectionUtils.getFirstAnnotationOverHierarchy(attivitaRepository.getClass(), NextSdrRepository.class).repositoryPath());
+            restControllerEngine.delete(notifica.getId(), request, null, attivitaPath, false);
+            //ttivitaRepository.delete(notifica);
         }
     }
     

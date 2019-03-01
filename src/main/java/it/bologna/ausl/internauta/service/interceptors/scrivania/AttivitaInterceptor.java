@@ -27,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -185,12 +186,14 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        getAuthenticatedUserProperties();
+        
         Attivita attivita = (Attivita) entity;
         if(!attivita.getTipo().equals("notifica")){
             throw new AbortSaveInterceptorException("La riga che si sta tentando di eliminare non è una notifica");
         }
         
-        if(super.person.getId()!= attivita.getIdPersona().getId()){
+        if(!super.person.getId().equals(attivita.getIdPersona().getId())) {
             throw new AbortSaveInterceptorException("non hai il permesso di eliminare la notifica");
         }
         
