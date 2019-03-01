@@ -66,7 +66,7 @@ public class ConfigurazioneBaseController extends BaseCrudController {
             @QuerydslPredicate(root = Applicazione.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
-            @PathVariable(required = false) Integer id,
+            @PathVariable(required = false) String id,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
