@@ -1,12 +1,14 @@
 package it.bologna.ausl.internauta.service.controllers.scrivania;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.blackbox.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.blackbox.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.Http403ResponseException;
@@ -17,6 +19,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
+import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloader;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloaderResponseBody;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -26,6 +29,13 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.scrivania.Attivita;
+import it.bologna.ausl.model.entities.scrivania.Attivita.TipoAttivita;
+import it.bologna.ausl.model.entities.scrivania.QAttivita;
+import it.nextsw.common.controller.exceptions.NotFoundResourceException;
+import it.nextsw.common.controller.exceptions.RestControllerEngineException;
+import it.nextsw.common.interceptors.RestControllerInterceptorEngine;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -47,6 +57,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -86,7 +97,15 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     
     @Autowired
     protected PersonaRepository personaRepository;
-   
+    
+    @Autowired
+    protected AttivitaRepository attivitaRepository;
+    
+    @Autowired
+    private RestControllerInterceptorEngine restControllerInterceptor;
+    
+    @Autowired
+    private RestControllerEngineImpl restControllerEngine;
     
     protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
     
@@ -291,7 +310,21 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         res.put(ScrivaniaCommonParameters.BABEL_APPLICATION.toString(), cachedEntities.getApplicazione("babel"));
         return res;
     }
-
+    
+    @Transactional
+    @RequestMapping(value = {"cancellaNotifiche"}, method = RequestMethod.GET)
+    public void cancellaNotifiche(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException, RestControllerEngineException, AbortSaveInterceptorException, NotFoundResourceException{
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Utente utente = (Utente) authentication.getPrincipal();
+        Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
+        BooleanExpression notifichePersona = QAttivita.attivita.idPersona.id.eq(persona.getId()).and(QAttivita.attivita.tipo.eq(TipoAttivita.NOTIFICA.toString()));
+        Iterable<Attivita> notificheList = attivitaRepository.findAll(notifichePersona);
+        for(Attivita notifica : notificheList) {
+            //restControllerEngine.delete(notifica, request, null, null, true);
+            attivitaRepository.delete(notifica);
+        }
+    }
+    
     public enum ScrivaniaCommonParameters {
         BABEL_APPLICATION
     }

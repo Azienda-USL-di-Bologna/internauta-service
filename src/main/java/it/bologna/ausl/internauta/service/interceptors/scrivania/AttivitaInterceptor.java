@@ -190,6 +190,10 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException("La riga che si sta tentando di eliminare non è una notifica");
         }
         
+        if(super.person.getId()!= attivita.getIdPersona().getId()){
+            throw new AbortSaveInterceptorException("non hai il permesso di eliminare la notifica");
+        }
+        
         AttivitaFatta attivitaFatta = new AttivitaFatta();
         attivitaFatta.setDatiAggiuntivi(attivita.getDatiAggiuntivi());
         attivitaFatta.setDescrizione(attivita.getDescrizione());
