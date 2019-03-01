@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,19 +69,22 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         List<Utente> utentiPersona = userInfoService.getUtentiPersonaByUtente(super.user);              
         BooleanExpression filterAziendaUtente = null;
         
-        List<String> ambiti = new ArrayList();
-        ambiti.add(InternautaConstants.Permessi.Ambiti.PICO.toString());
-        ambiti.add(InternautaConstants.Permessi.Ambiti.DETE.toString());
-        ambiti.add(InternautaConstants.Permessi.Ambiti.DELI.toString());
+        List<String> ambitiFlusso = new ArrayList();
+        ambitiFlusso.add(InternautaConstants.Permessi.Ambiti.PICO.toString());
+        ambitiFlusso.add(InternautaConstants.Permessi.Ambiti.DETE.toString());
+        ambitiFlusso.add(InternautaConstants.Permessi.Ambiti.DELI.toString());
+        
+        List<String> tipi = new ArrayList();
+        tipi.add(InternautaConstants.Permessi.Tipi.FLUSSO.toString());
         
         if (utentiPersona != null && !utentiPersona.isEmpty()) {
             for (Utente up : utentiPersona) {
                 try {
                     // I permessi di interesse sono quelli di tipo FLUSSO e con ambito PICO-DETE-DELI.
-                    List<String> predicatiAzienda = permissionManager.getPermission(up, ambiti, InternautaConstants.Permessi.Tipi.FLUSSO.toString());
+                    List<String> predicatiAzienda = permissionManager.getPermission(up, ambitiFlusso, tipi);
                     BooleanExpression booleanTemplate;
                     
-                    // Creo un filtro che sarà True quando tra i permessi dell'utente ci sarà almeno una voce dei permessiNecessari della voce di menù.
+                    // Creo un filtro che sarà true quando tra i permessi dell'utente ci sarà almeno una voce dei permessiNecessari della voce di menù.
                     if (predicatiAzienda != null)
                         booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", 
                             QMenu.menu.permessiSufficienti, String.join(",", predicatiAzienda));
@@ -98,6 +102,28 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
                     LOGGER.error("errore nel calcolo del predicato", ex);
                     throw new AbortLoadInterceptorException("errore nel calcolo del predicato", ex);
                 }
+            }
+            
+            // estraggo anche i permessi delle PEC per gestire la visibilità della voce di menù relativa a PECG
+            List<String> ambitiPecG = new ArrayList();
+            ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
+            try {
+                List<String> predicatiPec = permissionManager.getPermission(super.user.getIdPersona(), ambitiPecG, InternautaConstants.Permessi.Tipi.PEC.toString());
+                BooleanExpression booleanTemplate;
+                if (predicatiPec != null) {
+                    booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", 
+                        QMenu.menu.permessiSufficienti, String.join(",", predicatiPec));
+                } else {
+                    // Se l'utente non ha permessi il filtro sarà smepre false
+                    booleanTemplate = Expressions.FALSE.eq(Boolean.TRUE);
+                }
+                if (filterAziendaUtente == null)
+                    filterAziendaUtente = QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate);
+                else
+                    filterAziendaUtente = filterAziendaUtente.or(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate));
+            } catch (BlackBoxPermissionException ex) {
+                LOGGER.error("errore nel calcolo del predicato", ex);
+                throw new AbortLoadInterceptorException("errore nel calcolo del predicato", ex);
             }
         }
         
