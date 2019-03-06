@@ -22,6 +22,8 @@ import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -72,7 +74,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                 switch (operationRequested) {
                     case FilterPecPerPermissionOfSubject:
                         /* Nel caso di FilterPerSubjectPermission in Data avremo l'id della Struttura per la quale si chiede di filtrare le pec */
-                        String idStruttura = additionalData.get(InternautaConstants.AdditionalData.Keys.Data.toString());
+                        String idStruttura = additionalData.get(InternautaConstants.AdditionalData.Keys.idStruttura.toString());
                         Struttura struttura = new Struttura(Integer.parseInt(idStruttura));
                         try {
                             List<PermessoEntitaStoredProcedure> getPermissionsOfSubject = permissionManager.getPermissionsOfSubject(
@@ -126,7 +128,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                     case AddGestoriOnPec:
                         
                         String idAzienda = null;
-                        idAzienda = additionalData.get(InternautaConstants.AdditionalData.Keys.FilterGestoriByAzienda.toString());
+                        idAzienda = additionalData.get(InternautaConstants.AdditionalData.Keys.idAzienda.toString());
                         List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject;
                         
                         try {
@@ -147,9 +149,9 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                                 if (findById.isPresent())
                                     gestori.add(findById.get());
                             });
-                            
+                                                      
                             List<Persona> gestoriAzienda = new ArrayList<>();
-                            
+                                                                                    
                             if(idAzienda != null){                 
                                 for(Persona persona: gestori){
                                     for(Utente utente: persona.getUtenteList()){
@@ -163,6 +165,8 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                                 gestoriAzienda = gestori;
                             }
                            
+                            Collections.sort(gestoriAzienda, Comparator.comparing(Persona::getDescrizione));
+                            
                             pec.setGestori(gestoriAzienda);
                         }
                     break;
