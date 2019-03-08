@@ -55,7 +55,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                 switch (operationRequested) {
                     case GetPermessiStrutturePec: 
                         /* Nel caso di GetPermessiStrutturePec in Data avremo l'id della PEC della quale si chiedono i permessi */
-                        String idPec = additionalData.get(AdditionalData.Keys.Data.toString());
+                        String idPec = additionalData.get(AdditionalData.Keys.idPec.toString());
                         Pec pec = new Pec(Integer.parseInt(idPec));
                         try {
                             List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(

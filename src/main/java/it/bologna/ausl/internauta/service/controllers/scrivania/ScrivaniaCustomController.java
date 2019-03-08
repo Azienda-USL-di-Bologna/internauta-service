@@ -1,12 +1,14 @@
 package it.bologna.ausl.internauta.service.controllers.scrivania;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.blackbox.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.blackbox.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.Http403ResponseException;
@@ -17,6 +19,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
+import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloader;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloaderResponseBody;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -26,6 +29,16 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.scrivania.Attivita;
+import it.bologna.ausl.model.entities.scrivania.Attivita.TipoAttivita;
+import it.bologna.ausl.model.entities.scrivania.QAttivita;
+import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.controller.exceptions.NotFoundResourceException;
+import it.nextsw.common.controller.exceptions.RestControllerEngineException;
+import it.nextsw.common.interceptors.RestControllerInterceptorEngine;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.utils.CommonUtils;
+import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -47,6 +60,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -86,11 +100,20 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     
     @Autowired
     protected PersonaRepository personaRepository;
-   
+    
+    @Autowired
+    protected AttivitaRepository attivitaRepository;
+    
+    @Autowired
+    private CommonUtils commonUtils;
+    
+    @Autowired
+    private RestControllerEngineImpl restControllerEngine;
     
     protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
     
     private final String CMD_APRI_FIRMONE = "?CMD=open_firmone_local";
+    private final String CMD_APRI_PRENDONE = "?CMD=open_prendone_local";
     private static final String FROM = "&from=INTERNAUTA";
     private final String HTTPS = "https://";
    
@@ -166,46 +189,12 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
                 }
                 if(!alreadyAdded){
                     numeroAziende++;
-                    String stringToEncode = CMD_APRI_FIRMONE;
-                    TokenBasedAuthentication tokenBasedAuthentication = (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
-                    Utente realUser = (Utente) tokenBasedAuthentication.getRealUser();
-                    Persona realPerson = cachedEntities.getPersona(realUser);
-                    Persona person = cachedEntities.getPersona(utente);
-                    int idSessionLog = tokenBasedAuthentication.getIdSessionLog();
-                    if(person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0){
-                        stringToEncode += stringToEncode.length() > 0 ? "&utente=" : "?utente=";
-                        stringToEncode += person.getCodiceFiscale();
+                    try{
+                        jsonArrayAziende.add(buildAziendaUrl(azienda, CMD_APRI_FIRMONE, utente, parametriAziendaUtenteConnesso));
+                    }catch(IOException e){
+                        LOGGER.error("errore nella creazione del link", e);
+                        throw new IOException("errore nella creazione del link", e);
                     }
-                    stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
-                    stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale();
-                    stringToEncode += "&idSessionLog=" + idSessionLog;
-                    stringToEncode += FROM;
-                    stringToEncode += "&modalitaAmministrativa=0";
-                    String encodedParams = "";
-                    try {
-                        encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
-                    } catch (UnsupportedEncodingException ex) {
-                        LOGGER.error("errore nella creazione del link", ex);
-        //                throw new AbortLoadInterceptorException("errore nella creazione del link", ex);
-                    }
-                    String assembledURL = "";
-                    try {
-                        AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(this.objectMapper, azienda.getParametri());
-                        String targetLoginPath = parametriAzienda.getLoginPath();
-                        Applicazione applicazione = applicazioneRepository.getOne("babel");
-                        String applicationURL = applicazione.getBaseUrl() + "/" + applicazione.getIndexPage();
-                        assembledURL = parametriAzienda.getCrossLoginUrlTemplate().
-                            replace("[target-login-path]", targetLoginPath).
-                            replace("[entity-id]", parametriAziendaUtenteConnesso.getEntityId()).
-                            replace("[app]", applicationURL).
-                            replace("[encoded-params]", encodedParams);
-                    } catch (IOException ex) {
-                        LOGGER.error("errore nella lettura dei parametri dell'azienda target", ex);
-                    }
-                    JSONObject objAzienda = new JSONObject();
-                    objAzienda.put("nome", azienda.getNome());
-                    objAzienda.put("url", assembledURL);
-                    jsonArrayAziende.add(objAzienda);
                 } 
             }
         }
@@ -215,6 +204,79 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         ServletOutputStream out = response.getOutputStream();
         out.print(objResponse.toJSONString());
         out.flush();
+    }
+    
+    @RequestMapping(value = {"getPrendoneUrls"}, method = RequestMethod.GET)
+    public void getPrendoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Utente utente = (Utente) authentication.getPrincipal();
+        Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
+        Azienda aziendaUtenteConnesso = utente.getIdAzienda();
+        AziendaParametriJson parametriAziendaUtenteConnesso = AziendaParametriJson.parse(this.objectMapper, aziendaUtenteConnesso.getParametri());
+        List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
+        
+        JSONObject objResponse = new JSONObject();
+        JSONArray jsonArrayAziende =  new JSONArray();
+        Integer numeroAziende = 0;
+        for (Azienda azienda : aziendePersona) {
+            numeroAziende++;
+            try{
+                jsonArrayAziende.add(buildAziendaUrl(azienda, CMD_APRI_PRENDONE, utente, parametriAziendaUtenteConnesso));
+            }catch(IOException e){
+                LOGGER.error("errore nella creazione del link", e);
+                throw new IOException("errore nella creazione del link", e);
+            }
+        }
+        objResponse.put("size", numeroAziende);
+        objResponse.put("aziende", jsonArrayAziende);
+        response.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        ServletOutputStream out = response.getOutputStream();
+        out.print(objResponse.toJSONString());
+        out.flush();
+    }
+    
+    private JSONObject buildAziendaUrl(Azienda azienda, String command, Utente utente, AziendaParametriJson parametriAziendaUtenteConnesso) throws UnsupportedEncodingException, IOException{       
+        String stringToEncode = command;
+        TokenBasedAuthentication tokenBasedAuthentication = (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        Utente realUser = (Utente) tokenBasedAuthentication.getRealUser();
+        Persona realPerson = cachedEntities.getPersona(realUser);
+        Persona person = cachedEntities.getPersona(utente);
+        int idSessionLog = tokenBasedAuthentication.getIdSessionLog();
+        if(person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0){
+            stringToEncode += stringToEncode.length() > 0 ? "&utente=" : "?utente=";
+            stringToEncode += person.getCodiceFiscale();
+        }
+        stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
+        stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale();
+        stringToEncode += "&idSessionLog=" + idSessionLog;
+        stringToEncode += FROM;
+        stringToEncode += "&modalitaAmministrativa=0";
+        String encodedParams = "";
+        try {
+            encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
+        } catch (UnsupportedEncodingException ex) {
+            LOGGER.error("errore nella creazione del link", ex);
+            throw new UnsupportedEncodingException("errore nell'encoding dell'url");
+        }
+        String assembledURL = "";
+        try {
+            AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(this.objectMapper, azienda.getParametri());
+            String targetLoginPath = parametriAzienda.getLoginPath();
+            Applicazione applicazione = applicazioneRepository.getOne("babel");
+            String applicationURL = applicazione.getBaseUrl() + "/" + applicazione.getIndexPage();
+            assembledURL = parametriAzienda.getCrossLoginUrlTemplate().
+                replace("[target-login-path]", targetLoginPath).
+                replace("[entity-id]", parametriAziendaUtenteConnesso.getEntityId()).
+                replace("[app]", applicationURL).
+                replace("[encoded-params]", encodedParams);
+        } catch (IOException ex) {
+            LOGGER.error("errore nella lettura dei parametri dell'azienda target", ex);
+            throw new IOException("errore nella lettura dei parametri dell'azienda target", ex);
+        }
+        JSONObject objAzienda = new JSONObject();
+        objAzienda.put("nome", azienda.getNome());
+        objAzienda.put("url", assembledURL);
+        return objAzienda;
     }
     
     private List<Azienda> getAziendePerCuiFirmo(Utente utente) throws BlackBoxPermissionException{
@@ -251,7 +313,22 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         res.put(ScrivaniaCommonParameters.BABEL_APPLICATION.toString(), cachedEntities.getApplicazione("babel"));
         return res;
     }
-
+    
+    @Transactional
+    @RequestMapping(value = {"cancellaNotifiche"}, method = RequestMethod.GET)
+    public void cancellaNotifiche(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException, RestControllerEngineException, AbortSaveInterceptorException, NotFoundResourceException, ClassNotFoundException{
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Utente utente = (Utente) authentication.getPrincipal();
+        Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
+        BooleanExpression notifichePersona = QAttivita.attivita.idPersona.id.eq(persona.getId()).and(QAttivita.attivita.tipo.eq(TipoAttivita.NOTIFICA.toString()));
+        Iterable<Attivita> notificheList = attivitaRepository.findAll(notifichePersona);
+        for(Attivita notifica : notificheList) {
+            String attivitaPath = commonUtils.resolvePlaceHolder(EntityReflectionUtils.getFirstAnnotationOverHierarchy(attivitaRepository.getClass(), NextSdrRepository.class).repositoryPath());
+            restControllerEngine.delete(notifica.getId(), request, null, attivitaPath, false);
+            //ttivitaRepository.delete(notifica);
+        }
+    }
+    
     public enum ScrivaniaCommonParameters {
         BABEL_APPLICATION
     }

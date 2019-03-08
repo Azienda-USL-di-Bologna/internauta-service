@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -55,8 +56,13 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
                 switch (operationRequested) {
                     case GetPermessiGestoriPec: 
                         /* Nel caso di GetPermessiGestoriPec in Data avremo l'id della PEC della quale si chiedono i permessi */
-                        String idPec = additionalData.get(AdditionalData.Keys.Data.toString());
+                        String idPec = additionalData.get(AdditionalData.Keys.idPec.toString());
                         Pec pec = new Pec(Integer.parseInt(idPec));
+                        String idAzienda = additionalData.get(AdditionalData.Keys.idAzienda.toString());
+                        if(StringUtils.hasText(idAzienda)){                           
+                            BooleanExpression aziendaFilter = QPersona.persona.utenteList.any().idAzienda.id.eq(Integer.parseInt(idAzienda));
+                            initialPredicate = aziendaFilter.and(initialPredicate);
+                        }
                         try {
                             List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(
                                 Arrays.asList(new Pec[]{pec}),
@@ -73,7 +79,7 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
                                         .map(p -> p.getSoggetto().getIdProvenienza()).collect(Collectors.toList()))
                                         .and(initialPredicate);
                                 initialPredicate = permessoFilter.and(initialPredicate);
-                            }
+                            }                            
                             /* Conserviamo i dati estratti dalla BlackBox */
                             this.httpSessionData.putData(HttpSessionData.Keys.PersoneWithPecPermissions, subjectsWithPermissionsOnObject);
                         } catch (BlackBoxPermissionException ex) {
@@ -96,8 +102,6 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
                     case GetPermessiGestoriPec:
-                        String idAzienda = null;
-                        idAzienda = additionalData.get(AdditionalData.Keys.FilterGestoriByAzienda.toString());
                         List<PermessoEntitaStoredProcedure> personeConPermesso = 
                                 (List<PermessoEntitaStoredProcedure>) this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions);
                         if (personeConPermesso != null && !personeConPermesso.isEmpty()) {
@@ -121,6 +125,7 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             if (operationsRequested.contains(AdditionalData.OperationsRequested.GetPermessiGestoriPec)) {
+                
                 if (this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions) != null) {
                     for (Object entity : entities) {
                         entity = afterSelectQueryInterceptor(entity, additionalData, request);
