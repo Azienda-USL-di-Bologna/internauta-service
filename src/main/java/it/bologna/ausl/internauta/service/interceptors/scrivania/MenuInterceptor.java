@@ -10,6 +10,7 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.Menu;
@@ -65,7 +66,8 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
      * @throws AbortLoadInterceptorException 
      */
     @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortLoadInterceptorException {
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) 
+            throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         List<Utente> utentiPersona = userInfoService.getUtentiPersonaByUtente(super.user);              
         BooleanExpression filterAziendaUtente = null;
@@ -76,11 +78,13 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         ambitiFlusso.add(InternautaConstants.Permessi.Ambiti.DELI.toString());
         
         List<String> tipi = new ArrayList();
+        List<Integer> aziendePersona = new ArrayList();
         tipi.add(InternautaConstants.Permessi.Tipi.FLUSSO.toString());
         
         if (utentiPersona != null && !utentiPersona.isEmpty()) {
             for (Utente up : utentiPersona) {
                 try {
+                    aziendePersona.add(up.getIdAzienda().getId());
                     // I permessi di interesse sono quelli di tipo FLUSSO e con ambito PICO-DETE-DELI.
                     List<String> predicatiAzienda = permissionManager.getPermission(up, ambitiFlusso, tipi);
                     BooleanExpression booleanTemplate;
@@ -120,9 +124,9 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
                 booleanTemplate = Expressions.FALSE.eq(Boolean.TRUE);
             }
             if (filterAziendaUtente == null)
-                filterAziendaUtente = QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate);
+                filterAziendaUtente = QMenu.menu.idAzienda.id.in(aziendePersona).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate));
             else
-                filterAziendaUtente = filterAziendaUtente.or(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate));
+                filterAziendaUtente = filterAziendaUtente.or(QMenu.menu.idAzienda.id.in(aziendePersona).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate)));
         } catch (BlackBoxPermissionException ex) {
             LOGGER.error("errore nel calcolo del predicato", ex);
             throw new AbortLoadInterceptorException("errore nel calcolo del predicato", ex);
@@ -135,9 +139,9 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
                     QMenu.menu.ruoliSufficienti, String.join(",", ruoliCACI));
             
         if (filterAziendaUtente == null)
-            filterAziendaUtente = QMenu.menu.ruoliSufficienti.isNull().or(booleanTemplate);
+            filterAziendaUtente = QMenu.menu.idAzienda.id.in(aziendePersona).and(booleanTemplate);
         else
-            filterAziendaUtente = filterAziendaUtente.or(QMenu.menu.ruoliSufficienti.isNull().or(booleanTemplate));
+            filterAziendaUtente = filterAziendaUtente.or(QMenu.menu.idAzienda.id.in(aziendePersona).and(booleanTemplate));
   
         
         // Aggiungo il filtro al predicato. Se il filtro è vuoto allora nulla dev'essere visibile all'utente quindi il predicato di ritorno è una espressione False.
