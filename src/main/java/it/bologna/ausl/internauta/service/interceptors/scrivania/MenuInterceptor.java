@@ -177,6 +177,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         stringToEncode += "&idSessionLog=" + idSessionLog;
         stringToEncode += FROM;
         stringToEncode += "&modalitaAmministrativa=0";
+        stringToEncode += "&idAzienda="+menu.getIdAzienda().getId();
         
         try {
             AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(this.objectMapper, menu.getIdAzienda().getParametri());
