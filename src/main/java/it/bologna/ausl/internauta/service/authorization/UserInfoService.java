@@ -176,9 +176,9 @@ public class UserInfoService {
         PathBuilder<Utente> qUtente = new PathBuilder(Utente.class, "utente");
         if (entityClass.isAssignableFrom(Persona.class)) {
             PathBuilder<Persona> qPersona = qUtente.get("idPersona", Persona.class);
-            filter = qPersona.get(field).eq(ssoFieldValue);
+            filter = qPersona.get(field).eq(ssoFieldValue.toUpperCase());
         } else {
-            filter = qUtente.get(field).eq(ssoFieldValue);
+            filter = qUtente.get(field).eq(ssoFieldValue.toUpperCase());
         }
         filter = filter.and(QUtente.utente.idAzienda.id.eq(azienda.getId()));
 
