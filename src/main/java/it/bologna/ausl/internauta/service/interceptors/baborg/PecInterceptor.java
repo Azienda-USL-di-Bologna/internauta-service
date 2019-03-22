@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -63,13 +64,30 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
 
-        // TODO: Se non sono ne CI ne CA(di qualsiasi azienda) allora potrò vedere solo le pec su cui ho un permesso? Non ne sono convinto, 
-        //          perché nel PU ad esmepio si può inserire un destinatario tramite pec anche se non si hanno permessi su una pec, ma la pec bisogna sceglierla.
-        //         Quindi?
-        
-        
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
-        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+        if (operationsRequested == null || operationsRequested.isEmpty()) {
+            List<PermessoEntitaStoredProcedure> pecWithStandardPermissions;
+            try {
+                pecWithStandardPermissions = permissionManager.getPermissionsOfSubject(
+                        super.person,
+                        Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString(), InternautaConstants.Permessi.Predicati.ELIMINA.toString()}),
+                        Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
+                        Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
+            } catch (BlackBoxPermissionException ex) {
+                LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+                throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+            }
+        
+            if (pecWithStandardPermissions == null){
+                initialPredicate = Expressions.FALSE.eq(true);
+            } else {
+                BooleanExpression pecFilter = QPec.pec.id.in(
+                    pecWithStandardPermissions
+                        .stream()
+                        .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList()));
+                initialPredicate = pecFilter.and(initialPredicate);
+            }
+        } else {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
                     case FilterPecPerPermissionOfSubject:
@@ -102,7 +120,6 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
-        
         return initialPredicate;
     }
 
