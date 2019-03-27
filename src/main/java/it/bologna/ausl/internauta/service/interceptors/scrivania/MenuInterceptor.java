@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,7 +135,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         
         ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
 
-            List<String> ruoliCACI = Arrays.asList(new String[] {"CA", "CI"});
+            List<String> ruoliCACI = super.user.getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
             BooleanExpression booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", 
                     QMenu.menu.ruoliSufficienti, String.join(",", ruoliCACI));
             
