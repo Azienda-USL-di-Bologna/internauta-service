@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.interceptors;
 
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
+import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -8,6 +9,8 @@ import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.nextsw.common.interceptors.NextSdrEmptyControllerInterceptor;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -29,6 +32,8 @@ public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerIn
     
     @Autowired
     protected HttpSessionData httpSessionData;
+    
+    private static final Logger log = LoggerFactory.getLogger(InternautaBaseInterceptor.class);
 
     protected void getAuthenticatedUserProperties() {
         // TODO add url

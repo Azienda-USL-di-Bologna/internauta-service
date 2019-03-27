@@ -53,6 +53,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
     @Autowired
     PermissionManager permissionManager;
     
+    
     @Override
     public Class getTargetEntityClass() {
         return Menu.class;
@@ -135,7 +136,10 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         
         ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
 
-            List<String> ruoliCACI = super.user.getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
+            LOGGER.info("USER " + super.user.getId());
+            List<String> ruoliCACI = super.user.getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());          
+            LOGGER.info("ruoliCACI " + ruoliCACI);
+            
             BooleanExpression booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", 
                     QMenu.menu.ruoliSufficienti, String.join(",", ruoliCACI));
             
