@@ -66,27 +66,27 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested == null || operationsRequested.isEmpty()) {
-            List<PermessoEntitaStoredProcedure> pecWithStandardPermissions;
-            try {
-                pecWithStandardPermissions = permissionManager.getPermissionsOfSubject(
-                        super.person,
-                        Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString(), InternautaConstants.Permessi.Predicati.ELIMINA.toString()}),
-                        Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                        Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
-            } catch (BlackBoxPermissionException ex) {
-                LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
-                throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
-            }
-        
-            if (pecWithStandardPermissions == null){
-                initialPredicate = Expressions.FALSE.eq(true);
-            } else {
-                BooleanExpression pecFilter = QPec.pec.id.in(
-                    pecWithStandardPermissions
-                        .stream()
-                        .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList()));
-                initialPredicate = pecFilter.and(initialPredicate);
-            }
+//            List<PermessoEntitaStoredProcedure> pecWithStandardPermissions;
+//            try {
+//                pecWithStandardPermissions = permissionManager.getPermissionsOfSubject(
+//                        super.person,
+//                        Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString(), InternautaConstants.Permessi.Predicati.ELIMINA.toString()}),
+//                        Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
+//                        Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
+//            } catch (BlackBoxPermissionException ex) {
+//                LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+//                throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+//            }
+//        
+//            if (pecWithStandardPermissions == null){
+//                initialPredicate = Expressions.FALSE.eq(true);
+//            } else {
+//                BooleanExpression pecFilter = QPec.pec.id.in(
+//                    pecWithStandardPermissions
+//                        .stream()
+//                        .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList()));
+//                initialPredicate = pecFilter.and(initialPredicate);
+//            }
         } else {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
