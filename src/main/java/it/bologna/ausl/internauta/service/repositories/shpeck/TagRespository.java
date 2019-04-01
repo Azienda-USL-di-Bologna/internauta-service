@@ -8,7 +8,7 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-@NextSdrRepository(repositoryPath = "${pecgw.mapping.url.root}/tag", defaultProjection = TagWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "${shpeck.mapping.url.root}/tag", defaultProjection = TagWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "tag", path = "tag", exported = false, excerptProjection = TagWithPlainFields.class)
 public interface TagRespository extends
         NextSdrQueryDslRepository<Tag, Integer, QTag>,

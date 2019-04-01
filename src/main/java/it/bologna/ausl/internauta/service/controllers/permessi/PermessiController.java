@@ -71,17 +71,11 @@ public class PermessiController implements ControllerHandledExceptions {
     ObjectMapper mapper;
 
     /**
-     * E' il controller base. Riceve una lista di PermessoEntitaStoredProcedure
-     * e chiama direttamente la managePermissions la quale di fatto passaera la
-     * lista di PermessoEntitaStoredProcedure alla store procedute.
-     *
-     * Attenzione: usando questo controller non verrà eseguito nessun controllo
-     * di sicurezza.
+     * E' il controller base.Riceve una lista di PermessoEntitaStoredProcedure e chiama direttamente la managePermissions la quale di fatto passaera la lista di PermessoEntitaStoredProcedure alla store procedute. Attenzione: usando questo controller non verrà eseguito nessun controllo di sicurezza.
      *
      * @param permessiEntita
      * @param request
      * @throws BlackBoxPermissionException
-     * @throws Exception
      */
     @RequestMapping(value = "managePermissions", method = RequestMethod.POST)
     public void updatePermesso(@RequestBody List<PermessoEntitaStoredProcedure> permessiEntita, HttpServletRequest request) throws BlackBoxPermissionException {
