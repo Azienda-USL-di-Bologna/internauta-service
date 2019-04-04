@@ -113,4 +113,31 @@ public class CacheConfig {
         return cm;
     }
     
+    @Bean
+    public CacheManager emlCacheManager(RedisConnectionFactory jedisConnectionFactory) {
+        RedisSerializer<Object> defaultSerializer = new JdkSerializationRedisSerializer(getClass().getClassLoader());
+        RedisSerializer<Object> jsonSerializer = new GenericJackson2JsonRedisSerializer();
+        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(15))
+                .computePrefixWith((cacheName) -> {
+                    return "internauta_cache_eml_" + cacheName + "::";
+                });
+//                .disableCachingNullValues();
+        if (jsonSerialization) {
+            config = config.serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer));
+        } else {
+            config = config.serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(defaultSerializer));
+        }
+       
+        Map<String, RedisCacheConfiguration> cacheNamesConfigurationMap = new HashMap<>();
+        
+        RedisCacheManager cm = RedisCacheManager.builder(jedisConnectionFactory)
+                .cacheDefaults(config)
+                .withInitialCacheConfigurations(Collections.singletonMap("predefined", config))
+                .withInitialCacheConfigurations(cacheNamesConfigurationMap)
+                .transactionAware()
+                .build();
+        
+        return cm;
+    }
 }

@@ -169,8 +169,24 @@
             <artifactId>blackbox-permessi</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
-    </dependencies>
+        <dependency>
+            <groupId>it.bologna.ausl.internauta.utils</groupId>
+            <artifactId>eml-handler</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.5</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.8.1</version>
+        </dependency>
 
+    </dependencies>
     <build>
         <plugins>
             <plugin>

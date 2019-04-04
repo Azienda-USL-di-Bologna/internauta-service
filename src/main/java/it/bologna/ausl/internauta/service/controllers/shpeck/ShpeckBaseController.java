@@ -31,9 +31,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(value = "${shpeck.mapping.url.root}")
-public class PecGWBaseController extends BaseCrudController {
+public class ShpeckBaseController extends BaseCrudController {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PecGWBaseController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShpeckBaseController.class);
     
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
