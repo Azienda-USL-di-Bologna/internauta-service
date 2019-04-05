@@ -5,10 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.PermissionRepositoryAccess;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.blackbox.types.PermessoEntitaStoredProcedure;
-import it.bologna.ausl.blackbox.types.PermessoStoredProcedure;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
-import it.bologna.ausl.internauta.service.controllers.scrivania.ScrivaniaBaseController;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.Http403ResponseException;
@@ -72,17 +71,11 @@ public class PermessiController implements ControllerHandledExceptions {
     ObjectMapper mapper;
 
     /**
-     * E' il controller base. Riceve una lista di PermessoEntitaStoredProcedure
-     * e chiama direttamente la managePermissions la quale di fatto passaera la
-     * lista di PermessoEntitaStoredProcedure alla store procedute.
-     *
-     * Attenzione: usando questo controller non verrà eseguito nessun controllo
-     * di sicurezza.
+     * E' il controller base.Riceve una lista di PermessoEntitaStoredProcedure e chiama direttamente la managePermissions la quale di fatto passaera la lista di PermessoEntitaStoredProcedure alla store procedute. Attenzione: usando questo controller non verrà eseguito nessun controllo di sicurezza.
      *
      * @param permessiEntita
      * @param request
      * @throws BlackBoxPermissionException
-     * @throws Exception
      */
     @RequestMapping(value = "managePermissions", method = RequestMethod.POST)
     public void updatePermesso(@RequestBody List<PermessoEntitaStoredProcedure> permessiEntita, HttpServletRequest request) throws BlackBoxPermissionException {
