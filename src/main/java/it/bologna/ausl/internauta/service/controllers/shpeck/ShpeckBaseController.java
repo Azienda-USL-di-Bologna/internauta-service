@@ -2,12 +2,22 @@ package it.bologna.ausl.internauta.service.controllers.shpeck;
 
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
+import it.bologna.ausl.model.entities.shpeck.Address;
+import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.Message;
+import it.bologna.ausl.model.entities.shpeck.MessageAddress;
+import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
+import it.bologna.ausl.model.entities.shpeck.QAddress;
+import it.bologna.ausl.model.entities.shpeck.QFolder;
+import it.bologna.ausl.model.entities.shpeck.QMessageAddress;
+import it.bologna.ausl.model.entities.shpeck.QMessageFolder;
 import it.bologna.ausl.model.entities.shpeck.QMessageTag;
+import it.bologna.ausl.model.entities.shpeck.QRawMessage;
 import it.bologna.ausl.model.entities.shpeck.QTag;
 import it.bologna.ausl.model.entities.shpeck.QRecepit;
+import it.bologna.ausl.model.entities.shpeck.RawMessage;
 import it.bologna.ausl.model.entities.shpeck.Recepit;
 import it.bologna.ausl.model.entities.shpeck.Tag;
 import it.nextsw.common.controller.BaseCrudController;
@@ -56,6 +66,71 @@ public class ShpeckBaseController extends BaseCrudController {
         return ResponseEntity.ok(resource);
     }
     
+    @RequestMapping(value = {"messagetag", "messagetag/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> messagetag(
+            @QuerydslPredicate(root = MessageTag.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMessageTag.messageTag, MessageTag.class);
+        return ResponseEntity.ok(resource);
+    }
+
+    @RequestMapping(value = {"folder", "folder/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> folder(
+            @QuerydslPredicate(root = Folder.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QFolder.folder, QFolder.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"messagefolder", "messagefolder/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> messagefolder(
+            @QuerydslPredicate(root = MessageFolder.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMessageFolder.messageFolder, MessageFolder.class);
+        return ResponseEntity.ok(resource);
+    }
+
+    @RequestMapping(value = {"address", "address/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> address(
+            @QuerydslPredicate(root = Address.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAddress.address, Address.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"messageaddress", "messageaddress/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> messageaddress(
+            @QuerydslPredicate(root = MessageAddress.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMessageAddress.messageAddress, MessageAddress.class);
+        return ResponseEntity.ok(resource);
+    }
+    
     @RequestMapping(value = {"message", "message/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> message(
             @QuerydslPredicate(root = Message.class) Predicate predicate,
@@ -68,6 +143,7 @@ public class ShpeckBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMessage.message, Message.class);
         return ResponseEntity.ok(resource);
     }
+
     
     @RequestMapping(value = {"recepit", "recepit/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> recepit(
@@ -81,17 +157,17 @@ public class ShpeckBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRecepit.recepit, Recepit.class);
         return ResponseEntity.ok(resource);
     }
-    
-    @RequestMapping(value = {"messagetag", "messagetag/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> messagetag(
-            @QuerydslPredicate(root = MessageTag.class) Predicate predicate,
+
+    @RequestMapping(value = {"rawmessage", "rawmessage/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> rawmessage(
+            @QuerydslPredicate(root = RawMessage.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMessageTag.messageTag, MessageTag.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRawMessage.rawMessage, RawMessage.class);
         return ResponseEntity.ok(resource);
     }
 }

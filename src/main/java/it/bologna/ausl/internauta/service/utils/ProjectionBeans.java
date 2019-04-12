@@ -19,6 +19,11 @@ import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdP
 import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configuration.projections.generated.ImpostazioniApplicazioniWithPlainFields;
 import it.bologna.ausl.model.entities.scrivania.projections.generated.AttivitaWithIdPersona;
+import it.bologna.ausl.model.entities.shpeck.Address;
+import it.bologna.ausl.model.entities.shpeck.Message;
+import it.bologna.ausl.model.entities.shpeck.MessageAddress;
+import it.bologna.ausl.model.entities.shpeck.projections.generated.AddressWithPlainFields;
+import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageAddressWithIdAddress;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -118,6 +123,20 @@ public class ProjectionBeans {
             return pecAziendaList.stream().map(pecAzienda -> factory.createProjection(PecAziendaWithIdAzienda.class, pecAzienda))
                     .collect(Collectors.toList());
         } else{
+            return null;
+        }
+    }
+    
+    public List<MessageAddressWithIdAddress> getMessageAddressListWithIdAddress(Message message){
+        if (message != null) {
+            List<MessageAddress> messageAddresssList = message.getMessageAddressList();
+            if (messageAddresssList != null && !messageAddresssList.isEmpty()) {
+                return messageAddresssList.stream().map(messageAddress -> factory.createProjection(MessageAddressWithIdAddress.class, messageAddress))
+                        .collect(Collectors.toList());
+            } else{
+                return null;
+            }
+        } else {
             return null;
         }
     }
