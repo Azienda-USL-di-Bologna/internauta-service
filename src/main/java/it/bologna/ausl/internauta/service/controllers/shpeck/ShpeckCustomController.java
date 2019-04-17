@@ -7,6 +7,7 @@ import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +47,7 @@ public class ShpeckCustomController {
     @RequestMapping(value = "extractMessageData/{idMessage}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> extractMessageData(
             @PathVariable(required = true) Integer idMessage
-        ) throws EmlHandlerException {
+        ) throws EmlHandlerException, UnsupportedEncodingException {
         // TODO: Gestire idMessage.
         LOG.info("extractMessageData", idMessage);
         return new ResponseEntity(ShpeckCacheableFunctions.getInfoEml(idMessage), HttpStatus.OK);
@@ -59,7 +60,7 @@ public class ShpeckCustomController {
             HttpServletResponse response
         ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
         // TODO: Gestire idMessage e idAllegato.
-        InputStream attachment = EmlHandler.getAttachment("C:\\Users\\Public\\prova8.eml", idAllegato);
+        InputStream attachment = EmlHandler.getAttachment("C:\\Users\\Public\\prova" + idMessage + ".eml", idAllegato);
         IOUtils.copy(attachment, response.getOutputStream());
         response.flushBuffer();
     }
@@ -71,7 +72,7 @@ public class ShpeckCustomController {
         ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
         // TODO: Gestire idMessage
         response.addHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=allegati.zip");
-        List<Pair> attachments = EmlHandler.getAttachments("C:\\Users\\Public\\prova8.eml");
+        List<Pair> attachments = EmlHandler.getAttachments("C:\\Users\\Public\\prova" + idMessage + ".eml");
         ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(response.getOutputStream()));
         Integer i;
         for(Pair p : attachments) {
