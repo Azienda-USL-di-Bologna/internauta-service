@@ -22,8 +22,10 @@ import it.bologna.ausl.model.entities.scrivania.projections.generated.AttivitaWi
 import it.bologna.ausl.model.entities.shpeck.Address;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageAddress;
+import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.AddressWithPlainFields;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageAddressWithIdAddress;
+import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageTagWithIdTag;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,7 +119,7 @@ public class ProjectionBeans {
         } else
             return null;
     }
-    
+
     public List<PecAziendaWithIdAzienda> getPecAziendaListWithIdAzienda(List<PecAzienda> pecAziendaList){
         if (pecAziendaList != null && !pecAziendaList.isEmpty()) {
             return pecAziendaList.stream().map(pecAzienda -> factory.createProjection(PecAziendaWithIdAzienda.class, pecAzienda))
@@ -126,12 +128,26 @@ public class ProjectionBeans {
             return null;
         }
     }
-    
+
     public List<MessageAddressWithIdAddress> getMessageAddressListWithIdAddress(Message message){
         if (message != null) {
             List<MessageAddress> messageAddresssList = message.getMessageAddressList();
             if (messageAddresssList != null && !messageAddresssList.isEmpty()) {
                 return messageAddresssList.stream().map(messageAddress -> factory.createProjection(MessageAddressWithIdAddress.class, messageAddress))
+                        .collect(Collectors.toList());
+            } else{
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    public List<MessageTagWithIdTag> getMessageTagList(Message message){
+        if (message != null) {
+            List<MessageTag> messageTagList = message.getMessageTagList();
+            if (messageTagList != null && !messageTagList.isEmpty()) {
+                return messageTagList.stream().map(messageTag -> factory.createProjection(MessageTagWithIdTag.class, messageTag))
                         .collect(Collectors.toList());
             } else{
                 return null;
