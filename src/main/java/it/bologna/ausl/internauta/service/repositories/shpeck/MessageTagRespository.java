@@ -9,8 +9,8 @@ import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 @NextSdrRepository(repositoryPath = "${shpeck.mapping.url.root}/messagetag", defaultProjection = MessageTagWithPlainFields.class)
-@RepositoryRestResource(collectionResourceRel = "tag", path = "tag", exported = false, excerptProjection = MessageTagWithPlainFields.class)
-public interface MessageTageRespository extends
+@RepositoryRestResource(collectionResourceRel = "messagetag", path = "messagetag", exported = false, excerptProjection = MessageTagWithPlainFields.class)
+public interface MessageTagRespository extends
         NextSdrQueryDslRepository<MessageTag, Integer, QMessageTag>, 
         JpaRepository<MessageTag, Integer> {
 }
