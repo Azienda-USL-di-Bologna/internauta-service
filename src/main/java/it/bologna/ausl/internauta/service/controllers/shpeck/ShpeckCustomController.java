@@ -37,11 +37,13 @@ import javax.mail.MessagingException;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -69,21 +71,39 @@ public class ShpeckCustomController {
      */
     @RequestMapping(value = "extractMessageData/{idMessage}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> extractMessageData(
-            @PathVariable(required = true) Integer idMessage
+            @PathVariable(required = true) Integer idMessage,
+            HttpServletRequest request
         ) throws EmlHandlerException, UnsupportedEncodingException {
         // TODO: Gestire idMessage.
+        String hostname = getHostname(request);
+        System.out.println("hostanme " + hostname);
+        String repositoryTemp = null;
+        if (hostname.equals("localhost")) {
+            repositoryTemp = "C:\\Users\\Public\\prova";
+        } else {
+            repositoryTemp = "/tmp/emlProveShpeckUI/prova";
+        }
         LOG.info("extractMessageData", idMessage);
-        return new ResponseEntity(ShpeckCacheableFunctions.getInfoEml(idMessage), HttpStatus.OK);
+        return new ResponseEntity(ShpeckCacheableFunctions.getInfoEml(idMessage, repositoryTemp), HttpStatus.OK);
     }
     
     @RequestMapping(value = "getEmlAttachment/{idMessage}/{idAllegato}", method = RequestMethod.GET)
     public void getEmlAttachment(
             @PathVariable(required = true) Integer idMessage,
             @PathVariable(required = true) Integer idAllegato,
-            HttpServletResponse response
+            HttpServletResponse response,
+            HttpServletRequest request
         ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
         // TODO: Gestire idMessage e idAllegato.
-        InputStream attachment = EmlHandler.getAttachment("C:\\Users\\Public\\prova" + idMessage + ".eml", idAllegato);
+        String hostname = getHostname(request);
+        System.out.println("hostanme " + hostname);
+        String repositoryTemp = null;
+        if (hostname.equals("localhost")) {
+            repositoryTemp = "C:\\Users\\Public\\prova";
+        } else {
+            repositoryTemp = "/tmp/emlProveShpeckUI/prova";
+        }
+        InputStream attachment = EmlHandler.getAttachment(repositoryTemp + idMessage + ".eml", idAllegato);
         IOUtils.copy(attachment, response.getOutputStream());
         response.flushBuffer();
     }
@@ -91,11 +111,21 @@ public class ShpeckCustomController {
     @RequestMapping(value = "get_all_eml_attachment/{idMessage}", method = RequestMethod.GET,  produces = "application/zip")
     public void getAllEmlAttachment(
             @PathVariable(required = true) Integer idMessage,
-            HttpServletResponse response
+            HttpServletResponse response,
+            HttpServletRequest request
         ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
         // TODO: Gestire idMessage
+        String hostname = getHostname(request);
+        System.out.println("hostanme " + hostname);
+        String repositoryTemp = null;
+        if (hostname.equals("localhost")) {
+            repositoryTemp = "C:\\Users\\Public\\prova";
+        } else {
+            repositoryTemp = "/tmp/emlProveShpeckUI/prova";
+        }
+        
         response.addHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=allegati.zip");
-        List<Pair> attachments = EmlHandler.getAttachments("C:\\Users\\Public\\prova" + idMessage + ".eml");
+        List<Pair> attachments = EmlHandler.getAttachments(repositoryTemp + idMessage + ".eml");
         ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(response.getOutputStream()));
         Integer i;
         for(Pair p : attachments) {
@@ -216,5 +246,19 @@ public class ShpeckCustomController {
         } finally {
             LOG.info("Draft message saved: {}", draftMessage);
         }
+    }
+    
+    // Metodo temporano. rimane qui finché non abbiamo il vero repository
+    public String getHostname(HttpServletRequest request) {
+        String res;
+        String header = request.getHeader("X-Forwarded-Host");
+        // TODO: non è detto che vada bene tornare sempre il primo elemento, bisognerebbe controllare che il Path dell'azienda matchi con uno qualsiasi degli elementi
+        if (StringUtils.hasText(header)) {
+            String[] headerToken = header.split(",");
+            res = headerToken[0];
+        } else {
+            res = request.getServerName();
+        }
+        return res;
     }
 }

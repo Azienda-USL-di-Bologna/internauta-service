@@ -15,9 +15,9 @@ import org.springframework.stereotype.Component;
 public class ShpeckCacheableFunctions {
     
     @Cacheable(value = "info_eml", key = "{#idMessage}", cacheManager = "emlCacheManager")
-    public static EmlHandlerResult getInfoEml(Integer idMessage) throws EmlHandlerException, UnsupportedEncodingException {
+    public static EmlHandlerResult getInfoEml(Integer idMessage, String repositoryTemp) throws EmlHandlerException, UnsupportedEncodingException {
         // TODO: Gestire idMessage.
-        return EmlHandler.handleEml("C:\\Users\\Public\\prova" + idMessage + ".eml");
+        return EmlHandler.handleEml(repositoryTemp + idMessage + ".eml");
         // prova 2 da problemi
     }
 }
