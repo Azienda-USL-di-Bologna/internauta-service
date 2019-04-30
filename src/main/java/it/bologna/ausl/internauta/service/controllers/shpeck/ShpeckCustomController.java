@@ -11,6 +11,7 @@ import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.shpeck.Draft;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,18 +64,22 @@ public class ShpeckCustomController {
     @Autowired
     private PecRepository pecRepository;
     
+       
     /**
      * 
      * @param idMessage
+     * @param request
      * @return
      * @throws EmlHandlerException 
+     * @throws java.io.UnsupportedEncodingException 
      */
-    @RequestMapping(value = "extractMessageData/{idMessage}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> extractMessageData(
+    @RequestMapping(value = "extractEmlData/{idMessage}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> extractEmlData(
             @PathVariable(required = true) Integer idMessage,
             HttpServletRequest request
         ) throws EmlHandlerException, UnsupportedEncodingException {
-        // TODO: Gestire idMessage.
+        LOG.info("extractMessageData", idMessage);
+        // TODO: Usare repository reale
         String hostname = getHostname(request);
         System.out.println("hostanme " + hostname);
         String repositoryTemp = null;
@@ -83,18 +88,62 @@ public class ShpeckCustomController {
         } else {
             repositoryTemp = "/tmp/emlProveShpeckUI/prova";
         }
-        LOG.info("extractMessageData", idMessage);
         return new ResponseEntity(ShpeckCacheableFunctions.getInfoEml(idMessage, repositoryTemp), HttpStatus.OK);
     }
     
-    @RequestMapping(value = "getEmlAttachment/{idMessage}/{idAllegato}", method = RequestMethod.GET)
-    public void getEmlAttachment(
+    /**
+     * 
+     * @param idMessage
+     * @param response
+     * @param request
+     * @throws EmlHandlerException
+     * @throws FileNotFoundException
+     * @throws MalformedURLException
+     * @throws IOException
+     * @throws MessagingException 
+     */
+    @RequestMapping(value = "downloadEml/{idMessage}", method = RequestMethod.GET)
+    public void downloadEml(
+            @PathVariable(required = true) Integer idMessage,
+            HttpServletResponse response,
+            HttpServletRequest request
+        ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
+        LOG.info("getEml", idMessage);
+        // TODO: Usare repository reale
+        String hostname = getHostname(request);
+        System.out.println("hostanme " + hostname);
+        String repositoryTemp = null;
+        if (hostname.equals("localhost")) {
+            repositoryTemp = "C:\\Users\\Public\\prova";
+        } else {
+            repositoryTemp = "/tmp/emlProveShpeckUI/prova";
+        }
+        
+        IOUtils.copy(new FileInputStream(repositoryTemp + idMessage + ".eml"), response.getOutputStream());
+        response.flushBuffer();
+    }
+    
+    /**
+     * 
+     * @param idMessage
+     * @param idAllegato
+     * @param response
+     * @param request
+     * @throws EmlHandlerException
+     * @throws FileNotFoundException
+     * @throws MalformedURLException
+     * @throws IOException
+     * @throws MessagingException 
+     */
+    @RequestMapping(value = "downloadEmlAttachment/{idMessage}/{idAllegato}", method = RequestMethod.GET)
+    public void downloadEmlAttachment(
             @PathVariable(required = true) Integer idMessage,
             @PathVariable(required = true) Integer idAllegato,
             HttpServletResponse response,
             HttpServletRequest request
         ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
-        // TODO: Gestire idMessage e idAllegato.
+        LOG.info("getEmlAttachment", idMessage, idAllegato);
+        // TODO: Usare repository reale
         String hostname = getHostname(request);
         System.out.println("hostanme " + hostname);
         String repositoryTemp = null;
@@ -108,13 +157,25 @@ public class ShpeckCustomController {
         response.flushBuffer();
     }
     
-    @RequestMapping(value = "get_all_eml_attachment/{idMessage}", method = RequestMethod.GET,  produces = "application/zip")
-    public void getAllEmlAttachment(
+    /**
+     * 
+     * @param idMessage
+     * @param response
+     * @param request
+     * @throws EmlHandlerException
+     * @throws FileNotFoundException
+     * @throws MalformedURLException
+     * @throws IOException
+     * @throws MessagingException 
+     */
+    @RequestMapping(value = "downloadAllEmlAttachment/{idMessage}", method = RequestMethod.GET,  produces = "application/zip")
+    public void downloadAllEmlAttachment(
             @PathVariable(required = true) Integer idMessage,
             HttpServletResponse response,
             HttpServletRequest request
         ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
-        // TODO: Gestire idMessage
+        LOG.info("get_all_eml_attachment", idMessage);
+        // TODO: Usare repository reale
         String hostname = getHostname(request);
         System.out.println("hostanme " + hostname);
         String repositoryTemp = null;
