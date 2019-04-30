@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
 
-@Projection(name = "CustomMessageForMailList", types = Azienda.class)
+@Projection(name = "CustomMessageForMailList", types = Message.class)
 public interface CustomMessageForMailList extends MessageWithMessageAddressListAndMessageFolderListAndMessageTagList {
     
     @Value("#{@projectionBeans.getMessageAddressListWithIdAddress(target)}")

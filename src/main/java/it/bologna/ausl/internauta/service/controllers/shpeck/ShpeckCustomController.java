@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
@@ -247,10 +248,10 @@ public class ShpeckCustomController {
         @RequestParam("cc") String[] cc,
         @RequestParam("attachments") MultipartFile[] attachments,
         @RequestParam("idMessageReplied") Integer idMessageReplied
-        ) throws AddressException, IOException, MessagingException {
+        ) throws AddressException, IOException, MessagingException, NoSuchElementException {
         
         LOG.info("Saving draft message received from PEC with id: " + idPec);
-        LOG.info("Creating the sender address");
+        LOG.info("Creating the sender address...");
         Address fromAddress = new InternetAddress(from);
         
         LOG.info("Creating destination's addresses array");
@@ -308,8 +309,8 @@ public class ShpeckCustomController {
             draftMessage.setSubject(subject);
             draftMessage.setToAddresses(to);
             draftMessage.setCcAddresses(cc);
-            draftMessage.setHiddenRecipients(Boolean.FALSE);
-            draftMessage.setCreateTime(LocalDateTime.now());
+            draftMessage.setHiddenRecipients(hideRecipients);
+//            draftMessage.setCreateTime(LocalDateTime.now());
             draftMessage.setUpdateTime(LocalDateTime.now());
             LOG.info("Write attachments as bytearrayOutputStream...");
             draftMessage.setAttachmentsNumber(listAttachments != null ? listAttachments.size() : 0);
@@ -326,15 +327,20 @@ public class ShpeckCustomController {
             LOG.info("Message baos complete!");
             draftMessage.setEml(baos.toByteArray());
             LOG.info("Message setted!");
-            LOG.info("Find Message...");
-            Message messageReplied = messageRepository.findById(idMessageReplied).orElseThrow();
-            LOG.info("Message found!");
-            draftMessage.setIdMessageReplied(messageReplied);
+            if (idMessageReplied != null) {
+                LOG.info("Find Message...");
+                Message messageReplied = messageRepository.findById(idMessageReplied).orElseThrow();
+                LOG.info("Message found!");
+                draftMessage.setIdMessageReplied(messageReplied);
+            }
             LOG.info("Message ready. Saving...");
             draftMessage = draftRepository.save(draftMessage);
         } catch (IOException ex) {
             LOG.error("Error while saving message");
             throw new IOException("Error while saving message", ex);
+        } catch (NoSuchElementException ex) {
+            LOG.error("Element not found!", ex);
+            throw new NoSuchElementException("Element not found!");
         } finally {
             LOG.info("Draft message saved: {}", draftMessage);
         } 
