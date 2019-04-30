@@ -1,6 +1,6 @@
 package it.bologna.ausl.model.entities.shpeck.projections;
         
-import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageAddressWithIdAddress;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageTagWithIdTag;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageWithMessageAddressListAndMessageFolderListAndMessageTagList;
