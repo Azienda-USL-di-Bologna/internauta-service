@@ -6,9 +6,12 @@ import it.bologna.ausl.eml.handler.EmlHandlerUtils;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRespository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckCacheableFunctions;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.shpeck.Draft;
+import it.bologna.ausl.model.entities.shpeck.Message;
+import it.nextsw.common.utils.CommonUtils;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -30,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
+import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -64,9 +68,13 @@ public class ShpeckCustomController {
     @Autowired
     private PecRepository pecRepository;
     
-       
+    @Autowired 
+    private MessageRespository messageRepository;
+    
+    @Autowired
+    private CommonUtils nextSdrCommonUtils;
     /**
-     * 
+     *
      * @param idMessage
      * @param request
      * @return
@@ -79,8 +87,7 @@ public class ShpeckCustomController {
             HttpServletRequest request
         ) throws EmlHandlerException, UnsupportedEncodingException {
         LOG.info("extractMessageData", idMessage);
-        // TODO: Usare repository reale
-        String hostname = getHostname(request);
+        String hostname = nextSdrCommonUtils.getHostname(request);
         System.out.println("hostanme " + hostname);
         String repositoryTemp = null;
         if (hostname.equals("localhost")) {
@@ -110,7 +117,7 @@ public class ShpeckCustomController {
         ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
         LOG.info("getEml", idMessage);
         // TODO: Usare repository reale
-        String hostname = getHostname(request);
+        String hostname = nextSdrCommonUtils.getHostname(request);
         System.out.println("hostanme " + hostname);
         String repositoryTemp = null;
         if (hostname.equals("localhost")) {
@@ -143,8 +150,7 @@ public class ShpeckCustomController {
             HttpServletRequest request
         ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
         LOG.info("getEmlAttachment", idMessage, idAllegato);
-        // TODO: Usare repository reale
-        String hostname = getHostname(request);
+        String hostname = nextSdrCommonUtils.getHostname(request);
         System.out.println("hostanme " + hostname);
         String repositoryTemp = null;
         if (hostname.equals("localhost")) {
@@ -175,8 +181,7 @@ public class ShpeckCustomController {
             HttpServletRequest request
         ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
         LOG.info("get_all_eml_attachment", idMessage);
-        // TODO: Usare repository reale
-        String hostname = getHostname(request);
+        String hostname = nextSdrCommonUtils.getHostname(request);
         System.out.println("hostanme " + hostname);
         String repositoryTemp = null;
         if (hostname.equals("localhost")) {
@@ -213,6 +218,8 @@ public class ShpeckCustomController {
     
     /**
      * Salva la bozza della mail sul database
+     * @param request La Request http
+     * @param idDraftMessage L'id del messaggio bozza che stiamo salvando
      * @param idPec L'id dell'indirizzo PEC a cui appartiene la bozza
      * @param body Il testo html della mail
      * @param hideRecipients Destinatari nascosti
@@ -221,6 +228,7 @@ public class ShpeckCustomController {
      * @param to Array degli indirizzi di destinazione
      * @param cc Array degli indirizzi in copia carbone
      * @param attachments Array degli allegati
+     * @param idMessageReplied Id del messaggio risposto opzionale
      * @throws AddressException Errore nella creazione degli indirizzi
      * @throws IOException Errore di salvataggio
      * @throws MessagingException Errore nella creazione del mimemessage
@@ -228,6 +236,8 @@ public class ShpeckCustomController {
     @Transactional
     @RequestMapping(value = "saveDraftMessage", method = RequestMethod.POST)
     public void saveDraftMessage(
+        HttpServletRequest request,
+        @RequestParam("idDraftMessage") Integer idDraftMessage,
         @RequestParam("idPec") Integer idPec,
         @RequestParam("body") String body,
         @RequestParam("hideRecipients") Boolean hideRecipients,
@@ -235,7 +245,8 @@ public class ShpeckCustomController {
         @RequestParam("from") String from,
         @RequestParam("to") String[] to,
         @RequestParam("cc") String[] cc,
-        @RequestParam("attachments") MultipartFile[] attachments
+        @RequestParam("attachments") MultipartFile[] attachments,
+        @RequestParam("idMessageReplied") Integer idMessageReplied
         ) throws AddressException, IOException, MessagingException {
         
         LOG.info("Saving draft message received from PEC with id: " + idPec);
@@ -273,18 +284,26 @@ public class ShpeckCustomController {
         
         LOG.info("Building mime message...");
         EmlHandlerUtils emlHandlerUtilis = new EmlHandlerUtils();
+        String hostname = nextSdrCommonUtils.getHostname(request);
+        Properties props = null;
+        if (hostname.equals("localhost")) {
+            props = new Properties();
+            props.put("mail.host", "localhost");
+        }
         MimeMessage mimeMessage = null;
         try {
-            mimeMessage = emlHandlerUtilis.buildDraftMessage(body, subject, fromAddress, toAddress, ccAddress, listAttachments);        
+            mimeMessage = emlHandlerUtilis.buildDraftMessage(body, subject, fromAddress, toAddress, ccAddress, listAttachments, props);        
         } catch (MessagingException ex) {
             LOG.error("Errore while generating the mimemessage", ex);
             throw new MessagingException("Errore while generating the mimemessage", ex);
         }
         LOG.info("Mime message generated correctly!");
         LOG.info("Preparing the message for saving...");
-        Draft draftMessage = new Draft();
+        Draft draftMessage = draftRepository.findById(idDraftMessage).orElseThrow();
         try {
+            LOG.info("Find Pec...");
             Pec pec = pecRepository.findById(idPec).orElseThrow();
+            LOG.info("Pec found!");
             draftMessage.setIdPec(pec);
             draftMessage.setSubject(subject);
             draftMessage.setToAddresses(to);
@@ -292,13 +311,25 @@ public class ShpeckCustomController {
             draftMessage.setHiddenRecipients(Boolean.FALSE);
             draftMessage.setCreateTime(LocalDateTime.now());
             draftMessage.setUpdateTime(LocalDateTime.now());
+            LOG.info("Write attachments as bytearrayOutputStream...");
             draftMessage.setAttachmentsNumber(listAttachments != null ? listAttachments.size() : 0);
             draftMessage.setAttachmentsName(listAttachments != null ? listAttachments.stream()
                     .map(EmlHandlerAttachment::getFileName).toArray(size -> new String[size]) : new String[0]);
+            LOG.info("Attachments converted!");
+            LOG.info("Write body...");
             draftMessage.setBody(body);
+            LOG.info("Body wrote!");
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            LOG.info("Write mimemessage to baos...");
             mimeMessage.writeTo(baos);
+            baos.close();
+            LOG.info("Message baos complete!");
             draftMessage.setEml(baos.toByteArray());
+            LOG.info("Message setted!");
+            LOG.info("Find Message...");
+            Message messageReplied = messageRepository.findById(idMessageReplied).orElseThrow();
+            LOG.info("Message found!");
+            draftMessage.setIdMessageReplied(messageReplied);
             LOG.info("Message ready. Saving...");
             draftMessage = draftRepository.save(draftMessage);
         } catch (IOException ex) {
@@ -306,20 +337,6 @@ public class ShpeckCustomController {
             throw new IOException("Error while saving message", ex);
         } finally {
             LOG.info("Draft message saved: {}", draftMessage);
-        }
-    }
-    
-    // Metodo temporano. rimane qui finché non abbiamo il vero repository
-    public String getHostname(HttpServletRequest request) {
-        String res;
-        String header = request.getHeader("X-Forwarded-Host");
-        // TODO: non è detto che vada bene tornare sempre il primo elemento, bisognerebbe controllare che il Path dell'azienda matchi con uno qualsiasi degli elementi
-        if (StringUtils.hasText(header)) {
-            String[] headerToken = header.split(",");
-            res = headerToken[0];
-        } else {
-            res = request.getServerName();
-        }
-        return res;
+        } 
     }
 }
