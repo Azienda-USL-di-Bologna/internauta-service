@@ -15,4 +15,16 @@ public interface MessageRespository extends
         NextSdrQueryDslRepository<Message, Integer, QMessage>, 
         JpaRepository<Message, Integer>,
         CrudRepository<Message, Integer>{
+
+//    @Override
+//    default void customize(QuerydslBindings bindings, QMessage entityPath) {
+//         bindings.bind(entityPath.id).firstOptional((path, value) -> {
+//             System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaa");
+//             System.out.println(path);
+//             System.out.println(value);
+//             return null;
+//         });
+//    }
+    
+    
 }
