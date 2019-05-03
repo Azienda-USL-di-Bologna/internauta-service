@@ -33,7 +33,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
@@ -43,13 +42,13 @@ import javax.mail.MessagingException;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import javax.persistence.EntityNotFoundException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -219,7 +218,7 @@ public class ShpeckCustomController {
     
     /**
      * Salva la bozza della mail sul database
-     * @param request La Request http
+     * @param request La Request Http
      * @param idDraftMessage L'id del messaggio bozza che stiamo salvando
      * @param idPec L'id dell'indirizzo PEC a cui appartiene la bozza
      * @param body Il testo html della mail
@@ -233,8 +232,9 @@ public class ShpeckCustomController {
      * @throws AddressException Errore nella creazione degli indirizzi
      * @throws IOException Errore di salvataggio
      * @throws MessagingException Errore nella creazione del mimemessage
+     * @throws EntityNotFoundException Elemento non trovato nel repository
      */
-    @Transactional
+    @Transactional(rollbackFor = Throwable.class)
     @RequestMapping(value = "saveDraftMessage", method = RequestMethod.POST)
     public void saveDraftMessage(
         HttpServletRequest request,
@@ -248,7 +248,7 @@ public class ShpeckCustomController {
         @RequestParam("cc") String[] cc,
         @RequestParam("attachments") MultipartFile[] attachments,
         @RequestParam("idMessageReplied") Integer idMessageReplied
-        ) throws AddressException, IOException, MessagingException, NoSuchElementException {
+        ) throws AddressException, IOException, MessagingException, EntityNotFoundException {
         
         LOG.info("Saving draft message received from PEC with id: " + idPec);
         LOG.info("Creating the sender address...");
@@ -300,10 +300,10 @@ public class ShpeckCustomController {
         }
         LOG.info("Mime message generated correctly!");
         LOG.info("Preparing the message for saving...");
-        Draft draftMessage = draftRepository.findById(idDraftMessage).orElseThrow();
+        Draft draftMessage = draftRepository.getOne(idDraftMessage);
         try {
             LOG.info("Find Pec...");
-            Pec pec = pecRepository.findById(idPec).orElseThrow();
+            Pec pec = pecRepository.getOne(idPec);
             LOG.info("Pec found!");
             draftMessage.setIdPec(pec);
             draftMessage.setSubject(subject);
@@ -329,7 +329,7 @@ public class ShpeckCustomController {
             LOG.info("Message setted!");
             if (idMessageReplied != null) {
                 LOG.info("Find Message...");
-                Message messageReplied = messageRepository.findById(idMessageReplied).orElseThrow();
+                Message messageReplied = messageRepository.getOne(idMessageReplied);
                 LOG.info("Message found!");
                 draftMessage.setIdMessageReplied(messageReplied);
             }
@@ -338,9 +338,9 @@ public class ShpeckCustomController {
         } catch (IOException ex) {
             LOG.error("Error while saving message");
             throw new IOException("Error while saving message", ex);
-        } catch (NoSuchElementException ex) {
+        } catch (EntityNotFoundException ex) {
             LOG.error("Element not found!", ex);
-            throw new NoSuchElementException("Element not found!");
+            throw new EntityNotFoundException("Element not found!");
         } finally {
             LOG.info("Draft message saved: {}", draftMessage);
         } 
