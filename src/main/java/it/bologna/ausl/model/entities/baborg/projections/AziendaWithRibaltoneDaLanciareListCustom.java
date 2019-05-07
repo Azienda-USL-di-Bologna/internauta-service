@@ -16,8 +16,8 @@ public interface AziendaWithRibaltoneDaLanciareListCustom extends AziendaWithRib
 //    @Value("#{@projectionBeans.getUtenteConPersona(target.getRibaltoneDaLanciare().getIdUtente())}")
 //    public UtenteWithIdPersona();
     
-//    @Value("#{@projectionBeans.getRibaltoneDaLanciareListWithIdUtente(target.getRibaltoneDaLanciare().getIdUtente())}")
-//    public getRibaltoneDaLanciareList();
+    @Value("#{@projectionBeans.getRibaltoneDaLanciareListWithIdUtente(target)}")
+    public Object getRibaltoneDaLanciareList();
     
 //    @Value("#{@projectionBeans.getMessageAddressListWithIdAddress(target)}")
 //    @Override

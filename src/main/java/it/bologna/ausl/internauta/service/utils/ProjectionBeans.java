@@ -11,6 +11,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaWithImpostazioniApplicazioniList;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
+import it.bologna.ausl.model.entities.baborg.projections.RibaltoneDaLanciareCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaCustom;
 import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
 import it.bologna.ausl.model.entities.baborg.projections.generated.PecAziendaWithIdAzienda;
@@ -155,6 +156,10 @@ public class ProjectionBeans {
         } else {
             return null;
         }
+    }
+    
+    public List<RibaltoneDaLanciareCustom> getRibaltoneDaLanciareListWithIdUtente(Azienda a) {
+        return a.getRibaltoneDaLanciareList().stream().map(r -> factory.createProjection(RibaltoneDaLanciareCustom.class, r)).collect(Collectors.toList());
     }
     
 }
