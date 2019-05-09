@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.utils;
 
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
+import it.bologna.ausl.internauta.service.interceptors.ribaltoneutils.RibaltoneDaLanciareInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ImpostazioniApplicazioniRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
@@ -27,8 +28,16 @@ import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.AddressWithPlainFields;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageAddressWithIdAddress;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageTagWithIdTag;
+import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import it.nextsw.common.interceptors.exceptions.InterceptorException;
+import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
+import it.nextsw.common.utils.exceptions.EntityReflectionException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -52,10 +61,15 @@ public class ProjectionBeans {
     
     @Autowired
     protected UtenteRepository utenteRepository;
+    
+    @Autowired
+    ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
 
     protected Utente user, realUser;
     protected Persona person, realPerson;
     protected int idSessionLog;
+    
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ProjectionBeans.class);
 
     protected void setAuthenticatedUserProperties() {
         TokenBasedAuthentication authentication = (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
@@ -159,7 +173,12 @@ public class ProjectionBeans {
     }
     
     public List<RibaltoneDaLanciareCustom> getRibaltoneDaLanciareListWithIdUtente(Azienda a) {
-        return a.getRibaltoneDaLanciareList().stream().map(r -> factory.createProjection(RibaltoneDaLanciareCustom.class, r)).collect(Collectors.toList());
+        try {
+            return (List<RibaltoneDaLanciareCustom>) projectionsInterceptorLauncher.lanciaInterceptorCollection(a, "getRibaltoneDaLanciareList", RibaltoneDaLanciareCustom.class.getSimpleName());
+        } catch (EntityReflectionException | NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | ClassNotFoundException | NoSuchFieldException | InterceptorException | AbortLoadInterceptorException ex) {
+            LOGGER.error("errore nell'estrazione di getRibaltoneDaLanciareList", ex);
+            return null;
+        }
     }
     
 }

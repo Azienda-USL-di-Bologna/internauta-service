@@ -42,7 +42,14 @@ public class InternautaConstants {
             OperationRequested, idPec, idAzienda, idStruttura
         }
         public enum OperationsRequested {
-            GetPermessiGestoriPec, GetPermessiDiFlusso, GetPermessiStrutturePec, FilterPecPerPermissionOfSubject, AddPermissionsOnPec, AddGestoriOnPec, FilterPecPerStandardPermissions
+            GetPermessiGestoriPec, 
+            GetPermessiDiFlusso, 
+            GetPermessiStrutturePec, 
+            FilterPecPerPermissionOfSubject, 
+            AddPermissionsOnPec, 
+            AddGestoriOnPec, 
+            FilterPecPerStandardPermissions,
+            GetUltimoStatoRibaltone
         }
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
             if (additionalData != null) {

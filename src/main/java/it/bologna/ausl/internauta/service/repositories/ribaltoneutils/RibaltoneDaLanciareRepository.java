@@ -7,7 +7,9 @@ import it.bologna.ausl.model.entities.ribaltoneutils.projections.generated.Ribal
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
@@ -18,4 +20,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface RibaltoneDaLanciareRepository extends
         NextSdrQueryDslRepository<RibaltoneDaLanciare, Integer, QRibaltoneDaLanciare>,
         JpaRepository<RibaltoneDaLanciare, Integer> {
+    
+    
+    @Query(
+    value = "SELECT distinct on(id_azienda) id FROM ribaltone_utils.ribaltoni_da_lanciare order by id_azienda, data_inserimento_riga", nativeQuery = true)
+    List<Integer> getUltimoStato();
 }
