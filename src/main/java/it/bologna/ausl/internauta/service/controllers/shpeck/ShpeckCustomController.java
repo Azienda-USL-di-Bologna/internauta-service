@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -228,11 +229,14 @@ public class ShpeckCustomController {
      * @param to Array degli indirizzi di destinazione
      * @param cc Array degli indirizzi in copia carbone
      * @param attachments Array degli allegati
-     * @param idMessageReplied Id del messaggio risposto opzionale
+     * @param idMessageRelated Id del messaggio risposto opzionale
+     * @param messageRelatedType Il tipo della relazione del messaggio related
+     * @param idMessageRelatedAttachments
      * @throws AddressException Errore nella creazione degli indirizzi
      * @throws IOException Errore di salvataggio
      * @throws MessagingException Errore nella creazione del mimemessage
      * @throws EntityNotFoundException Elemento non trovato nel repository
+     * @throws it.bologna.ausl.eml.handler.EmlHandlerException
      */
     @Transactional(rollbackFor = Throwable.class)
     @RequestMapping(value = "saveDraftMessage", method = RequestMethod.POST)
@@ -247,8 +251,10 @@ public class ShpeckCustomController {
         @RequestParam("to") String[] to,
         @RequestParam("cc") String[] cc,
         @RequestParam("attachments") MultipartFile[] attachments,
-        @RequestParam("idMessageReplied") Integer idMessageReplied
-        ) throws AddressException, IOException, MessagingException, EntityNotFoundException {
+        @RequestParam("idMessageRelated") Integer idMessageRelated,
+        @RequestParam("messageRelatedType") String messageRelatedType,
+        @RequestParam("idMessageRelatedAttachments") Integer[] idMessageRelatedAttachments
+        ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException {
         
         LOG.info("Saving draft message received from PEC with id: " + idPec);
         LOG.info("Creating the sender address...");
@@ -271,9 +277,8 @@ public class ShpeckCustomController {
             }
         }
         LOG.info("Creating the attachments array");
-        ArrayList<EmlHandlerAttachment> listAttachments = null;
+        ArrayList<EmlHandlerAttachment> listAttachments = new ArrayList<>();
         if (attachments != null) {
-            listAttachments = new ArrayList<>();
             for (MultipartFile attachment : attachments) {
                 EmlHandlerAttachment file = new EmlHandlerAttachment();
                 file.setFileName(attachment.getOriginalFilename());
@@ -282,9 +287,29 @@ public class ShpeckCustomController {
                 listAttachments.add(file);
             }
         }
+        if (idMessageRelated != null) {
+            if (messageRelatedType != null && 
+                messageRelatedType.equals(Draft.MessageRelatedType.FORWARDED.toString())) {
+                String hostname = nextSdrCommonUtils.getHostname(request);
+                System.out.println("hostanme " + hostname);
+                String repositoryTemp = null;
+                if (hostname.equals("localhost")) {
+                    repositoryTemp = "C:\\Users\\Public\\prova";
+                } else {
+                    repositoryTemp = "/tmp/emlProveShpeckUI/prova";
+                }
+                try {
+                    ArrayList<EmlHandlerAttachment> emls = 
+                            EmlHandler.getListAttachments(repositoryTemp + idMessageRelated + ".eml", idMessageRelatedAttachments);
+                    listAttachments.addAll(emls);
+                } catch (EmlHandlerException ex) {
+                    LOG.error("Error while retrieving the attachments from messaged forwarded. ", ex);
+                    throw new EmlHandlerException("Error while retrieving the attachments from messaged forwarded.");
+                }
+            }
+        }
         
         LOG.info("Building mime message...");
-        EmlHandlerUtils emlHandlerUtilis = new EmlHandlerUtils();
         String hostname = nextSdrCommonUtils.getHostname(request);
         Properties props = null;
         if (hostname.equals("localhost")) {
@@ -293,7 +318,7 @@ public class ShpeckCustomController {
         }
         MimeMessage mimeMessage = null;
         try {
-            mimeMessage = emlHandlerUtilis.buildDraftMessage(body, subject, fromAddress, toAddress, ccAddress, listAttachments, props);        
+            mimeMessage = EmlHandler.buildDraftMessage(body, subject, fromAddress, toAddress, ccAddress, listAttachments, props);        
         } catch (MessagingException ex) {
             LOG.error("Errore while generating the mimemessage", ex);
             throw new MessagingException("Errore while generating the mimemessage", ex);
@@ -327,11 +352,11 @@ public class ShpeckCustomController {
             LOG.info("Message baos complete!");
             draftMessage.setEml(baos.toByteArray());
             LOG.info("Message setted!");
-            if (idMessageReplied != null) {
+            if (idMessageRelated != null) {
                 LOG.info("Find Message...");
-                Message messageReplied = messageRepository.getOne(idMessageReplied);
+                Message messageRelated = messageRepository.getOne(idMessageRelated);
                 LOG.info("Message found!");
-                draftMessage.setIdMessageReplied(messageReplied);
+                draftMessage.setIdMessageRelated(messageRelated);
             }
             LOG.info("Message ready. Saving...");
             draftMessage = draftRepository.save(draftMessage);
