@@ -1,6 +1,3 @@
-/**
- * Auto-Generated using the Jenesis Syntax API
- */
 package it.bologna.ausl.model.entities.baborg.projections;
 
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
@@ -35,15 +32,13 @@ public interface CustomUtenteLogin extends UtenteWithIdAziendaAndIdPersona {
 
     @Value("#{@userInfoService.getAziendePersonaWithPlainField(target)}")
     public List<AziendaWithPlainFields> getAziende();
-
-    @Override
-    @Value("#{null}")
-    public String getPasswordHash();
     
     @Value("#{@projectionBeans.getUtenteRealeWithIdPersonaImpostazioniApplicazioniList(target)}")
     @Override
     public CustomUtenteLogin getUtenteReale();
 
     @Value("#{@userInfoService.getRuoliUtentiPersona(target)}")
+    @Override
     public Map<String, List<Ruolo>> getRuoliUtentiPersona();
+
 }
