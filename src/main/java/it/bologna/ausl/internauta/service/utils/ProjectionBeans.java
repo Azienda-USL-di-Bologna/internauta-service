@@ -24,9 +24,11 @@ import it.bologna.ausl.model.entities.scrivania.projections.generated.AttivitaWi
 import it.bologna.ausl.model.entities.shpeck.Address;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageAddress;
+import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.AddressWithPlainFields;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageAddressWithIdAddress;
+import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageFolderWithIdFolder;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageTagWithIdTag;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.InterceptorException;
@@ -158,7 +160,7 @@ public class ProjectionBeans {
         }
     }
 
-    public List<MessageTagWithIdTag> getMessageTagList(Message message){
+    public List<MessageTagWithIdTag> getMessageTagListWithIdTag(Message message){
         if (message != null) {
             List<MessageTag> messageTagList = message.getMessageTagList();
             if (messageTagList != null && !messageTagList.isEmpty()) {
@@ -168,6 +170,16 @@ public class ProjectionBeans {
                 return null;
             }
         } else {
+            return null;
+        }
+    }
+    
+     
+    public List<MessageFolderWithIdFolder> getMessageFolderListWithIdFolder(Message message){
+        try {
+            return (List<MessageFolderWithIdFolder>) projectionsInterceptorLauncher.lanciaInterceptorCollection(message, "getMessageFolderList", MessageFolderWithIdFolder.class.getSimpleName());
+        } catch (EntityReflectionException | NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | ClassNotFoundException | NoSuchFieldException | InterceptorException | AbortLoadInterceptorException ex) {
+            LOGGER.error("errore nell'estrazione di getRibaltoneDaLanciareList", ex);
             return null;
         }
     }
