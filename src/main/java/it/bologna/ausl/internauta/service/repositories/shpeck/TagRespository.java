@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.repositories.shpeck;
 
+import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.shpeck.QTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.TagWithPlainFields;
@@ -13,4 +14,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TagRespository extends
         NextSdrQueryDslRepository<Tag, Integer, QTag>,
         JpaRepository<Tag, Integer> {
+    
+    public Tag findByidPecAndName(Pec pec, String name);
+    
 }
