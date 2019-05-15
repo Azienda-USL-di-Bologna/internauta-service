@@ -244,7 +244,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions{
         @RequestParam("body") String body,
         @RequestParam("hideRecipients") Boolean hideRecipients,
         @RequestParam("subject") String subject,
-        @RequestParam("from") String from,
         @RequestParam("to") String[] to,
         @RequestParam("cc") String[] cc,
         @RequestParam("attachments") MultipartFile[] attachments,
@@ -266,7 +265,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions{
         
         LOG.info("Getting PEC from repository...");
         Pec pec = pecRepository.getOne(idPec);
-        
+        String from = pec.getIndirizzo();
         LOG.info("Start building mime message...");
         
         if (request.getServletPath().endsWith("saveDraftMessage")) {
