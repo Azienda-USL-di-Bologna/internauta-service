@@ -83,7 +83,11 @@ public class ProjectionBeans {
     }
     
     public UtenteWithIdPersona getUtenteConPersona(Utente utente){
-        return factory.createProjection(UtenteWithIdPersona.class, utente);
+        if (utente != null) {
+            return factory.createProjection(UtenteWithIdPersona.class, utente);
+        } else {
+            return null;
+        }
     }
     
     public UtenteStrutturaWithIdAfferenzaStrutturaCustom 
