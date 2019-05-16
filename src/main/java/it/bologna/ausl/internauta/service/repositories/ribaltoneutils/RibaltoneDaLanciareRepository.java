@@ -23,6 +23,6 @@ public interface RibaltoneDaLanciareRepository extends
     
     
     @Query(
-    value = "SELECT distinct on(id_azienda) id FROM ribaltone_utils.ribaltoni_da_lanciare order by id_azienda, data_inserimento_riga", nativeQuery = true)
+    value = "SELECT distinct on(id_azienda) id FROM ribaltone_utils.ribaltoni_da_lanciare order by id_azienda, data_inserimento_riga desc", nativeQuery = true)
     List<Integer> getUltimoStato();
 }

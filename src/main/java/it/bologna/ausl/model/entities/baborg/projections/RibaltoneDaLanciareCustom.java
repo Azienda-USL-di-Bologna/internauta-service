@@ -10,7 +10,7 @@ import org.springframework.data.rest.core.config.Projection;
 
 
 @Projection(name = "RibaltoneDaLanciareCustom", types = RibaltoneDaLanciare.class)
-public interface RibaltoneDaLanciareCustom extends RibaltoneDaLanciareWithIdUtente{
+public interface RibaltoneDaLanciareCustom extends RibaltoneDaLanciareWithIdUtente {
 
     @Override
     @Value("#{@projectionBeans.getUtenteConPersona(target.getIdUtente())}")

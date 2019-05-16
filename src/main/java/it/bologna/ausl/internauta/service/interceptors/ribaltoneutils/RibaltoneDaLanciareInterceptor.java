@@ -82,7 +82,6 @@ public class RibaltoneDaLanciareInterceptor extends InternautaBaseInterceptor{
                 }
             }
         }
-        System.out.println("aocdinoadsicnaiu DVSVSVSVSVDSDVDVSDVSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS");
         return initialPredicate;
     }
             
