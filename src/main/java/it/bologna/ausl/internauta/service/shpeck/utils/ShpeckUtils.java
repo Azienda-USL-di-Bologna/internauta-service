@@ -5,12 +5,14 @@ import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomController;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
+import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRespository;
 import it.bologna.ausl.model.entities.baborg.Pec;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.Draft.MessageRelatedType;
 import it.bologna.ausl.model.entities.shpeck.Message;
@@ -65,6 +67,9 @@ public class ShpeckUtils {
     
     @Autowired
     private TagRespository tagRepository;
+    
+    @Autowired
+    private ApplicazioneRepository applicazioneRepository;
     
     
     public MimeMessage buildMimeMessage(String from, String[] to, String[] cc, String body, String subject,
@@ -209,12 +214,14 @@ public class ShpeckUtils {
      */
     public void sendMessage(Pec pec, MimeMessage mimeMessage) throws IOException, MessagingException {
         Outbox outboxMessage = new Outbox();
+        Applicazione shpeckApp = applicazioneRepository.getOne("shpeck");
         try {
             outboxMessage.setIdPec(pec);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             mimeMessage.writeTo(output);
             String rawEmail = output.toString();
             outboxMessage.setRawData(rawEmail);
+            outboxMessage.setIdApplicazione(shpeckApp);
             outboxMessage = outboxRepository.save(outboxMessage);   
         } catch (EntityNotFoundException ex) {
             LOG.error("Element not found!", ex);
