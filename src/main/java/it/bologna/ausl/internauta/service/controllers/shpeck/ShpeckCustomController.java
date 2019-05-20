@@ -2,25 +2,24 @@ package it.bologna.ausl.internauta.service.controllers.shpeck;
 
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.eml.handler.EmlHandlerUtils;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
+import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
+import it.bologna.ausl.internauta.service.exceptions.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
-import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRespository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckCacheableFunctions;
+import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.shpeck.Draft;
-import it.bologna.ausl.model.entities.shpeck.Message;
+import it.bologna.ausl.model.entities.shpeck.Draft.MessageRelatedType;
 import it.nextsw.common.utils.CommonUtils;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,14 +32,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
-import java.util.Properties;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
-import javax.mail.Address;
 import javax.mail.MessagingException;
 import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.persistence.EntityNotFoundException;
 import javax.servlet.http.HttpServletRequest;
@@ -58,21 +55,21 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @RestController
 @RequestMapping(value = "${shpeck.mapping.url.root}")
-public class ShpeckCustomController {
+public class ShpeckCustomController implements ControllerHandledExceptions{
 
     private static final Logger LOG = LoggerFactory.getLogger(ShpeckCustomController.class);
     
     @Autowired
-    private DraftRepository draftRepository;
+    private ShpeckUtils shpeckUtils;
+    
+    @Autowired
+    private CommonUtils nextSdrCommonUtils;
     
     @Autowired
     private PecRepository pecRepository;
     
-    @Autowired 
-    private MessageRespository messageRepository;
-    
     @Autowired
-    private CommonUtils nextSdrCommonUtils;
+    private DraftRepository draftRepository;
     /**
      *
      * @param idMessage
@@ -228,14 +225,18 @@ public class ShpeckCustomController {
      * @param to Array degli indirizzi di destinazione
      * @param cc Array degli indirizzi in copia carbone
      * @param attachments Array degli allegati
-     * @param idMessageReplied Id del messaggio risposto opzionale
+     * @param idMessageRelated Id del messaggio risposto opzionale
+     * @param messageRelatedType Il tipo della relazione del messaggio related
+     * @param idMessageRelatedAttachments
      * @throws AddressException Errore nella creazione degli indirizzi
      * @throws IOException Errore di salvataggio
      * @throws MessagingException Errore nella creazione del mimemessage
      * @throws EntityNotFoundException Elemento non trovato nel repository
+     * @throws it.bologna.ausl.eml.handler.EmlHandlerException
+     * @throws it.bologna.ausl.internauta.service.exceptions.Http500ResponseException
      */
     @Transactional(rollbackFor = Throwable.class)
-    @RequestMapping(value = "saveDraftMessage", method = RequestMethod.POST)
+    @RequestMapping(value = {"saveDraftMessage", "sendMessage"}, method = RequestMethod.POST)
     public void saveDraftMessage(
         HttpServletRequest request,
         @RequestParam("idDraftMessage") Integer idDraftMessage,
@@ -243,106 +244,74 @@ public class ShpeckCustomController {
         @RequestParam("body") String body,
         @RequestParam("hideRecipients") Boolean hideRecipients,
         @RequestParam("subject") String subject,
-        @RequestParam("from") String from,
         @RequestParam("to") String[] to,
         @RequestParam("cc") String[] cc,
         @RequestParam("attachments") MultipartFile[] attachments,
-        @RequestParam("idMessageReplied") Integer idMessageReplied
-        ) throws AddressException, IOException, MessagingException, EntityNotFoundException {
+        @RequestParam("idMessageRelated") Integer idMessageRelated,
+        @RequestParam("messageRelatedType") MessageRelatedType messageRelatedType,
+        @RequestParam("idMessageRelatedAttachments") Integer[] idMessageRelatedAttachments
+        ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException {
         
-        LOG.info("Saving draft message received from PEC with id: " + idPec);
-        LOG.info("Creating the sender address...");
-        Address fromAddress = new InternetAddress(from);
-        
-        LOG.info("Creating destination's addresses array");
-        Address toAddress[] = null;
-        if (to != null) {
-            toAddress = new Address[to.length];
-            for (int i = 0; i < to.length; i++) {
-                toAddress[i] = new InternetAddress(to[i]);
-            }
-        }
-        LOG.info("Creating carbon copy's addresses array");
-        Address ccAddress[] = null;
-        if (cc != null) {
-            ccAddress = new Address[cc.length];
-            for (int i = 0; i < cc.length; i++) {
-                ccAddress[i] = new InternetAddress(cc[i]);
-            }
-        }
-        LOG.info("Creating the attachments array");
-        ArrayList<EmlHandlerAttachment> listAttachments = null;
-        if (attachments != null) {
-            listAttachments = new ArrayList<>();
-            for (MultipartFile attachment : attachments) {
-                EmlHandlerAttachment file = new EmlHandlerAttachment();
-                file.setFileName(attachment.getOriginalFilename());
-                file.setMimeType(attachment.getContentType());
-                file.setFileBytes(attachment.getBytes());
-                listAttachments.add(file);
-            }
-        }
-        
-        LOG.info("Building mime message...");
-        EmlHandlerUtils emlHandlerUtilis = new EmlHandlerUtils();
+        LOG.info("Shpeck controller -> Message received from PEC with id: " + idPec);
         String hostname = nextSdrCommonUtils.getHostname(request);
-        Properties props = null;
-        if (hostname.equals("localhost")) {
-            props = new Properties();
-            props.put("mail.host", "localhost");
-        }
-        MimeMessage mimeMessage = null;
-        try {
-            mimeMessage = emlHandlerUtilis.buildDraftMessage(body, subject, fromAddress, toAddress, ccAddress, listAttachments, props);        
-        } catch (MessagingException ex) {
-            LOG.error("Errore while generating the mimemessage", ex);
-            throw new MessagingException("Errore while generating the mimemessage", ex);
-        }
-        LOG.info("Mime message generated correctly!");
-        LOG.info("Preparing the message for saving...");
+        
+        ArrayList<EmlHandlerAttachment> listAttachments = shpeckUtils.convertAttachments(attachments);
+        
+        ArrayList<MimeMessage> mimeMessagesList = null;
+        MimeMessage mimeMessage = null;  
+        
+        LOG.info("Getting draft with idDraft: ", idDraftMessage);
         Draft draftMessage = draftRepository.getOne(idDraftMessage);
-        try {
-            LOG.info("Find Pec...");
-            Pec pec = pecRepository.getOne(idPec);
-            LOG.info("Pec found!");
-            draftMessage.setIdPec(pec);
-            draftMessage.setSubject(subject);
-            draftMessage.setToAddresses(to);
-            draftMessage.setCcAddresses(cc);
-            draftMessage.setHiddenRecipients(hideRecipients);
-//            draftMessage.setCreateTime(LocalDateTime.now());
-            draftMessage.setUpdateTime(LocalDateTime.now());
-            LOG.info("Write attachments as bytearrayOutputStream...");
-            draftMessage.setAttachmentsNumber(listAttachments != null ? listAttachments.size() : 0);
-            draftMessage.setAttachmentsName(listAttachments != null ? listAttachments.stream()
-                    .map(EmlHandlerAttachment::getFileName).toArray(size -> new String[size]) : new String[0]);
-            LOG.info("Attachments converted!");
-            LOG.info("Write body...");
-            draftMessage.setBody(body);
-            LOG.info("Body wrote!");
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            LOG.info("Write mimemessage to baos...");
-            mimeMessage.writeTo(baos);
-            baos.close();
-            LOG.info("Message baos complete!");
-            draftMessage.setEml(baos.toByteArray());
-            LOG.info("Message setted!");
-            if (idMessageReplied != null) {
-                LOG.info("Find Message...");
-                Message messageReplied = messageRepository.getOne(idMessageReplied);
-                LOG.info("Message found!");
-                draftMessage.setIdMessageReplied(messageReplied);
+        
+        LOG.info("Getting PEC from repository...");
+        Pec pec = pecRepository.getOne(idPec);
+        String from = pec.getIndirizzo();
+        LOG.info("Start building mime message...");
+        
+        if (request.getServletPath().endsWith("saveDraftMessage")) {
+            mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments, 
+                idMessageRelated, null, idMessageRelatedAttachments, hostname);
+            LOG.info("Mime message generated correctly!");
+            LOG.info("Preparing the message for saving...");
+            shpeckUtils.saveDraft(draftMessage, pec, subject, to, cc, hideRecipients, 
+                    listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType);
+        } else if (request.getServletPath().endsWith("sendMessage")) {
+            if (Objects.equals(hideRecipients, Boolean.TRUE)) {
+                LOG.info("Hide recipients is true, building mime message for each recipient.");
+                mimeMessagesList = new ArrayList<>();
+                for (String address: to) {
+                    mimeMessage = shpeckUtils.buildMimeMessage(from, new String[] {address}, cc, body, subject, listAttachments, 
+                    idMessageRelated, null, idMessageRelatedAttachments, hostname);
+                    mimeMessagesList.add(mimeMessage);
+                }
+                LOG.info("Mime messages generated correctly!");
+            } else {
+                mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments, 
+                    idMessageRelated, null, idMessageRelatedAttachments, hostname);
+                LOG.info("Mime message generated correctly!");
             }
-            LOG.info("Message ready. Saving...");
-            draftMessage = draftRepository.save(draftMessage);
-        } catch (IOException ex) {
-            LOG.error("Error while saving message");
-            throw new IOException("Error while saving message", ex);
-        } catch (EntityNotFoundException ex) {
-            LOG.error("Element not found!", ex);
-            throw new EntityNotFoundException("Element not found!");
-        } finally {
-            LOG.info("Draft message saved: {}", draftMessage);
-        } 
+            
+            LOG.info("Preparing the message for sending...");
+            try {
+                if (Objects.equals(hideRecipients, Boolean.TRUE) && mimeMessagesList != null) {
+                    for (MimeMessage mime: mimeMessagesList)
+                        shpeckUtils.sendMessage(pec, mime);
+                } else 
+                    shpeckUtils.sendMessage(pec, mimeMessage);
+                
+                if (idMessageRelated != null) {
+                    shpeckUtils.setTagsToMessage(pec, idMessageRelated, messageRelatedType);
+                }
+                
+                shpeckUtils.deleteDraft(draftMessage);   
+            } catch (IOException | MessagingException | EntityNotFoundException ex) {
+                LOG.error("Handling error on send! Trying to save...", ex);
+                mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments, 
+                    idMessageRelated, null, idMessageRelatedAttachments, hostname);
+                shpeckUtils.saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
+                            listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType);
+                throw new Http500ResponseException("007","Errore durante l'invio. La mail è stata salvata nelle bozze.", ex);
+            }
+        }
     }
 }

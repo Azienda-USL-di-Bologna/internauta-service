@@ -94,7 +94,7 @@ public class ShpeckBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QFolder.folder, QFolder.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QFolder.folder, Folder.class);
         return ResponseEntity.ok(resource);
     }
     

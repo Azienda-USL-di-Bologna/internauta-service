@@ -1,5 +1,6 @@
-package it.bologna.ausl.internauta.service.interceptors.baborg;
+package it.bologna.ausl.internauta.service.interceptors.ribaltoneutils;
 
+import it.bologna.ausl.internauta.service.interceptors.baborg.*;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -10,6 +11,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.bologna.ausl.model.entities.ribaltoneutils.QRibaltoneDaLanciare;
+import it.bologna.ausl.model.entities.ribaltoneutils.RibaltoneDaLanciare;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.List;
@@ -25,9 +27,9 @@ import org.springframework.stereotype.Component;
  * @author gusgus
  */
 @Component
-@NextSdrInterceptor(name = "azienda-interceptor")
-public class AziendaInterceptor extends InternautaBaseInterceptor{
-    private static final Logger LOGGER = LoggerFactory.getLogger(AziendaInterceptor.class);
+@NextSdrInterceptor(name = "ribaltonedalanciare-interceptor")
+public class RibaltoneDaLanciareInterceptor extends InternautaBaseInterceptor{
+    private static final Logger LOGGER = LoggerFactory.getLogger(RibaltoneDaLanciareInterceptor.class);
     
     @Autowired
     PersonaRepository personaRepository;
@@ -40,7 +42,7 @@ public class AziendaInterceptor extends InternautaBaseInterceptor{
     
     @Override
     public Class getTargetEntityClass() {
-        return Azienda.class;
+        return RibaltoneDaLanciare.class;
     }
     
     @Override
@@ -64,22 +66,22 @@ public class AziendaInterceptor extends InternautaBaseInterceptor{
 //        /**
 //         * Gestistisco eventuali additional data
 //         */
-//        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
-//        if (operationsRequested != null && !operationsRequested.isEmpty()) {
-//            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
-//                switch (operationRequested) {
-//                    case GetUltimoStatoRibaltone:
-//                    List<Integer> ultimi = ribaltoneDaLanciareRepository.getUltimoStato();
-//                        BooleanExpression ultimoStato = QAzienda.azienda.ribaltoneDaLanciareList.any().id.in(
-//                            ultimi
-//                        );
-////                        BooleanExpression ultimoStato = QAzienda.azienda.strutturaList.any().id.in(ultimi);
-////                        BooleanExpression ultimoStato = QAzienda.azienda.attivitaList.any().id.in(ultimi);
-//                        initialPredicate = ultimoStato.and(initialPredicate);
-//                    break;
-//                }
-//            }
-//        }
+        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                switch (operationRequested) {
+                    case GetUltimoStatoRibaltone:
+                    List<Integer> ultimi = ribaltoneDaLanciareRepository.getUltimoStato();
+                        BooleanExpression ultimoStato = QRibaltoneDaLanciare.ribaltoneDaLanciare.id.in(
+                            ultimi
+                        );
+//                        BooleanExpression ultimoStato = QAzienda.azienda.strutturaList.any().id.in(ultimi);
+//                        BooleanExpression ultimoStato = QAzienda.azienda.attivitaList.any().id.in(ultimi);
+                        initialPredicate = ultimoStato.and(initialPredicate);
+                    break;
+                }
+            }
+        }
         return initialPredicate;
     }
             

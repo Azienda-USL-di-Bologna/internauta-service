@@ -17,8 +17,12 @@ public interface CustomMessageForMailList extends MessageWithMessageAddressListA
     @Override
     public List<MessageAddressWithIdAddress> getMessageAddressList();
     
-    @Value("#{@projectionBeans.getMessageTagList(target)}")
+    @Value("#{@projectionBeans.getMessageTagListWithIdTag(target)}")
     @Override
     public List<MessageTagWithIdTag> getMessageTagList();
+
+    @Override
+    @Value("#{@projectionBeans.getMessageFolderListWithIdFolder(target)}")
+    public Object getMessageFolderList();
    
 }

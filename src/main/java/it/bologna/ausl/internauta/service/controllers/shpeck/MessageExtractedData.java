@@ -9,6 +9,9 @@ import javax.mail.Address;
 /**
  *
  * @author gusgus
+ * 
+ * 
+ * MI SA CHE STA CLASSE NON SERVA A UN CAZZO
  */
 public class MessageExtractedData {
     private List<String> from;
