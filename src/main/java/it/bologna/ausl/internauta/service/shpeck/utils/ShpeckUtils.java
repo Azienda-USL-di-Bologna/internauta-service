@@ -3,7 +3,9 @@ package it.bologna.ausl.internauta.service.shpeck.utils;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
+import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomController;
+import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
@@ -20,11 +22,18 @@ import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.Outbox;
 import it.bologna.ausl.model.entities.shpeck.Tag;
 import it.bologna.ausl.model.entities.shpeck.Tag.SystemTagName;
+import it.bologna.ausl.mongowrapper.MongoWrapper;
 import it.nextsw.common.utils.CommonUtils;
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.Properties;
 import javax.mail.Address;
 import javax.mail.MessagingException;
@@ -32,6 +41,7 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.persistence.EntityNotFoundException;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +59,9 @@ public class ShpeckUtils {
     
     @Autowired
     private CommonUtils nextSdrCommonUtils;
+    
+    @Autowired
+    private MongoConnectionManager mongoConnectionManager;
     
     @Autowired
     private DraftRepository draftRepository;
@@ -70,6 +83,15 @@ public class ShpeckUtils {
     
     @Autowired
     private ApplicazioneRepository applicazioneRepository;
+    
+    /**
+     * usato da {@link #downloadEml(EmlSource, Integer)} per reperire l'eml dalla sorgente giusta
+     */
+    public static enum EmlSource {
+        DRAFT,
+        OUTBOX,
+        MESSAGE
+    }
     
     
     public MimeMessage buildMimeMessage(String from, String[] to, String[] cc, String body, String subject,
@@ -291,4 +313,61 @@ public class ShpeckUtils {
         LOG.info("Tag applied!");
     }
     
+    /**
+     * 
+     * @param emlSource
+     * @param id
+     * @return
+     * @throws BadParamsException 
+     */
+    public File downloadEml(EmlSource emlSource, Integer id) throws BadParamsException, FileNotFoundException, IOException {
+        
+        if (emlSource == null) {
+            throw new BadParamsException("emlSource non definito"); 
+        }
+        String fileName = String.format("%s_%d.eml", emlSource.toString(), id);
+        File emlFile = new File(System.getProperty("java.io.tmpdir"), fileName);
+        switch (emlSource) {
+            case DRAFT:
+                Optional<Draft> draftOp = draftRepository.findById( id );
+                if (draftOp.isEmpty()){
+                    throw new BadParamsException(String.format("bozza %d non trovata", id));
+                } else {
+                    Draft draft = draftOp.get();
+                    try (DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(emlFile))){
+                        dataOs.write(draft.getEml());
+                    }
+                }
+                break;
+            case OUTBOX:
+                Optional<Outbox> outboxOp = outboxRepository.findById(id);
+                if (outboxOp.isEmpty()){
+                    throw new BadParamsException(String.format("messaggio in Uscita %d non trovato", id));
+                } else {
+                    Outbox outbox = outboxOp.get();
+                    try (DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(emlFile))){
+                        dataOs.writeBytes(outbox.getRawData());
+                    }
+                }
+                break;
+            case MESSAGE:
+                Optional<Message> messageOp = messageRepository.findById(id);
+                if (messageOp.isEmpty()){
+                    throw new BadParamsException(String.format("messaggio %d non trovato", id));
+                } else {
+                    Message message = messageOp.get();
+                    MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(message.getIdPec().getIdAziendaRepository().getId());
+                    InputStream is = null;
+                    try (DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(emlFile))){
+                        is = mongoWrapper.get(message.getUuidRepository());
+                        IOUtils.copy(is, dataOs);
+                    }
+                    finally {
+                        IOUtils.closeQuietly(is);
+                    }
+                }
+                break;
+        }
+        return emlFile;
+    }
 }

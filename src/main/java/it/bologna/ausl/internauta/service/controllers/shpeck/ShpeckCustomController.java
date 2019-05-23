@@ -3,17 +3,20 @@ package it.bologna.ausl.internauta.service.controllers.shpeck;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
+import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckCacheableFunctions;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
+import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils.EmlSource;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.Draft.MessageRelatedType;
 import it.nextsw.common.utils.CommonUtils;
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -33,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -55,7 +59,7 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @RestController
 @RequestMapping(value = "${shpeck.mapping.url.root}")
-public class ShpeckCustomController implements ControllerHandledExceptions{
+public class ShpeckCustomController implements ControllerHandledExceptions {
 
     private static final Logger LOG = LoggerFactory.getLogger(ShpeckCustomController.class);
     
@@ -66,6 +70,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions{
     private CommonUtils nextSdrCommonUtils;
     
     @Autowired
+    ShpeckCacheableFunctions shpeckCacheableFunctions;
+    
+    @Autowired
     private PecRepository pecRepository;
     
     @Autowired
@@ -73,27 +80,27 @@ public class ShpeckCustomController implements ControllerHandledExceptions{
     /**
      *
      * @param idMessage
+     * @param emlSource
      * @param request
      * @return
      * @throws EmlHandlerException 
      * @throws java.io.UnsupportedEncodingException 
+     * @throws it.bologna.ausl.internauta.service.exceptions.Http500ResponseException 
      */
     @RequestMapping(value = "extractEmlData/{idMessage}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> extractEmlData(
             @PathVariable(required = true) Integer idMessage,
+            @RequestParam("emlSource") EmlSource emlSource,
             HttpServletRequest request
-        ) throws EmlHandlerException, UnsupportedEncodingException {
-        LOG.info("extractMessageData", idMessage);
-        String hostname = nextSdrCommonUtils.getHostname(request);
-        System.out.println("hostanme " + hostname);
-        String repositoryTemp = null;
-        if (hostname.equals("localhost")) {
-            repositoryTemp = "C:\\Users\\Public\\prova";
-        } else {
-            repositoryTemp = "/tmp/emlProveShpeckUI/prova";
+        ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
+        try {
+            return new ResponseEntity(shpeckCacheableFunctions.getInfoEml(emlSource, idMessage), HttpStatus.OK);
+        } 
+        catch (BadParamsException | IOException ex) {
+            throw new Http500ResponseException("1", "errore nella creazione del file eml", ex);
         }
-        return new ResponseEntity(ShpeckCacheableFunctions.getInfoEml(idMessage, repositoryTemp), HttpStatus.OK);
     }
+
     
     /**
      * 

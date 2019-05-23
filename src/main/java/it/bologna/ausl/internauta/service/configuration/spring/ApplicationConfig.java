@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.configuration;
+package it.bologna.ausl.internauta.service.configuration.spring;
 
 //package it.bologna.ausl.baborg.service.configuration;
 //

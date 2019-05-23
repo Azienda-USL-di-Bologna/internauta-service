@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.configuration;
+package it.bologna.ausl.internauta.service.configuration.spring;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
