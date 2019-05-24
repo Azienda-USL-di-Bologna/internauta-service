@@ -36,7 +36,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Objects;
-import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -94,7 +93,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             HttpServletRequest request
         ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
         try {
-            return new ResponseEntity(shpeckUtils.getInfoEml(emlSource, idMessage), HttpStatus.OK);
+            return new ResponseEntity(shpeckCacheableFunctions.getInfoEml(emlSource, idMessage), HttpStatus.OK);
         } 
         catch (Exception ex) {
             throw new Http500ResponseException("1", "errore nella creazione del file eml", ex);
@@ -359,4 +358,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             }
         }
     }
+    
+//    @RequestMapping(value = "gdm", method = RequestMethod.GET)
+//    public String gdm() {
+//        shpeckCacheableFunctions.testCache(1);
+//        return "ok";
+//    }
 }

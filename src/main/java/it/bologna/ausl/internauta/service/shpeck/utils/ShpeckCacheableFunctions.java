@@ -20,21 +20,9 @@ public class ShpeckCacheableFunctions {
     
     @Autowired
     private ShpeckUtils shpeckUtils;
-
-    public EmlHandlerResult getInfoEmlNonCacheable (ShpeckUtils.EmlSource emlSource, Integer id) throws EmlHandlerException, UnsupportedEncodingException, BadParamsException, IOException {
-        File downloadEml = null;
-        try {
-            downloadEml = shpeckUtils.downloadEml(emlSource, id);
-            return EmlHandler.handleEml(downloadEml.getAbsolutePath());
-        } finally {
-            if (downloadEml != null) {
-                downloadEml.delete();
-            }
-        }
-    }
     
-    @Cacheable(value = "info_eml", key = "{#emlSource.toString(), #id}", cacheManager = "emlCacheManager")
-    public EmlHandlerResult getInfoEmlCacheable (ShpeckUtils.EmlSource emlSource, Integer id) throws EmlHandlerException, UnsupportedEncodingException, BadParamsException, IOException {
+    @Cacheable(value = "info_eml", key = "{#emlSource.toString(), #id}", cacheManager = "emlCacheManager", condition = "{#emlSource.toString() != 'DRAFT'}")
+    public EmlHandlerResult getInfoEml(ShpeckUtils.EmlSource emlSource, Integer id) throws EmlHandlerException, UnsupportedEncodingException, BadParamsException, IOException {
         File downloadEml = null;
         try {
             downloadEml = shpeckUtils.downloadEml(emlSource, id);
@@ -44,35 +32,10 @@ public class ShpeckCacheableFunctions {
                 downloadEml.delete();
             }
         }
-        
     }
-        
-    /**
-     * Effettua il download dell' eml richiesto 
-     * @param emlSource
-     * @param id
-     * @return
-     * @throws EmlHandlerException
-     * @throws UnsupportedEncodingException
-     * @throws BadParamsException
-     * @throws IOException 
-     */
-//    public File downloadEml(ShpeckUtils.EmlSource emlSource, Integer id) throws EmlHandlerException, UnsupportedEncodingException, BadParamsException, IOException {
-//
-//        File downloadedEml = null;
-//        try {
-//            downloadedEml = shpeckUtils.downloadEml(emlSource, id);
-//        }
-////                    catch (BadParamsException | IOException | EmlHandlerException ex) {
-////                        Logger.getLogger(ShpeckCacheableFunctions.class.getName()).log(Level.SEVERE, null, ex);
-////                        return null ;
-////                    } 
-//        finally {
-//            if (downloadedEml != null && downloadedEml.exists()) {
-//                downloadedEml.delete();
-//            }
-//        }
-////                    concurrentMap.put(id.toString(), handledEml);
-//        return  downloadedEml;
+
+//    @Cacheable(value = "gdmgdm", key = "{#id}", cacheManager = "emlCacheManager", condition = "{#id != 1}")
+//    public String testCache(Integer id) {
+//        return "gdm";
 //    }
 }

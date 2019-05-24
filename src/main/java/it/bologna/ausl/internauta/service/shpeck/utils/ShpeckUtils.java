@@ -327,30 +327,6 @@ public class ShpeckUtils {
         messageTagRepository.save(messageTag);
         LOG.info("Tag applied!");
     }
-    
-    /**
-     * Torna EmlHandlerResult dell' id richiesto. 
-     * Usa un method cacheable nel caso EmlSource richiesto sia un Outbox o un Message
-     * Usa un method non cacheable nel caso EmlSource richiesto sia una Draft
-     * @param emlSource
-     * @param id
-     * @return EmlHandlerResult
-     * @throws EmlHandlerException
-     * @throws UnsupportedEncodingException
-     * @throws BadParamsException
-     * @throws IOException 
-     */
-    public EmlHandlerResult getInfoEml (ShpeckUtils.EmlSource emlSource, Integer id) throws EmlHandlerException, UnsupportedEncodingException, BadParamsException, IOException {
-        switch(emlSource) {
-            case DRAFT:
-                return shpeckCacheableFunctions.getInfoEmlNonCacheable(emlSource, id);
-            case OUTBOX:
-            case MESSAGE:
-                return shpeckCacheableFunctions.getInfoEmlCacheable(emlSource, id);
-            default:
-                throw new AssertionError(emlSource.toString());
-        }
-    }
 
     /**
      *
@@ -371,7 +347,7 @@ public class ShpeckUtils {
         switch (emlSource) {
             case DRAFT:
                 Optional<Draft> draftOp = draftRepository.findById(id);
-                if (draftOp.isEmpty()) {
+                if (!draftOp.isPresent()) {
                     throw new BadParamsException(String.format("bozza %d non trovata", id));
                 } else {
                     Draft draft = draftOp.get();
@@ -386,7 +362,7 @@ public class ShpeckUtils {
                 break;
             case OUTBOX:
                 Optional<Outbox> outboxOp = outboxRepository.findById(id);
-                if (outboxOp.isEmpty()) {
+                if (!outboxOp.isPresent()) {
                     throw new BadParamsException(String.format("messaggio in Uscita %d non trovato", id));
                 } else {
                     Outbox outbox = outboxOp.get();
@@ -397,7 +373,7 @@ public class ShpeckUtils {
                 break;
             case MESSAGE:
                 Optional<Message> messageOp = messageRepository.findById(id);
-                if (messageOp.isEmpty()) {
+                if (!messageOp.isPresent()) {
                     throw new BadParamsException(String.format("messaggio %d non trovato", id));
                 } else {
                     Message message = messageOp.get();
