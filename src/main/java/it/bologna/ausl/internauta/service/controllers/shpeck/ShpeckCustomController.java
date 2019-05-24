@@ -94,9 +94,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             HttpServletRequest request
         ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
         try {
-            return new ResponseEntity(shpeckCacheableFunctions.getInfoEml(emlSource, idMessage), HttpStatus.OK);
+            return new ResponseEntity(shpeckUtils.getInfoEml(emlSource, idMessage), HttpStatus.OK);
         } 
-        catch (BadParamsException | IOException ex) {
+        catch (Exception ex) {
             throw new Http500ResponseException("1", "errore nella creazione del file eml", ex);
         }
     }
@@ -105,6 +105,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     /**
      * 
      * @param idMessage
+     * @param emlSource
      * @param response
      * @param request
      * @throws EmlHandlerException
@@ -112,32 +113,46 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws MalformedURLException
      * @throws IOException
      * @throws MessagingException 
+     * @throws java.io.UnsupportedEncodingException 
+     * @throws it.bologna.ausl.internauta.service.exceptions.BadParamsException 
      */
     @RequestMapping(value = "downloadEml/{idMessage}", method = RequestMethod.GET)
     public void downloadEml(
             @PathVariable(required = true) Integer idMessage,
+            @RequestParam("emlSource") EmlSource emlSource,
             HttpServletResponse response,
             HttpServletRequest request
-        ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
+        ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException, UnsupportedEncodingException, BadParamsException {
         LOG.info("getEml", idMessage);
         // TODO: Usare repository reale
-        String hostname = nextSdrCommonUtils.getHostname(request);
-        System.out.println("hostanme " + hostname);
-        String repositoryTemp = null;
-        if (hostname.equals("localhost")) {
-            repositoryTemp = "C:\\Users\\Public\\prova";
-        } else {
-            repositoryTemp = "/tmp/emlProveShpeckUI/prova";
+//        String hostname = nextSdrCommonUtils.getHostname(request);
+//        System.out.println("hostanme " + hostname);
+//        String repositoryTemp = null;
+//        if (hostname.equals("localhost")) {
+//            repositoryTemp = "C:\\Users\\Public\\prova";
+//        } else {
+//            repositoryTemp = "/tmp/emlProveShpeckUI/prova";
+//        }
+        File downloadEml = null;
+        try {
+            downloadEml = shpeckUtils.downloadEml(emlSource, idMessage);
+            try (FileInputStream is = new FileInputStream(downloadEml.getAbsolutePath());){
+                IOUtils.copy(is, response.getOutputStream());
+                response.flushBuffer();
+            }
         }
-        
-        IOUtils.copy(new FileInputStream(repositoryTemp + idMessage + ".eml"), response.getOutputStream());
-        response.flushBuffer();
+        finally {
+            if (downloadEml != null) {
+                downloadEml.delete();
+            }
+        }
     }
     
     /**
      * 
      * @param idMessage
      * @param idAllegato
+     * @param emlSource
      * @param response
      * @param request
      * @throws EmlHandlerException
@@ -145,31 +160,45 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws MalformedURLException
      * @throws IOException
      * @throws MessagingException 
+     * @throws java.io.UnsupportedEncodingException 
+     * @throws it.bologna.ausl.internauta.service.exceptions.BadParamsException 
      */
     @RequestMapping(value = "downloadEmlAttachment/{idMessage}/{idAllegato}", method = RequestMethod.GET)
     public void downloadEmlAttachment(
             @PathVariable(required = true) Integer idMessage,
             @PathVariable(required = true) Integer idAllegato,
+            @RequestParam("emlSource") EmlSource emlSource,
             HttpServletResponse response,
             HttpServletRequest request
-        ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
+        ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException, UnsupportedEncodingException, BadParamsException {
         LOG.info("getEmlAttachment", idMessage, idAllegato);
-        String hostname = nextSdrCommonUtils.getHostname(request);
-        System.out.println("hostanme " + hostname);
-        String repositoryTemp = null;
-        if (hostname.equals("localhost")) {
-            repositoryTemp = "C:\\Users\\Public\\prova";
-        } else {
-            repositoryTemp = "/tmp/emlProveShpeckUI/prova";
+//        String hostname = nextSdrCommonUtils.getHostname(request);
+//        System.out.println("hostanme " + hostname);
+//        String repositoryTemp = null;
+//        if (hostname.equals("localhost")) {
+//            repositoryTemp = "C:\\Users\\Public\\prova";
+//        } else {
+//            repositoryTemp = "/tmp/emlProveShpeckUI/prova";
+//        }
+        File downloadEml = null;
+        try {
+            downloadEml = shpeckUtils.downloadEml(emlSource, idMessage);
+            try (InputStream attachment = EmlHandler.getAttachment(new FileInputStream(downloadEml.getAbsolutePath()), idAllegato)) {
+                IOUtils.copy(attachment, response.getOutputStream());
+                response.flushBuffer();
+            } 
+        } 
+        finally {
+            if( downloadEml != null) {
+                downloadEml.delete();
+            }
         }
-        InputStream attachment = EmlHandler.getAttachment(repositoryTemp + idMessage + ".eml", idAllegato);
-        IOUtils.copy(attachment, response.getOutputStream());
-        response.flushBuffer();
     }
     
     /**
      * 
      * @param idMessage
+     * @param emlSource
      * @param response
      * @param request
      * @throws EmlHandlerException
@@ -177,47 +206,57 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws MalformedURLException
      * @throws IOException
      * @throws MessagingException 
+     * @throws java.io.UnsupportedEncodingException 
+     * @throws it.bologna.ausl.internauta.service.exceptions.BadParamsException 
      */
     @RequestMapping(value = "downloadAllEmlAttachment/{idMessage}", method = RequestMethod.GET,  produces = "application/zip")
     public void downloadAllEmlAttachment(
             @PathVariable(required = true) Integer idMessage,
+            @RequestParam("emlSource") EmlSource emlSource,
             HttpServletResponse response,
             HttpServletRequest request
-        ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException {
+        ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException, UnsupportedEncodingException, BadParamsException {
         LOG.info("get_all_eml_attachment", idMessage);
-        String hostname = nextSdrCommonUtils.getHostname(request);
-        System.out.println("hostanme " + hostname);
-        String repositoryTemp = null;
-        if (hostname.equals("localhost")) {
-            repositoryTemp = "C:\\Users\\Public\\prova";
-        } else {
-            repositoryTemp = "/tmp/emlProveShpeckUI/prova";
-        }
-        
-        response.addHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=allegati.zip");
-        List<Pair> attachments = EmlHandler.getAttachments(repositoryTemp + idMessage + ".eml");
-        ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(response.getOutputStream()));
-        Integer i;
-        for(Pair p : attachments) {
-            i = 0;
-            Boolean in_error = true;
-            while(in_error) {
-                try {
-                    String s = "";
-                    if (i > 0) {
-                        s = "_" + Integer.toString(i); 
+//        String hostname = nextSdrCommonUtils.getHostname(request);
+//        System.out.println("hostanme " + hostname);
+//        String repositoryTemp = null;
+//        if (hostname.equals("localhost")) {
+//            repositoryTemp = "C:\\Users\\Public\\prova";
+//        } else {
+//            repositoryTemp = "/tmp/emlProveShpeckUI/prova";
+//        }
+        File downloadEml = null;
+        ZipOutputStream zos = null;
+        try {
+            downloadEml = shpeckUtils.downloadEml(emlSource, idMessage);
+            response.addHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=allegati.zip");
+            List<Pair> attachments = EmlHandler.getAttachments(new FileInputStream(downloadEml.getAbsolutePath()));
+            zos = new ZipOutputStream(new BufferedOutputStream(response.getOutputStream()));
+            Integer i;
+            for(Pair p : attachments) {
+                i = 0;
+                Boolean in_error = true;
+                while(in_error) {
+                    try {
+                        String s = "";
+                        if (i > 0) {
+                            s = "_" + Integer.toString(i); 
+                        }
+                        zos.putNextEntry(new ZipEntry((String) p.getLeft() + s));
+                        in_error = false;
+                    } catch(ZipException ex) {
+                        i++;
                     }
-                    zos.putNextEntry(new ZipEntry((String) p.getLeft() + s));
-                    in_error = false;
-                } catch(ZipException ex) {
-                    i++;
                 }
+                IOUtils.copy((InputStream) p.getRight(), zos);
             }
-            IOUtils.copy((InputStream) p.getRight(), zos);
+            response.flushBuffer();
+        } finally {
+            IOUtils.closeQuietly(zos);
+            if (downloadEml != null) {
+                downloadEml.delete();
+            }
         }
-        
-        zos.close();
-        response.flushBuffer();
     }
     
     /**
@@ -228,7 +267,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @param body Il testo html della mail
      * @param hideRecipients Destinatari nascosti
      * @param subject L'oggetto della mail
-     * @param from L'indirizzo mittente
      * @param to Array degli indirizzi di destinazione
      * @param cc Array degli indirizzi in copia carbone
      * @param attachments Array degli allegati
