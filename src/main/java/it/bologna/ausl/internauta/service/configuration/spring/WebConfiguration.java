@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.configuration;
+package it.bologna.ausl.internauta.service.configuration.spring;
 
 import it.bologna.ausl.internauta.service.interceptors.RequestInterceptor;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
