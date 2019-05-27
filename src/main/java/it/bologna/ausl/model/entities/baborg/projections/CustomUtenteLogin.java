@@ -40,5 +40,9 @@ public interface CustomUtenteLogin extends UtenteWithIdAziendaAndIdPersona {
     @Value("#{@userInfoService.getRuoliUtentiPersona(target)}")
     @Override
     public Map<String, List<Ruolo>> getRuoliUtentiPersona();
+    
+    @Value("#{@userInfoService.getPermessiDiFlussoByCodiceAzienda(target)}")
+    @Override
+    public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda();
 
 }

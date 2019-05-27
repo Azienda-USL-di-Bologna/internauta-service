@@ -100,6 +100,7 @@ public class AuthorizationUtils {
         
         user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
+        user.setPermessiDiFlussoByCodiceAzienda(userInfoService.getPermessiDiFlussoByCodiceAzienda(user));
         TokenBasedAuthentication authentication;
         if (realUserId != null && !realUserId.equals(userId)) {
             Utente realUser = userInfoService.loadUtente(realUserId, applicazione);

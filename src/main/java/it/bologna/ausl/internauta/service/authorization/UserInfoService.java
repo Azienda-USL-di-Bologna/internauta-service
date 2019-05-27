@@ -33,6 +33,7 @@ import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 
@@ -273,7 +274,9 @@ public class UserInfoService {
         
         return finalMap;
     }
-
+    
+       
+    
     
     @CacheEvict(value = "getRuoli__ribaltorg__", key = "{#utente.getId()}")
     public void getRuoliRemoveCache(Utente utente) {}
@@ -375,6 +378,31 @@ public class UserInfoService {
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
                 false);
     }
+    
+    
+    @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda__ribaltorg__", key = "{#utente.getId()}")
+    public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Utente utente) throws BlackBoxPermissionException {
+        Map<String, List<PermessoEntitaStoredProcedure>> map = new HashMap<>();
+        
+        List<Utente> utentiPersona = utente.getIdPersona().getUtenteList();
+        
+        for (int i = 0; i < utentiPersona.size(); i++) {
+            map.put(utentiPersona.get(i).getIdAzienda().getCodice(), 
+                    permissionManager.getPermissionsOfSubject(utente, null,
+                        Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
+                            InternautaConstants.Permessi.Ambiti.DETE.toString(),
+                            InternautaConstants.Permessi.Ambiti.DELI.toString()}),
+                        Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
+                        false)
+                    );
+        }                                                        
+        
+        return map;               
+        
+    }
+    
+    
+    
     
     
     @Cacheable(value = "getAziendeWherePersonaIsCa__ribaltorg__", key = "{#persona.getId()}")
