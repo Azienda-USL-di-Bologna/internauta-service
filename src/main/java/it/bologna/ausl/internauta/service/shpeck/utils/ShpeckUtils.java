@@ -104,7 +104,7 @@ public class ShpeckUtils {
 
     public MimeMessage buildMimeMessage(String from, String[] to, String[] cc, String body, String subject,
             ArrayList<EmlHandlerAttachment> listAttachments, Integer idMessageRelated, MessageRelatedType messageRelatedType,
-            Integer[] idMessageRelatedAttachments, String hostname) throws AddressException, IOException, MessagingException, EmlHandlerException {
+            Integer[] idMessageRelatedAttachments, String hostname, Draft draftMessage) throws AddressException, IOException, MessagingException, EmlHandlerException, BadParamsException {
         LOG.info("Creating the sender address...");
         Address fromAddress = new InternetAddress(from);
 
@@ -128,23 +128,23 @@ public class ShpeckUtils {
         if (idMessageRelated != null) {
             if (messageRelatedType != null
                     && messageRelatedType.equals(MessageRelatedType.FORWARDED)) {
-                System.out.println("hostanme " + hostname);
-                String repositoryTemp = null;
-                if (hostname.equals("localhost")) {
-                    repositoryTemp = "C:\\Users\\Public\\prova";
-                } else {
-                    repositoryTemp = "/tmp/emlProveShpeckUI/prova";
-                }
+                
+                File downloadEml = this.downloadEml(EmlSource.MESSAGE, idMessageRelated);
                 try {
                     ArrayList<EmlHandlerAttachment> emls
-                            = EmlHandler.getListAttachments(repositoryTemp + idMessageRelated + ".eml", idMessageRelatedAttachments);
+                            = EmlHandler.getListAttachments(downloadEml.getAbsolutePath(), null, idMessageRelatedAttachments);
                     listAttachments.addAll(emls);
                 } catch (EmlHandlerException ex) {
                     LOG.error("Error while retrieving the attachments from messaged forwarded. ", ex);
                     throw new EmlHandlerException("Error while retrieving the attachments from messaged forwarded.");
                 }
             }
-        }
+        } else if (idMessageRelatedAttachments != null && idMessageRelatedAttachments.length > 0) {
+            byte[] eml = draftMessage.getEml();
+             ArrayList<EmlHandlerAttachment> emls
+                            = EmlHandler.getListAttachments(null, eml, idMessageRelatedAttachments);
+                    listAttachments.addAll(emls);
+        }        
 
         LOG.info("Fields ready, building mime message...");
         Properties props = null;
