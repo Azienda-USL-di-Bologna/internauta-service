@@ -384,21 +384,19 @@ public class UserInfoService {
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Utente utente) throws BlackBoxPermissionException {
         Map<String, List<PermessoEntitaStoredProcedure>> map = new HashMap<>();
         
-        List<Utente> utentiPersona = utente.getIdPersona().getUtenteList();
+        List<Utente> utentiPersona = utente.getIdPersona().getUtenteList().stream().filter(u -> u.getAttivo() == true).collect(Collectors.toList());
         
         for (int i = 0; i < utentiPersona.size(); i++) {
             map.put(utentiPersona.get(i).getIdAzienda().getCodice(), 
-                    permissionManager.getPermissionsOfSubject(utente, null,
+                    permissionManager.getPermissionsOfSubject(utentiPersona.get(i), null,
                         Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
                             InternautaConstants.Permessi.Ambiti.DETE.toString(),
                             InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                         Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
                         false)
                     );
-        }                                                        
-        
-        return map;               
-        
+        }                                                               
+        return map;                       
     }
     
     
