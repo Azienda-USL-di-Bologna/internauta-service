@@ -294,7 +294,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         @RequestParam("idMessageRelated") Integer idMessageRelated,
         @RequestParam("messageRelatedType") MessageRelatedType messageRelatedType,
         @RequestParam("idMessageRelatedAttachments") Integer[] idMessageRelatedAttachments
-        ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException {
+        ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException {
         
         LOG.info("Shpeck controller -> Message received from PEC with id: " + idPec);
         String hostname = nextSdrCommonUtils.getHostname(request);
@@ -314,7 +314,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         
         if (request.getServletPath().endsWith("saveDraftMessage")) {
             mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments, 
-                idMessageRelated, null, idMessageRelatedAttachments, hostname);
+                idMessageRelated, messageRelatedType, idMessageRelatedAttachments, hostname, draftMessage);
             LOG.info("Mime message generated correctly!");
             LOG.info("Preparing the message for saving...");
             shpeckUtils.saveDraft(draftMessage, pec, subject, to, cc, hideRecipients, 
@@ -325,13 +325,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 mimeMessagesList = new ArrayList<>();
                 for (String address: to) {
                     mimeMessage = shpeckUtils.buildMimeMessage(from, new String[] {address}, cc, body, subject, listAttachments, 
-                    idMessageRelated, null, idMessageRelatedAttachments, hostname);
+                    idMessageRelated, null, idMessageRelatedAttachments, hostname, draftMessage);
                     mimeMessagesList.add(mimeMessage);
                 }
                 LOG.info("Mime messages generated correctly!");
             } else {
                 mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments, 
-                    idMessageRelated, null, idMessageRelatedAttachments, hostname);
+                    idMessageRelated, null, idMessageRelatedAttachments, hostname, draftMessage);
                 LOG.info("Mime message generated correctly!");
             }
             
@@ -351,7 +351,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             } catch (IOException | MessagingException | EntityNotFoundException ex) {
                 LOG.error("Handling error on send! Trying to save...", ex);
                 mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments, 
-                    idMessageRelated, null, idMessageRelatedAttachments, hostname);
+                    idMessageRelated, null, idMessageRelatedAttachments, hostname, draftMessage);
                 shpeckUtils.saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
                             listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType);
                 throw new Http500ResponseException("007","Errore durante l'invio. La mail è stata salvata nelle bozze.", ex);
