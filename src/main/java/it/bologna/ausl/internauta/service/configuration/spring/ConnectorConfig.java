@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.configuration;
+package it.bologna.ausl.internauta.service.configuration.spring;
 
 import org.apache.catalina.connector.Connector;
 import org.springframework.beans.factory.annotation.Value;
