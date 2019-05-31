@@ -10,6 +10,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaWithImpostazioniApplicazioniList;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.baborg.projections.RibaltoneDaLanciareCustom;
@@ -195,6 +196,20 @@ public class ProjectionBeans {
             LOGGER.error("errore nell'estrazione di getRibaltoneDaLanciareList", ex);
             return null;
         }
+    }
+    
+    public String getUrlCommand(Azienda azienda) {
+        String result = "";
+        Azienda aziendaUtenteLoggato = user.getIdAzienda();
+        
+        result = "aziendaCorrente: " + azienda.getNome() +
+                " - aziendaUtenteLoggato: " + aziendaUtenteLoggato.getNome();
+                        
+        return result;
+    }
+    
+    public CustomAziendaLogin getAziendaLogin(Utente utente) {
+        return factory.createProjection(CustomAziendaLogin.class, utente.getIdAzienda());
     }
     
 }
