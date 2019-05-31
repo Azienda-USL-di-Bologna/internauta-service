@@ -1,43 +1,22 @@
 package it.bologna.ausl.internauta.service.interceptors.shpeck;
 
-import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Template;
-import com.querydsl.core.types.TemplateExpression;
 import com.querydsl.core.types.TemplateFactory;
-import com.querydsl.core.types.Templates;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.BooleanOperation;
 import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.core.types.dsl.StringPath;
-import com.querydsl.core.types.dsl.StringTemplate;
-import edu.emory.mathcs.backport.java.util.Arrays;
 import it.bologna.ausl.blackbox.PermissionManager;
-import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants.*;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Ambiti;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Predicati;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi;
-import it.bologna.ausl.model.entities.baborg.Pec;
-import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 /**
  *
