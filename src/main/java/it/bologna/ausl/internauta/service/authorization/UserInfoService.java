@@ -31,6 +31,9 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
+import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -74,7 +77,7 @@ public class UserInfoService {
     @Value("${internauta.mode}")
     String internautaMode;
     
-    private static final Logger log = LoggerFactory.getLogger(LoginController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
 
     /**
      * carica l'azienda a partire dal path che ha effettuato la richiesta
@@ -399,8 +402,28 @@ public class UserInfoService {
         return map;                       
     }
     
-    
-    
+    public Map<Integer, List<String>> getPermessiPec(Utente utente) throws BlackBoxPermissionException {
+        return getPermessiPec(utente.getIdPersona());
+    }
+
+    public Map<Integer, List<String>> getPermessiPec(Persona persona) throws BlackBoxPermissionException {
+        List<PermessoEntitaStoredProcedure> pecWithStandardPermissions = null;
+        try {
+            pecWithStandardPermissions = permissionManager.getPermissionsOfSubject(
+                    persona,
+                    null,
+                    Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
+                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
+        } catch (BlackBoxPermissionException ex) {
+            LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+
+        }
+
+        Map<Integer, List<String>> res = pecWithStandardPermissions.stream().collect(Collectors.toMap(
+                p -> p.getOggetto().getIdProvenienza(), 
+                p -> p.getCategorie().get(0).getPermessi().stream().map(c -> c.getPredicato()).collect(Collectors.toList())));
+        return res;
+    }
     
     
     @Cacheable(value = "getAziendeWherePersonaIsCa__ribaltorg__", key = "{#persona.getId()}")

@@ -1,5 +1,7 @@
 package it.bologna.ausl.internauta.service.utils;
 
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
@@ -32,6 +34,9 @@ public class CachedEntities {
     @Autowired
     private UtenteRepository utenteRepository;
     
+    @Autowired
+    private UserInfoService userInfoService;
+    
     
     @Cacheable(value = "azienda", key = "{#id}")
     public Azienda getAzienda(Integer id) {
@@ -52,12 +57,14 @@ public class CachedEntities {
     }
 
     @Cacheable(value = "persona__ribaltorg__", key = "{#utente.getId()}")
-    public Persona getPersona(Utente utente) {
+    public Persona getPersona(Utente utente) throws BlackBoxPermissionException {
 //        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
-        Optional<Persona> persona = personaRepository.findById(utente.getIdPersona().getId());
-        if (persona.isPresent()) {
-            persona.get().setApplicazione(utente.getIdPersona().getApplicazione());
-            return persona.get();
+        Optional<Persona> personaOp = personaRepository.findById(utente.getIdPersona().getId());
+        if (personaOp.isPresent()) {
+            Persona persona = personaOp.get();
+            persona.setApplicazione(utente.getIdPersona().getApplicazione());
+            persona.setPermessiPec(userInfoService.getPermessiPec(utente));
+            return persona;
         } else
             return null;
     }
