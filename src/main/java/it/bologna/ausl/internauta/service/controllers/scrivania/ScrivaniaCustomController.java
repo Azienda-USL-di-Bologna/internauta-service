@@ -129,7 +129,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         @RequestParam(required = true) String idApplicazione,
         @RequestParam(required = true) String fileName,
         HttpServletRequest request,
-        HttpServletResponse response) throws HttpInternautaResponseException, IOException {
+        HttpServletResponse response) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
 
         BabelDownloaderResponseBody downloadUrlRsponseBody = babelDownloader.getDownloadUrl(babelDownloader.createRquestBody(guid, tipologia), idAzienda, idApplicazione);
         switch (downloadUrlRsponseBody.getStatus()) {
