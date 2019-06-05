@@ -15,14 +15,13 @@ public interface CustomAziendaLogin {
     public Integer getId();
     
     public String getCodice();
-    
+        
     public String getNome();
     
     public String getDescrizione();
-
-    public String getAoo();    
+ 
     
-    @Value("{@projectionBeans.getUrlCommand(target)}")
+    @Value("#{@projectionBeans.getUrlCommand(target)}")
     public String getUrlCommand();    
     
     

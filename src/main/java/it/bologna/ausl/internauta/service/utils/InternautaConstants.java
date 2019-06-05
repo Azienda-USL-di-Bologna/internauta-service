@@ -72,7 +72,7 @@ public class InternautaConstants {
 
     public static class HttpSessionData {
         public enum Keys {
-            PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject
+            PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject, UtenteLogin, IdSessionLog
         }
     }
 }

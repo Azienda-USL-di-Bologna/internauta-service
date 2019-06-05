@@ -31,6 +31,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -428,4 +429,19 @@ public class UserInfoService {
         Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
         return isCA;
     }
+    
+    @Cacheable(value = "getAziendaLogin_ribaltorg__", key = "{#user.getId()}")
+    public CustomAziendaLogin getAziendaLogin(Utente user) {
+        return factory.createProjection(CustomAziendaLogin.class, user.getIdAzienda());
+    }
+    
+    @Cacheable(value = "getAltreAziendeCustomLogin_ribaltorg__", key = "{#user.getId()}")
+    public List<CustomAziendaLogin> getAltreAziendeCustomLogin(Utente user) {
+        
+        return user.getIdPersona().getUtenteList().stream()
+                .map(u -> factory.createProjection(CustomAziendaLogin.class, u.getIdAzienda()))
+                .collect(Collectors.toList());
+    }
+    
+    
 }

@@ -1,10 +1,13 @@
 package it.bologna.ausl.internauta.service.utils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.ribaltoneutils.RibaltoneDaLanciareInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ImpostazioniApplicazioniRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
@@ -35,8 +38,11 @@ import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.InterceptorException;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URLEncoder;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -67,6 +73,15 @@ public class ProjectionBeans {
     
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+    
+    @Autowired
+    UserInfoService userInfoService;
+    
+    @Autowired
+    HttpSessionData httpSessionData;
+    
+    @Autowired
+    ObjectMapper objectMapper;
 
     protected Utente user, realUser;
     protected Persona person, realPerson;
@@ -198,18 +213,46 @@ public class ProjectionBeans {
         }
     }
     
-    public String getUrlCommand(Azienda azienda) {
-        String result = "";
-        Azienda aziendaUtenteLoggato = user.getIdAzienda();
+    public String getUrlCommand(Azienda azienda) throws IOException {
         
-        result = "aziendaCorrente: " + azienda.getNome() +
-                " - aziendaUtenteLoggato: " + aziendaUtenteLoggato.getNome();
-                        
-        return result;
+        final String FROM = "&from=INTERNAUTA";
+        final String APP_URL = "/Procton/Procton.htm";
+                
+        Utente utente = (Utente)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
+        AziendaParametriJson parametriAziendaLogin = AziendaParametriJson.parse(objectMapper, utente.getIdAzienda().getParametri());                
+        AziendaParametriJson parametriAziendaDestinazione = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+                                      
+        String crossLoginUrlTemplate = parametriAziendaDestinazione.getCrossLoginUrlTemplate();
+        
+        String stringToEncode = "?CMD=ricevi_from_pec_int;[id_pec]";
+        
+        
+        stringToEncode += "&utenteImpersonato=" + utente.getIdPersona().getCodiceFiscale();
+        
+        if(utente.getUtenteReale() != null ){            
+            stringToEncode += "&utenteLogin=" + utente.getUtenteReale().getIdPersona().getCodiceFiscale();
+        } else {
+            stringToEncode += "&utenteLogin=" + utente.getIdPersona().getCodiceFiscale();           
+        }       
+        stringToEncode += "&idSessionLog=" + httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
+        stringToEncode += FROM;
+        stringToEncode += "&modalitaAmministrativa=0";
+        
+        String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");                
+        
+        String assembledUrl = crossLoginUrlTemplate
+            .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath())
+            .replace("[entity-id]", parametriAziendaLogin.getEntityId())
+            .replace("[app]", APP_URL)
+            .replace("[encoded-params]", encodedParams)
+                    ;
+        
+        return "ciao";
+        
     }
     
-    public CustomAziendaLogin getAziendaLogin(Utente utente) {
-        return factory.createProjection(CustomAziendaLogin.class, utente.getIdAzienda());
-    }
+//    public CustomAziendaLogin getAziendaLogin(Utente utente) {
+//        return factory.createProjection(CustomAziendaLogin.class, utente.getIdAzienda());
+//    }
     
 }

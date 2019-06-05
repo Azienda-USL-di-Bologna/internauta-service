@@ -11,6 +11,8 @@ import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.CounterRepository;
+import it.bologna.ausl.internauta.service.utils.HttpSessionData;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
@@ -68,6 +70,9 @@ public class AuthorizationUtils {
 
     @Autowired
     ProjectionFactory factory;
+    
+    @Autowired
+    HttpSessionData httpSessionData;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizationUtils.class);
 
@@ -183,6 +188,8 @@ public class AuthorizationUtils {
                 userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
                 impersonatedUser.setUtenteReale(user);
                 
+                // mi metto in sessione l'utente loggato, mi servirà in altri punti nella procedura di login, in particolare in projection custm
+                httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, impersonatedUser);
 //                impersonatedUser.setPasswordHash(null);
 
 //                CustomUtenteLogin impersonatedUserWithPersonaAndAzienda = factory.createProjection(CustomUtenteLogin.class, impersonatedUser);
@@ -200,15 +207,16 @@ public class AuthorizationUtils {
                         generateLoginResponse(impersonatedUser, realUserSubject, azienda, entityClass, field, utenteImpersonatoStr, secretKey),
                         HttpStatus.OK);
             } else {
+                // mi metto in sessione l'utente loggato, mi servirà in altri punti nella procedura di login, in particolare in projection custm
+                httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, user);
                 // ritorna l'utente stesso perchè non ha i permessi per fare il cambia utente
                 logger.info(String.format("utente %s non ha ruolo SD, ritorna se stesso nel token", realUserSubject));
                 return new ResponseEntity(
                         generateLoginResponse(user, null, azienda, entityClass, field, ssoFieldValue, secretKey),
                         HttpStatus.OK);
-            }
-            
-
+            }            
         } else {
+            httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, user);
             // ritorna l'utente reale perchè non è stato passato l'utente impersonato
             return new ResponseEntity(
                     generateLoginResponse(user, null, azienda, entityClass, field, ssoFieldValue, secretKey),
@@ -255,9 +263,12 @@ public class AuthorizationUtils {
 //        } else {
 //            realUserStr = String.valueOf(currentUser.getId());
 //        }
+        String idSessionLog = String.valueOf(createIdSessionLog().getId());
+        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLog);
 
         CustomUtenteLogin customUtenteLogin = factory.createProjection(CustomUtenteLogin.class, currentUser);
-        return new LoginController.LoginResponse(
+                        
+        return new LoginController.LoginResponse(                               
                 Jwts.builder()
                         .setSubject(String.valueOf(currentUser.getId()))
                         .claim(AuthorizationUtils.TokenClaims.COMPANY.name(), String.valueOf(azienda.getId()))
@@ -265,7 +276,7 @@ public class AuthorizationUtils {
                         .claim(AuthorizationUtils.TokenClaims.USER_ENTITY_CLASS.name(), entityClass)
                         .claim(AuthorizationUtils.TokenClaims.USER_FIELD.name(), field)
                         .claim(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name(), ssoFieldValue)
-                        .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), String.valueOf(createIdSessionLog().getId()))
+                        .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLog)
                         .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUser)
                         .setIssuedAt(currentDateTime.toDate())
                         .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)

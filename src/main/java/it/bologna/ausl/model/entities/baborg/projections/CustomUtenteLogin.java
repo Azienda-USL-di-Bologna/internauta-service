@@ -6,6 +6,7 @@ import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdAziendaAndIdPersona;
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,19 +14,22 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
 @Projection(name = "CustomUtenteWithIdPersona", types = Utente.class)
-public interface CustomUtenteLogin extends UtenteWithIdAziendaAndIdPersona {
+public interface CustomUtenteLogin extends UtenteWithIdPersona {
 
     @Override
     @Value("#{@projectionBeans.getIdPersonaWithImpostazioniApplicazioniList(target)}")
     public CustomPersonaWithImpostazioniApplicazioniList getIdPersona();
 
     
-    @Override
-    //@Value("#{@projectionBeans.getAziendaLogin(target)}")
-    public Azienda getIdAzienda();
-    
+//    @Override
 //    @Value("#{@projectionBeans.getAziendaLogin(target)}")
-//    public CustomAziendaLogin getAziendaLogin();
+//    public Azienda getIdAzienda();
+    
+    @Value("#{@userInfoService.getAziendaLogin(target)}")
+    public CustomAziendaLogin getAziendaLogin();
+    
+    @Value("#{@userInfoService.getAltreAziendeCustomLogin(target)}")
+    public List<CustomAziendaLogin> getAltreAziende();
 
     @Value("#{@userInfoService.getRuoli(target, null)}")
     @Override

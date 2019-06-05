@@ -12,6 +12,8 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.utils.HttpSessionData;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.ProjectionBeans;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -88,6 +90,9 @@ public class LoginController {
 
     @Autowired
     ProjectionFactory factory;
+    
+    @Autowired
+    HttpSessionData httpSessionData;
 
     @RequestMapping(value = "${security.login.path}", method = RequestMethod.POST)
     public ResponseEntity<LoginResponse> loginPOST(@RequestBody final UserLogin userLogin, javax.servlet.http.HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException, IOException {
@@ -123,8 +128,18 @@ public class LoginController {
             userInfoService.getUtentiPersonaByUtenteRemoveCache(utenteReale);
             utente.setUtenteReale(utenteReale);
         }
+        
+
+        
+        
         CustomUtenteLogin utenteWithPersona = factory.createProjection(CustomUtenteLogin.class, utente);
 
+        String idSessionLog = String.valueOf(authorizationUtils.createIdSessionLog().getId());
+        
+        // mi metto in sessione l'utente_loggato e l'id_session_log, mi servirà in altri punti nella procedura di login, 
+        // in particolare in projection custom
+        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, utente);
+        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLog);
 //        utente.setRuoli(userInfoService.getRuoli(utente));
 
         DateTime currentDateTime = DateTime.now();
@@ -132,11 +147,14 @@ public class LoginController {
                 .setSubject(String.valueOf(utente.getId()))
                 .claim(AuthorizationUtils.TokenClaims.SSO_LOGIN.name(), false)
                 .claim(AuthorizationUtils.TokenClaims.COMPANY.name(), utente.getIdAzienda().getId())
-                .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), String.valueOf(authorizationUtils.createIdSessionLog().getId()))
+                .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLog)
                 .setIssuedAt(currentDateTime.toDate())
                 .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)
                 .signWith(SIGNATURE_ALGORITHM, secretKey)
                 .compact();
+        
+        
+        
 
 //        utente.setPasswordHash(null);
         return new ResponseEntity(
