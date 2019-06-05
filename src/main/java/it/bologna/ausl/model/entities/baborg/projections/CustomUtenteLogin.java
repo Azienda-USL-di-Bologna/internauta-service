@@ -20,16 +20,11 @@ public interface CustomUtenteLogin extends UtenteWithIdPersona {
     @Value("#{@projectionBeans.getIdPersonaWithImpostazioniApplicazioniList(target)}")
     public CustomPersonaLogin getIdPersona();
 
-    
-//    @Override
-//    @Value("#{@projectionBeans.getAziendaLogin(target)}")
-//    public Azienda getIdAzienda();
-    
-    @Value("#{@userInfoService.getAziendaLogin(target)}")
+    @Value("#{@userInfoService.getAziendaCustomLogin(target)}")
     public CustomAziendaLogin getAziendaLogin();
     
-    @Value("#{@userInfoService.getAltreAziendeCustomLogin(target)}")
-    public List<CustomAziendaLogin> getAltreAziende();
+    @Value("#{@userInfoService.getAllAziendeCustomLogin(target)}")
+    public List<CustomAziendaLogin> getAziende();
 
     @Value("#{@userInfoService.getRuoli(target, null)}")
     @Override
@@ -39,8 +34,8 @@ public interface CustomUtenteLogin extends UtenteWithIdPersona {
     @Override
     public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso();
 
-    @Value("#{@userInfoService.getAziendePersonaWithPlainField(target)}")
-    public List<AziendaWithPlainFields> getAziende();
+//    @Value("#{@userInfoService.getAziendePersonaWithPlainField(target)}")
+//    public List<AziendaWithPlainFields> getAziende();
     
     @Value("#{@projectionBeans.getUtenteRealeWithIdPersonaImpostazioniApplicazioniList(target)}")
     @Override

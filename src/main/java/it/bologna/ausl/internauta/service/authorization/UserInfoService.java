@@ -454,13 +454,11 @@ public class UserInfoService {
         return isCA;
     }
     
-    @Cacheable(value = "getAziendaLogin_ribaltorg__", key = "{#user.getId()}")
-    public CustomAziendaLogin getAziendaLogin(Utente user) {
+    public CustomAziendaLogin getAziendaCustomLogin(Utente user) {
         return factory.createProjection(CustomAziendaLogin.class, user.getIdAzienda());
     }
     
-    @Cacheable(value = "getAltreAziendeCustomLogin_ribaltorg__", key = "{#user.getId()}")
-    public List<CustomAziendaLogin> getAltreAziendeCustomLogin(Utente user) {
+    public List<CustomAziendaLogin> getAllAziendeCustomLogin(Utente user) {
         
         return user.getIdPersona().getUtenteList().stream()
                 .map(u -> factory.createProjection(CustomAziendaLogin.class, u.getIdAzienda()))

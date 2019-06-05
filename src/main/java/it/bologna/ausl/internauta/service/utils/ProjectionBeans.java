@@ -3,20 +3,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
-import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
-import it.bologna.ausl.internauta.service.authorization.UserInfoService;
-import it.bologna.ausl.internauta.service.interceptors.ribaltoneutils.RibaltoneDaLanciareInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ImpostazioniApplicazioniRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
-import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
-import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaWithImpostazioniApplicazioniList;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.baborg.projections.RibaltoneDaLanciareCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaCustom;
@@ -27,12 +21,9 @@ import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdP
 import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configuration.projections.generated.ImpostazioniApplicazioniWithPlainFields;
 import it.bologna.ausl.model.entities.scrivania.projections.generated.AttivitaWithIdPersona;
-import it.bologna.ausl.model.entities.shpeck.Address;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageAddress;
-import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
-import it.bologna.ausl.model.entities.shpeck.projections.generated.AddressWithPlainFields;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageAddressWithIdAddress;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageFolderWithIdFolder;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageTagWithIdTag;
@@ -44,14 +35,10 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URLEncoder;
 import java.util.List;
-import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
@@ -249,13 +236,15 @@ public class ProjectionBeans {
         String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");                
         
         String assembledUrl = crossLoginUrlTemplate
-            .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath())
-            .replace("[entity-id]", parametriAziendaLogin.getEntityId())
+//            .replace("?entityID=", "")  // TODO da togliere
+//            .replace("&target=", "")   // TODO da togliere
+            .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())
+            .replace("[entity-id]", parametriAziendaLogin.getEntityId()) //parametriAziendaLogin.getEntityId())
             .replace("[app]", APP_URL)
             .replace("[encoded-params]", encodedParams)
                     ;
         
-        return "ciao";
+        return assembledUrl;
         
     }
     
