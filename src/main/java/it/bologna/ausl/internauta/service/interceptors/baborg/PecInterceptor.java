@@ -3,7 +3,6 @@ package it.bologna.ausl.internauta.service.interceptors.baborg;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
-import edu.emory.mathcs.backport.java.util.Arrays;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
@@ -21,13 +20,13 @@ import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -61,7 +60,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortLoadInterceptorException {
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
 
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
@@ -147,7 +146,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         Pec pec = (Pec) entity;        
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
@@ -234,14 +233,14 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             if ((operationsRequested.contains(InternautaConstants.AdditionalData.OperationsRequested.AddPermissionsOnPec) 
                     && this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.PecOfSubject) != null) || 
                     operationsRequested.contains(InternautaConstants.AdditionalData.OperationsRequested.AddGestoriOnPec)) {
                 for (Object entity : entities) {
-                    entity = afterSelectQueryInterceptor(entity, additionalData, request);
+                    entity = afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
                 }
             }
         }
@@ -255,7 +254,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
      * NB: Il CA non può inserire una PEC con la pecAziendaList che contiene aziende non sue, ma questo controllo avviene nel PecAziendaInterceptor
      */
     @Override
-    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException {
+    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeCreateEntityInterceptor di Pec");
         getAuthenticatedUserProperties();
 
@@ -280,7 +279,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
      * In qualsiasi altro caso l'UPDATE è impedito.
      */
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Pec");
         getAuthenticatedUserProperties();
         
@@ -315,7 +314,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
      * In nessuna circostanza permetto la DELETE.
      */
     @Override
-    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         LOGGER.info("in: beforeDeleteEntityInterceptor di Pec");
         throw new AbortSaveInterceptorException();
     }

@@ -1,10 +1,8 @@
 package it.bologna.ausl.internauta.service.shpeck.utils;
 
-import edu.emory.mathcs.backport.java.util.concurrent.ConcurrentHashMap;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.eml.handler.EmlHandlerResult;
 import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomController;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
@@ -33,7 +31,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -45,12 +42,13 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.persistence.EntityNotFoundException;
-import org.apache.commons.io.IOUtils;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -383,7 +381,7 @@ public class ShpeckUtils {
                     InputStream is = null;
                     try (DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(emlFile))) {
                         is = mongoWrapper.get(message.getUuidRepository());
-                        IOUtils.copy(is, dataOs);
+                        StreamUtils.copy(is, dataOs);
                     } finally {
                         IOUtils.closeQuietly(is);
                     }

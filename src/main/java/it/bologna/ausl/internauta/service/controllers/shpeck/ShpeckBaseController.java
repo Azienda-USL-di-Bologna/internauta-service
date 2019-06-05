@@ -5,6 +5,7 @@ import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEn
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRespository;
 import it.bologna.ausl.model.entities.shpeck.Address;
 import it.bologna.ausl.model.entities.shpeck.Draft;
+import it.bologna.ausl.model.entities.shpeck.Note;
 import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.Message;
@@ -13,6 +14,7 @@ import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.QAddress;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
+import it.bologna.ausl.model.entities.shpeck.QNote;
 import it.bologna.ausl.model.entities.shpeck.QFolder;
 import it.bologna.ausl.model.entities.shpeck.QMessageAddress;
 import it.bologna.ausl.model.entities.shpeck.QMessageFolder;
@@ -186,6 +188,19 @@ public class ShpeckBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDraft.draft, Draft.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"note", "note/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> note(
+            @QuerydslPredicate(root = Note.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QNote.note, Note.class);
         return ResponseEntity.ok(resource);
     }
 }
