@@ -46,7 +46,7 @@ public class RibaltoneDaLanciareInterceptor extends InternautaBaseInterceptor{
     }
     
     @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortLoadInterceptorException {
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         //getAuthenticatedUserProperties();  
         
         // sarebbe giusto che solo gli utenti superaziendali vedessero tutte le aziende. 

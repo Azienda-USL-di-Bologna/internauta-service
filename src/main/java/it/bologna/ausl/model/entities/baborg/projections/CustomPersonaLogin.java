@@ -1,6 +1,5 @@
 package it.bologna.ausl.model.entities.baborg.projections;
 
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.projections.generated.PersonaWithImpostazioniApplicazioniList;
 import it.bologna.ausl.model.entities.configuration.projections.generated.ImpostazioniApplicazioniWithPlainFields;

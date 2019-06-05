@@ -3,7 +3,6 @@ package it.bologna.ausl.internauta.service.interceptors.baborg;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
-import edu.emory.mathcs.backport.java.util.Arrays;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
@@ -17,6 +16,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +48,7 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortLoadInterceptorException {
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
                 
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
@@ -94,7 +94,7 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
     }
    
     @Override
-    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
 //        permissionManager.getPermission(entity, additionalData, ambiti, tipi);
         Persona persona = (Persona) entity;        
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
@@ -120,7 +120,7 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
@@ -128,7 +128,7 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
                 
                 if (this.httpSessionData.getData(HttpSessionData.Keys.PersoneWithPecPermissions) != null) {
                     for (Object entity : entities) {
-                        entity = afterSelectQueryInterceptor(entity, additionalData, request);
+                        entity = afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
                     }
                 }
             }

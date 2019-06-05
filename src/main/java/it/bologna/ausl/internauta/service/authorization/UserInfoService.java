@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.PathBuilder;
-import edu.emory.mathcs.backport.java.util.Arrays;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
@@ -40,6 +39,7 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
+import java.util.Arrays;
 
 
 /**

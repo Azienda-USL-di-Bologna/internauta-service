@@ -38,7 +38,7 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) {
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) {
         LOGGER.info("in: beforeSelectQueryInterceptor di Struttura-Unificata");
 
         String getDataByStatoValue = additionalData.get(GET_DATA_BY_STATO);
@@ -86,7 +86,7 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException {
+    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeCreateEntityInterceptor di Struttura-Unificata");
         getAuthenticatedUserProperties();
         if (!isCI(user)) {
@@ -97,7 +97,7 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Struttura-Unificata");
         getAuthenticatedUserProperties();
         if (!isCI(user)) {

@@ -8,7 +8,6 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
-import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
@@ -37,7 +36,6 @@ import it.bologna.ausl.model.entities.scrivania.QAttivita;
 import it.nextsw.common.annotations.NextSdrRepository;
 import it.nextsw.common.controller.exceptions.NotFoundResourceException;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
-import it.nextsw.common.interceptors.RestControllerInterceptorEngine;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.utils.CommonUtils;
 import it.nextsw.common.utils.EntityReflectionUtils;
@@ -49,12 +47,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import okhttp3.Response;
-import org.apache.commons.io.IOUtils;
 import org.jose4j.json.internal.json_simple.JSONArray;
 import org.jose4j.json.internal.json_simple.JSONObject;
 import org.slf4j.Logger;
@@ -64,6 +60,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -143,7 +140,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
                         response.setHeader("Content-Type", "application/pdf");
                         response.setHeader("X-Frame-Options", "sameorigin");
                         response.setHeader("Content-Disposition", ";filename=" + fileName + ".pdf");
-                        IOUtils.copy(downloadStream.body().byteStream(), out, 4096);
+                        StreamUtils.copy(downloadStream.body().byteStream(), out);
                     }
                 }
                 break;
@@ -328,7 +325,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         Iterable<Attivita> notificheList = attivitaRepository.findAll(notifichePersona);
         for(Attivita notifica : notificheList) {
             String attivitaPath = commonUtils.resolvePlaceHolder(EntityReflectionUtils.getFirstAnnotationOverHierarchy(attivitaRepository.getClass(), NextSdrRepository.class).repositoryPath());
-            restControllerEngine.delete(notifica.getId(), request, null, attivitaPath, false);
+            restControllerEngine.delete(notifica.getId(), request, null, attivitaPath, false, null);
             //ttivitaRepository.delete(notifica);
         }
     }

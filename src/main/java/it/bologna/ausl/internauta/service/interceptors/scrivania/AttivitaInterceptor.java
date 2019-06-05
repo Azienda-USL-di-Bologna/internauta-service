@@ -64,7 +64,7 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
     
     
     @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortLoadInterceptorException {
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         BooleanExpression filterUtenteConnesso = QAttivita.attivita.idPersona.id.eq(user.getIdPersona().getId());
         List<Integer> collect = userInfoService.getUtentiPersonaByUtente(user).stream().map(
@@ -77,7 +77,7 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         AziendaParametriJson parametriAziendaOrigine = (AziendaParametriJson) this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda);
         if (parametriAziendaOrigine == null) {
@@ -174,18 +174,18 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
     
     
     @Override
-    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         // si prende utente reale e utente impersonato dal token
         getAuthenticatedUserProperties();
         
         for (Object entity : entities) {
-            this.afterSelectQueryInterceptor(entity, additionalData, request);
+            this.afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
         }
         return entities;
     }
 
     @Override
-    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         getAuthenticatedUserProperties();
         
         Attivita attivita = (Attivita) entity;

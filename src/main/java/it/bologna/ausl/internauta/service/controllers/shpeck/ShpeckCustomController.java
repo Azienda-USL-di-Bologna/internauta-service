@@ -45,10 +45,11 @@ import javax.mail.internet.MimeMessage;
 import javax.persistence.EntityNotFoundException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -136,7 +137,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         try {
             downloadEml = shpeckUtils.downloadEml(emlSource, idMessage);
             try (FileInputStream is = new FileInputStream(downloadEml.getAbsolutePath());){
-                IOUtils.copy(is, response.getOutputStream());
+                StreamUtils.copy(is, response.getOutputStream());
                 response.flushBuffer();
             }
         }
@@ -183,7 +184,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         try {
             downloadEml = shpeckUtils.downloadEml(emlSource, idMessage);
             try (InputStream attachment = EmlHandler.getAttachment(new FileInputStream(downloadEml.getAbsolutePath()), idAllegato)) {
-                IOUtils.copy(attachment, response.getOutputStream());
+                StreamUtils.copy(attachment, response.getOutputStream());
                 response.flushBuffer();
             } 
         } 
@@ -247,7 +248,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         i++;
                     }
                 }
-                IOUtils.copy((InputStream) p.getRight(), zos);
+                StreamUtils.copy((InputStream) p.getRight(), zos);
             }
             response.flushBuffer();
         } finally {
