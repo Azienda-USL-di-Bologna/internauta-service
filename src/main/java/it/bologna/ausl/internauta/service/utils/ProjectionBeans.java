@@ -43,6 +43,9 @@ import org.springframework.stereotype.Component;
 import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  *
@@ -208,44 +211,59 @@ public class ProjectionBeans {
         }
     }
     
-    public String getUrlCommand(Azienda azienda) throws IOException {
-        
+    public Map<String, String> getUrlCommands(Azienda azienda) throws IOException {
+                
         final String FROM = "&from=INTERNAUTA";
-        final String APP_URL = "/Procton/Procton.htm";
+        final String APP_URL_PICO = "/Procton/Procton.htm";
+        
+        Map<String, String> result = new HashMap<>();
                 
         Utente utente = (Utente)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
         AziendaParametriJson parametriAziendaLogin = AziendaParametriJson.parse(objectMapper, utente.getIdAzienda().getParametri());                
         AziendaParametriJson parametriAziendaDestinazione = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
-                                      
         String crossLoginUrlTemplate = parametriAziendaDestinazione.getCrossLoginUrlTemplate();
         
-        String stringToEncode = "?CMD=ricevi_from_pec_int;[id_pec]";
+        // ho due casi praticamente uguali sulla protocollazione di una pec. Il caso in cui creo un nuovo Protocollo 
+        // e il caso in cui aggiungo la pec a un protocollo già esistente
+        // cambia solo il valore del parametro CMD, quindi fascio un ciclo per gestire questi due casi
         
-        
-        stringToEncode += "&utenteImpersonato=" + utente.getIdPersona().getCodiceFiscale();
-        
-        if(utente.getUtenteReale() != null ){            
-            stringToEncode += "&utenteLogin=" + utente.getUtenteReale().getIdPersona().getCodiceFiscale();
-        } else {
-            stringToEncode += "&utenteLogin=" + utente.getIdPersona().getCodiceFiscale();           
-        }       
-        stringToEncode += "&idSessionLog=" + httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
-        stringToEncode += FROM;
-        stringToEncode += "&modalitaAmministrativa=0";
-        
-        String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");                
-        
-        String assembledUrl = crossLoginUrlTemplate
-//            .replace("?entityID=", "")  // TODO da togliere
-//            .replace("&target=", "")   // TODO da togliere
-            .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())
-            .replace("[entity-id]", parametriAziendaLogin.getEntityId()) //parametriAziendaLogin.getEntityId())
-            .replace("[app]", APP_URL)
-            .replace("[encoded-params]", encodedParams)
-                    ;
-        
-        return assembledUrl;
-        
+        for(int i = 0; i < 2; i++){   
+            String stringToEncode = "";
+            
+            if(i == 0){                
+                stringToEncode = "?CMD=ricevi_from_pec_int;[id_pec]";
+            } else {
+                stringToEncode = "?CMD=add_from_pec_int;[id_pec]";
+            }
+
+            stringToEncode += "&richiesta=" + UUID.randomUUID();
+            stringToEncode += "&utenteImpersonato=" + utente.getIdPersona().getCodiceFiscale();
+
+            if(utente.getUtenteReale() != null ){            
+                stringToEncode += "&utenteLogin=" + utente.getUtenteReale().getIdPersona().getCodiceFiscale();
+            } else {
+                stringToEncode += "&utenteLogin=" + utente.getIdPersona().getCodiceFiscale();           
+            }       
+            stringToEncode += "&idSessionLog=" + httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
+            stringToEncode += FROM;
+            stringToEncode += "&modalitaAmministrativa=0";
+
+            String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");                
+
+            String assembledUrl = crossLoginUrlTemplate
+                .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())
+                .replace("[entity-id]", parametriAziendaLogin.getEntityId()) //parametriAziendaLogin.getEntityId())
+                .replace("[app]", APP_URL_PICO)
+                .replace("[encoded-params]", encodedParams);
+            
+            if(i == 0){
+                result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_NEW.toString(), assembledUrl);
+            } else {
+                result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_ADD.toString(), assembledUrl);
+            }
+        }        
+                                                
+        return result;        
     }
     
 //    public CustomAziendaLogin getAziendaLogin(Utente utente) {
