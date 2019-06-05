@@ -6,6 +6,7 @@
 package it.bologna.ausl.model.entities.baborg.projections;
 
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
@@ -21,8 +22,7 @@ public interface CustomAziendaLogin {
     public String getDescrizione();
  
     
-    @Value("#{@projectionBeans.getUrlCommand(target)}")
-    public String getUrlCommand();    
-    
-    
+    @Value("#{@projectionBeans.getUrlCommands(target)}")
+    public Map<String, String> getUrlCommands();    
+        
 }

@@ -75,4 +75,11 @@ public class InternautaConstants {
             PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject, UtenteLogin, IdSessionLog
         }
     }
+    
+    public static class UrlCommand {
+        public enum Keys {
+            PROTOCOLLA_PEC_NEW, PROTOCOLLA_PEC_ADD
+        }
+    }
+    
 }
