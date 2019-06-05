@@ -18,7 +18,7 @@ public interface CustomUtenteLogin extends UtenteWithIdPersona {
 
     @Override
     @Value("#{@projectionBeans.getIdPersonaWithImpostazioniApplicazioniList(target)}")
-    public CustomPersonaWithImpostazioniApplicazioniList getIdPersona();
+    public CustomPersonaLogin getIdPersona();
 
     
 //    @Override

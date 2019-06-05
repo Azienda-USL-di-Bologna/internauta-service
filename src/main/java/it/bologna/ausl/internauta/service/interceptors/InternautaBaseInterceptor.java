@@ -1,7 +1,9 @@
 package it.bologna.ausl.internauta.service.interceptors;
 
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
-import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -12,7 +14,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  *
@@ -33,26 +34,25 @@ public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerIn
     @Autowired
     protected HttpSessionData httpSessionData;
     
-    private static final Logger log = LoggerFactory.getLogger(InternautaBaseInterceptor.class);
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(InternautaBaseInterceptor.class);
 
-    protected void getAuthenticatedUserProperties() {
-        // TODO add url
-
-        //if (threadLocalAuthentication.get() == null) {
-            setAuthentication();
-            user = (Utente) threadLocalAuthentication.get().getPrincipal();
-            realUser = (Utente) threadLocalAuthentication.get().getRealUser();
-            idSessionLog = threadLocalAuthentication.get().getIdSessionLog();
-            person = cachedEntities.getPersona(user);
-            realPerson = cachedEntities.getPersona(realUser);
-        //}
+    protected void getAuthenticatedUserProperties()  {
+        try {
+            // TODO add url
+            AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+            user = authenticatedUserProperties.getUser();
+            realUser = authenticatedUserProperties.getRealUser();
+            idSessionLog = authenticatedUserProperties.getIdSessionLog();
+            person = authenticatedUserProperties.getPerson();
+            realPerson = authenticatedUserProperties.getRealPerson();
+        } catch (BlackBoxPermissionException ex) {
+            LOGGER.error("errore nel reperimento delle AuthenticatedUserProperties", ex);
+        }
     }
 
-    private void setAuthentication() {
-        threadLocalAuthentication.set((TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication());
-    }
-    
-    
     // Forse sarebbe più bello fare un'unica funzione hasRole(utente, ruolo)
     protected boolean isCA(Utente user) {
         List<Ruolo> ruoli = user.getRuoli();

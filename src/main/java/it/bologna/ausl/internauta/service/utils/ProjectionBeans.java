@@ -1,6 +1,8 @@
 package it.bologna.ausl.internauta.service.utils;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.ribaltoneutils.RibaltoneDaLanciareInterceptor;
@@ -51,6 +53,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 
 /**
  *
@@ -75,8 +80,11 @@ public class ProjectionBeans {
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
     
     @Autowired
-    UserInfoService userInfoService;
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
     
+    @Autowired
+    UserInfoService userInfoService;
+
     @Autowired
     HttpSessionData httpSessionData;
     
@@ -89,13 +97,13 @@ public class ProjectionBeans {
     
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ProjectionBeans.class);
 
-    protected void setAuthenticatedUserProperties() {
-        TokenBasedAuthentication authentication = (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        user = (Utente) authentication.getPrincipal();
-        realUser = (Utente) authentication.getRealUser();
-        idSessionLog = authentication.getIdSessionLog();
-        person = cachedEntities.getPersona(user);
-        realPerson = cachedEntities.getPersona(realUser);
+    protected void setAuthenticatedUserProperties() throws BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        user = authenticatedSessionData.getUser();
+        realUser = authenticatedSessionData.getRealUser();
+        idSessionLog = authenticatedSessionData.getIdSessionLog();
+        person = authenticatedSessionData.getPerson();
+        realPerson = authenticatedSessionData.getRealPerson();
     }
     
     public UtenteWithIdPersona getUtenteConPersona(Utente utente){
@@ -138,8 +146,8 @@ public class ProjectionBeans {
 //        } else
 //            return null;
     }
-    public CustomPersonaWithImpostazioniApplicazioniList getIdPersonaWithImpostazioniApplicazioniList(Utente utente) {
-        return factory.createProjection(CustomPersonaWithImpostazioniApplicazioniList.class, utente.getIdPersona());
+    public CustomPersonaLogin getIdPersonaWithImpostazioniApplicazioniList(Utente utente) {
+        return factory.createProjection(CustomPersonaLogin.class, utente.getIdPersona());
     }
     
     public AziendaWithPlainFields getAziendaWithPlainFields(Utente utente) {

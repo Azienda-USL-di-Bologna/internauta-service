@@ -3,6 +3,8 @@ package it.bologna.ausl.internauta.service.controllers.scrivania;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
@@ -47,6 +49,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -110,7 +113,8 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
     
-    protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
     
     private final String CMD_APRI_FIRMONE = "?CMD=open_firmone_local";
     private final String CMD_APRI_PRENDONE = "?CMD=open_prendone_local";
@@ -125,7 +129,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         @RequestParam(required = true) String idApplicazione,
         @RequestParam(required = true) String fileName,
         HttpServletRequest request,
-        HttpServletResponse response) throws HttpInternautaResponseException, IOException {
+        HttpServletResponse response) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
 
         BabelDownloaderResponseBody downloadUrlRsponseBody = babelDownloader.getDownloadUrl(babelDownloader.createRquestBody(guid, tipologia), idAzienda, idApplicazione);
         switch (downloadUrlRsponseBody.getStatus()) {
@@ -207,9 +211,9 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     }
     
     @RequestMapping(value = {"getPrendoneUrls"}, method = RequestMethod.GET)
-    public void getPrendoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Utente utente = (Utente) authentication.getPrincipal();
+    public void getPrendoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente utente = authenticatedSessionData.getUser();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         Azienda aziendaUtenteConnesso = utente.getIdAzienda();
         AziendaParametriJson parametriAziendaUtenteConnesso = AziendaParametriJson.parse(this.objectMapper, aziendaUtenteConnesso.getParametri());
@@ -222,9 +226,9 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
             numeroAziende++;
             try{
                 jsonArrayAziende.add(buildAziendaUrl(azienda, CMD_APRI_PRENDONE, utente, parametriAziendaUtenteConnesso));
-            }catch(IOException e){
+            } catch(IOException | BlackBoxPermissionException e){
                 LOGGER.error("errore nella creazione del link", e);
-                throw new IOException("errore nella creazione del link", e);
+                throw e;
             }
         }
         objResponse.put("size", numeroAziende);
@@ -235,13 +239,13 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         out.flush();
     }
     
-    private JSONObject buildAziendaUrl(Azienda azienda, String command, Utente utente, AziendaParametriJson parametriAziendaUtenteConnesso) throws UnsupportedEncodingException, IOException{       
+    private JSONObject buildAziendaUrl(Azienda azienda, String command, Utente utente, AziendaParametriJson parametriAziendaUtenteConnesso) throws UnsupportedEncodingException, IOException, BlackBoxPermissionException{       
         String stringToEncode = command;
-        TokenBasedAuthentication tokenBasedAuthentication = (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        Utente realUser = (Utente) tokenBasedAuthentication.getRealUser();
-        Persona realPerson = cachedEntities.getPersona(realUser);
-        Persona person = cachedEntities.getPersona(utente);
-        int idSessionLog = tokenBasedAuthentication.getIdSessionLog();
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente realUser = authenticatedSessionData.getRealUser();
+        Persona realPerson = authenticatedSessionData.getRealPerson();
+        Persona person = authenticatedSessionData.getPerson();
+        int idSessionLog = authenticatedSessionData.getIdSessionLog();
         if(person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0){
             stringToEncode += stringToEncode.length() > 0 ? "&utente=" : "?utente=";
             stringToEncode += person.getCodiceFiscale();

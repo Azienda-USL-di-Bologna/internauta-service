@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.controllers.configurazione;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -35,8 +36,7 @@ public class ConfigurazioneCustomController {
     
     @Autowired
     private PersonaRepository personaRepository;
-    
-    
+
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
     
@@ -45,7 +45,7 @@ public class ConfigurazioneCustomController {
     
     @RequestMapping(value = "setImpostazioniApplicazioni", method = RequestMethod.POST)
     @Transactional(rollbackFor = {Exception.class, Error.class})
-    public void setImpostazioniApplicazioni(@RequestBody Map impostazioniVisualizzazione) throws JsonProcessingException {
+    public void setImpostazioniApplicazioni(@RequestBody Map impostazioniVisualizzazione) throws JsonProcessingException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         LOGGER.info(String.format("realPerson: %s", objectMapper.writeValueAsString(authenticatedUserProperties.getRealPerson())));
         LOGGER.info(String.format("realUser: %s", objectMapper.writeValueAsString(authenticatedUserProperties.getRealUser())));

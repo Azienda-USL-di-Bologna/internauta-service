@@ -124,6 +124,8 @@ public class ShpeckUtils {
                 ccAddresses[i] = new InternetAddress(cc[i]);
             }
         }
+        // Copia degli allegati per evitare che vengano duplicati in caso di DestinatariPrivati
+        ArrayList<EmlHandlerAttachment> listAttachmentsTemp = new ArrayList<>(listAttachments);
 
         if (idMessageRelated != null) {
             if (messageRelatedType != null
@@ -133,7 +135,7 @@ public class ShpeckUtils {
                 try {
                     ArrayList<EmlHandlerAttachment> emls
                             = EmlHandler.getListAttachments(downloadEml.getAbsolutePath(), null, idMessageRelatedAttachments);
-                    listAttachments.addAll(emls);
+                    listAttachmentsTemp.addAll(emls);
                 } catch (EmlHandlerException ex) {
                     LOG.error("Error while retrieving the attachments from messaged forwarded. ", ex);
                     throw new EmlHandlerException("Error while retrieving the attachments from messaged forwarded.");
@@ -143,7 +145,7 @@ public class ShpeckUtils {
             byte[] eml = draftMessage.getEml();
              ArrayList<EmlHandlerAttachment> emls
                             = EmlHandler.getListAttachments(null, eml, idMessageRelatedAttachments);
-                    listAttachments.addAll(emls);
+                    listAttachmentsTemp.addAll(emls);
         }        
 
         LOG.info("Fields ready, building mime message...");
@@ -154,7 +156,7 @@ public class ShpeckUtils {
         }
         MimeMessage mimeMessage = null;
         try {
-            mimeMessage = EmlHandler.buildDraftMessage(body, subject, fromAddress, toAddresses, ccAddresses, listAttachments, props);
+            mimeMessage = EmlHandler.buildDraftMessage(body, subject, fromAddress, toAddresses, ccAddresses, listAttachmentsTemp, props);
         } catch (MessagingException ex) {
             LOG.error("Errore while generating the mimemessage", ex);
             throw new MessagingException("Errore while generating the mimemessage", ex);
