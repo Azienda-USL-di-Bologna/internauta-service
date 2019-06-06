@@ -158,13 +158,12 @@ public class AuthorizationUtils {
 
         user.setRuoli(userInfoService.getRuoli(user, null));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
-
+        userInfoService.getPermessiDelegaRemoveCache(user);
+        List<Integer> permessiDelega = userInfoService.getPermessiDelega(user);
+        boolean isDelegato = permessiDelega != null && !permessiDelega.isEmpty() && permessiDelega.contains(user.getId());
         if (user == null) {
             throw new ObjectNotFoundException("User not found");
         }
-
-        
-
         // controlla se è stato passato il parametro di utente impersonato
         if (StringUtils.hasText(utenteImpersonatoStr)) {
             // solo se l'utente reale è super demiurgo allora può fare il cambia utente
@@ -178,7 +177,7 @@ public class AuthorizationUtils {
                 }
             }
 
-            if (isSuperDemiurgo) {
+            if (isSuperDemiurgo || isDelegato) {
                 logger.info(String.format("utente %s ha ruolo SD", realUserSubject));
                 userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, azienda, applicazione);
                 impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda, applicazione);

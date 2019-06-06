@@ -96,6 +96,7 @@ public class LoginController {
     HttpSessionData httpSessionData;
 
     private boolean isSD(Utente user) {
+        user.setRuoli(userInfoService.getRuoli(user, null));
         List<Ruolo> ruoli = user.getRuoli();
         Boolean isSD = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.SD);
         return isSD;
