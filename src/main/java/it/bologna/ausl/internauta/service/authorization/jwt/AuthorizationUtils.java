@@ -32,6 +32,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
+import java.util.Arrays;
 import org.springframework.util.StringUtils;
 
 /**
@@ -159,8 +160,12 @@ public class AuthorizationUtils {
         user.setRuoli(userInfoService.getRuoli(user, null));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         userInfoService.getPermessiDelegaRemoveCache(user);
+        logger.info("user: " + objectMapper.writeValueAsString(user));
+        logger.info("impersonatedUser: " + utenteImpersonatoStr);
+        
         List<Integer> permessiDelega = userInfoService.getPermessiDelega(user);
-        boolean isDelegato = permessiDelega != null && !permessiDelega.isEmpty() && permessiDelega.contains(user.getId());
+        logger.info("permessiDelega: " + Arrays.toString(permessiDelega.toArray()));
+        
         if (user == null) {
             throw new ObjectNotFoundException("User not found");
         }
@@ -176,16 +181,23 @@ public class AuthorizationUtils {
                     break;
                 }
             }
+            
+            
+            userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, azienda, applicazione);
+            impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda, applicazione);
+            userInfoService.loadUtenteRemoveCache(impersonatedUser.getId(), applicazione);
+            userInfoService.getRuoliRemoveCache(impersonatedUser);
+            // TODO: funzione di rimozione permessi cache
+            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
+            impersonatedUser.setUtenteReale(user);
+            
+            boolean isDelegato = permessiDelega != null && !permessiDelega.isEmpty() && permessiDelega.contains(impersonatedUser.getId());
 
+            logger.info("isSuperDemiurgo: " + isSuperDemiurgo);
+            logger.info("isDelegato: " + isDelegato);
             if (isSuperDemiurgo || isDelegato) {
                 logger.info(String.format("utente %s ha ruolo SD", realUserSubject));
-                userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, azienda, applicazione);
-                impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda, applicazione);
-                userInfoService.loadUtenteRemoveCache(impersonatedUser.getId(), applicazione);
-                userInfoService.getRuoliRemoveCache(impersonatedUser);
-                // TODO: funzione di rimozione permessi cache
-                userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
-                impersonatedUser.setUtenteReale(user);
+                
                 
                 // mi metto in sessione l'utente loggato, mi servirà in altri punti nella procedura di login, in particolare in projection custm
                 httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, impersonatedUser);
