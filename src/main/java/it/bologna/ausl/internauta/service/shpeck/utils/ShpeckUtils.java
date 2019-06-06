@@ -128,7 +128,7 @@ public class ShpeckUtils {
         if (idMessageRelated != null) {
             if (messageRelatedType != null
                     && messageRelatedType.equals(MessageRelatedType.FORWARDED)) {
-                
+
                 File downloadEml = this.downloadEml(EmlSource.MESSAGE, idMessageRelated);
                 try {
                     ArrayList<EmlHandlerAttachment> emls
@@ -141,10 +141,10 @@ public class ShpeckUtils {
             }
         } else if (idMessageRelatedAttachments != null && idMessageRelatedAttachments.length > 0) {
             byte[] eml = draftMessage.getEml();
-             ArrayList<EmlHandlerAttachment> emls
-                            = EmlHandler.getListAttachments(null, eml, idMessageRelatedAttachments);
-                    listAttachmentsTemp.addAll(emls);
-        }        
+            ArrayList<EmlHandlerAttachment> emls
+                    = EmlHandler.getListAttachments(null, eml, idMessageRelatedAttachments);
+            listAttachmentsTemp.addAll(emls);
+        }
 
         LOG.info("Fields ready, building mime message...");
         Properties props = null;
@@ -340,7 +340,7 @@ public class ShpeckUtils {
         if (emlSource == null) {
             throw new BadParamsException("emlSource non definito");
         }
-        
+
         String fileName = String.format("%s_%d_%s.eml", emlSource.toString(), id, UUID.randomUUID().toString());
         File emlFile = new File(System.getProperty("java.io.tmpdir"), fileName);
         System.out.println(emlFile.getAbsolutePath());
@@ -377,7 +377,7 @@ public class ShpeckUtils {
                     throw new BadParamsException(String.format("messaggio %d non trovato", id));
                 } else {
                     Message message = messageOp.get();
-                    MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(message.getIdPec().getIdAziendaRepository().getId());
+                    MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(this.getIdAziendaRepository(message));
                     InputStream is = null;
                     try (DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(emlFile))) {
                         is = mongoWrapper.get(message.getUuidRepository());
@@ -389,5 +389,14 @@ public class ShpeckUtils {
                 break;
         }
         return emlFile;
+    }
+
+    private Integer getIdAziendaRepository(Message message) {
+        boolean isMessageReaddressed = message.getMessageTagList().stream().anyMatch(messageTag -> messageTag.getIdTag().getName().equals(Tag.SystemTagName.readdressed_out.toString()));
+        if (!isMessageReaddressed) {
+            return message.getIdPec().getIdAziendaRepository().getId();
+        } else {
+            return this.messageRepository.getIdAziendaRepository(message.getId());
+        }
     }
 }
