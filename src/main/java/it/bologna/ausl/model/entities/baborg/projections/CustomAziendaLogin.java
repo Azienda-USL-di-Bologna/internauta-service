@@ -20,9 +20,10 @@ public interface CustomAziendaLogin {
     public String getNome();
     
     public String getDescrizione();
- 
     
+    @Value("#{@projectionBeans.getParametriAziendaFrontEnd()}")
+    public Map<String, String> getParametri();
+     
     @Value("#{@projectionBeans.getUrlCommands(target)}")
-    public Map<String, String> getUrlCommands();    
-        
+    public Map<String, String> getUrlCommands();           
 }

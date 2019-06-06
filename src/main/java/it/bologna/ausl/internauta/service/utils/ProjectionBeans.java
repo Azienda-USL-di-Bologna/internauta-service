@@ -211,8 +211,14 @@ public class ProjectionBeans {
         }
     }
     
-    public Map<String, String> getUrlCommands(Azienda azienda) throws IOException {
-                
+    /**
+     * restituisce gli url da mettere nelle aziende dell'utente, 
+     * per chiamare le funzioni dell'onCommand sulle applicazioni Inde
+     * @param azienda
+     * @return
+     * @throws IOException 
+     */
+    public Map<String, String> getUrlCommands(Azienda azienda) throws IOException {                
         final String FROM = "&from=INTERNAUTA";
         final String APP_URL_PICO = "/Procton/Procton.htm";
         
@@ -225,11 +231,9 @@ public class ProjectionBeans {
         
         // ho due casi praticamente uguali sulla protocollazione di una pec. Il caso in cui creo un nuovo Protocollo 
         // e il caso in cui aggiungo la pec a un protocollo già esistente
-        // cambia solo il valore del parametro CMD, quindi fascio un ciclo per gestire questi due casi
-        
+        // cambia solo il valore del parametro CMD, quindi fascio un ciclo per gestire questi due casi        
         for(int i = 0; i < 2; i++){   
-            String stringToEncode = "";
-            
+            String stringToEncode = "";            
             if(i == 0){                
                 stringToEncode = "?CMD=ricevi_from_pec_int;[id_pec]";
             } else {
@@ -261,13 +265,32 @@ public class ProjectionBeans {
             } else {
                 result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_ADD.toString(), assembledUrl);
             }
-        }        
-                                                
+        }               
         return result;        
     }
     
-//    public CustomAziendaLogin getAziendaLogin(Utente utente) {
-//        return factory.createProjection(CustomAziendaLogin.class, utente.getIdAzienda());
-//    }
+    /**
+     * restituisce i parametri dell'azienda che servono 
+     * al front end e non contengono informazioni sensibili 
+     * @return
+     */
+    public Map<String, String> getParametriAziendaFrontEnd() throws IOException{
+        
+        final String LOGOUT_URL_KEY = "logoutUrl";
+                
+        Map<String, String> result = new HashMap<>();
+        
+        Utente utente = (Utente)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
+        
+        AziendaParametriJson parametri = AziendaParametriJson.parse(objectMapper, utente.getIdAzienda().getParametri());
+
+        result.put(LOGOUT_URL_KEY, parametri.getLogoutUrl());
+        
+        return result;
+    }
+    
+    
+    
+    
     
 }
