@@ -63,22 +63,22 @@ public class UserInfoService {
 
     @Autowired
     ProjectionFactory factory;
-    
+
     @Autowired
     PermissionManager permissionManager;
-    
+
     @Autowired
     ObjectMapper objectMapper;
-    
+
     @Value("${nextsdr.request.default.azienda-path}")
     String pathAziendaDefault;
-    
+
     @Value("${nextsdr.request.default.azienda-codice}")
     String codiceAziendaDefault;
-    
+
     @Value("${internauta.mode}")
     String internautaMode;
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
 
     /**
@@ -90,13 +90,13 @@ public class UserInfoService {
     @Cacheable(value = "aziendaInfo__ribaltorg__", key = "{#path}")
     public Azienda loadAziendaByPath(String path) {
         BooleanExpression filter;
-        
-        if ((path.equals(pathAziendaDefault)  || path.equals("localhost")) && internautaMode.equalsIgnoreCase("test")){
+
+        if ((path.equals(pathAziendaDefault) || path.equals("localhost")) && internautaMode.equalsIgnoreCase("test")) {
             filter = QAzienda.azienda.codice.eq(codiceAziendaDefault);
         } else {
             filter = Expressions.booleanTemplate("arraycontains({0}, string_to_array({1}, ','))=true", QAzienda.azienda.path, path);
         }
-        
+
         Optional<Azienda> aziendaOp = aziendaRepository.findOne(filter);
         if (aziendaOp.isPresent()) {
             return aziendaOp.get();
@@ -106,7 +106,8 @@ public class UserInfoService {
     }
 
     @CacheEvict(value = "aziendaInfo__ribaltorg__", key = "{#path}")
-    public void loadAziendaByPathRemoveCache(String path) {}
+    public void loadAziendaByPathRemoveCache(String path) {
+    }
 
     /**
      * carica l'utente a partire dall'id
@@ -125,9 +126,10 @@ public class UserInfoService {
         }
         return res;
     }
-    
+
     @CacheEvict(value = "userInfo__ribaltorg__", key = "{#id, #applicazione}")
-    public void loadUtenteRemoveCache(Integer id, String applicazione) {}
+    public void loadUtenteRemoveCache(Integer id, String applicazione) {
+    }
 
     /**
      * carica l'utente a partire dallo username e dal path dell'azienda dalla
@@ -152,15 +154,17 @@ public class UserInfoService {
         }
         return res;
     }
-    
+
     /**
-     * invalida la cache della funzione loadUtente(String username, String aziendaPath)
+     * invalida la cache della funzione loadUtente(String username, String
+     * aziendaPath)
      *
      * @param username
      * @param aziendaPath
      */
     @CacheEvict(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath, #applicazione}")
-    public void loadUtenteRemoveCache(String username, String aziendaPath, String applicazione) {}
+    public void loadUtenteRemoveCache(String username, String aziendaPath, String applicazione) {
+    }
 
     /**
      * carica l'utente cachable a partire dai campi configurati per il login SSO
@@ -197,38 +201,42 @@ public class UserInfoService {
         }
         return res;
     }
-    
+
     /**
-     * invalida la cache della funzione loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda)
-     * 
+     * invalida la cache della funzione loadUtente(Class entityClass, String
+     * field, String ssoFieldValue, Azienda azienda)
+     *
      * @param entityClass
      * @param field
      * @param ssoFieldValue
-     * @param azienda 
-     * @param applicazione 
+     * @param azienda
+     * @param applicazione
      */
     @CacheEvict(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId(), #applicazione}")
-    public void loadUtenteRemoveCache(Class entityClass, String field, String ssoFieldValue, Azienda azienda, String applicazione) {}
+    public void loadUtenteRemoveCache(Class entityClass, String field, String ssoFieldValue, Azienda azienda, String applicazione) {
+    }
 
-     /**
-    * restituisce i ruoli aziendali/interaziendali a seconda del parametro interaziendali o entrambi nel caso in cui il parametro sia null
-    * @param utente
-    * @param interaziendali
-    * @return la lista dei ruoli
-    */
+    /**
+     * restituisce i ruoli aziendali/interaziendali a seconda del parametro
+     * interaziendali o entrambi nel caso in cui il parametro sia null
+     *
+     * @param utente
+     * @param interaziendali
+     * @return la lista dei ruoli
+     */
     @Cacheable(value = "getRuoli__ribaltorg__", key = "{#utente.getId()}")
     public List<Ruolo> getRuoli(Utente utente, Boolean interaziendali) {
         List<Ruolo> res = new ArrayList<>();
         List<Ruolo> ruoliAll = ruoloRepository.findAll();
         for (Ruolo ruolo : ruoliAll) {
-            if(interaziendali == null ||interaziendali == true){
+            if (interaziendali == null || interaziendali == true) {
                 if (ruolo.getSuperAziendale()) {
                     if ((utente.getIdPersona().getBitRuoli() & ruolo.getMascheraBit()) > 0) {
-                       res.add(ruolo);
+                        res.add(ruolo);
                     }
                 }
             }
-            if(interaziendali == null || interaziendali == false) {
+            if (interaziendali == null || interaziendali == false) {
                 if (ruolo.getSuperAziendale() == false) {
                     if ((utente.getBitRuoli() & ruolo.getMascheraBit()) > 0) {
                         res.add(ruolo);
@@ -238,53 +246,55 @@ public class UserInfoService {
         }
         return res;
     }
-    
+
     /**
-    * restituisce tutti i ruoli di tutte le aziende della persona dell'utente, divisi per interaziendali e aziendali.
-    * I ruoli aziendali sono raggruppati per azienda
-    * Vale anche il viceversa: le aziende sono raggruppate per ruolo
-    * @param utente
-    * @return una mappa in cui la chiave è il codice azienda e il valore la lista dei codici ruolo per quell'azienda
-    * nel caso dei ruoli interaziendali la chiave è 'interaziendali' unita a una mappa in cui la chiave è il ruolo e il valore è una lista di codici azienda
-    */
+     * restituisce tutti i ruoli di tutte le aziende della persona dell'utente,
+     * divisi per interaziendali e aziendali. I ruoli aziendali sono raggruppati
+     * per azienda Vale anche il viceversa: le aziende sono raggruppate per
+     * ruolo
+     *
+     * @param utente
+     * @return una mappa in cui la chiave è il codice azienda e il valore la
+     * lista dei codici ruolo per quell'azienda nel caso dei ruoli
+     * interaziendali la chiave è 'interaziendali' unita a una mappa in cui la
+     * chiave è il ruolo e il valore è una lista di codici azienda
+     */
     @Cacheable(value = "getRuoliUtentiPersona__ribaltorg__", key = "{#utente.getId()}")
     public Map<String, List<String>> getRuoliUtentiPersona(Utente utente) {
-                               
-        Map<String, List<String>> mapAziendeRuoli = new HashMap<>();       
+
+        Map<String, List<String>> mapAziendeRuoli = new HashMap<>();
 
         // popolo mappa azienda->listaRuoli
         mapAziendeRuoli = utente.getIdPersona().getUtenteList().stream().collect(
-                Collectors.toMap(u -> 
-                        u.getIdAzienda().getCodice(), u -> 
-                                getRuoli(u, false).stream().map(r -> 
-                                        r.getNomeBreve().toString()).collect(Collectors.toList())));
-        mapAziendeRuoli.put("interaziendali", getRuoli(utente, true).stream().map(r -> r.getNomeBreve().toString()).collect(Collectors.toList())); 
-        
+                Collectors.toMap(u
+                        -> u.getIdAzienda().getCodice(), u
+                        -> getRuoli(u, false).stream().map(r
+                        -> r.getNomeBreve().toString()).collect(Collectors.toList())));
+        mapAziendeRuoli.put("interaziendali", getRuoli(utente, true).stream().map(r -> r.getNomeBreve().toString()).collect(Collectors.toList()));
+
         // popolo mappa ruolo->listaAziene
         Map<String, List<String>> mapRuoloAziende = new HashMap<>();
-        for(Map.Entry<String, List<String>> entry : mapAziendeRuoli.entrySet()){
-            for(String codiceRuolo: entry.getValue()){                                
+        for (Map.Entry<String, List<String>> entry : mapAziendeRuoli.entrySet()) {
+            for (String codiceRuolo : entry.getValue()) {
                 List<String> listAziende = mapRuoloAziende.get(codiceRuolo);
-                if(listAziende == null){
+                if (listAziende == null) {
                     listAziende = new ArrayList<>();
                 }
-                listAziende.add(entry.getKey());                              
+                listAziende.add(entry.getKey());
                 mapRuoloAziende.put(codiceRuolo, listAziende);
             }
         }
-        
+
         // mergio le due mappe
         Map<String, List<String>> finalMap = new HashMap<>(mapAziendeRuoli);
         finalMap.putAll(mapRuoloAziende);
-        
+
         return finalMap;
     }
-    
-       
-    
-    
+
     @CacheEvict(value = "getRuoli__ribaltorg__", key = "{#utente.getId()}")
-    public void getRuoliRemoveCache(Utente utente) {}
+    public void getRuoliRemoveCache(Utente utente) {
+    }
 
     public List<AziendaWithPlainFields> getAziendePersonaWithPlainField(Utente utente) {
         List<AziendaWithPlainFields> res = new ArrayList();
@@ -294,8 +304,9 @@ public class UserInfoService {
 
         if (utenti != null && !utenti.isEmpty()) {
             utenti.stream().forEach(u -> {
-                if (u.getAttivo())
+                if (u.getAttivo()) {
                     res.add(factory.createProjection(AziendaWithPlainFields.class, u.getIdAzienda()));
+                }
             });
         }
         return res;
@@ -316,7 +327,7 @@ public class UserInfoService {
 //        }
 //        return res;
 //    }
-    
+
     @Cacheable(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId()}")
     public List<Utente> getUtentiPersonaByUtente(Utente utente) {
         List<Utente> res = new ArrayList();
@@ -325,85 +336,86 @@ public class UserInfoService {
         List<Utente> utenti = refreshedUtente.getIdPersona().getUtenteList();
 
         if (utenti != null && !utenti.isEmpty()) {
-            utenti.stream().forEach( u -> {
-                if(u.getAttivo()) {
+            utenti.stream().forEach(u -> {
+                if (u.getAttivo()) {
                     res.add(u);
                 }
             });
         }
         return res;
     }
-    
+
     @Cacheable(value = "getUtentiPersona__ribaltorg__", key = "{#persona.getId()}")
     public List<Utente> getUtentiPersona(Persona persona) {
         Persona refreshedPersona = personaRepository.getOne(persona.getId());
         return refreshedPersona.getUtenteList();
     }
-    
+
     @Cacheable(value = "getAziendaUtente__ribaltorg__", key = "{#utente.getId()}")
     public Azienda getAziendaUtente(Utente utente) {
         Utente refreshUtente = utenteRepository.getOne(utente.getId());
         return refreshUtente.getIdAzienda();
     }
-    
+
     @CacheEvict(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId()}")
-    public void getUtentiPersonaByUtenteRemoveCache(Utente utente) {}
-    
+    public void getUtentiPersonaByUtenteRemoveCache(Utente utente) {
+    }
+
     /**
      * restituisce tutte le aziende degli utenti della persona passata
+     *
      * @param persona
-     * @return 
+     * @return
      */
     @Cacheable(value = "getAziendePersona__ribaltorg__", key = "{#persona.getId()}")
     public List<Azienda> getAziendePersona(Persona persona) {
         List<Azienda> res = new ArrayList();
         List<Utente> utentiPersona = getUtentiPersona(persona);
-        
+
         if (utentiPersona != null && !utentiPersona.isEmpty()) {
             utentiPersona.stream().forEach(u -> {
-                if(u.getAttivo())
+                if (u.getAttivo()) {
                     res.add(getAziendaUtente(u));
+                }
             });
         }
-        
+
         return res;
     }
-    
-    
-    
+
     @CacheEvict(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId()}")
-    public void getPermessiDiFlussoRemoveCache(Utente utente) {}
-    
+    public void getPermessiDiFlussoRemoveCache(Utente utente) {
+    }
+
     @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId()}")
     public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente) throws BlackBoxPermissionException {
         return permissionManager.getPermissionsOfSubject(utente, null,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
-                    InternautaConstants.Permessi.Ambiti.DETE.toString(),
-                    InternautaConstants.Permessi.Ambiti.DELI.toString()}),
+            InternautaConstants.Permessi.Ambiti.DETE.toString(),
+            InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
                 false);
     }
-    
-    
+
     @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda__ribaltorg__", key = "{#utente.getId()}")
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Utente utente) throws BlackBoxPermissionException {
         Map<String, List<PermessoEntitaStoredProcedure>> map = new HashMap<>();
-        
+
         List<Utente> utentiPersona = utente.getIdPersona().getUtenteList().stream().filter(u -> u.getAttivo() == true).collect(Collectors.toList());
-        
+
         for (int i = 0; i < utentiPersona.size(); i++) {
-            map.put(utentiPersona.get(i).getIdAzienda().getCodice(), 
+            map.put(utentiPersona.get(i).getIdAzienda().getCodice(),
                     permissionManager.getPermissionsOfSubject(utentiPersona.get(i), null,
-                        Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
-                            InternautaConstants.Permessi.Ambiti.DETE.toString(),
-                            InternautaConstants.Permessi.Ambiti.DELI.toString()}),
-                        Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
-                        false)
-                    );
-        }                                                               
-        return map;                       
+                            Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
+                        InternautaConstants.Permessi.Ambiti.DETE.toString(),
+                        InternautaConstants.Permessi.Ambiti.DELI.toString()}),
+                            Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
+                            false)
+            );
+        }
+        return map;
     }
-    
+
     public Map<Integer, List<String>> getPermessiPec(Utente utente) throws BlackBoxPermissionException {
         return getPermessiPec(utente.getIdPersona());
     }
@@ -422,36 +434,49 @@ public class UserInfoService {
         }
 
         Map<Integer, List<String>> res = pecWithStandardPermissions.stream().collect(Collectors.toMap(
-                p -> p.getOggetto().getIdProvenienza(), 
+                p -> p.getOggetto().getIdProvenienza(),
                 p -> p.getCategorie().get(0).getPermessi().stream().map(c -> c.getPredicato()).collect(Collectors.toList())));
         return res;
     }
-    
-    
+
     @Cacheable(value = "getAziendeWherePersonaIsCa__ribaltorg__", key = "{#persona.getId()}")
     public List<Azienda> getAziendeWherePersonaIsCa(Persona persona) {
         List<Azienda> aziende = null;
-        
+
         aziende = persona.getUtenteList().stream().filter(
                 utente -> getRuoli(utente, false).stream().anyMatch(ruolo -> ruolo.getNomeBreve() == Ruolo.CodiciRuolo.CA)
         ).map(utente -> utente.getIdAzienda()).collect(Collectors.toList());
-        
+
         return aziende;
-    } 
-    
-    
+    }
+
     @Cacheable(value = "isCI__ribaltorg__", key = "{#user.getId()}")
     public boolean isCI(Utente user) {
         List<Ruolo> ruoli = user.getRuoli();
         Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
         return isCI;
     }
-    
+
     @Cacheable(value = "isCA__ribaltorg__", key = "{#user.getId()}")
     public boolean isCA(Utente user) {
         List<Ruolo> ruoli = user.getRuoli();
         Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
         return isCA;
+    }
+
+    @Cacheable(value = "getPermessiDelega__ribaltorg__", key = "{#user.getId()}")
+    public List<Integer> getPermessiDelega(Utente user) throws BlackBoxPermissionException {
+        List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubject(user,
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.DELEGA.toString()}),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.AVATAR.toString()}),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.DELEGA.toString()}), false);
+
+        List<Integer> utentiDeleganti = permissionsOfSubject.stream().map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList());
+        return utentiDeleganti;
+    }
+
+    @CacheEvict(value = "getPermessiDelega__ribaltorg__", key = "{#user.getId()}")
+    public void getPermessiDelegaRemoveCache(Utente user) {
     }
     
     public CustomAziendaLogin getAziendaCustomLogin(Utente user) {

@@ -22,21 +22,19 @@ public interface CustomUtenteLogin extends UtenteWithIdPersona {
 
     @Value("#{@userInfoService.getAziendaCustomLogin(target)}")
     public CustomAziendaLogin getAziendaLogin();
-    
     @Value("#{@userInfoService.getAllAziendeCustomLogin(target)}")
     public List<CustomAziendaLogin> getAziende();
-
     @Value("#{@userInfoService.getRuoli(target, null)}")
     @Override
     public List<Ruolo> getRuoli();
-    
+
     @Value("#{@userInfoService.getPermessiDiFlusso(target)}")
     @Override
     public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso();
 
 //    @Value("#{@userInfoService.getAziendePersonaWithPlainField(target)}")
 //    public List<AziendaWithPlainFields> getAziende();
-    
+
     @Value("#{@projectionBeans.getUtenteRealeWithIdPersonaImpostazioniApplicazioniList(target)}")
     @Override
     public CustomUtenteLogin getUtenteReale();
@@ -44,9 +42,12 @@ public interface CustomUtenteLogin extends UtenteWithIdPersona {
     @Value("#{@userInfoService.getRuoliUtentiPersona(target)}")
     @Override
     public Map<String, List<Ruolo>> getRuoliUtentiPersona();
-    
+
     @Value("#{@userInfoService.getPermessiDiFlussoByCodiceAzienda(target)}")
     @Override
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda();
+
+    @Value("#{@userInfoService.getPermessiDelega(target).size() > 0}")
+    public Boolean getHasPermessoDelega();
 
 }
