@@ -10,6 +10,7 @@ import it.bologna.ausl.internauta.service.exceptions.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRespository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRespository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckCacheableFunctions;
@@ -23,6 +24,7 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.QFolder;
+import it.bologna.ausl.model.entities.shpeck.QMessageFolder;
 import it.bologna.ausl.model.entities.shpeck.QTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
 import it.nextsw.common.utils.CommonUtils;
@@ -99,6 +101,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private FolderRespository folderRepository;
+    
+    @Autowired
+    private MessageFolderRespository messageFolderRespository;
 
     /**
      *
@@ -466,5 +471,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         System.out.println(messageSource.toString());
         System.out.println("-----------------------");
         System.out.println(messageDestination.toString());
+    }
+    
+    @RequestMapping(value = "countMessageInFolder/{idFolder}", method = RequestMethod.GET)
+    public Long countMessageInFolder(@PathVariable(required = true) Integer idFolder) {
+        
+        return messageFolderRespository.count(QMessageFolder.messageFolder.idFolder.id.eq(idFolder));
     }
 }

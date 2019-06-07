@@ -13,4 +13,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface MessageFolderRespository extends
         NextSdrQueryDslRepository<MessageFolder, Integer, QMessageFolder>, 
         JpaRepository<MessageFolder, Integer> {
+    
+//    public Integer countByidFolderId(Integer idFolder);
 }
