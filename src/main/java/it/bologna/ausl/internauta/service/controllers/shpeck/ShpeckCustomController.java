@@ -1,5 +1,7 @@
 package it.bologna.ausl.internauta.service.controllers.shpeck;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
@@ -10,6 +12,7 @@ import it.bologna.ausl.internauta.service.exceptions.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRespository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRespository;
@@ -27,6 +30,7 @@ import it.bologna.ausl.model.entities.shpeck.QFolder;
 import it.bologna.ausl.model.entities.shpeck.QMessageFolder;
 import it.bologna.ausl.model.entities.shpeck.QTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
+import it.bologna.ausl.model.entities.shpeck.views.QMessageComplete;
 import it.nextsw.common.utils.CommonUtils;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -65,6 +69,7 @@ import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StreamUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -103,7 +108,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     private FolderRespository folderRepository;
     
     @Autowired
-    private MessageFolderRespository messageFolderRespository;
+    private MessageCompleteRespository messageCompleteRespository;
 
     /**
      *
@@ -474,8 +479,26 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     }
     
     @RequestMapping(value = "countMessageInFolder/{idFolder}", method = RequestMethod.GET)
-    public Long countMessageInFolder(@PathVariable(required = true) Integer idFolder) {
+    public Long countMessageInFolder(
+            @PathVariable(required = true) Integer idFolder,
+            @RequestParam(name = "unSeen", required = false, defaultValue = "false") Boolean unSeen) {
         
-        return messageFolderRespository.count(QMessageFolder.messageFolder.idFolder.id.eq(idFolder));
+        BooleanExpression filter = QMessageComplete.messageComplete.idFolder.id.eq(idFolder);
+        if (unSeen) {
+            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
+        }
+        return messageCompleteRespository.count(filter);
+    }
+    
+    @RequestMapping(value = "countMessageInTag/{idTag}", method = RequestMethod.GET)
+    public Long countMessageInTag(
+            @PathVariable(required = true) Integer idTag,
+            @RequestParam(name = "unSeen", required = false, defaultValue = "false") Boolean unSeen) {
+        
+        BooleanExpression filter = Expressions.booleanTemplate("arraycontains({0}, tools.string_to_integer_array({1}, ','))=true", QMessageComplete.messageComplete.idTags, String.valueOf(idTag));
+        if (unSeen) {
+            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
+        }
+        return messageCompleteRespository.count(filter);
     }
 }
