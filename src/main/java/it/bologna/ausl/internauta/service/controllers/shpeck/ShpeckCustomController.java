@@ -17,6 +17,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRespository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRespository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckCacheableFunctions;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
@@ -32,6 +33,7 @@ import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.QFolder;
 import it.bologna.ausl.model.entities.shpeck.QMessageFolder;
+import it.bologna.ausl.model.entities.shpeck.QMessageTag;
 import it.bologna.ausl.model.entities.shpeck.QTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
 import it.bologna.ausl.model.entities.shpeck.views.QMessageComplete;
@@ -120,6 +122,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     
     @Autowired
     private PersonaRepository personaRepository;
+    
+    @Autowired
+    private  MessageTagRespository messageTagRespository;
 
     /**
      *
@@ -418,7 +423,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      */
     @Transactional
     @RequestMapping(value = {"readdressMessage"}, method = RequestMethod.POST)
-    public void readdressMessage(
+    public String readdressMessage(
             @RequestParam("idMessageSource") Integer idMessageSource,
             @RequestParam("idPecDestination") Integer idPecDestination) throws CloneNotSupportedException, Http409ResponseException {
         // la funzione è disponibile solo se il messaggio non è stato già reindirizzato
@@ -506,12 +511,16 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         additionalDataSource.add("idUtente", idUtente);
         additionalDataSource.add("idPecDst", idPecDestinationJson);
         messageTagSource.setAdditionalData(additionalDataSource.toString());
+        List<MessageFolder> messageFolderList = messageSource.getMessageFolderList();
+        
         messageTagListSource.add(messageTagSource);
         messageRepository.save(messageSource);
 
         System.out.println(messageSource.toString());
         System.out.println("-----------------------");
         System.out.println(messageDestination.toString());
+        
+        return additionalDataSource.toString();
     }
     
     /**
@@ -531,15 +540,24 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         return messageCompleteRespository.count(filter);
     }
     
+//    @RequestMapping(value = "countMessageInTag/{idTag}", method = RequestMethod.GET)
+//    public Long countMessageInTag(
+//            @PathVariable(required = true) Integer idTag,
+//            @RequestParam(name = "unSeen", required = false, defaultValue = "false") Boolean unSeen) {
+//        
+//        BooleanExpression filter = Expressions.booleanTemplate("arraycontains({0}, tools.string_to_integer_array({1}, ','))=true", QMessageComplete.messageComplete.idTags, String.valueOf(idTag));
+//        if (unSeen) {
+//            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
+//        }
+//        return messageCompleteRespository.count(filter);
+//    }
+    /**
+     * La funzione conta quanti messaggi hanno l'idTag passato
+     * @param idTag
+     * @return 
+     */
     @RequestMapping(value = "countMessageInTag/{idTag}", method = RequestMethod.GET)
-    public Long countMessageInTag(
-            @PathVariable(required = true) Integer idTag,
-            @RequestParam(name = "unSeen", required = false, defaultValue = "false") Boolean unSeen) {
-        
-        BooleanExpression filter = Expressions.booleanTemplate("arraycontains({0}, tools.string_to_integer_array({1}, ','))=true", QMessageComplete.messageComplete.idTags, String.valueOf(idTag));
-        if (unSeen) {
-            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
-        }
-        return messageCompleteRespository.count(filter);
+    public Long countMessageInTag(@PathVariable(required = true) Integer idTag) {
+        return messageTagRespository.count(QMessageTag.messageTag.idTag.id.eq(idTag));
     }
 }
