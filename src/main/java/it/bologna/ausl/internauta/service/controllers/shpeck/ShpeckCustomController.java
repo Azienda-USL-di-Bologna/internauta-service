@@ -3,9 +3,12 @@ package it.bologna.ausl.internauta.service.controllers.shpeck;
 import com.google.gson.JsonObject;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.Http409ResponseException;
@@ -17,6 +20,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRespository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRespository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckCacheableFunctions;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
@@ -61,6 +65,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -72,12 +78,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
+import org.jose4j.json.internal.json_simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -116,7 +124,16 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     private FolderRespository folderRepository;
     
     @Autowired
+    private MessageTagRespository messageTagRespository;
+    
+    @Autowired
+    private MessageFolderRespository messagefolderRespository;
+    
+    @Autowired
     private MessageCompleteRespository messageCompleteRespository;
+    
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
     
     @Autowired
     private PersonaRepository personaRepository;
@@ -542,4 +559,95 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
         return messageCompleteRespository.count(filter);
     }
+    
+    @Transactional
+    @RequestMapping(value = "manageMessageRegistration", method = RequestMethod.POST)
+    public void manageMessageRegistration(
+            @RequestParam(name = "idMessage", required = true) Integer idMessage,
+            @RequestParam(name = "operation", required = true) String operation,
+            @RequestBody Map<String, String> additionalData
+    ) throws BlackBoxPermissionException{
+        // operation: IN_REGISTRATION, REGISTER, REMOVE_IN_REGISTRATION
+        
+        Message message = messageRepository.getOne(idMessage);
+        
+        List<Tag> tagList = message.getIdPec().getTagList();
+        List<Folder> folderList = message.getIdPec().getFolderList();
+        Tag tagInRegistration = tagList.stream().filter(t -> "in_registration".equals(t.getName())).collect(Collectors.toList()).get(0);
+        Tag tagRegistered = tagList.stream().filter(t -> "registered".equals(t.getName())).collect(Collectors.toList()).get(0);       
+        Folder folderRegistered = folderList.stream().filter(f -> "registered".equals(f.getName())).collect(Collectors.toList()).get(0);        
+        
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        
+        JSONObject jsonAdditionalData = null;
+        if(additionalData != null){
+            jsonAdditionalData = new JSONObject(additionalData); 
+        }                
+
+        MessageTag messageTag = new MessageTag();
+        if("IN_REGISTRATION".equals(operation)) {
+            System.out.println("dentro IN_REGISTRATION");
+            messageTag.setIdUtente(authenticatedUserProperties.getUser()); 
+            messageTag.setIdMessage(message);
+            messageTag.setIdTag(tagInRegistration);
+            if(jsonAdditionalData != null){                
+                messageTag.setAdditionalData(jsonAdditionalData.toString());
+            }
+            messageTagRespository.save(messageTag);
+        }        
+        
+        if("REGISTER".equals(operation)) {
+            System.out.println("dentro REGISTER");
+            List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);    
+            // TODO: gestire caso se non trova niente o ne trova piu di uno
+            if(!findByIdMessageAndIdTag.isEmpty()){                
+                MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0); 
+                // cancellazione del mt in_registration
+                messageTagRespository.delete(mtInRegistration);
+            }
+            
+            MessageTag mtRegistered = new MessageTag();
+            mtRegistered.setIdUtente(authenticatedUserProperties.getUser());
+            mtRegistered.setIdMessage(message);
+            mtRegistered.setIdTag(tagRegistered);
+            if(jsonAdditionalData != null){             
+                messageTag.setAdditionalData(jsonAdditionalData.toString());
+            }
+            messageTagRespository.save(mtRegistered);
+            
+            // spostamento folder.
+            // Lo elimino da quella in cui era e lo metto nella cartella registered
+            List<MessageFolder> findByIdMessage = messagefolderRespository.findByIdMessage(message);
+            // TODO: gestire caso se non trova niente o ne trova piu di uno
+            if(!findByIdMessage.isEmpty()){
+                MessageFolder mfCurrentMessage = findByIdMessage.get(0);
+                mfCurrentMessage.setIdUtente(authenticatedUserProperties.getUser());
+                mfCurrentMessage.setIdFolder(folderRegistered);                
+                messagefolderRespository.save(mfCurrentMessage);
+            } else {
+                MessageFolder mfRegistered = new MessageFolder();
+                mfRegistered.setIdUtente(authenticatedUserProperties.getUser());
+                mfRegistered.setIdMessage(message);
+                mfRegistered.setIdFolder(folderRegistered);
+                messagefolderRespository.save(mfRegistered);                            
+            }      
+        }
+        
+        if("REMOVE_IN_REGISTRATION".equals(operation)){
+            System.out.println("dentro REMOVE_IN_REGISTRATION");
+            List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration); 
+            // TODO: gestire caso se non trova niente o ne trova piu di uno
+            if(!findByIdMessageAndIdTag.isEmpty()){                
+                MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0); 
+                // cancellazione del mt in_registration
+                messageTagRespository.delete(mtInRegistration);
+            }
+        }
+        
+        System.out.println("fine manageMessageRegistration");
+               
+    }
+    
+    
+    
 }
