@@ -229,17 +229,25 @@ public class ProjectionBeans {
         AziendaParametriJson parametriAziendaDestinazione = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String crossLoginUrlTemplate = parametriAziendaDestinazione.getCrossLoginUrlTemplate();
         
+        //crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm?[encoded-params]";
+        
+        
         // ho due casi praticamente uguali sulla protocollazione di una pec. Il caso in cui creo un nuovo Protocollo 
         // e il caso in cui aggiungo la pec a un protocollo già esistente
         // cambia solo il valore del parametro CMD, quindi fascio un ciclo per gestire questi due casi        
         for(int i = 0; i < 2; i++){   
             String stringToEncode = "";            
             if(i == 0){                
-                stringToEncode = "?CMD=ricevi_from_pec_int;[id_pec]";
+                stringToEncode = "?CMD=ricevi_from_pec_int;[id_message]";
+                //stringToEncode = "CMD=ricevi_from_pec_int;[id_message]"; //local
+                
             } else {
-                stringToEncode = "?CMD=add_from_pec_int;[id_pec]";
+                stringToEncode = "?CMD=add_from_pec_int;[id_message]";
+                //stringToEncode = "CMD=add_from_pec_int;[id_message]"; //local
             }
 
+//            stringToEncode += "&id_tag=[id_tag]";        
+            stringToEncode += "&pec_ricezione=[pec_ricezione]";        
             stringToEncode += "&richiesta=" + UUID.randomUUID();
             stringToEncode += "&utenteImpersonato=" + utente.getIdPersona().getCodiceFiscale();
 
@@ -251,6 +259,9 @@ public class ProjectionBeans {
             stringToEncode += "&idSessionLog=" + httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
             stringToEncode += FROM;
             stringToEncode += "&modalitaAmministrativa=0";
+            
+            
+            
 
             String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");                
 
