@@ -2,7 +2,6 @@ package it.bologna.ausl.internauta.service.controllers.shpeck;
 
 import com.google.gson.JsonObject;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
@@ -35,7 +34,6 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.QFolder;
-import it.bologna.ausl.model.entities.shpeck.QMessageFolder;
 import it.bologna.ausl.model.entities.shpeck.QMessageTag;
 import it.bologna.ausl.model.entities.shpeck.QTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
@@ -51,7 +49,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -67,7 +64,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -85,7 +81,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StreamUtils;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
@@ -139,8 +134,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     @Autowired
     private PersonaRepository personaRepository;
     
-    @Autowired
-    private  MessageTagRespository messageTagRespository;
 
     /**
      *
