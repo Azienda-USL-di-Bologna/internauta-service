@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.shpeck;
 
+import com.google.gson.JsonObject;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.eml.handler.EmlHandler;
@@ -10,6 +11,7 @@ import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions
 import it.bologna.ausl.internauta.service.exceptions.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRespository;
@@ -20,6 +22,8 @@ import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckCacheableFunctions;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils.EmlSource;
 import it.bologna.ausl.model.entities.baborg.Pec;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.Draft.MessageRelatedType;
 import it.bologna.ausl.model.entities.shpeck.Folder;
@@ -42,6 +46,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -53,6 +58,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.zip.ZipEntry;
@@ -67,6 +73,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
@@ -109,6 +117,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     
     @Autowired
     private MessageCompleteRespository messageCompleteRespository;
+    
+    @Autowired
+    private PersonaRepository personaRepository;
 
     /**
      *
@@ -422,8 +433,14 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         if (messageSource.getInOut().equals(Message.InOut.OUT.toString())) {
             throw new Http409ResponseException("2", "un messaggio in uscita non può essere reindirizzato.");
         }
-        // recupero PEC destinazione
+        // recupero PEC destinazione e source
         Pec pecDestination = pecRepository.getOne(idPecDestination);
+        
+        
+        // Prendo l'utente loggato
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Utente utente = (Utente) authentication.getPrincipal();
+        Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
 
         // creo il nuovo messaggio reindirizzato
         Message messageDestination = messageSource.clone();
@@ -443,6 +460,17 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         .and(QTag.tag.idPec.id.eq(pecDestination.getId())));
         messageTag.setIdTag(tagOp.get());
         messageTag.setInserted(LocalDateTime.now());
+        messageTag.setIdUtente(utente);
+        JsonObject idPecSource = new JsonObject();
+        idPecSource.addProperty("id", messageSource.getIdPec().getId());
+        idPecSource.addProperty("indirizzo", messageSource.getIdPec().getIndirizzo());
+        JsonObject idUtente = new JsonObject();
+        idUtente.addProperty("id", utente.getId());
+        idUtente.addProperty("descrizione", utente.getIdPersona().getDescrizione());
+        JsonObject additionalData = new JsonObject();
+        additionalData.add("idUtente", idUtente);
+        additionalData.add("idPecSrc", idPecSource);
+        messageTag.setAdditionalData(additionalData.toString());
         messageTagList.add(messageTag);
         messageDestination.setMessageTagList(messageTagList);
 
@@ -470,6 +498,14 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         .and(QTag.tag.idPec.id.eq(messageSource.getIdPec().getId())));
         messageTagSource.setIdTag(tagOpSource.get());
         messageTagSource.setInserted(LocalDateTime.now());
+        messageTagSource.setIdUtente(utente);
+        JsonObject idPecDestinationJson = new JsonObject();
+        idPecDestinationJson.addProperty("id", pecDestination.getId());
+        idPecDestinationJson.addProperty("indirizzo", pecDestination.getIndirizzo());
+        JsonObject additionalDataSource = new JsonObject();
+        additionalDataSource.add("idUtente", idUtente);
+        additionalDataSource.add("idPecDst", idPecDestinationJson);
+        messageTagSource.setAdditionalData(additionalDataSource.toString());
         messageTagListSource.add(messageTagSource);
         messageRepository.save(messageSource);
 
@@ -478,6 +514,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         System.out.println(messageDestination.toString());
     }
     
+    /**
+     * 
+     * @param idFolder
+     * @return 
+     */
     @RequestMapping(value = "countMessageInFolder/{idFolder}", method = RequestMethod.GET)
     public Long countMessageInFolder(
             @PathVariable(required = true) Integer idFolder,
