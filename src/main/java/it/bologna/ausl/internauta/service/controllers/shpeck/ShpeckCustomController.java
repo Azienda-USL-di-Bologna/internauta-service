@@ -49,6 +49,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -575,7 +576,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     public void manageMessageRegistration(
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
             @RequestParam(name = "operation", required = true) String operation,
-            @RequestBody Map<String, String> additionalData
+            @RequestBody Map<String, Object> additionalData
     ) throws BlackBoxPermissionException{
         // operation: IN_REGISTRATION, REGISTER, REMOVE_IN_REGISTRATION
         
@@ -591,6 +592,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         
         JSONObject jsonAdditionalData = null;
         if(additionalData != null){
+            Map<String, Object> idUtenteMap  = new HashMap<>();
+            idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
+            idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
+            additionalData.put("idUtente", idUtenteMap);
             jsonAdditionalData = new JSONObject(additionalData); 
         }                
 
