@@ -483,7 +483,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         idUtente.addProperty("descrizione", utente.getIdPersona().getDescrizione());
         JsonObject additionalData = new JsonObject();
         additionalData.add("idUtente", idUtente);
-        additionalData.add("idPecSrc", idPecSource);
+        additionalData.add("idPec", idPecSource);
         messageTag.setAdditionalData(additionalData.toString());
         messageTagList.add(messageTag);
         messageDestination.setMessageTagList(messageTagList);
@@ -518,7 +518,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         idPecDestinationJson.addProperty("indirizzo", pecDestination.getIndirizzo());
         JsonObject additionalDataSource = new JsonObject();
         additionalDataSource.add("idUtente", idUtente);
-        additionalDataSource.add("idPecDst", idPecDestinationJson);
+        additionalDataSource.add("idPec", idPecDestinationJson);
         messageTagSource.setAdditionalData(additionalDataSource.toString());
         List<MessageFolder> messageFolderList = messageSource.getMessageFolderList();
         
