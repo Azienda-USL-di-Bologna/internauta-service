@@ -626,7 +626,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             mtRegistered.setIdMessage(message);
             mtRegistered.setIdTag(tagRegistered);
             if(jsonAdditionalData != null){             
-                messageTag.setAdditionalData(jsonAdditionalData.toString());
+                mtRegistered.setAdditionalData(jsonAdditionalData.toString());
             }
             messageTagRespository.save(mtRegistered);
             
