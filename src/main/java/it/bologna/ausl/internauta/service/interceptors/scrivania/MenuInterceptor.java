@@ -69,6 +69,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
     @Override 
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) 
             throws AbortLoadInterceptorException {
+        
         getAuthenticatedUserProperties();
         List<Utente> utentiPersona = userInfoService.getUtentiPersonaByUtente(super.user);              
         BooleanExpression filterAziendaUtente = null;
@@ -147,7 +148,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         else
             filterAziendaUtente = filterAziendaUtente.or(QMenu.menu.idAzienda.id.in(aziendePersona).and(booleanTemplate));
   
-        
+        LOGGER.info("PREDICATO MENU INTERCEPTOR BEFORE SELECT" + filterAziendaUtente.and(initialPredicate).toString());
         // Aggiungo il filtro al predicato. Se il filtro è vuoto allora nulla dev'essere visibile all'utente quindi il predicato di ritorno è una espressione False.
         return filterAziendaUtente != null ? filterAziendaUtente.and(initialPredicate): Expressions.FALSE.eq(Boolean.TRUE);
     }
@@ -171,6 +172,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         String crossLoginUrlTemplate = parametriAziendaOrigine.getCrossLoginUrlTemplate();
         Menu menu = (Menu) entity;
          
+        
         
         String stringToEncode = "";
         if(menu.getOpenCommand() != null && !menu.getOpenCommand().equals("")){
@@ -221,7 +223,9 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         for (Object entity : entities) {
+            LOGGER.info("ENTITY PRIMA " + entity.toString());
             entity = afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
+            LOGGER.info("ENTITY DOPO " + entity.toString());
         }
         return entities;
     }
