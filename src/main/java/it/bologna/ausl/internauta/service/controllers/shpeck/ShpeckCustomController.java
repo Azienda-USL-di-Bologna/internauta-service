@@ -591,7 +591,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         
         List<Tag> tagList = message.getIdPec().getTagList();
         List<Folder> folderList = message.getIdPec().getFolderList();
-        Tag tagInRegistration = tagList.stream().filter(t -> "in_registration".equals(t.getName())).collect(Collectors.toList()).get(0);
+        Tag tagInRegistration = tagList.stream().filter(t -> "in-_registration".equals(t.getName())).collect(Collectors.toList()).get(0);
         Tag tagRegistered = tagList.stream().filter(t -> "registered".equals(t.getName())).collect(Collectors.toList()).get(0);       
         Folder folderRegistered = folderList.stream().filter(f -> "registered".equals(f.getName())).collect(Collectors.toList()).get(0);        
         
