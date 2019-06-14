@@ -596,6 +596,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
             idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
             additionalData.put("idUtente", idUtenteMap);
+            Map<String, Object> idAziendaMap = new HashMap<>();
+            idAziendaMap.put("id", authenticatedUserProperties.getUser().getIdAzienda().getId());
+            idAziendaMap.put("nome", authenticatedUserProperties.getUser().getIdAzienda().getNome());
+            idAziendaMap.put("descrizione", authenticatedUserProperties.getUser().getIdAzienda().getDescrizione());
+            additionalData.put("idAzienda", idAziendaMap);
             jsonAdditionalData = new JSONObject(additionalData); 
         }                
 
