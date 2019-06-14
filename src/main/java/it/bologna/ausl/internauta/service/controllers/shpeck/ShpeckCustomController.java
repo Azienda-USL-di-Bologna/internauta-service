@@ -34,6 +34,7 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.QFolder;
+import it.bologna.ausl.model.entities.shpeck.QMessageFolder;
 import it.bologna.ausl.model.entities.shpeck.QMessageTag;
 import it.bologna.ausl.model.entities.shpeck.QTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
@@ -124,7 +125,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     private MessageTagRespository messageTagRespository;
     
     @Autowired
-    private MessageFolderRespository messagefolderRespository;
+    private MessageFolderRespository messageFolderRespository;
     
     @Autowired
     private MessageCompleteRespository messageCompleteRespository;
@@ -536,6 +537,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     /**
      * 
      * @param idFolder
+     * @param unSeen
      * @return 
      */
     @RequestMapping(value = "countMessageInFolder/{idFolder}", method = RequestMethod.GET)
@@ -543,11 +545,16 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @PathVariable(required = true) Integer idFolder,
             @RequestParam(name = "unSeen", required = false, defaultValue = "false") Boolean unSeen) {
         
-        BooleanExpression filter = QMessageComplete.messageComplete.idFolder.id.eq(idFolder);
-        if (unSeen) {
-            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
+//        BooleanExpression filter = QMessageComplete.messageComplete.idFolder.id.eq(idFolder);
+//        if (unSeen) {
+//            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
+//        }
+//        return messageCompleteRespository.count(filter);
+        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder);
+         if (unSeen) {
+            filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
         }
-        return messageCompleteRespository.count(filter);
+        return messageFolderRespository.count(filter);
     }
     
 //    @RequestMapping(value = "countMessageInTag/{idTag}", method = RequestMethod.GET)
@@ -637,19 +644,19 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             
             // spostamento folder.
             // Lo elimino da quella in cui era e lo metto nella cartella registered
-            List<MessageFolder> findByIdMessage = messagefolderRespository.findByIdMessage(message);
+            List<MessageFolder> findByIdMessage = messageFolderRespository.findByIdMessage(message);
             // TODO: gestire caso se non trova niente o ne trova piu di uno
             if(!findByIdMessage.isEmpty()){
                 MessageFolder mfCurrentMessage = findByIdMessage.get(0);
                 mfCurrentMessage.setIdUtente(authenticatedUserProperties.getUser());
                 mfCurrentMessage.setIdFolder(folderRegistered);                
-                messagefolderRespository.save(mfCurrentMessage);
+                messageFolderRespository.save(mfCurrentMessage);
             } else {
                 MessageFolder mfRegistered = new MessageFolder();
                 mfRegistered.setIdUtente(authenticatedUserProperties.getUser());
                 mfRegistered.setIdMessage(message);
                 mfRegistered.setIdFolder(folderRegistered);
-                messagefolderRespository.save(mfRegistered);                            
+                messageFolderRespository.save(mfRegistered);                            
             }      
         }
         
