@@ -25,7 +25,7 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         // TODO controllare che chi sta facendo sto update abbia almeno un permesso sulla casella del folder.
         // deve fare il contorllo una volta per più update (per via del batch che fa spostare più message in una volta sola?)
         

@@ -1,7 +1,8 @@
 package it.bologna.ausl.internauta.service.utils;
-
-import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
-import it.bologna.ausl.internauta.service.interceptors.ribaltoneutils.RibaltoneDaLanciareInterceptor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ImpostazioniApplicazioniRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
@@ -10,7 +11,6 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
-import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaWithImpostazioniApplicazioniList;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.baborg.projections.RibaltoneDaLanciareCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaCustom;
@@ -21,12 +21,9 @@ import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdP
 import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configuration.projections.generated.ImpostazioniApplicazioniWithPlainFields;
 import it.bologna.ausl.model.entities.scrivania.projections.generated.AttivitaWithIdPersona;
-import it.bologna.ausl.model.entities.shpeck.Address;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageAddress;
-import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
-import it.bologna.ausl.model.entities.shpeck.projections.generated.AddressWithPlainFields;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageAddressWithIdAddress;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageFolderWithIdFolder;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageTagWithIdTag;
@@ -34,16 +31,21 @@ import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.InterceptorException;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URLEncoder;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  *
@@ -66,6 +68,18 @@ public class ProjectionBeans {
     
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+    
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    UserInfoService userInfoService;
+
+    @Autowired
+    HttpSessionData httpSessionData;
+    
+    @Autowired
+    ObjectMapper objectMapper;
 
     protected Utente user, realUser;
     protected Persona person, realPerson;
@@ -73,13 +87,13 @@ public class ProjectionBeans {
     
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ProjectionBeans.class);
 
-    protected void setAuthenticatedUserProperties() {
-        TokenBasedAuthentication authentication = (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        user = (Utente) authentication.getPrincipal();
-        realUser = (Utente) authentication.getRealUser();
-        idSessionLog = authentication.getIdSessionLog();
-        person = cachedEntities.getPersona(user);
-        realPerson = cachedEntities.getPersona(realUser);
+    protected void setAuthenticatedUserProperties() throws BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        user = authenticatedSessionData.getUser();
+        realUser = authenticatedSessionData.getRealUser();
+        idSessionLog = authenticatedSessionData.getIdSessionLog();
+        person = authenticatedSessionData.getPerson();
+        realPerson = authenticatedSessionData.getRealPerson();
     }
     
     public UtenteWithIdPersona getUtenteConPersona(Utente utente){
@@ -122,8 +136,8 @@ public class ProjectionBeans {
 //        } else
 //            return null;
     }
-    public CustomPersonaWithImpostazioniApplicazioniList getIdPersonaWithImpostazioniApplicazioniList(Utente utente) {
-        return factory.createProjection(CustomPersonaWithImpostazioniApplicazioniList.class, utente.getIdPersona());
+    public CustomPersonaLogin getIdPersonaWithImpostazioniApplicazioniList(Utente utente) {
+        return factory.createProjection(CustomPersonaLogin.class, utente.getIdPersona());
     }
     
     public AziendaWithPlainFields getAziendaWithPlainFields(Utente utente) {
@@ -196,5 +210,98 @@ public class ProjectionBeans {
             return null;
         }
     }
+    
+    /**
+     * restituisce gli url da mettere nelle aziende dell'utente, 
+     * per chiamare le funzioni dell'onCommand sulle applicazioni Inde
+     * @param azienda
+     * @return
+     * @throws IOException 
+     */
+    public Map<String, String> getUrlCommands(Azienda azienda) throws IOException {                
+        final String FROM = "&from=INTERNAUTA";
+        final String APP_URL_PICO = "/Procton/Procton.htm";
+        
+        Map<String, String> result = new HashMap<>();
+                
+        Utente utente = (Utente)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
+        AziendaParametriJson parametriAziendaLogin = AziendaParametriJson.parse(objectMapper, utente.getIdAzienda().getParametri());                
+        AziendaParametriJson parametriAziendaDestinazione = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        String crossLoginUrlTemplate = parametriAziendaDestinazione.getCrossLoginUrlTemplate();
+        
+        //crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm?[encoded-params]";
+        
+        
+        // ho due casi praticamente uguali sulla protocollazione di una pec. Il caso in cui creo un nuovo Protocollo 
+        // e il caso in cui aggiungo la pec a un protocollo già esistente
+        // cambia solo il valore del parametro CMD, quindi fascio un ciclo per gestire questi due casi        
+        for(int i = 0; i < 2; i++){   
+            String stringToEncode = "";            
+            if(i == 0){                
+                stringToEncode = "?CMD=ricevi_from_pec_int;[id_message]";
+                //stringToEncode = "CMD=ricevi_from_pec_int;[id_message]"; //local
+                
+            } else {
+                stringToEncode = "?CMD=add_from_pec_int;[id_message]";
+                //stringToEncode = "CMD=add_from_pec_int;[id_message]"; //local
+            }
+
+//            stringToEncode += "&id_tag=[id_tag]";        
+            stringToEncode += "&pec_ricezione=[pec_ricezione]";        
+            stringToEncode += "&richiesta=" + UUID.randomUUID();
+            stringToEncode += "&utenteImpersonato=" + utente.getIdPersona().getCodiceFiscale();
+
+            if(utente.getUtenteReale() != null ){            
+                stringToEncode += "&utenteLogin=" + utente.getUtenteReale().getIdPersona().getCodiceFiscale();
+            } else {
+                stringToEncode += "&utenteLogin=" + utente.getIdPersona().getCodiceFiscale();           
+            }       
+            stringToEncode += "&idSessionLog=" + httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
+            stringToEncode += FROM;
+            stringToEncode += "&modalitaAmministrativa=0";
+            
+            
+            
+
+            String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");                
+
+            String assembledUrl = crossLoginUrlTemplate
+                .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())
+                .replace("[entity-id]", parametriAziendaLogin.getEntityId()) //parametriAziendaLogin.getEntityId())
+                .replace("[app]", APP_URL_PICO)
+                .replace("[encoded-params]", encodedParams);
+            
+            if(i == 0){
+                result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_NEW.toString(), assembledUrl);
+            } else {
+                result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_ADD.toString(), assembledUrl);
+            }
+        }               
+        return result;        
+    }
+    
+    /**
+     * restituisce i parametri dell'azienda che servono 
+     * al front end e non contengono informazioni sensibili 
+     * @return
+     */
+    public Map<String, String> getParametriAziendaFrontEnd() throws IOException{
+        
+        final String LOGOUT_URL_KEY = "logoutUrl";
+                
+        Map<String, String> result = new HashMap<>();
+        
+        Utente utente = (Utente)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
+        
+        AziendaParametriJson parametri = AziendaParametriJson.parse(objectMapper, utente.getIdAzienda().getParametri());
+
+        result.put(LOGOUT_URL_KEY, parametri.getLogoutUrl());
+        
+        return result;
+    }
+    
+    
+    
+    
     
 }

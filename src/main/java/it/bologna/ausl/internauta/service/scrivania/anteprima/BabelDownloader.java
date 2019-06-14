@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.scrivania.anteprima;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
@@ -63,7 +64,7 @@ public class BabelDownloader {
         return url;
     }
     
-    public BabelDownloaderRequestBody createRquestBody(String guid, String tipologia) {
+    public BabelDownloaderRequestBody createRquestBody(String guid, String tipologia) throws BlackBoxPermissionException {
         Utente loggedUser = getLoggedUser();
         Persona persona = cachedEntities.getPersona(loggedUser);
         return new BabelDownloaderRequestBody(guid, BabelDownloaderRequestBody.Tipologia.valueOf(tipologia), persona.getCodiceFiscale());

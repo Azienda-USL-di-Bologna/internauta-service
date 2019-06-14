@@ -12,9 +12,12 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.utils.HttpSessionData;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.ProjectionBeans;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithPlainFields;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,18 +91,27 @@ public class LoginController {
 
     @Autowired
     ProjectionFactory factory;
+    
+    @Autowired
+    HttpSessionData httpSessionData;
+
+    private boolean isSD(Utente user) {
+        user.setRuoli(userInfoService.getRuoli(user, null));
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isSD = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.SD);
+        return isSD;
+    }
 
     @RequestMapping(value = "${security.login.path}", method = RequestMethod.POST)
-    public ResponseEntity<LoginResponse> loginPOST(@RequestBody final UserLogin userLogin, javax.servlet.http.HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException, IOException {
+    public ResponseEntity<LoginResponse> loginPOST(@RequestBody final UserLogin userLogin, javax.servlet.http.HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException, IOException, BlackBoxPermissionException {
         String hostname = commonUtils.getHostname(request);
 
         logger.debug("login username: " + userLogin.username);
-        logger.debug("login username: " + userLogin.password);
-        logger.debug("login username: " + userLogin.realUser);
-        logger.debug("login username: " + userLogin.applicazione);
+        logger.debug("login password: " + userLogin.password);
+        logger.debug("login realUser: " + userLogin.realUser);
+        logger.debug("login applicazione: " + userLogin.applicazione);
 
-        
-        userInfoService.loadUtenteRemoveCache(userLogin.username, hostname, userLogin.applicazione);       
+        userInfoService.loadUtenteRemoveCache(userLogin.username, hostname, userLogin.applicazione);
         Utente utente = userInfoService.loadUtente(userLogin.username, hostname, userLogin.applicazione);
         if (utente == null) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
@@ -107,6 +119,7 @@ public class LoginController {
         if (!PasswordHashUtils.validatePassword(userLogin.password, utente.getPasswordHash())) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
+
         userInfoService.getRuoliRemoveCache(utente);
         // TODO: permessi
         userInfoService.getPermessiDiFlussoRemoveCache(utente);
@@ -114,29 +127,50 @@ public class LoginController {
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);
         if (StringUtils.hasText(userLogin.realUser)) {
             // TODO: controllare che l'utente possa fare il cambia utente
-            userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname, userLogin.applicazione);       
+            userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname, userLogin.applicazione);
             Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname, userLogin.applicazione);
             userInfoService.getRuoliRemoveCache(utenteReale);
             // TODO: permessi
             userInfoService.getPermessiDiFlussoRemoveCache(utenteReale);
             userInfoService.loadUtenteRemoveCache(utenteReale.getId(), userLogin.applicazione);
             userInfoService.getUtentiPersonaByUtenteRemoveCache(utenteReale);
+            userInfoService.getPermessiDelegaRemoveCache(utenteReale);
+            List<Integer> permessiDelega = userInfoService.getPermessiDelega(utenteReale);
+            boolean isSuperDemiurgo = isSD(utenteReale);
+            boolean isDelegato = permessiDelega != null && !permessiDelega.isEmpty() && permessiDelega.contains(utente.getId());
+
+            if (!isSuperDemiurgo && !isDelegato) {
+                return new ResponseEntity("Non puoi cambiare utente!", HttpStatus.UNAUTHORIZED);
+            }
+
             utente.setUtenteReale(utenteReale);
         }
+        
+
+        
+        
         CustomUtenteLogin utenteWithPersona = factory.createProjection(CustomUtenteLogin.class, utente);
 
+        String idSessionLog = String.valueOf(authorizationUtils.createIdSessionLog().getId());
+        
+        // mi metto in sessione l'utente_loggato e l'id_session_log, mi servirà in altri punti nella procedura di login, 
+        // in particolare in projection custom
+        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, utente);
+        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLog);
 //        utente.setRuoli(userInfoService.getRuoli(utente));
-
         DateTime currentDateTime = DateTime.now();
         String token = Jwts.builder()
                 .setSubject(String.valueOf(utente.getId()))
                 .claim(AuthorizationUtils.TokenClaims.SSO_LOGIN.name(), false)
                 .claim(AuthorizationUtils.TokenClaims.COMPANY.name(), utente.getIdAzienda().getId())
-                .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), String.valueOf(authorizationUtils.createIdSessionLog().getId()))
+                .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLog)
                 .setIssuedAt(currentDateTime.toDate())
                 .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)
                 .signWith(SIGNATURE_ALGORITHM, secretKey)
                 .compact();
+        
+        
+        
 
 //        utente.setPasswordHash(null);
         return new ResponseEntity(

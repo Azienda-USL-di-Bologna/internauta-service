@@ -3,10 +3,11 @@ package it.bologna.ausl.internauta.service.controllers.scrivania;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
-import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
@@ -35,7 +36,6 @@ import it.bologna.ausl.model.entities.scrivania.QAttivita;
 import it.nextsw.common.annotations.NextSdrRepository;
 import it.nextsw.common.controller.exceptions.NotFoundResourceException;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
-import it.nextsw.common.interceptors.RestControllerInterceptorEngine;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.utils.CommonUtils;
 import it.nextsw.common.utils.EntityReflectionUtils;
@@ -51,7 +51,6 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import okhttp3.Response;
-import org.apache.commons.io.IOUtils;
 import org.jose4j.json.internal.json_simple.JSONArray;
 import org.jose4j.json.internal.json_simple.JSONObject;
 import org.slf4j.Logger;
@@ -61,6 +60,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -110,7 +110,8 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
     
-    protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
     
     private final String CMD_APRI_FIRMONE = "?CMD=open_firmone_local";
     private final String CMD_APRI_PRENDONE = "?CMD=open_prendone_local";
@@ -125,7 +126,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         @RequestParam(required = true) String idApplicazione,
         @RequestParam(required = true) String fileName,
         HttpServletRequest request,
-        HttpServletResponse response) throws HttpInternautaResponseException, IOException {
+        HttpServletResponse response) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
 
         BabelDownloaderResponseBody downloadUrlRsponseBody = babelDownloader.getDownloadUrl(babelDownloader.createRquestBody(guid, tipologia), idAzienda, idApplicazione);
         switch (downloadUrlRsponseBody.getStatus()) {
@@ -139,7 +140,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
                         response.setHeader("Content-Type", "application/pdf");
                         response.setHeader("X-Frame-Options", "sameorigin");
                         response.setHeader("Content-Disposition", ";filename=" + fileName + ".pdf");
-                        IOUtils.copy(downloadStream.body().byteStream(), out, 4096);
+                        StreamUtils.copy(downloadStream.body().byteStream(), out);
                     }
                 }
                 break;
@@ -207,9 +208,9 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     }
     
     @RequestMapping(value = {"getPrendoneUrls"}, method = RequestMethod.GET)
-    public void getPrendoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Utente utente = (Utente) authentication.getPrincipal();
+    public void getPrendoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente utente = authenticatedSessionData.getUser();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         Azienda aziendaUtenteConnesso = utente.getIdAzienda();
         AziendaParametriJson parametriAziendaUtenteConnesso = AziendaParametriJson.parse(this.objectMapper, aziendaUtenteConnesso.getParametri());
@@ -222,9 +223,9 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
             numeroAziende++;
             try{
                 jsonArrayAziende.add(buildAziendaUrl(azienda, CMD_APRI_PRENDONE, utente, parametriAziendaUtenteConnesso));
-            }catch(IOException e){
+            } catch(IOException | BlackBoxPermissionException e){
                 LOGGER.error("errore nella creazione del link", e);
-                throw new IOException("errore nella creazione del link", e);
+                throw e;
             }
         }
         objResponse.put("size", numeroAziende);
@@ -235,13 +236,13 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         out.flush();
     }
     
-    private JSONObject buildAziendaUrl(Azienda azienda, String command, Utente utente, AziendaParametriJson parametriAziendaUtenteConnesso) throws UnsupportedEncodingException, IOException{       
+    private JSONObject buildAziendaUrl(Azienda azienda, String command, Utente utente, AziendaParametriJson parametriAziendaUtenteConnesso) throws UnsupportedEncodingException, IOException, BlackBoxPermissionException{       
         String stringToEncode = command;
-        TokenBasedAuthentication tokenBasedAuthentication = (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
-        Utente realUser = (Utente) tokenBasedAuthentication.getRealUser();
-        Persona realPerson = cachedEntities.getPersona(realUser);
-        Persona person = cachedEntities.getPersona(utente);
-        int idSessionLog = tokenBasedAuthentication.getIdSessionLog();
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente realUser = authenticatedSessionData.getRealUser();
+        Persona realPerson = authenticatedSessionData.getRealPerson();
+        Persona person = authenticatedSessionData.getPerson();
+        int idSessionLog = authenticatedSessionData.getIdSessionLog();
         if(person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0){
             stringToEncode += stringToEncode.length() > 0 ? "&utente=" : "?utente=";
             stringToEncode += person.getCodiceFiscale();
@@ -324,7 +325,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         Iterable<Attivita> notificheList = attivitaRepository.findAll(notifichePersona);
         for(Attivita notifica : notificheList) {
             String attivitaPath = commonUtils.resolvePlaceHolder(EntityReflectionUtils.getFirstAnnotationOverHierarchy(attivitaRepository.getClass(), NextSdrRepository.class).repositoryPath());
-            restControllerEngine.delete(notifica.getId(), request, null, attivitaPath, false);
+            restControllerEngine.delete(notifica.getId(), request, null, attivitaPath, false, null);
             //ttivitaRepository.delete(notifica);
         }
     }

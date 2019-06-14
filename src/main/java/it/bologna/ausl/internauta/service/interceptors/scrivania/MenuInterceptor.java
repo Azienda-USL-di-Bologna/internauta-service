@@ -4,13 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
-import edu.emory.mathcs.backport.java.util.Arrays;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.Menu;
@@ -24,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -67,8 +64,10 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
      * @return
      * @throws AbortLoadInterceptorException 
      */
-    @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) 
+    
+    
+    @Override 
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) 
             throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         List<Utente> utentiPersona = userInfoService.getUtentiPersonaByUtente(super.user);              
@@ -93,8 +92,8 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
                     
                     // Creo un filtro che sarà true quando tra i permessi dell'utente ci sarà almeno una voce dei permessiNecessari della voce di menù.
                     if (predicatiAzienda != null)
-                        booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", 
-                            QMenu.menu.permessiSufficienti, String.join(",", predicatiAzienda));
+                        booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
+                                QMenu.menu.permessiSufficienti, String.join(",", predicatiAzienda));
                     else
                         // Se l'utente non ha permessi il filtro sarà smepre false
                         booleanTemplate = Expressions.FALSE.eq(Boolean.TRUE);
@@ -104,7 +103,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
                         filterAziendaUtente = QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId()).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate));
                     else
                         filterAziendaUtente = filterAziendaUtente.or(
-                            QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId()).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate)));
+                                QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId()).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate)));
                 } catch (BlackBoxPermissionException ex) {
                     LOGGER.error("errore nel calcolo del predicato", ex);
                     throw new AbortLoadInterceptorException("errore nel calcolo del predicato", ex);
@@ -119,8 +118,8 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
             List<String> predicatiPec = permissionManager.getPermission(super.user.getIdPersona(), ambitiPecG, InternautaConstants.Permessi.Tipi.PEC.toString());
             BooleanExpression booleanTemplate;
             if (predicatiPec != null) {
-                booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", 
-                    QMenu.menu.permessiSufficienti, String.join(",", predicatiPec));
+                booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
+                        QMenu.menu.permessiSufficienti, String.join(",", predicatiPec));
             } else {
                 // Se l'utente non ha permessi il filtro sarà smepre false
                 booleanTemplate = Expressions.FALSE.eq(Boolean.TRUE);
@@ -135,14 +134,14 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         }
         
         ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
-
-            LOGGER.info("USER " + super.user.getId());
-            List<String> ruoliCACI = super.user.getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());          
-            LOGGER.info("ruoliCACI " + ruoliCACI);
-            
-            BooleanExpression booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", 
-                    QMenu.menu.ruoliSufficienti, String.join(",", ruoliCACI));
-            
+        
+        LOGGER.info("USER " + super.user.getId());
+        List<String> ruoliCACI = super.user.getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
+        LOGGER.info("ruoliCACI " + ruoliCACI);
+        
+        BooleanExpression booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
+                QMenu.menu.ruoliSufficienti, String.join(",", ruoliCACI));
+        
         if (filterAziendaUtente == null)
             filterAziendaUtente = QMenu.menu.idAzienda.id.in(aziendePersona).and(booleanTemplate);
         else
@@ -152,9 +151,9 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         // Aggiungo il filtro al predicato. Se il filtro è vuoto allora nulla dev'essere visibile all'utente quindi il predicato di ritorno è una espressione False.
         return filterAziendaUtente != null ? filterAziendaUtente.and(initialPredicate): Expressions.FALSE.eq(Boolean.TRUE);
     }
-    
+
     @Override
-    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
 
         AziendaParametriJson parametriAziendaOrigine = (AziendaParametriJson) this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda);
@@ -216,13 +215,13 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
             replace("[encoded-params]", encodedParams);
         menu.setCompiledUrl(assembledURL);
         return menu;
-    }
-
+    }   
+    
     @Override
-    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request) throws AbortLoadInterceptorException {
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
         for (Object entity : entities) {
-            entity = afterSelectQueryInterceptor(entity, additionalData, request);
+            entity = afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
         }
         return entities;
     }

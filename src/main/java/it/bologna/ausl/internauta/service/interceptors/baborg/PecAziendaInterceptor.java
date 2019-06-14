@@ -42,9 +42,9 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortLoadInterceptorException {
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         // TODO: Se non sono ne CA ne CI posso vedere le associazioni pec-aziende?
-        return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity);
+        return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass);
     }
     
     /*
@@ -53,7 +53,7 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
      * Il CA può inserire solo associazioni con la/e sua/e azienda/e.
      */
     @Override
-    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException {
+    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeCreateEntityInterceptor di PecAzienda");
         getAuthenticatedUserProperties();
         
@@ -83,7 +83,7 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
      * L'azienda e la PEC dell'entity devono essere le stesse del beforeUpdateEntity.
      */
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request) throws AbortSaveInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         PecAzienda dopo = (PecAzienda) entity;
         PecAzienda prima = (PecAzienda) beforeUpdateEntity;
         
@@ -100,7 +100,7 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
      * Il CA può cancellare solo associazioni con la/e sua/e azienda/e.
      */
     @Override
-    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         getAuthenticatedUserProperties();
 
         if (!isCI(user)) {

@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.authorization;
 
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -21,7 +22,7 @@ public class AuthenticatedSessionDataBuilder {
     @Autowired
     private CachedEntities cachedEntities;
     
-    public AuthenticatedSessionData getAuthenticatedUserProperties() {
+    public AuthenticatedSessionData getAuthenticatedUserProperties() throws BlackBoxPermissionException {
         setAuthentication();
         Utente user = (Utente) threadLocalAuthentication.get().getPrincipal();
         Utente realUser = (Utente) threadLocalAuthentication.get().getRealUser();
