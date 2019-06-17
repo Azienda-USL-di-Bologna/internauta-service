@@ -199,7 +199,7 @@ public class AuthorizationUtils {
                 logger.info(String.format("utente %s ha ruolo SD", realUserSubject));
                 
                 
-                // mi metto in sessione l'utente loggato, mi servirà in altri punti nella procedura di login, in particolare in projection custm
+                // mi metto in sessione l'utente loggato, mi servirà in altri punti nella procedura di login, in particolare in projection custom
                 httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, impersonatedUser);
 //                impersonatedUser.setPasswordHash(null);
 
