@@ -94,6 +94,10 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping(value = "${shpeck.mapping.url.root}")
 public class ShpeckCustomController implements ControllerHandledExceptions {
+    
+    public static enum ManageMessageOperation {
+        REMOVE_IN_REGISTRATION, IN_REGISTRATION, REGISTER
+    }
 
     private static final Logger LOG = LoggerFactory.getLogger(ShpeckCustomController.class);
 
@@ -582,7 +586,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = "manageMessageRegistration", method = RequestMethod.POST)
     public void manageMessageRegistration(
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
-            @RequestParam(name = "operation", required = true) String operation,
+            @RequestParam(name = "operation", required = true) ManageMessageOperation operation,
             @RequestBody Map<String, Object> additionalData
     ) throws BlackBoxPermissionException{
         // operation: IN_REGISTRATION, REGISTER, REMOVE_IN_REGISTRATION
@@ -591,9 +595,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         
         List<Tag> tagList = message.getIdPec().getTagList();
         List<Folder> folderList = message.getIdPec().getFolderList();
-        Tag tagInRegistration = tagList.stream().filter(t -> "in-_registration".equals(t.getName())).collect(Collectors.toList()).get(0);
-        Tag tagRegistered = tagList.stream().filter(t -> "registered".equals(t.getName())).collect(Collectors.toList()).get(0);       
-        Folder folderRegistered = folderList.stream().filter(f -> "registered".equals(f.getName())).collect(Collectors.toList()).get(0);        
+        Tag tagInRegistration = tagList.stream().filter(t -> 
+                Tag.SystemTagName.in_registration.toString().equals(t.getName())).collect(Collectors.toList()).get(0);
+        Tag tagRegistered = tagList.stream().filter(t -> Tag.SystemTagName.registered.toString().equals(t.getName())).collect(Collectors.toList()).get(0);       
+        Folder folderRegistered = folderList.stream().filter(f -> Tag.SystemTagName.registered.toString().equals(f.getName())).collect(Collectors.toList()).get(0);        
         
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         
@@ -612,7 +617,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }                
 
         MessageTag messageTag = new MessageTag();
-        if("IN_REGISTRATION".equals(operation)) {
+        if(ManageMessageOperation.IN_REGISTRATION.equals(operation)) {
             System.out.println("dentro IN_REGISTRATION");
             messageTag.setIdUtente(authenticatedUserProperties.getUser()); 
             messageTag.setIdMessage(message);
@@ -623,7 +628,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             messageTagRespository.save(messageTag);
         }        
         
-        if("REGISTER".equals(operation)) {
+        if(ManageMessageOperation.REGISTER.equals(operation)) {
             System.out.println("dentro REGISTER");
             List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);    
             // TODO: gestire caso se non trova niente o ne trova piu di uno
@@ -660,7 +665,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             }      
         }
         
-        if("REMOVE_IN_REGISTRATION".equals(operation)){
+        if(ManageMessageOperation.REMOVE_IN_REGISTRATION.equals(operation)){
             System.out.println("dentro REMOVE_IN_REGISTRATION");
             List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration); 
             // TODO: gestire caso se non trova niente o ne trova piu di uno
