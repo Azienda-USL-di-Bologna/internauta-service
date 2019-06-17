@@ -25,7 +25,9 @@ import it.bologna.ausl.model.entities.shpeck.QRecepit;
 import it.bologna.ausl.model.entities.shpeck.RawMessage;
 import it.bologna.ausl.model.entities.shpeck.Recepit;
 import it.bologna.ausl.model.entities.shpeck.Tag;
+import it.bologna.ausl.model.entities.shpeck.views.DraftLite;
 import it.bologna.ausl.model.entities.shpeck.views.MessageComplete;
+import it.bologna.ausl.model.entities.shpeck.views.QDraftLite;
 import it.bologna.ausl.model.entities.shpeck.views.QMessageComplete;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
@@ -190,6 +192,19 @@ public class ShpeckBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDraft.draft, Draft.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"draftlite", "draftlite/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> draftlite(
+            @QuerydslPredicate(root = DraftLite.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDraftLite.draftLite, DraftLite.class);
         return ResponseEntity.ok(resource);
     }
     
