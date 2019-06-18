@@ -14,7 +14,7 @@ public class TokenBasedAuthentication extends AbstractAuthenticationToken {
     public TokenBasedAuthentication(Utente user) {
         super(user.getAuthorities());
         this.user = user;
-        this.realUser = user;
+        this.realUser = null;
 //        super.setDetails(userInfo);
     }
 

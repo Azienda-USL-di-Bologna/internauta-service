@@ -180,14 +180,23 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         }
         if(person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0){
             stringToEncode += (stringToEncode.length() > 0 && stringToEncode.startsWith("?")) ? "&utente=" : "?utente=";
-            stringToEncode += person.getCodiceFiscale();
+            stringToEncode += person.getCodiceFiscale(); // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
         }
-        stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
-        stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale();
+        
+        if (realPerson != null) {
+            stringToEncode += "&realUser=" + realPerson.getCodiceFiscale();
+            stringToEncode += "&impersonatedUser=" + person.getCodiceFiscale();
+            stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale(); // serve alle applicazioni INDE
+        } else {
+            stringToEncode += "&user=" + person.getCodiceFiscale();
+            stringToEncode += "&utenteLogin=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
+        }
+
+        stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
         stringToEncode += "&idSessionLog=" + idSessionLog;
         stringToEncode += FROM;
-        stringToEncode += "&modalitaAmministrativa=0";
-        stringToEncode += "&idAzienda="+menu.getIdAzienda().getId();
+        stringToEncode += "&modalitaAmministrativa=0"; // serve alle applicazioni INDE
+        stringToEncode += "&idAzienda=" + menu.getIdAzienda().getId();
         
         try {
             AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(this.objectMapper, menu.getIdAzienda().getParametri());

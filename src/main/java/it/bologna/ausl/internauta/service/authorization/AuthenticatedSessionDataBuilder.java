@@ -28,7 +28,10 @@ public class AuthenticatedSessionDataBuilder {
         Utente realUser = (Utente) threadLocalAuthentication.get().getRealUser();
         int idSessionLog = threadLocalAuthentication.get().getIdSessionLog();
         Persona person = cachedEntities.getPersona(user);
-        Persona realPerson = cachedEntities.getPersona(realUser);
+        Persona realPerson = null;
+        if (realUser != null) {
+            realPerson = cachedEntities.getPersona(realUser);
+        }
 
         return new AuthenticatedSessionData(user, realUser, person, realPerson, idSessionLog);
     }

@@ -49,7 +49,9 @@ public class ConfigurazioneCustomController {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         LOGGER.info(String.format("realPerson: %s", objectMapper.writeValueAsString(authenticatedUserProperties.getRealPerson())));
         LOGGER.info(String.format("realUser: %s", objectMapper.writeValueAsString(authenticatedUserProperties.getRealUser())));
-        LOGGER.info(String.format("applicazione realPerson: %s", authenticatedUserProperties.getRealPerson().getApplicazione()));
+        if (authenticatedUserProperties.getRealPerson() != null) {
+            LOGGER.info(String.format("applicazione realPerson: %s", authenticatedUserProperties.getRealPerson().getApplicazione()));
+        }
         BooleanExpression impostazioniFilter = QImpostazioniApplicazioni.impostazioniApplicazioni.idApplicazione.id.eq(authenticatedUserProperties.getRealPerson().getApplicazione())
                 .and(QImpostazioniApplicazioni.impostazioniApplicazioni.idPersona.id.eq(authenticatedUserProperties.getRealPerson().getId()));
         Optional<ImpostazioniApplicazioni> impostazioniOp = this.impostazioniApplicazioniRepository.findOne(impostazioniFilter);
