@@ -8,6 +8,9 @@ import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
+import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
+import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
+import it.bologna.ausl.internauta.service.exceptions.Http404ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.RuoloRepository;
@@ -40,6 +43,8 @@ import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
 import java.util.Arrays;
+import org.sql2o.Connection;
+import org.sql2o.Sql2o;
 
 
 /**
@@ -78,6 +83,9 @@ public class UserInfoService {
 
     @Value("${internauta.mode}")
     String internautaMode;
+    
+    @Autowired
+    PostgresConnectionManager postgresConnectionManager;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
 
@@ -494,5 +502,30 @@ public class UserInfoService {
                 .collect(Collectors.toList());
     }
     
-    
+    //@Cacheable(value = "getUtenteProcton", key = "{#idPersona, #codiceAzienda}")
+    public UtenteProcton getUtenteProcton(Integer idPersona, String codiceAzienda) throws Http404ResponseException {
+        Persona persona = personaRepository.getOne(idPersona);
+        String qUtenteProcton = "SELECT DISTINCT ON (u.id_utente) "
+                + "u.id_utente as idUtente, "
+                + "CASE WHEN u.id_struttura IS NOT NULL THEN u.id_struttura ELSE af.id_struttura END as idStruttura " +
+            "FROM procton.utenti u \n" +
+            "LEFT JOIN procton.appartenenze_funzionali af ON u.id_utente = af.id_utente AND af.unificata != 0\n" +
+            "WHERE cf = :codiceFiscale \n" +
+            "LIMIT 1";
+        
+        UtenteProcton utenteProcton;
+        // Prendo la connessione dal connection manager
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        
+        try (Connection conn = (Connection) dbConnection.open()) {
+            utenteProcton = conn.createQuery(qUtenteProcton)
+                    .addParameter("codiceFiscale", persona.getCodiceFiscale())
+                    .executeAndFetchFirst(UtenteProcton.class);
+        }
+        
+        if (utenteProcton == null) {
+            throw new Http404ResponseException("1", "Problemi con il recupero dell'id_utente di procton");
+        }
+        return utenteProcton;
+    }
 }

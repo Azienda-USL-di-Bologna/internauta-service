@@ -38,7 +38,6 @@ import it.bologna.ausl.model.entities.shpeck.QMessageFolder;
 import it.bologna.ausl.model.entities.shpeck.QMessageTag;
 import it.bologna.ausl.model.entities.shpeck.QTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
-import it.bologna.ausl.model.entities.shpeck.views.QMessageComplete;
 import it.nextsw.common.utils.CommonUtils;
 import java.io.BufferedOutputStream;
 import java.io.File;
