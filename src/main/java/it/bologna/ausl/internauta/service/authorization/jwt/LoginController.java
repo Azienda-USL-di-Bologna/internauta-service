@@ -117,6 +117,7 @@ public class LoginController {
         userInfoService.getPermessiDiFlussoRemoveCache(utente);
         userInfoService.loadUtenteRemoveCache(utente.getId(), userLogin.application);
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);
+        userInfoService.getUtentiPersonaRemoveCache(utente.getIdPersona());
         if (StringUtils.hasText(userLogin.realUser)) {
             // TODO: controllare che l'utente possa fare il cambia utente
             userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname, userLogin.application);
@@ -126,6 +127,7 @@ public class LoginController {
             userInfoService.getPermessiDiFlussoRemoveCache(utenteReale);
             userInfoService.loadUtenteRemoveCache(utenteReale.getId(), userLogin.application);
             userInfoService.getUtentiPersonaByUtenteRemoveCache(utenteReale);
+            userInfoService.getUtentiPersonaRemoveCache(utenteReale.getIdPersona());
             userInfoService.getPermessiDelegaRemoveCache(utenteReale);
             List<Integer> permessiDelega = userInfoService.getPermessiDelega(utenteReale);
             boolean isSuperDemiurgo = isSD(utenteReale);

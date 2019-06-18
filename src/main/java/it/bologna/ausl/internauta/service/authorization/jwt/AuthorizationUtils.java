@@ -147,6 +147,8 @@ public class AuthorizationUtils {
         userInfoService.loadUtenteRemoveCache(entityClass, field, ssoFieldValue, azienda, applicazione);
         Utente user = userInfoService.loadUtente(entityClass, field, ssoFieldValue, azienda, applicazione);
         userInfoService.loadUtenteRemoveCache(user.getId(), applicazione);
+        userInfoService.getUtentiPersonaByUtenteRemoveCache(user);
+        userInfoService.getUtentiPersonaRemoveCache(user.getIdPersona());
         userInfoService.getRuoliRemoveCache(user);
         // TODO: rimuovere permessi cache
         userInfoService.getPermessiDiFlussoRemoveCache(user);
@@ -186,6 +188,8 @@ public class AuthorizationUtils {
             userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, azienda, applicazione);
             impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda, applicazione);
             userInfoService.loadUtenteRemoveCache(impersonatedUser.getId(), applicazione);
+            userInfoService.getUtentiPersonaByUtenteRemoveCache(impersonatedUser);
+            userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());
             userInfoService.getRuoliRemoveCache(impersonatedUser);
             // TODO: funzione di rimozione permessi cache
             userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);

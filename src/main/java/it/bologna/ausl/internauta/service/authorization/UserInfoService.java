@@ -360,6 +360,10 @@ public class UserInfoService {
     @CacheEvict(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId()}")
     public void getUtentiPersonaByUtenteRemoveCache(Utente utente) {
     }
+    
+    @CacheEvict(value = "getUtentiPersona__ribaltorg__", key = "{#persona.getId()}")
+    public void getUtentiPersonaRemoveCache(Persona persona) {
+    }
 
     /**
      * restituisce tutte le aziende degli utenti della persona passata
