@@ -211,8 +211,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
     }
 
-    @RequestMapping(value = "downloadRecepitEml", method = RequestMethod.GET)
-    public void downloadRecepitEml(
+    @RequestMapping(value = "downloadRecepitEmlFromProcton", method = RequestMethod.GET)
+    public void downloadRecepitEmlFromProcton(
             @RequestParam(required = true) Integer idOutbox,
             @RequestParam(required = true) String uuidRepository,
             HttpServletResponse response,
