@@ -502,7 +502,7 @@ public class UserInfoService {
                 .collect(Collectors.toList());
     }
     
-    //@Cacheable(value = "getUtenteProcton", key = "{#idPersona, #codiceAzienda}")
+    @Cacheable(value = "getUtenteProcton", key = "{#idPersona, #codiceAzienda}")
     public UtenteProcton getUtenteProcton(Integer idPersona, String codiceAzienda) throws Http404ResponseException {
         Persona persona = personaRepository.getOne(idPersona);
         String qUtenteProcton = "SELECT DISTINCT ON (u.id_utente) "

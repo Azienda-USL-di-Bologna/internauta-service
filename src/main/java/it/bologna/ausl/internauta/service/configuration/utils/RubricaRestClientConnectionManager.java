@@ -29,17 +29,17 @@ public class RubricaRestClientConnectionManager {
     @Autowired
     PostgresConnectionManager postgresConnectionManager;
     
-    private final Map<Integer, RestClient> connections = new HashMap<>();
+    private final Map<Integer, RubricaRestParams> rubricaRestParamsMap = new HashMap<>();
 
     @PostConstruct
     public void init() throws UnknownHostException, IOException, MongoException, MongoWrapperException {
         List<Azienda> aziende = aziendaRepository.findAll();
         aziende.forEach((azienda) -> {
-            connections.put(azienda.getId(), getRestClientConnection(azienda));
+            rubricaRestParamsMap.put(azienda.getId(), getRestClientParam(azienda));
         });
     }
     
-    private RestClient getRestClientConnection(Azienda azienda) {
+    private RubricaRestParams getRestClientParam(Azienda azienda) {
         String query = "SELECT "
                 + "rubrica_url.val_parametro as rubricaUrl, "
                 + "rubrica_username.val_parametro as rubricaUsername, "
@@ -63,13 +63,19 @@ public class RubricaRestClientConnectionManager {
         }
         
         // Creo la connessione al restClient
-        RestClient restClient = new RestClient();
-        restClient.init(rubricaRestParams.getRubricaUrl(), rubricaRestParams.getRubricaUsername(), rubricaRestParams.getRubricaPassword());
+        // RestClient restClient = new RestClient();
+        rubricaRestParams.setRestClient(new RestClient());
+//        this.url = rubricaRestParams.getRubricaUrl();
+//        this.password = rubricaRestParams.getRubricaPassword();
+//        this.username = rubricaRestParams.getRubricaUsername();
+        //restClient.init(rubricaRestParams.getRubricaUrl(), rubricaRestParams.getRubricaUsername(), rubricaRestParams.getRubricaPassword());
         
-        return restClient;
+        return rubricaRestParams;
     }
     
     public RestClient getConnection(Integer idAzienda) {
-        return connections.get(idAzienda);
+        RubricaRestParams params = rubricaRestParamsMap.get(idAzienda);
+        params.init();
+        return params.getRestClient();
     }
 }
