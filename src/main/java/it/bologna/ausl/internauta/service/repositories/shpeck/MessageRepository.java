@@ -13,7 +13,7 @@ import org.springframework.data.repository.query.Param;
 
 @NextSdrRepository(repositoryPath = "${shpeck.mapping.url.root}/message", defaultProjection = MessageWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "message", path = "message", exported = false, excerptProjection = MessageWithPlainFields.class)
-public interface MessageRespository extends
+public interface MessageRepository extends
         NextSdrQueryDslRepository<Message, Integer, QMessage>,
         JpaRepository<Message, Integer>,
         CrudRepository<Message, Integer> {

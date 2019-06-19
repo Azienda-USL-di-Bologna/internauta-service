@@ -9,10 +9,7 @@ import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
-import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRespository;
-import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRespository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxRepository;
-import it.bologna.ausl.internauta.service.repositories.shpeck.TagRespository;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.shpeck.Draft;
@@ -50,6 +47,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
+import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 
 /**
  *
@@ -79,13 +79,13 @@ public class ShpeckUtils {
     private PecRepository pecRepository;
 
     @Autowired
-    private MessageRespository messageRepository;
+    private MessageRepository messageRepository;
 
     @Autowired
-    private MessageTagRespository messageTagRepository;
+    private MessageTagRepository messageTagRepository;
 
     @Autowired
-    private TagRespository tagRepository;
+    private TagRepository tagRepository;
 
     @Autowired
     private ApplicazioneRepository applicazioneRepository;
