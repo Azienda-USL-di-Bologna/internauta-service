@@ -62,18 +62,18 @@ public class CachedEntities {
         Optional<Persona> personaOp = personaRepository.findById(utente.getIdPersona().getId());
         if (personaOp.isPresent()) {
             Persona persona = personaOp.get();
-            persona.setApplicazione(utente.getIdPersona().getApplicazione());
+//            persona.setApplicazione(utente.getIdPersona().getApplicazione());
             persona.setPermessiPec(userInfoService.getPermessiPec(utente));
             return persona;
         } else
             return null;
     }
 
-    @Cacheable(value = "persona__ribaltorg__", key = "{#id, #applicazione}")
-    public Persona getPersona(Integer id, String applicazione) {
+    @Cacheable(value = "persona__ribaltorg__", key = "{#id}")
+    public Persona getPersona(Integer id) {
         Optional<Persona> persona = personaRepository.findById(id);
         if (persona.isPresent()) {
-            persona.get().setApplicazione(applicazione);
+//            persona.get().setApplicazione(applicazione);
             return persona.get();
         } else
             return null;

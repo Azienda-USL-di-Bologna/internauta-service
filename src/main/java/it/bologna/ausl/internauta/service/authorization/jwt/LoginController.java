@@ -103,8 +103,8 @@ public class LoginController {
         logger.debug("login realUser: " + userLogin.realUser);
         logger.debug("login applicazione: " + userLogin.application);
 
-        userInfoService.loadUtenteRemoveCache(userLogin.username, hostname, userLogin.application);
-        Utente utente = userInfoService.loadUtente(userLogin.username, hostname, userLogin.application);
+        userInfoService.loadUtenteRemoveCache(userLogin.username, hostname);
+        Utente utente = userInfoService.loadUtente(userLogin.username, hostname);
         if (utente == null) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
@@ -115,17 +115,17 @@ public class LoginController {
         userInfoService.getRuoliRemoveCache(utente);
         // TODO: permessi
         userInfoService.getPermessiDiFlussoRemoveCache(utente);
-        userInfoService.loadUtenteRemoveCache(utente.getId(), userLogin.application);
+        userInfoService.loadUtenteRemoveCache(utente.getId());
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);
         userInfoService.getUtentiPersonaRemoveCache(utente.getIdPersona());
         if (StringUtils.hasText(userLogin.realUser)) {
             // TODO: controllare che l'utente possa fare il cambia utente
-            userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname, userLogin.application);
-            Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname, userLogin.application);
+            userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname);
+            Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname);
             userInfoService.getRuoliRemoveCache(utenteReale);
             // TODO: permessi
             userInfoService.getPermessiDiFlussoRemoveCache(utenteReale);
-            userInfoService.loadUtenteRemoveCache(utenteReale.getId(), userLogin.application);
+            userInfoService.loadUtenteRemoveCache(utenteReale.getId());
             userInfoService.getUtentiPersonaByUtenteRemoveCache(utenteReale);
             userInfoService.getUtentiPersonaRemoveCache(utenteReale.getIdPersona());
             userInfoService.getPermessiDelegaRemoveCache(utenteReale);
@@ -140,31 +140,28 @@ public class LoginController {
             utente.setUtenteReale(utenteReale);
         }
         
-
-        
-        
         CustomUtenteLogin utenteWithPersona = factory.createProjection(CustomUtenteLogin.class, utente);
 
-        String idSessionLog = String.valueOf(authorizationUtils.createIdSessionLog().getId());
+        Integer idSessionLog = authorizationUtils.createIdSessionLog().getId();
+        String idSessionLogString = String.valueOf(idSessionLog);
         
         // mi metto in sessione l'utente_loggato e l'id_session_log, mi servirà in altri punti nella procedura di login, 
         // in particolare in projection custom
         httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, utente);
-        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLog);
+        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLogString);
 //        utente.setRuoli(userInfoService.getRuoli(utente));
         DateTime currentDateTime = DateTime.now();
         String token = Jwts.builder()
                 .setSubject(String.valueOf(utente.getId()))
                 .claim(AuthorizationUtils.TokenClaims.SSO_LOGIN.name(), false)
                 .claim(AuthorizationUtils.TokenClaims.COMPANY.name(), utente.getIdAzienda().getId())
-                .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLog)
+                .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLogString)
                 .setIssuedAt(currentDateTime.toDate())
                 .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)
                 .signWith(SIGNATURE_ALGORITHM, secretKey)
                 .compact();
         
-        
-        
+        authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application);
 
 //        utente.setPasswordHash(null);
         return new ResponseEntity(

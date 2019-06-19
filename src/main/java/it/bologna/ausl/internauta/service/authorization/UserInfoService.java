@@ -121,22 +121,21 @@ public class UserInfoService {
      * carica l'utente a partire dall'id
      *
      * @param id
-     * @param applicazione
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#id, #applicazione}")
-    public Utente loadUtente(Integer id, String applicazione) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#id}")
+    public Utente loadUtente(Integer id) {
         Utente res = null;
         Optional<Utente> utenteOp = utenteRepository.findById(id);
         if (utenteOp.isPresent()) {
             res = utenteOp.get();
-            res.getIdPersona().setApplicazione(applicazione);
+//            res.getIdPersona().setApplicazione(applicazione);
         }
         return res;
     }
 
-    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#id, #applicazione}")
-    public void loadUtenteRemoveCache(Integer id, String applicazione) {
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#id}")
+    public void loadUtenteRemoveCache(Integer id) {
     }
 
     /**
@@ -145,11 +144,10 @@ public class UserInfoService {
      *
      * @param username
      * @param aziendaPath
-     * @param applicazione
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath, #applicazione}")
-    public Utente loadUtente(String username, String aziendaPath, String applicazione) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
+    public Utente loadUtente(String username, String aziendaPath) {
         Utente res = null;
         Azienda azienda = loadAziendaByPath(aziendaPath);
         if (azienda != null) {
@@ -157,7 +155,7 @@ public class UserInfoService {
             Optional<Utente> utenteOp = utenteRepository.findOne(utenteFilter);
             if (utenteOp.isPresent()) {
                 res = utenteOp.get();
-                res.getIdPersona().setApplicazione(applicazione);
+//                res.getIdPersona().setApplicazione(applicazione);
             }
         }
         return res;
@@ -170,8 +168,8 @@ public class UserInfoService {
      * @param username
      * @param aziendaPath
      */
-    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath, #applicazione}")
-    public void loadUtenteRemoveCache(String username, String aziendaPath, String applicazione) {
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
+    public void loadUtenteRemoveCache(String username, String aziendaPath) {
     }
 
     /**
@@ -183,11 +181,10 @@ public class UserInfoService {
      * @param ssoFieldValue campo che identifica l'utente iniettato da shibbolet
      * nella richiesta
      * @param azienda campo che identifica l'azienda
-     * @param applicazione
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId(), #applicazione}")
-    public Utente loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda, String applicazione) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId()}")
+    public Utente loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda) {
 
         Utente res = null;
         BooleanExpression filter;
@@ -204,7 +201,7 @@ public class UserInfoService {
 
         if (utenteOp.isPresent()) {
             res = utenteOp.get();
-            res.getIdPersona().setApplicazione(applicazione);
+//            res.getIdPersona().setApplicazione(applicazione);
             return utenteOp.get();
         }
         return res;
@@ -218,10 +215,9 @@ public class UserInfoService {
      * @param field
      * @param ssoFieldValue
      * @param azienda
-     * @param applicazione
      */
-    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId(), #applicazione}")
-    public void loadUtenteRemoveCache(Class entityClass, String field, String ssoFieldValue, Azienda azienda, String applicazione) {
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId()}")
+    public void loadUtenteRemoveCache(Class entityClass, String field, String ssoFieldValue, Azienda azienda) {
     }
 
     /**

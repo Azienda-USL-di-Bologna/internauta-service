@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.authorization;
 
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -10,33 +11,38 @@ public class TokenBasedAuthentication extends AbstractAuthenticationToken {
     private final UserDetails user;
     private final UserDetails realUser;
     private Integer idSessionLog;
+    private Applicazioni applicazione;
 
-    public TokenBasedAuthentication(Utente user) {
+    public TokenBasedAuthentication(Utente user, Applicazioni applicazione) {
         super(user.getAuthorities());
         this.user = user;
         this.realUser = null;
+        this.applicazione = applicazione;
 //        super.setDetails(userInfo);
     }
 
-    public TokenBasedAuthentication(Utente user, Utente realUser) {
+    public TokenBasedAuthentication(Utente user, Utente realUser, Applicazioni applicazione) {
         super(user.getAuthorities());
         this.user = user;
         this.realUser = realUser;
+        this.applicazione = applicazione;
 //        super.setDetails(userInfo);
     }
 
-    public TokenBasedAuthentication(Utente user, int idSessionLog) {
+    public TokenBasedAuthentication(Utente user, int idSessionLog, Applicazioni applicazione) {
         super(user.getAuthorities());
         this.user = user;
         this.realUser = this.user;
         this.idSessionLog = idSessionLog;
+        this.applicazione = applicazione;
     }
 
-    public TokenBasedAuthentication(Utente user, Utente realUser, int idSessionLog) {
+    public TokenBasedAuthentication(Utente user, Utente realUser, int idSessionLog, Applicazioni applicazione) {
         super(user.getAuthorities());
         this.user = user;
         this.realUser = realUser;
         this.idSessionLog = idSessionLog;
+        this.applicazione = applicazione;
 //        super.setDetails(userInfo);
     }
 
@@ -73,5 +79,13 @@ public class TokenBasedAuthentication extends AbstractAuthenticationToken {
 
     public void setIdSessionLog(Integer idSessionLog) {
         this.idSessionLog = idSessionLog;
+    }
+
+    public Applicazioni getApplicazione() {
+        return applicazione;
+    }
+
+    public void setApplicazione(Applicazioni applicazione) {
+        this.applicazione = applicazione;
     }
 }
