@@ -1,11 +1,13 @@
 package it.bologna.ausl.internauta.service.authorization.utils;
 
+import java.io.Serializable;
+
 
 /**
  *
  * @author gusgus
  */
-public class UtenteProcton {
+public class UtenteProcton implements Serializable {
     
     private String idUtente;
     private String idStruttura;
