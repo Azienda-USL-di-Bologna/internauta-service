@@ -213,6 +213,11 @@
             <version>2.14.3</version>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20180813</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

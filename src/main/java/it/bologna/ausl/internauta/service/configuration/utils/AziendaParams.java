@@ -11,8 +11,6 @@ public class AziendaParams {
     private String jdbcUrl;
     private String dbUsername;
     private String dbPassword;
-    private String storageConnString;
-    private String babelSuiteWebApiUrl;
 
     public AziendaParams() {
     }
@@ -48,21 +46,4 @@ public class AziendaParams {
     public void setDbPassword(String dbPassword) {
         this.dbPassword = dbPassword;
     }
-
-    public String getStorageConnString() {
-        return storageConnString;
-    }
-
-    public void setStorageConnString(String storageConnString) {
-        this.storageConnString = storageConnString;
-    }
-
-    public String getBabelSuiteWebApiUrl() {
-        return babelSuiteWebApiUrl;
-    }
-
-    public void setBabelSuiteWebApiUrl(String babelSuiteWebApiUrl) {
-        this.babelSuiteWebApiUrl = babelSuiteWebApiUrl;
-    }   
-    
 }
