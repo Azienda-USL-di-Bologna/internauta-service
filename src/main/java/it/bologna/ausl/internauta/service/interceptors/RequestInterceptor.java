@@ -19,6 +19,9 @@ public class RequestInterceptor extends HandlerInterceptorAdapter{
     
     @Override
     public void afterCompletion(HttpServletRequest hsr, HttpServletResponse hsr1, Object o, Exception excptn) throws Exception {
+        
+        
+        
         httpSessionData.resetDataMap();
         super.afterCompletion(hsr, hsr1, o, excptn);
     }

@@ -1,5 +1,7 @@
 package it.bologna.ausl.internauta.service.interceptors.shpeck;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Template;
 import com.querydsl.core.types.TemplateFactory;
@@ -7,17 +9,23 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.projections.KrintInformazioniUtente;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.Map;
 import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -31,6 +39,17 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     PermissionManager permissionManager;
+    
+    @Autowired
+    ProjectionFactory factory;
+    
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    ObjectMapper objectMapper;
+    
+    
     
     @Override
     public Class getTargetEntityClass() {
@@ -92,4 +111,36 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
             throw new AbortLoadInterceptorException(ex);
         }
     }
+
+    // PROVA PER KRINT
+    @Override
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        
+        Message m = (Message) entity;
+        Message mBefore = (Message) beforeUpdateEntity;
+        // becco un evento a caso
+        if(mBefore.getSeen() != m.getSeen()){
+            
+            
+            AuthenticatedSessionData authenticatedUserProperties;
+            try {
+                authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+                // vediamo se mi crea l'oggetto da passare al krint
+                KrintInformazioniUtente createProjection = factory.createProjection(KrintInformazioniUtente.class, authenticatedUserProperties.getUser());
+                String jsonString = objectMapper.writeValueAsString(createProjection);
+                httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, jsonString);
+            } catch (BlackBoxPermissionException ex) {
+                java.util.logging.Logger.getLogger(MessageInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (JsonProcessingException ex) {
+                java.util.logging.Logger.getLogger(MessageInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            
+            //super.httpSessionData
+        }
+        return entity;
+               
+    }
+    
+    
 }

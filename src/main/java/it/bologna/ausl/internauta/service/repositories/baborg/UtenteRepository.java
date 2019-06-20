@@ -17,4 +17,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface UtenteRepository extends
         NextSdrQueryDslRepository<Utente, Integer, QUtente>,
         JpaRepository<Utente, Integer> {
+    
 }

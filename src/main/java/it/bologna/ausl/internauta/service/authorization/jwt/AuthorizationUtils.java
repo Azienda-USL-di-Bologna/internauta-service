@@ -105,7 +105,7 @@ public class AuthorizationUtils {
         Utente user = userInfoService.loadUtente(userId);       
         user.setRuoli(userInfoService.getRuoli(user, null));
         
-        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user));
+        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user, true));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         user.setPermessiDiFlussoByCodiceAzienda(userInfoService.getPermessiDiFlussoByCodiceAzienda(user));
                 

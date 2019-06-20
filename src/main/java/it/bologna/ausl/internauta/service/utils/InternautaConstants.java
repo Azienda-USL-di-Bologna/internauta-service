@@ -90,4 +90,13 @@ public class InternautaConstants {
         }
     }
     
+    public static class Krint {
+        
+        public enum PermessiKey {
+            permessiPec, permessiFlusso
+        }
+        
+    }
+    
+    
 }
