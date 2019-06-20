@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.authorization;
 
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 
 /**
  *
@@ -10,17 +11,19 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 public class AuthenticatedSessionData {
     private Utente user, realUser;
     private Persona person, realPerson;
+    private Applicazione.Applicazioni applicazione;
     private int idSessionLog;
 
     public AuthenticatedSessionData() {
     }
 
-    public AuthenticatedSessionData(Utente user, Utente realUser, Persona person, Persona realPerson, int idSessionLog) {
+    public AuthenticatedSessionData(Utente user, Utente realUser, Persona person, Persona realPerson, int idSessionLog, Applicazione.Applicazioni applicazione) {
         this.user = user;
         this.realUser = realUser;
         this.person = person;
         this.realPerson = realPerson;
         this.idSessionLog = idSessionLog;
+        this.applicazione = applicazione;
     }
 
     public Utente getUser() {
@@ -61,5 +64,13 @@ public class AuthenticatedSessionData {
 
     public void setIdSessionLog(int idSessionLog) {
         this.idSessionLog = idSessionLog;
+    }
+
+    public Applicazione.Applicazioni getApplicazione() {
+        return applicazione;
+    }
+
+    public void setApplicazione(Applicazione.Applicazioni applicazione) {
+        this.applicazione = applicazione;
     }
 }

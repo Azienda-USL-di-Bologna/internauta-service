@@ -11,6 +11,7 @@ import it.bologna.ausl.internauta.service.repositories.configurazione.Applicazio
 import it.bologna.ausl.internauta.service.repositories.configurazione.ImpostazioniApplicazioniRepository;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
 import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configuration.QImpostazioniApplicazioni;
 import java.util.Map;
@@ -60,12 +61,13 @@ public class ConfigurazioneCustomController {
             person = authenticatedUserProperties.getPerson();
             user = authenticatedUserProperties.getUser();
         }
+        Applicazioni applicazione = authenticatedUserProperties.getApplicazione();
         LOGGER.info(String.format("person: %s", objectMapper.writeValueAsString(person)));
         LOGGER.info(String.format("user: %s", objectMapper.writeValueAsString(user)));
-        LOGGER.info(String.format("applicazione: %s", person.getApplicazione()));
-
+        LOGGER.info(String.format("applicazione: %s", applicazione.toString()));
+        
         BooleanExpression impostazioniFilter = QImpostazioniApplicazioni.impostazioniApplicazioni.idApplicazione.id
-                .eq(person.getApplicazione())
+                .eq(applicazione.toString())
                 .and(QImpostazioniApplicazioni.impostazioniApplicazioni.idPersona.id
                         .eq(person.getId()));
 
@@ -76,7 +78,7 @@ public class ConfigurazioneCustomController {
         }
         else {
             impostazioni = new ImpostazioniApplicazioni();
-            impostazioni.setIdApplicazione(applicazioneRepository.getOne(person.getApplicazione()));
+            impostazioni.setIdApplicazione(applicazioneRepository.getOne(applicazione.toString()));
             impostazioni.setIdPersona(personaRepository.getOne(person.getId()));
         }
         impostazioni.setImpostazioniVisualizzazione(objectMapper.writeValueAsString(impostazioniVisualizzazione));
