@@ -213,27 +213,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @RequestMapping(value = "downloadRecepitEmlFromProcton", method = RequestMethod.GET)
     public void downloadRecepitEmlFromProcton(
-            @RequestParam(required = true) Integer idOutbox,
             @RequestParam(required = true) String uuidRepository,
             HttpServletResponse response,
             HttpServletRequest request
     ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException, UnsupportedEncodingException, BadParamsException {
-        LOG.info("downloadRecepitEml");
-
-        BooleanExpression filtraPerOutbox = QMessage.message.idOutbox.eq(idOutbox);
-        Message related = messageRepository.findOne(filtraPerOutbox).get();
-        if (related == null) {
-            LOG.error("ERRORE: non ho trovato il messaggio con questo idOutbox: " + idOutbox + ", per cui ritorno.");
-            return;
-        }
-        LOG.info("Trovato messaggio  " + related.toString());
-        //BooleanExpression filter = QMessage.message.idRelated.id.eq(related.getId()).and(QMessage.message.uuidRepository.eq(uuidRepository));
+        LOG.info("downloadRecepitEmlFromProcton");
         BooleanExpression filter = QMessage.message.uuidRepository.eq(uuidRepository);
         Message ricevuta = messageRepository.findOne(filter).get();
-        if (related == null) {
-            LOG.error("ERRORE: ho trovato la pec MA non ho trovato la ricevuta con uuid_repository idOutbox: " + uuidRepository + ", per cui ritorno.");
-            return;
-        }
         LOG.info("Trovata ricevuta  " + ricevuta.toString());
         File downloadEml = null;
         try {
