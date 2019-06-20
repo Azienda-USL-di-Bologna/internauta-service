@@ -227,7 +227,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             return;
         }
         LOG.info("Trovato messaggio  " + related.toString());
-        BooleanExpression filter = QMessage.message.idRelated.id.eq(related.getId()).and(QMessage.message.uuidRepository.eq(uuidRepository));
+        //BooleanExpression filter = QMessage.message.idRelated.id.eq(related.getId()).and(QMessage.message.uuidRepository.eq(uuidRepository));
+        BooleanExpression filter = QMessage.message.uuidRepository.eq(uuidRepository);
         Message ricevuta = messageRepository.findOne(filter).get();
         if (related == null) {
             LOG.error("ERRORE: ho trovato la pec MA non ho trovato la ricevuta con uuid_repository idOutbox: " + uuidRepository + ", per cui ritorno.");
