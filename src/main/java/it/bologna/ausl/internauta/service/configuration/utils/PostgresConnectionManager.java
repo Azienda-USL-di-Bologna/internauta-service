@@ -37,11 +37,14 @@ public class PostgresConnectionManager {
             hikariConfig.setJdbcUrl(aziendaConnParams.getJdbcUrl());
             hikariConfig.setUsername(aziendaConnParams.getDbUsername());
             hikariConfig.setPassword(aziendaConnParams.getDbPassword());
-            hikariConfig.setLeakDetectionThreshold(20000);
-            hikariConfig.setMinimumIdle(1);
+            // hikariConfig.setLeakDetectionThreshold(20000);
+            hikariConfig.setMinimumIdle(2);
+            hikariConfig.setMaximumPoolSize(10);
+            // hikariConfig.getConnectionTimeout();
+            // hikariConfig.setConnectionTimeout(connectionTimeoutMs);
             HikariDataSource hikariDataSource =  new HikariDataSource(hikariConfig);
             Sql2o sql2o = new Sql2o(hikariDataSource);
-            dbConnectionMap.put(aziendaConnParams.getCodiceAzienda(), sql2o);
+            dbConnectionMap.put(aziendaConnParams.getCodiceAzienda(), sql2o);         
         }
     }
     

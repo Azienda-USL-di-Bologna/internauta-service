@@ -22,6 +22,11 @@ public interface MessageRepository extends
     public Integer getIdAziendaRepository(
             @Param("id_message") Integer idMessage
     );
+    
+    @Procedure("shpeck.update_tscol")
+    public String updateTscol(
+            @Param("id_message") Integer idMessage
+    );
 
 //    @Override
 //    default void customize(QuerydslBindings bindings, QMessage entityPath) {
