@@ -252,7 +252,7 @@ public class ProjectionBeans {
 
 //            stringToEncode += "&id_tag=[id_tag]";        
             stringToEncode += "&pec_ricezione=[pec_ricezione]";        
-            stringToEncode += "&richiesta=" + UUID.randomUUID();
+            stringToEncode += "&richiesta=[richiesta]";
             stringToEncode += "&utenteImpersonato=" + utente.getIdPersona().getCodiceFiscale();
 
             if(utente.getUtenteReale() != null ){            
