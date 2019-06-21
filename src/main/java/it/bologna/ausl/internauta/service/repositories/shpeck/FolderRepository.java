@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 @NextSdrRepository(repositoryPath = "${shpeck.mapping.url.root}/folder", defaultProjection = FolderWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "folder", path = "folder", exported = false, excerptProjection = FolderWithPlainFields.class)
-public interface FolderRespository extends
+public interface FolderRepository extends
         NextSdrQueryDslRepository<Folder, Integer, QFolder>,
         JpaRepository<Folder, Integer> {
 }

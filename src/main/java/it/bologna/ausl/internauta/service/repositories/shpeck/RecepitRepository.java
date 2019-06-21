@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 @NextSdrRepository(repositoryPath = "${shpeck.mapping.url.root}/recepit", defaultProjection = RecepitWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "recepit", path = "recepit", exported = false, excerptProjection = RecepitWithPlainFields.class)
-public interface RecepitRespository extends
+public interface RecepitRepository extends
         NextSdrQueryDslRepository<Recepit, Integer, QRecepit>,
         JpaRepository<Recepit, Integer> {
 }

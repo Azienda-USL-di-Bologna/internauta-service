@@ -162,8 +162,8 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     
     @RequestMapping(value = {"getFirmoneUrls"}, method = RequestMethod.GET)
     public void getFirmoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException{
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Utente utente = (Utente) authentication.getPrincipal();
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente utente = authenticatedSessionData.getUser();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         Azienda aziendaUtenteConnesso = utente.getIdAzienda();
         AziendaParametriJson parametriAziendaUtenteConnesso = AziendaParametriJson.parse(this.objectMapper, aziendaUtenteConnesso.getParametri());
@@ -244,11 +244,19 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         Persona person = authenticatedSessionData.getPerson();
         int idSessionLog = authenticatedSessionData.getIdSessionLog();
         if(person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0){
-            stringToEncode += stringToEncode.length() > 0 ? "&utente=" : "?utente=";
+            stringToEncode += stringToEncode.length() > 0 ? "&utente=" : "?utente="; // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
             stringToEncode += person.getCodiceFiscale();
         }
-        stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
-        stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale();
+        
+        if (realPerson != null) {
+            stringToEncode += "&realUser=" + realPerson.getCodiceFiscale();
+            stringToEncode += "&impersonatedUser=" + person.getCodiceFiscale();
+            stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale(); // serve alle applicazioni INDE
+        } else {
+            stringToEncode += "&user=" + person.getCodiceFiscale();
+            stringToEncode += "&utenteLogin=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
+        }
+        stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
         stringToEncode += "&idSessionLog=" + idSessionLog;
         stringToEncode += FROM;
         stringToEncode += "&modalitaAmministrativa=0";

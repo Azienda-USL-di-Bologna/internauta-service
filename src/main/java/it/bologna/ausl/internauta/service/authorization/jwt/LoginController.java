@@ -1,8 +1,6 @@
 package it.bologna.ausl.internauta.service.authorization.jwt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JavaType;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
@@ -15,11 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.ProjectionBeans;
-import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithPlainFields;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,11 +32,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.HttpStatus;
-import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
 import java.util.List;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
-import java.util.logging.Level;
 
 /**
  *
@@ -56,8 +48,8 @@ public class LoginController {
 
     private final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
 
-    private final String IMPERSONATE_USER = "utenteImpersonato";
-    private final String APPLICAZIONE = "applicazione";
+    private final String IMPERSONATE_USER = "impersonatedUser";
+    private final String APPLICATION = "application";
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -109,10 +101,10 @@ public class LoginController {
         logger.debug("login username: " + userLogin.username);
         logger.debug("login password: " + userLogin.password);
         logger.debug("login realUser: " + userLogin.realUser);
-        logger.debug("login applicazione: " + userLogin.applicazione);
+        logger.debug("login applicazione: " + userLogin.application);
 
-        userInfoService.loadUtenteRemoveCache(userLogin.username, hostname, userLogin.applicazione);
-        Utente utente = userInfoService.loadUtente(userLogin.username, hostname, userLogin.applicazione);
+        userInfoService.loadUtenteRemoveCache(userLogin.username, hostname);
+        Utente utente = userInfoService.loadUtente(userLogin.username, hostname);
         if (utente == null) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
@@ -123,17 +115,19 @@ public class LoginController {
         userInfoService.getRuoliRemoveCache(utente);
         // TODO: permessi
         userInfoService.getPermessiDiFlussoRemoveCache(utente);
-        userInfoService.loadUtenteRemoveCache(utente.getId(), userLogin.applicazione);
+        userInfoService.loadUtenteRemoveCache(utente.getId());
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);
+        userInfoService.getUtentiPersonaRemoveCache(utente.getIdPersona());
         if (StringUtils.hasText(userLogin.realUser)) {
             // TODO: controllare che l'utente possa fare il cambia utente
-            userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname, userLogin.applicazione);
-            Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname, userLogin.applicazione);
+            userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname);
+            Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname);
             userInfoService.getRuoliRemoveCache(utenteReale);
             // TODO: permessi
             userInfoService.getPermessiDiFlussoRemoveCache(utenteReale);
-            userInfoService.loadUtenteRemoveCache(utenteReale.getId(), userLogin.applicazione);
+            userInfoService.loadUtenteRemoveCache(utenteReale.getId());
             userInfoService.getUtentiPersonaByUtenteRemoveCache(utenteReale);
+            userInfoService.getUtentiPersonaRemoveCache(utenteReale.getIdPersona());
             userInfoService.getPermessiDelegaRemoveCache(utenteReale);
             List<Integer> permessiDelega = userInfoService.getPermessiDelega(utenteReale);
             boolean isSuperDemiurgo = isSD(utenteReale);
@@ -146,31 +140,28 @@ public class LoginController {
             utente.setUtenteReale(utenteReale);
         }
         
-
-        
-        
         CustomUtenteLogin utenteWithPersona = factory.createProjection(CustomUtenteLogin.class, utente);
 
-        String idSessionLog = String.valueOf(authorizationUtils.createIdSessionLog().getId());
+        Integer idSessionLog = authorizationUtils.createIdSessionLog().getId();
+        String idSessionLogString = String.valueOf(idSessionLog);
         
         // mi metto in sessione l'utente_loggato e l'id_session_log, mi servirà in altri punti nella procedura di login, 
         // in particolare in projection custom
         httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, utente);
-        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLog);
+        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLogString);
 //        utente.setRuoli(userInfoService.getRuoli(utente));
         DateTime currentDateTime = DateTime.now();
         String token = Jwts.builder()
                 .setSubject(String.valueOf(utente.getId()))
                 .claim(AuthorizationUtils.TokenClaims.SSO_LOGIN.name(), false)
                 .claim(AuthorizationUtils.TokenClaims.COMPANY.name(), utente.getIdAzienda().getId())
-                .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLog)
+                .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLogString)
                 .setIssuedAt(currentDateTime.toDate())
                 .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)
                 .signWith(SIGNATURE_ALGORITHM, secretKey)
                 .compact();
         
-        
-        
+        authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application);
 
 //        utente.setPasswordHash(null);
         return new ResponseEntity(
@@ -185,7 +176,7 @@ public class LoginController {
     public ResponseEntity<LoginResponse> loginGET(HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, ClassNotFoundException {
 
         String impersonateUser = request.getParameter(IMPERSONATE_USER);
-        String applicazione = request.getParameter(APPLICAZIONE);
+        String applicazione = request.getParameter(APPLICATION);
         logger.info("impersonate user: " + impersonateUser);
         logger.info("applicazione: " + applicazione);
 
@@ -213,7 +204,7 @@ public class LoginController {
         public String username;
         public String realUser;
         public String password;
-        public String applicazione;
+        public String application;
     }
 
     @SuppressWarnings("unused")

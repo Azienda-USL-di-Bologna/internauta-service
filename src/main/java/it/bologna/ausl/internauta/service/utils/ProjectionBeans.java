@@ -43,6 +43,7 @@ import org.springframework.stereotype.Component;
 import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -83,6 +84,7 @@ public class ProjectionBeans {
 
     protected Utente user, realUser;
     protected Persona person, realPerson;
+    protected Applicazione.Applicazioni applicazione;
     protected int idSessionLog;
     
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ProjectionBeans.class);
@@ -94,6 +96,7 @@ public class ProjectionBeans {
         idSessionLog = authenticatedSessionData.getIdSessionLog();
         person = authenticatedSessionData.getPerson();
         realPerson = authenticatedSessionData.getRealPerson();
+        applicazione = authenticatedSessionData.getApplicazione();
     }
     
     public UtenteWithIdPersona getUtenteConPersona(Utente utente){
@@ -144,10 +147,11 @@ public class ProjectionBeans {
         return factory.createProjection(AziendaWithPlainFields.class, utente.getIdAzienda());
     }
     
-    public List<ImpostazioniApplicazioniWithPlainFields> getImpostazioniApplicazioniListWithPlainFields(Persona persona) {
+    public List<ImpostazioniApplicazioniWithPlainFields> getImpostazioniApplicazioniListWithPlainFields(Persona persona) throws BlackBoxPermissionException {
+        setAuthenticatedUserProperties();
         List<ImpostazioniApplicazioni> impostazioniApplicazioniList = persona.getImpostazioniApplicazioniList();
         if (impostazioniApplicazioniList != null && !impostazioniApplicazioniList.isEmpty()) {
-            return impostazioniApplicazioniList.stream().filter(imp -> imp.getIdApplicazione().getId().equals(persona.getApplicazione())).
+            return impostazioniApplicazioniList.stream().filter(imp -> imp.getIdApplicazione().getId().equals(applicazione.toString())).
                     map(
                         imp -> factory.createProjection(ImpostazioniApplicazioniWithPlainFields.class, imp)
                     ).collect(Collectors.toList());
@@ -248,7 +252,7 @@ public class ProjectionBeans {
 
 //            stringToEncode += "&id_tag=[id_tag]";        
             stringToEncode += "&pec_ricezione=[pec_ricezione]";        
-            stringToEncode += "&richiesta=" + UUID.randomUUID();
+            stringToEncode += "&richiesta=[richiesta]";
             stringToEncode += "&utenteImpersonato=" + utente.getIdPersona().getCodiceFiscale();
 
             if(utente.getUtenteReale() != null ){            

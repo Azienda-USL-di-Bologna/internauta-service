@@ -4,6 +4,7 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -28,9 +29,13 @@ public class AuthenticatedSessionDataBuilder {
         Utente realUser = (Utente) threadLocalAuthentication.get().getRealUser();
         int idSessionLog = threadLocalAuthentication.get().getIdSessionLog();
         Persona person = cachedEntities.getPersona(user);
-        Persona realPerson = cachedEntities.getPersona(realUser);
+        Persona realPerson = null;
+        if (realUser != null) {
+            realPerson = cachedEntities.getPersona(realUser);
+        }
+        Applicazione.Applicazioni applicazione =  threadLocalAuthentication.get().getApplicazione();
 
-        return new AuthenticatedSessionData(user, realUser, person, realPerson, idSessionLog);
+        return new AuthenticatedSessionData(user, realUser, person, realPerson, idSessionLog, applicazione);
     }
 
     private void setAuthentication() {

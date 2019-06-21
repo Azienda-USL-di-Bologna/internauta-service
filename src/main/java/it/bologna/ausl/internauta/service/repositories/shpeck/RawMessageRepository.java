@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 @NextSdrRepository(repositoryPath = "${shpeck.mapping.url.root}/rawmessage", defaultProjection = RawMessageWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "rawmessage", path = "rawmessage", exported = false, excerptProjection = RawMessageWithPlainFields.class)
-public interface RawMessageRespository extends
+public interface RawMessageRepository extends
         NextSdrQueryDslRepository<RawMessage, Integer, QRawMessage>, 
         JpaRepository<RawMessage, Integer> {
 }

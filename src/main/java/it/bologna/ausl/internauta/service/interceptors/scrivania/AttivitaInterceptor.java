@@ -136,18 +136,25 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
                                 String stringToEncode = urlAttivita;
 
-                                stringToEncode += "&utente=" + person.getCodiceFiscale();
+                                stringToEncode += "&utente=" + person.getCodiceFiscale(); // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
 
                                 // stringToEncode += "&richiesta=" + UUID.randomUUID().toString();
-                                stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale();
+                                if (realPerson != null) {
+                                    stringToEncode += "&realUser=" + realPerson.getCodiceFiscale();
+                                    stringToEncode += "&impersonatedUser=" + person.getCodiceFiscale();
+                                    stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale(); // serve alle applicazioni INDE
+                                } else {
+                                    stringToEncode += "&user=" + person.getCodiceFiscale();
+                                    stringToEncode += "&utenteLogin=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
+                                }
 
-                                stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale();
+                                stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
 
                                 stringToEncode += "&idSessionLog=" + idSessionLog;
 
                                 stringToEncode += FROM;
 
-                                stringToEncode += "&modalitaAmministrativa=0";
+                                stringToEncode += "&modalitaAmministrativa=0"; // serve alle applicazioni INDE
 
                                 String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
 //                                    String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;

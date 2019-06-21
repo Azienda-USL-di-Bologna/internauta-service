@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 @NextSdrRepository(repositoryPath = "${shpeck.mapping.url.root}/tag", defaultProjection = TagWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "tag", path = "tag", exported = false, excerptProjection = TagWithPlainFields.class)
-public interface TagRespository extends
+public interface TagRepository extends
         NextSdrQueryDslRepository<Tag, Integer, QTag>,
         JpaRepository<Tag, Integer> {
     

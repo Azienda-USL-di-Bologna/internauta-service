@@ -8,6 +8,9 @@ import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
+import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
+import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
+import it.bologna.ausl.internauta.service.exceptions.Http404ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.RuoloRepository;
@@ -40,6 +43,8 @@ import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
 import java.util.Arrays;
+import org.sql2o.Connection;
+import org.sql2o.Sql2o;
 
 
 /**
@@ -78,6 +83,9 @@ public class UserInfoService {
 
     @Value("${internauta.mode}")
     String internautaMode;
+    
+    @Autowired
+    PostgresConnectionManager postgresConnectionManager;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
 
@@ -113,22 +121,21 @@ public class UserInfoService {
      * carica l'utente a partire dall'id
      *
      * @param id
-     * @param applicazione
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#id, #applicazione}")
-    public Utente loadUtente(Integer id, String applicazione) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#id}")
+    public Utente loadUtente(Integer id) {
         Utente res = null;
         Optional<Utente> utenteOp = utenteRepository.findById(id);
         if (utenteOp.isPresent()) {
             res = utenteOp.get();
-            res.getIdPersona().setApplicazione(applicazione);
+//            res.getIdPersona().setApplicazione(applicazione);
         }
         return res;
     }
 
-    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#id, #applicazione}")
-    public void loadUtenteRemoveCache(Integer id, String applicazione) {
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#id}")
+    public void loadUtenteRemoveCache(Integer id) {
     }
 
     /**
@@ -137,11 +144,10 @@ public class UserInfoService {
      *
      * @param username
      * @param aziendaPath
-     * @param applicazione
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath, #applicazione}")
-    public Utente loadUtente(String username, String aziendaPath, String applicazione) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
+    public Utente loadUtente(String username, String aziendaPath) {
         Utente res = null;
         Azienda azienda = loadAziendaByPath(aziendaPath);
         if (azienda != null) {
@@ -149,7 +155,7 @@ public class UserInfoService {
             Optional<Utente> utenteOp = utenteRepository.findOne(utenteFilter);
             if (utenteOp.isPresent()) {
                 res = utenteOp.get();
-                res.getIdPersona().setApplicazione(applicazione);
+//                res.getIdPersona().setApplicazione(applicazione);
             }
         }
         return res;
@@ -162,8 +168,8 @@ public class UserInfoService {
      * @param username
      * @param aziendaPath
      */
-    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath, #applicazione}")
-    public void loadUtenteRemoveCache(String username, String aziendaPath, String applicazione) {
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
+    public void loadUtenteRemoveCache(String username, String aziendaPath) {
     }
 
     /**
@@ -175,11 +181,10 @@ public class UserInfoService {
      * @param ssoFieldValue campo che identifica l'utente iniettato da shibbolet
      * nella richiesta
      * @param azienda campo che identifica l'azienda
-     * @param applicazione
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId(), #applicazione}")
-    public Utente loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda, String applicazione) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId()}")
+    public Utente loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda) {
 
         Utente res = null;
         BooleanExpression filter;
@@ -196,7 +201,7 @@ public class UserInfoService {
 
         if (utenteOp.isPresent()) {
             res = utenteOp.get();
-            res.getIdPersona().setApplicazione(applicazione);
+//            res.getIdPersona().setApplicazione(applicazione);
             return utenteOp.get();
         }
         return res;
@@ -210,10 +215,9 @@ public class UserInfoService {
      * @param field
      * @param ssoFieldValue
      * @param azienda
-     * @param applicazione
      */
-    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId(), #applicazione}")
-    public void loadUtenteRemoveCache(Class entityClass, String field, String ssoFieldValue, Azienda azienda, String applicazione) {
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId()}")
+    public void loadUtenteRemoveCache(Class entityClass, String field, String ssoFieldValue, Azienda azienda) {
     }
 
     /**
@@ -360,6 +364,10 @@ public class UserInfoService {
     @CacheEvict(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId()}")
     public void getUtentiPersonaByUtenteRemoveCache(Utente utente) {
     }
+    
+    @CacheEvict(value = "getUtentiPersona__ribaltorg__", key = "{#persona.getId()}")
+    public void getUtentiPersonaRemoveCache(Persona persona) {
+    }
 
     /**
      * restituisce tutte le aziende degli utenti della persona passata
@@ -490,5 +498,30 @@ public class UserInfoService {
                 .collect(Collectors.toList());
     }
     
-    
+    @Cacheable(value = "getUtenteProcton", key = "{#idPersona, #codiceAzienda}")
+    public UtenteProcton getUtenteProcton(Integer idPersona, String codiceAzienda) throws Http404ResponseException {
+        Persona persona = personaRepository.getOne(idPersona);
+        String qUtenteProcton = "SELECT DISTINCT ON (u.id_utente) "
+                + "u.id_utente as idUtente, "
+                + "CASE WHEN u.id_struttura IS NOT NULL THEN u.id_struttura ELSE af.id_struttura END as idStruttura " +
+            "FROM procton.utenti u \n" +
+            "LEFT JOIN procton.appartenenze_funzionali af ON u.id_utente = af.id_utente AND af.unificata != 0\n" +
+            "WHERE cf = :codiceFiscale \n" +
+            "LIMIT 1";
+        
+        UtenteProcton utenteProcton;
+        // Prendo la connessione dal connection manager
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        
+        try (Connection conn = (Connection) dbConnection.open()) {
+            utenteProcton = conn.createQuery(qUtenteProcton)
+                    .addParameter("codiceFiscale", persona.getCodiceFiscale())
+                    .executeAndFetchFirst(UtenteProcton.class);
+        }
+        
+        if (utenteProcton == null) {
+            throw new Http404ResponseException("1", "Problemi con il recupero dell'id_utente di procton");
+        }
+        return utenteProcton;
+    }
 }

@@ -15,7 +15,7 @@ import it.bologna.ausl.model.entities.shpeck.views.projections.generated.Message
  */
 @NextSdrRepository(repositoryPath = "${shpeck.mapping.url.root}/messagecomplete", defaultProjection = MessageCompleteWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "messagecomplete", path = "messagecomplete", exported = false, excerptProjection = MessageCompleteWithPlainFields.class)
-public interface MessageCompleteRespository extends
+public interface MessageCompleteRepository extends
         NextSdrQueryDslRepository<MessageComplete, Integer, QMessageComplete>,
         JpaRepository<MessageComplete, Integer>,
         CrudRepository<MessageComplete, Integer> {

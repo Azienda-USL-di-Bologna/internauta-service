@@ -2,7 +2,6 @@ package it.bologna.ausl.internauta.service.controllers.shpeck;
 
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
-import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRespository;
 import it.bologna.ausl.model.entities.shpeck.Address;
 import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.Note;
@@ -25,7 +24,9 @@ import it.bologna.ausl.model.entities.shpeck.QRecepit;
 import it.bologna.ausl.model.entities.shpeck.RawMessage;
 import it.bologna.ausl.model.entities.shpeck.Recepit;
 import it.bologna.ausl.model.entities.shpeck.Tag;
+import it.bologna.ausl.model.entities.shpeck.views.DraftLite;
 import it.bologna.ausl.model.entities.shpeck.views.MessageComplete;
+import it.bologna.ausl.model.entities.shpeck.views.QDraftLite;
 import it.bologna.ausl.model.entities.shpeck.views.QMessageComplete;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
@@ -45,6 +46,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 
 @RestController
 @RequestMapping(value = "${shpeck.mapping.url.root}")
@@ -61,7 +63,7 @@ public class ShpeckBaseController extends BaseCrudController {
     }
     
     @Autowired
-    private MessageRespository messageRespository;
+    private MessageRepository messageRespository;
     
     @RequestMapping(value = {"tag", "tag/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> tag(
@@ -190,6 +192,19 @@ public class ShpeckBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDraft.draft, Draft.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"draftlite", "draftlite/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> draftlite(
+            @QuerydslPredicate(root = DraftLite.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDraftLite.draftLite, DraftLite.class);
         return ResponseEntity.ok(resource);
     }
     
