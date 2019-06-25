@@ -24,6 +24,9 @@ public class PostgresConnectionManager {
     private List<AziendaParams> aziendaParamsList = null;
     private final Map<String, Sql2o> dbConnectionMap = new HashMap<>();
     @Value("${spring.datasource.driver-class-name}") String driverClass;
+    @Value("${sql20.datasource.min-idle-size}") Integer sql2oMinIdleSize;
+    @Value("${sql20.datasource.max-pool-size}") Integer sql2oMaxPoolSize;
+          
 
     @PostConstruct
     public void init() {
@@ -37,11 +40,14 @@ public class PostgresConnectionManager {
             hikariConfig.setJdbcUrl(aziendaConnParams.getJdbcUrl());
             hikariConfig.setUsername(aziendaConnParams.getDbUsername());
             hikariConfig.setPassword(aziendaConnParams.getDbPassword());
-            hikariConfig.setLeakDetectionThreshold(20000);
-            hikariConfig.setMinimumIdle(1);
+            // hikariConfig.setLeakDetectionThreshold(20000);
+            hikariConfig.setMinimumIdle(sql2oMinIdleSize);
+            hikariConfig.setMaximumPoolSize(sql2oMaxPoolSize);
+            // hikariConfig.getConnectionTimeout();
+            hikariConfig.setConnectionTimeout(60000);
             HikariDataSource hikariDataSource =  new HikariDataSource(hikariConfig);
             Sql2o sql2o = new Sql2o(hikariDataSource);
-            dbConnectionMap.put(aziendaConnParams.getCodiceAzienda(), sql2o);
+            dbConnectionMap.put(aziendaConnParams.getCodiceAzienda(), sql2o);         
         }
     }
     

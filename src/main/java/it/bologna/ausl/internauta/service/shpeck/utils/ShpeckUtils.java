@@ -50,6 +50,7 @@ import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
+import java.util.List;
 
 /**
  *
@@ -319,13 +320,19 @@ public class ShpeckUtils {
                 tag = tagRepository.findByidPecAndName(pec, SystemTagName.forwarded.toString());
                 break;
         }
-        LOG.info("Applying tag: {} to message with id: {}", tag.getName(), messageRelated.getId());
-        MessageTag messageTag = new MessageTag();
-        messageTag.setIdMessage(messageRelated);
-        messageTag.setIdTag(tag);
-        messageTag.setInserted(LocalDateTime.now());
-        messageTagRepository.save(messageTag);
-        LOG.info("Tag applied!");
+        LOG.info("Check if tag is already present");
+        List<MessageTag> findByIdMessageAndIdTag = messageTagRepository.findByIdMessageAndIdTag(messageRelated, tag);
+        if (findByIdMessageAndIdTag.isEmpty()) {
+            LOG.info("Applying tag: {} to message with id: {}", tag.getName(), messageRelated.getId());
+            MessageTag messageTag = new MessageTag();
+            messageTag.setIdMessage(messageRelated);
+            messageTag.setIdTag(tag);
+            messageTag.setInserted(LocalDateTime.now());
+            messageTagRepository.save(messageTag);
+            LOG.info("Tag applied!");    
+        } else {
+            LOG.info("Tag already present, skip applying!"); 
+        }
     }
 
     /**

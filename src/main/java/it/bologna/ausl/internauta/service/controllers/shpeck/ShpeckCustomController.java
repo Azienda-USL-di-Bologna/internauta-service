@@ -415,13 +415,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 mimeMessagesList = new ArrayList<>();
                 for (String address : to) {
                     mimeMessage = shpeckUtils.buildMimeMessage(from, new String[]{address}, cc, body, subject, listAttachments,
-                            idMessageRelated, null, idMessageRelatedAttachments, hostname, draftMessage);
+                            idMessageRelated, messageRelatedType, idMessageRelatedAttachments, hostname, draftMessage);
                     mimeMessagesList.add(mimeMessage);
                 }
                 LOG.info("Mime messages generated correctly!");
             } else {
                 mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments,
-                        idMessageRelated, null, idMessageRelatedAttachments, hostname, draftMessage);
+                        idMessageRelated, messageRelatedType, idMessageRelatedAttachments, hostname, draftMessage);
                 LOG.info("Mime message generated correctly!");
             }
 
@@ -551,7 +551,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         additionalDataSource.add("idUtente", idUtente);
         additionalDataSource.add("idPec", idPecDestinationJson);
         messageTagSource.setAdditionalData(additionalDataSource.toString());
-        List<MessageFolder> messageFolderList = messageSource.getMessageFolderList();
+        // List<MessageFolder> messageFolderList = messageSource.getMessageFolderList();
 
         messageTagListSource.add(messageTagSource);
         messageRepository.save(messageSource);
@@ -559,6 +559,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         System.out.println(messageSource.toString());
         System.out.println("-----------------------");
         System.out.println(messageDestination.toString());
+        
+        messageRepository.updateTscol(messageDestination.getId());
 
         return additionalDataSource.toString();
     }
