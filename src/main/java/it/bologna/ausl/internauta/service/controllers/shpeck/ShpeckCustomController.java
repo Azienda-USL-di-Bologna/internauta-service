@@ -415,13 +415,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 mimeMessagesList = new ArrayList<>();
                 for (String address : to) {
                     mimeMessage = shpeckUtils.buildMimeMessage(from, new String[]{address}, cc, body, subject, listAttachments,
-                            idMessageRelated, null, idMessageRelatedAttachments, hostname, draftMessage);
+                            idMessageRelated, messageRelatedType, idMessageRelatedAttachments, hostname, draftMessage);
                     mimeMessagesList.add(mimeMessage);
                 }
                 LOG.info("Mime messages generated correctly!");
             } else {
                 mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments,
-                        idMessageRelated, null, idMessageRelatedAttachments, hostname, draftMessage);
+                        idMessageRelated, messageRelatedType, idMessageRelatedAttachments, hostname, draftMessage);
                 LOG.info("Mime message generated correctly!");
             }
 
