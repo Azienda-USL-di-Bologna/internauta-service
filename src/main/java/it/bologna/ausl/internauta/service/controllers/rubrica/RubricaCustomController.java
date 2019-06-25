@@ -145,7 +145,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
      * @param codiceAzienda
      * @return 
      */
-    private List<Integer> searchContactByEmail(String idUtente, String toSearch, String codiceAzienda) {
+    private List<Integer> searchContactByEmail(String idUtente, String toSearch, String codiceAzienda) throws Http500ResponseException {
         String query = "with mia_rubrica as\n" +
             "(\n" +
             "select r.id, r.idrubricasuperiore, rs.idstruttura as id_struttura\n" +
@@ -199,6 +199,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                     .addParameter("idUtente", idUtente)
                     .addParameter("toSearch", toSearch)
                     .executeAndFetch(Integer.class);
+        } catch (Exception e) {
+            throw new Http500ResponseException("1", "Errore nell'escuzione della query");
         }
         return contatti;
     }
