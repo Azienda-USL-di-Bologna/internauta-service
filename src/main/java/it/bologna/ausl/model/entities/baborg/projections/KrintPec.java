@@ -8,7 +8,7 @@ import org.springframework.data.rest.core.config.Projection;
  *
  * @author Guido
  */
-@Projection(name = "KrintPec", types = Message.class)
+@Projection(name = "KrintPec", types = Pec.class)
 public interface KrintPec {
     
     Integer getId();

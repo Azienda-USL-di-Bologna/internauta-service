@@ -43,6 +43,7 @@ import org.springframework.stereotype.Component;
 import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.model.entities.baborg.projections.KrintPec;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.util.HashMap;
 import java.util.Map;
@@ -304,9 +305,10 @@ public class ProjectionBeans {
         return result;
     }
     
-  
     
-    
+    public KrintPec getPecKrint(Message messge){
+        return factory.createProjection(KrintPec.class, messge);
+    }          
     
     
 }

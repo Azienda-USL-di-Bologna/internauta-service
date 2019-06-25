@@ -1,7 +1,10 @@
 package it.bologna.ausl.model.entities.shpeck.projections;
 
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.projections.KrintPec;
+import it.bologna.ausl.model.entities.baborg.projections.KrintPersona;
 import it.bologna.ausl.model.entities.shpeck.Message;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
 /**
@@ -12,10 +15,12 @@ import org.springframework.data.rest.core.config.Projection;
 public interface KrintPecMessage {
     
     Integer getId();
-    Integer getUuidMessge();
+    String getUuidMessge();
     
-    Integer getSubject();
+    String getSubject();
     
-    // pec.. che metto nella pec?
+    @Value("#{@projectionBeans.getPecKrint(target)}")
+    KrintPec getIdPec();
+    
     
 }
