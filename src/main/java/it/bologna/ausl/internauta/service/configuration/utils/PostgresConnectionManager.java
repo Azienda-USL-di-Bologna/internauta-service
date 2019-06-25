@@ -44,7 +44,7 @@ public class PostgresConnectionManager {
             hikariConfig.setMinimumIdle(sql2oMinIdleSize);
             hikariConfig.setMaximumPoolSize(sql2oMaxPoolSize);
             // hikariConfig.getConnectionTimeout();
-            // hikariConfig.setConnectionTimeout(connectionTimeoutMs);
+            hikariConfig.setConnectionTimeout(60000);
             HikariDataSource hikariDataSource =  new HikariDataSource(hikariConfig);
             Sql2o sql2o = new Sql2o(hikariDataSource);
             dbConnectionMap.put(aziendaConnParams.getCodiceAzienda(), sql2o);         
