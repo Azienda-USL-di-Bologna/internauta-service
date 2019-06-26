@@ -1,7 +1,6 @@
 package it.bologna.ausl.model.entities.baborg.projections;
 
-import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.shpeck.Message;
+import it.bologna.ausl.model.entities.baborg.Pec;
 import org.springframework.data.rest.core.config.Projection;
 
 /**

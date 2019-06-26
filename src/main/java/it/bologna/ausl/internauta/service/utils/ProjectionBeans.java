@@ -306,8 +306,8 @@ public class ProjectionBeans {
     }
     
     
-    public KrintPec getPecKrint(Message messge){
-        return factory.createProjection(KrintPec.class, messge);
+    public KrintPec getPecKrint(Message message){
+        return factory.createProjection(KrintPec.class, message.getIdPec());
     }          
     
     

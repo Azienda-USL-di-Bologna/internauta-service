@@ -13,7 +13,10 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.projections.KrintInformazioniUtente;
+import it.bologna.ausl.model.entities.logs.Krint;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.projections.KrintPecMessage;
@@ -125,15 +128,29 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
             
             AuthenticatedSessionData authenticatedUserProperties;
             try {
-                authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+ 
+ 
+                Utente utente = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser();
                 // vediamo se mi crea l'oggetto da passare al krint
-                KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, authenticatedUserProperties.getUser());
-                String jsonKrintInformazioniUtente = objectMapper.writeValueAsString(krintInformazioniUtente);
-                
-                KrintPecMessage krintPecMessage = factory.createProjection(KrintPecMessage.class, message);
+                Integer idSessione = 5; // TODO: mettere idSessione corretto
+                KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
+                String jsonKrintInformazioniUtente = objectMapper.writeValueAsString(krintInformazioniUtente);                
+                KrintPecMessage krintPecMessage = factory.createProjection(KrintPecMessage.class, message);                                
                 String jsonKrintMessage = objectMapper.writeValueAsString(krintPecMessage);
+                OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA); // TODO: mettere codiceOperazione corretto
                 
-                //httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, jsonString);
+                Krint krint = new Krint(idSessione, utente.getId(), utente.getIdPersona().getDescrizione(), jsonKrintInformazioniUtente);
+                
+                krint.setIdOggetto(message.getId().toString());
+                krint.setTipoOggetto(Krint.TipoOggettoKrint.PEC_MESSAGE);
+                krint.setInformazioniOggetto(jsonKrintMessage);
+                krint.setIdOperazione(operazioneKrint);
+
+                httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.KRINT, krint);
+                
+                System.out.println("ciaociaociao");
+                
+                
             } catch (BlackBoxPermissionException ex) {
                 java.util.logging.Logger.getLogger(MessageInterceptor.class.getName()).log(Level.SEVERE, null, ex);
             } catch (JsonProcessingException ex) {
