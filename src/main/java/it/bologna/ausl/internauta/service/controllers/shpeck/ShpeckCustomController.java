@@ -410,7 +410,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             LOG.info("Preparing the message for saving...");
             shpeckUtils.saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
                     listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments);
-            throw new Http500ResponseException("007", "Errore durante l'invio. La mail è stata salvata nelle bozze.");
         } else if (request.getServletPath().endsWith("sendMessage")) {
             if (Objects.equals(hideRecipients, Boolean.TRUE)) {
                 LOG.info("Hide recipients is true, building mime message for each recipient.");
