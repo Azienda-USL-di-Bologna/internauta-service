@@ -8,11 +8,10 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.shpeck.Folder.FolderType;
-import it.bologna.ausl.model.entities.shpeck.Message;
-import it.bologna.ausl.model.entities.shpeck.MessageFolder;
+import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,48 +26,49 @@ import org.springframework.stereotype.Component;
 
 /**
  *
- * @author gusgus & jdieme
+ * @author gusgus
  */
 @Component
-@NextSdrInterceptor(name = "messagefolder-interceptor")
-public class MessageFolderInterceptor extends InternautaBaseInterceptor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MessageFolderInterceptor.class);
-   
-    @Autowired
-    UserInfoService userInfoService;
+@NextSdrInterceptor(name = "draft-interceptor")
+public class DraftInterceptor extends InternautaBaseInterceptor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DraftInterceptor.class);
     
     @Autowired
     PersonaRepository personaRepository;
     
+    @Autowired
+    UserInfoService userInfoService;
+    
     @Override
     public Class getTargetEntityClass() {
-        return MessageFolder.class;
+        return Draft.class;
     }
 
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
-        // TODO controllare che chi sta facendo sto update abbia almeno un permesso sulla casella del folder.
-        // deve fare il contorllo una volta per più update (per via del batch che fa spostare più message in una volta sola?)
+    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        Draft draft = (Draft) entity;
         
-//        MessageFolder beforeupdateMessageFolder = (MessageFolder) beforeUpdateEntity;
-//        MessageFolder messageFolder = (MessageFolder) entity;
-//        messageFolder.setIdPreviousFolder(beforeupdateMessageFolder.getIdFolder());
-//        return messageFolder;
-        // Se sto spostando nel cestino devo avere il peremsso elimina
-        MessageFolder messageFolder = (MessageFolder) entity;
-        if (messageFolder.getIdFolder().getType().equals(FolderType.TRASH.toString())) {
-            try {
-                lanciaEccezioneSeNonHaPermessoDiEliminaMessage(messageFolder.getIdMessage());
-            } catch (BlackBoxPermissionException | Http403ResponseException ex) {
-                throw new AbortSaveInterceptorException();
-            }
+        try {
+            lanciaEccezioneSeNonHaPermessoDiNuovaMail(draft);
+        } catch (BlackBoxPermissionException | Http403ResponseException ex) {
+            throw new AbortSaveInterceptorException();
         }
 
         return entity;
     }
+
+    @Override
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        Draft draft = (Draft) entity;
+        try {
+            lanciaEccezioneSeNonHaPermessoDiNuovaMail(draft);
+        } catch (BlackBoxPermissionException | Http403ResponseException ex) {
+            throw new AbortSaveInterceptorException();
+        }
+        super.beforeDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
+    }
     
-    
-    private void lanciaEccezioneSeNonHaPermessoDiEliminaMessage(Message message) throws AbortSaveInterceptorException, BlackBoxPermissionException, Http403ResponseException {
+    private void lanciaEccezioneSeNonHaPermessoDiNuovaMail(Draft draft) throws AbortSaveInterceptorException, BlackBoxPermissionException, Http403ResponseException {
         // Prendo l'utente loggato
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Utente utente = (Utente) authentication.getPrincipal();
@@ -79,11 +79,12 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
         permessiPec = userInfoService.getPermessiPec(persona);
         
         // Controllo che ci sia almeno il RISPONDE sulla pec interessata
-        List<String> permessiTrovati = permessiPec.get(message.getIdPec().getId());
+        List<String> permessiTrovati = permessiPec.get(draft.getIdPec().getId());
         List<String> permessiSufficienti = new ArrayList();
         permessiSufficienti.add(InternautaConstants.Permessi.Predicati.ELIMINA.toString());
+        permessiSufficienti.add(InternautaConstants.Permessi.Predicati.RISPONDE.toString());
         if (Collections.disjoint(permessiTrovati, permessiSufficienti)) {
-            throw new Http403ResponseException("1", "Non hai il permesso di eliminare mail");
+            throw new Http403ResponseException("1", "Non hai il permesso di creare mail");
         }
     }
     

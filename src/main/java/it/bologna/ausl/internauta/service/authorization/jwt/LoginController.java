@@ -118,6 +118,8 @@ public class LoginController {
         userInfoService.loadUtenteRemoveCache(utente.getId());
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);
         userInfoService.getUtentiPersonaRemoveCache(utente.getIdPersona());
+        userInfoService.getPermessiPecRemoveCache(utente.getIdPersona());
+        
         if (StringUtils.hasText(userLogin.realUser)) {
             // TODO: controllare che l'utente possa fare il cambia utente
             userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname);
@@ -139,6 +141,7 @@ public class LoginController {
 
             utente.setUtenteReale(utenteReale);
         }
+        
         
         CustomUtenteLogin utenteWithPersona = factory.createProjection(CustomUtenteLogin.class, utente);
 
