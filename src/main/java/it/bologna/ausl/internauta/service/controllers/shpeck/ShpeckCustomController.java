@@ -369,7 +369,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws
      * it.bologna.ausl.internauta.service.exceptions.Http500ResponseException
      */
-    @Transactional(rollbackFor = Throwable.class)
+    @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"saveDraftMessage", "sendMessage"}, method = RequestMethod.POST)
     public void saveDraftMessage(
             HttpServletRequest request,
@@ -391,7 +391,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         ArrayList<EmlHandlerAttachment> listAttachments = shpeckUtils.convertAttachments(attachments);
 
-        ArrayList<MimeMessage> mimeMessagesList = null;
+        ArrayList<MimeMessage> mimeMessagesList = new ArrayList<>();
         MimeMessage mimeMessage = null;
 
         LOG.info("Getting draft with idDraft: ", idDraftMessage);
@@ -401,51 +401,49 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         Pec pec = pecRepository.getOne(idPec);
         String from = pec.getIndirizzo();
         LOG.info("Start building mime message...");
-
+        // Prende gli allegati dall'eml della draft o dal messaggio che si sta inoltrando
+        ArrayList<EmlHandlerAttachment> emlAttachments = shpeckUtils.getEmlAttachments(draftMessage, idMessageRelated, messageRelatedType, idMessageRelatedAttachments);
         if (request.getServletPath().endsWith("saveDraftMessage")) {
-            mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments,
-                    idMessageRelated, messageRelatedType, idMessageRelatedAttachments, hostname, draftMessage);
+            mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments, emlAttachments,
+                    hostname, draftMessage);
             LOG.info("Mime message generated correctly!");
             LOG.info("Preparing the message for saving...");
             shpeckUtils.saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
-                    listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType);
+                    listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments);
+            throw new Http500ResponseException("007", "Errore durante l'invio. La mail è stata salvata nelle bozze.");
         } else if (request.getServletPath().endsWith("sendMessage")) {
             if (Objects.equals(hideRecipients, Boolean.TRUE)) {
                 LOG.info("Hide recipients is true, building mime message for each recipient.");
-                mimeMessagesList = new ArrayList<>();
                 for (String address : to) {
                     mimeMessage = shpeckUtils.buildMimeMessage(from, new String[]{address}, cc, body, subject, listAttachments,
-                            idMessageRelated, messageRelatedType, idMessageRelatedAttachments, hostname, draftMessage);
+                            emlAttachments, hostname, draftMessage);
                     mimeMessagesList.add(mimeMessage);
                 }
                 LOG.info("Mime messages generated correctly!");
             } else {
                 mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments,
-                        idMessageRelated, messageRelatedType, idMessageRelatedAttachments, hostname, draftMessage);
+                        emlAttachments, hostname, draftMessage);
+                mimeMessagesList.add(mimeMessage);
                 LOG.info("Mime message generated correctly!");
             }
 
             LOG.info("Preparing the message for sending...");
             try {
-                if (Objects.equals(hideRecipients, Boolean.TRUE) && mimeMessagesList != null) {
-                    for (MimeMessage mime : mimeMessagesList) {
-                        shpeckUtils.sendMessage(pec, mime);
-                    }
-                } else {
-                    shpeckUtils.sendMessage(pec, mimeMessage);
+                for (MimeMessage mime : mimeMessagesList) {
+                    shpeckUtils.sendMessage(pec, mime);
                 }
-
+                
                 if (idMessageRelated != null) {
                     shpeckUtils.setTagsToMessage(pec, idMessageRelated, messageRelatedType);
                 }
-
+                
                 shpeckUtils.deleteDraft(draftMessage);
             } catch (IOException | MessagingException | EntityNotFoundException ex) {
                 LOG.error("Handling error on send! Trying to save...", ex);
                 mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments,
-                        idMessageRelated, null, idMessageRelatedAttachments, hostname, draftMessage);
+                        emlAttachments, hostname, draftMessage);
                 shpeckUtils.saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
-                        listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType);
+                        listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments);
                 throw new Http500ResponseException("007", "Errore durante l'invio. La mail è stata salvata nelle bozze.", ex);
             }
         }
