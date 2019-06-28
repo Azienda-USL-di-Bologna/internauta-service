@@ -493,7 +493,8 @@ public class UserInfoService {
     public Map<Integer, List<String>> getPermessiPec(Utente utente) throws BlackBoxPermissionException {
         return getPermessiPec(utente.getIdPersona());
     }
-
+    
+    @Cacheable(value = "getPermessiPec__ribaltorg__", key = "{#persona.getId()}")
     public Map<Integer, List<String>> getPermessiPec(Persona persona) throws BlackBoxPermissionException {
         
         List<PermessoEntitaStoredProcedure> pecWithStandardPermissions = null;
@@ -512,6 +513,10 @@ public class UserInfoService {
                 p -> p.getOggetto().getIdProvenienza(),
                 p -> p.getCategorie().get(0).getPermessi().stream().map(c -> c.getPredicato()).collect(Collectors.toList())));
         return res;
+    }
+    
+    @CacheEvict(value = "getPermessiPec__ribaltorg__", key = "{#persona.getId()}")
+    public void getPermessiPecRemoveCache(Persona persona) {
     }
 
     @Cacheable(value = "getAziendeWherePersonaIsCa__ribaltorg__", key = "{#persona.getId()}")
