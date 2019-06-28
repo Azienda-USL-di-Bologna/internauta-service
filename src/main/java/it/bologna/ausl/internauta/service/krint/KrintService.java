@@ -1,0 +1,96 @@
+
+package it.bologna.ausl.internauta.service.krint;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
+import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.HttpSessionData;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.logs.Krint;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniRealUser;
+import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniUtente;
+import java.util.logging.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.projection.ProjectionFactory;
+import org.springframework.stereotype.Service;
+import it.bologna.ausl.model.entities.logs.projections.KrintSheckMessage;
+
+/**
+ *
+ * @author guido
+ */
+@Service
+public class KrintService {
+    
+    @Autowired
+    ProjectionFactory factory;
+    
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    ObjectMapper objectMapper;
+    
+    @Autowired
+    protected CachedEntities cachedEntities;
+    
+    @Autowired
+    protected HttpSessionData httpSessionData;
+    
+
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(InternautaBaseInterceptor.class);
+    
+    
+    public void writeKrintRow(String idOggetto, Krint.TipoOggettoKrint tipoOggettoKrint, 
+            String descrizioneOggetto, String informazioniOggetto, OperazioneKrint.CodiceOperazione codiceOperazione){
+        
+       
+        try {
+            Utente utente = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser();
+
+            Integer idSessione = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getIdSessionLog(); // TODO: mettere idSessione corretto
+            KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
+            String jsonKrintInformazioniUtente = objectMapper.writeValueAsString(krintInformazioniUtente);                
+
+            Krint krint = new Krint(idSessione, utente.getId(), utente.getIdPersona().getDescrizione(), jsonKrintInformazioniUtente);
+
+            OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(codiceOperazione);
+
+            krint.setIdOggetto(idOggetto);
+            krint.setTipoOggetto(tipoOggettoKrint);
+            krint.setInformazioniOggetto(informazioniOggetto);
+            krint.setIdOperazione(operazioneKrint);
+            krint.setDescrizioneOggetto(descrizioneOggetto);
+
+            Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser().getUtenteReale();
+            if(utenteReale != null){
+                krint.setIdRealUser(utenteReale.getId());
+                Persona personaReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getRealPerson();
+                if(personaReale != null){                        
+                    krint.setDescrizioneRealUser(personaReale.getDescrizione());
+                }
+                KrintInformazioniRealUser krintInformazioniRealUser = factory.createProjection(KrintInformazioniRealUser.class, utenteReale);
+                String jsonKrintInformazioniRealUser = objectMapper.writeValueAsString(krintInformazioniRealUser);
+                krint.setInformazioniRealUser(jsonKrintInformazioniRealUser);
+            }
+
+            httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.KRINT_ROW, krint);
+            
+        }  catch (Exception ex) {
+            // TODO: log
+        } 
+        
+    }
+    
+    
+    
+}

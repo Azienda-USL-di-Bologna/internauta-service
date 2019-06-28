@@ -1,5 +1,5 @@
 
-package it.bologna.ausl.model.entities.baborg.projections;
+package it.bologna.ausl.model.entities.logs.projections;
 
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
@@ -10,25 +10,23 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 
 import org.springframework.data.rest.core.config.Projection;
+import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
 
 
 @Projection(name = "KrintInformazioniUtente", types = Utente.class)
-public interface KrintInformazioniUtente{
+public interface KrintInformazioniUtente {
       
     // azienda
     @Value("#{@userInfoService.getAziendaKrint(target)}") 
-    KrintAzienda getAzienda();
+    KrintBaborgAzienda getAzienda();
             
     // strutture
     @Value("#{@userInfoService.getStruttureKrint(target)}")
-    List<KrintStruttura> getStrutture();
+    List<KrintBaborgStruttura> getStrutture();
     
     // persona
     @Value("#{@userInfoService.getPersonaKrint(target)}")
-    KrintPersona getIdPersona();
-    
-    
-   
+    KrintBaborgPersona getIdPersona();                 
     
   
 }

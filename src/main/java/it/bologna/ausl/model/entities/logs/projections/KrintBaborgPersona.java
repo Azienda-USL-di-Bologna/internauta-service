@@ -1,5 +1,5 @@
 
-package it.bologna.ausl.model.entities.baborg.projections;
+package it.bologna.ausl.model.entities.logs.projections;
 
 import it.bologna.ausl.model.entities.baborg.Persona;
 import java.util.List;
@@ -7,10 +7,11 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 
 import org.springframework.data.rest.core.config.Projection;
+import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
 
 
-@Projection(name = "KrintPersona", types = Persona.class)
-public interface KrintPersona{
+@Projection(name = "KrintBaborgPersona", types = Persona.class)
+public interface KrintBaborgPersona{
       
     Integer getId();
     String getCodiceFiscale();
@@ -18,7 +19,7 @@ public interface KrintPersona{
     
     // aziende
     @Value("#{@userInfoService.getAziendeKrint(target)}") 
-    List<KrintAzienda> getAziende();    
+    List<KrintBaborgAzienda> getAziende();    
         
     @Value("#{@userInfoService.getRuoli(target, false)}")
     Map<String,List<String>> getRuoli();

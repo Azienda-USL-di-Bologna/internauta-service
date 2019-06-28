@@ -86,6 +86,6 @@ public class CachedEntities {
     
     @Cacheable(value = "operazioneKrint__ribaltorg__", key = "{#codiceOperazione}")
     public OperazioneKrint getOperazioneKrint(OperazioneKrint.CodiceOperazione codiceOperazione){
-        return operazioneKrinRepository.findByCodice(codiceOperazione).orElse(null);
+        return operazioneKrinRepository.findByCodice(codiceOperazione.toString()).orElse(null);
     }
 }

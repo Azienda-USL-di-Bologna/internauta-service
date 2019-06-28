@@ -1,5 +1,5 @@
 
-package it.bologna.ausl.model.entities.baborg.projections;
+package it.bologna.ausl.model.entities.logs.projections;
 
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Struttura;
@@ -11,8 +11,8 @@ import org.springframework.data.rest.core.config.Projection;
  *
  * @author guido
  */
-@Projection(name = "KrintStruttura", types = UtenteStruttura.class)
-public interface KrintStruttura {
+@Projection(name = "KrintBaborgStruttura", types = UtenteStruttura.class)
+public interface KrintBaborgStruttura {
     
 //    @Value("#{@userInfoService.getpermessiKrint(target)}")
     @Value("#{target.getIdStruttura().getId()}") 

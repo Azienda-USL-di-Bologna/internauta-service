@@ -46,14 +46,14 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
-import it.bologna.ausl.model.entities.baborg.projections.KrintAzienda;
-import it.bologna.ausl.model.entities.baborg.projections.KrintPersona;
-import it.bologna.ausl.model.entities.baborg.projections.KrintStruttura;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
 import org.sql2o.Connection;
 import org.sql2o.Sql2o;
+import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
+import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
+import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
 
 
 /**
@@ -583,24 +583,24 @@ public class UserInfoService {
     }
     
     
-    public List<KrintAzienda> getAziendeKrint(Persona persona) {
+    public List<KrintBaborgAzienda> getAziendeKrint(Persona persona) {
           return persona.getUtenteList().stream()
-                .map(u -> factory.createProjection(KrintAzienda.class, u.getIdAzienda()))
+                .map(u -> factory.createProjection(KrintBaborgAzienda.class, u.getIdAzienda()))
                 .collect(Collectors.toList());
     }    
 
     
-    public KrintAzienda getAziendaKrint(Utente utente) {
-        return factory.createProjection(KrintAzienda.class, utente.getIdAzienda());
+    public KrintBaborgAzienda getAziendaKrint(Utente utente) {
+        return factory.createProjection(KrintBaborgAzienda.class, utente.getIdAzienda());
     }
     
     
-    public List<KrintStruttura> getStruttureKrint(Utente utente) {
+    public List<KrintBaborgStruttura> getStruttureKrint(Utente utente) {
         utente.setUtenteStrutturaList(getUtenteStrutturaList(utente));
         return utente.getUtenteStrutturaList().stream()
             .map(us -> {
                 //us.setIdStruttura(getIdStruttura(us));
-                return factory.createProjection(KrintStruttura.class, us);
+                return factory.createProjection(KrintBaborgStruttura.class, us);
                 })   
             .collect(Collectors.toList());                                 
     }
@@ -612,8 +612,8 @@ public class UserInfoService {
     
     
     
-    public KrintPersona getPersonaKrint(Utente utente) {
-        return  factory.createProjection(KrintPersona.class, utente.getIdPersona());          
+    public KrintBaborgPersona getPersonaKrint(Utente utente) {
+        return  factory.createProjection(KrintBaborgPersona.class, utente.getIdPersona());          
     }
     
     

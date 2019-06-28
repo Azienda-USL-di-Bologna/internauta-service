@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.configuration.spring;
 
 import it.bologna.ausl.internauta.service.interceptors.RequestInterceptor;
+import it.bologna.ausl.internauta.service.repositories.logs.KrintRepository;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.nextsw.common.spring.resolver.DynamicOffsetLimitPageRequestOrPageRequestResolver;
 import java.util.List;
@@ -21,6 +22,9 @@ public class WebConfiguration implements WebMvcConfigurer {
 
     @Autowired
     HttpSessionData httpSessionData;
+    
+    @Autowired
+    KrintRepository krintRepository;
     
     static final Pageable DEFAULT_PAGE_REQUEST = PageRequest.of(0, 20);
 
@@ -43,6 +47,6 @@ public class WebConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new RequestInterceptor(httpSessionData));
+        registry.addInterceptor(new RequestInterceptor(httpSessionData, krintRepository));
     }
 }

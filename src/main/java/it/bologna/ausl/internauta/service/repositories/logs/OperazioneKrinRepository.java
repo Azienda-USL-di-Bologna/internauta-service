@@ -23,6 +23,6 @@ public interface OperazioneKrinRepository extends
         NextSdrQueryDslRepository<OperazioneKrint, Integer, QOperazioneKrint>,
         JpaRepository<OperazioneKrint, Integer> {
     
-    Optional<OperazioneKrint> findByCodice(OperazioneKrint.CodiceOperazione codice);
+    Optional<OperazioneKrint> findByCodice(String codice);
     
 }

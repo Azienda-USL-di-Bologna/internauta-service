@@ -12,14 +12,16 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.krint.KrintService;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.baborg.projections.KrintInformazioniUtente;
+import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniRealUser;
+import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniUtente;
 import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
-import it.bologna.ausl.model.entities.shpeck.projections.KrintPecMessage;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
@@ -31,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
+import it.bologna.ausl.model.entities.logs.projections.KrintSheckMessage;
 
 /**
  *
@@ -53,7 +56,8 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
     @Autowired
     ObjectMapper objectMapper;
     
-    
+    @Autowired
+    KrintService krintService;
     
     @Override
     public Class getTargetEntityClass() {
@@ -125,40 +129,32 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
         // becco un evento a caso
         if(mBefore.getSeen() != message.getSeen()){
             
-            
-            AuthenticatedSessionData authenticatedUserProperties;
+                                                      
             try {
- 
- 
-                Utente utente = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser();
-                // vediamo se mi crea l'oggetto da passare al krint
-                Integer idSessione = 5; // TODO: mettere idSessione corretto
-                KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
-                String jsonKrintInformazioniUtente = objectMapper.writeValueAsString(krintInformazioniUtente);                
-                KrintPecMessage krintPecMessage = factory.createProjection(KrintPecMessage.class, message);                                
-                String jsonKrintMessage = objectMapper.writeValueAsString(krintPecMessage);
-                OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA); // TODO: mettere codiceOperazione corretto
+                KrintSheckMessage krintPecMessage = factory.createProjection(KrintSheckMessage.class, message);    
+                String jsonKrintPecMessage = objectMapper.writeValueAsString(krintPecMessage);
                 
-                Krint krint = new Krint(idSessione, utente.getId(), utente.getIdPersona().getDescrizione(), jsonKrintInformazioniUtente);
-                
-                krint.setIdOggetto(message.getId().toString());
-                krint.setTipoOggetto(Krint.TipoOggettoKrint.PEC_MESSAGE);
-                krint.setInformazioniOggetto(jsonKrintMessage);
-                krint.setIdOperazione(operazioneKrint);
+                OperazioneKrint.CodiceOperazione codiceOperazione;
+                if(message.getSeen()){
+                    // ha settato "Letto"
+                    codiceOperazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_LETTO;
+                } else {
+                    // ha settato "da leggere"         
+                    codiceOperazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_DA_LEGGERE;
+                }
 
-                httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.KRINT, krint);
-                
-                System.out.println("ciaociaociao");
-                
-                
-            } catch (BlackBoxPermissionException ex) {
-                java.util.logging.Logger.getLogger(MessageInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (JsonProcessingException ex) {
-                java.util.logging.Logger.getLogger(MessageInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-            }
 
+                krintService.writeKrintRow(
+                        message.getId().toString(),
+                        Krint.TipoOggettoKrint.PEC_MESSAGE,
+                        message.getId().toString(),
+                        jsonKrintPecMessage,
+                        codiceOperazione);                                                    
             
-            //super.httpSessionData
+            } catch (Exception ex) {
+                //TODO: loggare errore
+            }                                
+          
         }
         return entity;
                
