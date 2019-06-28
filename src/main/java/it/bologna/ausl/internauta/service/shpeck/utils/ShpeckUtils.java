@@ -102,8 +102,8 @@ public class ShpeckUtils {
     }
 
     public MimeMessage buildMimeMessage(String from, String[] to, String[] cc, String body, String subject,
-            ArrayList<EmlHandlerAttachment> listAttachments, Integer idMessageRelated, MessageRelatedType messageRelatedType,
-            Integer[] idMessageRelatedAttachments, String hostname, Draft draftMessage) throws AddressException, IOException, MessagingException, EmlHandlerException, BadParamsException {
+            ArrayList<EmlHandlerAttachment> listAttachments, ArrayList<EmlHandlerAttachment> emlAttachments, 
+            String hostname, Draft draftMessage) throws AddressException, IOException, MessagingException, EmlHandlerException, BadParamsException {
         LOG.info("Creating the sender address...");
         Address fromAddress = new InternetAddress(from);
 
@@ -125,28 +125,10 @@ public class ShpeckUtils {
         }
         // Copia degli allegati per evitare che vengano duplicati in caso di DestinatariPrivati
         ArrayList<EmlHandlerAttachment> listAttachmentsTemp = new ArrayList<>(listAttachments);
-
-        if (idMessageRelated != null) {
-            if (messageRelatedType != null
-                    && messageRelatedType.equals(MessageRelatedType.FORWARDED)) {
-
-                File downloadEml = this.downloadEml(EmlSource.MESSAGE, idMessageRelated);
-                try {
-                    ArrayList<EmlHandlerAttachment> emls
-                            = EmlHandler.getListAttachments(downloadEml.getAbsolutePath(), null, idMessageRelatedAttachments);
-                    listAttachmentsTemp.addAll(emls);
-                } catch (EmlHandlerException ex) {
-                    LOG.error("Error while retrieving the attachments from messaged forwarded. ", ex);
-                    throw new EmlHandlerException("Error while retrieving the attachments from messaged forwarded.");
-                }
-            }
-        } else if (idMessageRelatedAttachments != null && idMessageRelatedAttachments.length > 0) {
-            byte[] eml = draftMessage.getEml();
-            ArrayList<EmlHandlerAttachment> emls
-                    = EmlHandler.getListAttachments(null, eml, idMessageRelatedAttachments);
-            listAttachmentsTemp.addAll(emls);
+        if (!emlAttachments.isEmpty()) {
+            listAttachmentsTemp.addAll(emlAttachments);
         }
-
+       
         LOG.info("Fields ready, building mime message...");
         Properties props = null;
         if (hostname.equals("localhost")) {
@@ -178,12 +160,14 @@ public class ShpeckUtils {
      * @param mimeMessage Il MimeMessage
      * @param idMessageRelated L'id del messaggio correlato
      * @param messageRelatedType Tipo di relazione
+     * @param emlAttachments
      * @throws MessagingException
      * @throws IOException
      */
     public void saveDraft(Draft draftMessage, Pec pec, String subject, String[] to, String[] cc,
             Boolean hideRecipients, ArrayList<EmlHandlerAttachment> listAttachments, String body,
-            MimeMessage mimeMessage, Integer idMessageRelated, MessageRelatedType messageRelatedType) throws MessagingException, IOException {
+            MimeMessage mimeMessage, Integer idMessageRelated, MessageRelatedType messageRelatedType,
+            ArrayList<EmlHandlerAttachment> emlAttachments) throws MessagingException, IOException {
 
         try {
             draftMessage.setIdPec(pec);
@@ -194,9 +178,13 @@ public class ShpeckUtils {
 //            draftMessage.setCreateTime(LocalDateTime.now());
             draftMessage.setUpdateTime(LocalDateTime.now());
             LOG.info("Write attachments as bytearrayOutputStream...");
-            draftMessage.setAttachmentsNumber(listAttachments != null ? listAttachments.size() : 0);
-            draftMessage.setAttachmentsName(listAttachments != null ? listAttachments.stream()
-                    .map(EmlHandlerAttachment::getFileName).toArray(size -> new String[size]) : new String[0]);
+            ArrayList<EmlHandlerAttachment> listTemp = new ArrayList<>(listAttachments);
+            if (!emlAttachments.isEmpty()) {
+                listTemp.addAll(emlAttachments);
+            }
+            draftMessage.setAttachmentsNumber(listTemp.size());            
+            draftMessage.setAttachmentsName(listTemp.stream()
+                    .map(EmlHandlerAttachment::getFileName).toArray(size -> new String[size]));
             LOG.info("Attachments converted!");
             LOG.info("Write body...");
             draftMessage.setBody(body);
@@ -396,6 +384,40 @@ public class ShpeckUtils {
                 break;
         }
         return emlFile;
+    }
+    
+    /**
+     * Estra gli allegati dall'eml di una bozza oppure da un messaggio sul repository se la relazione è Inoltra
+     * @param draftMessage La bozza dal quale estrarre gli allegati
+     * @param idMessageRelated L'id del messaggio correlato salvato sul repository
+     * @param messageRelatedType Tipo di relazione del messaggio
+     * @param idMessageRelatedAttachments Array con gli id degli allegati da estrarre dall'eml del repository
+     * @return La lista degli allegati estratti
+     * @throws BadParamsException
+     * @throws MessagingException
+     * @throws EmlHandlerException
+     * @throws IOException
+     */
+    public ArrayList<EmlHandlerAttachment> getEmlAttachments(Draft draftMessage, Integer idMessageRelated, MessageRelatedType messageRelatedType,
+            Integer[] idMessageRelatedAttachments) throws BadParamsException, MessagingException, EmlHandlerException, IOException {
+        ArrayList<EmlHandlerAttachment> listAttachments = new ArrayList<>();
+        if (idMessageRelated != null) {
+            if (messageRelatedType != null
+                    && messageRelatedType.equals(MessageRelatedType.FORWARDED)) {
+
+                File downloadEml = this.downloadEml(EmlSource.MESSAGE, idMessageRelated);
+                try {
+                    listAttachments = EmlHandler.getListAttachments(downloadEml.getAbsolutePath(), null, idMessageRelatedAttachments);
+                } catch (EmlHandlerException ex) {
+                    LOG.error("Error while retrieving the attachments from messaged forwarded. ", ex);
+                    throw new EmlHandlerException("Error while retrieving the attachments from messaged forwarded.");
+                }
+            }
+        } else if (idMessageRelatedAttachments != null && idMessageRelatedAttachments.length > 0) {
+            byte[] eml = draftMessage.getEml();
+            listAttachments = EmlHandler.getListAttachments(null, eml, idMessageRelatedAttachments);
+        }
+        return listAttachments;
     }
 
     private Integer getIdAziendaRepository(Message message) {
