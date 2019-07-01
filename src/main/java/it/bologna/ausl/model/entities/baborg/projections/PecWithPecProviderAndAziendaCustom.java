@@ -21,4 +21,10 @@ public interface PecWithPecProviderAndAziendaCustom extends PecWithIdPecProvider
     
     @Value("#{@projectionBeans.getPecAziendaListWithIdAzienda(target.getPecAziendaList())}")
     public List<PecAziendaWithIdAzienda> getPecAziendaList();
+    
+    @Value("#{target.getUsername()}")
+    public String getUsername();
+    
+    @Value("#{target.getPassword()}")
+    public String getPassword();
 }
