@@ -234,15 +234,18 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
-        if (operationsRequested != null && !operationsRequested.isEmpty()) {
-            if ((operationsRequested.contains(InternautaConstants.AdditionalData.OperationsRequested.AddPermissionsOnPec) 
-                    && this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.PecOfSubject) != null) || 
-                    operationsRequested.contains(InternautaConstants.AdditionalData.OperationsRequested.AddGestoriOnPec)) {
-                for (Object entity : entities) {
-                    entity = afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
-                }
-            }
+//        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+//        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+//            if ((operationsRequested.contains(InternautaConstants.AdditionalData.OperationsRequested.AddPermissionsOnPec) 
+//                    && this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.PecOfSubject) != null) || 
+//                    operationsRequested.contains(InternautaConstants.AdditionalData.OperationsRequested.AddGestoriOnPec)) {
+//                for (Object entity : entities) {
+//                    entity = afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
+//                }
+//            }
+//        }
+        for (Object entity : entities) {
+            entity = afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
         }
         return entities;
     }
