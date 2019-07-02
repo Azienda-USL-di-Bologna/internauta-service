@@ -9,6 +9,7 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.Menu;
@@ -101,10 +102,10 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
                     
                     // La voce di menù, di tale azienda, sarà tenuta qualora permessiNecessari sarà null o booleanTemplate sarà True. 
                     if (filterAziendaUtente == null)
-                        filterAziendaUtente = QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId()).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate));
+                        filterAziendaUtente = getFilterAziendaUp(up).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate));
                     else
                         filterAziendaUtente = filterAziendaUtente.or(
-                                QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId()).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate)));
+                               getFilterAziendaUp(up).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate)));
                 } catch (BlackBoxPermissionException ex) {
                     LOGGER.error("errore nel calcolo del predicato", ex);
                     throw new AbortLoadInterceptorException("errore nel calcolo del predicato", ex);
@@ -126,15 +127,16 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
                 booleanTemplate = Expressions.FALSE.eq(Boolean.TRUE);
             }
             if (filterAziendaUtente == null)
-                filterAziendaUtente = QMenu.menu.idAzienda.id.in(aziendePersona).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate));
+                filterAziendaUtente = getFilterAziendaIn(aziendePersona)
+                        .and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate));
             else
-                filterAziendaUtente = filterAziendaUtente.or(QMenu.menu.idAzienda.id.in(aziendePersona).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate)));
+                filterAziendaUtente = filterAziendaUtente.or(getFilterAziendaIn(aziendePersona).and(QMenu.menu.permessiSufficienti.isNull().or(booleanTemplate)));
         } catch (BlackBoxPermissionException ex) {
             LOGGER.error("errore nel calcolo del predicato", ex);
             throw new AbortLoadInterceptorException("errore nel calcolo del predicato", ex);
         }
         
-        ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
+//        ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
         
         LOGGER.info("USER " + super.user.getId());
         List<String> ruoliCACI = super.user.getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
@@ -144,15 +146,35 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
                 QMenu.menu.ruoliSufficienti, String.join(",", ruoliCACI));
         
         if (filterAziendaUtente == null)
-            filterAziendaUtente = QMenu.menu.idAzienda.id.in(aziendePersona).and(booleanTemplate);
+            filterAziendaUtente = getFilterAziendaIn(aziendePersona).and(booleanTemplate);
         else
-            filterAziendaUtente = filterAziendaUtente.or(QMenu.menu.idAzienda.id.in(aziendePersona).and(booleanTemplate));
+            filterAziendaUtente = filterAziendaUtente.or(getFilterAziendaIn(aziendePersona).and(booleanTemplate));
   
         LOGGER.info("PREDICATO MENU INTERCEPTOR BEFORE SELECT" + filterAziendaUtente.and(initialPredicate).toString());
         // Aggiungo il filtro al predicato. Se il filtro è vuoto allora nulla dev'essere visibile all'utente quindi il predicato di ritorno è una espressione False.
         return filterAziendaUtente != null ? filterAziendaUtente.and(initialPredicate): Expressions.FALSE.eq(Boolean.TRUE);
     }
 
+    private BooleanExpression getFilterAziendaUp(Utente up) {
+        BooleanExpression aziendaUtenteinVisibileAziende = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
+                QMenu.menu.visibileAziende, String.join(",", up.getIdAzienda().getId().toString()));
+        
+        return (
+            (QMenu.menu.visibileAziende.isNull().and(QMenu.menu.idAzienda.id.isNull().or(QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId())))).or
+            (QMenu.menu.visibileAziende.isNotNull().and(aziendaUtenteinVisibileAziende).and(QMenu.menu.idAzienda.id.isNull().or(QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId()))))
+        );
+//        return (QMenu.menu.idAzienda.id.isNull().or(QMenu.menu.idAzienda.id.eq(up.getIdAzienda().getId())));
+    }
+    
+    private BooleanExpression getFilterAziendaIn(List<Integer> aziendePersona) {
+        BooleanExpression aziendePersonaInVisibileAziende = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
+                QMenu.menu.visibileAziende, String.join(",", aziendePersona.stream().map(id -> id.toString()).collect(Collectors.toList())));
+        return (
+            (QMenu.menu.visibileAziende.isNull().and(QMenu.menu.idAzienda.id.isNull().or(QMenu.menu.idAzienda.id.in(aziendePersona)))).or
+            (QMenu.menu.visibileAziende.isNotNull().and(aziendePersonaInVisibileAziende).and(QMenu.menu.idAzienda.id.isNull().or(QMenu.menu.idAzienda.id.in(aziendePersona))))
+        );
+    }
+    
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         getAuthenticatedUserProperties();
@@ -196,10 +218,14 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         stringToEncode += "&idSessionLog=" + idSessionLog;
         stringToEncode += FROM;
         stringToEncode += "&modalitaAmministrativa=0"; // serve alle applicazioni INDE
-        stringToEncode += "&idAzienda=" + menu.getIdAzienda().getId();
+        Azienda azienda = user.getIdAzienda();
+        if (menu.getIdAzienda() != null) {
+            azienda = menu.getIdAzienda();
+        }
         
+        stringToEncode += "&idAzienda=" + azienda.getId();
         try {
-            AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(this.objectMapper, menu.getIdAzienda().getParametri());
+            AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(this.objectMapper, azienda.getParametri());
             targetLoginPath = parametriAziendaTarget.getLoginPath();
         } catch (IOException ex) {
             throw new AbortLoadInterceptorException("errore nella lettura dei parametri dell'azienda target", ex);
@@ -214,9 +240,13 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         
         String applicationURL = menu.getIdApplicazione().getBaseUrl();
         
-        String indexPage = menu.getIdApplicazione().getIndexPage();
-        if(indexPage != null && indexPage.length() > 0){
-            applicationURL += "/" + indexPage;
+        if (applicationURL != null) {
+            String indexPage = menu.getIdApplicazione().getIndexPage();
+            if(indexPage != null && indexPage.length() > 0){
+                applicationURL += "/" + indexPage;
+            }
+        } else {
+            applicationURL = "";
         }
 //        String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
         String assembledURL = crossLoginUrlTemplate.
