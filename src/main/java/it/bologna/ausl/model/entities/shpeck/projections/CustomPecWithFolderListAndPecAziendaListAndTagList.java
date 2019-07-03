@@ -7,7 +7,7 @@ import org.springframework.data.rest.core.config.Projection;
 
 /**
  *
- * @author Giuseppe Russo <g.russo@nsi.it>
+ * @author gdm
  */
 
 @Projection(name = "CustomPecWithFolderListAndPecAziendaListAndTagList", types = Pec.class)
@@ -17,9 +17,9 @@ public interface CustomPecWithFolderListAndPecAziendaListAndTagList extends PecW
     @Override
     public Object getTagList();
 
-//    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getFolderList', @projectionsInterceptorLauncher.buildSort('asc', 'type', 'description'))}")
-//    @Override
-//    public Object getFolderList();
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getFolderList', @projectionsInterceptorLauncher.buildSort('asc', 'order', 'description'))}")
+    @Override
+    public Object getFolderList();
     
     
 }
