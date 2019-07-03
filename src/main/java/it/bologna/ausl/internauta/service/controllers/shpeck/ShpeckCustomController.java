@@ -6,6 +6,7 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
+import it.bologna.ausl.eml.handler.EmlHandlerResult;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
@@ -88,6 +89,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRep
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.QRecepit;
+import java.util.Arrays;
 
 /**
  *
@@ -153,13 +155,29 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * it.bologna.ausl.internauta.service.exceptions.Http500ResponseException
      */
     @RequestMapping(value = "extractEmlData/{idMessage}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<String> extractEmlData(
             @PathVariable(required = true) Integer idMessage,
             @RequestParam("emlSource") EmlSource emlSource,
             HttpServletRequest request
     ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
         try {
-            return new ResponseEntity(shpeckCacheableFunctions.getInfoEml(emlSource, idMessage), HttpStatus.OK);
+            EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
+            int attNumber = (int)Arrays.stream(res.getAttachments()).filter(a -> 
+                {
+                    LOG.info(a.toString());
+                    return a.getForHtmlAttribute() == false;
+                            
+                }).count();
+            res.setRealAttachmentNumber(attNumber);
+            Message m = messageRepository.getOne(idMessage);
+            if (m != null) {
+                if (m.getAttachmentsNumber() != attNumber) {
+                    m.setAttachmentsNumber(attNumber);
+                    messageRepository.save(m);
+                }
+            }
+            return new ResponseEntity(res, HttpStatus.OK);
         } catch (Exception ex) {
             throw new Http500ResponseException("1", "errore nella creazione del file eml", ex);
         }
