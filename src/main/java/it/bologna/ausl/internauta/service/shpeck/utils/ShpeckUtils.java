@@ -385,7 +385,7 @@ public class ShpeckUtils {
         }
         return emlFile;
     }
-    
+
     /**
      * Estra gli allegati dall'eml di una bozza oppure da un messaggio sul repository se la relazione è Inoltra
      * @param draftMessage La bozza dal quale estrarre gli allegati
@@ -421,7 +421,7 @@ public class ShpeckUtils {
     }
 
     private Integer getIdAziendaRepository(Message message) {
-        boolean isMessageReaddressed = message.getMessageTagList().stream().anyMatch(messageTag -> messageTag.getIdTag().getName().equals(Tag.SystemTagName.readdressed_out.toString()));
+        boolean isMessageReaddressed = message.getMessageTagList().stream().anyMatch(messageTag -> messageTag.getIdTag().getName().equals(Tag.SystemTagName.readdressed_in.toString()));
         if (!isMessageReaddressed) {
             return message.getIdPec().getIdAziendaRepository().getId();
         } else {
