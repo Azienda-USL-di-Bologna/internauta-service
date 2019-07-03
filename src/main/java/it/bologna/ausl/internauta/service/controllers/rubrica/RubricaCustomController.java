@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.sql2o.Connection;
+import org.sql2o.Query;
 import org.sql2o.Sql2o;
 
 /**
@@ -194,12 +195,15 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         // Prendo la connessione dal connection manager
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
         List<Integer> contatti;
+        
         try (Connection conn = (Connection) dbConnection.open()) {
-            contatti = conn.createQuery(query)
+            Query addParameter = conn.createQuery(query)
                     .addParameter("idUtente", idUtente)
-                    .addParameter("toSearch", toSearch)
-                    .executeAndFetch(Integer.class);
+                    .addParameter("toSearch", toSearch);
+            LOG.info("esecuzione query: " + addParameter.toString());
+            contatti = addParameter.executeAndFetch(Integer.class);
         } catch (Exception e) {
+            LOG.error("errore nell'esecuzione della query", e);
             throw new Http500ResponseException("1", "Errore nell'escuzione della query");
         }
         return contatti;
