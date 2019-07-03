@@ -561,6 +561,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         return additionalDataSource.toString();
     }
+    
+    
 
     /**
      *
@@ -705,5 +707,65 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         System.out.println("fine manageMessageRegistration");
 
     }
+    
+    /**
+     * Gestisco il dopo archiviazione di un messaggio.
+     * La funzione nasce per essere chiamata da Babel. 
+     * Aggiunge il tag archiviazione con le informazioni su chi e fascicolo.
+     * @param idMessage
+     * @param additionalData
+     * @throws BlackBoxPermissionException 
+     */
+    @Transactional
+    @RequestMapping(value = "manageMessageArchiviation", method = RequestMethod.POST)
+    public void manageMessageArchiviation(
+            @RequestParam(name = "idMessage", required = true) Integer idMessage,
+            @RequestBody Map<String, Object> additionalData) throws BlackBoxPermissionException {
+        
+        Message message = messageRepository.getOne(idMessage);
+        List<Tag> pecTagList = message.getIdPec().getTagList();
+        Tag pecTagArchived = pecTagList.stream().filter(t -> "archived".equals(t.getName())).collect(Collectors.toList()).get(0);
 
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+
+        JSONObject jsonAdditionalData = null;
+        
+        if (additionalData != null) {
+            // Inserisco l'utente fascicolatore
+            Map<String, Object> idUtenteMap = new HashMap<>();
+            idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
+            idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
+            additionalData.put("idUtente", idUtenteMap);
+            // Inserisco l'azienda su cui il message è stato fascicolato
+            Map<String, Object> idAziendaMap = new HashMap<>();
+            idAziendaMap.put("id", authenticatedUserProperties.getUser().getIdAzienda().getId());
+            idAziendaMap.put("nome", authenticatedUserProperties.getUser().getIdAzienda().getNome());
+            idAziendaMap.put("descrizione", authenticatedUserProperties.getUser().getIdAzienda().getDescrizione());
+            additionalData.put("idAzienda", idAziendaMap);
+            // Inserisco la data di arichiviazione
+            additionalData.put("dataArchiviazione", LocalDateTime.now());
+            jsonAdditionalData = new JSONObject(additionalData);
+        }
+
+        MessageTag messageTag = null;
+        
+        // Cerco se il messageTag esiste già
+        List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, pecTagArchived);
+        
+        if (!findByIdMessageAndIdTag.isEmpty()) {
+            messageTag = findByIdMessageAndIdTag.get(0);
+            // TODO: devo prendere l'additional data che è un arrray e fare il push del jsonAdditionalData che ho preparato
+        } else {
+            // Devo creare il message tag e mettere dentro all'additional data il jsonAdditionalData dentro un array
+            messageTag = new MessageTag();
+            messageTag.setIdUtente(authenticatedUserProperties.getUser());
+            messageTag.setIdMessage(message);
+            messageTag.setIdTag(pecTagArchived);
+            ArrayList<JSONObject> a = new ArrayList();
+            a.add(jsonAdditionalData);
+            messageTag.setAdditionalData(a.toString());
+        }
+
+        messageTagRespository.save(messageTag);
+    }
 }
