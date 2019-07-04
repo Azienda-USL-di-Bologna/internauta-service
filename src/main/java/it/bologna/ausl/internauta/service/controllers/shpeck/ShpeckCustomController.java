@@ -88,8 +88,8 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepos
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
-import it.bologna.ausl.model.entities.shpeck.QRecepit;
 import java.util.Arrays;
+import org.json.JSONArray;
 
 /**
  *
@@ -770,18 +770,20 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         // Cerco se il messageTag esiste già
         List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, pecTagArchived);
         
-        if (!findByIdMessageAndIdTag.isEmpty()) {
+        if (!findByIdMessageAndIdTag.isEmpty()) {   // Il message era già stato archiviato in passato
             messageTag = findByIdMessageAndIdTag.get(0);
-            // TODO: devo prendere l'additional data che è un arrray e fare il push del jsonAdditionalData che ho preparato
+            JSONArray jsonArr = new JSONArray(messageTag.getAdditionalData());
+            jsonArr.put(jsonAdditionalData);
+            messageTag.setAdditionalData(jsonArr.toString());
         } else {
             // Devo creare il message tag e mettere dentro all'additional data il jsonAdditionalData dentro un array
             messageTag = new MessageTag();
             messageTag.setIdUtente(authenticatedUserProperties.getUser());
             messageTag.setIdMessage(message);
             messageTag.setIdTag(pecTagArchived);
-            ArrayList<JSONObject> a = new ArrayList();
-            a.add(jsonAdditionalData);
-            messageTag.setAdditionalData(a.toString());
+            JSONArray jsonArr = new JSONArray();
+            jsonArr.put(jsonAdditionalData);
+            messageTag.setAdditionalData(jsonArr.toString());
         }
 
         messageTagRespository.save(messageTag);
