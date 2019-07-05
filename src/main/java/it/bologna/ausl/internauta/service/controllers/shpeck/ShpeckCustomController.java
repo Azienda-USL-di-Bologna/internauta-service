@@ -6,6 +6,7 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
+import it.bologna.ausl.eml.handler.EmlHandlerResult;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
@@ -87,7 +88,8 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepos
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
-import it.bologna.ausl.model.entities.shpeck.QRecepit;
+import java.util.Arrays;
+import org.json.JSONArray;
 
 /**
  *
@@ -153,13 +155,29 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * it.bologna.ausl.internauta.service.exceptions.Http500ResponseException
      */
     @RequestMapping(value = "extractEmlData/{idMessage}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<String> extractEmlData(
             @PathVariable(required = true) Integer idMessage,
             @RequestParam("emlSource") EmlSource emlSource,
             HttpServletRequest request
     ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
         try {
-            return new ResponseEntity(shpeckCacheableFunctions.getInfoEml(emlSource, idMessage), HttpStatus.OK);
+            EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
+            int attNumber = (int)Arrays.stream(res.getAttachments()).filter(a -> 
+                {
+                    LOG.info(a.toString());
+                    return a.getForHtmlAttribute() == false;
+                            
+                }).count();
+            res.setRealAttachmentNumber(attNumber);
+            Message m = messageRepository.getOne(idMessage);
+            if (m != null) {
+                if (m.getAttachmentsNumber() != attNumber) {
+                    m.setAttachmentsNumber(attNumber);
+                    messageRepository.save(m);
+                }
+            }
+            return new ResponseEntity(res, HttpStatus.OK);
         } catch (Exception ex) {
             throw new Http500ResponseException("1", "errore nella creazione del file eml", ex);
         }
@@ -561,6 +579,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         return additionalDataSource.toString();
     }
+    
+    
 
     /**
      *
@@ -705,5 +725,67 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         System.out.println("fine manageMessageRegistration");
 
     }
+    
+    /**
+     * Gestisco il dopo archiviazione di un messaggio.
+     * La funzione nasce per essere chiamata da Babel. 
+     * Aggiunge il tag archiviazione con le informazioni su chi e fascicolo.
+     * @param idMessage
+     * @param additionalData
+     * @throws BlackBoxPermissionException 
+     */
+    @Transactional
+    @RequestMapping(value = "manageMessageArchiviation", method = RequestMethod.POST)
+    public void manageMessageArchiviation(
+            @RequestParam(name = "idMessage", required = true) Integer idMessage,
+            @RequestBody Map<String, Object> additionalData) throws BlackBoxPermissionException {
+        
+        Message message = messageRepository.getOne(idMessage);
+        List<Tag> pecTagList = message.getIdPec().getTagList();
+        Tag pecTagArchived = pecTagList.stream().filter(t -> "archived".equals(t.getName())).collect(Collectors.toList()).get(0);
 
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+
+        JSONObject jsonAdditionalData = null;
+        
+        if (additionalData != null) {
+            // Inserisco l'utente fascicolatore
+            Map<String, Object> idUtenteMap = new HashMap<>();
+            idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
+            idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
+            additionalData.put("idUtente", idUtenteMap);
+            // Inserisco l'azienda su cui il message è stato fascicolato
+            Map<String, Object> idAziendaMap = new HashMap<>();
+            idAziendaMap.put("id", authenticatedUserProperties.getUser().getIdAzienda().getId());
+            idAziendaMap.put("nome", authenticatedUserProperties.getUser().getIdAzienda().getNome());
+            idAziendaMap.put("descrizione", authenticatedUserProperties.getUser().getIdAzienda().getDescrizione());
+            additionalData.put("idAzienda", idAziendaMap);
+            // Inserisco la data di arichiviazione
+            additionalData.put("dataArchiviazione", LocalDateTime.now());
+            jsonAdditionalData = new JSONObject(additionalData);
+        }
+
+        MessageTag messageTag = null;
+        
+        // Cerco se il messageTag esiste già
+        List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, pecTagArchived);
+        
+        if (!findByIdMessageAndIdTag.isEmpty()) {   // Il message era già stato archiviato in passato
+            messageTag = findByIdMessageAndIdTag.get(0);
+            JSONArray jsonArr = new JSONArray(messageTag.getAdditionalData());
+            jsonArr.put(jsonAdditionalData);
+            messageTag.setAdditionalData(jsonArr.toString());
+        } else {
+            // Devo creare il message tag e mettere dentro all'additional data il jsonAdditionalData dentro un array
+            messageTag = new MessageTag();
+            messageTag.setIdUtente(authenticatedUserProperties.getUser());
+            messageTag.setIdMessage(message);
+            messageTag.setIdTag(pecTagArchived);
+            JSONArray jsonArr = new JSONArray();
+            jsonArr.put(jsonAdditionalData);
+            messageTag.setAdditionalData(jsonArr.toString());
+        }
+
+        messageTagRespository.save(messageTag);
+    }
 }

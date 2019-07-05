@@ -44,6 +44,7 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -87,6 +88,8 @@ public class ProjectionBeans {
     protected Persona person, realPerson;
     protected Applicazione.Applicazioni applicazione;
     protected int idSessionLog;
+    final String APP_URL_PICO = "/Procton/Procton.htm";
+    final String APP_URL_BABEL = "/Babel/Babel.htm";
     
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ProjectionBeans.class);
 
@@ -217,7 +220,7 @@ public class ProjectionBeans {
     }
     
     /**
-     * restituisce gli url da mettere nelle aziende dell'utente, 
+     * Restituisce gli url da mettere nelle aziende dell'utente, 
      * per chiamare le funzioni dell'onCommand sulle applicazioni Inde
      * @param azienda
      * @return
@@ -225,7 +228,6 @@ public class ProjectionBeans {
      */
     public Map<String, String> getUrlCommands(Azienda azienda) throws IOException {                
         final String FROM = "&from=INTERNAUTA";
-        final String APP_URL_PICO = "/Procton/Procton.htm";
         
         Map<String, String> result = new HashMap<>();
                 
@@ -233,41 +235,55 @@ public class ProjectionBeans {
         AziendaParametriJson parametriAziendaLogin = AziendaParametriJson.parse(objectMapper, utente.getIdAzienda().getParametri());                
         AziendaParametriJson parametriAziendaDestinazione = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String crossLoginUrlTemplate = parametriAziendaDestinazione.getCrossLoginUrlTemplate();
-        
+        String commonStringToEncode = commonStringToEncode(utente, FROM);
         //crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm?[encoded-params]";
         
+        addRegistrationUrlCommands(result, commonStringToEncode, parametriAziendaLogin, parametriAziendaDestinazione, crossLoginUrlTemplate);
+        addArchiveUrlCommands(result, commonStringToEncode, parametriAziendaLogin, parametriAziendaDestinazione, crossLoginUrlTemplate);
         
+        return result;        
+    }
+    
+    private String commonStringToEncode(Utente utente, String from) {
+        String stringToEncode = "";
+        stringToEncode += "&richiesta=[richiesta]";
+        stringToEncode += "&utenteImpersonato=" + utente.getIdPersona().getCodiceFiscale();
+        if(utente.getUtenteReale() != null ){
+            stringToEncode += "&utenteLogin=" + utente.getUtenteReale().getIdPersona().getCodiceFiscale();
+        } else {
+            stringToEncode += "&utenteLogin=" + utente.getIdPersona().getCodiceFiscale();
+        }
+        stringToEncode += "&idSessionLog=" + httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
+        stringToEncode += from;
+        stringToEncode += "&modalitaAmministrativa=0";
+        
+        return stringToEncode;
+    }
+    
+    private void addRegistrationUrlCommands(
+            Map<String, String> result, 
+            String commonStringToEncode, 
+            AziendaParametriJson parametriAziendaLogin, 
+            AziendaParametriJson parametriAziendaDestinazione,
+            String crossLoginUrlTemplate) throws UnsupportedEncodingException {
         // ho due casi praticamente uguali sulla protocollazione di una pec. Il caso in cui creo un nuovo Protocollo 
         // e il caso in cui aggiungo la pec a un protocollo già esistente
-        // cambia solo il valore del parametro CMD, quindi fascio un ciclo per gestire questi due casi        
-        for(int i = 0; i < 2; i++){   
-            String stringToEncode = "";            
-            if(i == 0){                
+        // cambia solo il valore del parametro CMD, quindi fascio un ciclo per gestire questi due casi
+        String stringToEncode = "";
+        
+        for(int i = 0; i < 2; i++){
+            stringToEncode = "";
+            if(i == 0){
                 stringToEncode = "?CMD=ricevi_from_pec_int;[id_message]";
                 //stringToEncode = "CMD=ricevi_from_pec_int;[id_message]"; //local
-                
             } else {
                 stringToEncode = "?CMD=add_from_pec_int;[id_message]";
                 //stringToEncode = "CMD=add_from_pec_int;[id_message]"; //local
             }
-
-//            stringToEncode += "&id_tag=[id_tag]";        
-            stringToEncode += "&pec_ricezione=[pec_ricezione]";        
-            stringToEncode += "&richiesta=[richiesta]";
-            stringToEncode += "&utenteImpersonato=" + utente.getIdPersona().getCodiceFiscale();
-
-            if(utente.getUtenteReale() != null ){            
-                stringToEncode += "&utenteLogin=" + utente.getUtenteReale().getIdPersona().getCodiceFiscale();
-            } else {
-                stringToEncode += "&utenteLogin=" + utente.getIdPersona().getCodiceFiscale();           
-            }       
-            stringToEncode += "&idSessionLog=" + httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
-            stringToEncode += FROM;
-            stringToEncode += "&modalitaAmministrativa=0";
+//            stringToEncode += "&id_tag=[id_tag]";
+            stringToEncode += "&pec_ricezione=[pec_ricezione]";
+            stringToEncode += commonStringToEncode;
             
-            
-            
-
             String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");                
 
             String assembledUrl = crossLoginUrlTemplate
@@ -281,9 +297,27 @@ public class ProjectionBeans {
             } else {
                 result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_ADD.toString(), assembledUrl);
             }
-        }               
-        return result;        
-    }
+        }
+    } 
+    
+    private void addArchiveUrlCommands(
+            Map<String, String> result, 
+            String commonStringToEncode, 
+            AziendaParametriJson parametriAziendaLogin, 
+            AziendaParametriJson parametriAziendaDestinazione,
+            String crossLoginUrlTemplate) throws UnsupportedEncodingException {
+        String stringToEncode = "";
+        stringToEncode = "?CMD=fascicola_shpeck;[id_message]";
+        //stringToEncode = "CMD=ricevi_from_pec_int;[id_message]"; //local
+        stringToEncode += commonStringToEncode;
+        String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");                
+        String assembledUrl = crossLoginUrlTemplate
+            .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())
+            .replace("[entity-id]", parametriAziendaLogin.getEntityId()) //parametriAziendaLogin.getEntityId())
+            .replace("[app]", APP_URL_BABEL)
+            .replace("[encoded-params]", encodedParams);
+        result.put(InternautaConstants.UrlCommand.Keys.ARCHIVE_MESSAGE.toString(), assembledUrl);
+    } 
     
     /**
      * restituisce i parametri dell'azienda che servono 

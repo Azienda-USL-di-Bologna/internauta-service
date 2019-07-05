@@ -87,7 +87,7 @@ public class InternautaConstants {
     
     public static class UrlCommand {
         public enum Keys {
-            PROTOCOLLA_PEC_NEW, PROTOCOLLA_PEC_ADD
+            PROTOCOLLA_PEC_NEW, PROTOCOLLA_PEC_ADD, ARCHIVE_MESSAGE
         }
     }
     
