@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.repositories.logs.OperazioneVersionataKrinRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
@@ -13,6 +14,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.logs.OperazioneVersionataKrint;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniRealUser;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniUtente;
 import java.util.logging.Level;
@@ -22,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Service;
 import it.bologna.ausl.model.entities.logs.projections.KrintSheckMessage;
+import java.util.Optional;
 
 /**
  *
@@ -45,7 +48,8 @@ public class KrintService {
     @Autowired
     protected HttpSessionData httpSessionData;
     
-
+    @Autowired
+    protected OperazioneVersionataKrinRepository operazioneVersionataKrinRepository;
     
     private static final Logger LOGGER = LoggerFactory.getLogger(InternautaBaseInterceptor.class);
     
@@ -64,11 +68,14 @@ public class KrintService {
             Krint krint = new Krint(idSessione, utente.getId(), utente.getIdPersona().getDescrizione(), jsonKrintInformazioniUtente);
 
             OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(codiceOperazione);
+            OperazioneVersionataKrint operazioneVersionataKrint = 
+                            operazioneVersionataKrinRepository.findFirstByIdOperazioneOrderByVersioneDesc(operazioneKrint).orElse(null);
+            
 
             krint.setIdOggetto(idOggetto);
             krint.setTipoOggetto(tipoOggettoKrint);
             krint.setInformazioniOggetto(informazioniOggetto);
-            krint.setIdOperazione(operazioneKrint);
+            krint.setIdOperazioneVersionata(operazioneVersionataKrint);
             krint.setDescrizioneOggetto(descrizioneOggetto);
 
             Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser().getUtenteReale();

@@ -88,4 +88,8 @@ public class CachedEntities {
     public OperazioneKrint getOperazioneKrint(OperazioneKrint.CodiceOperazione codiceOperazione){
         return operazioneKrinRepository.findByCodice(codiceOperazione.toString()).orElse(null);
     }
+    
+    public OperazioneKrint getLastOperazioneVersionataKrint(OperazioneKrint.CodiceOperazione codiceOperazione){
+        return operazioneKrinRepository.findByCodice(codiceOperazione.toString()).orElse(null);
+    }
 }

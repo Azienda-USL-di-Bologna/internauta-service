@@ -37,15 +37,15 @@ public class MessageTagInterceptor extends InternautaBaseInterceptor {
         return MessageTag.class;
     }
 
-//    @Override
-//    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
-//        LOGGER.info("in: beforeCreateEntityInterceptor di Message-Tag");
-//        getAuthenticatedUserProperties();       
-//        MessageTag mt = (MessageTag)entity;
-//        if(additionalData.get("setUtenteProtocollante") != null){
-//            mt.setIdUtente(user);           
-//        }        
-//        return mt;
-//    }
+    @Override
+    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        LOGGER.info("in: beforeCreateEntityInterceptor di Message-Tag");
+        getAuthenticatedUserProperties();       
+        MessageTag mt = (MessageTag)entity;
+        if(additionalData.get("setUtenteProtocollante") != null){
+            mt.setIdUtente(user);           
+        }        
+        return mt;
+    }
     
 }
