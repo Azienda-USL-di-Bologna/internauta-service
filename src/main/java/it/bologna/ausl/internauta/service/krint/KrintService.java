@@ -12,6 +12,7 @@ import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.logs.OperazioneVersionataKrint;
@@ -23,7 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Service;
-import it.bologna.ausl.model.entities.logs.projections.KrintSheckMessage;
+import it.bologna.ausl.model.entities.logs.projections.KrintShpeckMessage;
 import java.util.Optional;
 
 /**
@@ -54,8 +55,16 @@ public class KrintService {
     private static final Logger LOGGER = LoggerFactory.getLogger(InternautaBaseInterceptor.class);
     
     
-    public void writeKrintRow(String idOggetto, Krint.TipoOggettoKrint tipoOggettoKrint, 
-            String descrizioneOggetto, String informazioniOggetto, OperazioneKrint.CodiceOperazione codiceOperazione){
+    public void writeKrintRow(Applicazione.Applicazioni applicazione,
+            String idOggetto, 
+            Krint.TipoOggettoKrint tipoOggetto, 
+            String descrizioneOggetto, 
+            String informazioniOggetto,
+            String idOggettoContenitore,
+            Krint.TipoOggettoKrint tipoOggettoContenitore, 
+            String descrizioneOggettoContenitore, 
+            String informazioniOggettocontenitore, 
+            OperazioneKrint.CodiceOperazione codiceOperazione){
         
        
         try {
@@ -65,18 +74,24 @@ public class KrintService {
             KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
             String jsonKrintInformazioniUtente = objectMapper.writeValueAsString(krintInformazioniUtente);                
 
-            Krint krint = new Krint(idSessione, utente.getId(), utente.getIdPersona().getDescrizione(), jsonKrintInformazioniUtente);
+            Krint krint = new Krint(idSessione, applicazione, utente.getId(), utente.getIdPersona().getDescrizione(), jsonKrintInformazioniUtente);
 
+            // recupero l'operazioneVersionata con quel codiceOperazione e con la versione più alta
             OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(codiceOperazione);
             OperazioneVersionataKrint operazioneVersionataKrint = 
                             operazioneVersionataKrinRepository.findFirstByIdOperazioneOrderByVersioneDesc(operazioneKrint).orElse(null);
             
 
+            
             krint.setIdOggetto(idOggetto);
-            krint.setTipoOggetto(tipoOggettoKrint);
+            krint.setTipoOggetto(tipoOggetto);
             krint.setInformazioniOggetto(informazioniOggetto);
-            krint.setIdOperazioneVersionata(operazioneVersionataKrint);
             krint.setDescrizioneOggetto(descrizioneOggetto);
+            krint.setIdOggettoContenitore(idOggettoContenitore);
+            krint.setTipoOggettoContenitore(tipoOggettoContenitore);
+            krint.setInformazioniOggettoContenitore(informazioniOggettocontenitore);
+            krint.setDescrizioneOggettoContenitore(descrizioneOggettoContenitore);
+            krint.setIdOperazioneVersionata(operazioneVersionataKrint);
 
             Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser().getUtenteReale();
             if(utenteReale != null){

@@ -19,6 +19,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniUtente;
 import it.bologna.ausl.model.entities.logs.Krint;
@@ -42,7 +43,8 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import it.bologna.ausl.model.entities.logs.projections.KrintSheckMessage;
+import it.bologna.ausl.model.entities.logs.projections.KrintShpeckMessage;
+import it.bologna.ausl.model.entities.logs.projections.KrintShpeckPec;
 
 /**
  *
@@ -176,8 +178,10 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
             
                                                       
             try {
-                KrintSheckMessage krintPecMessage = factory.createProjection(KrintSheckMessage.class, message);    
+                KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);    
                 String jsonKrintPecMessage = objectMapper.writeValueAsString(krintPecMessage);
+                KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, message.getIdPec());   
+                String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
                 
                 OperazioneKrint.CodiceOperazione codiceOperazione;
                 if(message.getSeen()){
@@ -190,11 +194,17 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
 
 
                 krintService.writeKrintRow(
+                        Applicazione.Applicazioni.shpeck,
                         message.getId().toString(),
                         Krint.TipoOggettoKrint.PEC_MESSAGE,
                         message.getId().toString(),
                         jsonKrintPecMessage,
-                        codiceOperazione);                                                    
+                        message.getIdPec().getId().toString(),
+                        Krint.TipoOggettoKrint.PEC,
+                        message.getIdPec().getIndirizzo(),
+                        jsonKrintPec,
+                        codiceOperazione
+                        );                                                    
             
             } catch (Exception ex) {
                 //TODO: loggare errore

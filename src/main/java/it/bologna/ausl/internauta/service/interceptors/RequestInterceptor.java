@@ -33,6 +33,7 @@ public class RequestInterceptor extends HandlerInterceptorAdapter{
             try {
                 krintRepository.save(krint);         
             } catch (Exception e) {
+                System.out.println("ciao ciao");
                 // TODO: loggare l'errore
             }
    
