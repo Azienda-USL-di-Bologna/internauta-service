@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.Http500ResponseException;
+import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
@@ -80,13 +81,12 @@ import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
-import it.bologna.ausl.internauta.service.repositories.shpeck.RecepitRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepository;
-import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import java.util.Arrays;
 import org.json.JSONArray;
@@ -120,9 +120,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     private MessageRepository messageRepository;
 
     @Autowired
-    private RecepitRepository recepitRepository;
-
-    @Autowired
     private TagRepository tagRepository;
 
     @Autowired
@@ -135,13 +132,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     private MessageFolderRepository messageFolderRespository;
 
     @Autowired
-    private MessageCompleteRepository messageCompleteRespository;
-
-    @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     @Autowired
     private PersonaRepository personaRepository;
+    
+    @Autowired
+    private KrintShpeckService krintShpeckService;
 
     /**
      *
@@ -187,7 +184,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      *
      * @param idMessage
      * @param emlSource
-     * @param recepit
      * @param response
      * @param request
      * @throws EmlHandlerException
@@ -386,6 +382,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws it.bologna.ausl.eml.handler.EmlHandlerException
      * @throws
      * it.bologna.ausl.internauta.service.exceptions.Http500ResponseException
+     * @throws it.bologna.ausl.internauta.service.exceptions.BadParamsException
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"saveDraftMessage", "sendMessage"}, method = RequestMethod.POST)
@@ -468,12 +465,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     /**
      * La funzione si occupa di reindirizzare il messaggio messageSource alla
-     * casella idPecDestination. Viene quindi copiato il messaggio sostituiendo
+     * casella idPecDestination.Viene quindi copiato il messaggio sostituiendo
      * l'idPec e altri campi. Viene poi attaccato il tag di readdressed_out al
      * messageSource e readdressed_in al messaggio appena creato
      *
      * @param idMessageSource
      * @param idPecDestination
+     * @return 
      * @throws CloneNotSupportedException
      * @throws Http409ResponseException
      */
@@ -576,7 +574,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         System.out.println(messageDestination.toString());
         
         messageRepository.updateTscol(messageDestination.getId());
-
+        
+        // Loggo il reindirizzamento
+        krintShpeckService.writeReaddress(messageSource, messageDestination, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_OUT);
+        krintShpeckService.writeReaddress(messageDestination, messageSource, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_IN);
+        
         return additionalDataSource.toString();
     }
     
@@ -672,6 +674,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 messageTag.setAdditionalData(jsonAdditionalData.toString());
             }
             messageTagRespository.save(messageTag);
+            krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_IN_PROTOCOLLAZIONE);
         }
 
         if ("REGISTER".equals(operation)) {
@@ -709,6 +712,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 mfRegistered.setIdFolder(folderRegistered);
                 messageFolderRespository.save(mfRegistered);
             }
+            krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_IN_PROTOCOLLAZIONE);
         }
 
         if ("REMOVE_IN_REGISTRATION".equals(operation)) {
@@ -719,6 +723,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
                 // cancellazione del mt in_registration
                 messageTagRespository.delete(mtInRegistration);
+                krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_IN_PROTOCOLLAZIONE);
             }
         }
 
@@ -787,5 +792,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
 
         messageTagRespository.save(messageTag);
+        krintShpeckService.writeArchiviation(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_FASCICOLATO, jsonAdditionalData);
     }
 }

@@ -13,7 +13,5 @@ public interface KrintShpeckPec {
     Integer getId();
     
     String getIndirizzo();
-    
- 
 
 }

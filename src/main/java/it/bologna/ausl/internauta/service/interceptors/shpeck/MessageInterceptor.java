@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.interceptors.shpeck;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Template;
@@ -9,20 +8,14 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
-import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.Http403ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.krint.KrintService;
+import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
-import it.bologna.ausl.model.entities.shpeck.Draft;
-import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniUtente;
-import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
@@ -34,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,8 +35,6 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import it.bologna.ausl.model.entities.logs.projections.KrintShpeckMessage;
-import it.bologna.ausl.model.entities.logs.projections.KrintShpeckPec;
 
 /**
  *
@@ -65,16 +55,13 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
     UserInfoService userInfoService;
     
     @Autowired
-    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-
-    @Autowired
     PersonaRepository personaRepository;
     
     @Autowired
     ObjectMapper objectMapper;
     
     @Autowired
-    KrintService krintService;
+    KrintShpeckService krintShpeckService;
     
     @Override
     public Class getTargetEntityClass() {
@@ -167,48 +154,21 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
         }
     }
 
-    // PROVA PER KRINT
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         
         Message message = (Message) entity;
         Message mBefore = (Message) beforeUpdateEntity;
         // becco un evento a caso
-        if(mBefore.getSeen() != message.getSeen()){
-            
-                                                      
-            try {
-                KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);    
-                String jsonKrintPecMessage = objectMapper.writeValueAsString(krintPecMessage);
-                KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, message.getIdPec());   
-                String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-                
-                OperazioneKrint.CodiceOperazione codiceOperazione;
-                if(message.getSeen()){
-                    // ha settato "Letto"
-                    codiceOperazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_LETTO;
-                } else {
-                    // ha settato "da leggere"         
-                    codiceOperazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_DA_LEGGERE;
-                }
-
-
-                krintService.writeKrintRow(
-                        Applicazione.Applicazioni.shpeck,
-                        message.getId().toString(),
-                        Krint.TipoOggettoKrint.PEC_MESSAGE,
-                        message.getId().toString(),
-                        jsonKrintPecMessage,
-                        message.getIdPec().getId().toString(),
-                        Krint.TipoOggettoKrint.PEC,
-                        message.getIdPec().getIndirizzo(),
-                        jsonKrintPec,
-                        codiceOperazione
-                        );                                                    
-            
-            } catch (Exception ex) {
-                //TODO: loggare errore
-            }                                
+        if(mainEntity && (mBefore.getSeen() != message.getSeen())){
+            // OperazioneKrint.CodiceOperazione codiceOperazione;
+            if(message.getSeen()){
+                // ha settato "Letto"
+                krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_LETTO);
+            } else {
+                // ha settato "da leggere"
+                krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_DA_LEGGERE);
+            }                              
           
         }
         return entity;

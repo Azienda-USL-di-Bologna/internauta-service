@@ -35,7 +35,7 @@ public class KrintApplicationTests {
             OperazioneVersionataKrint operazioneVersionataKrint = 
                             operazioneVersionataKrinRepository.findFirstByIdOperazioneOrderByVersioneDesc(operazioneKrint).orElse(null);
             
-            Assertions.assertThat(operazioneVersionataKrint.getVersione()).isEqualTo(2);
+            Assertions.assertThat(operazioneVersionataKrint.getVersione()).isEqualTo(1);
             
     }
     

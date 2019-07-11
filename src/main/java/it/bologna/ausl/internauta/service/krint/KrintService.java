@@ -1,9 +1,7 @@
 
 package it.bologna.ausl.internauta.service.krint;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.logs.OperazioneVersionataKrinRepository;
@@ -18,14 +16,13 @@ import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.logs.OperazioneVersionataKrint;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniRealUser;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniUtente;
-import java.util.logging.Level;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Service;
-import it.bologna.ausl.model.entities.logs.projections.KrintShpeckMessage;
-import java.util.Optional;
 
 /**
  *
@@ -66,7 +63,6 @@ public class KrintService {
             String informazioniOggettocontenitore, 
             OperazioneKrint.CodiceOperazione codiceOperazione){
         
-       
         try {
             Utente utente = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser();
 
@@ -80,8 +76,6 @@ public class KrintService {
             OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(codiceOperazione);
             OperazioneVersionataKrint operazioneVersionataKrint = 
                             operazioneVersionataKrinRepository.findFirstByIdOperazioneOrderByVersioneDesc(operazioneKrint).orElse(null);
-            
-
             
             krint.setIdOggetto(idOggetto);
             krint.setTipoOggetto(tipoOggetto);
@@ -104,15 +98,19 @@ public class KrintService {
                 String jsonKrintInformazioniRealUser = objectMapper.writeValueAsString(krintInformazioniRealUser);
                 krint.setInformazioniRealUser(jsonKrintInformazioniRealUser);
             }
-
-            httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.KRINT_ROW, krint);
+            
+            List<Krint> krintList = (List<Krint>)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.KRINT_ROWS);
+            if (krintList == null || krintList.isEmpty()) {
+                krintList = new ArrayList();
+            }
+            krintList.add(krint);
+            httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.KRINT_ROWS, krintList);
             
         }  catch (Exception ex) {
             // TODO: log
         } 
         
     }
-    
     
     
 }
