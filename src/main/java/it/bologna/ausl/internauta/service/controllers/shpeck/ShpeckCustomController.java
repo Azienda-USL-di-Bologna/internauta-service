@@ -163,12 +163,12 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
         try {
             EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
-            int attNumber = (int)Arrays.stream(res.getAttachments()).filter(a -> 
-                {
-                    LOG.info(a.toString());
-                    return a.getForHtmlAttribute() == false;
-                            
-                }).count();
+            int attNumber = (int) Arrays.stream(res.getAttachments()).filter(a
+                    -> {
+                LOG.info(a.toString());
+                return a.getForHtmlAttribute() == false;
+
+            }).count();
             res.setRealAttachmentNumber(attNumber);
             Message m = messageRepository.getOne(idMessage);
             if (m != null) {
@@ -449,11 +449,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 for (MimeMessage mime : mimeMessagesList) {
                     shpeckUtils.sendMessage(pec, mime);
                 }
-                
+
                 if (idMessageRelated != null) {
                     shpeckUtils.setTagsToMessage(pec, idMessageRelated, messageRelatedType);
                 }
-                
+
                 shpeckUtils.deleteDraft(draftMessage);
             } catch (IOException | MessagingException | EntityNotFoundException ex) {
                 LOG.error("Handling error on send! Trying to save...", ex);
@@ -507,7 +507,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         messageDestination.setIdPec(pecDestination);
         messageDestination.setInOut(Message.InOut.IN);
-        messageDestination.setCreateTime(LocalDateTime.now());
         messageDestination.setSeen(Boolean.FALSE);
         messageDestination.setIdRelated(messageSource);
 
@@ -574,13 +573,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         System.out.println(messageSource.toString());
         System.out.println("-----------------------");
         System.out.println(messageDestination.toString());
-        
+
         messageRepository.updateTscol(messageDestination.getId());
 
         return additionalDataSource.toString();
     }
-    
-    
 
     /**
      *
@@ -725,21 +722,22 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         System.out.println("fine manageMessageRegistration");
 
     }
-    
+
     /**
-     * Gestisco il dopo archiviazione di un messaggio.
-     * La funzione nasce per essere chiamata da Babel. 
-     * Aggiunge il tag archiviazione con le informazioni su chi e fascicolo.
+     * Gestisco il dopo archiviazione di un messaggio. La funzione nasce per
+     * essere chiamata da Babel. Aggiunge il tag archiviazione con le
+     * informazioni su chi e fascicolo.
+     *
      * @param idMessage
      * @param additionalData
-     * @throws BlackBoxPermissionException 
+     * @throws BlackBoxPermissionException
      */
     @Transactional
     @RequestMapping(value = "manageMessageArchiviation", method = RequestMethod.POST)
     public void manageMessageArchiviation(
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
             @RequestBody Map<String, Object> additionalData) throws BlackBoxPermissionException {
-        
+
         Message message = messageRepository.getOne(idMessage);
         List<Tag> pecTagList = message.getIdPec().getTagList();
         Tag pecTagArchived = pecTagList.stream().filter(t -> "archived".equals(t.getName())).collect(Collectors.toList()).get(0);
@@ -747,7 +745,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
 
         JSONObject jsonAdditionalData = null;
-        
+
         if (additionalData != null) {
             // Inserisco l'utente fascicolatore
             Map<String, Object> idUtenteMap = new HashMap<>();
@@ -766,10 +764,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
 
         MessageTag messageTag = null;
-        
+
         // Cerco se il messageTag esiste già
         List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, pecTagArchived);
-        
+
         if (!findByIdMessageAndIdTag.isEmpty()) {   // Il message era già stato archiviato in passato
             messageTag = findByIdMessageAndIdTag.get(0);
             JSONArray jsonArr = new JSONArray(messageTag.getAdditionalData());
