@@ -21,9 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerInterceptor {
 
-    // ThreadLocal fa si che la variabile valga solo per il thread corrente (nella singola chiamata). 
-    // Dato che il bean è unico per tutti i thread in questo modo ogni thread ha la sua copia della variabile
-    protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
     protected Utente user, realUser;
     protected Persona person, realPerson;
     protected int idSessionLog;
