@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.interceptors.scrivania;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import it.bologna.ausl.model.entities.scrivania.QAttivita;
@@ -65,9 +66,9 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
     
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-        getAuthenticatedUserProperties();
-        BooleanExpression filterUtenteConnesso = QAttivita.attivita.idPersona.id.eq(user.getIdPersona().getId());
-        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(user).stream().map(
+        AuthenticatedSessionData authenticatedSessionData = super.getAuthenticatedUserProperties();
+        BooleanExpression filterUtenteConnesso = QAttivita.attivita.idPersona.id.eq(authenticatedSessionData.getUser().getIdPersona().getId());
+        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(authenticatedSessionData.getUser()).stream().map(
                 x -> 
                         x.getIdAzienda().getId()
         ).collect(Collectors.toList());
@@ -78,11 +79,14 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        AuthenticatedSessionData authenticatedSessionData = super.getAuthenticatedUserProperties();
+        LOGGER.info(String.format("pre afterSelectQueryInterceptor on Attivita user: %d person: %s", authenticatedSessionData.getUser().getId(), authenticatedSessionData.getPerson().getCodiceFiscale()) );
         getAuthenticatedUserProperties();
+        LOGGER.info(String.format("after afterSelectQueryInterceptor on Attivita user: %d person: %s", authenticatedSessionData.getUser().getId(), authenticatedSessionData.getPerson().getCodiceFiscale()) );
         AziendaParametriJson parametriAziendaOrigine = (AziendaParametriJson) this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda);
         if (parametriAziendaOrigine == null) {
             try {
-                parametriAziendaOrigine = AziendaParametriJson.parse(this.objectMapper, user.getIdAzienda().getParametri());
+                parametriAziendaOrigine = AziendaParametriJson.parse(this.objectMapper, authenticatedSessionData.getUser().getIdAzienda().getParametri());
                 this.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda, parametriAziendaOrigine);
             }
             catch (IOException ex) {
@@ -136,21 +140,21 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
                                 String stringToEncode = urlAttivita;
 
-                                stringToEncode += "&utente=" + person.getCodiceFiscale(); // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
+                                stringToEncode += "&utente=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
 
                                 // stringToEncode += "&richiesta=" + UUID.randomUUID().toString();
-                                if (realPerson != null) {
-                                    stringToEncode += "&realUser=" + realPerson.getCodiceFiscale();
-                                    stringToEncode += "&impersonatedUser=" + person.getCodiceFiscale();
-                                    stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale(); // serve alle applicazioni INDE
+                                if (authenticatedSessionData.getRealPerson() != null) {
+                                    stringToEncode += "&realUser=" + authenticatedSessionData.getRealPerson().getCodiceFiscale();
+                                    stringToEncode += "&impersonatedUser=" + authenticatedSessionData.getPerson().getCodiceFiscale();
+                                    stringToEncode += "&utenteLogin=" + authenticatedSessionData.getRealPerson().getCodiceFiscale(); // serve alle applicazioni INDE
                                 } else {
-                                    stringToEncode += "&user=" + person.getCodiceFiscale();
-                                    stringToEncode += "&utenteLogin=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
+                                    stringToEncode += "&user=" + authenticatedSessionData.getPerson().getCodiceFiscale();
+                                    stringToEncode += "&utenteLogin=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // serve alle applicazioni INDE
                                 }
 
-                                stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
+                                stringToEncode += "&utenteImpersonato=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // serve alle applicazioni INDE
 
-                                stringToEncode += "&idSessionLog=" + idSessionLog;
+                                stringToEncode += "&idSessionLog=" + authenticatedSessionData.getIdSessionLog();
 
                                 stringToEncode += FROM;
 
@@ -193,14 +197,14 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
-        getAuthenticatedUserProperties();
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         
         Attivita attivita = (Attivita) entity;
         if(!attivita.getTipo().equals("notifica")){
             throw new AbortSaveInterceptorException("La riga che si sta tentando di eliminare non è una notifica");
         }
         
-        if(!super.person.getId().equals(attivita.getIdPersona().getId())) {
+        if(!authenticatedSessionData.getPerson().getId().equals(attivita.getIdPersona().getId())) {
             throw new AbortSaveInterceptorException("non hai il permesso di eliminare la notifica");
         }
         

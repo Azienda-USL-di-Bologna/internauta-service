@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.interceptors.baborg;
 
 import com.querydsl.core.types.Predicate;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -55,10 +56,10 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeCreateEntityInterceptor di PecAzienda");
-        getAuthenticatedUserProperties();
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         
-        if (!isCI(user)) {
-            Persona persona = personaRepository.getOne(person.getId());
+        if (!isCI(authenticatedSessionData.getUser())) {
+            Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
             
             if (idAziendeCA == null || idAziendeCA.isEmpty()) {
@@ -101,10 +102,10 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
      */
     @Override
     public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
-        getAuthenticatedUserProperties();
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
 
-        if (!isCI(user)) {
-            Persona persona = personaRepository.getOne(person.getId());
+        if (!isCI(authenticatedSessionData.getUser())) {
+            Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
             
             if (idAziendeCA == null || idAziendeCA.isEmpty()) {

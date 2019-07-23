@@ -5,21 +5,17 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
-import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QUtente;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,23 +50,23 @@ public class UtenteInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-        super.getAuthenticatedUserProperties();
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
                     case CambioUtente:
-                        Utente ut = null;
-                        if (super.realUser != null) {
-                            ut = realUser;
+                        Utente utente;
+                        if (authenticatedSessionData.getRealUser() != null) {
+                            utente = authenticatedSessionData.getRealUser();
                         } else {
-                            ut = user;
+                            utente = authenticatedSessionData.getUser();
                         }
 
-                        if (!isSD(ut)) {
+                        if (!isSD(utente)) {
                             try {
                                 // Devo controlalre se sono DWELEGAZFTO. CJHiedo alla balcks box
-                                List<Integer> idUtentiDelega = userInfoService.getPermessiDelega(ut);
+                                List<Integer> idUtentiDelega = userInfoService.getPermessiDelega(utente);
                                 if (idUtentiDelega != null && idUtentiDelega.size() > 0) {
                                     BooleanExpression filterUtentiDelega = QUtente.utente.id.in(idUtentiDelega);
                                     initialPredicate = filterUtentiDelega.and(initialPredicate);

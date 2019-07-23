@@ -5,6 +5,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
@@ -61,7 +62,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-        getAuthenticatedUserProperties();
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
 
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested == null || operationsRequested.isEmpty()) {
@@ -120,7 +121,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                         List<PermessoEntitaStoredProcedure> pecWithStandardPermissions;
                         try {
                             pecWithStandardPermissions = permissionManager.getPermissionsOfSubject(
-                                    super.person,
+                                    authenticatedSessionData.getPerson(),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString(), InternautaConstants.Permessi.Predicati.ELIMINA.toString()}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
@@ -147,6 +148,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Pec pec = (Pec) entity;        
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
@@ -214,8 +216,8 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         }
         
         //Se non ho diritti particolari su una pec metto la password a null
-        if (!isCI(user)) {
-            Persona persona = personaRepository.getOne(person.getId());
+        if (!isCI(authenticatedSessionData.getUser())) {
+            Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
             
             if (idAziendeCA == null || idAziendeCA.isEmpty()) {
@@ -259,10 +261,10 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeCreateEntityInterceptor di Pec");
-        getAuthenticatedUserProperties();
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
 
-        if (!isCI(user)) {
-            Persona persona = personaRepository.getOne(person.getId());
+        if (!isCI(authenticatedSessionData.getUser())) {
+            Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
             
             if (idAziendeCA == null || idAziendeCA.isEmpty()) {
@@ -284,12 +286,12 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Pec");
-        getAuthenticatedUserProperties();
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         
         Pec pec = (Pec) entity;
         
-        if (!isCI(user)) {
-            Persona persona = personaRepository.getOne(person.getId());
+        if (!isCI(authenticatedSessionData.getUser())) {
+            Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
             
             if (idAziendeCA == null || idAziendeCA.isEmpty()) {

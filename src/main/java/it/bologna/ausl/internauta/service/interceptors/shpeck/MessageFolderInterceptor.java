@@ -56,7 +56,7 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
 //        return messageFolder;
         // Se sto spostando nel cestino devo avere il peremsso elimina
         MessageFolder messageFolder = (MessageFolder) entity;
-        if (messageFolder.getIdFolder().getType().equals(FolderType.TRASH.toString())) {
+        if (messageFolder.getIdFolder().getType() == FolderType.TRASH) {
             try {
                 lanciaEccezioneSeNonHaPermessoDiEliminaMessage(messageFolder.getIdMessage());
             } catch (BlackBoxPermissionException | Http403ResponseException ex) {
@@ -75,7 +75,7 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         
         // Prendo i permessi pec
-        Map<Integer, List<String>> permessiPec = null;
+        Map<Integer, List<String>> permessiPec;
         permessiPec = userInfoService.getPermessiPec(persona);
         
         // Controllo che ci sia almeno il RISPONDE sulla pec interessata
