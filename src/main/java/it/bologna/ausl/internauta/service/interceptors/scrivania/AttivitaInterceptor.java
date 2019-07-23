@@ -19,7 +19,6 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaFatteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
-import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
 import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
@@ -28,10 +27,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 
@@ -44,6 +44,8 @@ import org.springframework.util.StringUtils;
 @NextSdrInterceptor(name = "attivita-interceptor")
 public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AttivitaInterceptor.class);
+    
     private static final String FROM = "&from=INTERNAUTA";
 
     @Autowired
