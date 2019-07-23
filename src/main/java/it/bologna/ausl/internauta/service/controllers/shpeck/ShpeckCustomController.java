@@ -626,101 +626,120 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         return messageTagRespository.count(QMessageTag.messageTag.idTag.id.eq(idTag));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Throwable.class)
     @RequestMapping(value = "manageMessageRegistration", method = RequestMethod.POST)
     public void manageMessageRegistration(
-            @RequestParam(name = "idMessage", required = true) Integer idMessage,
+            @RequestParam(name = "uuidMessage", required = true) String uuidMessage,
             @RequestParam(name = "operation", required = true) String operation,
+            
             @RequestBody Map<String, Object> additionalData
+            
     ) throws BlackBoxPermissionException {
-        // operation: IN_REGISTRATION, REGISTER, REMOVE_IN_REGISTRATION
+        
+        LOG.info("Inizio manageMessageRegistration. uuidMessage: " + uuidMessage + " operation: " + operation + " additionalData: " + additionalData.toString());
+        
+        try {
+            // operation: IN_REGISTRATION, REGISTER, REMOVE_IN_REGISTRATION
+            AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
 
-        Message message = messageRepository.getOne(idMessage);
+            JSONObject jsonAdditionalData = null;
+            if (additionalData != null) {
+                Map<String, Object> idUtenteMap = new HashMap<>();
+                idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
+                idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
+                additionalData.put("idUtente", idUtenteMap);
+                Map<String, Object> idAziendaMap = new HashMap<>();
+                idAziendaMap.put("id", authenticatedUserProperties.getUser().getIdAzienda().getId());
+                idAziendaMap.put("nome", authenticatedUserProperties.getUser().getIdAzienda().getNome());
+                idAziendaMap.put("descrizione", authenticatedUserProperties.getUser().getIdAzienda().getDescrizione());
+                additionalData.put("idAzienda", idAziendaMap);
+                jsonAdditionalData = new JSONObject(additionalData);
+            }
 
-        List<Tag> tagList = message.getIdPec().getTagList();
-        List<Folder> folderList = message.getIdPec().getFolderList();
-        Tag tagInRegistration = tagList.stream().filter(t -> "in_registration".equals(t.getName())).collect(Collectors.toList()).get(0);
-        Tag tagRegistered = tagList.stream().filter(t -> "registered".equals(t.getName())).collect(Collectors.toList()).get(0);
-        Folder folderRegistered = folderList.stream().filter(f -> "registered".equals(f.getName())).collect(Collectors.toList()).get(0);
 
-        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+            // recupero tutti i messaggi con quell uuid
+            List<Message> messages = messageRepository.findByUuidMessage(uuidMessage);
 
-        JSONObject jsonAdditionalData = null;
-        if (additionalData != null) {
-            Map<String, Object> idUtenteMap = new HashMap<>();
-            idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
-            idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
-            additionalData.put("idUtente", idUtenteMap);
-            Map<String, Object> idAziendaMap = new HashMap<>();
-            idAziendaMap.put("id", authenticatedUserProperties.getUser().getIdAzienda().getId());
-            idAziendaMap.put("nome", authenticatedUserProperties.getUser().getIdAzienda().getNome());
-            idAziendaMap.put("descrizione", authenticatedUserProperties.getUser().getIdAzienda().getDescrizione());
-            additionalData.put("idAzienda", idAziendaMap);
-            jsonAdditionalData = new JSONObject(additionalData);
+            for(Message message: messages) {
+                
+                if(message.getMessageType() != Message.MessageType.MAIL && message.getMessageType() != Message.MessageType.PEC) {
+                    continue;
+                }
+                
+                LOG.info("processo messaggio con uuidMessage: " + message.getUuidMessage() + " e id: " + message.getId());
+
+                List<Tag> tagList = message.getIdPec().getTagList();
+                List<Folder> folderList = message.getIdPec().getFolderList();
+                Tag tagInRegistration = tagList.stream().filter(t -> "in_registration".equals(t.getName())).collect(Collectors.toList()).get(0);
+                Tag tagRegistered = tagList.stream().filter(t -> "registered".equals(t.getName())).collect(Collectors.toList()).get(0);
+                Folder folderRegistered = folderList.stream().filter(f -> "registered".equals(f.getName())).collect(Collectors.toList()).get(0);
+
+
+
+                MessageTag messageTag = new MessageTag();
+                if ("IN_REGISTRATION".equals(operation)) {
+                    LOG.info("dentro IN_REGISTRATION per il messaggio con id: " + message.getId());
+                    messageTag.setIdUtente(authenticatedUserProperties.getUser());
+                    messageTag.setIdMessage(message);
+                    messageTag.setIdTag(tagInRegistration);
+                    if (jsonAdditionalData != null) {
+                        messageTag.setAdditionalData(jsonAdditionalData.toString());
+                    }
+                    messageTagRespository.save(messageTag);
+                }
+
+                if ("REGISTER".equals(operation)) {                    
+                    LOG.info("dentro REGISTER per il messaggio con id: " + message.getId());
+                    List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
+                    // TODO: gestire caso se non trova niente o ne trova piu di uno
+                    if (!findByIdMessageAndIdTag.isEmpty()) {
+                        MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
+                        // cancellazione del mt in_registration
+                        messageTagRespository.delete(mtInRegistration);
+                    }
+
+                    MessageTag mtRegistered = new MessageTag();
+                    mtRegistered.setIdUtente(authenticatedUserProperties.getUser());
+                    mtRegistered.setIdMessage(message);
+                    mtRegistered.setIdTag(tagRegistered);
+                    if (jsonAdditionalData != null) {
+                        mtRegistered.setAdditionalData(jsonAdditionalData.toString());
+                    }
+                    messageTagRespository.save(mtRegistered);
+
+                    // spostamento folder.
+                    // Lo elimino da quella in cui era e lo metto nella cartella registered
+                    List<MessageFolder> findByIdMessage = messageFolderRespository.findByIdMessage(message);
+                    // TODO: gestire caso se non trova niente o ne trova piu di uno
+                    if (!findByIdMessage.isEmpty()) {
+                        MessageFolder mfCurrentMessage = findByIdMessage.get(0);
+                        mfCurrentMessage.setIdUtente(authenticatedUserProperties.getUser());
+                        mfCurrentMessage.setIdFolder(folderRegistered);
+                        messageFolderRespository.save(mfCurrentMessage);
+                    } else {
+                        MessageFolder mfRegistered = new MessageFolder();
+                        mfRegistered.setIdUtente(authenticatedUserProperties.getUser());
+                        mfRegistered.setIdMessage(message);
+                        mfRegistered.setIdFolder(folderRegistered);
+                        messageFolderRespository.save(mfRegistered);
+                    }
+                }
+
+                if ("REMOVE_IN_REGISTRATION".equals(operation)) {
+                    LOG.info("dentro REMOVE_IN_REGISTRATION per il messaggio con id: " + message.getId());
+                    List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
+                    // TODO: gestire caso se non trova niente o ne trova piu di uno
+                    if (!findByIdMessageAndIdTag.isEmpty()) {
+                        MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
+                        // cancellazione del mt in_registration
+                        messageTagRespository.delete(mtInRegistration);
+                    }
+                }              
+            }
+        } catch(Throwable ex) {     
+            LOG.error(ex.getMessage(), ex);
+            throw ex;
         }
-
-        MessageTag messageTag = new MessageTag();
-        if ("IN_REGISTRATION".equals(operation)) {
-            System.out.println("dentro IN_REGISTRATION");
-            messageTag.setIdUtente(authenticatedUserProperties.getUser());
-            messageTag.setIdMessage(message);
-            messageTag.setIdTag(tagInRegistration);
-            if (jsonAdditionalData != null) {
-                messageTag.setAdditionalData(jsonAdditionalData.toString());
-            }
-            messageTagRespository.save(messageTag);
-        }
-
-        if ("REGISTER".equals(operation)) {
-            System.out.println("dentro REGISTER");
-            List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
-            // TODO: gestire caso se non trova niente o ne trova piu di uno
-            if (!findByIdMessageAndIdTag.isEmpty()) {
-                MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
-                // cancellazione del mt in_registration
-                messageTagRespository.delete(mtInRegistration);
-            }
-
-            MessageTag mtRegistered = new MessageTag();
-            mtRegistered.setIdUtente(authenticatedUserProperties.getUser());
-            mtRegistered.setIdMessage(message);
-            mtRegistered.setIdTag(tagRegistered);
-            if (jsonAdditionalData != null) {
-                mtRegistered.setAdditionalData(jsonAdditionalData.toString());
-            }
-            messageTagRespository.save(mtRegistered);
-
-            // spostamento folder.
-            // Lo elimino da quella in cui era e lo metto nella cartella registered
-            List<MessageFolder> findByIdMessage = messageFolderRespository.findByIdMessage(message);
-            // TODO: gestire caso se non trova niente o ne trova piu di uno
-            if (!findByIdMessage.isEmpty()) {
-                MessageFolder mfCurrentMessage = findByIdMessage.get(0);
-                mfCurrentMessage.setIdUtente(authenticatedUserProperties.getUser());
-                mfCurrentMessage.setIdFolder(folderRegistered);
-                messageFolderRespository.save(mfCurrentMessage);
-            } else {
-                MessageFolder mfRegistered = new MessageFolder();
-                mfRegistered.setIdUtente(authenticatedUserProperties.getUser());
-                mfRegistered.setIdMessage(message);
-                mfRegistered.setIdFolder(folderRegistered);
-                messageFolderRespository.save(mfRegistered);
-            }
-        }
-
-        if ("REMOVE_IN_REGISTRATION".equals(operation)) {
-            System.out.println("dentro REMOVE_IN_REGISTRATION");
-            List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
-            // TODO: gestire caso se non trova niente o ne trova piu di uno
-            if (!findByIdMessageAndIdTag.isEmpty()) {
-                MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
-                // cancellazione del mt in_registration
-                messageTagRespository.delete(mtInRegistration);
-            }
-        }
-
-        System.out.println("fine manageMessageRegistration");
-
     }
 
     /**
