@@ -23,7 +23,7 @@ import redis.clients.jedis.JedisPoolConfig;
 
 /**
  *
- * @author andrea
+ * @author gdm
  */
 @Configuration
 public class CacheConfig {
@@ -38,6 +38,8 @@ public class CacheConfig {
     private Boolean jsonSerialization;
     @Value("${internauta.cache.redis.timeout-millis}")
     private Integer timeoutMillis;
+    @Value("${internauta.cache.redis.prefix}")
+    private String prefix;
 
     @Bean
     public RedisConnectionFactory jedisConnectionFactory() {
@@ -68,7 +70,7 @@ public class CacheConfig {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofSeconds(expireTime))
                 .computePrefixWith((cacheName) -> {
-                    return "internauta_cache_" + cacheName + "::";
+                    return prefix + cacheName + "::";
                 });
 //                .disableCachingNullValues();
         if (jsonSerialization) {
@@ -92,7 +94,7 @@ public class CacheConfig {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofSeconds(60))
                 .computePrefixWith((cacheName) -> {
-                    return "internauta_cache_one_minute_ttl_" + cacheName + "::";
+                    return prefix + "one_minute_ttl_" + cacheName + "::";
                 });
 //                .disableCachingNullValues();
         if (jsonSerialization) {
@@ -120,7 +122,7 @@ public class CacheConfig {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(15))
                 .computePrefixWith((cacheName) -> {
-                    return "internauta_cache_eml_" + cacheName + "::";
+                    return prefix + "eml_" + cacheName + "::";
                 });
 //                .disableCachingNullValues();
         if (jsonSerialization) {
