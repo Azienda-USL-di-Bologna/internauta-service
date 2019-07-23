@@ -6,6 +6,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
@@ -71,8 +72,8 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) 
             throws AbortLoadInterceptorException {
         
-        getAuthenticatedUserProperties();
-        List<Utente> utentiPersona = userInfoService.getUtentiPersonaByUtente(super.user);              
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        List<Utente> utentiPersona = userInfoService.getUtentiPersonaByUtente(authenticatedSessionData.getUser());              
         BooleanExpression filterAziendaUtente = null;
         
         List<String> ambitiFlusso = new ArrayList();
@@ -117,7 +118,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         List<String> ambitiPecG = new ArrayList();
         ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
         try {
-            List<String> predicatiPec = permissionManager.getPermission(super.user.getIdPersona(), ambitiPecG, InternautaConstants.Permessi.Tipi.PEC.toString());
+            List<String> predicatiPec = permissionManager.getPermission(authenticatedSessionData.getUser().getIdPersona(), ambitiPecG, InternautaConstants.Permessi.Tipi.PEC.toString());
             BooleanExpression booleanTemplate;
             if (predicatiPec != null) {
                 booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
@@ -138,8 +139,8 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         
 //        ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
         
-        LOGGER.info("USER " + super.user.getId());
-        List<String> ruoliCACI = super.user.getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
+        LOGGER.info("USER " + authenticatedSessionData.getUser().getId());
+        List<String> ruoliCACI = authenticatedSessionData.getUser().getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
         LOGGER.info("ruoliCACI " + ruoliCACI);
         
         BooleanExpression booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
@@ -177,12 +178,12 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
     
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-        getAuthenticatedUserProperties();
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
 
         AziendaParametriJson parametriAziendaOrigine = (AziendaParametriJson) this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda);
         if (parametriAziendaOrigine == null) {
             try {
-                parametriAziendaOrigine = AziendaParametriJson.parse(this.objectMapper, user.getIdAzienda().getParametri());
+                parametriAziendaOrigine = AziendaParametriJson.parse(this.objectMapper, authenticatedSessionData.getUser().getIdAzienda().getParametri());
                 this.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda, parametriAziendaOrigine);
             }
             catch (IOException ex) {
@@ -200,25 +201,25 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         if(menu.getOpenCommand() != null && !menu.getOpenCommand().equals("")){
             stringToEncode = menu.getOpenCommand();
         }
-        if(person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0){
+        if(authenticatedSessionData.getPerson().getCodiceFiscale() != null && authenticatedSessionData.getPerson().getCodiceFiscale().length() > 0){
             stringToEncode += (stringToEncode.length() > 0 && stringToEncode.startsWith("?")) ? "&utente=" : "?utente=";
-            stringToEncode += person.getCodiceFiscale(); // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
+            stringToEncode += authenticatedSessionData.getPerson().getCodiceFiscale(); // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
         }
         
-        if (realPerson != null) {
-            stringToEncode += "&realUser=" + realPerson.getCodiceFiscale();
-            stringToEncode += "&impersonatedUser=" + person.getCodiceFiscale();
-            stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale(); // serve alle applicazioni INDE
+        if (authenticatedSessionData.getRealPerson() != null) {
+            stringToEncode += "&realUser=" + authenticatedSessionData.getRealPerson().getCodiceFiscale();
+            stringToEncode += "&impersonatedUser=" + authenticatedSessionData.getPerson().getCodiceFiscale();
+            stringToEncode += "&utenteLogin=" + authenticatedSessionData.getRealPerson().getCodiceFiscale(); // serve alle applicazioni INDE
         } else {
-            stringToEncode += "&user=" + person.getCodiceFiscale();
-            stringToEncode += "&utenteLogin=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
+            stringToEncode += "&user=" + authenticatedSessionData.getPerson().getCodiceFiscale();
+            stringToEncode += "&utenteLogin=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // serve alle applicazioni INDE
         }
 
-        stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
-        stringToEncode += "&idSessionLog=" + idSessionLog;
+        stringToEncode += "&utenteImpersonato=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // serve alle applicazioni INDE
+        stringToEncode += "&idSessionLog=" + authenticatedSessionData.getIdSessionLog();
         stringToEncode += FROM;
         stringToEncode += "&modalitaAmministrativa=0"; // serve alle applicazioni INDE
-        Azienda azienda = user.getIdAzienda();
+        Azienda azienda = authenticatedSessionData.getUser().getIdAzienda();
         if (menu.getIdAzienda() != null) {
             azienda = menu.getIdAzienda();
         }
@@ -260,7 +261,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
     
     @Override
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-        getAuthenticatedUserProperties();
+//        getAuthenticatedUserProperties();
         for (Object entity : entities) {
             LOGGER.info("ENTITY PRIMA " + entity.toString());
             entity = afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);

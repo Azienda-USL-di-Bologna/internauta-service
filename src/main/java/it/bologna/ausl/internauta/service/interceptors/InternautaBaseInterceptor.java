@@ -21,12 +21,9 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerInterceptor {
 
-    // ThreadLocal fa si che la variabile valga solo per il thread corrente (nella singola chiamata). 
-    // Dato che il bean è unico per tutti i thread in questo modo ogni thread ha la sua copia della variabile
-    protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
-    protected Utente user, realUser;
-    protected Persona person, realPerson;
-    protected int idSessionLog;
+//    protected Utente user, realUser;
+//    protected Persona person, realPerson;
+//    protected int idSessionLog;
 
     @Autowired
     protected CachedEntities cachedEntities;
@@ -39,17 +36,18 @@ public abstract class InternautaBaseInterceptor extends NextSdrEmptyControllerIn
     
     private static final Logger LOGGER = LoggerFactory.getLogger(InternautaBaseInterceptor.class);
 
-    protected void getAuthenticatedUserProperties()  {
+    protected AuthenticatedSessionData getAuthenticatedUserProperties()  {
         try {
-            // TODO add url
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-            user = authenticatedUserProperties.getUser();
-            realUser = authenticatedUserProperties.getRealUser();
-            idSessionLog = authenticatedUserProperties.getIdSessionLog();
-            person = authenticatedUserProperties.getPerson();
-            realPerson = authenticatedUserProperties.getRealPerson();
+//            user = authenticatedUserProperties.getUser();
+//            realUser = authenticatedUserProperties.getRealUser();
+//            idSessionLog = authenticatedUserProperties.getIdSessionLog();
+//            person = authenticatedUserProperties.getPerson();
+//            realPerson = authenticatedUserProperties.getRealPerson();
+            return authenticatedUserProperties;
         } catch (BlackBoxPermissionException ex) {
             LOGGER.error("errore nel reperimento delle AuthenticatedUserProperties", ex);
+            return null;
         }
     }
 
