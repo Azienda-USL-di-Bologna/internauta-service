@@ -90,6 +90,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import java.util.Arrays;
 import org.json.JSONArray;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -658,7 +659,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
 
             // recupero tutti i messaggi con quell uuid
-            List<Message> messages = messageRepository.findByUuidMessage(uuidMessage);
+            List<Message> messages = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(uuidMessage));
 
             for(Message message: messages) {
                 
@@ -670,14 +671,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
                 List<Tag> tagList = message.getIdPec().getTagList();
                 List<Folder> folderList = message.getIdPec().getFolderList();
-                Tag tagInRegistration = tagList.stream().filter(t -> "in_registration".equals(t.getName())).collect(Collectors.toList()).get(0);
-                Tag tagRegistered = tagList.stream().filter(t -> "registered".equals(t.getName())).collect(Collectors.toList()).get(0);
-                Folder folderRegistered = folderList.stream().filter(f -> "registered".equals(f.getName())).collect(Collectors.toList()).get(0);
-
-
+                Tag tagInRegistration = tagList.stream().filter(t -> Tag.SystemTagName.in_registration.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
+                Tag tagRegistered = tagList.stream().filter(t -> Tag.SystemTagName.registered.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
+                Folder folderRegistered = folderList.stream().filter(f -> Folder.FolderType.REGISTERED.equals(f.getType())).collect(Collectors.toList()).get(0);
+                
 
                 MessageTag messageTag = new MessageTag();
-                if ("IN_REGISTRATION".equals(operation)) {
+                if ("IN_REGISTRATION".equals(StringUtils.trimWhitespace(operation))) {
                     LOG.info("dentro IN_REGISTRATION per il messaggio con id: " + message.getId());
                     messageTag.setIdUtente(authenticatedUserProperties.getUser());
                     messageTag.setIdMessage(message);
@@ -688,7 +688,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     messageTagRespository.save(messageTag);
                 }
 
-                if ("REGISTER".equals(operation)) {                    
+                if ("REGISTER".equals(StringUtils.trimWhitespace(operation))) {                    
                     LOG.info("dentro REGISTER per il messaggio con id: " + message.getId());
                     List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
                     // TODO: gestire caso se non trova niente o ne trova piu di uno
@@ -725,7 +725,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     }
                 }
 
-                if ("REMOVE_IN_REGISTRATION".equals(operation)) {
+                if ("REMOVE_IN_REGISTRATION".equals(StringUtils.trimWhitespace(operation))) {
                     LOG.info("dentro REMOVE_IN_REGISTRATION per il messaggio con id: " + message.getId());
                     List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
                     // TODO: gestire caso se non trova niente o ne trova piu di uno
