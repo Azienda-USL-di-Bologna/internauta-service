@@ -11,7 +11,6 @@ import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.CounterRepository;
-import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Azienda;
@@ -61,9 +60,6 @@ public class AuthorizationUtils {
 
     @Autowired
     UserInfoService userInfoService;
-    
-    @Autowired
-    CachedEntities cachedEntities;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -139,72 +135,48 @@ public class AuthorizationUtils {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    /**
-     * 
-     * @param idAzienda se è presente viene usato per caricare l'azienda, altrimenti usa il parametro path
-     * @param path il path che identifica l'azienda dalla quale è partito il login (es. babel-auslbo.avec.emr.it)
-     * @param secretKey
-     * @param request
-     * @param ssoFieldValue
-     * @param utenteImpersonatoStr
-     * @param applicazione
-     * @return
-     * @throws IOException
-     * @throws ClassNotFoundException
-     * @throws ObjectNotFoundException
-     * @throws BlackBoxPermissionException 
-     */
-    public ResponseEntity generateResponseEntityFromSAML(String idAzienda, String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException {
+    public ResponseEntity generateResponseEntityFromSAML(String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException {
 
-        logger.info("idAzienda: " + objectMapper.writeValueAsString(idAzienda));
-        logger.info("path: " + objectMapper.writeValueAsString(path));
-        if (StringUtils.isEmpty(path)) {
-            throw new ObjectNotFoundException("impossibile stabilire l'azienda dell'utente, il campo \"path\" è vuoto");
-        }
         Utente impersonatedUser;
         boolean isSuperDemiurgo = false;
-        Azienda aziendaRealUser = userInfoService.loadAziendaByPath(path);
-        Azienda aziendaImpersonatedUser = (idAzienda == null || aziendaRealUser.getId() == Integer.parseInt(idAzienda)? 
-                                                aziendaRealUser: 
-                                                cachedEntities.getAzienda(Integer.parseInt(idAzienda)));
 
         //userInfoService.loadAziendaByPathRemoveCache(path);
+        Azienda azienda = userInfoService.loadAziendaByPath(path);
 
-        AziendaParametriJson aziendaRealUserParams = AziendaParametriJson.parse(objectMapper, aziendaRealUser.getParametri());
-        //AziendaParametriJson aziendaImpersonatedUserParams = AziendaParametriJson.parse(objectMapper, aziendaImpersonatedUser.getParametri());
+        AziendaParametriJson aziendaParams = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
 
         if (ssoFieldValue == null) {
-            ssoFieldValue = request.getAttribute(aziendaRealUserParams.getLoginSSOField()).toString();
+            ssoFieldValue = request.getAttribute(aziendaParams.getLoginSSOField()).toString();
         }
 
-        String[] loginDbFieldSplitted = aziendaRealUserParams.getLoginDBFieldBaborg().split("/");
+        String[] loginDbFieldSplitted = aziendaParams.getLoginDBFieldBaborg().split("/");
         String entityClassName = loginDbFieldSplitted[0];
         String field = loginDbFieldSplitted[1];
 
         Class<?> entityClass = Class.forName(entityClassName);
 
         // carica l'utente vero che si è loggato con SSO
-        userInfoService.loadUtenteRemoveCache(entityClass, field, ssoFieldValue, aziendaRealUser);
-        Utente user = userInfoService.loadUtente(entityClass, field, ssoFieldValue, aziendaRealUser);
-        if (user == null) {
-            throw new ObjectNotFoundException("User not found");
-        }
+        userInfoService.loadUtenteRemoveCache(entityClass, field, ssoFieldValue, azienda);
+        Utente user = userInfoService.loadUtente(entityClass, field, ssoFieldValue, azienda);
         userInfoService.loadUtenteRemoveCache(user.getId());
         userInfoService.getUtentiPersonaByUtenteRemoveCache(user);
         userInfoService.getUtentiPersonaRemoveCache(user.getIdPersona());
         userInfoService.getRuoliRemoveCache(user);
         // TODO: rimuovere permessi cache
         userInfoService.getPermessiDiFlussoRemoveCache(user);
+        if (user == null) {
+            throw new ObjectNotFoundException("User not found");
+        }
+
         // prendi ID dell'utente reale
         String realUserSubject = String.valueOf(user.getId());
 
         user.setRuoli(userInfoService.getRuoli(user, null));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         userInfoService.getPermessiDelegaRemoveCache(user);
-        logger.info("realUser: " + objectMapper.writeValueAsString(user));
-        logger.info("aziendaRealUserLoaded: " + aziendaRealUser != null? aziendaRealUser.getId().toString(): "null");
+        logger.info("user: " + objectMapper.writeValueAsString(user));
         logger.info("impersonatedUser: " + utenteImpersonatoStr);
-        logger.info("aziendaImpersonatedUserLoaded: " + aziendaImpersonatedUser != null? aziendaImpersonatedUser.getId().toString(): "null");
+        
         List<Integer> permessiDelega = userInfoService.getPermessiDelega(user);
         logger.info("permessiDelega: " + Arrays.toString(permessiDelega.toArray()));
         
@@ -224,9 +196,9 @@ public class AuthorizationUtils {
                 }
             }
             
-            userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser);
-            impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser);
-            logger.info("loadedImpersonateUser: " + impersonatedUser != null? impersonatedUser.getId().toString() : "null");
+            
+            userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, azienda);
+            impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, azienda);
             userInfoService.loadUtenteRemoveCache(impersonatedUser.getId());
             userInfoService.getUtentiPersonaByUtenteRemoveCache(impersonatedUser);
             userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());
@@ -259,7 +231,7 @@ public class AuthorizationUtils {
 
                 // ritorna utente impersonato con informazioni dell'utente reale
                 return new ResponseEntity(
-                        generateLoginResponse(impersonatedUser, user, aziendaImpersonatedUser, entityClass, field, utenteImpersonatoStr, secretKey, applicazione),
+                        generateLoginResponse(impersonatedUser, user, azienda, entityClass, field, utenteImpersonatoStr, secretKey, applicazione),
                         HttpStatus.OK);
             } else {
                 // mi metto in sessione l'utente loggato, mi servirà in altri punti nella procedura di login, in particolare in projection custm
@@ -267,7 +239,7 @@ public class AuthorizationUtils {
                 // ritorna l'utente stesso perchè non ha i permessi per fare il cambia utente
                 logger.info(String.format("utente %s non ha ruolo SD, ritorna se stesso nel token", realUserSubject));
                 return new ResponseEntity(
-                        generateLoginResponse(user, null, aziendaRealUser, entityClass, field, ssoFieldValue, secretKey, applicazione),
+                        generateLoginResponse(user, null, azienda, entityClass, field, ssoFieldValue, secretKey, applicazione),
                         HttpStatus.OK);
             }            
         } else {
@@ -275,7 +247,7 @@ public class AuthorizationUtils {
             
             // ritorna l'utente reale perchè non è stato passato l'utente impersonato
             return new ResponseEntity(
-                    generateLoginResponse(user, null, aziendaRealUser, entityClass, field, ssoFieldValue, secretKey, applicazione),
+                    generateLoginResponse(user, null, azienda, entityClass, field, ssoFieldValue, secretKey, applicazione),
                     HttpStatus.OK);
         }
         //        DateTime currentDateTime = DateTime.now();
