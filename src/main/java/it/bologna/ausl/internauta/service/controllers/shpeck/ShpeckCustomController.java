@@ -164,19 +164,23 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
         try {
             EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
-            int attNumber = (int) Arrays.stream(res.getAttachments()).filter(a
-                    -> {
-                LOG.info(a.toString());
-                return a.getForHtmlAttribute() == false;
+            if (emlSource != EmlSource.DRAFT) {
+                int attNumber = (int) Arrays.stream(res.getAttachments()).filter(a
+                        -> {
+                    LOG.info(a.toString());
+                    return a.getForHtmlAttribute() == false;
 
-            }).count();
-            res.setRealAttachmentNumber(attNumber);
-            Message m = messageRepository.getOne(idMessage);
-            if (m != null) {
-                if (m.getAttachmentsNumber() != attNumber) {
-                    m.setAttachmentsNumber(attNumber);
-                    messageRepository.save(m);
-                }
+                }).count();
+                res.setRealAttachmentNumber(attNumber);
+                Message m = messageRepository.getOne(idMessage);
+                if (m != null) {
+                    if (m.getAttachmentsNumber() != attNumber) {
+                        m.setAttachmentsNumber(attNumber);
+                        messageRepository.save(m);
+                    }
+                }           
+            } else {
+                res.setRealAttachmentNumber(res.getAttachments().length);
             }
             return new ResponseEntity(res, HttpStatus.OK);
         } catch (Exception ex) {
