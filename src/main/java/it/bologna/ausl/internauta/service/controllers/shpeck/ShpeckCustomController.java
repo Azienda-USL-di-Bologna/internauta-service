@@ -601,7 +601,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 //            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
 //        }
 //        return messageCompleteRespository.count(filter);
-        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder);
+        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.idMessage.messageType.eq(Message.MessageType.MAIL.toString()));
         if (unSeen) {
             filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
         }
