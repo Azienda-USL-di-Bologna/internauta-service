@@ -87,6 +87,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
+import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import java.util.Arrays;
 import org.json.JSONArray;
@@ -164,19 +165,23 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
         try {
             EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
-            int attNumber = (int) Arrays.stream(res.getAttachments()).filter(a
-                    -> {
-                LOG.info(a.toString());
-                return a.getForHtmlAttribute() == false;
+            if (emlSource != EmlSource.DRAFT) {
+                int attNumber = (int) Arrays.stream(res.getAttachments()).filter(a
+                        -> {
+                    LOG.info(a.toString());
+                    return a.getForHtmlAttribute() == false;
 
-            }).count();
-            res.setRealAttachmentNumber(attNumber);
-            Message m = messageRepository.getOne(idMessage);
-            if (m != null) {
-                if (m.getAttachmentsNumber() != attNumber) {
-                    m.setAttachmentsNumber(attNumber);
-                    messageRepository.save(m);
-                }
+                }).count();
+                res.setRealAttachmentNumber(attNumber);
+                Message m = messageRepository.getOne(idMessage);
+                if (m != null) {
+                    if (m.getAttachmentsNumber() != attNumber) {
+                        m.setAttachmentsNumber(attNumber);
+                        messageRepository.save(m);
+                    }
+                }           
+            } else {
+                res.setRealAttachmentNumber(res.getAttachments().length);
             }
             return new ResponseEntity(res, HttpStatus.OK);
         } catch (Exception ex) {
@@ -597,7 +602,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 //            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
 //        }
 //        return messageCompleteRespository.count(filter);
-        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder);
+        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.idMessage.messageType.eq(Message.MessageType.MAIL.toString()));
         if (unSeen) {
             filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
         }
@@ -632,6 +637,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     public void manageMessageRegistration(
             @RequestParam(name = "uuidMessage", required = true) String uuidMessage,
             @RequestParam(name = "operation", required = true) String operation,
+            @RequestParam(name = "idMessage", required = true) Integer idMessage,
             
             @RequestBody Map<String, Object> additionalData
             
@@ -659,8 +665,17 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
 
             // recupero tutti i messaggi con quell uuid
-            List<Message> messages = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(uuidMessage));
-
+            List<Message> messagesByUuid = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(uuidMessage));
+            List<Message> messages = new ArrayList();
+            // Dei messagesByUuid trovati tengo solo quelli che appartengono a caselle che appartengono solo all'azienda su cui sto lavorando.
+            for(Message message: messagesByUuid) {
+                List<PecAzienda> pecAziendaList = message.getIdPec().getPecAziendaList();
+                if (message.getId().equals(idMessage) || 
+                        pecAziendaList.isEmpty() || 
+                        (pecAziendaList.size() == 1 && pecAziendaList.get(0).getIdAzienda().getId().equals(authenticatedUserProperties.getUser().getIdAzienda().getId()))) {
+                    messages.add(message);
+                }
+            }
             for(Message message: messages) {
                 
                 if(message.getMessageType() != Message.MessageType.MAIL && message.getMessageType() != Message.MessageType.PEC) {
