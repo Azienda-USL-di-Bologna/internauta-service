@@ -119,7 +119,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     private final String HTTPS = "https://";
    
     @RequestMapping(value = {"getAnteprima"}, method = RequestMethod.GET)
-    public void attivita(
+    public void getAnteprima(
         @RequestParam(required = true) String guid,
         @RequestParam(required = true) String tipologia,
         @RequestParam(required = true) Integer idAzienda,
