@@ -165,23 +165,19 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
         try {
             EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
-            if (emlSource != EmlSource.DRAFT) {
-                int attNumber = (int) Arrays.stream(res.getAttachments()).filter(a
-                        -> {
-                    LOG.info(a.toString());
-                    return a.getForHtmlAttribute() == false;
+            int attNumber = (int) Arrays.stream(res.getAttachments()).filter(a
+                    -> {
+                LOG.info(a.toString());
+                return a.getForHtmlAttribute() == false;
 
-                }).count();
-                res.setRealAttachmentNumber(attNumber);
-                Message m = messageRepository.getOne(idMessage);
-                if (m != null) {
-                    if (m.getAttachmentsNumber() != attNumber) {
-                        m.setAttachmentsNumber(attNumber);
-                        messageRepository.save(m);
-                    }
-                }           
-            } else {
-                res.setRealAttachmentNumber(res.getAttachments().length);
+            }).count();
+            res.setRealAttachmentNumber(attNumber);
+            Message m = messageRepository.getOne(idMessage);
+            if (m != null) {
+                if (m.getAttachmentsNumber() != attNumber) {
+                    m.setAttachmentsNumber(attNumber);
+                    messageRepository.save(m);
+                }
             }
             return new ResponseEntity(res, HttpStatus.OK);
         } catch (Exception ex) {
@@ -602,7 +598,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 //            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
 //        }
 //        return messageCompleteRespository.count(filter);
-        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.idMessage.messageType.eq(Message.MessageType.MAIL.toString()));
+        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder);
         if (unSeen) {
             filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
         }

@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -141,11 +140,6 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
 //        ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
         
         LOGGER.info("USER " + authenticatedSessionData.getUser().getId());
-        if (authenticatedSessionData.getUser().getRuoli() != null) {
-            LOGGER.info("ruoli: " + Arrays.toString(authenticatedSessionData.getUser().getRuoli().toArray()));
-        } else {
-            LOGGER.info("ruoli: null");
-        }
         List<String> ruoliCACI = authenticatedSessionData.getUser().getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
         LOGGER.info("ruoliCACI " + ruoliCACI);
         

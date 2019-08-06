@@ -50,7 +50,6 @@ public class LoginController {
 
     private final String IMPERSONATE_USER = "impersonatedUser";
     private final String APPLICATION = "application";
-    private final String AZIENDA = "azienda";
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -181,7 +180,6 @@ public class LoginController {
 
         String impersonateUser = request.getParameter(IMPERSONATE_USER);
         String applicazione = request.getParameter(APPLICATION);
-        String azienda = request.getParameter(AZIENDA);
         logger.info("impersonate user: " + impersonateUser);
         logger.info("applicazione: " + applicazione);
 
@@ -195,7 +193,7 @@ public class LoginController {
 
         ResponseEntity res;
         try {
-            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, null, impersonateUser, applicazione);
+            res = authorizationUtils.generateResponseEntityFromSAML(hostname, secretKey, request, null, impersonateUser, applicazione);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);
