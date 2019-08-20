@@ -223,8 +223,9 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         if (menu.getIdAzienda() != null) {
             azienda = menu.getIdAzienda();
         }
-        
+
         stringToEncode += "&idAzienda=" + azienda.getId();
+        stringToEncode += "&aziendaImpersonatedUser=" + azienda.getId();
         try {
             AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(this.objectMapper, azienda.getParametri());
             targetLoginPath = parametriAziendaTarget.getLoginPath();
