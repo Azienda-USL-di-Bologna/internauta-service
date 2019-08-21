@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.exceptions;
+package it.bologna.ausl.internauta.service.exceptions.http;
 
 import java.util.HashMap;
 import java.util.Map;
