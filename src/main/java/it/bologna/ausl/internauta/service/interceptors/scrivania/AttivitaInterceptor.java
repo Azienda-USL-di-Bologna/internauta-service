@@ -210,31 +210,31 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException("non hai il permesso di eliminare la notifica");
         }
         
-        AttivitaFatta attivitaFatta = new AttivitaFatta();
-        attivitaFatta.setDatiAggiuntivi(attivita.getDatiAggiuntivi());
-        attivitaFatta.setDescrizione(attivita.getDescrizione());
-        attivitaFatta.setIdApplicazione(attivita.getIdApplicazione());
-        attivitaFatta.setIdAzienda(attivita.getIdAzienda());
-        attivitaFatta.setIdPersona(attivita.getIdPersona());
-        attivitaFatta.setNote(attivita.getNote());
-        attivitaFatta.setOggetto(attivita.getOggetto());
-        attivitaFatta.setOggettoEsterno(attivita.getOggettoEsterno());
-        attivitaFatta.setOggettoEsternoSecondario(attivita.getTipoOggettoEsternoSecondario());
-        attivitaFatta.setPriorita(attivita.getPriorita());
-        attivitaFatta.setProvenienza(attivita.getProvenienza());
-        attivitaFatta.setTags(attivita.getTags());
-        attivitaFatta.setTipo(attivita.getTipo());
-        attivitaFatta.setTipoOggettoEsterno(attivita.getTipoOggettoEsterno());
-        attivitaFatta.setTipoOggettoEsternoSecondario(attivita.getTipoOggettoEsternoSecondario());
-        attivitaFatta.setUrls(attivita.getUrls());
-        attivitaFatta.setAllegati(attivita.getAllegati());
-        attivitaFatta.setClasse(attivita.getClasse());
-        attivitaFatta.setData(attivita.getData());
-        attivitaFatta.setDataScadenza(attivita.getDataScadenza());
-        attivitaFatta.setDataUltimaModifica(attivita.getDataUltimaModifica());
-        attivitaFatta.setDataInserimentoRiga(LocalDateTime.now());
-        
-        attivitaFatteRepository.save(attivitaFatta);
+//        AttivitaFatta attivitaFatta = new AttivitaFatta();
+//        attivitaFatta.setDatiAggiuntivi(attivita.getDatiAggiuntivi());
+//        attivitaFatta.setDescrizione(attivita.getDescrizione());
+//        attivitaFatta.setIdApplicazione(attivita.getIdApplicazione());
+//        attivitaFatta.setIdAzienda(attivita.getIdAzienda());
+//        attivitaFatta.setIdPersona(attivita.getIdPersona());
+//        attivitaFatta.setNote(attivita.getNote());
+//        attivitaFatta.setOggetto(attivita.getOggetto());
+//        attivitaFatta.setOggettoEsterno(attivita.getOggettoEsterno());
+//        attivitaFatta.setOggettoEsternoSecondario(attivita.getTipoOggettoEsternoSecondario());
+//        attivitaFatta.setPriorita(attivita.getPriorita());
+//        attivitaFatta.setProvenienza(attivita.getProvenienza());
+//        attivitaFatta.setTags(attivita.getTags());
+//        attivitaFatta.setTipo(attivita.getTipo());
+//        attivitaFatta.setTipoOggettoEsterno(attivita.getTipoOggettoEsterno());
+//        attivitaFatta.setTipoOggettoEsternoSecondario(attivita.getTipoOggettoEsternoSecondario());
+//        attivitaFatta.setUrls(attivita.getUrls());
+//        attivitaFatta.setAllegati(attivita.getAllegati());
+//        attivitaFatta.setClasse(attivita.getClasse());
+//        attivitaFatta.setData(attivita.getData());
+//        attivitaFatta.setDataScadenza(attivita.getDataScadenza());
+//        attivitaFatta.setDataUltimaModifica(attivita.getDataUltimaModifica());
+//        attivitaFatta.setDataInserimentoRiga(LocalDateTime.now());
+//        
+//        attivitaFatteRepository.save(attivitaFatta);
     }
     
 }
