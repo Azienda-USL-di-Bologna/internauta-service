@@ -280,7 +280,12 @@ public class ShpeckUtils {
             for (MultipartFile attachment : attachments) {
                 EmlHandlerAttachment file = new EmlHandlerAttachment();
                 file.setFileName(attachment.getOriginalFilename());
-                file.setMimeType(attachment.getContentType());
+                String contentType = attachment.getContentType();
+                // Se il content type ha le virgolette a destra e sinistra gliele tolgo.
+                if (contentType != null && contentType.substring(0, 1).equals("\"") && contentType.substring(contentType.length() - 1).equals("\"") ) {
+                    contentType = contentType.substring(1, contentType.length() - 1);
+                }
+                file.setMimeType(contentType);
                 file.setFileBytes(attachment.getBytes());
                 listAttachments.add(file);
             }

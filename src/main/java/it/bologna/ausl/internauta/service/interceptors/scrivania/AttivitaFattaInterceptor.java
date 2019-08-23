@@ -3,10 +3,10 @@ package it.bologna.ausl.internauta.service.interceptors.scrivania;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
-import it.bologna.ausl.model.entities.scrivania.QAttivita;
 import it.bologna.ausl.model.entities.scrivania.QAttivitaFatta;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
@@ -41,9 +41,9 @@ public class AttivitaFattaInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-        getAuthenticatedUserProperties();
-        BooleanExpression filterUtenteConnesso = QAttivitaFatta.attivitaFatta.idPersona.id.eq(user.getIdPersona().getId());
-        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(user).stream().map(x -> x.getIdAzienda().getId()).collect(Collectors.toList());
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        BooleanExpression filterUtenteConnesso = QAttivitaFatta.attivitaFatta.idPersona.id.eq(authenticatedSessionData.getUser().getIdPersona().getId());
+        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(authenticatedSessionData.getUser()).stream().map(x -> x.getIdAzienda().getId()).collect(Collectors.toList());
         BooleanExpression filterUtenteAttivo = QAttivitaFatta.attivitaFatta.idAzienda.id.in(collect); 
 //        List<Integer> collect = userInfoService.getUtentiPersona(user).stream().map(x -> x.getIdAzienda().getId()).collect(Collectors.toList());
         

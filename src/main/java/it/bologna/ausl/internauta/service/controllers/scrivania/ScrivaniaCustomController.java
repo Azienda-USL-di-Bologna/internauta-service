@@ -10,12 +10,12 @@ import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
-import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
-import it.bologna.ausl.internauta.service.exceptions.Http400ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.Http403ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.Http404ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.Http500ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.HttpInternautaResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
+import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
@@ -119,7 +119,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     private final String HTTPS = "https://";
    
     @RequestMapping(value = {"getAnteprima"}, method = RequestMethod.GET)
-    public void attivita(
+    public void getAnteprima(
         @RequestParam(required = true) String guid,
         @RequestParam(required = true) String tipologia,
         @RequestParam(required = true) Integer idAzienda,

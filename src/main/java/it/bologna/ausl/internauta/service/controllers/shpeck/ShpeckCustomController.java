@@ -10,9 +10,9 @@ import it.bologna.ausl.eml.handler.EmlHandlerResult;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
-import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
-import it.bologna.ausl.internauta.service.exceptions.Http409ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.Http500ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
+import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -81,15 +81,19 @@ import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import it.bologna.ausl.internauta.service.repositories.shpeck.RecepitRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import java.util.Arrays;
 import org.json.JSONArray;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -120,6 +124,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     private MessageRepository messageRepository;
 
     @Autowired
+    private RecepitRepository recepitRepository;
+
+    @Autowired
     private TagRepository tagRepository;
 
     @Autowired
@@ -130,6 +137,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private MessageFolderRepository messageFolderRespository;
+
+    @Autowired
+    private MessageCompleteRepository messageCompleteRespository;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
@@ -149,7 +159,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws EmlHandlerException
      * @throws java.io.UnsupportedEncodingException
      * @throws
-     * it.bologna.ausl.internauta.service.exceptions.Http500ResponseException
+     * it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
      */
     @RequestMapping(value = "extractEmlData/{idMessage}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = Throwable.class)
@@ -160,20 +170,23 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
         try {
             EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
-            int attNumber = (int)Arrays.stream(res.getAttachments()).filter(a -> 
-                {
-                    LOG.info(a.toString());
-                    return a.getForHtmlAttribute() == false;
-                            
-                }).count();
-            res.setRealAttachmentNumber(attNumber);
-            Message m = messageRepository.getOne(idMessage);
-            if (m != null) {
-                if (m.getAttachmentsNumber() != attNumber) {
-                    m.setAttachmentsNumber(attNumber);
-                    messageRepository.save(m);
-                }
-            }
+            if (emlSource != EmlSource.DRAFT) {
+                int attNumber = (int) Arrays.stream(res.getAttachments())
+                    .filter(a -> {
+                        LOG.info(a.toString());
+                            return a.getForHtmlAttribute() == false;
+                    }).count();
+                res.setRealAttachmentNumber(attNumber);
+                Message m = messageRepository.getOne(idMessage);
+                if (m != null) {
+                    if (m.getAttachmentsNumber() != attNumber) {
+                        m.setAttachmentsNumber(attNumber);
+                        messageRepository.save(m);
+                    }
+                }           
+            } else {
+                res.setRealAttachmentNumber(res.getAttachments().length);
+             }
             return new ResponseEntity(res, HttpStatus.OK);
         } catch (Exception ex) {
             throw new Http500ResponseException("1", "errore nella creazione del file eml", ex);
@@ -184,6 +197,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      *
      * @param idMessage
      * @param emlSource
+     * @param recepit
      * @param response
      * @param request
      * @throws EmlHandlerException
@@ -381,7 +395,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws EntityNotFoundException Elemento non trovato nel repository
      * @throws it.bologna.ausl.eml.handler.EmlHandlerException
      * @throws
-     * it.bologna.ausl.internauta.service.exceptions.Http500ResponseException
+     * it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
      * @throws it.bologna.ausl.internauta.service.exceptions.BadParamsException
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
@@ -446,11 +460,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 for (MimeMessage mime : mimeMessagesList) {
                     shpeckUtils.sendMessage(pec, mime);
                 }
-                
+
                 if (idMessageRelated != null) {
                     shpeckUtils.setTagsToMessage(pec, idMessageRelated, messageRelatedType);
                 }
-                
+
                 shpeckUtils.deleteDraft(draftMessage);
             } catch (IOException | MessagingException | EntityNotFoundException ex) {
                 LOG.error("Handling error on send! Trying to save...", ex);
@@ -505,7 +519,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         messageDestination.setIdPec(pecDestination);
         messageDestination.setInOut(Message.InOut.IN);
-        messageDestination.setCreateTime(LocalDateTime.now());
         messageDestination.setSeen(Boolean.FALSE);
         messageDestination.setIdRelated(messageSource);
 
@@ -572,7 +585,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         System.out.println(messageSource.toString());
         System.out.println("-----------------------");
         System.out.println(messageDestination.toString());
-        
+
         messageRepository.updateTscol(messageDestination.getId());
         
         // Loggo il reindirizzamento
@@ -581,8 +594,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         
         return additionalDataSource.toString();
     }
-    
-    
 
     /**
      *
@@ -631,120 +642,149 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         return messageTagRespository.count(QMessageTag.messageTag.idTag.id.eq(idTag));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Throwable.class)
     @RequestMapping(value = "manageMessageRegistration", method = RequestMethod.POST)
     public void manageMessageRegistration(
-            @RequestParam(name = "idMessage", required = true) Integer idMessage,
+            @RequestParam(name = "uuidMessage", required = true) String uuidMessage,
             @RequestParam(name = "operation", required = true) String operation,
+            @RequestParam(name = "idMessage", required = true) Integer idMessage,
+            
             @RequestBody Map<String, Object> additionalData
+            
     ) throws BlackBoxPermissionException {
-        // operation: IN_REGISTRATION, REGISTER, REMOVE_IN_REGISTRATION
+        
+        LOG.info("Inizio manageMessageRegistration. uuidMessage: " + uuidMessage + " operation: " + operation + " additionalData: " + additionalData.toString());
+        
+        try {
+            // operation: IN_REGISTRATION, REGISTER, REMOVE_IN_REGISTRATION
+            AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
 
-        Message message = messageRepository.getOne(idMessage);
-
-        List<Tag> tagList = message.getIdPec().getTagList();
-        List<Folder> folderList = message.getIdPec().getFolderList();
-        Tag tagInRegistration = tagList.stream().filter(t -> "in_registration".equals(t.getName())).collect(Collectors.toList()).get(0);
-        Tag tagRegistered = tagList.stream().filter(t -> "registered".equals(t.getName())).collect(Collectors.toList()).get(0);
-        Folder folderRegistered = folderList.stream().filter(f -> "registered".equals(f.getName())).collect(Collectors.toList()).get(0);
-
-        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-
-        JSONObject jsonAdditionalData = null;
-        if (additionalData != null) {
-            Map<String, Object> idUtenteMap = new HashMap<>();
-            idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
-            idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
-            additionalData.put("idUtente", idUtenteMap);
-            Map<String, Object> idAziendaMap = new HashMap<>();
-            idAziendaMap.put("id", authenticatedUserProperties.getUser().getIdAzienda().getId());
-            idAziendaMap.put("nome", authenticatedUserProperties.getUser().getIdAzienda().getNome());
-            idAziendaMap.put("descrizione", authenticatedUserProperties.getUser().getIdAzienda().getDescrizione());
-            additionalData.put("idAzienda", idAziendaMap);
-            jsonAdditionalData = new JSONObject(additionalData);
-        }
-
-        MessageTag messageTag = new MessageTag();
-        if ("IN_REGISTRATION".equals(operation)) {
-            System.out.println("dentro IN_REGISTRATION");
-            messageTag.setIdUtente(authenticatedUserProperties.getUser());
-            messageTag.setIdMessage(message);
-            messageTag.setIdTag(tagInRegistration);
-            if (jsonAdditionalData != null) {
-                messageTag.setAdditionalData(jsonAdditionalData.toString());
+            JSONObject jsonAdditionalData = null;
+            if (additionalData != null) {
+                Map<String, Object> idUtenteMap = new HashMap<>();
+                idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
+                idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
+                additionalData.put("idUtente", idUtenteMap);
+                Map<String, Object> idAziendaMap = new HashMap<>();
+                idAziendaMap.put("id", authenticatedUserProperties.getUser().getIdAzienda().getId());
+                idAziendaMap.put("nome", authenticatedUserProperties.getUser().getIdAzienda().getNome());
+                idAziendaMap.put("descrizione", authenticatedUserProperties.getUser().getIdAzienda().getDescrizione());
+                additionalData.put("idAzienda", idAziendaMap);
+                jsonAdditionalData = new JSONObject(additionalData);
             }
-            messageTagRespository.save(messageTag);
+
+
+            // recupero tutti i messaggi con quell uuid
+            List<Message> messagesByUuid = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(uuidMessage));
+            List<Message> messages = new ArrayList();
+            // Dei messagesByUuid trovati tengo solo quelli che appartengono a caselle che appartengono solo all'azienda su cui sto lavorando.
+            for(Message message: messagesByUuid) {
+                List<PecAzienda> pecAziendaList = message.getIdPec().getPecAziendaList();
+                if (message.getId().equals(idMessage) || 
+                        pecAziendaList.isEmpty() || 
+                        (pecAziendaList.size() == 1 && pecAziendaList.get(0).getIdAzienda().getId().equals(authenticatedUserProperties.getUser().getIdAzienda().getId()))) {
+                    messages.add(message);
+                }
+            }
+            for(Message message: messages) {
+                
+                if(message.getMessageType() != Message.MessageType.MAIL && message.getMessageType() != Message.MessageType.PEC) {
+                    continue;
+                }
+                
+                LOG.info("processo messaggio con uuidMessage: " + message.getUuidMessage() + " e id: " + message.getId());
+
+                List<Tag> tagList = message.getIdPec().getTagList();
+                List<Folder> folderList = message.getIdPec().getFolderList();
+                Tag tagInRegistration = tagList.stream().filter(t -> Tag.SystemTagName.in_registration.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
+                Tag tagRegistered = tagList.stream().filter(t -> Tag.SystemTagName.registered.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
+                Folder folderRegistered = folderList.stream().filter(f -> Folder.FolderType.REGISTERED.equals(f.getType())).collect(Collectors.toList()).get(0);
+                
+
+                MessageTag messageTag = new MessageTag();
+                if ("IN_REGISTRATION".equals(StringUtils.trimWhitespace(operation))) {
+                    LOG.info("dentro IN_REGISTRATION per il messaggio con id: " + message.getId());
+                    messageTag.setIdUtente(authenticatedUserProperties.getUser());
+                    messageTag.setIdMessage(message);
+                    messageTag.setIdTag(tagInRegistration);
+                    if (jsonAdditionalData != null) {
+                        messageTag.setAdditionalData(jsonAdditionalData.toString());
+                    }
+                    messageTagRespository.save(messageTag);
             krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_IN_PROTOCOLLAZIONE);
-        }
+                }
 
-        if ("REGISTER".equals(operation)) {
-            System.out.println("dentro REGISTER");
-            List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
-            // TODO: gestire caso se non trova niente o ne trova piu di uno
-            if (!findByIdMessageAndIdTag.isEmpty()) {
-                MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
-                // cancellazione del mt in_registration
-                messageTagRespository.delete(mtInRegistration);
-            }
+                if ("REGISTER".equals(StringUtils.trimWhitespace(operation))) {                    
+                    LOG.info("dentro REGISTER per il messaggio con id: " + message.getId());
+                    List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
+                    // TODO: gestire caso se non trova niente o ne trova piu di uno
+                    if (!findByIdMessageAndIdTag.isEmpty()) {
+                        MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
+                        // cancellazione del mt in_registration
+                        messageTagRespository.delete(mtInRegistration);
+                    }
 
-            MessageTag mtRegistered = new MessageTag();
-            mtRegistered.setIdUtente(authenticatedUserProperties.getUser());
-            mtRegistered.setIdMessage(message);
-            mtRegistered.setIdTag(tagRegistered);
-            if (jsonAdditionalData != null) {
-                mtRegistered.setAdditionalData(jsonAdditionalData.toString());
-            }
-            messageTagRespository.save(mtRegistered);
+                    MessageTag mtRegistered = new MessageTag();
+                    mtRegistered.setIdUtente(authenticatedUserProperties.getUser());
+                    mtRegistered.setIdMessage(message);
+                    mtRegistered.setIdTag(tagRegistered);
+                    if (jsonAdditionalData != null) {
+                        mtRegistered.setAdditionalData(jsonAdditionalData.toString());
+                    }
+                    messageTagRespository.save(mtRegistered);
 
-            // spostamento folder.
-            // Lo elimino da quella in cui era e lo metto nella cartella registered
-            List<MessageFolder> findByIdMessage = messageFolderRespository.findByIdMessage(message);
-            // TODO: gestire caso se non trova niente o ne trova piu di uno
-            if (!findByIdMessage.isEmpty()) {
-                MessageFolder mfCurrentMessage = findByIdMessage.get(0);
-                mfCurrentMessage.setIdUtente(authenticatedUserProperties.getUser());
-                mfCurrentMessage.setIdFolder(folderRegistered);
-                messageFolderRespository.save(mfCurrentMessage);
-            } else {
-                MessageFolder mfRegistered = new MessageFolder();
-                mfRegistered.setIdUtente(authenticatedUserProperties.getUser());
-                mfRegistered.setIdMessage(message);
-                mfRegistered.setIdFolder(folderRegistered);
-                messageFolderRespository.save(mfRegistered);
-            }
+                    // spostamento folder.
+                    // Lo elimino da quella in cui era e lo metto nella cartella registered
+                    List<MessageFolder> findByIdMessage = messageFolderRespository.findByIdMessage(message);
+                    // TODO: gestire caso se non trova niente o ne trova piu di uno
+                    if (!findByIdMessage.isEmpty()) {
+                        MessageFolder mfCurrentMessage = findByIdMessage.get(0);
+                        mfCurrentMessage.setIdUtente(authenticatedUserProperties.getUser());
+                        mfCurrentMessage.setIdFolder(folderRegistered);
+                        messageFolderRespository.save(mfCurrentMessage);
+                    } else {
+                        MessageFolder mfRegistered = new MessageFolder();
+                        mfRegistered.setIdUtente(authenticatedUserProperties.getUser());
+                        mfRegistered.setIdMessage(message);
+                        mfRegistered.setIdFolder(folderRegistered);
+                        messageFolderRespository.save(mfRegistered);
+                    }
             krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_IN_PROTOCOLLAZIONE);
-        }
+                }
 
-        if ("REMOVE_IN_REGISTRATION".equals(operation)) {
-            System.out.println("dentro REMOVE_IN_REGISTRATION");
-            List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
-            // TODO: gestire caso se non trova niente o ne trova piu di uno
-            if (!findByIdMessageAndIdTag.isEmpty()) {
-                MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
-                // cancellazione del mt in_registration
-                messageTagRespository.delete(mtInRegistration);
+                if ("REMOVE_IN_REGISTRATION".equals(StringUtils.trimWhitespace(operation))) {
+                    LOG.info("dentro REMOVE_IN_REGISTRATION per il messaggio con id: " + message.getId());
+                    List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
+                    // TODO: gestire caso se non trova niente o ne trova piu di uno
+                    if (!findByIdMessageAndIdTag.isEmpty()) {
+                        MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
+                        // cancellazione del mt in_registration
+                        messageTagRespository.delete(mtInRegistration);
                 krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_IN_PROTOCOLLAZIONE);
+                    }
+                }              
             }
+        } catch(Throwable ex) {     
+            LOG.error(ex.getMessage(), ex);
+            throw ex;
         }
-
-        System.out.println("fine manageMessageRegistration");
-
     }
-    
+
     /**
-     * Gestisco il dopo archiviazione di un messaggio.
-     * La funzione nasce per essere chiamata da Babel. 
-     * Aggiunge il tag archiviazione con le informazioni su chi e fascicolo.
+     * Gestisco il dopo archiviazione di un messaggio. La funzione nasce per
+     * essere chiamata da Babel. Aggiunge il tag archiviazione con le
+     * informazioni su chi e fascicolo.
+     *
      * @param idMessage
      * @param additionalData
-     * @throws BlackBoxPermissionException 
+     * @throws BlackBoxPermissionException
      */
     @Transactional
     @RequestMapping(value = "manageMessageArchiviation", method = RequestMethod.POST)
     public void manageMessageArchiviation(
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
             @RequestBody Map<String, Object> additionalData) throws BlackBoxPermissionException {
-        
+
         Message message = messageRepository.getOne(idMessage);
         List<Tag> pecTagList = message.getIdPec().getTagList();
         Tag pecTagArchived = pecTagList.stream().filter(t -> "archived".equals(t.getName())).collect(Collectors.toList()).get(0);
@@ -752,7 +792,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
 
         JSONObject jsonAdditionalData = null;
-        
+
         if (additionalData != null) {
             // Inserisco l'utente fascicolatore
             Map<String, Object> idUtenteMap = new HashMap<>();
@@ -771,10 +811,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
 
         MessageTag messageTag = null;
-        
+
         // Cerco se il messageTag esiste già
         List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, pecTagArchived);
-        
+
         if (!findByIdMessageAndIdTag.isEmpty()) {   // Il message era già stato archiviato in passato
             messageTag = findByIdMessageAndIdTag.get(0);
             JSONArray jsonArr = new JSONArray(messageTag.getAdditionalData());

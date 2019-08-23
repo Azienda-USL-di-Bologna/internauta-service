@@ -236,7 +236,7 @@ public class ProjectionBeans {
         AziendaParametriJson parametriAziendaDestinazione = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String crossLoginUrlTemplate = parametriAziendaDestinazione.getCrossLoginUrlTemplate();
         String commonStringToEncode = commonStringToEncode(utente, FROM);
-        //crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm?[encoded-params]";
+//        crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm[encoded-params]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
         
         addRegistrationUrlCommands(result, commonStringToEncode, parametriAziendaLogin, parametriAziendaDestinazione, crossLoginUrlTemplate);
         addArchiveUrlCommands(result, commonStringToEncode, parametriAziendaLogin, parametriAziendaDestinazione, crossLoginUrlTemplate);
@@ -246,7 +246,7 @@ public class ProjectionBeans {
     
     private String commonStringToEncode(Utente utente, String from) {
         String stringToEncode = "";
-        stringToEncode += "&richiesta=[richiesta]";
+        stringToEncode += "&richiesta=[richiesta]";        
         stringToEncode += "&utenteImpersonato=" + utente.getIdPersona().getCodiceFiscale();
         if(utente.getUtenteReale() != null ){
             stringToEncode += "&utenteLogin=" + utente.getUtenteReale().getIdPersona().getCodiceFiscale();
@@ -274,13 +274,11 @@ public class ProjectionBeans {
         for(int i = 0; i < 2; i++){
             stringToEncode = "";
             if(i == 0){
-                stringToEncode = "?CMD=ricevi_from_pec_int;[id_message]";
-                //stringToEncode = "CMD=ricevi_from_pec_int;[id_message]"; //local
+                stringToEncode = "?CMD=ricevi_from_pec;[id_message]";
             } else {
-                stringToEncode = "?CMD=add_from_pec_int;[id_message]";
-                //stringToEncode = "CMD=add_from_pec_int;[id_message]"; //local
+                stringToEncode = "?CMD=add_from_pec;[id_message]";
             }
-//            stringToEncode += "&id_tag=[id_tag]";
+            stringToEncode += "&id_sorgente=[id_sorgente]";
             stringToEncode += "&pec_ricezione=[pec_ricezione]";
             stringToEncode += commonStringToEncode;
             

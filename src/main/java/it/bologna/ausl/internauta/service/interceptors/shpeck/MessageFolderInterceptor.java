@@ -2,7 +2,7 @@ package it.bologna.ausl.internauta.service.interceptors.shpeck;
 
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
-import it.bologna.ausl.internauta.service.exceptions.Http403ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -61,9 +61,8 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
 //        return messageFolder;
         // Se sto spostando nel cestino devo avere il peremsso elimina
         MessageFolder messageFolder = (MessageFolder) entity;
-        MessageFolder beforeMessageFolder = (MessageFolder) beforeUpdateEntity;
+        if (messageFolder.getIdFolder().getType() == FolderType.TRASH) {
         
-        if (messageFolder.getIdFolder().getType().equals(FolderType.TRASH.toString())) {
             try {
                 lanciaEccezioneSeNonHaPermessoDiEliminaMessage(messageFolder.getIdMessage());
             } catch (BlackBoxPermissionException | Http403ResponseException ex) {
@@ -86,7 +85,7 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         
         // Prendo i permessi pec
-        Map<Integer, List<String>> permessiPec = null;
+        Map<Integer, List<String>> permessiPec;
         permessiPec = userInfoService.getPermessiPec(persona);
         
         // Controllo che ci sia almeno il RISPONDE sulla pec interessata

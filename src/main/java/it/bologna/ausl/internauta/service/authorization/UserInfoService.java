@@ -11,7 +11,7 @@ import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
-import it.bologna.ausl.internauta.service.exceptions.Http404ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.RuoloRepository;

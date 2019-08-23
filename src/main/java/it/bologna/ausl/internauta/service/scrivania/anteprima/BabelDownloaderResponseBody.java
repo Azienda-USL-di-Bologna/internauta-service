@@ -1,10 +1,12 @@
 package it.bologna.ausl.internauta.service.scrivania.anteprima;
 
+import java.io.Serializable;
+
 /**
  *
  * @author gdm
  */
-public class BabelDownloaderResponseBody {
+public class BabelDownloaderResponseBody implements Serializable {
     public static enum Status {OK, FILE_NOT_FOUND, USER_NOT_FOUND, FORBIDDEN, GENERAL_ERROR, BAD_REQUEST}
     
     private String message;
