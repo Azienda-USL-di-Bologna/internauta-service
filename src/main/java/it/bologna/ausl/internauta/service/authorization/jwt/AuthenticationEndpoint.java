@@ -92,7 +92,7 @@ public class AuthenticationEndpoint {
         
         String hostname = commonUtils.getHostname(request);
     
-        return authorizationUtils.generateResponseEntityFromSAML(hostname, secretKey, request, jwtClaims.getSubject(), null, endpointObject.applicazione);
+        return authorizationUtils.generateResponseEntityFromSAML(null, hostname, secretKey, request, jwtClaims.getSubject(), null, endpointObject.applicazione);
     }
     
     @SuppressWarnings("unused")
