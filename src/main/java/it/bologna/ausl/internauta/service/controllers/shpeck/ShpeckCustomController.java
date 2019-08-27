@@ -167,10 +167,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
             if (emlSource != EmlSource.DRAFT) {
                 int attNumber = (int) Arrays.stream(res.getAttachments())
-                    .filter(a -> {
-                        LOG.info(a.toString());
+                        .filter(a -> {
+                            LOG.info(a.toString());
                             return a.getForHtmlAttribute() == false;
-                    }).count();
+                        }).count();
                 res.setRealAttachmentNumber(attNumber);
                 Message m = messageRepository.getOne(idMessage);
                 if (m != null) {
@@ -178,10 +178,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         m.setAttachmentsNumber(attNumber);
                         messageRepository.save(m);
                     }
-                }           
+                }
             } else {
                 res.setRealAttachmentNumber(res.getAttachments().length);
-             }
+            }
             return new ResponseEntity(res, HttpStatus.OK);
         } catch (Exception ex) {
             throw new Http500ResponseException("1", "errore nella creazione del file eml", ex);
@@ -494,10 +494,14 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         for (MessageTag mt : messageTagListSource) {
             if (mt.getIdTag().getName().equals(Tag.SystemTagName.readdressed_out.toString())) {
                 throw new Http409ResponseException("1", "il messaggio è gia stato reindirizzato.");
+            } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.registered.toString())) {
+                throw new Http409ResponseException("2", "il messaggio è stato protocollato.");
+            } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.in_registration.toString())) {
+                throw new Http409ResponseException("3", "il messaggio è in protocollazione.");
             }
         }
         if (messageSource.getInOut().equals(Message.InOut.OUT.toString())) {
-            throw new Http409ResponseException("2", "un messaggio in uscita non può essere reindirizzato.");
+            throw new Http409ResponseException("4", "un messaggio in uscita non può essere reindirizzato.");
         }
         // recupero PEC destinazione e source
         Pec pecDestination = pecRepository.getOne(idPecDestination);
@@ -637,13 +641,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "uuidMessage", required = true) String uuidMessage,
             @RequestParam(name = "operation", required = true) String operation,
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
-            
             @RequestBody Map<String, Object> additionalData
-            
     ) throws BlackBoxPermissionException {
-        
+
         LOG.info("Inizio manageMessageRegistration. uuidMessage: " + uuidMessage + " operation: " + operation + " additionalData: " + additionalData.toString());
-        
+
         try {
             // operation: IN_REGISTRATION, REGISTER, REMOVE_IN_REGISTRATION
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -662,25 +664,24 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 jsonAdditionalData = new JSONObject(additionalData);
             }
 
-
             // recupero tutti i messaggi con quell uuid
             List<Message> messagesByUuid = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(uuidMessage));
             List<Message> messages = new ArrayList();
             // Dei messagesByUuid trovati tengo solo quelli che appartengono a caselle che appartengono solo all'azienda su cui sto lavorando.
-            for(Message message: messagesByUuid) {
+            for (Message message : messagesByUuid) {
                 List<PecAzienda> pecAziendaList = message.getIdPec().getPecAziendaList();
-                if (message.getId().equals(idMessage) || 
-                        pecAziendaList.isEmpty() || 
-                        (pecAziendaList.size() == 1 && pecAziendaList.get(0).getIdAzienda().getId().equals(authenticatedUserProperties.getUser().getIdAzienda().getId()))) {
+                if (message.getId().equals(idMessage)
+                        || pecAziendaList.isEmpty()
+                        || (pecAziendaList.size() == 1 && pecAziendaList.get(0).getIdAzienda().getId().equals(authenticatedUserProperties.getUser().getIdAzienda().getId()))) {
                     messages.add(message);
                 }
             }
-            for(Message message: messages) {
-                
-                if(message.getMessageType() != Message.MessageType.MAIL && message.getMessageType() != Message.MessageType.PEC) {
+            for (Message message : messages) {
+
+                if (message.getMessageType() != Message.MessageType.MAIL && message.getMessageType() != Message.MessageType.PEC) {
                     continue;
                 }
-                
+
                 LOG.info("processo messaggio con uuidMessage: " + message.getUuidMessage() + " e id: " + message.getId());
 
                 List<Tag> tagList = message.getIdPec().getTagList();
@@ -688,7 +689,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 Tag tagInRegistration = tagList.stream().filter(t -> Tag.SystemTagName.in_registration.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
                 Tag tagRegistered = tagList.stream().filter(t -> Tag.SystemTagName.registered.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
                 Folder folderRegistered = folderList.stream().filter(f -> Folder.FolderType.REGISTERED.equals(f.getType())).collect(Collectors.toList()).get(0);
-                
 
                 MessageTag messageTag = new MessageTag();
                 if ("IN_REGISTRATION".equals(StringUtils.trimWhitespace(operation))) {
@@ -702,7 +702,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     messageTagRespository.save(messageTag);
                 }
 
-                if ("REGISTER".equals(StringUtils.trimWhitespace(operation))) {                    
+                if ("REGISTER".equals(StringUtils.trimWhitespace(operation))) {
                     LOG.info("dentro REGISTER per il messaggio con id: " + message.getId());
                     List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
                     // TODO: gestire caso se non trova niente o ne trova piu di uno
@@ -748,9 +748,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         // cancellazione del mt in_registration
                         messageTagRespository.delete(mtInRegistration);
                     }
-                }              
+                }
             }
-        } catch(Throwable ex) {     
+        } catch (Throwable ex) {
             LOG.error(ex.getMessage(), ex);
             throw ex;
         }
