@@ -47,7 +47,6 @@ import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  *
@@ -336,8 +335,6 @@ public class ProjectionBeans {
         return result;
     }
     
-    
-    
-    
-    
+
+   
 }

@@ -43,7 +43,7 @@ public class InternautaConstants {
     public static class AdditionalData {
 
         public enum Keys {
-            OperationRequested, idPec, idAzienda, idStruttura
+            OperationRequested, idPec, idAzienda, idStruttura, idPersona
         }
 
         public enum OperationsRequested {
@@ -53,6 +53,7 @@ public class InternautaConstants {
             FilterPecPerPermissionOfSubject,
             AddPermissionsOnPec,
             AddGestoriOnPec,
+            LoadDataPerInterfacciaElencoPec,
             FilterPecPerStandardPermissions,
             GetUltimoStatoRibaltone,
             CambioUtente
