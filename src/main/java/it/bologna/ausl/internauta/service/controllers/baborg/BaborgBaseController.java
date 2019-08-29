@@ -84,6 +84,8 @@ public class BaborgBaseController extends BaseCrudController {
         return restControllerEngine;
     }
     
+    /* 
+    // GDM: non cancellare, mi serve a volte per fare delle prove
     @Autowired
     private Gdm1Repository gdm1Repository;
     @Autowired
@@ -92,7 +94,6 @@ public class BaborgBaseController extends BaseCrudController {
     private EntityManager em;
     
     @RequestMapping(value = {"gdm1", "gdm1/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-//    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> gdm1(
             @QuerydslPredicate(root = Gdm1.class) Predicate predicate,
             Pageable pageable,
@@ -101,14 +102,11 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
-//        Gdm1 one = gdm1Repository.getOne(id);
-//        Gdm1WithPlainFields createProjection = factory.createProjection(Gdm1WithPlainFields.class, one);
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QGdm1.gdm1, Gdm1.class);
         return ResponseEntity.ok(resource);
     }
     
-        @RequestMapping(value = {"gdm2", "gdm2/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-//    @Transactional(rollbackFor = Error.class)
+    @RequestMapping(value = {"gdm2", "gdm2/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> gdm2(
             @QuerydslPredicate(root = Gdm2.class) Predicate predicate,
             Pageable pageable,
@@ -117,35 +115,11 @@ public class BaborgBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
-//        Gdm1 one = gdm1Repository.getOne(id);
-//        Gdm1WithPlainFields createProjection = factory.createProjection(Gdm2WithPlainFields.class, one);
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QGdm2.gdm2, Gdm2.class);
         return ResponseEntity.ok(resource);
     }
-    /*
-        @RequestMapping(value = {"gdm11/{id}"}, method = RequestMethod.PATCH)
-    @Transactional(rollbackFor = {Throwable.class})
-    public ResponseEntity<?> gdm1updateResource(
-            @PathVariable(required = true) Integer id,
-            @RequestBody Gdm1 data,
-//            @RequestBody Map<String, Object> data,
-            HttpServletRequest request,
-            @RequestParam(required = false) String projection,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws RestControllerEngineException, AbortSaveInterceptorException {
-        LOGGER.info("aaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-////        JpaRepository generalRepository  = (JpaRepository) restControllerEngine.getGeneralRepository(request, true);
-        Object one = generalRepository.getOne(id);
-        Gdm1 gdm1 = (Gdm1) one;
-//        Gdm1 gdm1 = em.find(Gdm1.class, id, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
-        gdm1.setDescrizione(data.getDescrizione());
-        gdm1.setNecessario(data.getNecessario());
-        gdm1.setVersion(data.getVersion());
-//        em.persist(gdm1);
-        em.detach(gdm1);
-         Object save = generalRepository.save(gdm1);
-        return ResponseEntity.ok(save);
-    }
     */
+
     @RequestMapping(value = {"afferenzastruttura", "afferenzastruttura/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 //    @Transactional(rollbackFor = Error.class)
     public ResponseEntity<?> afferenzastruttura(
