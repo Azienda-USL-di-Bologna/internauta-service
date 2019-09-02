@@ -10,9 +10,9 @@ import it.bologna.ausl.eml.handler.EmlHandlerResult;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
-import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
-import it.bologna.ausl.internauta.service.exceptions.Http409ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.Http500ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
+import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
@@ -154,7 +154,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws EmlHandlerException
      * @throws java.io.UnsupportedEncodingException
      * @throws
-     * it.bologna.ausl.internauta.service.exceptions.Http500ResponseException
+     * it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
      */
     @RequestMapping(value = "extractEmlData/{idMessage}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = Throwable.class)
@@ -390,7 +390,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws EntityNotFoundException Elemento non trovato nel repository
      * @throws it.bologna.ausl.eml.handler.EmlHandlerException
      * @throws
-     * it.bologna.ausl.internauta.service.exceptions.Http500ResponseException
+     * it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"saveDraftMessage", "sendMessage"}, method = RequestMethod.POST)

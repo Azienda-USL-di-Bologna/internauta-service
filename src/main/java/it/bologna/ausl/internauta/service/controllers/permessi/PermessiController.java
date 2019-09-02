@@ -8,10 +8,10 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
-import it.bologna.ausl.internauta.service.exceptions.ControllerHandledExceptions;
-import it.bologna.ausl.internauta.service.exceptions.Http400ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.Http403ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.HttpInternautaResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
+import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Ambiti.PECG;
@@ -192,7 +192,7 @@ public class PermessiController implements ControllerHandledExceptions {
      * @param request
      * @throws BlackBoxPermissionException
      * @throws
-     * it.bologna.ausl.internauta.service.exceptions.HttpInternautaResponseException
+     * it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException
      */
     @Transactional
     @RequestMapping(value = "managePermissionsGestoriPec", method = RequestMethod.POST)
@@ -311,7 +311,7 @@ public class PermessiController implements ControllerHandledExceptions {
      * predicato, originePermesso e propagaSoggetto.
      * @param request
      * @throws
-     * it.bologna.ausl.internauta.service.exceptions.HttpInternautaResponseException
+     * it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException
      * @throws it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException
      */
     @RequestMapping(value = "managePermissionsAssociazioniPecStruttura", method = RequestMethod.POST)

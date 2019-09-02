@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.exceptions;
+package it.bologna.ausl.internauta.service.exceptions.http;
 
 import org.springframework.http.HttpStatus;
 
