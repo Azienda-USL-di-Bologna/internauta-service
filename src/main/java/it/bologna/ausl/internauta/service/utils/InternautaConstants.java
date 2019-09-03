@@ -82,7 +82,7 @@ public class InternautaConstants {
 
         public enum Keys {
             PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject, UtenteLogin, IdSessionLog,
-            KRINT_ROWS
+            KRINT_ROWS, KRINT_ERRORS
         }
     }
     

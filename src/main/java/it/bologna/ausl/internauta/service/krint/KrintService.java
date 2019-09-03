@@ -13,6 +13,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint.CodiceOperazione;
 import it.bologna.ausl.model.entities.logs.OperazioneVersionataKrint;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniRealUser;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniUtente;
@@ -113,5 +114,26 @@ public class KrintService {
         
     }
     
-    
+    public void writeKrintError(Integer idOggetto, String functionName, CodiceOperazione codiceOperazione) {
+        List<KrintError> krintErrorList = (List<KrintError>)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.KRINT_ERRORS);
+        if (krintErrorList == null || krintErrorList.isEmpty()) {
+            krintErrorList = new ArrayList();
+        }
+        
+        KrintError krintError = new KrintError();
+        try {
+            Utente utente = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser();
+            krintError.setIdUtente(utente.getId());
+        } catch (Exception ex) {}
+        try {
+            Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser().getUtenteReale();
+            krintError.setIdRealUser(utenteReale.getId());
+        } catch (Exception ex) {}
+        krintError.setIdOggetto(idOggetto);
+        krintError.setFunctionName(functionName);
+        krintError.setCodiceOperazione(codiceOperazione);
+
+        krintErrorList.add(krintError);
+        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.KRINT_ERRORS, krintErrorList);
+    }
 }

@@ -62,16 +62,20 @@ public class KrintShpeckService {
             krintService.writeKrintRow(
                 Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
-                Krint.TipoOggettoKrint.PEC_MESSAGE,
+                Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
                 jsonKrintPecMessage,
                 message.getIdPec().getId().toString(),
-                Krint.TipoOggettoKrint.PEC,
+                Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
                 jsonKrintPec,
                 codiceOperazione);
         } catch (Exception ex) {
-            //TODO: loggare errore
+            Integer idOggetto = null;
+            try {
+                idOggetto = message.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeReaddress", codiceOperazione);
         }
     }
     
@@ -93,16 +97,20 @@ public class KrintShpeckService {
             krintService.writeKrintRow(
                 Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
-                Krint.TipoOggettoKrint.PEC_MESSAGE,
+                Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
                 jsonKrintPecMessage,
                 message.getIdPec().getId().toString(),
-                Krint.TipoOggettoKrint.PEC,
+                Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
                 jsonKrintPec,
                 codiceOperazione);
         } catch (Exception ex) {
-            //TODO: loggare errore
+            Integer idOggetto = null;
+            try {
+                idOggetto = message.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeRegistration", codiceOperazione);
         }
     }
     
@@ -128,16 +136,20 @@ public class KrintShpeckService {
             krintService.writeKrintRow(
                 Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
-                Krint.TipoOggettoKrint.PEC_MESSAGE,
+                Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
                 jsonKrintPecMessage,
                 message.getIdPec().getId().toString(),
-                Krint.TipoOggettoKrint.PEC,
+                Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
                 jsonKrintPec,
                 codiceOperazione);
         } catch (Exception ex) {
-            //TODO: loggare errore
+            Integer idOggetto = null;
+            try {
+                idOggetto = message.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeArchiviation", codiceOperazione);
         }
     }
     
@@ -159,16 +171,20 @@ public class KrintShpeckService {
             krintService.writeKrintRow(
                 Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
-                Krint.TipoOggettoKrint.PEC_MESSAGE,
+                Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
                 jsonKrintPecMessage,
                 message.getIdPec().getId().toString(),
-                Krint.TipoOggettoKrint.PEC,
+                Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
                 jsonKrintPec,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            //TODO: loggare errore
+            Integer idOggetto = null;
+            try {
+                idOggetto = message.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeSeenOrNotSeen", codiceOperazione);
         }  
     }
     
@@ -197,16 +213,20 @@ public class KrintShpeckService {
             krintService.writeKrintRow(
                 Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
-                Krint.TipoOggettoKrint.PEC_MESSAGE,
+                Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
                 jsonKrintPecMessage,
                 message.getIdPec().getId().toString(),
-                Krint.TipoOggettoKrint.PEC,
+                Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
                 jsonKrintPec,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            //TODO: loggare errore
+            Integer idOggetto = null;
+            try {
+                idOggetto = message.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeFolderChanged", codiceOperazione);
         }  
     }
     
@@ -228,16 +248,20 @@ public class KrintShpeckService {
             krintService.writeKrintRow(
                 Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
-                Krint.TipoOggettoKrint.PEC_MESSAGE,
+                Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
                 jsonKrintPecMessage,
                 message.getIdPec().getId().toString(),
-                Krint.TipoOggettoKrint.PEC,
+                Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
                 jsonKrintPec,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            //TODO: loggare errore
+            Integer idOggetto = null;
+            try {
+                idOggetto = message.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeReplyToMessage", codiceOperazione);
         }  
     }
     
@@ -265,16 +289,20 @@ public class KrintShpeckService {
             krintService.writeKrintRow(
                 Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
-                Krint.TipoOggettoKrint.PEC_MESSAGE,
+                Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
                 jsonKrintPecMessage,
                 message.getIdPec().getId().toString(),
-                Krint.TipoOggettoKrint.PEC,
+                Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
                 jsonKrintPec,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            //TODO: loggare errore
+            Integer idOggetto = null;
+            try {
+                idOggetto = message.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeMessageTag", codiceOperazione);
         }  
     }
     
@@ -296,16 +324,20 @@ public class KrintShpeckService {
             krintService.writeKrintRow(
                 Applicazione.Applicazioni.shpeck,
                 draft.getId().toString(),
-                Krint.TipoOggettoKrint.PEC_DRAFT,
+                Krint.TipoOggettoKrint.SHPECK_DRAFT,
                 draft.getId().toString(),
                 jsonKrintPecDraft,
                 draft.getIdPec().getId().toString(),
-                Krint.TipoOggettoKrint.PEC,
+                Krint.TipoOggettoKrint.BABORG_PEC,
                 draft.getIdPec().getIndirizzo(),
                 jsonKrintPec,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            //TODO: loggare errore
+            Integer idOggetto = null;
+            try {
+                idOggetto = draft.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeDraft", codiceOperazione);
         }  
     }
     
@@ -327,22 +359,26 @@ public class KrintShpeckService {
             krintService.writeKrintRow(
                 Applicazione.Applicazioni.shpeck,
                 outbox.getId().toString(),
-                Krint.TipoOggettoKrint.PEC_MESSAGE,
+                Krint.TipoOggettoKrint.SHPECK_OUTBOX,
                 outbox.getId().toString(),
                 jsonKrintPecOutbox,
                 outbox.getIdPec().getId().toString(),
-                Krint.TipoOggettoKrint.PEC,
+                Krint.TipoOggettoKrint.BABORG_PEC,
                 outbox.getIdPec().getIndirizzo(),
                 jsonKrintPec,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            //TODO: loggare errore
+            Integer idOggetto = null;
+            try {
+                idOggetto = outbox.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeOutboxMessage", codiceOperazione);
         }  
     }
     
     /**
      * Questa funzione si occupa di preparare il log per quanto riguarda i Folder
-     * @param outbox
+     * @param folder
      * @param codiceOperazione: PEC_FOLDER_CREAZIONE - PEC_FOLDER_RINOMINA - PEC_FOLDER_ELIMINAZIONE
      */
     public void writeFolder(Folder folder, OperazioneKrint.CodiceOperazione codiceOperazione) {
@@ -358,22 +394,26 @@ public class KrintShpeckService {
             krintService.writeKrintRow(
                 Applicazione.Applicazioni.shpeck,
                 folder.getId().toString(),
-                Krint.TipoOggettoKrint.PEC_MESSAGE,
+                Krint.TipoOggettoKrint.SHPECK_FOLDER,
                 folder.getId().toString(),
                 jsonKrintPecOutbox,
                 folder.getIdPec().getId().toString(),
-                Krint.TipoOggettoKrint.PEC,
+                Krint.TipoOggettoKrint.BABORG_PEC,
                 folder.getIdPec().getIndirizzo(),
                 jsonKrintPec,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            //TODO: loggare errore
+            Integer idOggetto = null;
+            try {
+                idOggetto = folder.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeFolder", codiceOperazione);
         }  
     }
     
     /**
      * Questa funzione si occupa di preparare il log per quanto riguarda i Tag
-     * @param outbox
+     * @param tag
      * @param codiceOperazione: PEC_TAG_CREAZIONE - PEC_TAG_RINOMINA - PEC_TAG_ELIMINAZIONE
      */
     public void writeTag(Tag tag, OperazioneKrint.CodiceOperazione codiceOperazione) {
@@ -389,16 +429,20 @@ public class KrintShpeckService {
             krintService.writeKrintRow(
                 Applicazione.Applicazioni.shpeck,
                 tag.getId().toString(),
-                Krint.TipoOggettoKrint.PEC_MESSAGE,
+                Krint.TipoOggettoKrint.SHPECK_TAG,
                 tag.getId().toString(),
                 jsonKrintPecOutbox,
                 tag.getIdPec().getId().toString(),
-                Krint.TipoOggettoKrint.PEC,
+                Krint.TipoOggettoKrint.BABORG_PEC,
                 tag.getIdPec().getIndirizzo(),
                 jsonKrintPec,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            //TODO: loggare errore
+            Integer idOggetto = null;
+            try {
+                idOggetto = tag.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeTag", codiceOperazione);
         }  
     }
 }
