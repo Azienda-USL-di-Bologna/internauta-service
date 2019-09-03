@@ -5,13 +5,11 @@ import it.bologna.ausl.model.entities.shpeck.Tag;
 
 /**
  *
- * @author Guido
+ * @author gusgus
  */
 @Projection(name = "KrintShpeckTag", types = Tag.class)
-public interface KrintShpeckTag{
+public interface KrintShpeckOutbox{
     
     Integer getId();
-    
-    String getDescription();
     
 }

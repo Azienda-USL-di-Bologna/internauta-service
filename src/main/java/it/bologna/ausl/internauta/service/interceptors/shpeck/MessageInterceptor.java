@@ -159,18 +159,18 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
         
         Message message = (Message) entity;
         Message mBefore = (Message) beforeUpdateEntity;
-        // becco un evento a caso
+        
+        // Se ho cambiato il seen lo loggo
         if(mainEntity && (mBefore.getSeen() != message.getSeen())){
-            // OperazioneKrint.CodiceOperazione codiceOperazione;
             if(message.getSeen()){
                 // ha settato "Letto"
                 krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_LETTO);
             } else {
                 // ha settato "da leggere"
                 krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_DA_LEGGERE);
-            }                              
-          
+            }
         }
+        
         return entity;
                
     }

@@ -61,8 +61,9 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
 //        return messageFolder;
         // Se sto spostando nel cestino devo avere il peremsso elimina
         MessageFolder messageFolder = (MessageFolder) entity;
-        if (messageFolder.getIdFolder().getType() == FolderType.TRASH) {
+        MessageFolder beforeMessageFolder = (MessageFolder) beforeUpdateEntity;
         
+        if (messageFolder.getIdFolder().getType().equals(FolderType.TRASH.toString())) {
             try {
                 lanciaEccezioneSeNonHaPermessoDiEliminaMessage(messageFolder.getIdMessage());
             } catch (BlackBoxPermissionException | Http403ResponseException ex) {

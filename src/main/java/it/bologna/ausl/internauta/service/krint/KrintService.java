@@ -52,7 +52,8 @@ public class KrintService {
     private static final Logger LOGGER = LoggerFactory.getLogger(InternautaBaseInterceptor.class);
     
     
-    public void writeKrintRow(Applicazione.Applicazioni applicazione,
+    public void writeKrintRow(
+            Applicazione.Applicazioni applicazione,
             String idOggetto, 
             Krint.TipoOggettoKrint tipoOggetto, 
             String descrizioneOggetto, 
@@ -61,7 +62,7 @@ public class KrintService {
             Krint.TipoOggettoKrint tipoOggettoContenitore, 
             String descrizioneOggettoContenitore, 
             String informazioniOggettocontenitore, 
-            OperazioneKrint.CodiceOperazione codiceOperazione){
+            OperazioneKrint.CodiceOperazione codiceOperazione) {
         
         try {
             Utente utente = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser();

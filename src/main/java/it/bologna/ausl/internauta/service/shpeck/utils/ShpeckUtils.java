@@ -210,6 +210,7 @@ public class ShpeckUtils {
             }
             LOG.info("Message ready. Saving...");
             draftMessage = draftRepository.save(draftMessage);
+            krintShpeckService.writeDraft(draftMessage, OperazioneKrint.CodiceOperazione.PEC_DRAFT_MODIFICA);
         } catch (IOException ex) {
             LOG.error("Error while saving message");
             throw new IOException("Error while saving message", ex);
@@ -251,6 +252,7 @@ public class ShpeckUtils {
             outboxMessage.setRawData(rawEmail);
             outboxMessage.setIdApplicazione(shpeckApp);
             outboxMessage = outboxRepository.save(outboxMessage);
+            krintShpeckService.writeOutboxMessage(outboxMessage, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_INVIO_NUOVA_MAIL);
         } catch (EntityNotFoundException ex) {
             LOG.error("Element not found!", ex);
             throw new EntityNotFoundException("Element not found!");
