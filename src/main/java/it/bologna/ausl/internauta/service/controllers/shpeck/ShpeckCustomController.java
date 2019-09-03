@@ -170,7 +170,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
         try {
             EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
-            if (emlSource != EmlSource.DRAFT) {
+            if (emlSource != EmlSource.DRAFT && emlSource != EmlSource.OUTBOX) {
                 int attNumber = (int) Arrays.stream(res.getAttachments())
                         .filter(a -> {
                             LOG.info(a.toString());

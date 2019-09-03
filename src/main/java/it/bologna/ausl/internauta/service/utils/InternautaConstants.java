@@ -56,7 +56,9 @@ public class InternautaConstants {
             LoadDataPerInterfacciaElencoPec,
             FilterPecPerStandardPermissions,
             GetUltimoStatoRibaltone,
-            CambioUtente
+            CambioUtente,
+            GetAmministrazioneMessaggiAttivi,
+            GetAmministrazioneMessaggiStorico
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
