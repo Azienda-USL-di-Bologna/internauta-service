@@ -34,6 +34,10 @@ public class ParametriAziende {
         return getParameters(nome, null, null);
     }
     
+    public List<ParametroAziende> getParameters(InternautaConstants.Configurazione.ParametriAzienda nome) {
+        return getParameters(nome.toString(), null, null);
+    }
+    
     public List<ParametroAziende> getParameters(String nome, Integer[] idAziende) {
         return getParameters(nome, idAziende, null);
     }

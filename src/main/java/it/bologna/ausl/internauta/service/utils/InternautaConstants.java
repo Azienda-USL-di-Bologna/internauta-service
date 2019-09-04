@@ -36,7 +36,7 @@ public class InternautaConstants {
     public static class Configurazione {
 
         public enum ParametriAzienda {
-            crossUrlTemplate
+            crossUrlTemplate, // è nel json di baborg.aziende (colonna parametri) TODO: andrebberso spostati tutti in configurazione.parametri_aziende
         }
     }
 

@@ -107,6 +107,7 @@ public class CachedEntities {
             return null;
     }
     
+<<<<<<< working copy
     @Cacheable(value = "personaFromIdUtente__ribaltorg__", key = "{#idUtente}")
     public Persona getPersonaFromIdUtente(Integer idUtente) throws BlackBoxPermissionException {
         return getPersonaFromUtente(getUtente(idUtente));
@@ -119,8 +120,7 @@ public class CachedEntities {
             return utente.get();
         } else
             return null;
-    }
-    
+=======
     @Cacheable(value = "operazioneKrint__ribaltorg__", key = "{#codiceOperazione}")
     public OperazioneKrint getOperazioneKrint(OperazioneKrint.CodiceOperazione codiceOperazione){
         return operazioneKrinRepository.findByCodice(codiceOperazione.toString()).orElse(null);
@@ -128,5 +128,6 @@ public class CachedEntities {
     
     public OperazioneKrint getLastOperazioneVersionataKrint(OperazioneKrint.CodiceOperazione codiceOperazione){
         return operazioneKrinRepository.findByCodice(codiceOperazione.toString()).orElse(null);
+>>>>>>> destination
     }
 }
