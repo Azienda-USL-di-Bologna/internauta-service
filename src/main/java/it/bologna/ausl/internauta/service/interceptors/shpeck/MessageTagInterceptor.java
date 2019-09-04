@@ -38,7 +38,7 @@ public class MessageTagInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeCreateEntityInterceptor di Message-Tag");
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();       
         MessageTag mt = (MessageTag) entity;
-        if(additionalData.get("setUtenteProtocollante") != null){
+        if(additionalData != null && additionalData.get("setUtenteProtocollante") != null){
             mt.setIdUtente(authenticatedSessionData.getUser());           
         }
         

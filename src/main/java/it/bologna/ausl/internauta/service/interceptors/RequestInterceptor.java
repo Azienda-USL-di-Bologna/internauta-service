@@ -32,7 +32,7 @@ public class RequestInterceptor extends HandlerInterceptorAdapter{
     public void afterCompletion(HttpServletRequest hsr, HttpServletResponse hsr1, Object o, Exception excptn) throws Exception {
         
         // Se è arrivato una eccezione non ho fatto niente e quindi non voglio loggare niente
-        if (excptn != null) {
+        if (excptn == null) {
         
             List<Krint> krintList = (List<Krint>)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.KRINT_ROWS);
 
