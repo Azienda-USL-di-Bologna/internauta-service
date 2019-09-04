@@ -458,7 +458,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             LOG.info("Preparing the message for sending...");
             try {
                 for (MimeMessage mime : mimeMessagesList) {
-                    shpeckUtils.sendMessage(pec, mime);
+                    shpeckUtils.sendMessage(pec, subject, hideRecipients, body, listAttachments, emlAttachments, mime);
                 }
 
                 if (idMessageRelated != null) {
