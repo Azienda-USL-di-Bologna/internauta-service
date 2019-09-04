@@ -6,10 +6,12 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
+import it.bologna.ausl.internauta.service.repositories.logs.OperazioneKrinRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -31,6 +33,9 @@ public class CachedEntities {
     @Autowired
     private PersonaRepository personaRepository;
 
+    @Autowired
+    private OperazioneKrinRepository operazioneKrinRepository;
+    
     @Autowired
     private UtenteRepository utenteRepository;
     
@@ -77,5 +82,14 @@ public class CachedEntities {
             return persona.get();
         } else
             return null;
+    }
+    
+    @Cacheable(value = "operazioneKrint__ribaltorg__", key = "{#codiceOperazione}")
+    public OperazioneKrint getOperazioneKrint(OperazioneKrint.CodiceOperazione codiceOperazione){
+        return operazioneKrinRepository.findByCodice(codiceOperazione.toString()).orElse(null);
+    }
+    
+    public OperazioneKrint getLastOperazioneVersionataKrint(OperazioneKrint.CodiceOperazione codiceOperazione){
+        return operazioneKrinRepository.findByCodice(codiceOperazione.toString()).orElse(null);
     }
 }

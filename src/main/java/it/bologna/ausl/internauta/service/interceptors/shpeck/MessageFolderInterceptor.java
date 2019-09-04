@@ -4,10 +4,12 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.Folder.FolderType;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageFolder;
@@ -40,6 +42,9 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
     @Autowired
     PersonaRepository personaRepository;
     
+    @Autowired
+    KrintShpeckService krintShpeckService;
+    
     @Override
     public Class getTargetEntityClass() {
         return MessageFolder.class;
@@ -56,14 +61,20 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
 //        return messageFolder;
         // Se sto spostando nel cestino devo avere il peremsso elimina
         MessageFolder messageFolder = (MessageFolder) entity;
-        if (messageFolder.getIdFolder().getType() == FolderType.TRASH) {
+        MessageFolder beforeMessageFolder = (MessageFolder) beforeUpdateEntity;
+        
+        if (messageFolder.getIdFolder().getType().equals(FolderType.TRASH.toString())) {
             try {
                 lanciaEccezioneSeNonHaPermessoDiEliminaMessage(messageFolder.getIdMessage());
             } catch (BlackBoxPermissionException | Http403ResponseException ex) {
                 throw new AbortSaveInterceptorException();
             }
         }
-
+        
+        if (!messageFolder.getIdFolder().getId().equals(beforeMessageFolder.getIdFolder().getId())) {
+            krintShpeckService.writeFolderChanged(messageFolder.getIdMessage(), OperazioneKrint.CodiceOperazione.PEC_MESSAGE_SPOSTAMENTO, messageFolder.getIdFolder(), beforeMessageFolder.getIdFolder());
+        }
+        
         return entity;
     }
     

@@ -83,7 +83,8 @@ public class InternautaConstants {
     public static class HttpSessionData {
 
         public enum Keys {
-            PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject, UtenteLogin, IdSessionLog
+            PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject, UtenteLogin, IdSessionLog,
+            KRINT_ROWS, KRINT_ERRORS
         }
     }
     
@@ -92,5 +93,14 @@ public class InternautaConstants {
             PROTOCOLLA_PEC_NEW, PROTOCOLLA_PEC_ADD, ARCHIVE_MESSAGE
         }
     }
+    
+    public static class Krint {
+        
+        public enum PermessiKey {
+            permessiPec, permessiFlusso
+        }
+        
+    }
+    
     
 }

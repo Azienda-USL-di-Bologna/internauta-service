@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
@@ -87,6 +88,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import java.util.Arrays;
@@ -144,6 +146,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private PersonaRepository personaRepository;
+    
+    @Autowired
+    private KrintShpeckService krintShpeckService;
 
     /**
      *
@@ -326,7 +331,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             HttpServletResponse response,
             HttpServletRequest request
     ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException, UnsupportedEncodingException, BadParamsException {
-        LOG.info("get_all_eml_attachment", idMessage);
+        LOG.info("downloadAllEmlAttachment", idMessage);
 //        String hostname = nextSdrCommonUtils.getHostname(request);
 //        System.out.println("hostanme " + hostname);
 //        String repositoryTemp = null;
@@ -391,6 +396,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws it.bologna.ausl.eml.handler.EmlHandlerException
      * @throws
      * it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
+     * @throws it.bologna.ausl.internauta.service.exceptions.BadParamsException
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"saveDraftMessage", "sendMessage"}, method = RequestMethod.POST)
@@ -473,12 +479,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     /**
      * La funzione si occupa di reindirizzare il messaggio messageSource alla
-     * casella idPecDestination. Viene quindi copiato il messaggio sostituiendo
+     * casella idPecDestination.Viene quindi copiato il messaggio sostituiendo
      * l'idPec e altri campi. Viene poi attaccato il tag di readdressed_out al
      * messageSource e readdressed_in al messaggio appena creato
      *
      * @param idMessageSource
      * @param idPecDestination
+     * @return 
      * @throws CloneNotSupportedException
      * @throws Http409ResponseException
      */
@@ -584,7 +591,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         System.out.println(messageDestination.toString());
 
         messageRepository.updateTscol(messageDestination.getId());
-
+        
+        // Loggo il reindirizzamento
+        krintShpeckService.writeReaddress(messageSource, messageDestination, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_OUT);
+        krintShpeckService.writeReaddress(messageDestination, messageSource, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_IN);
+        
         return additionalDataSource.toString();
     }
 
@@ -700,9 +711,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         messageTag.setAdditionalData(jsonAdditionalData.toString());
                     }
                     messageTagRespository.save(messageTag);
+                    krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_IN_PROTOCOLLAZIONE);
                 }
 
-                if ("REGISTER".equals(StringUtils.trimWhitespace(operation))) {
+                if ("REGISTER".equals(StringUtils.trimWhitespace(operation))) {             
                     LOG.info("dentro REGISTER per il messaggio con id: " + message.getId());
                     List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
                     // TODO: gestire caso se non trova niente o ne trova piu di uno
@@ -737,6 +749,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         mfRegistered.setIdFolder(folderRegistered);
                         messageFolderRespository.save(mfRegistered);
                     }
+                    krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_PROTOCOLLAZIONE);
                 }
 
                 if ("REMOVE_IN_REGISTRATION".equals(StringUtils.trimWhitespace(operation))) {
@@ -747,6 +760,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
                         // cancellazione del mt in_registration
                         messageTagRespository.delete(mtInRegistration);
+                        krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_IN_PROTOCOLLAZIONE);
                     }
                 }
             }
@@ -818,5 +832,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
 
         messageTagRespository.save(messageTag);
+        krintShpeckService.writeArchiviation(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_FASCICOLAZIONE, jsonAdditionalData);
     }
 }
