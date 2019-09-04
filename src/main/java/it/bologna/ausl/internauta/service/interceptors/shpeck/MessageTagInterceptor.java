@@ -46,7 +46,7 @@ public class MessageTagInterceptor extends InternautaBaseInterceptor {
         if (mainEntity) {
             if (mt.getIdTag().getName().equals(Tag.SystemTagName.in_error.toString())) {
                 krintShpeckService.writeMessageTag(mt.getIdMessage(), mt.getIdTag(), OperazioneKrint.CodiceOperazione.PEC_MESSAGE_ERRORE_NON_VISTO);
-            } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.assigned.toString()) || mt.getIdTag().getType().equals(Tag.TagType.CUSTOM.toString())) {
+            } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.assigned.toString()) || mt.getIdTag().getType().toString().equals(Tag.TagType.CUSTOM.toString())) {
                 krintShpeckService.writeMessageTag(mt.getIdMessage(), mt.getIdTag(), OperazioneKrint.CodiceOperazione.PEC_MESSAGE_AGGIUNTA_TAG);
             }
         }
@@ -61,7 +61,7 @@ public class MessageTagInterceptor extends InternautaBaseInterceptor {
         if (mainEntity) {
             if (mt.getIdTag().getName().equals(Tag.SystemTagName.in_error.toString())) {
                 krintShpeckService.writeMessageTag(mt.getIdMessage(), mt.getIdTag(), OperazioneKrint.CodiceOperazione.PEC_MESSAGE_ERRORE_VISTO);
-            } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.assigned.toString()) || mt.getIdTag().getType().equals(Tag.TagType.CUSTOM.toString())) {
+            } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.assigned.toString()) || mt.getIdTag().getType().toString().equals(Tag.TagType.CUSTOM.toString())) {
                 krintShpeckService.writeMessageTag(mt.getIdMessage(), mt.getIdTag(), OperazioneKrint.CodiceOperazione.PEC_MESSAGE_ELIMINAZIONE_TAG);
             }
         }
