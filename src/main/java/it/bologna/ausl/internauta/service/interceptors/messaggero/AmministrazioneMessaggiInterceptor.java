@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
+import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -74,4 +75,14 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
         }
         return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
+
+    @Override
+    public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
+        if (mainEntity && amministrazioneMessaggio.getInvasivita() == AmministrazioneMessaggio.InvasivitaEnum.POPUP) {
+            messageSenderManager.stopSchedule(amministrazioneMessaggio);
+        }
+    }
+    
+    
 }

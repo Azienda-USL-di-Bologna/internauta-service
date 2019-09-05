@@ -91,4 +91,12 @@ public class MessageSenderManager {
             return null;
         }
     }
+    
+    public void stopSchedule(AmministrazioneMessaggio message) {
+        if (this.messageThreadsMap.get(message.getId()) != null) {
+            ScheduledFuture scheduledMessage = this.messageThreadsMap.get(message.getId());
+            scheduledMessage.cancel(false);
+            this.messageThreadsMap.remove(message.getId());
+        }
+    }
 }
