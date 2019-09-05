@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.interceptors.shpeck;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
@@ -43,7 +44,7 @@ public class MessageTagInterceptor extends InternautaBaseInterceptor {
         }
         
         // KRINT del tag aggiunto purché sia custom o "assigned" o "in_error"
-        if (mainEntity) {
+        if (mainEntity && KrintUtils.doIHaveToKrint(request)) {
             if (mt.getIdTag().getName().equals(Tag.SystemTagName.in_error.toString())) {
                 krintShpeckService.writeMessageTag(mt.getIdMessage(), mt.getIdTag(), OperazioneKrint.CodiceOperazione.PEC_MESSAGE_ERRORE_NON_VISTO);
             } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.assigned.toString()) || mt.getIdTag().getType().toString().equals(Tag.TagType.CUSTOM.toString())) {
@@ -58,7 +59,7 @@ public class MessageTagInterceptor extends InternautaBaseInterceptor {
         // KRINT dell'eliminazione del tag purché sia custom o "assigned" o "in_error"
         MessageTag mt = (MessageTag) entity;
         
-        if (mainEntity) {
+        if (mainEntity && KrintUtils.doIHaveToKrint(request)) {
             if (mt.getIdTag().getName().equals(Tag.SystemTagName.in_error.toString())) {
                 krintShpeckService.writeMessageTag(mt.getIdMessage(), mt.getIdTag(), OperazioneKrint.CodiceOperazione.PEC_MESSAGE_ERRORE_VISTO);
             } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.assigned.toString()) || mt.getIdTag().getType().toString().equals(Tag.TagType.CUSTOM.toString())) {

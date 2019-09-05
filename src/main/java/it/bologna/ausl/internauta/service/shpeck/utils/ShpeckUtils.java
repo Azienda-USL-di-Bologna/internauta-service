@@ -7,6 +7,7 @@ import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionMan
 import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomController;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
@@ -54,6 +55,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import java.util.List;
 import javax.mail.Message.RecipientType;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  *
@@ -173,7 +175,7 @@ public class ShpeckUtils {
     public void saveDraft(Draft draftMessage, Pec pec, String subject, String[] to, String[] cc,
             Boolean hideRecipients, ArrayList<EmlHandlerAttachment> listAttachments, String body,
             MimeMessage mimeMessage, Integer idMessageRelated, MessageRelatedType messageRelatedType,
-            ArrayList<EmlHandlerAttachment> emlAttachments) throws MessagingException, IOException {
+            ArrayList<EmlHandlerAttachment> emlAttachments, HttpServletRequest request) throws MessagingException, IOException {
 
         try {
             draftMessage.setIdPec(pec);
@@ -211,7 +213,9 @@ public class ShpeckUtils {
             }
             LOG.info("Message ready. Saving...");
             draftMessage = draftRepository.save(draftMessage);
-            krintShpeckService.writeDraft(draftMessage, OperazioneKrint.CodiceOperazione.PEC_DRAFT_MODIFICA);
+            if (KrintUtils.doIHaveToKrint(request)) {
+                krintShpeckService.writeDraft(draftMessage, OperazioneKrint.CodiceOperazione.PEC_DRAFT_MODIFICA);
+            }
         } catch (IOException ex) {
             LOG.error("Error while saving message");
             throw new IOException("Error while saving message", ex);
@@ -249,7 +253,7 @@ public class ShpeckUtils {
      */
     public void sendMessage(Pec pec, String subject, Boolean hiddenRecipients, String body,
             ArrayList<EmlHandlerAttachment> listAttachments, ArrayList<EmlHandlerAttachment> emlAttachments,
-            MimeMessage mimeMessage) throws IOException, MessagingException {
+            MimeMessage mimeMessage, HttpServletRequest request) throws IOException, MessagingException {
         Outbox outboxMessage = new Outbox();
         Applicazione shpeckApp = applicazioneRepository.getOne("shpeck");
         try {
@@ -288,7 +292,9 @@ public class ShpeckUtils {
             }
 
             outboxMessage = outboxRepository.save(outboxMessage);
-            krintShpeckService.writeOutboxMessage(outboxMessage, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_INVIO_NUOVA_MAIL);
+            if (KrintUtils.doIHaveToKrint(request)) {
+                krintShpeckService.writeOutboxMessage(outboxMessage, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_INVIO_NUOVA_MAIL);
+            }
         } catch (EntityNotFoundException ex) {
             LOG.error("Element not found!", ex);
             throw new EntityNotFoundException("Element not found!");
@@ -339,7 +345,7 @@ public class ShpeckUtils {
      * inoltrando
      * @param messageRelatedType Tipo di relazione del messaggio relazionato
      */
-    public void setTagsToMessage(Pec pec, Integer idMessageRelated, MessageRelatedType messageRelatedType) {
+    public void setTagsToMessage(Pec pec, Integer idMessageRelated, MessageRelatedType messageRelatedType, HttpServletRequest request) {
         LOG.info("Getting message...");
         Message messageRelated = messageRepository.getOne(idMessageRelated);
         Tag tag = new Tag();
@@ -370,7 +376,9 @@ public class ShpeckUtils {
             messageTag.setIdTag(tag);
             messageTag.setInserted(LocalDateTime.now());
             messageTagRepository.save(messageTag);
-            krintShpeckService.writeReplyToMessage(messageRelated, operazione);
+            if (KrintUtils.doIHaveToKrint(request)) {
+                krintShpeckService.writeReplyToMessage(messageRelated, operazione);
+            }
             LOG.info("Tag applied!");
         } else {
             LOG.info("Tag already present, skip applying!");

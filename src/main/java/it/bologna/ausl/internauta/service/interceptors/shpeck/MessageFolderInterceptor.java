@@ -5,6 +5,7 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -71,7 +72,7 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
             }
         }
         
-        if (!messageFolder.getIdFolder().getId().equals(beforeMessageFolder.getIdFolder().getId())) {
+        if (!messageFolder.getIdFolder().getId().equals(beforeMessageFolder.getIdFolder().getId()) && KrintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeFolderChanged(messageFolder.getIdMessage(), OperazioneKrint.CodiceOperazione.PEC_MESSAGE_SPOSTAMENTO, messageFolder.getIdFolder(), beforeMessageFolder.getIdFolder());
         }
         

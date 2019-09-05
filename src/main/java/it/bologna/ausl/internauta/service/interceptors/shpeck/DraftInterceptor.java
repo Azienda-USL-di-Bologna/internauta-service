@@ -5,6 +5,7 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -66,7 +67,9 @@ public class DraftInterceptor extends InternautaBaseInterceptor {
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Draft draft = (Draft) entity;
         
-        krintShpeckService.writeDraft(draft, OperazioneKrint.CodiceOperazione.PEC_DRAFT_CREAZIONE);
+        if (KrintUtils.doIHaveToKrint(request)) {
+            krintShpeckService.writeDraft(draft, OperazioneKrint.CodiceOperazione.PEC_DRAFT_CREAZIONE);
+        }
         
         return entity;
     }
@@ -79,7 +82,9 @@ public class DraftInterceptor extends InternautaBaseInterceptor {
         } catch (BlackBoxPermissionException | Http403ResponseException ex) {
             throw new AbortSaveInterceptorException();
         }
-        krintShpeckService.writeDraft(draft, OperazioneKrint.CodiceOperazione.PEC_DRAFT_CANCELLAZIONE);
+        if (KrintUtils.doIHaveToKrint(request)) {
+            krintShpeckService.writeDraft(draft, OperazioneKrint.CodiceOperazione.PEC_DRAFT_CANCELLAZIONE);
+        }
         super.beforeDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
     

@@ -14,6 +14,7 @@ import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExcep
 import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
@@ -438,7 +439,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             LOG.info("Mime message generated correctly!");
             LOG.info("Preparing the message for saving...");
             shpeckUtils.saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
-                    listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments);
+                    listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments, request);
         } else if (request.getServletPath().endsWith("sendMessage")) {
             if (Objects.equals(hideRecipients, Boolean.TRUE)) {
                 LOG.info("Hide recipients is true, building mime message for each recipient.");
@@ -458,11 +459,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             LOG.info("Preparing the message for sending...");
             try {
                 for (MimeMessage mime : mimeMessagesList) {
-                    shpeckUtils.sendMessage(pec, subject, hideRecipients, body, listAttachments, emlAttachments, mime);
+                    shpeckUtils.sendMessage(pec, subject, hideRecipients, body, listAttachments, emlAttachments, mime, request);
                 }
 
                 if (idMessageRelated != null) {
-                    shpeckUtils.setTagsToMessage(pec, idMessageRelated, messageRelatedType);
+                    shpeckUtils.setTagsToMessage(pec, idMessageRelated, messageRelatedType, request);
                 }
 
                 shpeckUtils.deleteDraft(draftMessage);
@@ -471,7 +472,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments,
                         emlAttachments, hostname, draftMessage);
                 shpeckUtils.saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
-                        listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments);
+                        listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments, request);
                 throw new Http500ResponseException("007", "Errore durante l'invio. La mail è stata salvata nelle bozze.", ex);
             }
         }
@@ -480,11 +481,12 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     /**
      * La funzione si occupa di reindirizzare il messaggio messageSource alla
      * casella idPecDestination.Viene quindi copiato il messaggio sostituiendo
-     * l'idPec e altri campi. Viene poi attaccato il tag di readdressed_out al
-     * messageSource e readdressed_in al messaggio appena creato
+     * l'idPec e altri campi.Viene poi attaccato il tag di readdressed_out al
+ messageSource e readdressed_in al messaggio appena creato
      *
      * @param idMessageSource
      * @param idPecDestination
+     * @param request
      * @return 
      * @throws CloneNotSupportedException
      * @throws Http409ResponseException
@@ -493,7 +495,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = {"readdressMessage"}, method = RequestMethod.POST)
     public String readdressMessage(
             @RequestParam("idMessageSource") Integer idMessageSource,
-            @RequestParam("idPecDestination") Integer idPecDestination) throws CloneNotSupportedException, Http409ResponseException {
+            @RequestParam("idPecDestination") Integer idPecDestination,
+            HttpServletRequest request) throws CloneNotSupportedException, Http409ResponseException {
         // la funzione è disponibile solo se il messaggio non è stato già reindirizzato
         // recupero message sorgente
         Message messageSource = messageRepository.getOne(idMessageSource);
@@ -593,8 +596,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         messageRepository.updateTscol(messageDestination.getId());
         
         // Loggo il reindirizzamento
-        krintShpeckService.writeReaddress(messageSource, messageDestination, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_OUT);
-        krintShpeckService.writeReaddress(messageDestination, messageSource, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_IN);
+        if (KrintUtils.doIHaveToKrint(request)) {
+            krintShpeckService.writeReaddress(messageSource, messageDestination, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_OUT);
+            krintShpeckService.writeReaddress(messageDestination, messageSource, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_IN);
+        }
         
         return additionalDataSource.toString();
     }
@@ -652,7 +657,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "uuidMessage", required = true) String uuidMessage,
             @RequestParam(name = "operation", required = true) String operation,
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
-            @RequestBody Map<String, Object> additionalData
+            @RequestBody Map<String, Object> additionalData,
+            HttpServletRequest request
     ) throws BlackBoxPermissionException {
 
         LOG.info("Inizio manageMessageRegistration. uuidMessage: " + uuidMessage + " operation: " + operation + " additionalData: " + additionalData.toString());
@@ -711,7 +717,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         messageTag.setAdditionalData(jsonAdditionalData.toString());
                     }
                     messageTagRespository.save(messageTag);
-                    krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_IN_PROTOCOLLAZIONE);
+                    if (KrintUtils.doIHaveToKrint(request)) {
+                        krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_IN_PROTOCOLLAZIONE);
+                    }
                 }
 
                 if ("REGISTER".equals(StringUtils.trimWhitespace(operation))) {             
@@ -749,7 +757,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         mfRegistered.setIdFolder(folderRegistered);
                         messageFolderRespository.save(mfRegistered);
                     }
-                    krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_PROTOCOLLAZIONE);
+                    if (KrintUtils.doIHaveToKrint(request)) {
+                        krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_PROTOCOLLAZIONE);
+                    }
                 }
 
                 if ("REMOVE_IN_REGISTRATION".equals(StringUtils.trimWhitespace(operation))) {
@@ -760,7 +770,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
                         // cancellazione del mt in_registration
                         messageTagRespository.delete(mtInRegistration);
-                        krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_IN_PROTOCOLLAZIONE);
+                        if (KrintUtils.doIHaveToKrint(request)) {
+                            krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_IN_PROTOCOLLAZIONE);
+                        }
                     }
                 }
             }
@@ -783,7 +795,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = "manageMessageArchiviation", method = RequestMethod.POST)
     public void manageMessageArchiviation(
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
-            @RequestBody Map<String, Object> additionalData) throws BlackBoxPermissionException {
+            @RequestBody Map<String, Object> additionalData,
+            HttpServletRequest request) throws BlackBoxPermissionException {
 
         Message message = messageRepository.getOne(idMessage);
         List<Tag> pecTagList = message.getIdPec().getTagList();
@@ -832,6 +845,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
 
         messageTagRespository.save(messageTag);
-        krintShpeckService.writeArchiviation(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_FASCICOLAZIONE, jsonAdditionalData);
+        if (KrintUtils.doIHaveToKrint(request)) {
+            krintShpeckService.writeArchiviation(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_FASCICOLAZIONE, jsonAdditionalData);
+        }
     }
 }
