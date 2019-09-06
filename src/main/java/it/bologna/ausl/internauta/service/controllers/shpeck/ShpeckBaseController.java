@@ -47,13 +47,17 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
+import it.bologna.ausl.model.entities.shpeck.Outbox;
+import it.bologna.ausl.model.entities.shpeck.QOutbox;
+import it.bologna.ausl.model.entities.shpeck.views.OutboxLite;
+import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
 
 @RestController
 @RequestMapping(value = "${shpeck.mapping.url.root}")
 public class ShpeckBaseController extends BaseCrudController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShpeckBaseController.class);
-    
+
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
 
@@ -61,10 +65,10 @@ public class ShpeckBaseController extends BaseCrudController {
     public RestControllerEngine getRestControllerEngine() {
         return restControllerEngine;
     }
-    
+
     @Autowired
     private MessageRepository messageRespository;
-    
+
     @RequestMapping(value = {"tag", "tag/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> tag(
             @QuerydslPredicate(root = Tag.class) Predicate predicate,
@@ -77,7 +81,7 @@ public class ShpeckBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QTag.tag, Tag.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"messagetag", "messagetag/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> messagetag(
             @QuerydslPredicate(root = MessageTag.class) Predicate predicate,
@@ -103,7 +107,7 @@ public class ShpeckBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QFolder.folder, Folder.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"messagefolder", "messagefolder/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> messagefolder(
             @QuerydslPredicate(root = MessageFolder.class) Predicate predicate,
@@ -129,7 +133,7 @@ public class ShpeckBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAddress.address, Address.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"messageaddress", "messageaddress/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> messageaddress(
             @QuerydslPredicate(root = MessageAddress.class) Predicate predicate,
@@ -142,7 +146,7 @@ public class ShpeckBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMessageAddress.messageAddress, MessageAddress.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"message", "message/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> message(
             @QuerydslPredicate(root = Message.class) Predicate predicate,
@@ -155,7 +159,7 @@ public class ShpeckBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMessage.message, Message.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"recepit", "recepit/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> recepit(
             @QuerydslPredicate(root = Recepit.class) Predicate predicate,
@@ -181,7 +185,7 @@ public class ShpeckBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRawMessage.rawMessage, RawMessage.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"draft", "draft/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> draft(
             @QuerydslPredicate(root = Draft.class) Predicate predicate,
@@ -194,7 +198,7 @@ public class ShpeckBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDraft.draft, Draft.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"draftlite", "draftlite/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> draftlite(
             @QuerydslPredicate(root = DraftLite.class) Predicate predicate,
@@ -207,7 +211,32 @@ public class ShpeckBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDraftLite.draftLite, DraftLite.class);
         return ResponseEntity.ok(resource);
     }
-    
+
+    @RequestMapping(value = {"outbox", "outbox/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> outbox(
+            @QuerydslPredicate(root = Outbox.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QOutbox.outbox, Outbox.class);
+        return ResponseEntity.ok(resource);
+    }
+
+    @RequestMapping(value = {"outboxLite", "outboxLite/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> outboxLite(
+            @QuerydslPredicate(root = OutboxLite.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QOutboxLite.outboxLite, OutboxLite.class);
+        return ResponseEntity.ok(resource);
+    }
+
     @RequestMapping(value = {"note", "note/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> note(
             @QuerydslPredicate(root = Note.class) Predicate predicate,
@@ -220,10 +249,10 @@ public class ShpeckBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QNote.note, Note.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     /*
         vista
-    */
+     */
     @RequestMapping(value = {"messagecomplete", "messagecomplete/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> messagecomplete(
             @QuerydslPredicate(root = MessageComplete.class) Predicate predicate,

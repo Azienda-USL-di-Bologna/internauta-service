@@ -1,14 +1,11 @@
 package it.bologna.ausl.internauta.service;
 
-import it.bologna.ausl.internauta.service.exceptions.InternautaScheduledException;
-import it.bologna.ausl.internauta.service.workers.MessageSenderWorker;
-import it.bologna.ausl.internauta.service.workers.ShutdownThread;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
+import it.bologna.ausl.internauta.service.schedulers.workers.ShutdownThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,6 +13,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @SpringBootApplication(scanBasePackages = {"it.bologna.ausl", "it.nextsw"})
 @EnableJpaRepositories({"it.bologna.ausl.internauta.service.repositories", "it.bologna.ausl.blackbox.repositories"})
@@ -26,11 +25,11 @@ public class InternautaApplication {
     private static final Logger log = LoggerFactory.getLogger(InternautaApplication.class);
 
     @Autowired
-    ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+    MessageSenderManager messageSenderManager;
     
     @Autowired
     ShutdownThread shutdownThread;
-    
+
     public static void main(String[] args) {
         SpringApplication.run(InternautaApplication.class, args);
     }
@@ -39,17 +38,21 @@ public class InternautaApplication {
     public CommandLineRunner schedulingRunner() {
 
         return (String... args) -> {
-            log.info(". entrato nel run .");
-            
-            for (int i = 0; i < 10; i++) {
-                MessageSenderWorker messageSenderWorker = new MessageSenderWorker();
-                ScheduledFuture<?> schedule = scheduledThreadPoolExecutor.schedule(messageSenderWorker, 2, TimeUnit.SECONDS);
-                if (i == 4)
-                    schedule.cancel(false);
-//                log.info(string);
+            log.info("schedulo i threads messageSender...");
+            try {
+                messageSenderManager.scheduleNotExpired();
+            } catch (Exception e) {
+                log.info("errore nella schedulazione threads messageSender.", e);
             }
+            log.info("schedulazione threads messageSender terminata con successo.");
             
-            Runtime.getRuntime().addShutdownHook(shutdownThread);
+            log.info("imposto ShutdownHook... ");
+            try {
+                Runtime.getRuntime().addShutdownHook(shutdownThread);
+            } catch (Exception e) {
+                log.info("errore impostazione ShutdownHook.", e);
+            }
+            log.info("impostazione ShutdownHook terminata con successo.");
         };
     }
 }

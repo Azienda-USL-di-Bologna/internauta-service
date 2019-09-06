@@ -3,10 +3,10 @@ package it.bologna.ausl.internauta.service.configuration.cache;
 import java.util.Set;
 import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
  *
@@ -19,6 +19,7 @@ public class CacheInitializer {
     private String prefix;
     
     @Autowired
+    @Qualifier(value = "redisCache")
     private RedisTemplate redisTemplate; 
 
     /**
@@ -27,7 +28,7 @@ public class CacheInitializer {
     @PostConstruct
     public void cleanCache() {
 //        redisTemplate.setDefaultSerializer(new StringRedisSerializer());
-        redisTemplate.setKeySerializer(new StringRedisSerializer());
+//        redisTemplate.setKeySerializer(new StringRedisSerializer());
         Set<String> keys = redisTemplate.keys(prefix + "*");
         System.out.println(String.format("cleaning redis cache with prefix: %s...", prefix));
         redisTemplate.delete(keys);

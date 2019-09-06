@@ -5,12 +5,10 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.BooleanTemplate;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ParametroAziendeRepository;
-import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.configuration.QParametroAziende;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -34,6 +32,10 @@ public class ParametriAziende {
     
     public List<ParametroAziende> getParameters(String nome) {
         return getParameters(nome, null, null);
+    }
+    
+    public List<ParametroAziende> getParameters(InternautaConstants.Configurazione.ParametriAzienda nome) {
+        return getParameters(nome.toString(), null, null);
     }
     
     public List<ParametroAziende> getParameters(String nome, Integer[] idAziende) {

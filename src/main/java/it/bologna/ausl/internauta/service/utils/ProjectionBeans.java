@@ -47,7 +47,7 @@ import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
+import it.bologna.ausl.model.entities.logs.projections.KrintShpeckPec;
 
 /**
  *
@@ -336,8 +336,10 @@ public class ProjectionBeans {
         return result;
     }
     
-    
-    
+
+    public KrintShpeckPec getPecKrint(Message message){
+        return factory.createProjection(KrintShpeckPec.class, message.getIdPec());
+    }          
     
     
 }

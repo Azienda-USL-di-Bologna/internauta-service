@@ -66,7 +66,7 @@ public class BabelDownloader {
     
     public BabelDownloaderRequestBody createRquestBody(String guid, String tipologia) throws BlackBoxPermissionException {
         Utente loggedUser = getLoggedUser();
-        Persona persona = cachedEntities.getPersona(loggedUser);
+        Persona persona = cachedEntities.getPersonaFromUtente(loggedUser);
         return new BabelDownloaderRequestBody(guid, BabelDownloaderRequestBody.Tipologia.valueOf(tipologia), persona.getCodiceFiscale());
     }
     

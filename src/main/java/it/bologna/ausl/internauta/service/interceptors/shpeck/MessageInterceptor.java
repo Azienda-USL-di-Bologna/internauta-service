@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.interceptors.shpeck;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Template;
 import com.querydsl.core.types.TemplateFactory;
@@ -10,10 +11,13 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.nextsw.common.annotations.NextSdrInterceptor;
@@ -28,6 +32,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -45,10 +50,19 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
     PermissionManager permissionManager;
     
     @Autowired
+    ProjectionFactory factory;
+    
+    @Autowired
     UserInfoService userInfoService;
     
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    ObjectMapper objectMapper;
+    
+    @Autowired
+    KrintShpeckService krintShpeckService;
     
     @Override
     public Class getTargetEntityClass() {
@@ -63,6 +77,7 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
             String value = "middleware";
             String field = "tscol";
             BooleanExpression booleanTemplate = Expressions.booleanTemplate("FUNCTION('fts_match', italian, {0}, {1})= true", Expressions.stringPath(value), QMessage.message.tscol);
+            super.getAuthenticatedUserProperties();
             return initialPredicate;
             
 //        List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
@@ -139,4 +154,27 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
             throw new Http403ResponseException("1", "Non hai il permesso di eliminare mail");
         }
     }
+
+    @Override
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        
+        Message message = (Message) entity;
+        Message mBefore = (Message) beforeUpdateEntity;
+        
+        // Se ho cambiato il seen lo loggo
+        if(mainEntity && (mBefore.getSeen() != message.getSeen()) && KrintUtils.doIHaveToKrint(request)){
+            if(message.getSeen()){
+                // ha settato "Letto"
+                krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_LETTO);
+            } else {
+                // ha settato "da leggere"
+                krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_DA_LEGGERE);
+            }
+        }
+        
+        return entity;
+               
+    }
+    
+    
 }

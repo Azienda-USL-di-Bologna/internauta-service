@@ -36,14 +36,14 @@ public class InternautaConstants {
     public static class Configurazione {
 
         public enum ParametriAzienda {
-            crossUrlTemplate
+            crossUrlTemplate, // è nel json di baborg.aziende (colonna parametri) TODO: andrebberso spostati tutti in configurazione.parametri_aziende
         }
     }
 
     public static class AdditionalData {
 
         public enum Keys {
-            OperationRequested, idPec, idAzienda, idStruttura
+            OperationRequested, idPec, idAzienda, idStruttura, idPersona
         }
 
         public enum OperationsRequested {
@@ -53,9 +53,12 @@ public class InternautaConstants {
             FilterPecPerPermissionOfSubject,
             AddPermissionsOnPec,
             AddGestoriOnPec,
+            LoadDataPerInterfacciaElencoPec,
             FilterPecPerStandardPermissions,
             GetUltimoStatoRibaltone,
-            CambioUtente
+            CambioUtente,
+            GetAmministrazioneMessaggiAttivi,
+            GetAmministrazioneMessaggiStorico
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
@@ -80,7 +83,8 @@ public class InternautaConstants {
     public static class HttpSessionData {
 
         public enum Keys {
-            PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject, UtenteLogin, IdSessionLog
+            PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject, UtenteLogin, IdSessionLog,
+            KRINT_ROWS, KRINT_ERRORS
         }
     }
     
@@ -89,5 +93,14 @@ public class InternautaConstants {
             PROTOCOLLA_PEC_NEW, PROTOCOLLA_PEC_ADD, ARCHIVE_MESSAGE
         }
     }
+    
+    public static class Krint {
+        
+        public enum PermessiKey {
+            permessiPec, permessiFlusso
+        }
+        
+    }
+    
     
 }
