@@ -107,7 +107,7 @@ public class IntimusUtils {
     }
     public class DestObject {
         @JsonProperty("id_persona")
-        private String idPersona;
+        private Integer idPersona;
         
         @JsonProperty("id_aziende")
         private Integer[] idAziende;
@@ -115,17 +115,17 @@ public class IntimusUtils {
         @JsonProperty("apps")
         private String apps[];
 
-        public DestObject(String idPersona, Integer[] idAziende, String[] apps) {
+        public DestObject(Integer idPersona, Integer[] idAziende, String[] apps) {
             this.idPersona = idPersona;
             this.idAziende = idAziende;
             this.apps = apps;
         }
 
-        public String getIdPersona() {
+        public Integer getIdPersona() {
             return idPersona;
         }
 
-        public void setIdPersona(String idPersona) {
+        public void setIdPersona(Integer idPersona) {
             this.idPersona = idPersona;
         }
 
@@ -207,14 +207,38 @@ public class IntimusUtils {
 
     public class ShowMessageParams implements CommandParams {
 
+        private Integer messageId;
         private String title;
         private String body;
-        private AmministrazioneMessaggio.SeveritaEnum severita;
+        private AmministrazioneMessaggio.SeveritaEnum severity;
+        private Boolean rescheduleAllowed;
+        private Integer rescheduleInterval;
+        private Boolean saveSeenMessage;
 
-        public ShowMessageParams(String title, String body, AmministrazioneMessaggio.SeveritaEnum severita) {
+        public ShowMessageParams(Integer messageId, String title, String body, AmministrazioneMessaggio.SeveritaEnum severity, Boolean rescheduleAllowed, Integer rescheduleInterval, Boolean saveSeenMessage) {
+            this.messageId = messageId;
             this.title = title;
             this.body = body;
-            this.severita = severita;
+            this.severity = severity;
+            this.rescheduleAllowed = rescheduleAllowed;
+            this.rescheduleInterval = rescheduleInterval;
+            this.saveSeenMessage = saveSeenMessage;
+        }
+
+        public Integer getMessageId() {
+            return messageId;
+        }
+
+        public void setMessageId(Integer messageId) {
+            this.messageId = messageId;
+        }
+
+        public AmministrazioneMessaggio.SeveritaEnum getSeverity() {
+            return severity;
+        }
+
+        public void setSeverity(AmministrazioneMessaggio.SeveritaEnum severity) {
+            this.severity = severity;
         }
 
         public String getTitle() {
@@ -234,11 +258,35 @@ public class IntimusUtils {
         }
 
         public AmministrazioneMessaggio.SeveritaEnum getSeverita() {
-            return severita;
+            return severity;
         }
 
-        public void setSeverita(AmministrazioneMessaggio.SeveritaEnum severita) {
-            this.severita = severita;
+        public void setSeverita(AmministrazioneMessaggio.SeveritaEnum severity) {
+            this.severity = severity;
+        }
+
+        public Boolean getRescheduleAllowed() {
+            return rescheduleAllowed;
+        }
+
+        public void setRescheduleAllowed(Boolean rescheduleAllowed) {
+            this.rescheduleAllowed = rescheduleAllowed;
+        }
+
+        public Integer getRescheduleInterval() {
+            return rescheduleInterval;
+        }
+
+        public void setRescheduleInterval(Integer rescheduleInterval) {
+            this.rescheduleInterval = rescheduleInterval;
+        }
+
+        public Boolean getSaveSeenMessage() {
+            return saveSeenMessage;
+        }
+
+        public void setSaveSeenMessage(Boolean saveSeenMessage) {
+            this.saveSeenMessage = saveSeenMessage;
         }
     }
 
@@ -261,9 +309,9 @@ public class IntimusUtils {
                 for (Integer idStruttura: amministrazioneMessaggio.getIdStrutture()) {
                     Struttura struttura = cachedEntities.getStruttura(idStruttura);
                     for (UtenteStruttura utenteStruttura: struttura.getUtenteStrutturaList()) {
-                        String idPersona = String.valueOf(cachedEntities.getPersonaFromIdUtente(utenteStruttura.getIdUtente().getId()).getId());
-                        Integer[] idAziende = new Integer[] {cachedEntities.getAziendaFromIdUtente(utenteStruttura.getIdUtente().getId()).getId()};
-                        DestObject destObject = new DestObject(idPersona, idAziende, apps);
+                        Integer idPersona = cachedEntities.getPersonaFromIdUtente(utenteStruttura.getIdUtente().getId()).getId();
+                        // Integer[] idAziende = new Integer[] {cachedEntities.getAziendaFromIdUtente(utenteStruttura.getIdUtente().getId()).getId()};
+                        DestObject destObject = new DestObject(idPersona, null, apps);
                         addDestIfNotExist(dests, destObject);
                     }
                 }
@@ -273,18 +321,27 @@ public class IntimusUtils {
                 DestObject destObject = new DestObject(null, idAziende, apps);
                 addDestIfNotExist(dests, destObject);
             }
-            if (amministrazioneMessaggio.getIdUtenti() != null && amministrazioneMessaggio.getIdUtenti().length > 0) {
-                for (Integer idUtente : amministrazioneMessaggio.getIdUtenti()) {
-                    String idPersona = String.valueOf(cachedEntities.getPersonaFromIdUtente(idUtente).getId());
-                    Integer[] idAziende = new Integer[] {cachedEntities.getAziendaFromIdUtente(idUtente).getId()};                    
-                    DestObject destObject = new DestObject(idPersona, idAziende, apps);
+            if (amministrazioneMessaggio.getIdPersone() != null && amministrazioneMessaggio.getIdPersone().length > 0) {
+                for (Integer idPersona : amministrazioneMessaggio.getIdPersone()) {
+                    // TODO: mo c'è l'idPersona
+                    // Integer idPersona = cachedEntities.getPersona(idPersona).getId();
+//                    Integer[] idAziende = new Integer[] {cachedEntities.getAziendaFromIdUtente(idUtente).getId()};                    
+                    DestObject destObject = new DestObject(idPersona, null, apps);
                     addDestIfNotExist(dests, destObject);
                 }
             }
             
         }
         
-        ShowMessageParams params = new ShowMessageParams("Attenzione", amministrazioneMessaggio.getTesto(), amministrazioneMessaggio.getSeverita());
+        Boolean rescheduleAllowed = amministrazioneMessaggio.getTipologia() == AmministrazioneMessaggio.TipologiaEnum.CONSENTI_SCELTA;
+        Boolean saveSeenMessage = amministrazioneMessaggio.getTipologia() == AmministrazioneMessaggio.TipologiaEnum.CONSENTI_SCELTA || amministrazioneMessaggio.getTipologia() == AmministrazioneMessaggio.TipologiaEnum.MOSTRA_UNA_SOLA_VOLTA;
+        ShowMessageParams params = new ShowMessageParams(
+                amministrazioneMessaggio.getId(), "Attenzione",
+                amministrazioneMessaggio.getTesto(),
+                amministrazioneMessaggio.getSeverita(),
+                rescheduleAllowed,
+                amministrazioneMessaggio.getIntervallo() * 60,
+                saveSeenMessage);
         return buildIntimusCommand(dests, params, IntimusCommandNames.ShowMessage);
     }
     
