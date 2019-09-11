@@ -61,7 +61,8 @@ public class RequestInterceptor extends HandlerInterceptorAdapter{
             }
             
         } else {
-            // LOGGER.error(excptn);
+            LOGGER.error("Rilevata eccezione nel afterCompletion del RequestInterceptor");
+            LOGGER.error(excptn.toString());
         }
         
         // TODO: capire se il reset map va qui o dentro l'if

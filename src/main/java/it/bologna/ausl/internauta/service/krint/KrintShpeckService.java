@@ -60,7 +60,6 @@ public class KrintShpeckService {
             String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
             
             krintService.writeKrintRow(
-                Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
@@ -95,7 +94,6 @@ public class KrintShpeckService {
             String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
             
             krintService.writeKrintRow(
-                Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
@@ -134,7 +132,6 @@ public class KrintShpeckService {
             String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
             
             krintService.writeKrintRow(
-                Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
@@ -169,7 +166,6 @@ public class KrintShpeckService {
             String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
 
             krintService.writeKrintRow(
-                Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
@@ -211,7 +207,6 @@ public class KrintShpeckService {
             String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
 
             krintService.writeKrintRow(
-                Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
@@ -246,7 +241,6 @@ public class KrintShpeckService {
             String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
 
             krintService.writeKrintRow(
-                Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
@@ -287,7 +281,6 @@ public class KrintShpeckService {
             String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
 
             krintService.writeKrintRow(
-                Applicazione.Applicazioni.shpeck,
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
@@ -322,7 +315,6 @@ public class KrintShpeckService {
             String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
 
             krintService.writeKrintRow(
-                Applicazione.Applicazioni.shpeck,
                 draft.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_DRAFT,
                 draft.getId().toString(),
@@ -357,7 +349,6 @@ public class KrintShpeckService {
             String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
 
             krintService.writeKrintRow(
-                Applicazione.Applicazioni.shpeck,
                 outbox.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_OUTBOX,
                 outbox.getId().toString(),
@@ -392,7 +383,6 @@ public class KrintShpeckService {
             String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
 
             krintService.writeKrintRow(
-                Applicazione.Applicazioni.shpeck,
                 folder.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_FOLDER,
                 folder.getId().toString(),
@@ -427,7 +417,6 @@ public class KrintShpeckService {
             String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
 
             krintService.writeKrintRow(
-                Applicazione.Applicazioni.shpeck,
                 tag.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_TAG,
                 tag.getId().toString(),

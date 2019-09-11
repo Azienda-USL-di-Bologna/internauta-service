@@ -54,7 +54,6 @@ public class KrintService {
     
     
     public void writeKrintRow(
-            Applicazione.Applicazioni applicazione,
             String idOggetto, 
             Krint.TipoOggettoKrint tipoOggetto, 
             String descrizioneOggetto, 
@@ -71,8 +70,8 @@ public class KrintService {
             Integer idSessione = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getIdSessionLog(); // TODO: mettere idSessione corretto
             KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
             String jsonKrintInformazioniUtente = objectMapper.writeValueAsString(krintInformazioniUtente);                
-
-            Krint krint = new Krint(idSessione, applicazione, utente.getId(), utente.getIdPersona().getDescrizione(), jsonKrintInformazioniUtente);
+            
+            Krint krint = new Krint(idSessione, authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getApplicazione(), utente.getId(), utente.getIdPersona().getDescrizione(), jsonKrintInformazioniUtente);
 
             // recupero l'operazioneVersionata con quel codiceOperazione e con la versione più alta
             OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(codiceOperazione);

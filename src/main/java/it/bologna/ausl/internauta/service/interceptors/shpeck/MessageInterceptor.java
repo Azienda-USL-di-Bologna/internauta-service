@@ -12,6 +12,7 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -161,7 +162,7 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
         Message mBefore = (Message) beforeUpdateEntity;
         
         // Se ho cambiato il seen lo loggo
-        if(mainEntity && (mBefore.getSeen() != message.getSeen())){
+        if(mainEntity && (mBefore.getSeen() != message.getSeen()) && KrintUtils.doIHaveToKrint(request)){
             if(message.getSeen()){
                 // ha settato "Letto"
                 krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_LETTO);
