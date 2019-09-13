@@ -211,18 +211,18 @@ public class IntimusUtils {
         private String title;
         private String body;
         private AmministrazioneMessaggio.SeveritaEnum severity;
-        private Boolean rescheduleAllowed;
         private Integer rescheduleInterval;
-        private Boolean saveSeenMessage;
+        private AmministrazioneMessaggio.TipologiaEnum type;
+        private AmministrazioneMessaggio.InvasivitaEnum invasivity;
 
-        public ShowMessageParams(Integer messageId, String title, String body, AmministrazioneMessaggio.SeveritaEnum severity, Boolean rescheduleAllowed, Integer rescheduleInterval, Boolean saveSeenMessage) {
+        public ShowMessageParams(Integer messageId, String title, String body, AmministrazioneMessaggio.SeveritaEnum severity, Integer rescheduleInterval, AmministrazioneMessaggio.TipologiaEnum type, AmministrazioneMessaggio.InvasivitaEnum invasivity) {
             this.messageId = messageId;
             this.title = title;
             this.body = body;
             this.severity = severity;
-            this.rescheduleAllowed = rescheduleAllowed;
             this.rescheduleInterval = rescheduleInterval;
-            this.saveSeenMessage = saveSeenMessage;
+            this.type = type;
+            this.invasivity = invasivity;
         }
 
         public Integer getMessageId() {
@@ -231,14 +231,6 @@ public class IntimusUtils {
 
         public void setMessageId(Integer messageId) {
             this.messageId = messageId;
-        }
-
-        public AmministrazioneMessaggio.SeveritaEnum getSeverity() {
-            return severity;
-        }
-
-        public void setSeverity(AmministrazioneMessaggio.SeveritaEnum severity) {
-            this.severity = severity;
         }
 
         public String getTitle() {
@@ -257,20 +249,12 @@ public class IntimusUtils {
             this.body = body;
         }
 
-        public AmministrazioneMessaggio.SeveritaEnum getSeverita() {
+        public AmministrazioneMessaggio.SeveritaEnum getSeverity() {
             return severity;
         }
 
-        public void setSeverita(AmministrazioneMessaggio.SeveritaEnum severity) {
+        public void setSeverity(AmministrazioneMessaggio.SeveritaEnum severity) {
             this.severity = severity;
-        }
-
-        public Boolean getRescheduleAllowed() {
-            return rescheduleAllowed;
-        }
-
-        public void setRescheduleAllowed(Boolean rescheduleAllowed) {
-            this.rescheduleAllowed = rescheduleAllowed;
         }
 
         public Integer getRescheduleInterval() {
@@ -281,16 +265,24 @@ public class IntimusUtils {
             this.rescheduleInterval = rescheduleInterval;
         }
 
-        public Boolean getSaveSeenMessage() {
-            return saveSeenMessage;
+        public AmministrazioneMessaggio.TipologiaEnum getType() {
+            return type;
         }
 
-        public void setSaveSeenMessage(Boolean saveSeenMessage) {
-            this.saveSeenMessage = saveSeenMessage;
+        public void setType(AmministrazioneMessaggio.TipologiaEnum type) {
+            this.type = type;
+        }
+
+        public AmministrazioneMessaggio.InvasivitaEnum getInvasivity() {
+            return invasivity;
+        }
+
+        public void setInvasivity(AmministrazioneMessaggio.InvasivitaEnum invasivity) {
+            this.invasivity = invasivity;
         }
     }
 
-    public IntimusCommand buildIntimusCommand(List<DestObject> dests, ShowMessageParams params, IntimusCommandNames intimusCommandName) {
+    public IntimusCommand buildIntimusCommand(List<DestObject> dests, CommandParams params, IntimusCommandNames intimusCommandName) {
         CommandObject commandObject = new CommandObject(params, intimusCommandName);
         IntimusCommand intimusCommand = new IntimusCommand(dests, commandObject);
 
@@ -323,7 +315,6 @@ public class IntimusUtils {
             }
             if (amministrazioneMessaggio.getIdPersone() != null && amministrazioneMessaggio.getIdPersone().length > 0) {
                 for (Integer idPersona : amministrazioneMessaggio.getIdPersone()) {
-                    // TODO: mo c'è l'idPersona
                     // Integer idPersona = cachedEntities.getPersona(idPersona).getId();
 //                    Integer[] idAziende = new Integer[] {cachedEntities.getAziendaFromIdUtente(idUtente).getId()};                    
                     DestObject destObject = new DestObject(idPersona, null, apps);
@@ -332,17 +323,19 @@ public class IntimusUtils {
             }
             
         }
-        
-        Boolean rescheduleAllowed = amministrazioneMessaggio.getTipologia() == AmministrazioneMessaggio.TipologiaEnum.CONSENTI_SCELTA;
-        Boolean saveSeenMessage = amministrazioneMessaggio.getTipologia() == AmministrazioneMessaggio.TipologiaEnum.CONSENTI_SCELTA || amministrazioneMessaggio.getTipologia() == AmministrazioneMessaggio.TipologiaEnum.MOSTRA_UNA_SOLA_VOLTA;
-        ShowMessageParams params = new ShowMessageParams(
-                amministrazioneMessaggio.getId(), "Attenzione",
+        ShowMessageParams params = buildShowMessageParams(amministrazioneMessaggio);
+        return buildIntimusCommand(dests, params, IntimusCommandNames.ShowMessage);
+    }
+    
+    public ShowMessageParams buildShowMessageParams(AmministrazioneMessaggio amministrazioneMessaggio) {
+        return new ShowMessageParams(
+                amministrazioneMessaggio.getId(), 
+                amministrazioneMessaggio.getTitolo(),
                 amministrazioneMessaggio.getTesto(),
                 amministrazioneMessaggio.getSeverita(),
-                rescheduleAllowed,
                 amministrazioneMessaggio.getIntervallo() * 60,
-                saveSeenMessage);
-        return buildIntimusCommand(dests, params, IntimusCommandNames.ShowMessage);
+                amministrazioneMessaggio.getTipologia(),
+                amministrazioneMessaggio.getInvasivita());
     }
     
     public void sendCommand(IntimusCommand intimusCommand) throws IntimusSendCommandException {
