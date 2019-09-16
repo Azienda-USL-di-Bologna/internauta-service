@@ -471,7 +471,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     /*
      * Condizioni per l'UPDATE.
      * Il CI può fare l'UPDATE su qualsiasi PEC.
-     * Il CA può fare l'UPDATE sulle PEC che sono associate alla azienda di cui è CA e le stesse non devono essere associate con altre aziende.
+     * Il CA può fare l'UPDATE sulle PEC che sono associate a nessuna'azienda o a ameno un azienda di cui lui è CA
      * -- TODO: Condizione attualmente non vera: Oppure il CA può fare l'UPDATE se sta intervenendo solo su pecAziendaList. (Quali aziende ha aggiunto/cancellato lo controllo nel PecAziendaInterceptor)
      * In qualsiasi altro caso l'UPDATE è impedito.
      */
@@ -480,8 +480,9 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Pec");
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         
-        // devo utilizzare l'entità prima dell'update, perchè potrei proprio star modificando le aziende associate
-        Pec pecBefore = (Pec) beforeUpdateEntity;
+        // dovrei utilizzare la beforeUpdateEntity, perchè potrei star modificando proprio le aziende associate
+        // ma non posso perchè non ha getPecAziendaList caricata. 
+        Pec pec = (Pec) entity;
         
         // Se non ho diritti particolari su impedisco l'update. 
         // sono gli stessi controlli dell afterSelect, quando decido se settare la pw a null
@@ -498,7 +499,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                 // la pec non ha aziende associaote, oppure 
                 // pecAziendaList  contiene almeno un'azienda a su cui sono CA 
                 // sono CA di qualche azienda                         
-                List<Integer> idAziendePec = pecBefore.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
+                List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
                 if(idAziendePec != null && !idAziendePec.isEmpty()){                 
                     if(Collections.disjoint(idAziendePec, idAziendeCA)){  
                         // Non sono CA  neanche un'azienda associata con la PEC
