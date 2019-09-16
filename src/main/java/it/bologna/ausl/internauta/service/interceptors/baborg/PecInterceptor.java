@@ -482,26 +482,32 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         
         Pec pec = (Pec) entity;
         
+        // Se non ho diritti particolari su impedisco l'update. 
+        // sono gli stessi controlli dell afterSelect, quando decido se settare la pw a null
         if (!isCI(authenticatedSessionData.getUser())) {
             Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
-            
+            // se non sono CI
             if (idAziendeCA == null || idAziendeCA.isEmpty()) {
                 // Non sono ne CA ne CI fermo tutto.
                 throw new AbortSaveInterceptorException();
             } else {
                 // Qui devo controllare che la pec sia attaccata ad aziende di cui sono CA, oppure che non sia attaccata ad alcuna azienda.
-                // Se pecAziendaList è conenuta nella lista di aziendeCA l'UPDATE è permesso.
+                // l'UPDATE è permesso se:
+                // la pec non ha aziende associaote, oppure 
+                // pecAziendaList  contiene almeno un'azienda a su cui sono CA 
+                // sono CA di qualche azienda                         
                 List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
-                
-                if (!idAziendeCA.containsAll(idAziendePec)) {
-                    // Non sono CA di tutte le aziende associate con la PEC
-                    // TODO: Quando avremo il Clone() nuovo delle entiries dovrà valere: L'UPDATE è permesso solo se non sto cambiando alcun campo tranne la pecAziendaList.
-                    throw new AbortSaveInterceptorException();
-                }
-                
+                if(idAziendePec != null && !idAziendePec.isEmpty()){                 
+                    if(Collections.disjoint(idAziendePec, idAziendeCA)){  
+                        // Non sono CA  neanche un'azienda associata con la PEC
+                        // TODO: Quando avremo il Clone() nuovo delle entiries dovrà valere: L'UPDATE è permesso solo se non sto cambiando alcun campo tranne la pecAziendaList.
+                        throw new AbortSaveInterceptorException();
+                    }
+                }                
             }
         }
+                
         
         return entity;
     }
