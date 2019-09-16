@@ -480,7 +480,8 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Pec");
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         
-        Pec pec = (Pec) entity;
+        // devo utilizzare l'entità prima dell'update, perchè potrei proprio star modificando le aziende associate
+        Pec pecBefore = (Pec) beforeUpdateEntity;
         
         // Se non ho diritti particolari su impedisco l'update. 
         // sono gli stessi controlli dell afterSelect, quando decido se settare la pw a null
@@ -497,7 +498,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                 // la pec non ha aziende associaote, oppure 
                 // pecAziendaList  contiene almeno un'azienda a su cui sono CA 
                 // sono CA di qualche azienda                         
-                List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
+                List<Integer> idAziendePec = pecBefore.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
                 if(idAziendePec != null && !idAziendePec.isEmpty()){                 
                     if(Collections.disjoint(idAziendePec, idAziendeCA)){  
                         // Non sono CA  neanche un'azienda associata con la PEC
