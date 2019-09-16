@@ -405,16 +405,20 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         
         //Se non ho diritti particolari su una pec metto la password a null
         if (!isCI(authenticatedSessionData.getUser())) {
+            // se non sono CI
             Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
-            List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
-            
+            List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());                        
             if (idAziendeCA == null || idAziendeCA.isEmpty()) {
+                // se non sono CA di nessun'azienda, non mostro la password
                 pec.setPassword(null);
             } else {
+                // sono CA di qualche azienda                         
                 List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
-                
-                if (!idAziendeCA.containsAll(idAziendePec)) {
-                    pec.setPassword(null);
+                if(idAziendePec != null && !idAziendePec.isEmpty()){                 
+                    if(Collections.disjoint(idAziendePec, idAziendeCA)){      
+                        // setto a null se non sono CA di neanche un'azienda associata alla pec
+                        pec.setPassword(null);
+                    }
                 }
             }
         }
@@ -467,7 +471,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     /*
      * Condizioni per l'UPDATE.
      * Il CI può fare l'UPDATE su qualsiasi PEC.
-     * Il CA può fare l'UPDATE sulle PEC che sono associate alla azienda di cui è CA e le stesse non devono essere associate con altre aziende.
+     * Il CA può fare l'UPDATE sulle PEC che sono associate a nessuna'azienda o a ameno un azienda di cui lui è CA
      * -- TODO: Condizione attualmente non vera: Oppure il CA può fare l'UPDATE se sta intervenendo solo su pecAziendaList. (Quali aziende ha aggiunto/cancellato lo controllo nel PecAziendaInterceptor)
      * In qualsiasi altro caso l'UPDATE è impedito.
      */
@@ -476,28 +480,36 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Pec");
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         
+        // dovrei utilizzare la beforeUpdateEntity, perchè potrei star modificando proprio le aziende associate
+        // ma non posso perchè non ha getPecAziendaList caricata. 
         Pec pec = (Pec) entity;
         
+        // Se non ho diritti particolari su impedisco l'update. 
+        // sono gli stessi controlli dell afterSelect, quando decido se settare la pw a null
         if (!isCI(authenticatedSessionData.getUser())) {
             Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
-            
+            // se non sono CI
             if (idAziendeCA == null || idAziendeCA.isEmpty()) {
                 // Non sono ne CA ne CI fermo tutto.
                 throw new AbortSaveInterceptorException();
             } else {
                 // Qui devo controllare che la pec sia attaccata ad aziende di cui sono CA, oppure che non sia attaccata ad alcuna azienda.
-                // Se pecAziendaList è conenuta nella lista di aziendeCA l'UPDATE è permesso.
+                // l'UPDATE è permesso se:
+                // la pec non ha aziende associaote, oppure 
+                // pecAziendaList  contiene almeno un'azienda a su cui sono CA 
+                // sono CA di qualche azienda                         
                 List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
-                
-                if (!idAziendeCA.containsAll(idAziendePec)) {
-                    // Non sono CA di tutte le aziende associate con la PEC
-                    // TODO: Quando avremo il Clone() nuovo delle entiries dovrà valere: L'UPDATE è permesso solo se non sto cambiando alcun campo tranne la pecAziendaList.
-                    throw new AbortSaveInterceptorException();
-                }
-                
+                if(idAziendePec != null && !idAziendePec.isEmpty()){                 
+                    if(Collections.disjoint(idAziendePec, idAziendeCA)){  
+                        // Non sono CA  neanche un'azienda associata con la PEC
+                        // TODO: Quando avremo il Clone() nuovo delle entiries dovrà valere: L'UPDATE è permesso solo se non sto cambiando alcun campo tranne la pecAziendaList.
+                        throw new AbortSaveInterceptorException();
+                    }
+                }                
             }
         }
+                
         
         return entity;
     }
