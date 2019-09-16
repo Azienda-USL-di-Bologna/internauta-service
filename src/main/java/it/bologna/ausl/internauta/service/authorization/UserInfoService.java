@@ -294,9 +294,9 @@ public class UserInfoService {
             ancheByRuolo = true;
         Map<String, List<String>> mapAziendeRuoli = new HashMap<>();
         
-        if(persona.getUtenteList() == null){
+//        if(persona.getUtenteList() == null){
             persona.setUtenteList(getUtentiPersona(persona));
-        }
+//        }
 
         // popolo mappa azienda->listaRuoli
         mapAziendeRuoli = persona.getUtenteList().stream().collect(
