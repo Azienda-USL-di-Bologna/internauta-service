@@ -1,13 +1,22 @@
 package it.bologna.ausl.internauta.service.schedulers;
 
+import com.google.common.collect.Lists;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.BooleanTemplate;
+import com.querydsl.core.types.dsl.Expressions;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.messaggero.AmministrazioneMessaggioRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.messagesender.MessageSenderWorker;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.QAzienda;
+import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
 import it.bologna.ausl.model.entities.messaggero.QAmministrazioneMessaggio;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -34,6 +43,9 @@ public class MessageSenderManager {
     
     @Autowired
     BeanFactory beanFactory;
+    
+    @Autowired
+    PersonaRepository personaRepository;
     
     private final Map<Integer, ScheduledFuture> messageThreadsMap = new HashMap();
 
@@ -63,9 +75,7 @@ public class MessageSenderManager {
     public ScheduledFuture<?> scheduleMessage(AmministrazioneMessaggio message, LocalDateTime now) {
         if (message.getDataScadenza() == null || message.getDataScadenza().isAfter(now)) {
             if (this.messageThreadsMap.get(message.getId()) != null) {
-                ScheduledFuture scheduledMessage = this.messageThreadsMap.get(message.getId());
-                scheduledMessage.cancel(false);
-                this.messageThreadsMap.remove(message.getId());
+                stopSchedule(message);
             }
             MessageSenderWorker messageSenderWorker = beanFactory.getBean(MessageSenderWorker.class);
             messageSenderWorker.setMessaggio(message);
@@ -97,6 +107,18 @@ public class MessageSenderManager {
             ScheduledFuture scheduledMessage = this.messageThreadsMap.get(message.getId());
             scheduledMessage.cancel(false);
             this.messageThreadsMap.remove(message.getId());
+            purgeSeenFromPersone(message);
         }
+    }
+    
+    private void purgeSeenFromPersone(AmministrazioneMessaggio message) {
+        BooleanTemplate whoAsSeenThisMessage = Expressions.booleanTemplate("arraycontains({0}, tools.string_to_integer_array({1}, ','))=true", QPersona.persona.messaggiVisti, String.valueOf(message.getId()));
+        Iterable<Persona> persons = personaRepository.findAll(whoAsSeenThisMessage);
+        for (Persona person : persons) {
+            List<Integer> seenMessages = Lists.newArrayList(person.getMessaggiVisti());
+            seenMessages.remove(message.getId());
+            person.setMessaggiVisti(seenMessages.toArray(new Integer[0]));
+        }
+        personaRepository.saveAll(persons);
     }
 }
