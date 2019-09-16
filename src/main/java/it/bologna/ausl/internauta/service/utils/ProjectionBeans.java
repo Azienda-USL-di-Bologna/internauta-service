@@ -235,7 +235,6 @@ public class ProjectionBeans {
         AziendaParametriJson parametriAziendaDestinazione = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String crossLoginUrlTemplate = parametriAziendaDestinazione.getCrossLoginUrlTemplate();
         String commonStringToEncode = commonStringToEncode(utente, FROM);
-//        crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm[encoded-params]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
         
         addRegistrationUrlCommands(result, commonStringToEncode, parametriAziendaLogin, parametriAziendaDestinazione, crossLoginUrlTemplate);
         addArchiveUrlCommands(result, commonStringToEncode, parametriAziendaLogin, parametriAziendaDestinazione, crossLoginUrlTemplate);
