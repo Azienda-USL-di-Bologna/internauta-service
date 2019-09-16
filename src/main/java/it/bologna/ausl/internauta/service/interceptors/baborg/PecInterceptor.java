@@ -405,16 +405,20 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         
         //Se non ho diritti particolari su una pec metto la password a null
         if (!isCI(authenticatedSessionData.getUser())) {
+            // se non sono CI
             Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
-            List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
-            
+            List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());                        
             if (idAziendeCA == null || idAziendeCA.isEmpty()) {
+                // se non sono CA di nessun'azienda, non mostro la password
                 pec.setPassword(null);
             } else {
+                // sono CA di qualche azienda                         
                 List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
-                
-                if (!idAziendeCA.containsAll(idAziendePec)) {
-                    pec.setPassword(null);
+                if(idAziendePec != null && !idAziendePec.isEmpty()){                 
+                    if(Collections.disjoint(idAziendePec, idAziendeCA)){      
+                        // setto a null se non sono CA di neanche un'azienda associata alla pec
+                        pec.setPassword(null);
+                    }
                 }
             }
         }
