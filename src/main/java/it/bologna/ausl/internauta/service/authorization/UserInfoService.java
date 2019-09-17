@@ -396,7 +396,7 @@ public class UserInfoService {
     public void getUtentiPersonaRemoveCache(Persona persona) {
     }
     
-    @Cacheable(value = "getUtenteStrutturaList__ribaltorg__", key = "{#persona.getId()}")
+    @Cacheable(value = "getUtenteStrutturaList__ribaltorg__", key = "{#utente.getId()}")
     public List<UtenteStruttura> getUtenteStrutturaList(Utente utente) {
         Utente refreshedUtente = utenteRepository.getOne(utente.getId());
         return refreshedUtente.getUtenteStrutturaList();
