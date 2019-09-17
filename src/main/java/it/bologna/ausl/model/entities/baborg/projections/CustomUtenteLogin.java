@@ -39,7 +39,7 @@ public interface CustomUtenteLogin extends UtenteWithIdPersona {
     @Override
     public CustomUtenteLogin getUtenteReale();
 
-    @Value("#{@userInfoService.getRuoliUtentiPersona(target)}")
+    @Value("#{@userInfoService.getRuoliUtentiPersona(target, true)}")
     @Override
     public Map<String, List<Ruolo>> getRuoliUtentiPersona();
 

@@ -4,10 +4,13 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
@@ -39,6 +42,9 @@ public class DraftInterceptor extends InternautaBaseInterceptor {
     @Autowired
     UserInfoService userInfoService;
     
+    @Autowired
+    private KrintShpeckService krintShpeckService;
+    
     @Override
     public Class getTargetEntityClass() {
         return Draft.class;
@@ -53,10 +59,21 @@ public class DraftInterceptor extends InternautaBaseInterceptor {
         } catch (BlackBoxPermissionException | Http403ResponseException ex) {
             throw new AbortSaveInterceptorException();
         }
-
+              
         return entity;
     }
 
+    @Override
+    public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        Draft draft = (Draft) entity;
+        
+        if (KrintUtils.doIHaveToKrint(request)) {
+            krintShpeckService.writeDraft(draft, OperazioneKrint.CodiceOperazione.PEC_DRAFT_CREAZIONE);
+        }
+        
+        return entity;
+    }
+    
     @Override
     public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         Draft draft = (Draft) entity;
@@ -64,6 +81,9 @@ public class DraftInterceptor extends InternautaBaseInterceptor {
             lanciaEccezioneSeNonHaPermessoDiNuovaMail(draft);
         } catch (BlackBoxPermissionException | Http403ResponseException ex) {
             throw new AbortSaveInterceptorException();
+        }
+        if (KrintUtils.doIHaveToKrint(request)) {
+            krintShpeckService.writeDraft(draft, OperazioneKrint.CodiceOperazione.PEC_DRAFT_CANCELLAZIONE);
         }
         super.beforeDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }

@@ -6,6 +6,8 @@ import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomController;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
+import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
@@ -50,7 +52,10 @@ import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import java.util.List;
+import javax.mail.Message.RecipientType;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  *
@@ -90,6 +95,9 @@ public class ShpeckUtils {
 
     @Autowired
     private ApplicazioneRepository applicazioneRepository;
+    
+    @Autowired
+    private KrintShpeckService krintShpeckService;
 
     /**
      * usato da {@link #downloadEml(EmlSource, Integer)} per reperire l'eml
@@ -102,7 +110,7 @@ public class ShpeckUtils {
     }
 
     public MimeMessage buildMimeMessage(String from, String[] to, String[] cc, String body, String subject,
-            ArrayList<EmlHandlerAttachment> listAttachments, ArrayList<EmlHandlerAttachment> emlAttachments, 
+            ArrayList<EmlHandlerAttachment> listAttachments, ArrayList<EmlHandlerAttachment> emlAttachments,
             String hostname, Draft draftMessage) throws AddressException, IOException, MessagingException, EmlHandlerException, BadParamsException {
         LOG.info("Creating the sender address...");
         Address fromAddress = new InternetAddress(from);
@@ -128,7 +136,7 @@ public class ShpeckUtils {
         if (!emlAttachments.isEmpty()) {
             listAttachmentsTemp.addAll(emlAttachments);
         }
-       
+
         LOG.info("Fields ready, building mime message...");
         Properties props = null;
         if (hostname.equals("localhost")) {
@@ -167,7 +175,7 @@ public class ShpeckUtils {
     public void saveDraft(Draft draftMessage, Pec pec, String subject, String[] to, String[] cc,
             Boolean hideRecipients, ArrayList<EmlHandlerAttachment> listAttachments, String body,
             MimeMessage mimeMessage, Integer idMessageRelated, MessageRelatedType messageRelatedType,
-            ArrayList<EmlHandlerAttachment> emlAttachments) throws MessagingException, IOException {
+            ArrayList<EmlHandlerAttachment> emlAttachments, HttpServletRequest request) throws MessagingException, IOException {
 
         try {
             draftMessage.setIdPec(pec);
@@ -182,7 +190,7 @@ public class ShpeckUtils {
             if (!emlAttachments.isEmpty()) {
                 listTemp.addAll(emlAttachments);
             }
-            draftMessage.setAttachmentsNumber(listTemp.size());            
+            draftMessage.setAttachmentsNumber(listTemp.size());
             draftMessage.setAttachmentsName(listTemp.stream()
                     .map(EmlHandlerAttachment::getFileName).toArray(size -> new String[size]));
             LOG.info("Attachments converted!");
@@ -205,6 +213,9 @@ public class ShpeckUtils {
             }
             LOG.info("Message ready. Saving...");
             draftMessage = draftRepository.save(draftMessage);
+            if (KrintUtils.doIHaveToKrint(request)) {
+                krintShpeckService.writeDraft(draftMessage, OperazioneKrint.CodiceOperazione.PEC_DRAFT_MODIFICA);
+            }
         } catch (IOException ex) {
             LOG.error("Error while saving message");
             throw new IOException("Error while saving message", ex);
@@ -231,11 +242,18 @@ public class ShpeckUtils {
      * Invia il messaggio allo shpeck
      *
      * @param pec La casella Pec mittente
+     * @param subject
+     * @param hiddenRecipients
      * @param mimeMessage Il MimeMessage da inviare
+     * @param listAttachments
+     * @param emlAttachments
+     * @param body
      * @throws MessagingException
      * @throws IOException
      */
-    public void sendMessage(Pec pec, MimeMessage mimeMessage) throws IOException, MessagingException {
+    public void sendMessage(Pec pec, String subject, Boolean hiddenRecipients, String body,
+            ArrayList<EmlHandlerAttachment> listAttachments, ArrayList<EmlHandlerAttachment> emlAttachments,
+            MimeMessage mimeMessage, HttpServletRequest request) throws IOException, MessagingException {
         Outbox outboxMessage = new Outbox();
         Applicazione shpeckApp = applicazioneRepository.getOne("shpeck");
         try {
@@ -245,7 +263,38 @@ public class ShpeckUtils {
             String rawEmail = output.toString();
             outboxMessage.setRawData(rawEmail);
             outboxMessage.setIdApplicazione(shpeckApp);
+
+            outboxMessage.setSubject(subject);
+            outboxMessage.setHiddenRecipients(hiddenRecipients);
+            outboxMessage.setUpdateTime(LocalDateTime.now());
+            ArrayList<EmlHandlerAttachment> listTemp = new ArrayList<>(listAttachments);
+            if (!emlAttachments.isEmpty()) {
+                listTemp.addAll(emlAttachments);
+            }
+            outboxMessage.setAttachmentsName(listTemp.stream().map(EmlHandlerAttachment::getFileName).toArray(size -> new String[size]));
+            outboxMessage.setAttachmentsNumber(listTemp.size());
+            outboxMessage.setBody(body);
+
+            Address[] toRecipients = mimeMessage.getRecipients(RecipientType.TO);
+            String[] toAddress = new String[toRecipients.length];
+            for (int i = 0; i < toRecipients.length; i++) {
+                toAddress[i] = toRecipients[i].toString();
+            }
+            outboxMessage.setToAddresses(toAddress);
+
+            Address[] ccRecipients = mimeMessage.getRecipients(RecipientType.CC);
+            if (ccRecipients != null && ccRecipients.length > 0) {
+                String[] ccAddress = new String[ccRecipients.length];
+                for (int c = 0; c < ccRecipients.length; c++) {
+                    ccAddress[c] = ccRecipients[c].toString();
+                }
+                outboxMessage.setCcAddresses(ccAddress);
+            }
+
             outboxMessage = outboxRepository.save(outboxMessage);
+            if (KrintUtils.doIHaveToKrint(request)) {
+                krintShpeckService.writeOutboxMessage(outboxMessage, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_INVIO_NUOVA_MAIL);
+            }
         } catch (EntityNotFoundException ex) {
             LOG.error("Element not found!", ex);
             throw new EntityNotFoundException("Element not found!");
@@ -277,7 +326,7 @@ public class ShpeckUtils {
                 file.setFileName(attachment.getOriginalFilename());
                 String contentType = attachment.getContentType();
                 // Se il content type ha le virgolette a destra e sinistra gliele tolgo.
-                if (contentType != null && contentType.substring(0, 1).equals("\"") && contentType.substring(contentType.length() - 1).equals("\"") ) {
+                if (contentType != null && contentType.substring(0, 1).equals("\"") && contentType.substring(contentType.length() - 1).equals("\"")) {
                     contentType = contentType.substring(1, contentType.length() - 1);
                 }
                 file.setMimeType(contentType);
@@ -296,21 +345,26 @@ public class ShpeckUtils {
      * inoltrando
      * @param messageRelatedType Tipo di relazione del messaggio relazionato
      */
-    public void setTagsToMessage(Pec pec, Integer idMessageRelated, MessageRelatedType messageRelatedType) {
+    public void setTagsToMessage(Pec pec, Integer idMessageRelated, MessageRelatedType messageRelatedType, HttpServletRequest request) {
         LOG.info("Getting message...");
         Message messageRelated = messageRepository.getOne(idMessageRelated);
         Tag tag = new Tag();
-
+        
+        OperazioneKrint.CodiceOperazione operazione = null;
+        
         LOG.info("Getting tag to apply...");
         switch (messageRelatedType) {
             case REPLIED:
                 tag = tagRepository.findByidPecAndName(pec, SystemTagName.replied.toString());
+                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA;
                 break;
             case REPLIED_ALL:
                 tag = tagRepository.findByidPecAndName(pec, SystemTagName.replied_all.toString());
+                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA_A_TUTTI;
                 break;
             case FORWARDED:
                 tag = tagRepository.findByidPecAndName(pec, SystemTagName.forwarded.toString());
+                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_INOLTRO;
                 break;
         }
         LOG.info("Check if tag is already present");
@@ -322,9 +376,12 @@ public class ShpeckUtils {
             messageTag.setIdTag(tag);
             messageTag.setInserted(LocalDateTime.now());
             messageTagRepository.save(messageTag);
-            LOG.info("Tag applied!");    
+            if (KrintUtils.doIHaveToKrint(request)) {
+                krintShpeckService.writeReplyToMessage(messageRelated, operazione);
+            }
+            LOG.info("Tag applied!");
         } else {
-            LOG.info("Tag already present, skip applying!"); 
+            LOG.info("Tag already present, skip applying!");
         }
     }
 
@@ -392,11 +449,15 @@ public class ShpeckUtils {
     }
 
     /**
-     * Estra gli allegati dall'eml di una bozza oppure da un messaggio sul repository se la relazione è Inoltra
+     * Estra gli allegati dall'eml di una bozza oppure da un messaggio sul
+     * repository se la relazione è Inoltra
+     *
      * @param draftMessage La bozza dal quale estrarre gli allegati
-     * @param idMessageRelated L'id del messaggio correlato salvato sul repository
+     * @param idMessageRelated L'id del messaggio correlato salvato sul
+     * repository
      * @param messageRelatedType Tipo di relazione del messaggio
-     * @param idMessageRelatedAttachments Array con gli id degli allegati da estrarre dall'eml del repository
+     * @param idMessageRelatedAttachments Array con gli id degli allegati da
+     * estrarre dall'eml del repository
      * @return La lista degli allegati estratti
      * @throws BadParamsException
      * @throws MessagingException

@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.workers;
+package it.bologna.ausl.internauta.service.schedulers.workers;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
