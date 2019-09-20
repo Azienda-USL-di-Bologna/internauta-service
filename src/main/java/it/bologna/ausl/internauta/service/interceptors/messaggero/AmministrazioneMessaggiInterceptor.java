@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.interceptors.messaggero;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
 import it.bologna.ausl.model.entities.messaggero.QAmministrazioneMessaggio;
@@ -17,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
+import it.bologna.ausl.internauta.service.schedulers.workers.messagesender.MessageSeenCleanerWorker;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -31,6 +33,9 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
 
     @Autowired
     private MessageSenderManager messageSenderManager;
+    
+    @Autowired
+    private PersonaRepository personaRepository;
     
     @Override
     public Class getTargetEntityClass() {
@@ -62,7 +67,7 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
         if (mainEntity && amministrazioneMessaggio.getInvasivita() == AmministrazioneMessaggio.InvasivitaEnum.POPUP) {
-            messageSenderManager.scheduleMessage(amministrazioneMessaggio, LocalDateTime.now());
+            messageSenderManager.scheduleMessageSender(amministrazioneMessaggio, LocalDateTime.now());
         }
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
@@ -70,19 +75,23 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
     @Override
     public Object afterUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
-        if (mainEntity && amministrazioneMessaggio.getInvasivita() == AmministrazioneMessaggio.InvasivitaEnum.POPUP) {
-            messageSenderManager.scheduleMessage(amministrazioneMessaggio, LocalDateTime.now());
+        if (mainEntity) {
+            LocalDateTime now = LocalDateTime.now();
+            MessageSeenCleanerWorker.cleanSeenFromPersone(amministrazioneMessaggio.getId(), personaRepository);
+            if (amministrazioneMessaggio.getInvasivita() == AmministrazioneMessaggio.InvasivitaEnum.POPUP) {
+                messageSenderManager.scheduleMessageSender(amministrazioneMessaggio, now);
+            }
+//            messageSenderManager.scheduleSeenCleaner(amministrazioneMessaggio, now);
         }
-        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass);
     }
 
-    @Override
-    public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
-        AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
-        if (mainEntity && amministrazioneMessaggio.getInvasivita() == AmministrazioneMessaggio.InvasivitaEnum.POPUP) {
-            messageSenderManager.stopSchedule(amministrazioneMessaggio);
-        }
-    }
-    
+//    @Override
+//    public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+//        AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
+//        if (mainEntity) {
+//            MessageSeenCleanerWorker.cleanSeenFromPersone(amministrazioneMessaggio.getId(), personaRepository);
+//        }
+//    }
     
 }

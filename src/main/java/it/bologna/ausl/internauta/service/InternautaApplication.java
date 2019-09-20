@@ -2,10 +2,12 @@ package it.bologna.ausl.internauta.service;
 
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
 import it.bologna.ausl.internauta.service.schedulers.workers.ShutdownThread;
+import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -29,6 +31,9 @@ public class InternautaApplication {
     
     @Autowired
     ShutdownThread shutdownThread;
+    
+    @Value("${internauta.scheduled-thread-pool-executor.active}")
+    Boolean poolExecutorActive;
 
     public static void main(String[] args) {
         SpringApplication.run(InternautaApplication.class, args);
@@ -38,21 +43,33 @@ public class InternautaApplication {
     public CommandLineRunner schedulingRunner() {
 
         return (String... args) -> {
-            log.info("schedulo i threads messageSender...");
-            try {
-                messageSenderManager.scheduleNotExpired();
-            } catch (Exception e) {
-                log.info("errore nella schedulazione threads messageSender.", e);
+            if (poolExecutorActive) {
+                LocalDateTime now = LocalDateTime.now();
+                log.info("schedulo i threads messageSender...");
+                try {
+                    messageSenderManager.scheduleMessageSenderAtBoot(now);
+                } catch (Exception e) {
+                    log.info("errore nella schedulazione threads messageSender.", e);
+                }
+                
+//                log.info("schedulo i threads messageSeenCleaner...");
+//                try {
+//                    messageSenderManager.scheduleSeenCleanerAtBoot(now);
+//                } catch (Exception e) {
+//                    log.info("errore nella schedulazione threads messageSeenCleaner.", e);
+//                }
+//                log.info("schedulazione threads messageSeenCleaner terminata con successo.");
+
+                log.info("imposto ShutdownHook... ");
+                try {
+                    Runtime.getRuntime().addShutdownHook(shutdownThread);
+                } catch (Exception e) {
+                    log.info("errore impostazione ShutdownHook.", e);
+                }
+                log.info("impostazione ShutdownHook terminata con successo.");
+            } else {
+                log.info("scheduled-thread-pool-executor not active");
             }
-            log.info("schedulazione threads messageSender terminata con successo.");
-            
-            log.info("imposto ShutdownHook... ");
-            try {
-                Runtime.getRuntime().addShutdownHook(shutdownThread);
-            } catch (Exception e) {
-                log.info("errore impostazione ShutdownHook.", e);
-            }
-            log.info("impostazione ShutdownHook terminata con successo.");
         };
     }
 }

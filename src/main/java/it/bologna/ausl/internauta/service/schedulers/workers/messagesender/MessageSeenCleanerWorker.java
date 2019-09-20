@@ -5,7 +5,6 @@ import com.querydsl.core.types.dsl.BooleanTemplate;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.messaggero.AmministrazioneMessaggioRepository;
-import it.bologna.ausl.internauta.service.utils.IntimusUtils;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
@@ -13,7 +12,9 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,29 +28,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class MessageSenderWorker implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(MessageSenderWorker.class);
-
-    /*
-    {
-	"dest": [{
-                    "id_persona": row["id_persona"],
-                    "id_aziende": [],
-                    "apps": ["scrivania"]
-		}
-	],
-	"command": {
-            "params": {
-                "id_attivita": row["id"],
-                "operation": TD["event"]
-            },
-            "command": "RefreshAttivita"
-	}
-    }
-    */
-
-    @Autowired
-    private IntimusUtils intimusUtils;
+public class MessageSeenCleanerWorker implements Runnable {
+    private static final Logger log = LoggerFactory.getLogger(MessageSeenCleanerWorker.class);
 
     @Autowired
     private AmministrazioneMessaggioRepository amministrazioneMessaggioRepository;
@@ -72,41 +52,42 @@ public class MessageSenderWorker implements Runnable {
     @Override
     public void run() {
         log.info(" in run di " + getClass().getSimpleName() + "con message: " + message.toString());
-        LocalDateTime now = LocalDateTime.now();
-        if (isActive(now)) {
-            sendSendMessageIntimusCommand();
+        if (isActive()) {
+            MessageSeenCleanerWorker.cleanSeenFromPersone(message.getId(), personaRepository);
         } else {
             scheduleObject.cancel(true);
 //            MessageSenderWorker.purgeSeenFromPersone(message.getId(), personaRepository);
         }
     }
 
-    private Boolean isActive(LocalDateTime now) {
+    private Boolean isActive() {
         Optional<AmministrazioneMessaggio> messageOp = amministrazioneMessaggioRepository.findById(message.getId());
-        return messageOp.isPresent() && messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)) && 
-                (messageOp.get().getDataScadenza() == null || messageOp.get().getDataScadenza().isAfter(now));
+        return messageOp.isPresent() && messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)) && messageOp.get().getDataScadenza() != null && messageOp.get().getDataScadenza().isBefore(LocalDateTime.now());
     }
 
-    public static void purgeSeenFromPersone(Integer messageId, PersonaRepository personaRepository) {
+    public static void cleanSeenFromPersone(Integer messageId, PersonaRepository personaRepository) {
         BooleanTemplate whoAsSeenThisMessage = Expressions.booleanTemplate("arraycontains({0}, tools.string_to_integer_array({1}, ','))=true", QPersona.persona.messaggiVisti, String.valueOf(messageId));
         Iterable<Persona> persons = personaRepository.findAll(whoAsSeenThisMessage);
         for (Persona person : persons) {
             List<Integer> seenMessages = Lists.newArrayList(person.getMessaggiVisti());
             seenMessages.remove(messageId);
+//             personaRepository.updateSeenMessage(messageId, org.apache.commons.lang3.StringUtils.join(seenMessages.toArray(new Integer[0]), ","), "gdmDario");
             person.setMessaggiVisti(seenMessages.toArray(new Integer[0]));
+            boolean saved = false;
+            while (!saved) {
+                try {
+                    personaRepository.saveAndFlush(person);
+                    saved = true;
+                } catch (Throwable t) {
+                    try {
+                        Thread.sleep(new Random(System.currentTimeMillis()).nextInt(1000) + 1);
+                    } catch (InterruptedException ex) {
+                        java.util.logging.Logger.getLogger(MessageSeenCleanerWorker.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    log.error("aaaaaaaaaaaaaaaaaaaa", t);
+                }
+            }
         }
-        personaRepository.saveAll(persons);
+        //personaRepository.saveAll(persons);
     }
-    
-    public void sendSendMessageIntimusCommand() {
-        try {
-            IntimusUtils.IntimusCommand command = intimusUtils.buildIntimusShowMessageCommand(message);
-            log.info("invio comando intimus: " + command.buildIntimusStringCommand()+ "...");
-            intimusUtils.sendCommand(command);
-            log.info("comando inviato");
-        } catch (Exception ex) {
-            log.error("Errore nel lancio del messaggio: " + message.getId(), ex);
-        }
-    }
-    
 }

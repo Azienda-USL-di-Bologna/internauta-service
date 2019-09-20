@@ -93,7 +93,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
                     List<String> predicatiAzienda = permissionManager.getPermission(up, ambitiFlusso, tipi);
                     BooleanExpression booleanTemplate;
                     
-                    // Creo un filtro che sarà true quando tra i permessi dell'utente ci sarà almeno una voce dei permessiNecessari della voce di menù.
+                    // Creo un filtro che sarà true quando tra i permessi dell'utente ci sarà almeno una voce dei permessiSufficienti della voce di menù.
                     if (predicatiAzienda != null)
                         booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
                                 QMenu.menu.permessiSufficienti, String.join(",", predicatiAzienda));
