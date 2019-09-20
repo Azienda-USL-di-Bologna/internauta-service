@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandException;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
@@ -14,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import javax.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +57,12 @@ public class IntimusUtils {
     
     @Autowired
     CachedEntities cachedEntities;
+    
+    @Autowired
+    StrutturaRepository strutturaRepository;
+    
+    @Autowired
+    EntityManager em;
     
     @Autowired
     @Qualifier(value = "redisIntimus")
@@ -305,7 +313,8 @@ public class IntimusUtils {
             }
             if (amministrazioneMessaggio.getIdStrutture() != null && amministrazioneMessaggio.getIdStrutture().length > 0) {
                 for (Integer idStruttura: amministrazioneMessaggio.getIdStrutture()) {
-                    Struttura struttura = cachedEntities.getStruttura(idStruttura);
+                    Struttura struttura = strutturaRepository.findById(idStruttura).get();
+//                    Struttura struttura = em.find(Struttura.class, idStruttura);
                     for (UtenteStruttura utenteStruttura: struttura.getUtenteStrutturaList()) {
                         Integer idPersona = cachedEntities.getPersonaFromIdUtente(utenteStruttura.getIdUtente().getId()).getId();
                         // Integer[] idAziende = new Integer[] {cachedEntities.getAziendaFromIdUtente(utenteStruttura.getIdUtente().getId()).getId()};
