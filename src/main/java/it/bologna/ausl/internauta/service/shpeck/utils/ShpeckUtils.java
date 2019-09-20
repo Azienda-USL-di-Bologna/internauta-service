@@ -467,18 +467,21 @@ public class ShpeckUtils {
     public ArrayList<EmlHandlerAttachment> getEmlAttachments(Draft draftMessage, Integer idMessageRelated, MessageRelatedType messageRelatedType,
             Integer[] idMessageRelatedAttachments) throws BadParamsException, MessagingException, EmlHandlerException, IOException {
         ArrayList<EmlHandlerAttachment> listAttachments = new ArrayList<>();
+        /* È il caso di un inoltra oppure di un messaggio di risposta ad un'altra email */
         if (idMessageRelated != null) {
             if (messageRelatedType != null
                     && messageRelatedType.equals(MessageRelatedType.FORWARDED)) {
-
-                File downloadEml = this.downloadEml(EmlSource.MESSAGE, idMessageRelated);
-                try {
-                    listAttachments = EmlHandler.getListAttachments(downloadEml.getAbsolutePath(), null, idMessageRelatedAttachments);
-                } catch (EmlHandlerException ex) {
-                    LOG.error("Error while retrieving the attachments from messaged forwarded. ", ex);
-                    throw new EmlHandlerException("Error while retrieving the attachments from messaged forwarded.");
+                if (idMessageRelatedAttachments != null && idMessageRelatedAttachments.length > 0) {
+                    File downloadEml = this.downloadEml(EmlSource.MESSAGE, idMessageRelated);
+                    try {
+                        listAttachments = EmlHandler.getListAttachments(downloadEml.getAbsolutePath(), null, idMessageRelatedAttachments);
+                    } catch (EmlHandlerException ex) {
+                        LOG.error("Error while retrieving the attachments from messaged forwarded. ", ex);
+                        throw new EmlHandlerException("Error while retrieving the attachments from messaged forwarded.");
+                    }
                 }
             }
+        /* È il caso di una bozza che viene ripresa */
         } else if (idMessageRelatedAttachments != null && idMessageRelatedAttachments.length > 0) {
             byte[] eml = draftMessage.getEml();
             listAttachments = EmlHandler.getListAttachments(null, eml, idMessageRelatedAttachments);
