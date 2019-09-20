@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
@@ -70,6 +71,7 @@ public class MessageSenderWorker implements Runnable {
     }
 
     @Override
+    @Transactional
     public void run() {
         log.info(" in run di " + getClass().getSimpleName() + "con message: " + message.toString());
         LocalDateTime now = LocalDateTime.now();
@@ -97,7 +99,7 @@ public class MessageSenderWorker implements Runnable {
         }
         personaRepository.saveAll(persons);
     }
-    
+
     public void sendSendMessageIntimusCommand() {
         try {
             IntimusUtils.IntimusCommand command = intimusUtils.buildIntimusShowMessageCommand(message);
