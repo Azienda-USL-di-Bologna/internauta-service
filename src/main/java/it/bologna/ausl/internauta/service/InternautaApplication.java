@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service;
 
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
 import it.bologna.ausl.internauta.service.schedulers.workers.ShutdownThread;
+import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,13 +44,21 @@ public class InternautaApplication {
 
         return (String... args) -> {
             if (poolExecutorActive) {
+                LocalDateTime now = LocalDateTime.now();
                 log.info("schedulo i threads messageSender...");
                 try {
-                    messageSenderManager.scheduleNotExpired();
+                    messageSenderManager.scheduleMessageSenderAtBoot(now);
                 } catch (Exception e) {
                     log.info("errore nella schedulazione threads messageSender.", e);
                 }
-                log.info("schedulazione threads messageSender terminata con successo.");
+                
+//                log.info("schedulo i threads messageSeenCleaner...");
+//                try {
+//                    messageSenderManager.scheduleSeenCleanerAtBoot(now);
+//                } catch (Exception e) {
+//                    log.info("errore nella schedulazione threads messageSeenCleaner.", e);
+//                }
+//                log.info("schedulazione threads messageSeenCleaner terminata con successo.");
 
                 log.info("imposto ShutdownHook... ");
                 try {

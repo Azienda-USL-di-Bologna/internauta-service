@@ -6,14 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandException;
-import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
-import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
-import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
-import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
 import java.util.ArrayList;
@@ -21,7 +14,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -214,8 +206,13 @@ public class IntimusUtils {
         private Integer rescheduleInterval;
         private AmministrazioneMessaggio.TipologiaEnum type;
         private AmministrazioneMessaggio.InvasivitaEnum invasivity;
+        private Boolean disabled;
 
         public ShowMessageParams(Integer messageId, String title, String body, AmministrazioneMessaggio.SeveritaEnum severity, Integer rescheduleInterval, AmministrazioneMessaggio.TipologiaEnum type, AmministrazioneMessaggio.InvasivitaEnum invasivity) {
+            this(messageId, title, body, severity, rescheduleInterval, type, invasivity, false);
+        }
+        
+        public ShowMessageParams(Integer messageId, String title, String body, AmministrazioneMessaggio.SeveritaEnum severity, Integer rescheduleInterval, AmministrazioneMessaggio.TipologiaEnum type, AmministrazioneMessaggio.InvasivitaEnum invasivity, Boolean expired) {
             this.messageId = messageId;
             this.title = title;
             this.body = body;
@@ -223,6 +220,7 @@ public class IntimusUtils {
             this.rescheduleInterval = rescheduleInterval;
             this.type = type;
             this.invasivity = invasivity;
+            this.disabled = expired;
         }
 
         public Integer getMessageId() {
@@ -279,6 +277,14 @@ public class IntimusUtils {
 
         public void setInvasivity(AmministrazioneMessaggio.InvasivitaEnum invasivity) {
             this.invasivity = invasivity;
+        }
+
+        public Boolean getDisabled() {
+            return disabled;
+        }
+
+        public void setDisabled(Boolean disabled) {
+            this.disabled = disabled;
         }
     }
 
