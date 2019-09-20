@@ -20,7 +20,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  *
@@ -85,6 +88,12 @@ public class MessageSenderWorker implements Runnable {
 
     private Boolean isActive(LocalDateTime now) {
         Optional<AmministrazioneMessaggio> messageOp = amministrazioneMessaggioRepository.findById(message.getId());
+        log.info("messageOp.isPresent(): " + messageOp.isPresent());
+        log.info("messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)): " + messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)));
+        log.info("messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS): " + messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS));
+        log.info("message.getVersion().truncatedTo(ChronoUnit.MILLIS): " + message.getVersion().truncatedTo(ChronoUnit.MILLIS));
+        log.info("(messageOp.get().getDataScadenza() == null || messageOp.get().getDataScadenza().isAfter(now): " + (messageOp.get().getDataScadenza() == null || messageOp.get().getDataScadenza().isAfter(now)));
+        log.info("taotal: " + (messageOp.isPresent() && messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)) && (messageOp.get().getDataScadenza() == null || messageOp.get().getDataScadenza().isAfter(now))));
         return messageOp.isPresent() && messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)) && 
                 (messageOp.get().getDataScadenza() == null || messageOp.get().getDataScadenza().isAfter(now));
     }
