@@ -19,8 +19,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
 import it.bologna.ausl.internauta.service.schedulers.workers.messagesender.MessageSeenCleanerWorker;
+import it.bologna.ausl.internauta.service.schedulers.workers.messagesender.MessageThreadEvent;
+import it.bologna.ausl.internauta.service.schedulers.workers.messagesender.MessageThreadEventListener;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  *
@@ -31,11 +34,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class AmministrazioneMessaggiInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmministrazioneMessaggiInterceptor.class);
 
-    @Autowired
-    private MessageSenderManager messageSenderManager;
+//    @Autowired
+//    private MessageSenderManager messageSenderManager;
     
     @Autowired
-    private PersonaRepository personaRepository;
+    private ApplicationEventPublisher applicationEventPublisher;
+    
+//    @Autowired
+//    private PersonaRepository personaRepository;
     
     @Override
     public Class getTargetEntityClass() {
@@ -67,7 +73,10 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
         if (mainEntity && amministrazioneMessaggio.getInvasivita() == AmministrazioneMessaggio.InvasivitaEnum.POPUP) {
-            messageSenderManager.scheduleMessageSender(amministrazioneMessaggio, LocalDateTime.now());
+//            messageSenderManager.scheduleMessageSender(amministrazioneMessaggio, LocalDateTime.now());
+            MessageThreadEvent messageThreadEvent = new MessageThreadEvent(amministrazioneMessaggio, MessageThreadEvent.InterceptorPhase.AFTER_INSERT);
+//            messageThreadEventListener.scheduleMessageThreadEvent(messageThreadEvent);
+            applicationEventPublisher.publishEvent(messageThreadEvent);
         }
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
@@ -75,13 +84,15 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
     @Override
     public Object afterUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
-        if (mainEntity) {
-            LocalDateTime now = LocalDateTime.now();
-            MessageSeenCleanerWorker.cleanSeenFromPersone(amministrazioneMessaggio.getId(), personaRepository);
-            if (amministrazioneMessaggio.getInvasivita() == AmministrazioneMessaggio.InvasivitaEnum.POPUP) {
-                messageSenderManager.scheduleMessageSender(amministrazioneMessaggio, now);
-            }
-//            messageSenderManager.scheduleSeenCleaner(amministrazioneMessaggio, now);
+        if (mainEntity && amministrazioneMessaggio.getInvasivita() == AmministrazioneMessaggio.InvasivitaEnum.POPUP) {
+//            LocalDateTime now = LocalDateTime.now();
+//            MessageSeenCleanerWorker.cleanSeenFromPersone(amministrazioneMessaggio.getId(), personaRepository);
+//            if (amministrazioneMessaggio.getInvasivita() == AmministrazioneMessaggio.InvasivitaEnum.POPUP) {
+//                messageSenderManager.scheduleMessageSender(amministrazioneMessaggio, now);
+//            }
+            MessageThreadEvent messageThreadEvent = new MessageThreadEvent(amministrazioneMessaggio, MessageThreadEvent.InterceptorPhase.AFTER_UPDATE);
+//            messageThreadEventListener.scheduleMessageThreadEvent(messageThreadEvent);
+            applicationEventPublisher.publishEvent(messageThreadEvent);
         }
         return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass);
     }
