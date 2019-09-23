@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
@@ -95,12 +97,13 @@ public class MessageSenderManager {
         }
     }
     
+//    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ScheduledFuture<?> scheduleMessageSender(AmministrazioneMessaggio message, LocalDateTime now) {
         if (message.getDataScadenza() == null || message.getDataScadenza().isAfter(now)) {
             MessageSenderWorker messageSenderWorker = beanFactory.getBean(MessageSenderWorker.class);
             messageSenderWorker.setMessaggio(message);
             LocalDateTime dataPubblicazione = message.getDataPubblicazione();
-            long initialDelayMillis = 1000;
+            long initialDelayMillis = 0;
             long perdiodMillis = 0;
             if (dataPubblicazione.isAfter(now)) {
                 initialDelayMillis = ChronoUnit.MILLIS.between(now, dataPubblicazione);
@@ -109,7 +112,7 @@ public class MessageSenderManager {
                 perdiodMillis = message.getIntervallo() * 60 * 1000;
             }
             ScheduledFuture<?> schedule;
-            log.info("schedulazione " + message.toString() + " initialMillis: " + initialDelayMillis + "perdiodMillis: " + perdiodMillis);
+            log.info("schedulazione " + message.toString() + " initialMillis: " + initialDelayMillis + " perdiodMillis: " + perdiodMillis);
             if (perdiodMillis == 0) {
                 schedule = scheduledThreadPoolExecutor.schedule(messageSenderWorker, initialDelayMillis, TimeUnit.MILLISECONDS);
             } else {

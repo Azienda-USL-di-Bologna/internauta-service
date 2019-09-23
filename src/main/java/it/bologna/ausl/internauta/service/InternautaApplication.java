@@ -17,11 +17,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication(scanBasePackages = {"it.bologna.ausl", "it.nextsw"})
 @EnableJpaRepositories({"it.bologna.ausl.internauta.service.repositories", "it.bologna.ausl.blackbox.repositories"})
 @EntityScan("it.bologna.ausl.model.entities")
 @EnableCaching
+//@EnableAsync
 public class InternautaApplication {
     
     private static final Logger log = LoggerFactory.getLogger(InternautaApplication.class);
