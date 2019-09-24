@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -28,7 +27,7 @@ public class MessageThreadEventListener  {
     
 //    @Async
     @EventListener(MessageThreadEvent.class)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void scheduleMessageThreadEvent(MessageThreadEvent event) {
         LOGGER.info("in scheduleMessageThreadEvent con event: " + event.toString());
         LocalDateTime now = LocalDateTime.now();
@@ -37,7 +36,6 @@ public class MessageThreadEventListener  {
                 messageSenderManager.scheduleMessageSender(event.getAmministrazioneMessaggio(), now);
             break;
             case AFTER_UPDATE:
-//                MessageSeenCleanerWorker.cleanSeenFromPersone(event.getAmministrazioneMessaggio().getId(), personaRepository);
                 messageSenderManager.scheduleMessageSender(event.getAmministrazioneMessaggio(), now);
             break;
         }
