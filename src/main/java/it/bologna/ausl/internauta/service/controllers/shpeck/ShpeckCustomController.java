@@ -708,7 +708,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 Folder folderRegistered = folderList.stream().filter(f -> Folder.FolderType.REGISTERED.equals(f.getType())).collect(Collectors.toList()).get(0);
 
                 MessageTag messageTag = new MessageTag();
-                if ("IN_REGISTRATION".equals(StringUtils.trimWhitespace(operation))) {
+                if ("ADD_IN_REGISTRATION".equals(StringUtils.trimWhitespace(operation))) {
                     LOG.info("dentro IN_REGISTRATION per il messaggio con id: " + message.getId());
                     messageTag.setIdUtente(authenticatedUserProperties.getUser());
                     messageTag.setIdMessage(message);
@@ -722,7 +722,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     }
                 }
 
-                if ("REGISTER".equals(StringUtils.trimWhitespace(operation))) {             
+                if ("ADD_REGISTERED".equals(StringUtils.trimWhitespace(operation))) {             
                     LOG.info("dentro REGISTER per il messaggio con id: " + message.getId());
                     List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
                     // TODO: gestire caso se non trova niente o ne trova piu di uno
