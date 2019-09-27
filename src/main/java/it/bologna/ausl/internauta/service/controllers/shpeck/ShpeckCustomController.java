@@ -89,6 +89,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
@@ -655,7 +656,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = "manageMessageRegistration", method = RequestMethod.POST)
     public void manageMessageRegistration(
             @RequestParam(name = "uuidMessage", required = true) String uuidMessage,
-            @RequestParam(name = "operation", required = true) String operation,
+            @RequestParam(name = "operation", required = true) InternautaConstants.Shpeck.MessageRegistrationOperation operation,
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
             @RequestBody Map<String, Object> additionalData,
             HttpServletRequest request
@@ -695,7 +696,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             }
             for (Message message : messages) {
 
-                if (message.getMessageType() != Message.MessageType.MAIL && message.getMessageType() != Message.MessageType.PEC) {
+                if (message.getMessageType() != Message.MessageType.MAIL) {
                     continue;
                 }
 
@@ -706,10 +707,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 Tag tagInRegistration = tagList.stream().filter(t -> Tag.SystemTagName.in_registration.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
                 Tag tagRegistered = tagList.stream().filter(t -> Tag.SystemTagName.registered.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
                 Folder folderRegistered = folderList.stream().filter(f -> Folder.FolderType.REGISTERED.equals(f.getType())).collect(Collectors.toList()).get(0);
+                
 
                 MessageTag messageTag = new MessageTag();
-                if ("ADD_IN_REGISTRATION".equals(StringUtils.trimWhitespace(operation))) {
-                    LOG.info("dentro IN_REGISTRATION per il messaggio con id: " + message.getId());
+                if (InternautaConstants.Shpeck.MessageRegistrationOperation.ADD_IN_REGISTRATION.equals(operation)) {
+                    LOG.info("dentro ADD_IN_REGISTRATION per il messaggio con id: " + message.getId());
                     messageTag.setIdUtente(authenticatedUserProperties.getUser());
                     messageTag.setIdMessage(message);
                     messageTag.setIdTag(tagInRegistration);
@@ -722,8 +724,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     }
                 }
 
-                if ("ADD_REGISTERED".equals(StringUtils.trimWhitespace(operation))) {             
-                    LOG.info("dentro REGISTER per il messaggio con id: " + message.getId());
+                if (InternautaConstants.Shpeck.MessageRegistrationOperation.ADD_REGISTERED.equals(operation)) {           
+                    LOG.info("dentro ADD_REGISTERED per il messaggio con id: " + message.getId());
                     List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
                     // TODO: gestire caso se non trova niente o ne trova piu di uno
                     if (!findByIdMessageAndIdTag.isEmpty()) {
@@ -762,7 +764,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     }
                 }
 
-                if ("REMOVE_IN_REGISTRATION".equals(StringUtils.trimWhitespace(operation))) {
+                if (InternautaConstants.Shpeck.MessageRegistrationOperation.REMOVE_IN_REGISTRATION.equals(operation)) {
                     LOG.info("dentro REMOVE_IN_REGISTRATION per il messaggio con id: " + message.getId());
                     List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
                     // TODO: gestire caso se non trova niente o ne trova piu di uno
@@ -775,7 +777,32 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         }
                     }
                 }
+                
+                if (InternautaConstants.Shpeck.MessageRegistrationOperation.REMOVE_REGISTERED.equals(operation)) {
+                    LOG.info("dentro REMOVE_REGISTERED per il messaggio con id: " + message.getId());
+                    List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagRegistered);
+                    
+                    if (findByIdMessageAndIdTag != null && !findByIdMessageAndIdTag.isEmpty()) {
+                        MessageTag mtRegistered = findByIdMessageAndIdTag.get(0);
+                        // cancellazione del mt in_registration
+                        messageTagRespository.delete(mtRegistered);
+                        if (KrintUtils.doIHaveToKrint(request)) {
+                           krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_PROTOCOLLAZIONE);
+                        }
+                        List<MessageFolder> findByIdMessage = messageFolderRespository.findByIdMessage(message);
+                        if(findByIdMessage != null && !findByIdMessage.isEmpty()){
+                            MessageFolder currentMessageFolder = findByIdMessage.get(0);
+                            // se il messaggio si trova nella folder REGISTERED lo sposto nella previousFolder, se no lo lascio nella cartella in cui si trova         
+                            if(currentMessageFolder.getIdPreviousFolder() != null && currentMessageFolder.getIdFolder().getType().equals(Folder.FolderType.REGISTERED)){              
+                                currentMessageFolder.setIdUtente(authenticatedUserProperties.getUser());
+                                currentMessageFolder.setIdFolder(currentMessageFolder.getIdPreviousFolder());
+                                messageFolderRespository.save(currentMessageFolder);
+                            }      
+                        }                                                                                  
+                    }
+                }
             }
+            
         } catch (Throwable ex) {
             LOG.error(ex.getMessage(), ex);
             throw ex;
