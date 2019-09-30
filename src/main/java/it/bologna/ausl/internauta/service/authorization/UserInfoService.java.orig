@@ -295,7 +295,11 @@ public class UserInfoService {
         Map<String, List<String>> mapAziendeRuoli = new HashMap<>();
         
 //        if(persona.getUtenteList() == null){
+<<<<<<< working copy
         persona.setUtenteList(getUtentiPersona(persona));
+=======
+            persona.setUtenteList(getUtentiPersona(persona));
+>>>>>>> merge rev
 //        }
 
         // popolo mappa azienda->listaRuoli
@@ -396,7 +400,7 @@ public class UserInfoService {
     public void getUtentiPersonaRemoveCache(Persona persona) {
     }
     
-    @Cacheable(value = "getUtenteStrutturaList__ribaltorg__", key = "{#utente.getId()}")
+    @Cacheable(value = "getUtenteStrutturaList__ribaltorg__", key = "{#persona.getId()}")
     public List<UtenteStruttura> getUtenteStrutturaList(Utente utente) {
         Utente refreshedUtente = utenteRepository.getOne(utente.getId());
         return refreshedUtente.getUtenteStrutturaList();

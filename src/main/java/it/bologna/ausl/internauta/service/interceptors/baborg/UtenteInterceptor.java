@@ -65,7 +65,7 @@ public class UtenteInterceptor extends InternautaBaseInterceptor {
 
                         if (!isSD(utente)) {
                             try {
-                                // Devo controlalre se sono DWELEGAZFTO. CJHiedo alla balcks box
+                                // Devo controlalre se sono DELEGATO. Chiedo alla black-box
                                 List<Integer> idUtentiDelega = userInfoService.getPermessiDelega(utente);
                                 if (idUtentiDelega != null && idUtentiDelega.size() > 0) {
                                     BooleanExpression filterUtentiDelega = QUtente.utente.id.in(idUtentiDelega);

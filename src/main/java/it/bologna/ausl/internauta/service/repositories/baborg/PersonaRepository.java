@@ -6,7 +6,11 @@ import it.bologna.ausl.model.entities.baborg.projections.generated.PersonaWithPl
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.time.LocalDateTime;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
@@ -17,4 +21,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PersonaRepository extends
         NextSdrQueryDslRepository<Persona, Integer, QPersona>,
         JpaRepository<Persona, Integer> {
+    
+    @Transactional
+    @Modifying
+//    @Query("update Persona p set p.messaggiVisti = ?2, p.nome = ?3 where p.id = ?1 and version = ?4")
+    @Query(value = "update baborg.persone set messaggi_visti = tools.string_to_integer_array(?2, ','), nome = ?3 where id = ?1", nativeQuery = true)
+    public void updateSeenMessage(Integer id, String messaggiVisti, String nome);
 }

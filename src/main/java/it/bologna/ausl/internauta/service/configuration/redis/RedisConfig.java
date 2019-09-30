@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.configuration.cache;
+package it.bologna.ausl.internauta.service.configuration.redis;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -28,7 +28,7 @@ import redis.clients.jedis.JedisPoolConfig;
  * @author gdm
  */
 @Configuration
-public class CacheConfig {
+public class RedisConfig {
 
     @Value("${internauta.cache.redis.host}")
     private String redisCacheHost;
@@ -53,9 +53,18 @@ public class CacheConfig {
     private Integer redisIntimusDb;
     @Value("${intimus.redis.timeout-millis}")
     private Integer redisIntimusTimeoutMillis;
+    
+    @Value("${shared-data.redis.host}")
+    private String redisSharedDataHost;
+    @Value("${shared-data.redis.port:6379}")
+    private Integer redisSharedDataPort;
+    @Value("${shared-data.redis.db:2}")
+    private Integer redisSharedDataDb;
+    @Value("${shared-data.redis.timeout-millis}")
+    private Integer redisSharedDataTimeoutMillis;
 
-    @Bean(name = "jedisConnectionFactory")
-    public RedisConnectionFactory jedisConnectionFactory() {
+    @Bean(name = "jedisCacheConnectionFactory")
+    public RedisConnectionFactory jedisCacheConnectionFactory() {
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(128);
         poolConfig.setBlockWhenExhausted(false);
@@ -70,9 +79,9 @@ public class CacheConfig {
                 .poolConfig(poolConfig)
                 .build();
 
-        JedisConnectionFactory jedisConnectionFactory = new JedisConnectionFactory(redisStandaloneConfiguration, jedisClientConfiguration);
+        JedisConnectionFactory jedisCacheConnectionFactory = new JedisConnectionFactory(redisStandaloneConfiguration, jedisClientConfiguration);
 
-        return jedisConnectionFactory;
+        return jedisCacheConnectionFactory;
     }
     
 //    @Bean(name = "jedisIntimusConnectionFactory")
@@ -95,10 +104,29 @@ public class CacheConfig {
         return jedisConnectionFactory;
     }
     
+    public RedisConnectionFactory jedisSharedDataConnectionFactory() {
+        JedisPoolConfig poolConfig = new JedisPoolConfig();
+        poolConfig.setMaxTotal(128);
+        poolConfig.setBlockWhenExhausted(false);
+
+        RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration(redisSharedDataHost, redisSharedDataPort);
+        redisStandaloneConfiguration.setDatabase(redisSharedDataDb);
+        JedisClientConfiguration jedisClientConfiguration = JedisClientConfiguration
+                .builder()
+                .connectTimeout(Duration.ofMillis(redisSharedDataTimeoutMillis))
+                .readTimeout(Duration.ofMillis(redisSharedDataTimeoutMillis))
+                .usePooling()
+                .poolConfig(poolConfig)
+                .build();
+
+        JedisConnectionFactory jedisConnectionFactory = new JedisConnectionFactory(redisStandaloneConfiguration, jedisClientConfiguration);
+        return jedisConnectionFactory;
+    }
+    
     @Bean(name = "redisCache")
     public RedisTemplate<String, Object> redisCacheTemplate() {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(jedisConnectionFactory());
+        template.setConnectionFactory(jedisCacheConnectionFactory());
         template.setKeySerializer(new StringRedisSerializer());
         return template;
     }
@@ -108,6 +136,18 @@ public class CacheConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(jedisIntimusConnectionFactory());
         RedisSerializer defaultSerializer = new StringRedisSerializer();
+        template.setKeySerializer(defaultSerializer);
+        template.setHashKeySerializer(defaultSerializer);
+        template.setHashValueSerializer(defaultSerializer);
+        template.setValueSerializer(defaultSerializer);
+        return template;
+    }
+    
+    @Bean(name = "redisSharedData")
+    public RedisTemplate<String, Object> redisSharedDataTemplate() {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(jedisSharedDataConnectionFactory());
+        RedisSerializer<Object> defaultSerializer = new JdkSerializationRedisSerializer(getClass().getClassLoader());
         template.setKeySerializer(defaultSerializer);
         template.setHashKeySerializer(defaultSerializer);
         template.setHashValueSerializer(defaultSerializer);
@@ -140,24 +180,9 @@ public class CacheConfig {
                 .build();
         return cm;
     }
-
-//    public CacheManager intimusCacheManager(RedisConnectionFactory jedisConnectionFactory) {
-//
-//        RedisSerializer<Object> defaultSerializer = new JdkSerializationRedisSerializer(getClass().getClassLoader());
-//        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig();
-//        config = config.serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(defaultSerializer));
-//        
-//        RedisCacheManager cm = RedisCacheManager.builder(jedisConnectionFactory)
-//                .cacheDefaults(config)
-//                .withInitialCacheConfigurations(Collections.singletonMap("predefined", config))
-////                .withInitialCacheConfigurations(cacheNamesConfigurationMap)
-//                .transactionAware()
-//                .build();
-//        return cm;
-//    }
     
     @Bean
-    public CacheManager expirationOneMinuteCacheManager(RedisConnectionFactory jedisConnectionFactory) {
+    public CacheManager expirationOneMinuteCacheManager(RedisConnectionFactory jedisCacheConnectionFactory) {
         RedisSerializer<Object> defaultSerializer = new JdkSerializationRedisSerializer(getClass().getClassLoader());
         RedisSerializer<Object> jsonSerializer = new GenericJackson2JsonRedisSerializer();
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
@@ -174,7 +199,7 @@ public class CacheConfig {
        
         Map<String, RedisCacheConfiguration> cacheNamesConfigurationMap = new HashMap<>();
         
-        RedisCacheManager cm = RedisCacheManager.builder(jedisConnectionFactory)
+        RedisCacheManager cm = RedisCacheManager.builder(jedisCacheConnectionFactory)
                 .cacheDefaults(config)
                 .withInitialCacheConfigurations(Collections.singletonMap("predefined", config))
                 .withInitialCacheConfigurations(cacheNamesConfigurationMap)
@@ -185,7 +210,7 @@ public class CacheConfig {
     }
     
     @Bean
-    public CacheManager emlCacheManager(RedisConnectionFactory jedisConnectionFactory) {
+    public CacheManager emlCacheManager(RedisConnectionFactory jedisCacheConnectionFactory) {
         RedisSerializer<Object> defaultSerializer = new JdkSerializationRedisSerializer(getClass().getClassLoader());
         RedisSerializer<Object> jsonSerializer = new GenericJackson2JsonRedisSerializer();
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
@@ -202,7 +227,7 @@ public class CacheConfig {
        
         Map<String, RedisCacheConfiguration> cacheNamesConfigurationMap = new HashMap<>();
         
-        RedisCacheManager cm = RedisCacheManager.builder(jedisConnectionFactory)
+        RedisCacheManager cm = RedisCacheManager.builder(jedisCacheConnectionFactory)
                 .cacheDefaults(config)
                 .withInitialCacheConfigurations(Collections.singletonMap("predefined", config))
                 .withInitialCacheConfigurations(cacheNamesConfigurationMap)

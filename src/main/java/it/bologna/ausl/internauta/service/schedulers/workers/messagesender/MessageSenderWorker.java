@@ -1,22 +1,29 @@
 package it.bologna.ausl.internauta.service.schedulers.workers.messagesender;
 
-import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import com.google.common.collect.Lists;
+import com.querydsl.core.types.dsl.BooleanTemplate;
+import com.querydsl.core.types.dsl.Expressions;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.messaggero.AmministrazioneMessaggioRepository;
 import it.bologna.ausl.internauta.service.utils.IntimusUtils;
-import it.bologna.ausl.internauta.service.utils.ParametriAziende;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.logging.Level;
+import java.util.Optional;
+import java.util.concurrent.ScheduledFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  *
@@ -44,23 +51,64 @@ public class MessageSenderWorker implements Runnable {
 	}
     }
     */
-    
+
     @Autowired
     private IntimusUtils intimusUtils;
 
+    @Autowired
+    private AmministrazioneMessaggioRepository amministrazioneMessaggioRepository;
+
+    @Autowired
+    PersonaRepository personaRepository;
 
     private AmministrazioneMessaggio message;
-    
+
+    private ScheduledFuture<?> scheduleObject;
+
     public void setMessaggio(AmministrazioneMessaggio message) {
         this.message = message;
     }
-    
+
+    public void setScheduleObject(ScheduledFuture<?> scheduleObject) {
+        this.scheduleObject = scheduleObject;
+    }
+
     @Override
+    @Transactional
     public void run() {
         log.info(" in run di " + getClass().getSimpleName() + "con message: " + message.toString());
-        sendSendMessageIntimusCommand();
+        LocalDateTime now = LocalDateTime.now();
+        if (isActive(now)) {
+            sendSendMessageIntimusCommand();
+        } else {
+            scheduleObject.cancel(true);
+//            MessageSenderWorker.purgeSeenFromPersone(message.getId(), personaRepository);
+        }
     }
-    
+
+    private Boolean isActive(LocalDateTime now) {
+        Optional<AmministrazioneMessaggio> messageOp = amministrazioneMessaggioRepository.findById(message.getId());
+        log.info("messageOp.isPresent(): " + messageOp.isPresent());
+        log.info("messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)): " + messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)));
+        log.info("messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS): " + messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS));
+        log.info("message.getVersion().truncatedTo(ChronoUnit.MILLIS): " + message.getVersion().truncatedTo(ChronoUnit.MILLIS));
+        log.info("(messageOp.get().getDataScadenza() == null || messageOp.get().getDataScadenza().isAfter(now): " + (messageOp.get().getDataScadenza() == null || messageOp.get().getDataScadenza().isAfter(now)));
+        log.info("taotal: " + (messageOp.isPresent() && messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)) && (messageOp.get().getDataScadenza() == null || messageOp.get().getDataScadenza().isAfter(now))));
+        return messageOp.isPresent() && messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)) && 
+                (messageOp.get().getDataScadenza() == null || messageOp.get().getDataScadenza().isAfter(now));
+    }
+
+    public static void purgeSeenFromPersone(Integer messageId, PersonaRepository personaRepository) {
+        BooleanTemplate whoAsSeenThisMessage = Expressions.booleanTemplate("arraycontains({0}, tools.string_to_integer_array({1}, ','))=true", QPersona.persona.messaggiVisti, String.valueOf(messageId));
+        Iterable<Persona> persons = personaRepository.findAll(whoAsSeenThisMessage);
+        for (Persona person : persons) {
+            List<Integer> seenMessages = Lists.newArrayList(person.getMessaggiVisti());
+            seenMessages.remove(messageId);
+            person.setMessaggiVisti(seenMessages.toArray(new Integer[0]));
+        }
+        personaRepository.saveAll(persons);
+    }
+
     public void sendSendMessageIntimusCommand() {
         try {
             IntimusUtils.IntimusCommand command = intimusUtils.buildIntimusShowMessageCommand(message);
