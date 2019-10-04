@@ -19,6 +19,7 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaFatteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
@@ -70,7 +71,9 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = super.getAuthenticatedUserProperties();
         BooleanExpression filterUtenteConnesso = QAttivita.attivita.idPersona.id.eq(authenticatedSessionData.getUser().getIdPersona().getId());
-        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(authenticatedSessionData.getUser()).stream().map(
+        Utente user = authenticatedSessionData.getUser();
+        Utente utenteReale = authenticatedSessionData.getRealUser();
+        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(user, utenteReale == null).stream().map(
                 x -> 
                         x.getIdAzienda().getId()
         ).collect(Collectors.toList());

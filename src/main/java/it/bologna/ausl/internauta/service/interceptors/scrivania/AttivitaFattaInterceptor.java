@@ -6,6 +6,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
 import it.bologna.ausl.model.entities.scrivania.QAttivitaFatta;
 import it.nextsw.common.annotations.NextSdrInterceptor;
@@ -43,7 +44,9 @@ public class AttivitaFattaInterceptor extends InternautaBaseInterceptor {
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         BooleanExpression filterUtenteConnesso = QAttivitaFatta.attivitaFatta.idPersona.id.eq(authenticatedSessionData.getUser().getIdPersona().getId());
-        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(authenticatedSessionData.getUser()).stream().map(x -> x.getIdAzienda().getId()).collect(Collectors.toList());
+        Utente user = authenticatedSessionData.getUser();
+        Utente utenteReale = authenticatedSessionData.getRealUser();
+        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(user, utenteReale == null).stream().map(x -> x.getIdAzienda().getId()).collect(Collectors.toList());
         BooleanExpression filterUtenteAttivo = QAttivitaFatta.attivitaFatta.idAzienda.id.in(collect); 
 //        List<Integer> collect = userInfoService.getUtentiPersona(user).stream().map(x -> x.getIdAzienda().getId()).collect(Collectors.toList());
         
