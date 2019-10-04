@@ -102,5 +102,11 @@ public class InternautaConstants {
         
     }
     
+    public static class Shpeck {
+        public enum MessageRegistrationOperation {
+            ADD_IN_REGISTRATION, REMOVE_IN_REGISTRATION, ADD_REGISTERED, REMOVE_REGISTERED
+        }    
+    }
+    
     
 }
