@@ -103,7 +103,7 @@ public class MessageSenderManager {
             MessageSenderWorker messageSenderWorker = beanFactory.getBean(MessageSenderWorker.class);
             messageSenderWorker.setMessaggio(message);
             LocalDateTime dataPubblicazione = message.getDataPubblicazione();
-            long initialDelayMillis = 0;
+            long initialDelayMillis = 1000;
             long perdiodMillis = 0;
             if (dataPubblicazione.isAfter(now)) {
                 initialDelayMillis = ChronoUnit.MILLIS.between(now, dataPubblicazione);

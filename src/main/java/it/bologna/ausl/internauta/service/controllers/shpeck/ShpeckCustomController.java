@@ -192,6 +192,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             }
             return new ResponseEntity(res, HttpStatus.OK);
         } catch (Exception ex) {
+            LOG.error("errore nella creazione del file eml", ex);
             throw new Http500ResponseException("1", "errore nella creazione del file eml", ex);
         }
     }
