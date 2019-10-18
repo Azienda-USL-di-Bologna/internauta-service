@@ -1,7 +1,9 @@
 package it.bologna.ausl.model.entities.shpeck.projections;
 
 import it.bologna.ausl.model.entities.baborg.Pec;
+import it.bologna.ausl.model.entities.baborg.projections.generated.PecAziendaWithIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.generated.PecWithFolderListAndPecAziendaListAndTagList;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
@@ -20,6 +22,7 @@ public interface CustomPecWithFolderListAndPecAziendaListAndTagList extends PecW
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getFolderList', @projectionsInterceptorLauncher.buildSort('asc', 'order', 'description'))}")
     @Override
     public Object getFolderList();
-    
-    
+
+    @Value("#{@projectionBeans.getPecAziendaListWithIdAzienda(target.getPecAziendaList())}")
+    public List<PecAziendaWithIdAzienda> getPecAziendaList();
 }

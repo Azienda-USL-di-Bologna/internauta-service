@@ -73,7 +73,9 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
             throws AbortLoadInterceptorException {
         
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        List<Utente> utentiPersona = userInfoService.getUtentiPersonaByUtente(authenticatedSessionData.getUser());              
+        Utente user = authenticatedSessionData.getUser();
+        Utente utenteReale = authenticatedSessionData.getRealUser();
+        List<Utente> utentiPersona = userInfoService.getUtentiPersonaByUtente(user, utenteReale == null);              
         BooleanExpression filterAziendaUtente = null;
         
         List<String> ambitiFlusso = new ArrayList();

@@ -90,6 +90,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepos
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
@@ -148,7 +149,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private PersonaRepository personaRepository;
-    
+
     @Autowired
     private KrintShpeckService krintShpeckService;
 
@@ -191,6 +192,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             }
             return new ResponseEntity(res, HttpStatus.OK);
         } catch (Exception ex) {
+            LOG.error("errore nella creazione del file eml", ex);
             throw new Http500ResponseException("1", "errore nella creazione del file eml", ex);
         }
     }
@@ -218,7 +220,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             HttpServletRequest request
     ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException, UnsupportedEncodingException, BadParamsException {
         LOG.info("getEml", idMessage);
-        // TODO: Usare repository reale 
+        // TODO: Usare repository reale
 //        String hostname = nextSdrCommonUtils.getHostname(request);
 //        System.out.println("hostanme " + hostname);
 //        String repositoryTemp = null;
@@ -230,7 +232,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         File downloadEml = null;
         try {
             downloadEml = shpeckUtils.downloadEml(emlSource, idMessage);
-            try (FileInputStream is = new FileInputStream(downloadEml.getAbsolutePath());) {
+            try ( FileInputStream is = new FileInputStream(downloadEml.getAbsolutePath());) {
                 StreamUtils.copy(is, response.getOutputStream());
                 response.flushBuffer();
             }
@@ -241,20 +243,20 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
     }
 
-    @RequestMapping(value = "downloadRecepitEmlFromProcton", method = RequestMethod.GET)
-    public void downloadRecepitEmlFromProcton(
+    @RequestMapping(value = "downloadEmlByUuid", method = RequestMethod.GET)
+    public void downloadEmlByUuid(
             @RequestParam(required = true) String uuidRepository,
             HttpServletResponse response,
             HttpServletRequest request
     ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException, UnsupportedEncodingException, BadParamsException {
-        LOG.info("downloadRecepitEmlFromProcton");
+        LOG.info("downloadEmlByUuid");
         BooleanExpression filter = QMessage.message.uuidRepository.eq(uuidRepository);
         Message ricevuta = messageRepository.findOne(filter).get();
         LOG.info("Trovata ricevuta  " + ricevuta.toString());
         File downloadEml = null;
         try {
             downloadEml = shpeckUtils.downloadEml(EmlSource.MESSAGE, ricevuta.getId());
-            try (FileInputStream is = new FileInputStream(downloadEml.getAbsolutePath());) {
+            try ( FileInputStream is = new FileInputStream(downloadEml.getAbsolutePath());) {
                 response.setHeader("filename", ricevuta.getName());
                 StreamUtils.copy(is, response.getOutputStream());
                 response.flushBuffer();
@@ -301,7 +303,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         File downloadEml = null;
         try {
             downloadEml = shpeckUtils.downloadEml(emlSource, idMessage);
-            try (InputStream attachment = EmlHandler.getAttachment(new FileInputStream(downloadEml.getAbsolutePath()), idAllegato)) {
+            try ( InputStream attachment = EmlHandler.getAttachment(new FileInputStream(downloadEml.getAbsolutePath()), idAllegato)) {
                 StreamUtils.copy(attachment, response.getOutputStream());
                 response.flushBuffer();
             }
@@ -483,12 +485,12 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * La funzione si occupa di reindirizzare il messaggio messageSource alla
      * casella idPecDestination.Viene quindi copiato il messaggio sostituiendo
      * l'idPec e altri campi.Viene poi attaccato il tag di readdressed_out al
- messageSource e readdressed_in al messaggio appena creato
+     * messageSource e readdressed_in al messaggio appena creato
      *
      * @param idMessageSource
      * @param idPecDestination
      * @param request
-     * @return 
+     * @return
      * @throws CloneNotSupportedException
      * @throws Http409ResponseException
      */
@@ -595,13 +597,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         System.out.println(messageDestination.toString());
 
         messageRepository.updateTscol(messageDestination.getId());
-        
+
         // Loggo il reindirizzamento
         if (KrintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeReaddress(messageSource, messageDestination, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_OUT);
             krintShpeckService.writeReaddress(messageDestination, messageSource, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_IN);
         }
-        
+
         return additionalDataSource.toString();
     }
 
@@ -633,7 +635,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 //    public Long countMessageInTag(
 //            @PathVariable(required = true) Integer idTag,
 //            @RequestParam(name = "unSeen", required = false, defaultValue = "false") Boolean unSeen) {
-//        
+//
 //        BooleanExpression filter = Expressions.booleanTemplate("arraycontains({0}, tools.string_to_integer_array({1}, ','))=true", QMessageComplete.messageComplete.idTags, String.valueOf(idTag));
 //        if (unSeen) {
 //            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
@@ -685,12 +687,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             // recupero tutti i messaggi con quell uuid
             List<Message> messagesByUuid = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(uuidMessage));
             List<Message> messages = new ArrayList();
-            // Dei messagesByUuid trovati tengo solo quelli che appartengono a caselle che appartengono solo all'azienda su cui sto lavorando.
+            // Dei messagesByUuid trovati tengo solo quelli che appartengono a caselle che appartengono anche all'azienda su cui sto lavorando.
             for (Message message : messagesByUuid) {
-                List<PecAzienda> pecAziendaList = message.getIdPec().getPecAziendaList();
+                List<Integer> idAziendaList = message.getIdPec().getPecAziendaList().stream().map(pa -> pa.getIdAzienda().getId()).collect(Collectors.toList());
                 if (message.getId().equals(idMessage)
-                        || pecAziendaList.isEmpty()
-                        || (pecAziendaList.size() == 1 && pecAziendaList.get(0).getIdAzienda().getId().equals(authenticatedUserProperties.getUser().getIdAzienda().getId()))) {
+                        || (idAziendaList.size() >= 1 && idAziendaList.contains(authenticatedUserProperties.getUser().getIdAzienda().getId()))) {
                     messages.add(message);
                 }
             }
@@ -707,7 +708,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 Tag tagInRegistration = tagList.stream().filter(t -> Tag.SystemTagName.in_registration.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
                 Tag tagRegistered = tagList.stream().filter(t -> Tag.SystemTagName.registered.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
                 Folder folderRegistered = folderList.stream().filter(f -> Folder.FolderType.REGISTERED.equals(f.getType())).collect(Collectors.toList()).get(0);
-                
 
                 MessageTag messageTag = new MessageTag();
                 if (InternautaConstants.Shpeck.MessageRegistrationOperation.ADD_IN_REGISTRATION.equals(operation)) {
@@ -724,7 +724,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     }
                 }
 
-                if (InternautaConstants.Shpeck.MessageRegistrationOperation.ADD_REGISTERED.equals(operation)) {           
+                if (InternautaConstants.Shpeck.MessageRegistrationOperation.ADD_REGISTERED.equals(operation)) {
                     LOG.info("dentro ADD_REGISTERED per il messaggio con id: " + message.getId());
                     List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
                     // TODO: gestire caso se non trova niente o ne trova piu di uno
@@ -777,32 +777,32 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         }
                     }
                 }
-                
+
                 if (InternautaConstants.Shpeck.MessageRegistrationOperation.REMOVE_REGISTERED.equals(operation)) {
                     LOG.info("dentro REMOVE_REGISTERED per il messaggio con id: " + message.getId());
                     List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagRegistered);
-                    
+
                     if (findByIdMessageAndIdTag != null && !findByIdMessageAndIdTag.isEmpty()) {
                         MessageTag mtRegistered = findByIdMessageAndIdTag.get(0);
                         // cancellazione del mt in_registration
                         messageTagRespository.delete(mtRegistered);
                         if (KrintUtils.doIHaveToKrint(request)) {
-                           krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_PROTOCOLLAZIONE);
+                            krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_PROTOCOLLAZIONE);
                         }
                         List<MessageFolder> findByIdMessage = messageFolderRespository.findByIdMessage(message);
-                        if(findByIdMessage != null && !findByIdMessage.isEmpty()){
+                        if (findByIdMessage != null && !findByIdMessage.isEmpty()) {
                             MessageFolder currentMessageFolder = findByIdMessage.get(0);
-                            // se il messaggio si trova nella folder REGISTERED lo sposto nella previousFolder, se no lo lascio nella cartella in cui si trova         
-                            if(currentMessageFolder.getIdPreviousFolder() != null && currentMessageFolder.getIdFolder().getType().equals(Folder.FolderType.REGISTERED)){              
+                            // se il messaggio si trova nella folder REGISTERED lo sposto nella previousFolder, se no lo lascio nella cartella in cui si trova
+                            if (currentMessageFolder.getIdPreviousFolder() != null && currentMessageFolder.getIdFolder().getType().equals(Folder.FolderType.REGISTERED)) {
                                 currentMessageFolder.setIdUtente(authenticatedUserProperties.getUser());
                                 currentMessageFolder.setIdFolder(currentMessageFolder.getIdPreviousFolder());
                                 messageFolderRespository.save(currentMessageFolder);
-                            }      
-                        }                                                                                  
+                            }
+                        }
                     }
                 }
             }
-            
+
         } catch (Throwable ex) {
             LOG.error(ex.getMessage(), ex);
             throw ex;
