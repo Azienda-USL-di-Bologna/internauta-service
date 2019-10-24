@@ -58,7 +58,8 @@ public class InternautaConstants {
             GetUltimoStatoRibaltone,
             CambioUtente,
             GetAmministrazioneMessaggiAttivi,
-            GetAmministrazioneMessaggiStorico
+            GetAmministrazioneMessaggiStorico,
+            FilterMassimarioPerAzienda
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
@@ -87,26 +88,27 @@ public class InternautaConstants {
             KRINT_ROWS, KRINT_ERRORS
         }
     }
-    
+
     public static class UrlCommand {
+
         public enum Keys {
             PROTOCOLLA_PEC_NEW, PROTOCOLLA_PEC_ADD, ARCHIVE_MESSAGE
         }
     }
-    
+
     public static class Krint {
-        
+
         public enum PermessiKey {
             permessiPec, permessiFlusso
         }
-        
+
     }
-    
+
     public static class Shpeck {
+
         public enum MessageRegistrationOperation {
             ADD_IN_REGISTRATION, REMOVE_IN_REGISTRATION, ADD_REGISTERED, REMOVE_REGISTERED
-        }    
+        }
     }
-    
-    
+
 }
