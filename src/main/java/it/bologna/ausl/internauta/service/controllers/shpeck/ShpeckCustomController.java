@@ -90,6 +90,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepos
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
@@ -242,13 +243,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
     }
 
-    @RequestMapping(value = "downloadRecepitEmlFromProcton", method = RequestMethod.GET)
-    public void downloadRecepitEmlFromProcton(
+    @RequestMapping(value = "downloadEmlByUuid", method = RequestMethod.GET)
+    public void downloadEmlByUuid(
             @RequestParam(required = true) String uuidRepository,
             HttpServletResponse response,
             HttpServletRequest request
     ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException, UnsupportedEncodingException, BadParamsException {
-        LOG.info("downloadRecepitEmlFromProcton");
+        LOG.info("downloadEmlByUuid");
         BooleanExpression filter = QMessage.message.uuidRepository.eq(uuidRepository);
         Message ricevuta = messageRepository.findOne(filter).get();
         LOG.info("Trovata ricevuta  " + ricevuta.toString());
@@ -686,12 +687,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             // recupero tutti i messaggi con quell uuid
             List<Message> messagesByUuid = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(uuidMessage));
             List<Message> messages = new ArrayList();
-            // Dei messagesByUuid trovati tengo solo quelli che appartengono a caselle che appartengono solo all'azienda su cui sto lavorando.
+            // Dei messagesByUuid trovati tengo solo quelli che appartengono a caselle che appartengono anche all'azienda su cui sto lavorando.
             for (Message message : messagesByUuid) {
-                List<PecAzienda> pecAziendaList = message.getIdPec().getPecAziendaList();
+                List<Integer> idAziendaList = message.getIdPec().getPecAziendaList().stream().map(pa -> pa.getIdAzienda().getId()).collect(Collectors.toList());
                 if (message.getId().equals(idMessage)
-                        || pecAziendaList.isEmpty()
-                        || (pecAziendaList.size() == 1 && pecAziendaList.get(0).getIdAzienda().getId().equals(authenticatedUserProperties.getUser().getIdAzienda().getId()))) {
+                        || (idAziendaList.size() >= 1 && idAziendaList.contains(authenticatedUserProperties.getUser().getIdAzienda().getId()))) {
                     messages.add(message);
                 }
             }

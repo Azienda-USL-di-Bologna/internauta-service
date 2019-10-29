@@ -235,7 +235,7 @@ public class ProjectionBeans {
         AziendaParametriJson parametriAziendaDestinazione = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String crossLoginUrlTemplate = parametriAziendaDestinazione.getCrossLoginUrlTemplate();
         String commonStringToEncode = commonStringToEncode(utente, FROM);
-        //crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm?CMD=[encoded-params]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
+//        crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm?CMD=[encoded-params]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
         
         addRegistrationUrlCommands(result, commonStringToEncode, parametriAziendaLogin, parametriAziendaDestinazione, crossLoginUrlTemplate);
         addArchiveUrlCommands(result, commonStringToEncode, parametriAziendaLogin, parametriAziendaDestinazione, crossLoginUrlTemplate);
@@ -274,17 +274,17 @@ public class ProjectionBeans {
             stringToEncode = "";
             if(i == 0){
                 stringToEncode = "?CMD=ricevi_from_pec;[id_message]";
-                //stringToEncode = "ricevi_from_pec;[id_message]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
+//                stringToEncode = "ricevi_from_pec;[id_message]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
             } else {
                 stringToEncode = "?CMD=add_from_pec;[id_message]";
-                //stringToEncode = "add_from_pec;[id_message]"; // TODO: REMOVE, ONLY FOR LOCAL TESTS
+//                stringToEncode = "add_from_pec;[id_message]"; // TODO: REMOVE, ONLY FOR LOCAL TESTS
             }
             stringToEncode += "&id_sorgente=[id_sorgente]";
             stringToEncode += "&pec_ricezione=[pec_ricezione]";
             stringToEncode += commonStringToEncode;
             
             String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");                
-            //encodedParams = stringToEncode; // TODO: REMOVE, ONLY FOR LOCAL TESTS                
+//            encodedParams = stringToEncode; // TODO: REMOVE, ONLY FOR LOCAL TESTS                
 
             String assembledUrl = crossLoginUrlTemplate
                 .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())

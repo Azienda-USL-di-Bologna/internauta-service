@@ -357,8 +357,8 @@ public class UserInfoService {
     }
 
 
-    @Cacheable(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId()}")
-    public List<Utente> getUtentiPersonaByUtente(Utente utente) {
+    @Cacheable(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId(), #onlyActive.booleanValue()}")
+    public List<Utente> getUtentiPersonaByUtente(Utente utente, Boolean onlyActive) {
         List<Utente> res = new ArrayList();
 
         Utente refreshedUtente = utenteRepository.getOne(utente.getId());
@@ -366,7 +366,7 @@ public class UserInfoService {
 
         if (utenti != null && !utenti.isEmpty()) {
             utenti.stream().forEach(u -> {
-                if (u.getAttivo()) {
+                if (!onlyActive || u.getAttivo()) {
                     res.add(u);
                 }
             });
