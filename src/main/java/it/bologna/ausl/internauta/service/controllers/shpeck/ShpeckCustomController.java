@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.shpeck;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
@@ -95,6 +96,7 @@ import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import java.util.Arrays;
+import java.util.function.Predicate;
 import org.json.JSONArray;
 import org.springframework.util.StringUtils;
 
@@ -152,6 +154,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private KrintShpeckService krintShpeckService;
+    
+    @Autowired
+    ObjectMapper objectMapper;
 
     /**
      *
@@ -660,9 +665,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "uuidMessage", required = true) String uuidMessage,
             @RequestParam(name = "operation", required = true) InternautaConstants.Shpeck.MessageRegistrationOperation operation,
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
-            @RequestBody Map<String, Object> additionalData,
+            @RequestBody Map<String, Map<String, Object>> additionalData,
             HttpServletRequest request
-    ) throws BlackBoxPermissionException {
+    ) throws BlackBoxPermissionException, IOException, Throwable {
 
         LOG.info("Inizio manageMessageRegistration. uuidMessage: " + uuidMessage + " operation: " + operation + " additionalData: " + additionalData.toString());
 
@@ -670,7 +675,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             // operation: IN_REGISTRATION, REGISTER, REMOVE_IN_REGISTRATION
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
 
-            JSONObject jsonAdditionalData = null;
             if (additionalData != null) {
                 Map<String, Object> idUtenteMap = new HashMap<>();
                 idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
@@ -681,8 +685,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 idAziendaMap.put("nome", authenticatedUserProperties.getUser().getIdAzienda().getNome());
                 idAziendaMap.put("descrizione", authenticatedUserProperties.getUser().getIdAzienda().getDescrizione());
                 additionalData.put("idAzienda", idAziendaMap);
-                jsonAdditionalData = new JSONObject(additionalData);
             }
+            
 
             // recupero tutti i messaggi con quell uuid
             List<Message> messagesByUuid = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(uuidMessage));
@@ -708,17 +712,59 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 Tag tagInRegistration = tagList.stream().filter(t -> Tag.SystemTagName.in_registration.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
                 Tag tagRegistered = tagList.stream().filter(t -> Tag.SystemTagName.registered.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
                 Folder folderRegistered = folderList.stream().filter(f -> Folder.FolderType.REGISTERED.equals(f.getType())).collect(Collectors.toList()).get(0);
+                MessageTag messageTagInRegistration = null;
+                MessageTag messageTagRegistered = null;                
+                List<MessageTag> messageTagInRegistrationList = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
+                List<MessageTag> messageTagRegisteredList = messageTagRespository.findByIdMessageAndIdTag(message, tagRegistered);
+                List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration = new ArrayList<>();
+                List<Map<String, Map<String, Object>>> initialAdditionalDataArrayRegistered = new ArrayList<>();
+                if (messageTagInRegistrationList != null){
+                   if (messageTagInRegistrationList.size() > 1){
+                       throw new Exception("più di un tag in_registration presente");
+                   } else if (messageTagInRegistrationList.size() == 1){
+                       messageTagInRegistration = messageTagInRegistrationList.get(0);
+                   }
+                }
+                if (messageTagRegisteredList != null){
+                   if (messageTagRegisteredList.size() > 1){
+                       throw new Exception("più di un tag registered presente");
+                   } else if (messageTagRegisteredList.size() == 1){
+                       messageTagRegistered = messageTagRegisteredList.get(0);
+                   }
+                }               
+                if (messageTagInRegistration != null && messageTagInRegistration.getAdditionalData() != null) {
+                    try {                           
+                        Map<String, Map<String, Object>> initialAdditionalData = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), Map.class);  
+                        initialAdditionalDataArrayInRegistration.add(initialAdditionalData);
+                    } catch(Throwable ex) {
+                        initialAdditionalDataArrayInRegistration = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), List.class);
+                    }                                                 
+                }
+                if (messageTagRegistered != null && messageTagRegistered.getAdditionalData() != null) {
+                    try {                           
+                        Map<String, Map<String, Object>> initialAdditionalData = objectMapper.readValue(messageTagRegistered.getAdditionalData(), Map.class);  
+                        initialAdditionalDataArrayRegistered.add(initialAdditionalData);
+                    } catch(Throwable ex) {
+                        initialAdditionalDataArrayRegistered = objectMapper.readValue(messageTagRegistered.getAdditionalData(), List.class);
+                    }                                                 
+                }
+                
 
-                MessageTag messageTag = new MessageTag();
                 if (InternautaConstants.Shpeck.MessageRegistrationOperation.ADD_IN_REGISTRATION.equals(operation)) {
-                    LOG.info("dentro ADD_IN_REGISTRATION per il messaggio con id: " + message.getId());
-                    messageTag.setIdUtente(authenticatedUserProperties.getUser());
-                    messageTag.setIdMessage(message);
-                    messageTag.setIdTag(tagInRegistration);
-                    if (jsonAdditionalData != null) {
-                        messageTag.setAdditionalData(jsonAdditionalData.toString());
+                    LOG.info("dentro ADD_IN_REGISTRATION per il messaggio con id: " + message.getId());                    
+                    MessageTag messageTagToAdd = null;
+                    if (messageTagInRegistration != null) {
+                        messageTagToAdd = messageTagInRegistration;                                                     
+                    } else {
+                        messageTagToAdd = new MessageTag();
+                        messageTagToAdd.setIdUtente(authenticatedUserProperties.getUser());
+                        messageTagToAdd.setIdMessage(message);
+                        messageTagToAdd.setIdTag(tagInRegistration);
                     }
-                    messageTagRespository.save(messageTag);
+                    initialAdditionalDataArrayInRegistration.add(additionalData);
+                    messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayInRegistration));
+                    // TODO: distinguere caso in cui ho messo il tag dal caso in cui vado a aggiungere informazioni su una nuova azienda
+                    messageTagRespository.save(messageTagToAdd);
                     if (KrintUtils.doIHaveToKrint(request)) {
                         krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_IN_PROTOCOLLAZIONE);
                     }
@@ -726,32 +772,51 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
                 if (InternautaConstants.Shpeck.MessageRegistrationOperation.ADD_REGISTERED.equals(operation)) {
                     LOG.info("dentro ADD_REGISTERED per il messaggio con id: " + message.getId());
-                    List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
-                    // TODO: gestire caso se non trova niente o ne trova piu di uno
-                    if (!findByIdMessageAndIdTag.isEmpty()) {
-                        MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
-                        // cancellazione del mt in_registration
-                        messageTagRespository.delete(mtInRegistration);
+                    MessageTag messageTagToAdd = null;
+                    if (messageTagRegistered != null) {
+                        messageTagToAdd = messageTagRegistered;                                     
+                    } else {    
+                        messageTagToAdd = new MessageTag();
+                        messageTagToAdd.setIdUtente(authenticatedUserProperties.getUser());
+                        messageTagToAdd.setIdMessage(message);
+                        messageTagToAdd.setIdTag(tagRegistered);                                                
                     }
+                    initialAdditionalDataArrayRegistered.add(additionalData);
+                    messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayRegistered));
+                    messageTagRespository.save(messageTagToAdd);
+                    
+                    if(messageTagInRegistration != null){                        
+                        // devo togliere dal tag in_registration l'azienda passata                              
+                        Predicate<Map<String, Map<String, Object>>> isQualified = item -> item.get("idAzienda").get("id") == additionalData.get("idAzienda").get("id");
+                        
+                        initialAdditionalDataArrayInRegistration.stream()                              
+                          .filter(isQualified);
+                        
+                        initialAdditionalDataArrayInRegistration.removeIf(isQualified);                                                          
 
-                    MessageTag mtRegistered = new MessageTag();
-                    mtRegistered.setIdUtente(authenticatedUserProperties.getUser());
-                    mtRegistered.setIdMessage(message);
-                    mtRegistered.setIdTag(tagRegistered);
-                    if (jsonAdditionalData != null) {
-                        mtRegistered.setAdditionalData(jsonAdditionalData.toString());
+    //                    List<Map<String, Map<String, Object>>> collect = initialAdditionalDataArrayInRegistration.stream()
+    //                            .filter(ad -> ad.get("idAzienda").get("id") != additionalData.get("idAzienda").get("id"))
+    //                            .collect(Collectors.toList());
+                        if(initialAdditionalDataArrayInRegistration.size() > 0) {
+                            messageTagInRegistration.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayInRegistration));
+                            messageTagRespository.save(messageTagInRegistration);
+                        } else {
+                            messageTagRespository.delete(messageTagInRegistration);                            
+                        }
                     }
-                    messageTagRespository.save(mtRegistered);
-
+                    
+                    
                     // spostamento folder.
                     // Lo elimino da quella in cui era e lo metto nella cartella registered
-                    List<MessageFolder> findByIdMessage = messageFolderRespository.findByIdMessage(message);
+                    List<MessageFolder> messageFolder = messageFolderRespository.findByIdMessage(message);
                     // TODO: gestire caso se non trova niente o ne trova piu di uno
-                    if (!findByIdMessage.isEmpty()) {
-                        MessageFolder mfCurrentMessage = findByIdMessage.get(0);
+                    if (!messageFolder.isEmpty()) {
+                        MessageFolder mfCurrentMessage = messageFolder.get(0);
                         mfCurrentMessage.setIdUtente(authenticatedUserProperties.getUser());
                         mfCurrentMessage.setIdFolder(folderRegistered);
-                        messageFolderRespository.save(mfCurrentMessage);
+                        if(mfCurrentMessage.getIdFolder().getType() != Folder.FolderType.REGISTERED){                           
+                            messageFolderRespository.save(mfCurrentMessage);
+                        }
                     } else {
                         MessageFolder mfRegistered = new MessageFolder();
                         mfRegistered.setIdUtente(authenticatedUserProperties.getUser());
@@ -766,12 +831,21 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
                 if (InternautaConstants.Shpeck.MessageRegistrationOperation.REMOVE_IN_REGISTRATION.equals(operation)) {
                     LOG.info("dentro REMOVE_IN_REGISTRATION per il messaggio con id: " + message.getId());
-                    List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
-                    // TODO: gestire caso se non trova niente o ne trova piu di uno
-                    if (!findByIdMessageAndIdTag.isEmpty()) {
-                        MessageTag mtInRegistration = findByIdMessageAndIdTag.get(0);
-                        // cancellazione del mt in_registration
-                        messageTagRespository.delete(mtInRegistration);
+                    if (messageTagInRegistration != null) {
+                        // devo togliere dal tag in_registration l'azienda passata                              
+                        Predicate<Map<String, Map<String, Object>>> isQualified = item -> item.get("idAzienda").get("id") == additionalData.get("idAzienda").get("id");
+                        
+                        initialAdditionalDataArrayInRegistration.stream()                              
+                          .filter(isQualified);
+                        
+                        initialAdditionalDataArrayInRegistration.removeIf(isQualified);                                                          
+
+                        if(initialAdditionalDataArrayInRegistration.size() > 0) {
+                            messageTagInRegistration.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayInRegistration));
+                            messageTagRespository.save(messageTagInRegistration);
+                        } else {
+                            messageTagRespository.delete(messageTagInRegistration);                            
+                        }
                         if (KrintUtils.doIHaveToKrint(request)) {
                             krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_IN_PROTOCOLLAZIONE);
                         }
@@ -780,29 +854,38 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
                 if (InternautaConstants.Shpeck.MessageRegistrationOperation.REMOVE_REGISTERED.equals(operation)) {
                     LOG.info("dentro REMOVE_REGISTERED per il messaggio con id: " + message.getId());
-                    List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, tagRegistered);
+                    if (messageTagRegistered != null) {
+                        // devo togliere dal tag registered l'azienda passata                              
+                        Predicate<Map<String, Map<String, Object>>> isQualified = item -> item.get("idAzienda").get("id") == additionalData.get("idAzienda").get("id");
+                        
+                        initialAdditionalDataArrayRegistered.stream()                              
+                          .filter(isQualified);
+                        
+                        initialAdditionalDataArrayRegistered.removeIf(isQualified);                                                          
 
-                    if (findByIdMessageAndIdTag != null && !findByIdMessageAndIdTag.isEmpty()) {
-                        MessageTag mtRegistered = findByIdMessageAndIdTag.get(0);
-                        // cancellazione del mt in_registration
-                        messageTagRespository.delete(mtRegistered);
+                        if(initialAdditionalDataArrayRegistered.size() > 0) {
+                            messageTagRegistered.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayRegistered));
+                            messageTagRespository.save(messageTagRegistered);
+                        } else {
+                            messageTagRespository.delete(messageTagRegistered);   
+                            
+                            List<MessageFolder> messageFolder = messageFolderRespository.findByIdMessage(message);
+                            if (messageFolder != null && !messageFolder.isEmpty()) {
+                                MessageFolder currentMessageFolder = messageFolder.get(0);
+                                // se il messaggio si trova nella folder REGISTERED lo sposto nella previousFolder, se no lo lascio nella cartella in cui si trova
+                                if (currentMessageFolder.getIdPreviousFolder() != null && currentMessageFolder.getIdFolder().getType().equals(Folder.FolderType.REGISTERED)) {
+                                    currentMessageFolder.setIdUtente(authenticatedUserProperties.getUser());
+                                    currentMessageFolder.setIdFolder(currentMessageFolder.getIdPreviousFolder());
+                                    messageFolderRespository.save(currentMessageFolder);
+                                }
+                            }
+                        }                        
                         if (KrintUtils.doIHaveToKrint(request)) {
                             krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_PROTOCOLLAZIONE);
-                        }
-                        List<MessageFolder> findByIdMessage = messageFolderRespository.findByIdMessage(message);
-                        if (findByIdMessage != null && !findByIdMessage.isEmpty()) {
-                            MessageFolder currentMessageFolder = findByIdMessage.get(0);
-                            // se il messaggio si trova nella folder REGISTERED lo sposto nella previousFolder, se no lo lascio nella cartella in cui si trova
-                            if (currentMessageFolder.getIdPreviousFolder() != null && currentMessageFolder.getIdFolder().getType().equals(Folder.FolderType.REGISTERED)) {
-                                currentMessageFolder.setIdUtente(authenticatedUserProperties.getUser());
-                                currentMessageFolder.setIdFolder(currentMessageFolder.getIdPreviousFolder());
-                                messageFolderRespository.save(currentMessageFolder);
-                            }
-                        }
+                        }                    
                     }
                 }
             }
-
         } catch (Throwable ex) {
             LOG.error(ex.getMessage(), ex);
             throw ex;
