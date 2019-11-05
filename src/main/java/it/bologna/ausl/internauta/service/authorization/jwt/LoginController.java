@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
@@ -35,6 +37,8 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
+import java.time.ZonedDateTime;
+import java.util.Date;
 
 /**
  *
@@ -57,6 +61,9 @@ public class LoginController {
 
     @Value("${jwt.expires-seconds}")
     private Integer tokenExpireSeconds;
+    
+    @Value("${jwt.passtoken-expires-seconds}")
+    private Integer passTokenExpireSeconds;
 
     @Value("${jwt.saml.enabled:false}")
     private boolean samlEnabled;
@@ -87,6 +94,9 @@ public class LoginController {
     
     @Autowired
     HttpSessionData httpSessionData;
+    
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     private boolean isSD(Utente user) {
         user.setRuoli(userInfoService.getRuoli(user, null));
@@ -94,6 +104,28 @@ public class LoginController {
         Boolean isSD = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.SD);
         return isSD;
     }
+    
+    @RequestMapping(value = "${internauta.security.passtoken-path}", method = RequestMethod.POST) 
+    public ResponseEntity<String> passTokenGenerator() throws BlackBoxPermissionException {
+        
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente user = authenticatedUserProperties.getUser();
+        Utente realUser = authenticatedUserProperties.getRealUser();
+        String realUserStr = null;
+        if (realUser != null) {
+            realUserStr = String.valueOf(realUser.getId());
+        }
+
+        ZonedDateTime currentDateTime = ZonedDateTime.now();
+        String token = Jwts.builder()
+                        .setSubject(String.valueOf(user.getId()))
+                        .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserStr)
+                        .setIssuedAt(Date.from(currentDateTime.toInstant()))
+                        .setExpiration(tokenExpireSeconds > 0 ? Date.from(currentDateTime.plusSeconds(passTokenExpireSeconds).toInstant()): null)
+                        .signWith(SIGNATURE_ALGORITHM, secretKey).compact();
+        return new ResponseEntity(token, HttpStatus.OK);
+    }
+    
 
     @RequestMapping(value = "${security.login.path}", method = RequestMethod.POST)
     public ResponseEntity<LoginResponse> loginPOST(@RequestBody final UserLogin userLogin, javax.servlet.http.HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException, IOException, BlackBoxPermissionException {

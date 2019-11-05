@@ -19,6 +19,9 @@ public class RegistrationBean {
 
     @Value("${internauta.security.start-node-protection}")
     private String startNodeProtection;
+    
+    @Value("${internauta.security.passtoken-path}")
+    private String passTokenPath;
 
     @Value("${jwt.secret:secret}")
     private String secretKey;
@@ -35,6 +38,8 @@ public class RegistrationBean {
 
         // intercetta tutte le chiamate che iniziano per...
         registrationBean.addUrlPatterns(startNodeProtection);
+        // e anche il path che genera il passtoken
+        registrationBean.addUrlPatterns(passTokenPath);
 
         return registrationBean;
     }
