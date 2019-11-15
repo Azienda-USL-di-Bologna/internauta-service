@@ -1,4 +1,3 @@
-
 package it.bologna.ausl.internauta.service.test.logs;
 
 import it.bologna.ausl.internauta.service.repositories.logs.OperazioneVersionataKrinRepository;
@@ -19,24 +18,22 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class KrintApplicationTests {
-    
+
     @Autowired
     public CachedEntities cachedEntities;
-    
+
     @Autowired
     public OperazioneVersionataKrinRepository operazioneVersionataKrinRepository;
-    
+
     @Test
     public void testOperazioni() {
-        
-            
-        
-            OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(OperazioneKrint.CodiceOperazione.PEC_MESSAGE_PROTOCOLLAZIONE);
-            OperazioneVersionataKrint operazioneVersionataKrint = 
-                            operazioneVersionataKrinRepository.findFirstByIdOperazioneOrderByVersioneDesc(operazioneKrint).orElse(null);
-            
-            Assertions.assertThat(operazioneVersionataKrint.getVersione()).isEqualTo(1);
-            
+
+        OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(OperazioneKrint.CodiceOperazione.PEC_MESSAGE_PROTOCOLLAZIONE);
+        OperazioneVersionataKrint operazioneVersionataKrint
+                = operazioneVersionataKrinRepository.findFirstByIdOperazioneOrderByVersioneDesc(operazioneKrint).orElse(null);
+
+        Assertions.assertThat(operazioneVersionataKrint.getVersione()).isEqualTo(1);
+
     }
-    
+
 }
