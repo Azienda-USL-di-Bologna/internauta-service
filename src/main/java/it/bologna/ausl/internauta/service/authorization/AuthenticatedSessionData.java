@@ -13,17 +13,19 @@ public class AuthenticatedSessionData {
     private Persona person, realPerson;
     private Applicazione.Applicazioni applicazione;
     private int idSessionLog;
+    private String token;
 
     public AuthenticatedSessionData() {
     }
 
-    public AuthenticatedSessionData(Utente user, Utente realUser, Persona person, Persona realPerson, int idSessionLog, Applicazione.Applicazioni applicazione) {
+    public AuthenticatedSessionData(Utente user, Utente realUser, Persona person, Persona realPerson, int idSessionLog, Applicazione.Applicazioni applicazione, String token) {
         this.user = user;
         this.realUser = realUser;
         this.person = person;
         this.realPerson = realPerson;
         this.idSessionLog = idSessionLog;
         this.applicazione = applicazione;
+        this.token = token;
     }
 
     public Utente getUser() {
@@ -72,5 +74,13 @@ public class AuthenticatedSessionData {
 
     public void setApplicazione(Applicazione.Applicazioni applicazione) {
         this.applicazione = applicazione;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 }

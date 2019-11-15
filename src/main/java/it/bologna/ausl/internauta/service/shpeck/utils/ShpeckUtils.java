@@ -64,7 +64,7 @@ import javax.servlet.http.HttpServletRequest;
 @Component
 public class ShpeckUtils {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ShpeckCustomController.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ShpeckUtils.class);
 
     @Autowired
     private CommonUtils nextSdrCommonUtils;
