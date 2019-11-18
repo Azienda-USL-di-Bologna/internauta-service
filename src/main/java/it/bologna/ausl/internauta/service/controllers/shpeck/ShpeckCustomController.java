@@ -694,6 +694,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             // Dei messagesByUuid trovati tengo solo quelli che appartengono a caselle che appartengono anche all'azienda su cui sto lavorando.
             for (Message message : messagesByUuid) {
                 List<Integer> idAziendaList = message.getIdPec().getPecAziendaList().stream().map(pa -> pa.getIdAzienda().getId()).collect(Collectors.toList());
+                // oltre al messaggio che sto protocollando considero solo i messaggi (fratelli) che appartengono a caselle dell'azienda su cui sto protocollando
                 if (message.getId().equals(idMessage)
                         || (idAziendaList.size() >= 1 && idAziendaList.contains(authenticatedUserProperties.getUser().getIdAzienda().getId()))) {
                     messages.add(message);
@@ -787,16 +788,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     
                     if(messageTagInRegistration != null){                        
                         // devo togliere dal tag in_registration l'azienda passata                              
-                        Predicate<Map<String, Map<String, Object>>> isQualified = item -> item.get("idAzienda").get("id") == additionalData.get("idAzienda").get("id");
-                        
-                        initialAdditionalDataArrayInRegistration.stream()                              
-                          .filter(isQualified);
+                        Predicate<Map<String, Map<String, Object>>> isQualified = item -> item.get("idAzienda").get("id") == additionalData.get("idAzienda").get("id");                       
                         
                         initialAdditionalDataArrayInRegistration.removeIf(isQualified);                                                          
 
-    //                    List<Map<String, Map<String, Object>>> collect = initialAdditionalDataArrayInRegistration.stream()
-    //                            .filter(ad -> ad.get("idAzienda").get("id") != additionalData.get("idAzienda").get("id"))
-    //                            .collect(Collectors.toList());
                         if(initialAdditionalDataArrayInRegistration.size() > 0) {
                             messageTagInRegistration.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayInRegistration));
                             messageTagRespository.save(messageTagInRegistration);
@@ -834,10 +829,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     if (messageTagInRegistration != null) {
                         // devo togliere dal tag in_registration l'azienda passata                              
                         Predicate<Map<String, Map<String, Object>>> isQualified = item -> item.get("idAzienda").get("id") == additionalData.get("idAzienda").get("id");
-                        
-                        initialAdditionalDataArrayInRegistration.stream()                              
-                          .filter(isQualified);
-                        
+                                                
                         initialAdditionalDataArrayInRegistration.removeIf(isQualified);                                                          
 
                         if(initialAdditionalDataArrayInRegistration.size() > 0) {
@@ -857,10 +849,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     if (messageTagRegistered != null) {
                         // devo togliere dal tag registered l'azienda passata                              
                         Predicate<Map<String, Map<String, Object>>> isQualified = item -> item.get("idAzienda").get("id") == additionalData.get("idAzienda").get("id");
-                        
-                        initialAdditionalDataArrayRegistered.stream()                              
-                          .filter(isQualified);
-                        
+                                               
                         initialAdditionalDataArrayRegistered.removeIf(isQualified);                                                          
 
                         if(initialAdditionalDataArrayRegistered.size() > 0) {
