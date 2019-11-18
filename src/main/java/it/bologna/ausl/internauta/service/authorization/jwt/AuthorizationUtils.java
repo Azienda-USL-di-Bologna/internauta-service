@@ -50,7 +50,10 @@ public class AuthorizationUtils {
         USER_ENTITY_CLASS,
         USER_FIELD,
         USER_SSO_FIELD_VALUE,
+        REAL_USER_SSO_FIELD_VALUE,
+        USERNAME,
         REAL_USER,
+        REAL_USER_USERNAME,
         ID_SESSION_LOG
     }
 
