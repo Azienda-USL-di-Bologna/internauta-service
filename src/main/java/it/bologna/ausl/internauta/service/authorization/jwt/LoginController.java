@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.authorization.jwt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
@@ -55,6 +56,7 @@ public class LoginController {
     private final String IMPERSONATE_USER = "impersonatedUser";
     private final String APPLICATION = "application";
     private final String AZIENDA = "azienda";
+    private final String PASS_TOKEN = "passToken";
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -105,21 +107,33 @@ public class LoginController {
         return isSD;
     }
     
-    @RequestMapping(value = "${internauta.security.passtoken-path}", method = RequestMethod.POST) 
+    @RequestMapping(value = "${internauta.security.passtoken-path}", method = RequestMethod.GET) 
     public ResponseEntity<String> passTokenGenerator() throws BlackBoxPermissionException {
         
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente user = authenticatedUserProperties.getUser();
         Utente realUser = authenticatedUserProperties.getRealUser();
         String realUserStr = null;
+        String realUserUsernameStr = null;
+        String realUserSSOFieldValue = null;
         if (realUser != null) {
             realUserStr = String.valueOf(realUser.getId());
+        }
+        if (realUser != null) {
+            realUserUsernameStr = String.valueOf(realUser.getUsername());
+        }
+        if (realUser != null) {
+            realUserSSOFieldValue = String.valueOf(realUser.getIdPersona().getCodiceFiscale());
         }
 
         ZonedDateTime currentDateTime = ZonedDateTime.now();
         String token = Jwts.builder()
                         .setSubject(String.valueOf(user.getId()))
+                        .claim(AuthorizationUtils.TokenClaims.USERNAME.name(), user.getUsername())
+                        .claim(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name(), user.getIdPersona().getCodiceFiscale())
                         .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserStr)
+                        .claim(AuthorizationUtils.TokenClaims.REAL_USER_USERNAME.name(), realUserUsernameStr)
+                        .claim(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name(), realUserSSOFieldValue)
                         .setIssuedAt(Date.from(currentDateTime.toInstant()))
                         .setExpiration(tokenExpireSeconds > 0 ? Date.from(currentDateTime.plusSeconds(passTokenExpireSeconds).toInstant()): null)
                         .signWith(SIGNATURE_ALGORITHM, secretKey).compact();
@@ -131,11 +145,31 @@ public class LoginController {
     public ResponseEntity<LoginResponse> loginPOST(@RequestBody final UserLogin userLogin, javax.servlet.http.HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException, IOException, BlackBoxPermissionException {
         String hostname = commonUtils.getHostname(request);
 
-        logger.debug("login username: " + userLogin.username);
-        logger.debug("login password: " + userLogin.password);
-        logger.debug("login realUser: " + userLogin.realUser);
-        logger.debug("login applicazione: " + userLogin.application);
+        logger.info("login username: " + userLogin.username);
+        logger.info("login password: " + userLogin.password);
+        logger.info("login realUser: " + userLogin.realUser);
+        logger.info("login applicazione: " + userLogin.application);
+        logger.info("passToken: " + userLogin.passToken);
 
+        if (userLogin.passToken != null) {
+            logger.info("c'è il passToken, agisco di conseguenza...");
+            try {
+                Claims claims = Jwts.parser().
+                    setSigningKey(secretKey).
+                    parseClaimsJws(userLogin.passToken).
+                    getBody();
+
+                Object usernameObj = claims.get(AuthorizationUtils.TokenClaims.USERNAME.name());
+                Object realUserUsernameObj = claims.get(AuthorizationUtils.TokenClaims.REAL_USER_USERNAME.name());
+                userLogin.username = usernameObj.toString();
+                if (realUserUsernameObj != null) {
+                    userLogin.realUser = realUserUsernameObj.toString();
+                }
+            } catch (Exception ex) {
+                return new ResponseEntity("passToken non valido", HttpStatus.FORBIDDEN);
+            }
+        }
+        
         userInfoService.loadUtenteRemoveCache(userLogin.username, hostname);
         Utente utente = userInfoService.loadUtente(userLogin.username, hostname);
         if (utente == null) {
@@ -153,6 +187,7 @@ public class LoginController {
         userInfoService.getUtentiPersonaRemoveCache(utente.getIdPersona());
         userInfoService.getPermessiPecRemoveCache(utente.getIdPersona());
         
+        String realUserId = null;
         if (StringUtils.hasText(userLogin.realUser)) {
             // TODO: controllare che l'utente possa fare il cambia utente
             userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname);
@@ -173,6 +208,7 @@ public class LoginController {
             }
 
             utente.setUtenteReale(utenteReale);
+            realUserId = String.valueOf(utenteReale.getId());
         }
         
         
@@ -189,6 +225,7 @@ public class LoginController {
         DateTime currentDateTime = DateTime.now();
         String token = Jwts.builder()
                 .setSubject(String.valueOf(utente.getId()))
+                .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserId)
                 .claim(AuthorizationUtils.TokenClaims.SSO_LOGIN.name(), false)
                 .claim(AuthorizationUtils.TokenClaims.COMPANY.name(), utente.getIdAzienda().getId())
                 .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLogString)
@@ -214,8 +251,11 @@ public class LoginController {
         String impersonateUser = request.getParameter(IMPERSONATE_USER);
         String applicazione = request.getParameter(APPLICATION);
         String azienda = request.getParameter(AZIENDA);
+        String passToken = request.getParameter(PASS_TOKEN);
         logger.info("impersonate user: " + impersonateUser);
         logger.info("applicazione: " + applicazione);
+        logger.info("azienda: " + azienda);
+        logger.info("passToken: " + passToken);
 
         //LOGIN SAML
         if (!samlEnabled) {
@@ -225,9 +265,29 @@ public class LoginController {
 
         String hostname = commonUtils.getHostname(request);
 
+        String ssoFieldValue = null;
+        if (StringUtils.hasText(passToken)) {
+            logger.info("c'è il passToken, agisco di conseguenza...");
+            try {
+                Claims claims = Jwts.parser().
+                    setSigningKey(secretKey).
+                    parseClaimsJws(passToken).
+                    getBody();
+
+                Object userSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name());
+                Object realUserSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name());
+                ssoFieldValue = userSSOFieldValueObj.toString();
+                if (realUserSSOFieldValueObj != null) {
+                   impersonateUser = realUserSSOFieldValueObj.toString();
+                }
+            } catch (Exception ex) {
+                return new ResponseEntity("passToken non valido", HttpStatus.FORBIDDEN);
+            }
+        }
+        
         ResponseEntity res;
         try {
-            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, null, impersonateUser, applicazione);
+            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);
@@ -242,6 +302,7 @@ public class LoginController {
         public String realUser;
         public String password;
         public String application;
+        public String passToken;
     }
 
     @SuppressWarnings("unused")
