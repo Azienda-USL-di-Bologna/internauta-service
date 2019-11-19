@@ -276,9 +276,15 @@ public class LoginController {
 
                 Object userSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name());
                 Object realUserSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name());
-                ssoFieldValue = userSSOFieldValueObj.toString();
+
                 if (realUserSSOFieldValueObj != null) {
-                   impersonateUser = realUserSSOFieldValueObj.toString();
+//                   impersonateUser = realUserSSOFieldValueObj.toString();
+                    ssoFieldValue = realUserSSOFieldValueObj.toString();
+                    if (StringUtils.isEmpty(impersonateUser)) {
+                        impersonateUser = userSSOFieldValueObj.toString();
+                    }
+                } else {
+                   ssoFieldValue = userSSOFieldValueObj.toString();
                 }
             } catch (Exception ex) {
                 return new ResponseEntity("passToken non valido", HttpStatus.FORBIDDEN);
