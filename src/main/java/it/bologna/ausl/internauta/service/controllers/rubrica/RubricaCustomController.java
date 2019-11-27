@@ -9,6 +9,7 @@ import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExcep
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.rubrica.maven.client.RestClient;
@@ -55,6 +56,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
     UserInfoService userInfoService;
     
     @Autowired
+    CachedEntities cachedEntities;
+    
+    @Autowired
     PostgresConnectionManager postgresConnectionManager;
     
     @Autowired
@@ -97,7 +101,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
     ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException, Http404ResponseException, RestClientException {
         // Prendo l'azienda da cui viene la richiesta
         String path = commonUtils.getHostname(request);
-        Azienda azienda = userInfoService.loadAziendaByPath(path);
+        Azienda azienda = cachedEntities.getAziendaFromPath(path);
                 
         // Prendo le informazioni che mi servono per chiamare la rubrica
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
