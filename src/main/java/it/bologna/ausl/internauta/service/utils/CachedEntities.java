@@ -1,5 +1,7 @@
 package it.bologna.ausl.internauta.service.utils;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
@@ -10,12 +12,15 @@ import it.bologna.ausl.internauta.service.repositories.configurazione.Applicazio
 import it.bologna.ausl.internauta.service.repositories.logs.OperazioneKrinRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +31,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class CachedEntities {
 
+    @Value("${nextsdr.request.default.azienda-path}")
+    String pathAziendaDefault;
+
+    @Value("${nextsdr.request.default.azienda-codice}")
+    String codiceAziendaDefault;
+    
+    @Value("${internauta.mode}")
+    String internautaMode;
+    
     @Autowired
     private AziendaRepository aziendaRepository;
     
@@ -57,13 +71,42 @@ public class CachedEntities {
             return null;
     }
     
-    @Cacheable(value = "aziendaFromIdUtente__ribaltorg__", key = "{#idUtente}")
-    public Azienda getAziendaFromIdUtente(Integer idUtente) {
-        Optional<Utente> utente = utenteRepository.findById(idUtente);
-        if (utente.isPresent())
-            return getAzienda(utente.get().getIdAzienda().getId());
+    @Cacheable(value = "aziendaFromCodice__ribaltorg__", key = "{#codice}")
+    public Azienda getAziendaFromCodice(String codice) {
+        BooleanExpression filter = QAzienda.azienda.codice.eq(codice);
+        Optional<Azienda> azienda = aziendaRepository.findOne(filter);
+        if (azienda.isPresent())
+            return azienda.get();
         else 
             return null;
+    }
+    
+    /**
+     * carica l'azienda a partire dal path che ha effettuato la richiesta
+     *
+     * @param path
+     * @return
+     */
+    @Cacheable(value = "aziendaFromPath__ribaltorg__", key = "{#path}")
+    public Azienda getAziendaFromPath(String path) {
+        BooleanExpression filter;
+
+        if ((path.equals(pathAziendaDefault) || path.equals("localhost")) && internautaMode.equalsIgnoreCase("test")) {
+            filter = QAzienda.azienda.codice.eq(codiceAziendaDefault);
+        } else {
+            filter = Expressions.booleanTemplate("arraycontains({0}, string_to_array({1}, ','))=true", QAzienda.azienda.path, path);
+        }
+
+        Optional<Azienda> aziendaOp = aziendaRepository.findOne(filter);
+        if (aziendaOp.isPresent()) {
+            return aziendaOp.get();
+        } else {
+            return null;
+        }
+    }
+
+    @CacheEvict(value = "aziendaFromPath__ribaltorg__", key = "{#path}")
+    public void getAziendaFromPathRemoveCache(String path) {
     }
 
     @Cacheable(value = "applicazione", key = "{#id}")
