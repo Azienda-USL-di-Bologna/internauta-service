@@ -81,29 +81,32 @@ public class ProjectionBeans {
     UserInfoService userInfoService;
 
     @Autowired
+    InternautaUtils internautaUtils;
+    
+    @Autowired
     HttpSessionData httpSessionData;
     
     @Autowired
     ObjectMapper objectMapper;
 
-    protected Utente user, realUser;
-    protected Persona person, realPerson;
-    protected Applicazione.Applicazioni applicazione;
-    protected int idSessionLog;
+//    protected Utente user, realUser;
+//    protected Persona person, realPerson;
+//    protected Applicazione.Applicazioni applicazione;
+//    protected int idSessionLog;
     final String APP_URL_PICO = "/Procton/Procton.htm";
     final String APP_URL_BABEL = "/Babel/Babel.htm";
     
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ProjectionBeans.class);
 
-    protected void setAuthenticatedUserProperties() throws BlackBoxPermissionException {
-        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        user = authenticatedSessionData.getUser();
-        realUser = authenticatedSessionData.getRealUser();
-        idSessionLog = authenticatedSessionData.getIdSessionLog();
-        person = authenticatedSessionData.getPerson();
-        realPerson = authenticatedSessionData.getRealPerson();
-        applicazione = authenticatedSessionData.getApplicazione();
-    }
+//    protected void setAuthenticatedUserProperties() throws BlackBoxPermissionException {
+//        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+//        user = authenticatedSessionData.getUser();
+//        realUser = authenticatedSessionData.getRealUser();
+//        idSessionLog = authenticatedSessionData.getIdSessionLog();
+//        person = authenticatedSessionData.getPerson();
+//        realPerson = authenticatedSessionData.getRealPerson();
+//        applicazione = authenticatedSessionData.getApplicazione();
+//    }
     
     public UtenteWithIdPersona getUtenteConPersona(Utente utente){
         if (utente != null) {
@@ -154,7 +157,9 @@ public class ProjectionBeans {
     }
     
     public List<ImpostazioniApplicazioniWithPlainFields> getImpostazioniApplicazioniListWithPlainFields(Persona persona) throws BlackBoxPermissionException {
-        setAuthenticatedUserProperties();
+//        setAuthenticatedUserProperties();
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Applicazione.Applicazioni applicazione = authenticatedSessionData.getApplicazione();
         List<ImpostazioniApplicazioni> impostazioniApplicazioniList = persona.getImpostazioniApplicazioniList();
         if (impostazioniApplicazioniList != null && !impostazioniApplicazioniList.isEmpty()) {
             return impostazioniApplicazioniList.stream().filter(imp -> imp.getIdApplicazione().getId().equals(applicazione.toString())).
@@ -224,44 +229,32 @@ public class ProjectionBeans {
     /**
      * Restituisce gli url da mettere nelle aziende dell'utente, 
      * per chiamare le funzioni dell'onCommand sulle applicazioni Inde
-     * @param azienda
+     * @param aziendaTarget
      * @return
      * @throws IOException 
      */
-    public Map<String, String> getUrlCommands(Azienda azienda) throws IOException {                
-        final String FROM = "&from=INTERNAUTA";
-        
+    public Map<String, String> getUrlCommands(Azienda aziendaTarget) throws IOException {                        
         Map<String, String> result = new HashMap<>();
-                
+
         Utente utente = (Utente)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
-        AziendaParametriJson parametriAziendaLogin = AziendaParametriJson.parse(objectMapper, utente.getIdAzienda().getParametri());                
-        AziendaParametriJson parametriAziendaDestinazione = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
-        String crossLoginUrlTemplate = parametriAziendaDestinazione.getCrossLoginUrlTemplate();
-        String commonStringToEncode = commonStringToEncode(utente, FROM);
+        String idSessionLog = (String) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
 //        crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm?CMD=[encoded-params]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
+        Persona realPerson = null;
+        if (utente.getUtenteReale() != null) {
+            realPerson = utente.getUtenteReale().getIdPersona();
+        }
+        Persona person = utente.getIdPersona();
+        Azienda aziendaLogin = utente.getIdAzienda();
         
-        addRegistrationUrlCommands(result, commonStringToEncode, parametriAziendaLogin, parametriAziendaDestinazione, crossLoginUrlTemplate);
-        addArchiveUrlCommands(result, commonStringToEncode, parametriAziendaLogin, parametriAziendaDestinazione, crossLoginUrlTemplate);
-        
+        result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_NEW.toString(), 
+                internautaUtils.getUrl("?CMD=ricevi_from_pec;[id_message]&id_sorgente=[id_sorgente]&pec_ricezione=[pec_ricezione]",realPerson, person, "procton", aziendaLogin, aziendaTarget, idSessionLog));
+        result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_ADD.toString(), 
+                internautaUtils.getUrl("?CMD=add_from_pec;[id_message]&id_sorgente=[id_sorgente]&pec_ricezione=[pec_ricezione]", realPerson, person, "procton", aziendaLogin, aziendaTarget, idSessionLog));
+        result.put(InternautaConstants.UrlCommand.Keys.ARCHIVE_MESSAGE.toString(), 
+                internautaUtils.getUrl("?CMD=fascicola_shpeck;[id_message]", realPerson, person, "babel", aziendaLogin, aziendaTarget, idSessionLog));
         return result;        
     }
-    
-    private String commonStringToEncode(Utente utente, String from) {
-        String stringToEncode = "";
-        stringToEncode += "&richiesta=[richiesta]";        
-        stringToEncode += "&utenteImpersonato=" + utente.getIdPersona().getCodiceFiscale();
-        if(utente.getUtenteReale() != null ){
-            stringToEncode += "&utenteLogin=" + utente.getUtenteReale().getIdPersona().getCodiceFiscale();
-        } else {
-            stringToEncode += "&utenteLogin=" + utente.getIdPersona().getCodiceFiscale();
-        }
-        stringToEncode += "&idSessionLog=" + httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
-        stringToEncode += from;
-        stringToEncode += "&modalitaAmministrativa=0";
-        
-        return stringToEncode;
-    }
-    
+
     private void addRegistrationUrlCommands(
             Map<String, String> result, 
             String commonStringToEncode, 
