@@ -17,6 +17,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.RuoloRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QAzienda;
@@ -87,47 +88,14 @@ public class UserInfoService {
     @Autowired
     ObjectMapper objectMapper;
 
-    @Value("${nextsdr.request.default.azienda-path}")
-    String pathAziendaDefault;
-
-    @Value("${nextsdr.request.default.azienda-codice}")
-    String codiceAziendaDefault;
-
-    @Value("${internauta.mode}")
-    String internautaMode;
+    
+    @Autowired
+    CachedEntities cachedEntities;
     
     @Autowired
     PostgresConnectionManager postgresConnectionManager;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
-
-    /**
-     * carica l'azienda a partire dal path che ha effettuato la richiesta
-     *
-     * @param path
-     * @return
-     */
-    @Cacheable(value = "aziendaInfo__ribaltorg__", key = "{#path}")
-    public Azienda loadAziendaByPath(String path) {
-        BooleanExpression filter;
-
-        if ((path.equals(pathAziendaDefault) || path.equals("localhost")) && internautaMode.equalsIgnoreCase("test")) {
-            filter = QAzienda.azienda.codice.eq(codiceAziendaDefault);
-        } else {
-            filter = Expressions.booleanTemplate("arraycontains({0}, string_to_array({1}, ','))=true", QAzienda.azienda.path, path);
-        }
-
-        Optional<Azienda> aziendaOp = aziendaRepository.findOne(filter);
-        if (aziendaOp.isPresent()) {
-            return aziendaOp.get();
-        } else {
-            return null;
-        }
-    }
-
-    @CacheEvict(value = "aziendaInfo__ribaltorg__", key = "{#path}")
-    public void loadAziendaByPathRemoveCache(String path) {
-    }
 
     /**
      * carica l'utente a partire dall'id
@@ -161,7 +129,7 @@ public class UserInfoService {
     @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
     public Utente loadUtente(String username, String aziendaPath) {
         Utente res = null;
-        Azienda azienda = loadAziendaByPath(aziendaPath);
+        Azienda azienda = cachedEntities.getAziendaFromPath(aziendaPath);
         if (azienda != null) {
             BooleanExpression utenteFilter = QUtente.utente.username.eq(username).and(QUtente.utente.idAzienda.id.eq(azienda.getId()));
             Optional<Utente> utenteOp = utenteRepository.findOne(utenteFilter);
@@ -530,6 +498,14 @@ public class UserInfoService {
         return aziende;
     }
 
+    @Cacheable(value = "aziendaFromIdUtente__ribaltorg__", key = "{#idUtente}")
+    public Azienda getAziendaFromIdUtente(Integer idUtente) {
+        Optional<Utente> utente = utenteRepository.findById(idUtente);
+        if (utente.isPresent())
+            return cachedEntities.getAzienda(utente.get().getIdAzienda().getId());
+        else 
+            return null;
+    }
     @Cacheable(value = "isCI__ribaltorg__", key = "{#user.getId()}")
     public boolean isCI(Utente user) {
         List<Ruolo> ruoli = user.getRuoli();

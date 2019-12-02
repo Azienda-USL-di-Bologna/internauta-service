@@ -18,12 +18,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaFatteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -98,10 +100,13 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                 throw new AbortLoadInterceptorException("errore nella lettura dei parametri dell'azienda origine", ex);
             }
         }
+//        String targetLoginPath;
         String targetLoginPath;
+        String targetBasePath;
         String applicationURL;
         String entityId = parametriAziendaOrigine.getEntityId();
         String crossLoginUrlTemplate = parametriAziendaOrigine.getCrossLoginUrlTemplate();
+        String simpleCrossLoginUrlTemplate = parametriAziendaOrigine.getSimpleCrossLoginUrlTemplate();
         Attivita attivita = (Attivita) entity;
 
         // Se sono attività, o notifiche di applicazioni pico/dete/deli, allora...
@@ -110,15 +115,6 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                 && attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.PICO.toString())
                 || attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.DETE.toString())
                 || attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.DELI.toString()))) {
-            try {
-                // composizione dell'indirizzo dell'azienda di destinazione
-
-                AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(this.objectMapper, attivita.getIdAzienda().getParametri());
-                targetLoginPath = parametriAziendaTarget.getLoginPath();
-//                targetLoginPath = HTTPS + InternautaUtils.getURLByIdAzienda(attivita.getIdAzienda());
-            } catch (IOException ex) {
-                throw new AbortLoadInterceptorException("errore nella lettura dei parametri dell'azienda target", ex);
-            }
 
             // composizione dell'applicazione (es: /Procton/Procton.htm)
             applicationURL = attivita.getIdApplicazione().getBaseUrl() + "/" + attivita.getIdApplicazione().getIndexPage();
@@ -143,43 +139,101 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                                 compiledUrlMap.putAll(urlMap);
                                 String urlAttivita = (String) urlMap.get("url");
 
-                                String stringToEncode = urlAttivita;
+                                String paramWithContextInformation = urlAttivita;
+                                String paramWithoutContextInformation = urlAttivita;
+                                
+//                                String stringToEncode = urlAttivita;
 
-                                stringToEncode += "&utente=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
+                                paramWithContextInformation += "&utente=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
 
                                 // stringToEncode += "&richiesta=" + UUID.randomUUID().toString();
                                 if (authenticatedSessionData.getRealPerson() != null) {
-                                    stringToEncode += "&realUser=" + authenticatedSessionData.getRealPerson().getCodiceFiscale();
-                                    stringToEncode += "&impersonatedUser=" + authenticatedSessionData.getPerson().getCodiceFiscale();
-                                    stringToEncode += "&utenteLogin=" + authenticatedSessionData.getRealPerson().getCodiceFiscale(); // serve alle applicazioni INDE
+                                    paramWithContextInformation += "&realUser=" + authenticatedSessionData.getRealPerson().getCodiceFiscale();
+                                    paramWithContextInformation += "&impersonatedUser=" + authenticatedSessionData.getPerson().getCodiceFiscale();
+                                    paramWithContextInformation += "&utenteLogin=" + authenticatedSessionData.getRealPerson().getCodiceFiscale(); // serve alle applicazioni INDE
                                 } else {
-                                    stringToEncode += "&user=" + authenticatedSessionData.getPerson().getCodiceFiscale();
-                                    stringToEncode += "&utenteLogin=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // serve alle applicazioni INDE
+                                    paramWithContextInformation += "&user=" + authenticatedSessionData.getPerson().getCodiceFiscale();
+                                    paramWithContextInformation += "&utenteLogin=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // serve alle applicazioni INDE
                                 }
 
-                                stringToEncode += "&utenteImpersonato=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // serve alle applicazioni INDE
+                                paramWithContextInformation += "&utenteImpersonato=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // serve alle applicazioni INDE
 
-                                stringToEncode += "&idSessionLog=" + authenticatedSessionData.getIdSessionLog();
+                                paramWithContextInformation += "&idSessionLog=" + authenticatedSessionData.getIdSessionLog();
 
-                                stringToEncode += FROM;
+                                paramWithContextInformation += FROM;
 
-                                stringToEncode += "&modalitaAmministrativa=0"; // serve alle applicazioni INDE
+                                paramWithContextInformation += "&modalitaAmministrativa=0"; // serve alle applicazioni INDE
 
-                                String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
-//                                    String assembledURL = destinationURL + LOGIN_SSO_URL + fromURL + SSO_TARGET + applicationURL + encode;
-                                String assembledURL = crossLoginUrlTemplate.
-                                        replace("[target-login-path]", targetLoginPath).
-                                        replace("[entity-id]", entityId).
-                                        replace("[app]", applicationURL).
-                                        replace("[encoded-params]", encodedParams);
+                                
+                                Azienda azienda = authenticatedSessionData.getUser().getIdAzienda();
+                                if (attivita.getIdAzienda() != null) {
+                                    azienda = attivita.getIdAzienda();
+                                }
+
+                                paramWithContextInformation += "&idAzienda=" + azienda.getId();
+                                paramWithContextInformation += "&aziendaImpersonatedUser=" + azienda.getId();
+                                try {
+                                    AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(this.objectMapper, azienda.getParametri());
+                                    targetLoginPath = parametriAziendaTarget.getLoginPath();
+                                    targetBasePath = parametriAziendaTarget.getBasePath();
+                                } catch (IOException ex) {
+                                    throw new AbortLoadInterceptorException("errore nella lettura dei parametri dell'azienda target", ex);
+                                }
+                                String encodedParamsWithContextInformation = "";
+                                String encodedParamsWithoutContextInformation = "";
+                                try {
+                                    encodedParamsWithContextInformation = URLEncoder.encode(paramWithContextInformation, "UTF-8");
+                                    encodedParamsWithoutContextInformation = URLEncoder.encode(paramWithoutContextInformation, "UTF-8");
+                                } catch (UnsupportedEncodingException ex) {
+                                    LOGGER.error("errore nella creazione del link", ex);
+                                    throw new AbortLoadInterceptorException("errore nella creazione del link", ex);
+                                }
+                                
+                                String assembledURL = null;
+                                        switch (attivita.getIdApplicazione().getUrlGenerationStrategy()) {
+                                            case TRUSTED_URL_WITH_CONTEXT_INFORMATION:
+                                                assembledURL = crossLoginUrlTemplate.
+                                                replace("[target-login-path]", targetLoginPath).
+                                                replace("[entity-id]", entityId).
+                                                replace("[app]", applicationURL).
+                                                replace("[encoded-params]", encodedParamsWithContextInformation);
+                                            break;
+                                            case TRUSTED_URL_WITHOUT_CONTEXT_INFORMATION:
+                                                assembledURL = crossLoginUrlTemplate.
+                                                replace("[target-login-path]", targetLoginPath).
+                                                replace("[entity-id]", entityId).
+                                                replace("[app]", applicationURL).
+                                                replace("[encoded-params]", encodedParamsWithoutContextInformation);
+                                            break;
+                                            case RELATIVE_WITH_CONTEXT_INFORMATION:
+                                                assembledURL = simpleCrossLoginUrlTemplate.
+                                                replace("[target-login-path]", targetBasePath).
+                                                replace("[app]", applicationURL).
+                                                replace("[params]", paramWithContextInformation);
+                                            break;
+                                            case RELATIVE_WITHOUT_CONTEXT_INFORMATION:
+                                                assembledURL = simpleCrossLoginUrlTemplate.
+                                                replace("[target-login-path]", targetBasePath).
+                                                replace("[app]", applicationURL).
+                                                replace("[params]", paramWithoutContextInformation);
+                                            break;
+                                            case ABSOLUTE_WITH_CONTEXT_INFORMATION:
+                                                assembledURL = applicationURL + paramWithContextInformation;
+                                            break;
+                                            case ABSOLUTE_WITHOUT_CONTEXT_INFORMATION:
+                                                assembledURL = paramWithoutContextInformation;
+                                            break;
+                                        }
                                 compiledUrlMap.put("url", assembledURL);
                                 compiledUrls.add(compiledUrlMap);
                             }
+                                        
                         }
                         // risetta gli urls aggiornati
                         attivita.setCompiledUrls(objectMapper.writeValueAsString(compiledUrls));
                     }
                 }
+                    
             } catch (Exception ex) {
                 throw new AbortLoadInterceptorException("errore in AttivitaInterceptor in afterSelectQueryInterceptor: ", ex);
             }

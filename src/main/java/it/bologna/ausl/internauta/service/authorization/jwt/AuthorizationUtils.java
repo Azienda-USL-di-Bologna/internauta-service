@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.authorization.jwt;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
@@ -109,9 +110,15 @@ public class AuthorizationUtils {
             realUserId =  Integer.parseInt((String)realUserString);
         }
         Integer idSessionLog = Integer.parseInt((String) claims.get(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name()));
-        Utente user = userInfoService.loadUtente(userId);       
+        Utente user = userInfoService.loadUtente(userId);
+        logger.info("user: " + (user != null? user.getId(): "null"));
         user.setRuoli(userInfoService.getRuoli(user, null));
-        
+        logger.info("ruoli user: ");
+        try {
+            logger.info(objectMapper.writeValueAsString(user.getRuoli()));
+        } catch (JsonProcessingException ex) {
+            logger.warn("Errore nella stampa dei ruoli", ex);
+        }
         user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user, true));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         user.setPermessiDiFlussoByCodiceAzienda(userInfoService.getPermessiDiFlussoByCodiceAzienda(user));
@@ -166,7 +173,7 @@ public class AuthorizationUtils {
         }
         Utente impersonatedUser;
         boolean isSuperDemiurgo = false;
-        Azienda aziendaRealUser = userInfoService.loadAziendaByPath(path);
+        Azienda aziendaRealUser = cachedEntities.getAziendaFromPath(path);
         Azienda aziendaImpersonatedUser = (idAzienda == null || aziendaRealUser.getId() == Integer.parseInt(idAzienda)? 
                                                 aziendaRealUser: 
                                                 cachedEntities.getAzienda(Integer.parseInt(idAzienda)));
@@ -205,9 +212,9 @@ public class AuthorizationUtils {
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         userInfoService.getPermessiDelegaRemoveCache(user);
         logger.info("realUser: " + objectMapper.writeValueAsString(user));
-        logger.info("aziendaRealUserLoaded: " + aziendaRealUser != null? aziendaRealUser.getId().toString(): "null");
+        logger.info("aziendaRealUserLoaded: " + (aziendaRealUser != null? aziendaRealUser.getId().toString(): "null"));
         logger.info("impersonatedUser: " + utenteImpersonatoStr);
-        logger.info("aziendaImpersonatedUserLoaded: " + aziendaImpersonatedUser != null? aziendaImpersonatedUser.getId().toString(): "null");
+        logger.info("aziendaImpersonatedUserLoaded: " + (aziendaImpersonatedUser != null? aziendaImpersonatedUser.getId().toString(): "null"));
         List<Integer> permessiDelega = userInfoService.getPermessiDelega(user);
         logger.info("permessiDelega: " + Arrays.toString(permessiDelega.toArray()));
         

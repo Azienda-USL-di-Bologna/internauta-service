@@ -3,6 +3,8 @@ package it.bologna.ausl.internauta.service.authorization.jwt;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.nextsw.common.utils.CommonUtils;
 import java.io.IOException;
 import java.security.cert.CertificateException;
@@ -53,6 +55,9 @@ public class AuthenticationEndpoint {
     AuthorizationUtils authorizationUtils;
     
     @Autowired
+    CachedEntities cachedEntities;
+    
+    @Autowired
     CommonUtils commonUtils;
     
     @RequestMapping(value = "${security.login.endpoint.path}", method = RequestMethod.POST)
@@ -89,10 +94,26 @@ public class AuthenticationEndpoint {
 
         //  valida il JWT e processa i claims
         JwtClaims jwtClaims = jwtConsumer.processToClaims(endpointObject.jws);  
-        
+        String impersonatedUser = jwtClaims.getSubject();;
+        String realUser = null;
+        String idAzienda = null;
+        if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.REAL_USER.toString())) {
+            realUser = jwtClaims.getStringClaimValue(AuthorizationUtils.TokenClaims.REAL_USER.toString());
+        }
+        if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.COMPANY.toString())) {
+            String codiceAzienda = jwtClaims.getStringClaimValue(AuthorizationUtils.TokenClaims.COMPANY.toString());
+            Azienda azienda = cachedEntities.getAziendaFromCodice(codiceAzienda);
+            if (azienda != null) {
+                idAzienda = azienda.getId().toString();
+            }
+        }
+        if (impersonatedUser.equals(realUser)) {
+            impersonatedUser = null;
+        }
+
         String hostname = commonUtils.getHostname(request);
     
-        return authorizationUtils.generateResponseEntityFromSAML(null, hostname, secretKey, request, jwtClaims.getSubject(), null, endpointObject.applicazione);
+        return authorizationUtils.generateResponseEntityFromSAML(idAzienda, hostname, secretKey, request, realUser, impersonatedUser, endpointObject.applicazione);
     }
     
     @SuppressWarnings("unused")
