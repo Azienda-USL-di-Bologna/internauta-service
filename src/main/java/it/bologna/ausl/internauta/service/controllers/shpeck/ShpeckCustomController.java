@@ -828,7 +828,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     LOG.info("dentro REMOVE_IN_REGISTRATION per il messaggio con id: " + message.getId());
                     if (messageTagInRegistration != null) {
                         // devo togliere dal tag in_registration l'azienda passata                              
-                        Predicate<Map<String, Map<String, Object>>> isQualified = item -> item.get("idAzienda").get("id") == additionalData.get("idAzienda").get("id");
+                        Predicate<Map<String, Map<String, Object>>> isQualified = item -> item.get("idAzienda").get("id").equals(additionalData.get("idAzienda").get("id"));
                                                 
                         initialAdditionalDataArrayInRegistration.removeIf(isQualified);                                                          
 
