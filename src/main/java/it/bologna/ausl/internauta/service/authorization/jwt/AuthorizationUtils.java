@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.authorization.jwt;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
@@ -109,9 +110,15 @@ public class AuthorizationUtils {
             realUserId =  Integer.parseInt((String)realUserString);
         }
         Integer idSessionLog = Integer.parseInt((String) claims.get(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name()));
-        Utente user = userInfoService.loadUtente(userId);       
+        Utente user = userInfoService.loadUtente(userId);
+        logger.info("user: " + (user != null? user.getId(): "null"));
         user.setRuoli(userInfoService.getRuoli(user, null));
-        
+        logger.info("ruoli user: ");
+        try {
+            logger.info(objectMapper.writeValueAsString(user.getRuoli()));
+        } catch (JsonProcessingException ex) {
+            logger.warn("Errore nella stampa dei ruoli", ex);
+        }
         user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user, true));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         user.setPermessiDiFlussoByCodiceAzienda(userInfoService.getPermessiDiFlussoByCodiceAzienda(user));
