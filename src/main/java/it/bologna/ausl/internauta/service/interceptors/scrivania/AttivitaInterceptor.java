@@ -18,8 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaFatteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
@@ -53,6 +55,9 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     UserInfoService userInfoService;
+    
+    @Autowired
+    InternautaUtils internautaUtils;
         
     @Autowired
     ObjectMapper objectMapper;
@@ -101,12 +106,12 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
             }
         }
 //        String targetLoginPath;
-        String targetLoginPath;
-        String targetBasePath;
-        String applicationURL;
-        String entityId = parametriAziendaOrigine.getEntityId();
-        String crossLoginUrlTemplate = parametriAziendaOrigine.getCrossLoginUrlTemplate();
-        String simpleCrossLoginUrlTemplate = parametriAziendaOrigine.getSimpleCrossLoginUrlTemplate();
+//        String targetLoginPath;
+//        String targetBasePath;
+//        String applicationURL;
+//        String entityId = parametriAziendaOrigine.getEntityId();
+//        String crossLoginUrlTemplate = parametriAziendaOrigine.getCrossLoginUrlTemplate();
+//        String simpleCrossLoginUrlTemplate = parametriAziendaOrigine.getSimpleCrossLoginUrlTemplate();
         Attivita attivita = (Attivita) entity;
 
         // Se sono attività, o notifiche di applicazioni pico/dete/deli, allora...
@@ -117,7 +122,15 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                 || attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.DELI.toString()))) {
 
             // composizione dell'applicazione (es: /Procton/Procton.htm)
-            applicationURL = attivita.getIdApplicazione().getBaseUrl() + "/" + attivita.getIdApplicazione().getIndexPage();
+//            applicationURL = attivita.getIdApplicazione().getBaseUrl() + "/" + attivita.getIdApplicazione().getIndexPage();
+
+            Integer idSessionLog = authenticatedSessionData.getIdSessionLog();
+            Persona realPerson = null;
+            if (authenticatedSessionData.getRealPerson() != null) {
+                realPerson = authenticatedSessionData.getRealPerson();
+            }
+            Persona person = authenticatedSessionData.getPerson();
+            Azienda aziendaLogin = authenticatedSessionData.getUser().getIdAzienda();
 
             try {
                 if (attivita.getUrls() != null) {
@@ -139,6 +152,16 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                                 compiledUrlMap.putAll(urlMap);
                                 String urlAttivita = (String) urlMap.get("url");
 
+                                Azienda aziendaTarget; 
+                                if (attivita.getIdAzienda() != null) {
+                                    aziendaTarget = attivita.getIdAzienda();
+                                } else {
+                                    aziendaTarget = aziendaLogin;
+                                }
+                                
+                                String assembledUrl = internautaUtils.getUrl(urlAttivita, realPerson, person, attivita.getIdApplicazione().getId(), aziendaLogin, aziendaTarget, idSessionLog);
+
+                                /**
                                 String paramWithContextInformation = urlAttivita;
                                 String paramWithoutContextInformation = urlAttivita;
                                 
@@ -190,41 +213,43 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                                 }
                                 
                                 String assembledURL = null;
-                                        switch (attivita.getIdApplicazione().getUrlGenerationStrategy()) {
-                                            case TRUSTED_URL_WITH_CONTEXT_INFORMATION:
-                                                assembledURL = crossLoginUrlTemplate.
-                                                replace("[target-login-path]", targetLoginPath).
-                                                replace("[entity-id]", entityId).
-                                                replace("[app]", applicationURL).
-                                                replace("[encoded-params]", encodedParamsWithContextInformation);
-                                            break;
-                                            case TRUSTED_URL_WITHOUT_CONTEXT_INFORMATION:
-                                                assembledURL = crossLoginUrlTemplate.
-                                                replace("[target-login-path]", targetLoginPath).
-                                                replace("[entity-id]", entityId).
-                                                replace("[app]", applicationURL).
-                                                replace("[encoded-params]", encodedParamsWithoutContextInformation);
-                                            break;
-                                            case RELATIVE_WITH_CONTEXT_INFORMATION:
-                                                assembledURL = simpleCrossLoginUrlTemplate.
-                                                replace("[target-login-path]", targetBasePath).
-                                                replace("[app]", applicationURL).
-                                                replace("[params]", paramWithContextInformation);
-                                            break;
-                                            case RELATIVE_WITHOUT_CONTEXT_INFORMATION:
-                                                assembledURL = simpleCrossLoginUrlTemplate.
-                                                replace("[target-login-path]", targetBasePath).
-                                                replace("[app]", applicationURL).
-                                                replace("[params]", paramWithoutContextInformation);
-                                            break;
-                                            case ABSOLUTE_WITH_CONTEXT_INFORMATION:
-                                                assembledURL = applicationURL + paramWithContextInformation;
-                                            break;
-                                            case ABSOLUTE_WITHOUT_CONTEXT_INFORMATION:
-                                                assembledURL = paramWithoutContextInformation;
-                                            break;
-                                        }
-                                compiledUrlMap.put("url", assembledURL);
+                                switch (attivita.getIdApplicazione().getUrlGenerationStrategy()) {
+                                    case TRUSTED_URL_WITH_CONTEXT_INFORMATION:
+                                        assembledURL = crossLoginUrlTemplate.
+                                        replace("[target-login-path]", targetLoginPath).
+                                        replace("[entity-id]", entityId).
+                                        replace("[app]", applicationURL).
+                                        replace("[encoded-params]", encodedParamsWithContextInformation);
+                                    break;
+                                    case TRUSTED_URL_WITHOUT_CONTEXT_INFORMATION:
+                                        assembledURL = crossLoginUrlTemplate.
+                                        replace("[target-login-path]", targetLoginPath).
+                                        replace("[entity-id]", entityId).
+                                        replace("[app]", applicationURL).
+                                        replace("[encoded-params]", encodedParamsWithoutContextInformation);
+                                    break;
+                                    case RELATIVE_WITH_CONTEXT_INFORMATION:
+                                        assembledURL = simpleCrossLoginUrlTemplate.
+                                        replace("[target-login-path]", targetBasePath).
+                                        replace("[app]", applicationURL).
+                                        replace("[params]", paramWithContextInformation);
+                                    break;
+                                    case RELATIVE_WITHOUT_CONTEXT_INFORMATION:
+                                        assembledURL = simpleCrossLoginUrlTemplate.
+                                        replace("[target-login-path]", targetBasePath).
+                                        replace("[app]", applicationURL).
+                                        replace("[params]", paramWithoutContextInformation);
+                                    break;
+                                    case ABSOLUTE_WITH_CONTEXT_INFORMATION:
+                                        assembledURL = applicationURL + paramWithContextInformation;
+                                    break;
+                                    case ABSOLUTE_WITHOUT_CONTEXT_INFORMATION:
+                                        assembledURL = paramWithoutContextInformation;
+                                    break;
+                                }
+                                
+                                */
+                                compiledUrlMap.put("url", assembledUrl);
                                 compiledUrls.add(compiledUrlMap);
                             }
                                         

@@ -220,7 +220,7 @@ public class LoginController {
         // mi metto in sessione l'utente_loggato e l'id_session_log, mi servirà in altri punti nella procedura di login, 
         // in particolare in projection custom
         httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, utente);
-        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLogString);
+        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLog);
 //        utente.setRuoli(userInfoService.getRuoli(utente));
         DateTime currentDateTime = DateTime.now();
         String token = Jwts.builder()
