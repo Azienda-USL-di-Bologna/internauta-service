@@ -95,7 +95,7 @@ public class ShpeckUtils {
 
     @Autowired
     private ApplicazioneRepository applicazioneRepository;
-    
+
     @Autowired
     private KrintShpeckService krintShpeckService;
 
@@ -251,9 +251,14 @@ public class ShpeckUtils {
      * @throws MessagingException
      * @throws IOException
      */
-    public void sendMessage(Pec pec, String subject, Boolean hiddenRecipients, String body,
-            ArrayList<EmlHandlerAttachment> listAttachments, ArrayList<EmlHandlerAttachment> emlAttachments,
-            MimeMessage mimeMessage, HttpServletRequest request) throws IOException, MessagingException {
+    public void sendMessage(Pec pec,
+            String subject,
+            Integer idRelated,
+            Boolean hiddenRecipients, String body,
+            ArrayList<EmlHandlerAttachment> listAttachments,
+            ArrayList<EmlHandlerAttachment> emlAttachments,
+            MimeMessage mimeMessage,
+            HttpServletRequest request) throws IOException, MessagingException {
         Outbox outboxMessage = new Outbox();
         Applicazione shpeckApp = applicazioneRepository.getOne("shpeck");
         try {
@@ -265,6 +270,7 @@ public class ShpeckUtils {
             outboxMessage.setIdApplicazione(shpeckApp);
 
             outboxMessage.setSubject(subject);
+            outboxMessage.setIdRelated(idRelated);
             outboxMessage.setHiddenRecipients(hiddenRecipients);
             outboxMessage.setUpdateTime(LocalDateTime.now());
             ArrayList<EmlHandlerAttachment> listTemp = new ArrayList<>(listAttachments);
@@ -349,9 +355,9 @@ public class ShpeckUtils {
         LOG.info("Getting message...");
         Message messageRelated = messageRepository.getOne(idMessageRelated);
         Tag tag = new Tag();
-        
+
         OperazioneKrint.CodiceOperazione operazione = null;
-        
+
         LOG.info("Getting tag to apply...");
         switch (messageRelatedType) {
             case REPLIED:
@@ -481,7 +487,7 @@ public class ShpeckUtils {
                     }
                 }
             }
-        /* È il caso di una bozza che viene ripresa */
+            /* È il caso di una bozza che viene ripresa */
         } else if (idMessageRelatedAttachments != null && idMessageRelatedAttachments.length > 0) {
             byte[] eml = draftMessage.getEml();
             listAttachments = EmlHandler.getListAttachments(null, eml, idMessageRelatedAttachments);
