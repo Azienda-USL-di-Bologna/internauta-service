@@ -1,4 +1,5 @@
 package it.bologna.ausl.internauta.service.utils;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -51,6 +52,7 @@ import it.bologna.ausl.model.entities.logs.projections.KrintShpeckPec;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdContatto;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdGruppo;
 
 /**
  *
@@ -58,34 +60,34 @@ import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContat
  */
 @Component
 public class ProjectionBeans {
-    
+
     @Autowired
     protected ProjectionFactory factory;
-    
+
     @Autowired
     protected CachedEntities cachedEntities;
-    
+
     @Autowired
     protected ImpostazioniApplicazioniRepository impostazioniApplicazioniRepository;
-    
+
     @Autowired
     protected UtenteRepository utenteRepository;
-    
+
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
-    
+
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-    
+
     @Autowired
     UserInfoService userInfoService;
 
     @Autowired
     InternautaUtils internautaUtils;
-    
+
     @Autowired
     HttpSessionData httpSessionData;
-    
+
     @Autowired
     ObjectMapper objectMapper;
 
@@ -95,7 +97,7 @@ public class ProjectionBeans {
 //    protected int idSessionLog;
     final String APP_URL_PICO = "/Procton/Procton.htm";
     final String APP_URL_BABEL = "/Babel/Babel.htm";
-    
+
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ProjectionBeans.class);
 
 //    protected void setAuthenticatedUserProperties() throws BlackBoxPermissionException {
@@ -107,24 +109,23 @@ public class ProjectionBeans {
 //        realPerson = authenticatedSessionData.getRealPerson();
 //        applicazione = authenticatedSessionData.getApplicazione();
 //    }
-    
-    public UtenteWithIdPersona getUtenteConPersona(Utente utente){
+    public UtenteWithIdPersona getUtenteConPersona(Utente utente) {
         if (utente != null) {
             return factory.createProjection(UtenteWithIdPersona.class, utente);
         } else {
             return null;
         }
     }
-    
-    public UtenteStrutturaWithIdAfferenzaStrutturaCustom 
-        getUtenteStrutturaWithIdAfferenzaStrutturaCustom(UtenteStruttura utenteStruttura){
+
+    public UtenteStrutturaWithIdAfferenzaStrutturaCustom
+            getUtenteStrutturaWithIdAfferenzaStrutturaCustom(UtenteStruttura utenteStruttura) {
         return factory.createProjection(UtenteStrutturaWithIdAfferenzaStrutturaCustom.class, utenteStruttura);
     }
-    
-    public StrutturaWithIdAzienda getStrutturaConAzienda(Struttura struttura){
+
+    public StrutturaWithIdAzienda getStrutturaConAzienda(Struttura struttura) {
         return factory.createProjection(StrutturaWithIdAzienda.class, struttura);
     }
-    
+
     public List<AttivitaWithIdPersona> getAttivitaWithIdPersona(Azienda azienda) {
         return azienda.getAttivitaList().stream().map(
                 a -> {
@@ -132,14 +133,15 @@ public class ProjectionBeans {
                 }
         ).collect(Collectors.toList());
     }
-    
+
     public CustomUtenteLogin getUtenteRealeWithIdPersonaImpostazioniApplicazioniList(Utente utente) {
         //Utente refreshedUtente = utenteRepository.getOne(utente.getId());
 //        Persona persona = utente.getIdPersona();
-        if (utente.getUtenteReale() != null)
+        if (utente.getUtenteReale() != null) {
             return factory.createProjection(CustomUtenteLogin.class, utente.getUtenteReale());
-        else
+        } else {
             return null;
+        }
 //        
 //            if (impostazioniApplicazioniList != null && !impostazioniApplicazioniList.isEmpty()) {
 //            return impostazioniApplicazioniList.stream().map(
@@ -148,14 +150,15 @@ public class ProjectionBeans {
 //        } else
 //            return null;
     }
+
     public CustomPersonaLogin getIdPersonaWithImpostazioniApplicazioniList(Utente utente) {
         return factory.createProjection(CustomPersonaLogin.class, utente.getIdPersona());
     }
-    
+
     public AziendaWithPlainFields getAziendaWithPlainFields(Utente utente) {
         return factory.createProjection(AziendaWithPlainFields.class, utente.getIdAzienda());
     }
-    
+
     public List<ImpostazioniApplicazioniWithPlainFields> getImpostazioniApplicazioniListWithPlainFields(Persona persona) throws BlackBoxPermissionException {
 //        setAuthenticatedUserProperties();
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -164,28 +167,29 @@ public class ProjectionBeans {
         if (impostazioniApplicazioniList != null && !impostazioniApplicazioniList.isEmpty()) {
             return impostazioniApplicazioniList.stream().filter(imp -> imp.getIdApplicazione().getId().equals(applicazione.toString())).
                     map(
-                        imp -> factory.createProjection(ImpostazioniApplicazioniWithPlainFields.class, imp)
+                            imp -> factory.createProjection(ImpostazioniApplicazioniWithPlainFields.class, imp)
                     ).collect(Collectors.toList());
-        } else
-            return null;
-    }
-
-    public List<PecAziendaWithIdAzienda> getPecAziendaListWithIdAzienda(List<PecAzienda> pecAziendaList){
-        if (pecAziendaList != null && !pecAziendaList.isEmpty()) {
-            return pecAziendaList.stream().map(pecAzienda -> factory.createProjection(PecAziendaWithIdAzienda.class, pecAzienda))
-                    .collect(Collectors.toList());
-        } else{
+        } else {
             return null;
         }
     }
 
-    public List<MessageAddressWithIdAddress> getMessageAddressListWithIdAddress(Message message){
+    public List<PecAziendaWithIdAzienda> getPecAziendaListWithIdAzienda(List<PecAzienda> pecAziendaList) {
+        if (pecAziendaList != null && !pecAziendaList.isEmpty()) {
+            return pecAziendaList.stream().map(pecAzienda -> factory.createProjection(PecAziendaWithIdAzienda.class, pecAzienda))
+                    .collect(Collectors.toList());
+        } else {
+            return null;
+        }
+    }
+
+    public List<MessageAddressWithIdAddress> getMessageAddressListWithIdAddress(Message message) {
         if (message != null) {
             List<MessageAddress> messageAddresssList = message.getMessageAddressList();
             if (messageAddresssList != null && !messageAddresssList.isEmpty()) {
                 return messageAddresssList.stream().map(messageAddress -> factory.createProjection(MessageAddressWithIdAddress.class, messageAddress))
                         .collect(Collectors.toList());
-            } else{
+            } else {
                 return null;
             }
         } else {
@@ -193,22 +197,21 @@ public class ProjectionBeans {
         }
     }
 
-    public List<MessageTagWithIdTag> getMessageTagListWithIdTag(Message message){
+    public List<MessageTagWithIdTag> getMessageTagListWithIdTag(Message message) {
         if (message != null) {
             List<MessageTag> messageTagList = message.getMessageTagList();
             if (messageTagList != null && !messageTagList.isEmpty()) {
                 return messageTagList.stream().map(messageTag -> factory.createProjection(MessageTagWithIdTag.class, messageTag))
                         .collect(Collectors.toList());
-            } else{
+            } else {
                 return null;
             }
         } else {
             return null;
         }
     }
-    
-     
-    public List<MessageFolderWithIdFolder> getMessageFolderListWithIdFolder(Message message){
+
+    public List<MessageFolderWithIdFolder> getMessageFolderListWithIdFolder(Message message) {
         try {
             return (List<MessageFolderWithIdFolder>) projectionsInterceptorLauncher.lanciaInterceptorCollection(message, "getMessageFolderList", MessageFolderWithIdFolder.class.getSimpleName());
         } catch (EntityReflectionException | NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | ClassNotFoundException | NoSuchFieldException | InterceptorException | AbortLoadInterceptorException ex) {
@@ -216,7 +219,7 @@ public class ProjectionBeans {
             return null;
         }
     }
-    
+
     public List<RibaltoneDaLanciareCustom> getRibaltoneDaLanciareListWithIdUtente(Azienda a) {
         try {
             return (List<RibaltoneDaLanciareCustom>) projectionsInterceptorLauncher.lanciaInterceptorCollection(a, "getRibaltoneDaLanciareList", RibaltoneDaLanciareCustom.class.getSimpleName());
@@ -225,18 +228,19 @@ public class ProjectionBeans {
             return null;
         }
     }
-    
+
     /**
-     * Restituisce gli url da mettere nelle aziende dell'utente, 
-     * per chiamare le funzioni dell'onCommand sulle applicazioni Inde
+     * Restituisce gli url da mettere nelle aziende dell'utente, per chiamare le
+     * funzioni dell'onCommand sulle applicazioni Inde
+     *
      * @param aziendaTarget
      * @return
-     * @throws IOException 
+     * @throws IOException
      */
-    public Map<String, String> getUrlCommands(Azienda aziendaTarget) throws IOException {                        
+    public Map<String, String> getUrlCommands(Azienda aziendaTarget) throws IOException {
         Map<String, String> result = new HashMap<>();
 
-        Utente utente = (Utente)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
+        Utente utente = (Utente) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
         String idSessionLog = (String) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
 //        crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm?CMD=[encoded-params]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
         Persona realPerson = null;
@@ -245,30 +249,30 @@ public class ProjectionBeans {
         }
         Persona person = utente.getIdPersona();
         Azienda aziendaLogin = utente.getIdAzienda();
-        
-        result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_NEW.toString(), 
-                internautaUtils.getUrl("?CMD=ricevi_from_pec;[id_message]&id_sorgente=[id_sorgente]&pec_ricezione=[pec_ricezione]",realPerson, person, "procton", aziendaLogin, aziendaTarget, idSessionLog));
-        result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_ADD.toString(), 
+
+        result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_NEW.toString(),
+                internautaUtils.getUrl("?CMD=ricevi_from_pec;[id_message]&id_sorgente=[id_sorgente]&pec_ricezione=[pec_ricezione]", realPerson, person, "procton", aziendaLogin, aziendaTarget, idSessionLog));
+        result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_ADD.toString(),
                 internautaUtils.getUrl("?CMD=add_from_pec;[id_message]&id_sorgente=[id_sorgente]&pec_ricezione=[pec_ricezione]", realPerson, person, "procton", aziendaLogin, aziendaTarget, idSessionLog));
-        result.put(InternautaConstants.UrlCommand.Keys.ARCHIVE_MESSAGE.toString(), 
+        result.put(InternautaConstants.UrlCommand.Keys.ARCHIVE_MESSAGE.toString(),
                 internautaUtils.getUrl("?CMD=fascicola_shpeck;[id_message]", realPerson, person, "babel", aziendaLogin, aziendaTarget, idSessionLog));
-        return result;        
+        return result;
     }
 
     private void addRegistrationUrlCommands(
-            Map<String, String> result, 
-            String commonStringToEncode, 
-            AziendaParametriJson parametriAziendaLogin, 
+            Map<String, String> result,
+            String commonStringToEncode,
+            AziendaParametriJson parametriAziendaLogin,
             AziendaParametriJson parametriAziendaDestinazione,
             String crossLoginUrlTemplate) throws UnsupportedEncodingException {
         // ho due casi praticamente uguali sulla protocollazione di una pec. Il caso in cui creo un nuovo Protocollo 
         // e il caso in cui aggiungo la pec a un protocollo già esistente
         // cambia solo il valore del parametro CMD, quindi fascio un ciclo per gestire questi due casi
         String stringToEncode = "";
-        
-        for(int i = 0; i < 2; i++){
+
+        for (int i = 0; i < 2; i++) {
             stringToEncode = "";
-            if(i == 0){
+            if (i == 0) {
                 stringToEncode = "?CMD=ricevi_from_pec;[id_message]";
 //                stringToEncode = "ricevi_from_pec;[id_message]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
             } else {
@@ -278,76 +282,91 @@ public class ProjectionBeans {
             stringToEncode += "&id_sorgente=[id_sorgente]";
             stringToEncode += "&pec_ricezione=[pec_ricezione]";
             stringToEncode += commonStringToEncode;
-            
-            String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");                
+
+            String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
 //            encodedParams = stringToEncode; // TODO: REMOVE, ONLY FOR LOCAL TESTS                
 
             String assembledUrl = crossLoginUrlTemplate
-                .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())
-                .replace("[entity-id]", parametriAziendaLogin.getEntityId()) //parametriAziendaLogin.getEntityId())
-                .replace("[app]", APP_URL_PICO)
-                .replace("[encoded-params]", encodedParams);
-            
-            if(i == 0){
+                    .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())
+                    .replace("[entity-id]", parametriAziendaLogin.getEntityId()) //parametriAziendaLogin.getEntityId())
+                    .replace("[app]", APP_URL_PICO)
+                    .replace("[encoded-params]", encodedParams);
+
+            if (i == 0) {
                 result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_NEW.toString(), assembledUrl);
             } else {
                 result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_ADD.toString(), assembledUrl);
             }
         }
-    } 
-    
+    }
+
     private void addArchiveUrlCommands(
-            Map<String, String> result, 
-            String commonStringToEncode, 
-            AziendaParametriJson parametriAziendaLogin, 
+            Map<String, String> result,
+            String commonStringToEncode,
+            AziendaParametriJson parametriAziendaLogin,
             AziendaParametriJson parametriAziendaDestinazione,
             String crossLoginUrlTemplate) throws UnsupportedEncodingException {
         String stringToEncode = "";
         stringToEncode = "?CMD=fascicola_shpeck;[id_message]";
         //stringToEncode = "CMD=ricevi_from_pec_int;[id_message]"; //local
         stringToEncode += commonStringToEncode;
-        String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");                
+        String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
         String assembledUrl = crossLoginUrlTemplate
-            .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())
-            .replace("[entity-id]", parametriAziendaLogin.getEntityId()) //parametriAziendaLogin.getEntityId())
-            .replace("[app]", APP_URL_BABEL)
-            .replace("[encoded-params]", encodedParams);
+                .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())
+                .replace("[entity-id]", parametriAziendaLogin.getEntityId()) //parametriAziendaLogin.getEntityId())
+                .replace("[app]", APP_URL_BABEL)
+                .replace("[encoded-params]", encodedParams);
         result.put(InternautaConstants.UrlCommand.Keys.ARCHIVE_MESSAGE.toString(), assembledUrl);
-    } 
-    
+    }
+
     /**
-     * restituisce i parametri dell'azienda che servono 
-     * al front end e non contengono informazioni sensibili 
+     * restituisce i parametri dell'azienda che servono al front end e non
+     * contengono informazioni sensibili
+     *
      * @return
      */
-    public Map<String, String> getParametriAziendaFrontEnd() throws IOException{
-        
+    public Map<String, String> getParametriAziendaFrontEnd() throws IOException {
+
         final String LOGOUT_URL_KEY = "logoutUrl";
-                
+
         Map<String, String> result = new HashMap<>();
-        
-        Utente utente = (Utente)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
-        
+
+        Utente utente = (Utente) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
+
         AziendaParametriJson parametri = AziendaParametriJson.parse(objectMapper, utente.getIdAzienda().getParametri());
 
         result.put(LOGOUT_URL_KEY, parametri.getLogoutUrl());
-        
+
         return result;
     }
-    
 
-    public KrintShpeckPec getPecKrint(Message message){
+    public KrintShpeckPec getPecKrint(Message message) {
         return factory.createProjection(KrintShpeckPec.class, message.getIdPec());
-    }          
-    
-     public List<GruppiContattiWithIdContatto> getContattiDelGruppoWithIdContatto(Contatto contatto){
+    }
+
+    public List<GruppiContattiWithIdContatto> getContattiDelGruppoWithIdContatto(Contatto contatto) {
         if (contatto != null) {
             List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
             if (contattiDelGruppoList != null && !contattiDelGruppoList.isEmpty()) {
                 return contattiDelGruppoList.stream().map(
                         gruppoContatto -> factory.createProjection(GruppiContattiWithIdContatto.class, gruppoContatto))
                         .collect(Collectors.toList());
-            } else{
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    public List<GruppiContattiWithIdGruppo> getGruppiDelContattoWithIdGruppo(Contatto contatto) {
+        if (contatto != null) {
+            List<GruppiContatti> gruppiDelContattoList = contatto.getGruppiDelContattoList();
+            if (gruppiDelContattoList != null && !gruppiDelContattoList.isEmpty()) {
+                return gruppiDelContattoList.stream().map(
+                        gruppoContatto -> factory.createProjection(GruppiContattiWithIdGruppo.class, gruppoContatto))
+                        .collect(Collectors.toList());
+            } else {
                 return null;
             }
         } else {
