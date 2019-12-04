@@ -241,7 +241,7 @@ public class ProjectionBeans {
         Map<String, String> result = new HashMap<>();
 
         Utente utente = (Utente) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
-        String idSessionLog = (String) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
+        Integer idSessionLog = (Integer) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
 //        crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm?CMD=[encoded-params]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
         Persona realPerson = null;
         if (utente.getUtenteReale() != null) {

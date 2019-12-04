@@ -41,7 +41,7 @@ public class InternautaUtils {
     }
     
     
-    public String getUrl(String initialUrl, Persona realPerson, Persona person, String idApplicazione, Azienda aziendaLogin, Azienda aziendaTarget, String idSessionLog) throws IOException {
+    public String getUrl(String initialUrl, Persona realPerson, Persona person, String idApplicazione, Azienda aziendaLogin, Azienda aziendaTarget, Integer idSessionLog) throws IOException {
     
         String paramsWithoutContextInformation = initialUrl;
         String paramsWithContextInformation = buildContextInformations(initialUrl, realPerson, person, aziendaLogin, idSessionLog);
@@ -107,7 +107,7 @@ public class InternautaUtils {
         return assembledURL;
     }
     
-    private String buildContextInformations(String url, Persona realPerson, Persona person, Azienda aziendaUser, String idSessionLog) {
+    private String buildContextInformations(String url, Persona realPerson, Persona person, Azienda aziendaUser, Integer idSessionLog) {
         
         
         if(person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0){
@@ -125,7 +125,7 @@ public class InternautaUtils {
         }
 
         url += "&utenteImpersonato=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
-        url += "&idSessionLog=" + idSessionLog;
+        url += "&idSessionLog=" + Integer.toString(idSessionLog);
         url += "&from=INTERNAUTA";
         url += "&modalitaAmministrativa=0"; // serve alle applicazioni INDE
 
