@@ -324,8 +324,10 @@ public class AuthorizationUtils {
         DateTime currentDateTime = DateTime.now();
 
         String realUserStr = null;
+        String realUserCfStr = null;
         if (realUser != null) {
             realUserStr = String.valueOf(realUser.getId());
+            realUserCfStr = realUser.getIdPersona().getCodiceFiscale();
         }
         Integer idSessionLog = createIdSessionLog().getId();
         String idSessionLogString = String.valueOf(idSessionLog);
@@ -335,6 +337,7 @@ public class AuthorizationUtils {
                         .claim(AuthorizationUtils.TokenClaims.SSO_LOGIN.name(), true)
                         .claim(AuthorizationUtils.TokenClaims.USER_ENTITY_CLASS.name(), entityClass)
                         .claim(AuthorizationUtils.TokenClaims.USER_FIELD.name(), field)
+                        .claim(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name(), realUserCfStr)
                         .claim(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name(), ssoFieldValue)
                         .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLogString)
                         .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserStr)
