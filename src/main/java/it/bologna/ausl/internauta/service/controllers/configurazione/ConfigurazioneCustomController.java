@@ -62,7 +62,7 @@ public class ConfigurazioneCustomController {
             user = authenticatedUserProperties.getUser();
         }
         Applicazioni applicazione = authenticatedUserProperties.getApplicazione();
-        LOGGER.info(String.format("person: %s", objectMapper.writeValueAsString(person)));
+//        LOGGER.info(String.format("person: %s", objectMapper.writeValueAsString(person)));
         LOGGER.info(String.format("user: %s", objectMapper.writeValueAsString(user)));
         LOGGER.info(String.format("applicazione: %s", applicazione.toString()));
         
