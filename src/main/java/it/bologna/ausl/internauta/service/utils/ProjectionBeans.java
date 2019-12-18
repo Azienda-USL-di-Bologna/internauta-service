@@ -48,6 +48,9 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 import it.bologna.ausl.model.entities.logs.projections.KrintShpeckPec;
+import it.bologna.ausl.model.entities.rubrica.Contatto;
+import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdContatto;
 
 /**
  *
@@ -344,5 +347,18 @@ public class ProjectionBeans {
         return factory.createProjection(KrintShpeckPec.class, message.getIdPec());
     }          
     
-    
+     public List<GruppiContattiWithIdContatto> getContattiDelGruppoWithIdContatto(Contatto contatto){
+        if (contatto != null) {
+            List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
+            if (contattiDelGruppoList != null && !contattiDelGruppoList.isEmpty()) {
+                return contattiDelGruppoList.stream().map(
+                        gruppoContatto -> factory.createProjection(GruppiContattiWithIdContatto.class, gruppoContatto))
+                        .collect(Collectors.toList());
+            } else{
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
 }

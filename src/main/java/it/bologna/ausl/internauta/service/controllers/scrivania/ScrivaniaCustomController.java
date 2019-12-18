@@ -268,10 +268,11 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
             throw new UnsupportedEncodingException("errore nell'encoding dell'url");
         }
         String assembledURL = "";
+        Applicazione applicazione;
         try {
             AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(this.objectMapper, azienda.getParametri());
             String targetLoginPath = parametriAzienda.getLoginPath();
-            Applicazione applicazione = applicazioneRepository.getOne("babel");
+            applicazione = applicazioneRepository.getOne("babel");
             String applicationURL = applicazione.getBaseUrl() + "/" + applicazione.getIndexPage();
             assembledURL = parametriAzienda.getCrossLoginUrlTemplate().
                 replace("[target-login-path]", targetLoginPath).
@@ -285,6 +286,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         JSONObject objAzienda = new JSONObject();
         objAzienda.put("nome", azienda.getNome());
         objAzienda.put("url", assembledURL);
+        objAzienda.put("urlGenerationStrategy", applicazione.getUrlGenerationStrategy());
         return objAzienda;
     }
     

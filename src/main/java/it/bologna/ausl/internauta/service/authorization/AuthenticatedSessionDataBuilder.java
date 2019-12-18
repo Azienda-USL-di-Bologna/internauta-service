@@ -34,8 +34,9 @@ public class AuthenticatedSessionDataBuilder {
             realPerson = cachedEntities.getPersonaFromUtente(realUser);
         }
         Applicazione.Applicazioni applicazione =  threadLocalAuthentication.get().getApplicazione();
+        String token =  threadLocalAuthentication.get().getToken();
 
-        return new AuthenticatedSessionData(user, realUser, person, realPerson, idSessionLog, applicazione);
+        return new AuthenticatedSessionData(user, realUser, person, realPerson, idSessionLog, applicazione, token);
     }
 
     private void setAuthentication() {
