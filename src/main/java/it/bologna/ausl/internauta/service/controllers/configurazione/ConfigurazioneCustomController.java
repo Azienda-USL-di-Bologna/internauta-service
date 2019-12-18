@@ -30,22 +30,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class ConfigurazioneCustomController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurazioneCustomController.class);
-    
+
     @Autowired
     private ImpostazioniApplicazioniRepository impostazioniApplicazioniRepository;
-    
+
     @Autowired
     private ApplicazioneRepository applicazioneRepository;
-    
+
     @Autowired
     private PersonaRepository personaRepository;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-    
+
     @Autowired
     ObjectMapper objectMapper;
-    
+
     @RequestMapping(value = "setImpostazioniApplicazioni", method = RequestMethod.POST)
     @Transactional(rollbackFor = {Exception.class, Error.class})
     public void setImpostazioniApplicazioni(@RequestBody Map impostazioniVisualizzazione) throws JsonProcessingException, BlackBoxPermissionException {
@@ -62,10 +62,11 @@ public class ConfigurazioneCustomController {
             user = authenticatedUserProperties.getUser();
         }
         Applicazioni applicazione = authenticatedUserProperties.getApplicazione();
-        LOGGER.info(String.format("person: %s", objectMapper.writeValueAsString(person)));
-        LOGGER.info(String.format("user: %s", objectMapper.writeValueAsString(user)));
+//        LOGGER.info(String.format("person: %s", objectMapper.writeValueAsString(person)));
+//        user.getIdPersona().getIdContatto();
+//        LOGGER.info(String.format("user: %s", objectMapper.writeValueAsString(user)));
         LOGGER.info(String.format("applicazione: %s", applicazione.toString()));
-        
+
         BooleanExpression impostazioniFilter = QImpostazioniApplicazioni.impostazioniApplicazioni.idApplicazione.id
                 .eq(applicazione.toString())
                 .and(QImpostazioniApplicazioni.impostazioniApplicazioni.idPersona.id
@@ -75,8 +76,7 @@ public class ConfigurazioneCustomController {
         ImpostazioniApplicazioni impostazioni;
         if (impostazioniOp.isPresent()) {
             impostazioni = impostazioniOp.get();
-        }
-        else {
+        } else {
             impostazioni = new ImpostazioniApplicazioni();
             impostazioni.setIdApplicazione(applicazioneRepository.getOne(applicazione.toString()));
             impostazioni.setIdPersona(personaRepository.getOne(person.getId()));

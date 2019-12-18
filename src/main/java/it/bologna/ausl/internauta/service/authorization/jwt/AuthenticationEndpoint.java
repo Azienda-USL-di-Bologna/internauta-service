@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -95,10 +96,14 @@ public class AuthenticationEndpoint {
         //  valida il JWT e processa i claims
         JwtClaims jwtClaims = jwtConsumer.processToClaims(endpointObject.jws);  
         String impersonatedUser = jwtClaims.getSubject();;
-        String realUser = null;
+        String realUser = impersonatedUser;
         String idAzienda = null;
-        if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.REAL_USER.toString())) {
+        if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.REAL_USER.toString()) && 
+                StringUtils.hasText(jwtClaims.getStringClaimValue(AuthorizationUtils.TokenClaims.REAL_USER.toString()))) {
             realUser = jwtClaims.getStringClaimValue(AuthorizationUtils.TokenClaims.REAL_USER.toString());
+        }
+        if (impersonatedUser.equals(realUser)) {
+            impersonatedUser = null;
         }
         if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.COMPANY.toString())) {
             String codiceAzienda = jwtClaims.getStringClaimValue(AuthorizationUtils.TokenClaims.COMPANY.toString());
@@ -106,9 +111,6 @@ public class AuthenticationEndpoint {
             if (azienda != null) {
                 idAzienda = azienda.getId().toString();
             }
-        }
-        if (impersonatedUser.equals(realUser)) {
-            impersonatedUser = null;
         }
 
         String hostname = commonUtils.getHostname(request);
