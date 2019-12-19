@@ -29,6 +29,7 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
@@ -71,6 +72,7 @@ public class LogoutManagerWorker implements Runnable {
 //    private final Map<String, ConnectedPersona> connectedPersona = new ConcurrentHashMap();
     
     @Override
+    @Transactional
     public void run() {
         ZonedDateTime now = ZonedDateTime.now();
         log.info(String.format("refreshSessionTimeoutSeconds:  %d", refreshSessionTimeoutSeconds));
@@ -83,12 +85,14 @@ public class LogoutManagerWorker implements Runnable {
                     ConnectedPersona connectedPersonaEntry = (ConnectedPersona) redisTemplate.opsForHash().get(connectedClientRedisHashName, cf);
                     log.info(String.format("lastSeen:  %s", connectedPersonaEntry.getLastSeen().toString()));
                     log.info(String.format("now %s", now.toString()));
-                    log.info(String.format("Duration.between(now, connectedPersonaEntry.lastSeen).toSeconds(): %d", Duration.between(connectedPersonaEntry.getLastSeen(), now).toSeconds()));
-                    if (Duration.between(connectedPersonaEntry.getLastSeen(), now).toSeconds() > refreshSessionTimeoutSeconds) {
-                            log.info(String.format("sending logout to: %s", cf));
-                            redisTemplate.opsForHash().delete(connectedClientRedisHashName, cf);
-                            Persona persona = cachedEntities.getPersona(connectedPersonaEntry.getId());
-                            sendLogoutCommand(persona, connectedPersonaEntry.getFromUrl());
+//                    Duration.between(connectedPersonaEntry.getLastSeen(), now).toSeconds();
+                    boolean timedOut = connectedPersonaEntry.getLastSeen().plusSeconds(refreshSessionTimeoutSeconds).isBefore(now);
+                    log.info(String.format("timedOut: %b", timedOut));
+                    if (timedOut) {
+                        log.info(String.format("sending logout to: %s", cf));
+                        redisTemplate.opsForHash().delete(connectedClientRedisHashName, cf);
+                        Persona persona = cachedEntities.getPersona(connectedPersonaEntry.getId());
+                        sendLogoutCommand(persona, connectedPersonaEntry.getFromUrl());
                     }
                 } catch (Exception ex) {
                     log.error(String.format("errore nell'invio del comando di logout alla persona: %s", cf), ex);
