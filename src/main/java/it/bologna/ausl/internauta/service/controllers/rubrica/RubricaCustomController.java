@@ -2,7 +2,10 @@ package it.bologna.ausl.internauta.service.controllers.rubrica;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
@@ -86,7 +89,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private ProjectionFactory projectionFactory;
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     /**
      * Effettua la ricerca sulla rubrica locale dell'utente indicato
@@ -105,8 +108,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 //    }
     /**
      * Questa funzione cerca nelle rubriche dei db argo usando principalmente la
-     * rubricarest. La fuznione è specifica per la ricerca della mail.
-     * Restituirà un oggetto composto da descrizione contatto e sua email.
+     * rubricarest.La fuznione è specifica per la ricerca della mail. Restituirà un oggetto composto da descrizione contatto e sua email.
      *
      * @param toSearch
      * @param request
@@ -116,21 +118,20 @@ public class RubricaCustomController implements ControllerHandledExceptions {
      * @throws Http500ResponseException
      * @throws Http404ResponseException
      * @throws RestClientException
+     * @throws it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException
      */
     @RequestMapping(value = "searchEmailContact", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> searchEmailContact(
             @RequestParam("toSearch") String toSearch,
             HttpServletRequest request
-    ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException, Http404ResponseException, RestClientException {
-        // Prendo l'azienda da cui viene la richiesta
-        String path = commonUtils.getHostname(request);
-        Azienda azienda = cachedEntities.getAziendaFromPath(path);
-
+    ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException, Http404ResponseException, RestClientException, BlackBoxPermissionException {
+        
         // Prendo le informazioni che mi servono per chiamare la rubrica
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Utente utente = (Utente) authentication.getPrincipal();
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente utente = authenticatedUserProperties.getUser();
+        Azienda azienda = cachedEntities.getAzienda(utente.getIdAzienda().getId());
         UtenteProcton utenteProcton = (UtenteProcton) userInfoService.getUtenteProcton(utente.getIdPersona().getId(), azienda.getCodice());
-
+        
         // Faccio la chiamata alla rubrica
         RestClient restClient = rubricaRestClientConnectionManager.getConnection(azienda.getId());
         List<FullContactResource> searchContact = restClient.searchContact(toSearch, utenteProcton.getIdUtente(), utenteProcton.getIdStruttura(), false);

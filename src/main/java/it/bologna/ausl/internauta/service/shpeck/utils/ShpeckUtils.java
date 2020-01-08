@@ -169,6 +169,7 @@ public class ShpeckUtils {
      * @param idMessageRelated L'id del messaggio correlato
      * @param messageRelatedType Tipo di relazione
      * @param emlAttachments
+     * @param request
      * @throws MessagingException
      * @throws IOException
      */
@@ -243,11 +244,13 @@ public class ShpeckUtils {
      *
      * @param pec La casella Pec mittente
      * @param subject
+     * @param idRelated
      * @param hiddenRecipients
      * @param mimeMessage Il MimeMessage da inviare
      * @param listAttachments
      * @param emlAttachments
      * @param body
+     * @param request
      * @throws MessagingException
      * @throws IOException
      */

@@ -17,6 +17,7 @@ import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.logs.Counter;
 import java.io.IOException;
@@ -168,12 +169,21 @@ public class AuthorizationUtils {
 
         logger.info("idAzienda: " + objectMapper.writeValueAsString(idAzienda));
         logger.info("path: " + objectMapper.writeValueAsString(path));
-        if (StringUtils.isEmpty(path)) {
-            throw new ObjectNotFoundException("impossibile stabilire l'azienda dell'utente, il campo \"path\" è vuoto");
+        logger.info("fromInternet: " + fromInternet(request));
+        Azienda aziendaRealUser;
+        if (fromInternet(request)) {
+            ssoFieldValue = request.getAttribute("CodiceFiscale").toString();
+            Persona realPerson = cachedEntities.getPersonaFromCodiceFiscale(ssoFieldValue);
+            aziendaRealUser = cachedEntities.getAzienda(realPerson.getIdAziendaDefault().getId());
+        } else {
+            if (StringUtils.isEmpty(path)) {
+                throw new ObjectNotFoundException("impossibile stabilire l'azienda dell'utente, il campo \"path\" è vuoto");
+            }
+            aziendaRealUser = cachedEntities.getAziendaFromPath(path);
         }
+        
         Utente impersonatedUser;
         boolean isSuperDemiurgo = false;
-        Azienda aziendaRealUser = cachedEntities.getAziendaFromPath(path);
         Azienda aziendaImpersonatedUser = (idAzienda == null || aziendaRealUser.getId() == Integer.parseInt(idAzienda)? 
                                                 aziendaRealUser: 
                                                 cachedEntities.getAzienda(Integer.parseInt(idAzienda)));
@@ -306,6 +316,15 @@ public class AuthorizationUtils {
         //                        user),
         //                HttpStatus.OK);
         //    }
+    }
+    
+    private boolean fromInternet(HttpServletRequest request) {
+        try {
+            String internet = request.getAttribute("internet").toString();
+            return Boolean.getBoolean(internet);
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     public ResponseEntity generateResponseEntityFromUsername() {
