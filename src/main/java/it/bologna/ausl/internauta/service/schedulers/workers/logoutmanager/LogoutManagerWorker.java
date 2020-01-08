@@ -10,23 +10,17 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import java.io.IOException;
-import java.io.Serializable;
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.context.annotation.Scope;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,13 +63,12 @@ public class LogoutManagerWorker implements Runnable {
     @Autowired
     ObjectMapper objectMapper;
     
-//    private final Map<String, ConnectedPersona> connectedPersona = new ConcurrentHashMap();
-    
     @Override
     @Transactional
     public void run() {
         ZonedDateTime now = ZonedDateTime.now();
-        log.info(String.format("refreshSessionTimeoutSeconds:  %d", refreshSessionTimeoutSeconds));
+        log.info(String.format("now %s", now.toString()));
+//        log.info(String.format("refreshSessionTimeoutSeconds:  %d", refreshSessionTimeoutSeconds));
         Set keys = redisTemplate.opsForHash().keys(connectedClientRedisHashName);
         keys.forEach(
             cf -> {
@@ -84,12 +77,10 @@ public class LogoutManagerWorker implements Runnable {
                     // ConnectedPersona connectedPersonaEntry = objectMapper.readValue((String)redisTemplate.opsForHash().get(connectedClientRedisHashName, cf), ConnectedPersona.class);
                     ConnectedPersona connectedPersonaEntry = (ConnectedPersona) redisTemplate.opsForHash().get(connectedClientRedisHashName, cf);
                     log.info(String.format("lastSeen:  %s", connectedPersonaEntry.getLastSeen().toString()));
-                    log.info(String.format("now %s", now.toString()));
 //                    Duration.between(connectedPersonaEntry.getLastSeen(), now).toSeconds();
                     boolean timedOut = connectedPersonaEntry.getLastSeen().plusSeconds(refreshSessionTimeoutSeconds).isBefore(now);
-                    log.info(String.format("timedOut: %b", timedOut));
                     if (timedOut) {
-                        log.info(String.format("sending logout to: %s", cf));
+                        log.info(String.format("timed out", cf));
                         redisTemplate.opsForHash().delete(connectedClientRedisHashName, cf);
                         Persona persona = cachedEntities.getPersona(connectedPersonaEntry.getId());
                         sendLogoutCommand(persona, connectedPersonaEntry.getFromUrl());

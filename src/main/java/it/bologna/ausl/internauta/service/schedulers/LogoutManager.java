@@ -26,7 +26,7 @@ public class LogoutManager {
     
     public void scheduleLogoutManager() {
         LogoutManagerWorker logoutManagerWorker = beanFactory.getBean(LogoutManagerWorker.class);
-        scheduledThreadPoolExecutor.scheduleWithFixedDelay(logoutManagerWorker, 0, 10, TimeUnit.SECONDS);
+        scheduledThreadPoolExecutor.scheduleWithFixedDelay(logoutManagerWorker, 0, 5, TimeUnit.MINUTES);
     }
     
 
