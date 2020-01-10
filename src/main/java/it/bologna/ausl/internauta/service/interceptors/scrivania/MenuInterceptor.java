@@ -203,12 +203,6 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         }
         
         try {
-            Integer idSessionLog = authenticatedSessionData.getIdSessionLog();
-            Persona realPerson = null;
-            if (authenticatedSessionData.getRealPerson() != null) {
-                realPerson = authenticatedSessionData.getRealPerson();
-            }
-            Persona person = authenticatedSessionData.getPerson();
             Azienda aziendaLogin = authenticatedSessionData.getUser().getIdAzienda();
             Azienda aziendaTarget; 
             if (menu.getIdAzienda() != null) {
@@ -220,7 +214,7 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
             if(menu.getOpenCommand() != null && !menu.getOpenCommand().equals("")){
                 url = menu.getOpenCommand();
             }
-            String assembledUrl = internautaUtils.getUrl(url, realPerson, person, menu.getIdApplicazione().getId(), aziendaLogin, aziendaTarget, idSessionLog);
+            String assembledUrl = internautaUtils.getUrl(authenticatedSessionData, url, menu.getIdApplicazione().getId(), aziendaTarget);
 
     //        String targetLoginPath;
     //        String targetBasePath;

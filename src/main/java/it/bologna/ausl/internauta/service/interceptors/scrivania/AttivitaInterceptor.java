@@ -9,7 +9,6 @@ import it.bologna.ausl.model.entities.scrivania.Attivita;
 import it.bologna.ausl.model.entities.scrivania.QAttivita;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
-import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -23,12 +22,9 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -124,12 +120,6 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
             // composizione dell'applicazione (es: /Procton/Procton.htm)
 //            applicationURL = attivita.getIdApplicazione().getBaseUrl() + "/" + attivita.getIdApplicazione().getIndexPage();
 
-            Integer idSessionLog = authenticatedSessionData.getIdSessionLog();
-            Persona realPerson = null;
-            if (authenticatedSessionData.getRealPerson() != null) {
-                realPerson = authenticatedSessionData.getRealPerson();
-            }
-            Persona person = authenticatedSessionData.getPerson();
             Azienda aziendaLogin = authenticatedSessionData.getUser().getIdAzienda();
 
             try {
@@ -159,7 +149,7 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                                     aziendaTarget = aziendaLogin;
                                 }
                                 
-                                String assembledUrl = internautaUtils.getUrl(urlAttivita, realPerson, person, attivita.getIdApplicazione().getId(), aziendaLogin, aziendaTarget, idSessionLog);
+                                String assembledUrl = internautaUtils.getUrl(authenticatedSessionData, urlAttivita, attivita.getIdApplicazione().getId(), aziendaTarget);
 
                                 /**
                                 String paramWithContextInformation = urlAttivita;

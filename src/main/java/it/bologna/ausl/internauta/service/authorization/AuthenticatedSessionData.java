@@ -14,11 +14,12 @@ public class AuthenticatedSessionData {
     private Applicazione.Applicazioni applicazione;
     private int idSessionLog;
     private String token;
+    private boolean fromInternet;
 
     public AuthenticatedSessionData() {
     }
 
-    public AuthenticatedSessionData(Utente user, Utente realUser, Persona person, Persona realPerson, int idSessionLog, Applicazione.Applicazioni applicazione, String token) {
+    public AuthenticatedSessionData(Utente user, Utente realUser, Persona person, Persona realPerson, int idSessionLog, Applicazione.Applicazioni applicazione, String token, boolean fromInternet) {
         this.user = user;
         this.realUser = realUser;
         this.person = person;
@@ -26,6 +27,7 @@ public class AuthenticatedSessionData {
         this.idSessionLog = idSessionLog;
         this.applicazione = applicazione;
         this.token = token;
+        this.fromInternet = fromInternet;
     }
 
     public Utente getUser() {
@@ -82,5 +84,13 @@ public class AuthenticatedSessionData {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public boolean isFromInternet() {
+        return fromInternet;
+    }
+
+    public void setFromInternet(boolean fromInternet) {
+        this.fromInternet = fromInternet;
     }
 }

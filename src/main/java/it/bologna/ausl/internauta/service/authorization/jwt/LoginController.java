@@ -20,8 +20,6 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.IntimusUtils;
 import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
 import it.bologna.ausl.internauta.service.utils.ProjectionBeans;
-import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,13 +44,7 @@ import java.util.List;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
@@ -306,7 +298,7 @@ public class LoginController {
                 .signWith(SIGNATURE_ALGORITHM, secretKey)
                 .compact();
         
-        authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application);
+        authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application, false);
 
 //        utente.setPasswordHash(null);
         return new ResponseEntity(

@@ -44,6 +44,7 @@ import org.springframework.stereotype.Component;
 import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
@@ -53,6 +54,7 @@ import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdGruppo;
+import org.slf4j.Logger;
 
 /**
  *
@@ -87,6 +89,9 @@ public class ProjectionBeans {
 
     @Autowired
     HttpSessionData httpSessionData;
+    
+    @Autowired
+    AziendaInterceptor aziendaInterceptor;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -98,7 +103,7 @@ public class ProjectionBeans {
     final String APP_URL_PICO = "/Procton/Procton.htm";
     final String APP_URL_BABEL = "/Babel/Babel.htm";
 
-    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ProjectionBeans.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProjectionBeans.class);
 
 //    protected void setAuthenticatedUserProperties() throws BlackBoxPermissionException {
 //        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -236,26 +241,29 @@ public class ProjectionBeans {
      * @param aziendaTarget
      * @return
      * @throws IOException
+     * @throws it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException
      */
-    public Map<String, String> getUrlCommands(Azienda aziendaTarget) throws IOException {
+    public Map<String, String> getUrlCommands(Azienda aziendaTarget) throws IOException, BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+
         Map<String, String> result = new HashMap<>();
 
-        Utente utente = (Utente) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
-        Integer idSessionLog = (Integer) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
-//        crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm?CMD=[encoded-params]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
-        Persona realPerson = null;
-        if (utente.getUtenteReale() != null) {
-            realPerson = utente.getUtenteReale().getIdPersona();
-        }
-        Persona person = utente.getIdPersona();
-        Azienda aziendaLogin = utente.getIdAzienda();
+//        Utente utente = (Utente) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
+//        Integer idSessionLog = (Integer) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.IdSessionLog);
+////        crossLoginUrlTemplate = "http://localhost:8080/Procton/Procton.htm?CMD=[encoded-params]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
+//        Persona realPerson = null;
+//        if (utente.getUtenteReale() != null) {
+//            realPerson = utente.getUtenteReale().getIdPersona();
+//        }
+//        Persona person = utente.getIdPersona();
+//        Azienda aziendaLogin = utente.getIdAzienda();
 
         result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_NEW.toString(),
-                internautaUtils.getUrl("?CMD=ricevi_from_pec;[id_message]&id_sorgente=[id_sorgente]&pec_ricezione=[pec_ricezione]", realPerson, person, "procton", aziendaLogin, aziendaTarget, idSessionLog));
+                internautaUtils.getUrl(authenticatedSessionData, "?CMD=ricevi_from_pec;[id_message]&id_sorgente=[id_sorgente]&pec_ricezione=[pec_ricezione]", "procton", aziendaTarget));
         result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_ADD.toString(),
-                internautaUtils.getUrl("?CMD=add_from_pec;[id_message]&id_sorgente=[id_sorgente]&pec_ricezione=[pec_ricezione]", realPerson, person, "procton", aziendaLogin, aziendaTarget, idSessionLog));
+                internautaUtils.getUrl(authenticatedSessionData, "?CMD=add_from_pec;[id_message]&id_sorgente=[id_sorgente]&pec_ricezione=[pec_ricezione]", "procton", aziendaTarget));
         result.put(InternautaConstants.UrlCommand.Keys.ARCHIVE_MESSAGE.toString(),
-                internautaUtils.getUrl("?CMD=fascicola_shpeck;[id_message]", realPerson, person, "babel", aziendaLogin, aziendaTarget, idSessionLog));
+                internautaUtils.getUrl(authenticatedSessionData, "?CMD=fascicola_shpeck;[id_message]", "babel", aziendaTarget));
         return result;
     }
 
@@ -325,16 +333,25 @@ public class ProjectionBeans {
      *
      * @return
      */
-    public Map<String, String> getParametriAziendaFrontEnd() throws IOException {
-
+    public Map<String, String> getParametriAziendaFrontEnd() throws IOException, BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        LOGGER.info("getParametriAziendaFrontEnd authenticatedSessionData.isFromInternet(): " + authenticatedSessionData.isFromInternet());
         final String LOGOUT_URL_KEY = "logoutUrl";
 
         Map<String, String> result = new HashMap<>();
 
         Utente utente = (Utente) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
-
+        
         AziendaParametriJson parametri = AziendaParametriJson.parse(objectMapper, utente.getIdAzienda().getParametri());
-
+        if (authenticatedSessionData.isFromInternet()) {
+            try {
+                parametri.setBasePath(parametri.getInternetBasePath());
+                parametri.setLogoutUrl(parametri.getInternetLogoutUrl());
+            } catch (Exception ex) {
+                LOGGER.error("errore nel reperimento di isFromInternet", ex);
+            }
+        }
+        
         result.put(LOGOUT_URL_KEY, parametri.getLogoutUrl());
 
         return result;

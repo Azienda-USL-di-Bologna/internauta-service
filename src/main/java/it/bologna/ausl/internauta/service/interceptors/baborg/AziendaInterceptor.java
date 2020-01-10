@@ -1,14 +1,20 @@
 package it.bologna.ausl.internauta.service.interceptors.baborg;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.ribaltoneutils.RibaltoneDaLanciareRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import java.util.Collection;
 import java.util.Map;
+import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +38,9 @@ public class AziendaInterceptor extends InternautaBaseInterceptor{
     
     @Autowired
     RibaltoneDaLanciareRepository ribaltoneDaLanciareRepository;
+    
+    @Autowired
+    ObjectMapper objectMapper;
     
     @Override
     public Class getTargetEntityClass() {
@@ -77,7 +86,40 @@ public class AziendaInterceptor extends InternautaBaseInterceptor{
 //        }
         return initialPredicate;
     }
-            
+
+    @Override
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        Azienda azienda = (Azienda) entity;
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        LOGGER.info("authenticatedSessionData.isFromInternet(): " + authenticatedSessionData.isFromInternet());
+        if (authenticatedSessionData.isFromInternet()) {
+            try {
+                AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+                aziendaParametriJson.setBasePath(aziendaParametriJson.getInternetBasePath());
+                aziendaParametriJson.setLogoutUrl(aziendaParametriJson.getInternetLogoutUrl());
+                azienda.setParametri(AziendaParametriJson.dumpToString(objectMapper, aziendaParametriJson));
+            } catch (Exception ex) {
+                LOGGER.error("errore nel reperimento di isFromInternet", ex);
+            }
+        }
+        try {
+            LOGGER.info(objectMapper.writeValueAsString(azienda));
+        } catch (JsonProcessingException ex) {
+            LOGGER.error("errore nella stampa dell'azienda", ex);
+        }
+        return azienda;
+    }
+
+    @Override
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        for (Object entity : entities) {
+            //Azienda azienda = (Azienda) entity;
+            afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
+        }
+        return entities;
+    }
+    
+    
 }
     
 
