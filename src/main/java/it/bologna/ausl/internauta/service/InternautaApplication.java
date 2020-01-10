@@ -1,6 +1,8 @@
 package it.bologna.ausl.internauta.service;
 
+import it.bologna.ausl.internauta.service.schedulers.LogoutManager;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
+import it.bologna.ausl.internauta.service.schedulers.workers.logoutmanager.LogoutManagerWorker;
 import it.bologna.ausl.internauta.service.schedulers.workers.ShutdownThread;
 import java.time.LocalDateTime;
 import org.slf4j.Logger;
@@ -28,6 +30,9 @@ public class InternautaApplication {
     MessageSenderManager messageSenderManager;
     
     @Autowired
+    LogoutManager logoutManager;
+    
+    @Autowired
     ShutdownThread shutdownThread;
     
     @Value("${internauta.scheduled-thread-pool-executor.active}")
@@ -47,7 +52,13 @@ public class InternautaApplication {
                 try {
                     messageSenderManager.scheduleMessageSenderAtBoot(now);
                 } catch (Exception e) {
-                    log.info("errore nella schedulazione threads messageSender.", e);
+                    log.info("errore nella schedulazione threads messageSender", e);
+                }
+                log.info("schedulo il thread logoutManager...");
+                try {
+                    logoutManager.scheduleLogoutManager();
+                } catch (Exception e) {
+                    log.info("errore nella schedulazione thread logoutManager", e);
                 }
                 
 //                log.info("schedulo i threads messageSeenCleaner...");

@@ -11,11 +11,18 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
+import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.schedulers.workers.logoutmanager.LogoutManagerWorker;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.IntimusUtils;
+import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
 import it.bologna.ausl.internauta.service.utils.ProjectionBeans;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -39,7 +46,14 @@ import java.util.List;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  *
@@ -71,32 +85,41 @@ public class LoginController {
     private boolean samlEnabled;
 
     @Autowired
-    AuthorizationUtils authorizationUtils;
-
-    @Autowired
-    UserInfoService userInfoService;
-
-    @Autowired
-    ObjectMapper objectMapper;
-
-    @Autowired
-    CommonUtils commonUtils;
-
-    @Autowired
-    UtenteRepository utenteRepository;
-
-    @Autowired
-    AziendaRepository aziendaRepository;
-
-    @Autowired
-    ProjectionBeans projectionBeans;
-
-    @Autowired
-    ProjectionFactory factory;
+    private AuthorizationUtils authorizationUtils;
     
     @Autowired
-    HttpSessionData httpSessionData;
+    private MasterChefUtils masterChefUtils;
     
+    @Autowired
+    private IntimusUtils intimusUtils;
+
+    @Autowired
+    private UserInfoService userInfoService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private CommonUtils commonUtils;
+
+    @Autowired
+    private UtenteRepository utenteRepository;
+
+    @Autowired
+    private AziendaRepository aziendaRepository;
+
+    @Autowired
+    private ProjectionBeans projectionBeans;
+
+    @Autowired
+    private ProjectionFactory factory;
+    
+    @Autowired
+    private HttpSessionData httpSessionData;    
+    
+    @Autowired
+    private LogoutManagerWorker logoutManagerWorker;
+            
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
@@ -140,7 +163,56 @@ public class LoginController {
         return new ResponseEntity(token, HttpStatus.OK);
     }
     
+    @RequestMapping(value = "${security.logout.path}", method = RequestMethod.GET)
+    public ResponseEntity<LoginResponse> logout(@RequestParam("redirectUrl") String redirectUrl) throws BlackBoxPermissionException, IOException, IntimusSendCommandException {
 
+        // voglio fare il logout dell'utente reale su tutte le sue aziende
+        Persona persona = getPersonaReale();
+        try {
+            this.logoutManagerWorker.sendLogoutCommand(persona, redirectUrl);
+        } catch (Exception ex) {
+            String errorMessage = String.format("errore nell'invio del comando di logout alla persona: %s", persona.getCodiceFiscale());
+            logger.error(errorMessage, ex);
+            return new ResponseEntity(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new ResponseEntity(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "${security.refresh-session.path}", method = RequestMethod.GET)
+    public ResponseEntity<LoginResponse> refresh(@RequestParam("redirectUrl") String redirectUrl) throws BlackBoxPermissionException {        
+
+        // voglio refreshare l'utente reale
+        Persona persona = getPersonaReale();
+        try {
+            this.logoutManagerWorker.addOrRefreshPersona(persona, redirectUrl);
+        } catch (Exception ex) {
+            String errorMessage = String.format("errore nell'aggiornamento della data di unltimo refresh della persona: %s con codice fiscale: %s", persona.getId(), persona.getCodiceFiscale());
+            logger.error(errorMessage, ex);
+            return new ResponseEntity(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new ResponseEntity(HttpStatus.OK);
+    }
+    
+    /**
+     * ritorna la persona reale connessa:
+     * cioè la persona derivata dall'utente connesso in caso di login senza cambia utente; 
+     * la persona associata all'utente reale nel caso di logon con cambio utente
+     */
+    private Persona getPersonaReale() throws BlackBoxPermissionException {
+        // leggo l'utente connesso dalla sessione
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente user = authenticatedUserProperties.getUser();
+        Utente realUser = authenticatedUserProperties.getRealUser();
+        Persona persona;
+        if (realUser != null) {
+            persona = realUser.getIdPersona();
+        } else {
+            persona = user.getIdPersona();
+        }
+        
+        return persona;
+    }
+    
     @RequestMapping(value = "${security.login.path}", method = RequestMethod.POST)
     public ResponseEntity<LoginResponse> loginPOST(@RequestBody final UserLogin userLogin, javax.servlet.http.HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException, IOException, BlackBoxPermissionException {
         String hostname = commonUtils.getHostname(request);

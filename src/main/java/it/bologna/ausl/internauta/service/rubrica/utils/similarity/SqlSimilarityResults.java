@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.rubrica.utils.similarity;
 
 import java.util.List;
@@ -14,10 +9,11 @@ import java.util.List;
 public class SqlSimilarityResults {
 
     private List<SqlSimilarityResult> emailList;
-    private List<SqlSimilarityResult> indirizzo;
+    // private List<SqlSimilarityResult> indirizzo;
     private List<SqlSimilarityResult> codiceFiscale;
     private List<SqlSimilarityResult> cognomeAndNome;
     private List<SqlSimilarityResult> partitaIva;
+    private List<SqlSimilarityResult> ragioneSociale;
 
     public SqlSimilarityResults() {
     }
@@ -30,13 +26,21 @@ public class SqlSimilarityResults {
         this.emailList = emailList;
     }
 
-    public List<SqlSimilarityResult> getIndirizzo() {
-        return indirizzo;
+    public List<SqlSimilarityResult> getRagioneSociale() {
+        return ragioneSociale;
     }
 
-    public void setIndirizzo(List<SqlSimilarityResult> indirizzo) {
-        this.indirizzo = indirizzo;
+    public void setRagioneSociale(List<SqlSimilarityResult> ragioneSociale) {
+        this.ragioneSociale = ragioneSociale;
     }
+
+//    public List<SqlSimilarityResult> getIndirizzo() {
+//        return indirizzo;
+//    }
+//
+//    public void setIndirizzo(List<SqlSimilarityResult> indirizzo) {
+//        this.indirizzo = indirizzo;
+//    }
 
     public List<SqlSimilarityResult> getCodiceFiscale() {
         return codiceFiscale;

@@ -1,12 +1,17 @@
 package it.bologna.ausl.internauta.service.utils;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandException;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
@@ -56,20 +61,23 @@ public class IntimusUtils {
     private ObjectMapper objectMapper;
     
     @Autowired
-    CachedEntities cachedEntities;
+    private CachedEntities cachedEntities;
     
     @Autowired
-    StrutturaRepository strutturaRepository;
+    private UserInfoService userInfoService;
     
     @Autowired
-    EntityManager em;
+    private StrutturaRepository strutturaRepository;
+    
+    @Autowired
+    private EntityManager em;
     
     @Autowired
     @Qualifier(value = "redisIntimus")
     private RedisTemplate redisIntimusTemplate; 
     
     public enum IntimusCommandNames {
-        RefreshAttivita, ShowMessage
+        RefreshAttivita, ShowMessage, Logout
     }
     
     public class IntimusCommand {
@@ -176,6 +184,7 @@ public class IntimusUtils {
     
     public class CommandObject {
         @JsonProperty("params")
+        @JsonInclude(value=Include.NON_EMPTY, content=Include.NON_NULL)
         private CommandParams params;
 
         @JsonProperty("command")
@@ -296,6 +305,22 @@ public class IntimusUtils {
         }
     }
 
+    public class LogoutParams implements CommandParams {
+        private String redirectUrl;
+
+        public LogoutParams(String redirectUrl) {
+            this.redirectUrl = redirectUrl;
+        }
+
+        public String getRedirectUrl() {
+            return redirectUrl;
+        }
+
+        public void setRedirectUrl(String redirectUrl) {
+            this.redirectUrl = redirectUrl;
+        }
+    }
+        
     public IntimusCommand buildIntimusCommand(List<DestObject> dests, CommandParams params, IntimusCommandNames intimusCommandName) {
         CommandObject commandObject = new CommandObject(params, intimusCommandName);
         IntimusCommand intimusCommand = new IntimusCommand(dests, commandObject);
@@ -351,6 +376,15 @@ public class IntimusUtils {
                 amministrazioneMessaggio.getIntervallo() * 60,
                 amministrazioneMessaggio.getTipologia(),
                 amministrazioneMessaggio.getInvasivita());
+    }
+    
+    public IntimusCommand buildLogoutCommand(Persona persona, String[] apps, String redirectUrl) {
+        List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
+        DestObject dest = new DestObject(persona.getId(), aziendePersona.stream().map(p -> p.getId()).toArray(Integer[]::new), apps);
+        
+        IntimusCommand logoutCommand = buildIntimusCommand(Arrays.asList(dest), new LogoutParams(redirectUrl), IntimusCommandNames.Logout);
+        
+        return logoutCommand;
     }
     
     public void sendCommand(IntimusCommand intimusCommand) throws IntimusSendCommandException {

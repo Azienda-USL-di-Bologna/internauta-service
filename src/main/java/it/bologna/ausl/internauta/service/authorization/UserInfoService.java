@@ -589,13 +589,15 @@ public class UserInfoService {
     @Cacheable(value = "getIdStrutturaFromUtenteStruttura__ribaltorg__", key = "{#utenteStruttura.getId()}")
     public Struttura getIdStrutturaFromUtenteStruttura(UtenteStruttura utenteStruttura) {
         return utenteStrutturaRepository.getOne(utenteStruttura.getId()).getIdStruttura();
-    }
-    
-    
+    } 
     
     public KrintBaborgPersona getPersonaKrint(Utente utente) {
         return  factory.createProjection(KrintBaborgPersona.class, utente.getIdPersona());          
     }
+//
+//    public KrintBaborgPersona getPersonaKrint(Utente utente) {
+//        return  factory.createProjection(KrintBaborgPersona.class, utente.getIdPersona());          
+//    }
     
     
     

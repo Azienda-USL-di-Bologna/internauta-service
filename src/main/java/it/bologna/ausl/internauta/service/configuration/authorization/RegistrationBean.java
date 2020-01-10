@@ -22,6 +22,12 @@ public class RegistrationBean {
     
     @Value("${internauta.security.passtoken-path}")
     private String passTokenPath;
+    
+    @Value("${security.logout.path}")
+    private String logoutPath;
+    
+    @Value("${security.refresh-session.path}")
+    private String refreshSessionPath;
 
     @Value("${jwt.secret:secret}")
     private String secretKey;
@@ -40,6 +46,10 @@ public class RegistrationBean {
         registrationBean.addUrlPatterns(startNodeProtection);
         // e anche il path che genera il passtoken
         registrationBean.addUrlPatterns(passTokenPath);
+        // e anche il path di logout
+        registrationBean.addUrlPatterns(logoutPath);
+        // e anche il path di refresh session
+        registrationBean.addUrlPatterns(refreshSessionPath);
 
         return registrationBean;
     }
