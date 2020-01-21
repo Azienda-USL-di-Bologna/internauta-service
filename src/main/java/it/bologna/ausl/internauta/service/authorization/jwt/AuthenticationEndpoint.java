@@ -98,6 +98,7 @@ public class AuthenticationEndpoint {
         String impersonatedUser = jwtClaims.getSubject();;
         String realUser = impersonatedUser;
         String idAzienda = null;
+        Boolean fromInternetLogin = null;
         if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.REAL_USER.toString()) && 
                 StringUtils.hasText(jwtClaims.getStringClaimValue(AuthorizationUtils.TokenClaims.REAL_USER.toString()))) {
             realUser = jwtClaims.getStringClaimValue(AuthorizationUtils.TokenClaims.REAL_USER.toString());
@@ -112,10 +113,15 @@ public class AuthenticationEndpoint {
                 idAzienda = azienda.getId().toString();
             }
         }
-
+        
+        logger.info("jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.FROM_INTERNET.toString()): " + jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.FROM_INTERNET.toString()));
+        if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.FROM_INTERNET.toString())) {
+            fromInternetLogin = jwtClaims.getClaimValue(AuthorizationUtils.TokenClaims.FROM_INTERNET.toString(), Boolean.class);
+        }
+        
         String hostname = commonUtils.getHostname(request);
-    
-        return authorizationUtils.generateResponseEntityFromSAML(idAzienda, hostname, secretKey, request, realUser, impersonatedUser, endpointObject.applicazione);
+        logger.info("fromInternetLogin: " + fromInternetLogin);
+        return authorizationUtils.generateResponseEntityFromSAML(idAzienda, hostname, secretKey, request, realUser, impersonatedUser, endpointObject.applicazione, fromInternetLogin);
     }
     
     @SuppressWarnings("unused")

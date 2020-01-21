@@ -149,6 +149,7 @@ public class LoginController {
                         .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserStr)
                         .claim(AuthorizationUtils.TokenClaims.REAL_USER_USERNAME.name(), realUserUsernameStr)
                         .claim(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name(), realUserSSOFieldValue)
+                        .claim(AuthorizationUtils.TokenClaims.FROM_INTERNET.name(), authenticatedUserProperties.isFromInternet())
                         .setIssuedAt(Date.from(currentDateTime.toInstant()))
                         .setExpiration(tokenExpireSeconds > 0 ? Date.from(currentDateTime.plusSeconds(passTokenExpireSeconds).toInstant()): null)
                         .signWith(SIGNATURE_ALGORITHM, secretKey).compact();
@@ -330,6 +331,7 @@ public class LoginController {
         String hostname = commonUtils.getHostname(request);
 
         String ssoFieldValue = null;
+        Boolean fromInternet = null;
         if (StringUtils.hasText(passToken)) {
             logger.info("c'è il passToken, agisco di conseguenza...");
             try {
@@ -340,7 +342,11 @@ public class LoginController {
 
                 Object userSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name());
                 Object realUserSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name());
-
+                Object fromInternetObj = claims.get(AuthorizationUtils.TokenClaims.FROM_INTERNET.name());
+                if (fromInternetObj != null && !fromInternetObj.toString().equals("")) {
+                    fromInternet = Boolean.parseBoolean(fromInternetObj.toString());
+                }
+                
                 if (realUserSSOFieldValueObj != null) {
 //                   impersonateUser = realUserSSOFieldValueObj.toString();
                     ssoFieldValue = realUserSSOFieldValueObj.toString();
@@ -357,7 +363,7 @@ public class LoginController {
         
         ResponseEntity res;
         try {
-            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione);
+            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);

@@ -167,21 +167,26 @@ public class AuthorizationUtils {
      * @param ssoFieldValue
      * @param utenteImpersonatoStr
      * @param applicazione
+     * @param fromInternetLogin
      * @return
      * @throws IOException
      * @throws ClassNotFoundException
      * @throws ObjectNotFoundException
      * @throws BlackBoxPermissionException 
      */
-    public ResponseEntity generateResponseEntityFromSAML(String idAzienda, String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException {
+    public ResponseEntity generateResponseEntityFromSAML(String idAzienda, String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione, Boolean fromInternetLogin) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException {
 
-        boolean fromInternet = fromInternet(request);
+        if (fromInternetLogin == null) {
+            fromInternetLogin = fromInternet(request);
+        }
         logger.info("idAzienda: " + objectMapper.writeValueAsString(idAzienda));
         logger.info("path: " + objectMapper.writeValueAsString(path));
-        logger.info("fromInternet: " + fromInternet);
+        logger.info("fromInternet: " + fromInternetLogin);
         Azienda aziendaRealUser;
-        if (fromInternet) {
-            ssoFieldValue = request.getAttribute("CodiceFiscale").toString();
+        if (fromInternetLogin) {
+            if (StringUtils.isEmpty(ssoFieldValue)) {
+                ssoFieldValue = request.getAttribute("CodiceFiscale").toString();
+            }
             Persona realPerson = cachedEntities.getPersonaFromCodiceFiscale(ssoFieldValue);
             aziendaRealUser = cachedEntities.getAzienda(realPerson.getIdAziendaDefault().getId());
         } else {
@@ -288,7 +293,7 @@ public class AuthorizationUtils {
 
                 // ritorna utente impersonato con informazioni dell'utente reale
                 return new ResponseEntity(
-                        generateLoginResponse(impersonatedUser, user, aziendaImpersonatedUser, entityClass, field, utenteImpersonatoStr, secretKey, applicazione, fromInternet),
+                        generateLoginResponse(impersonatedUser, user, aziendaImpersonatedUser, entityClass, field, utenteImpersonatoStr, secretKey, applicazione, fromInternetLogin),
                         HttpStatus.OK);
             } else {
                 // mi metto in sessione l'utente loggato, mi servirà in altri punti nella procedura di login, in particolare in projection custm
@@ -296,7 +301,7 @@ public class AuthorizationUtils {
                 // ritorna l'utente stesso perchè non ha i permessi per fare il cambia utente
                 logger.info(String.format("utente %s non ha ruolo SD, ritorna se stesso nel token", realUserSubject));
                 return new ResponseEntity(
-                        generateLoginResponse(user, null, aziendaRealUser, entityClass, field, ssoFieldValue, secretKey, applicazione, fromInternet),
+                        generateLoginResponse(user, null, aziendaRealUser, entityClass, field, ssoFieldValue, secretKey, applicazione, fromInternetLogin),
                         HttpStatus.OK);
             }            
         } else {
@@ -304,7 +309,7 @@ public class AuthorizationUtils {
             
             // ritorna l'utente reale perchè non è stato passato l'utente impersonato
             return new ResponseEntity(
-                    generateLoginResponse(user, null, aziendaRealUser, entityClass, field, ssoFieldValue, secretKey, applicazione, fromInternet),
+                    generateLoginResponse(user, null, aziendaRealUser, entityClass, field, ssoFieldValue, secretKey, applicazione, fromInternetLogin),
                     HttpStatus.OK);
         }
         //        DateTime currentDateTime = DateTime.now();
