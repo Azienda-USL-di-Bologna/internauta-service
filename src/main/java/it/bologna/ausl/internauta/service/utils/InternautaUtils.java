@@ -44,7 +44,7 @@ public class InternautaUtils {
     }
     
     
-    public String getUrl(AuthenticatedSessionData authenticatedSessionData, String initialUrl, String idApplicazione, Azienda aziendaTarget) throws IOException {
+    public String getUrl(AuthenticatedSessionData authenticatedSessionData, String urlToChange, String idApplicazione, Azienda aziendaTarget) throws IOException {
     
         Integer idSessionLog = authenticatedSessionData.getIdSessionLog();
         Persona realPerson = null;
@@ -54,8 +54,8 @@ public class InternautaUtils {
         Persona person = authenticatedSessionData.getPerson();
         Azienda aziendaLogin = authenticatedSessionData.getUser().getIdAzienda();
         
-        String paramsWithoutContextInformation = initialUrl;
-        String paramsWithContextInformation = buildContextInformations(initialUrl, realPerson, person, aziendaLogin, idSessionLog);
+        String paramsWithoutContextInformation = urlToChange;
+        String paramsWithContextInformation = buildContextInformations(urlToChange, realPerson, person, aziendaLogin, idSessionLog);
 
         AziendaParametriJson parametriAziendaLogin = AziendaParametriJson.parse(objectMapper, aziendaLogin.getParametri());                
         AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(objectMapper, aziendaTarget.getParametri());
