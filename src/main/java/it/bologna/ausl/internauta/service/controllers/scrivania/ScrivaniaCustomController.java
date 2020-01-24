@@ -24,6 +24,7 @@ import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaReposit
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloader;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloaderResponseBody;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -108,6 +109,9 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     private CommonUtils commonUtils;
     
     @Autowired
+    private InternautaUtils internautaUtils;
+    
+    @Autowired
     private RestControllerEngineImpl restControllerEngine;
     
     @Autowired
@@ -165,8 +169,6 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedSessionData.getUser();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
-        Azienda aziendaUtenteConnesso = utente.getIdAzienda();
-        AziendaParametriJson parametriAziendaUtenteConnesso = AziendaParametriJson.parse(this.objectMapper, aziendaUtenteConnesso.getParametri());
         List<Azienda> aziende = new ArrayList<>();
         for (Utente u : persona.getUtenteList()) {
             List<Azienda> aziendeUtente = getAziendePerCuiFirmo(u);
@@ -191,7 +193,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
                 if(!alreadyAdded){
                     numeroAziende++;
                     try{
-                        jsonArrayAziende.add(buildAziendaUrl(azienda, CMD_APRI_FIRMONE, utente, parametriAziendaUtenteConnesso));
+                        jsonArrayAziende.add(buildAziendaUrl(azienda, CMD_APRI_FIRMONE));
                     }catch(IOException e){
                         LOGGER.error("errore nella creazione del link", e);
                         throw new IOException("errore nella creazione del link", e);
@@ -212,8 +214,6 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedSessionData.getUser();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
-        Azienda aziendaUtenteConnesso = utente.getIdAzienda();
-        AziendaParametriJson parametriAziendaUtenteConnesso = AziendaParametriJson.parse(this.objectMapper, aziendaUtenteConnesso.getParametri());
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
         
         JSONObject objResponse = new JSONObject();
@@ -222,7 +222,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         for (Azienda azienda : aziendePersona) {
             numeroAziende++;
             try{
-                jsonArrayAziende.add(buildAziendaUrl(azienda, CMD_APRI_PRENDONE, utente, parametriAziendaUtenteConnesso));
+                jsonArrayAziende.add(buildAziendaUrl(azienda, CMD_APRI_PRENDONE));
             } catch(IOException | BlackBoxPermissionException e){
                 LOGGER.error("errore nella creazione del link", e);
                 throw e;
@@ -236,55 +236,12 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         out.flush();
     }
     
-    private JSONObject buildAziendaUrl(Azienda azienda, String command, Utente utente, AziendaParametriJson parametriAziendaUtenteConnesso) throws UnsupportedEncodingException, IOException, BlackBoxPermissionException{       
-        String stringToEncode = command;
+    private JSONObject buildAziendaUrl(Azienda aziendaTarget, String command) throws UnsupportedEncodingException, IOException, BlackBoxPermissionException{       
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Utente realUser = authenticatedSessionData.getRealUser();
-        Persona realPerson = authenticatedSessionData.getRealPerson();
-        Persona person = authenticatedSessionData.getPerson();
-        int idSessionLog = authenticatedSessionData.getIdSessionLog();
-        if(person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0){
-            stringToEncode += stringToEncode.length() > 0 ? "&utente=" : "?utente="; // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
-            stringToEncode += person.getCodiceFiscale();
-        }
-        
-        if (realPerson != null) {
-            stringToEncode += "&realUser=" + realPerson.getCodiceFiscale();
-            stringToEncode += "&impersonatedUser=" + person.getCodiceFiscale();
-            stringToEncode += "&utenteLogin=" + realPerson.getCodiceFiscale(); // serve alle applicazioni INDE
-        } else {
-            stringToEncode += "&user=" + person.getCodiceFiscale();
-            stringToEncode += "&utenteLogin=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
-        }
-        stringToEncode += "&utenteImpersonato=" + person.getCodiceFiscale(); // serve alle applicazioni INDE
-        stringToEncode += "&idSessionLog=" + idSessionLog;
-        stringToEncode += FROM;
-        stringToEncode += "&modalitaAmministrativa=0";
-        String encodedParams = "";
-        try {
-            encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
-        } catch (UnsupportedEncodingException ex) {
-            LOGGER.error("errore nella creazione del link", ex);
-            throw new UnsupportedEncodingException("errore nell'encoding dell'url");
-        }
-        String assembledURL = "";
-        Applicazione applicazione;
-        try {
-            AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(this.objectMapper, azienda.getParametri());
-            String targetLoginPath = parametriAzienda.getLoginPath();
-            applicazione = applicazioneRepository.getOne("babel");
-            String applicationURL = applicazione.getBaseUrl() + "/" + applicazione.getIndexPage();
-            assembledURL = parametriAzienda.getCrossLoginUrlTemplate().
-                replace("[target-login-path]", targetLoginPath).
-                replace("[entity-id]", parametriAziendaUtenteConnesso.getEntityId()).
-                replace("[app]", applicationURL).
-                replace("[encoded-params]", encodedParams);
-        } catch (IOException ex) {
-            LOGGER.error("errore nella lettura dei parametri dell'azienda target", ex);
-            throw new IOException("errore nella lettura dei parametri dell'azienda target", ex);
-        }
+        Applicazione applicazione = cachedEntities.getApplicazione(Applicazione.Applicazioni.babel.toString());
+        String assembledURL = internautaUtils.getUrl(authenticatedSessionData, command, Applicazione.Applicazioni.babel.toString(), aziendaTarget);
         JSONObject objAzienda = new JSONObject();
-        objAzienda.put("nome", azienda.getNome());
+        objAzienda.put("nome", aziendaTarget.getNome());
         objAzienda.put("url", assembledURL);
         objAzienda.put("urlGenerationStrategy", applicazione.getUrlGenerationStrategy());
         return objAzienda;

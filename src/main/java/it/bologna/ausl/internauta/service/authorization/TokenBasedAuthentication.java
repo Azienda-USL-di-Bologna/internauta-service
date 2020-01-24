@@ -12,37 +12,42 @@ public class TokenBasedAuthentication extends AbstractAuthenticationToken {
     private final UserDetails realUser;
     private Integer idSessionLog;
     private Applicazioni applicazione;
+    private boolean fromInternet;
 
-    public TokenBasedAuthentication(Utente user, Applicazioni applicazione) {
+    public TokenBasedAuthentication(Utente user, Applicazioni applicazione, boolean fromInternet) {
         super(user.getAuthorities());
         this.user = user;
         this.realUser = null;
         this.applicazione = applicazione;
+        this.fromInternet = fromInternet;
 //        super.setDetails(userInfo);
     }
 
-    public TokenBasedAuthentication(Utente user, Utente realUser, Applicazioni applicazione) {
+    public TokenBasedAuthentication(Utente user, Utente realUser, Applicazioni applicazione, boolean fromInternet) {
         super(user.getAuthorities());
         this.user = user;
         this.realUser = realUser;
         this.applicazione = applicazione;
+        this.fromInternet = fromInternet;
 //        super.setDetails(userInfo);
     }
 
-    public TokenBasedAuthentication(Utente user, int idSessionLog, Applicazioni applicazione) {
+    public TokenBasedAuthentication(Utente user, int idSessionLog, Applicazioni applicazione, boolean fromInternet) {
         super(user.getAuthorities());
         this.user = user;
         this.realUser = this.user;
         this.idSessionLog = idSessionLog;
         this.applicazione = applicazione;
+        this.fromInternet = fromInternet;
     }
 
-    public TokenBasedAuthentication(Utente user, Utente realUser, int idSessionLog, Applicazioni applicazione) {
+    public TokenBasedAuthentication(Utente user, Utente realUser, int idSessionLog, Applicazioni applicazione, boolean fromInternet) {
         super(user.getAuthorities());
         this.user = user;
         this.realUser = realUser;
         this.idSessionLog = idSessionLog;
         this.applicazione = applicazione;
+        this.fromInternet = fromInternet;
 //        super.setDetails(userInfo);
     }
 
@@ -87,5 +92,13 @@ public class TokenBasedAuthentication extends AbstractAuthenticationToken {
 
     public void setApplicazione(Applicazioni applicazione) {
         this.applicazione = applicazione;
+    }
+
+    public boolean isFromInternet() {
+        return fromInternet;
+    }
+
+    public void setFromInternet(boolean fromInternet) {
+        this.fromInternet = fromInternet;
     }
 }

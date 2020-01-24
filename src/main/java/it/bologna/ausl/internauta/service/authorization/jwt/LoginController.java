@@ -20,8 +20,6 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.IntimusUtils;
 import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
 import it.bologna.ausl.internauta.service.utils.ProjectionBeans;
-import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,13 +44,7 @@ import java.util.List;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
@@ -157,6 +149,7 @@ public class LoginController {
                         .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserStr)
                         .claim(AuthorizationUtils.TokenClaims.REAL_USER_USERNAME.name(), realUserUsernameStr)
                         .claim(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name(), realUserSSOFieldValue)
+                        .claim(AuthorizationUtils.TokenClaims.FROM_INTERNET.name(), authenticatedUserProperties.isFromInternet())
                         .setIssuedAt(Date.from(currentDateTime.toInstant()))
                         .setExpiration(tokenExpireSeconds > 0 ? Date.from(currentDateTime.plusSeconds(passTokenExpireSeconds).toInstant()): null)
                         .signWith(SIGNATURE_ALGORITHM, secretKey).compact();
@@ -306,7 +299,7 @@ public class LoginController {
                 .signWith(SIGNATURE_ALGORITHM, secretKey)
                 .compact();
         
-        authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application);
+        authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application, false);
 
 //        utente.setPasswordHash(null);
         return new ResponseEntity(
@@ -338,6 +331,7 @@ public class LoginController {
         String hostname = commonUtils.getHostname(request);
 
         String ssoFieldValue = null;
+        Boolean fromInternet = null;
         if (StringUtils.hasText(passToken)) {
             logger.info("c'è il passToken, agisco di conseguenza...");
             try {
@@ -348,7 +342,11 @@ public class LoginController {
 
                 Object userSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name());
                 Object realUserSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name());
-
+                Object fromInternetObj = claims.get(AuthorizationUtils.TokenClaims.FROM_INTERNET.name());
+                if (fromInternetObj != null && !fromInternetObj.toString().equals("")) {
+                    fromInternet = Boolean.parseBoolean(fromInternetObj.toString());
+                }
+                
                 if (realUserSSOFieldValueObj != null) {
 //                   impersonateUser = realUserSSOFieldValueObj.toString();
                     ssoFieldValue = realUserSSOFieldValueObj.toString();
@@ -365,7 +363,7 @@ public class LoginController {
         
         ResponseEntity res;
         try {
-            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione);
+            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);

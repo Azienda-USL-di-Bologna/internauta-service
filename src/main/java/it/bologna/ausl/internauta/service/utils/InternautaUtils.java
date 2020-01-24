@@ -1,13 +1,15 @@
 package it.bologna.ausl.internauta.service.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.io.IOException;
 import java.net.URLEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class InternautaUtils {
+    private static final Logger log = LoggerFactory.getLogger(InternautaUtils.class);
     
     @Autowired
     ObjectMapper objectMapper;
@@ -41,10 +44,18 @@ public class InternautaUtils {
     }
     
     
-    public String getUrl(String initialUrl, Persona realPerson, Persona person, String idApplicazione, Azienda aziendaLogin, Azienda aziendaTarget, Integer idSessionLog) throws IOException {
+    public String getUrl(AuthenticatedSessionData authenticatedSessionData, String urlToChange, String idApplicazione, Azienda aziendaTarget) throws IOException {
     
-        String paramsWithoutContextInformation = initialUrl;
-        String paramsWithContextInformation = buildContextInformations(initialUrl, realPerson, person, aziendaLogin, idSessionLog);
+        Integer idSessionLog = authenticatedSessionData.getIdSessionLog();
+        Persona realPerson = null;
+        if (authenticatedSessionData.getRealPerson() != null) {
+            realPerson = authenticatedSessionData.getRealPerson();
+        }
+        Persona person = authenticatedSessionData.getPerson();
+        Azienda aziendaLogin = authenticatedSessionData.getUser().getIdAzienda();
+        
+        String paramsWithoutContextInformation = urlToChange;
+        String paramsWithContextInformation = buildContextInformations(urlToChange, realPerson, person, aziendaLogin, idSessionLog);
 
         AziendaParametriJson parametriAziendaLogin = AziendaParametriJson.parse(objectMapper, aziendaLogin.getParametri());                
         AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(objectMapper, aziendaTarget.getParametri());
@@ -54,7 +65,12 @@ public class InternautaUtils {
 
         String targetLoginPath = parametriAziendaTarget.getLoginPath();
         String targetBasePath = parametriAziendaTarget.getBasePath();
- 
+        
+        log.info("getUrl authenticatedSessionData.isFromInternet(): " + authenticatedSessionData.isFromInternet());
+        if (authenticatedSessionData.isFromInternet()) {
+            targetBasePath = parametriAziendaTarget.getInternetBasePath();
+        }
+
         String encodedParamsWithContextInformation = URLEncoder.encode(paramsWithContextInformation, "UTF-8");
         String encodedParamsWithoutContextInformation = URLEncoder.encode(paramsWithoutContextInformation, "UTF-8");
 
@@ -68,7 +84,7 @@ public class InternautaUtils {
         } else {
             applicationURL = "";
         }
-        
+
         String assembledURL = null;
         switch (app.getUrlGenerationStrategy()) {
             case TRUSTED_URL_WITH_CONTEXT_INFORMATION:
