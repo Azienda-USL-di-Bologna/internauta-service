@@ -229,6 +229,7 @@ public class AuthorizationUtils {
         userInfoService.getRuoliRemoveCache(user);
         // TODO: rimuovere permessi cache
         userInfoService.getPermessiDiFlussoRemoveCache(user);
+        userInfoService.getPermessiPecRemoveCache(user.getIdPersona());
         // prendi ID dell'utente reale
         String realUserSubject = String.valueOf(user.getId());
 

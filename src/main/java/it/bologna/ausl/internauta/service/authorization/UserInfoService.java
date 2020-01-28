@@ -176,7 +176,7 @@ public class UserInfoService {
             filter = qUtente.get(field).eq(ssoFieldValue.toUpperCase());
         }
         filter = filter.and(QUtente.utente.idAzienda.id.eq(azienda.getId()));
-
+        filter = filter.and(QUtente.utente.attivo.eq(true));
         Optional<Utente> utenteOp = utenteRepository.findOne(filter);
 
         if (utenteOp.isPresent()) {
