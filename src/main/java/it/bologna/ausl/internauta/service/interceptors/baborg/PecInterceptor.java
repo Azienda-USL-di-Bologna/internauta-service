@@ -404,7 +404,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         }
 
         //Se non ho diritti particolari su una pec metto la password a null
-        if (!isCI(authenticatedSessionData.getUser())) {
+        if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
             // se non sono CI
             Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
@@ -455,7 +455,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeCreateEntityInterceptor di Pec");
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
 
-        if (!isCI(authenticatedSessionData.getUser())) {
+        if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
             Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
 
@@ -493,7 +493,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
         // Se non ho diritti particolari su impedisco l'update.
         // sono gli stessi controlli dell afterSelect, quando decido se settare la pw a null
-        if (!isCI(authenticatedSessionData.getUser())) {
+        if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
             Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
             // se non sono CI

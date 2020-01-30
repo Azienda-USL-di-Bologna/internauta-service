@@ -8,6 +8,7 @@ import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomControl
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
@@ -52,6 +53,7 @@ import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import java.util.List;
 import javax.mail.Message.RecipientType;
@@ -98,6 +100,9 @@ public class ShpeckUtils {
 
     @Autowired
     private KrintShpeckService krintShpeckService;
+
+    @Autowired
+    private AziendaRepository aziendaRepository;
 
     /**
      * usato da {@link #downloadEml(EmlSource, Integer)} per reperire l'eml
@@ -498,12 +503,84 @@ public class ShpeckUtils {
         return listAttachments;
     }
 
+//    private Integer getIdAziendaRepository(Message message) {
+//        boolean isMessageReaddressed = message.getMessageTagList().stream().anyMatch(messageTag -> messageTag.getIdTag().getName().equals(Tag.SystemTagName.readdressed_in.toString()));
+//        if (!isMessageReaddressed) {
+//            return message.getIdPec().getIdAziendaRepository().getId();
+//        } else {
+//            return this.messageRepository.getIdAziendaRepository(message.getId());
+//        }
+//    }
     private Integer getIdAziendaRepository(Message message) {
-        boolean isMessageReaddressed = message.getMessageTagList().stream().anyMatch(messageTag -> messageTag.getIdTag().getName().equals(Tag.SystemTagName.readdressed_in.toString()));
-        if (!isMessageReaddressed) {
-            return message.getIdPec().getIdAziendaRepository().getId();
+
+        Integer idAzienda = -1;
+
+        // -> guarda se il campo è popolato, se popolato ritorna
+        if (message.getIdAziendaRepository() != null) {
+            idAzienda = message.getIdAziendaRepository().getId();
         } else {
-            return this.messageRepository.getIdAziendaRepository(message.getId());
+            // se non popolato, prendi idAzienda di default relativo alla pec riferita al messaggio
+
+            boolean isMessageReaddressed = message.getMessageTagList().stream().anyMatch(messageTag -> messageTag.getIdTag().getName().equals(Tag.SystemTagName.readdressed_in.toString()));
+            if (!isMessageReaddressed) {
+                idAzienda = message.getIdPec().getIdAziendaRepository().getId();
+            } else {
+                idAzienda = this.messageRepository.getIdAziendaRepository(message.getId());
+            }
+
+            // vedi se messaggio è presente nel repository di default
+            boolean messageInDefaultRepository = isMessageInRepository(idAzienda, message.getUuidRepository());
+
+            // se non c'è allora cerco in tutti i repository
+            boolean messageInRepository = false;
+            if (!messageInDefaultRepository) {
+                List<Azienda> aziende = aziendaRepository.findAll();
+                for (Azienda azienda : aziende) {
+                    if (azienda.getId() != idAzienda) {
+                        messageInRepository = isMessageInRepository(azienda.getId(), message.getUuidRepository());
+                        if (messageInRepository) {
+                            idAzienda = azienda.getId();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // salva idAziendaRepository in message
+            if (message.getIdAziendaRepository() == null) {
+                saveIdAziendaRepository(message, idAzienda);
+            }
+        }
+        return idAzienda;
+    }
+
+    private boolean isMessageInRepository(Integer idAzienda, String uuidRepository) {
+
+        boolean res = true;
+
+        MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
+        InputStream is = null;
+        try {
+            is = mongoWrapper.get(uuidRepository);
+        } catch (Throwable e) {
+            res = false;
+        } finally {
+            IOUtils.closeQuietly(is);
+        }
+
+        return res;
+    }
+
+    private void saveIdAziendaRepository(Message message, Integer idAziendaRepository) {
+        Optional<Message> m = messageRepository.findById(message.getId());
+        if (m.isPresent()) {
+            Message tmp = m.get();
+            Optional<Azienda> a = aziendaRepository.findById(idAziendaRepository);
+            if (a.isPresent()) {
+                Azienda azienda = a.get();
+                tmp.setIdAziendaRepository(azienda);
+            }
+            messageRepository.save(tmp);
         }
     }
 }
