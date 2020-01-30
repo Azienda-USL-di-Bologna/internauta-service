@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.authorization.jwt;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
+import it.bologna.ausl.internauta.service.exceptions.SSOException;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.nextsw.common.utils.CommonUtils;
@@ -62,7 +63,7 @@ public class AuthenticationEndpoint {
     CommonUtils commonUtils;
     
     @RequestMapping(value = "${security.login.endpoint.path}", method = RequestMethod.POST)
-    public ResponseEntity<LoginController.LoginResponse> loginInterApplication(@RequestBody final EndpointObject endpointObject, javax.servlet.http.HttpServletRequest request) throws ServletException, CertificateException, IOException, InvalidJwtException, MalformedClaimException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException {
+    public ResponseEntity<LoginController.LoginResponse> loginInterApplication(@RequestBody final EndpointObject endpointObject, javax.servlet.http.HttpServletRequest request) throws ServletException, CertificateException, IOException, InvalidJwtException, MalformedClaimException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException, SSOException {
         
         X509Certificate cert;
         

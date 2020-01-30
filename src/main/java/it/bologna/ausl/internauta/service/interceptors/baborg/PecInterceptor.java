@@ -77,9 +77,9 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        String idAzienda = null;
-        String idStruttura = null;
-        String idPersona = null;
+        String idAzienda;
+        String idStruttura;
+        String idPersona;
 
         Azienda azienda = null;
         Struttura struttura = null;
@@ -177,40 +177,38 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                         List<Integer> pecDellaStruttura = null;
                         List<Integer> pecDellaPersona = null;
 
-                         {
-                            if (struttura != null) {
-                                try {
-                                    List<PermessoEntitaStoredProcedure> permessiDellaStruttura = permissionManager.getPermissionsOfSubject(
-                                            struttura,
-                                            Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
-                                            Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                                            Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),
-                                            true);
-                                    if (permessiDellaStruttura != null) {
-                                        pecDellaStruttura = permessiDellaStruttura.stream().map(permesso -> permesso.getOggetto().getIdProvenienza()).collect(Collectors.toList());
-                                    }
-                                } catch (BlackBoxPermissionException ex) {
-                                    LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
-                                    throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+                        if (struttura != null) {
+                            try {
+                                List<PermessoEntitaStoredProcedure> permessiDellaStruttura = permissionManager.getPermissionsOfSubject(
+                                        struttura,
+                                        Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
+                                        Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
+                                        Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),
+                                        true);
+                                if (permessiDellaStruttura != null) {
+                                    pecDellaStruttura = permessiDellaStruttura.stream().map(permesso -> permesso.getOggetto().getIdProvenienza()).collect(Collectors.toList());
                                 }
+                            } catch (BlackBoxPermissionException ex) {
+                                LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+                                throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             }
+                        }
 
-                            if (persona != null) {
-                                try {
-                                    List<PermessoEntitaStoredProcedure> permessiDellaPersona = permissionManager.getPermissionsOfSubject(
-                                            persona,
-                                            Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString(), InternautaConstants.Permessi.Predicati.ELIMINA.toString()}),
-                                            Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                                            Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),
-                                            false);
-                                    if (permessiDellaPersona != null) {
-                                        pecDellaPersona = permessiDellaPersona.stream().map(permesso -> permesso.getOggetto().getIdProvenienza()).collect(Collectors.toList());
-                                    }
-
-                                } catch (BlackBoxPermissionException ex) {
-                                    LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
-                                    throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+                        if (persona != null) {
+                            try {
+                                List<PermessoEntitaStoredProcedure> permessiDellaPersona = permissionManager.getPermissionsOfSubject(
+                                        persona,
+                                        Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString(), InternautaConstants.Permessi.Predicati.ELIMINA.toString()}),
+                                        Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
+                                        Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),
+                                        false);
+                                if (permessiDellaPersona != null) {
+                                    pecDellaPersona = permessiDellaPersona.stream().map(permesso -> permesso.getOggetto().getIdProvenienza()).collect(Collectors.toList());
                                 }
+
+                            } catch (BlackBoxPermissionException ex) {
+                                LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+                                throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             }
                         }
 

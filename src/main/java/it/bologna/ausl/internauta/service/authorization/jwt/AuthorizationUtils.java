@@ -10,6 +10,7 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
+import it.bologna.ausl.internauta.service.exceptions.SSOException;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.CounterRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -174,7 +175,7 @@ public class AuthorizationUtils {
      * @throws ObjectNotFoundException
      * @throws BlackBoxPermissionException 
      */
-    public ResponseEntity generateResponseEntityFromSAML(String idAzienda, String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione, Boolean fromInternetLogin) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException {
+    public ResponseEntity generateResponseEntityFromSAML(String idAzienda, String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione, Boolean fromInternetLogin) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException, SSOException {
 
         if (fromInternetLogin == null) {
             fromInternetLogin = fromInternet(request);
@@ -182,13 +183,19 @@ public class AuthorizationUtils {
         logger.info("idAzienda: " + objectMapper.writeValueAsString(idAzienda));
         logger.info("path: " + objectMapper.writeValueAsString(path));
         logger.info("fromInternet: " + fromInternetLogin);
-        Azienda aziendaRealUser;
+        Azienda aziendaRealUser = null;
         if (fromInternetLogin) {
             if (StringUtils.isEmpty(ssoFieldValue)) {
-                ssoFieldValue = request.getAttribute("CodiceFiscale").toString();
+                if (!StringUtils.isEmpty(request.getAttribute("CodiceFiscale"))) {                
+                    ssoFieldValue = request.getAttribute("CodiceFiscale").toString();
+                } else {
+                    throw new SSOException("ssoFieldValue is empty");
+                }
             }
             Persona realPerson = cachedEntities.getPersonaFromCodiceFiscale(ssoFieldValue);
-            aziendaRealUser = cachedEntities.getAzienda(realPerson.getIdAziendaDefault().getId());
+            if (realPerson != null) {
+                aziendaRealUser = cachedEntities.getAzienda(realPerson.getIdAziendaDefault().getId());
+            }
         } else {
             if (StringUtils.isEmpty(path)) {
                 throw new ObjectNotFoundException("impossibile stabilire l'azienda dell'utente, il campo \"path\" è vuoto");
@@ -208,7 +215,11 @@ public class AuthorizationUtils {
         //AziendaParametriJson aziendaImpersonatedUserParams = AziendaParametriJson.parse(objectMapper, aziendaImpersonatedUser.getParametri());
 
         if (ssoFieldValue == null) {
-            ssoFieldValue = request.getAttribute(aziendaRealUserParams.getLoginSSOField()).toString();
+            if (!StringUtils.isEmpty(request.getAttribute(aziendaRealUserParams.getLoginSSOField()))) {
+                ssoFieldValue = request.getAttribute(aziendaRealUserParams.getLoginSSOField()).toString();
+            } else {
+                throw new SSOException("ssoFieldValue is empty");
+            }
         }
 
         String[] loginDbFieldSplitted = aziendaRealUserParams.getLoginDBFieldBaborg().split("/");
