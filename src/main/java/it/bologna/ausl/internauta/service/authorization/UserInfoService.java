@@ -453,7 +453,7 @@ public class UserInfoService {
 
     @Cacheable(value = "getPermessiPec__ribaltorg__", key = "{#persona.getId()}")
     public Map<Integer, List<String>> getPermessiPec(Persona persona) throws BlackBoxPermissionException {
-
+        LOGGER.info("reperimento permessi PEC");
         List<PermessoEntitaStoredProcedure> pecWithStandardPermissions = null;
         try {
             pecWithStandardPermissions = permissionManager.getPermissionsOfSubject(
@@ -465,11 +465,20 @@ public class UserInfoService {
             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
 
         }
-
-        Map<Integer, List<String>> res = pecWithStandardPermissions.stream().collect(Collectors.toMap(
-                p -> p.getOggetto().getIdProvenienza(),
-                p -> p.getCategorie().get(0).getPermessi().stream().map(c -> c.getPredicato()).collect(Collectors.toList())));
-        return res;
+        if (pecWithStandardPermissions != null) {
+            try {
+            Map<Integer, List<String>> res = pecWithStandardPermissions.stream().collect(Collectors.toMap(
+                    p -> p.getOggetto().getIdProvenienza(),
+                    p -> p.getCategorie().get(0).getPermessi().stream().map(c -> c.getPredicato()).collect(Collectors.toList())));
+                return res;
+            } catch (Exception ex) {
+                LOGGER.error("Errore nella gestione dei permessi pec recuperati", ex);
+                return null;
+            }
+        } else {
+            LOGGER.warn("Nessu npermesso PEC");
+            return null;
+        }
     }
 
     @CacheEvict(value = "getPermessiPec__ribaltorg__", key = "{#persona.getId()}")
