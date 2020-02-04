@@ -267,64 +267,23 @@ public class ProjectionBeans {
         return result;
     }
 
-    private void addRegistrationUrlCommands(
-            Map<String, String> result,
-            String commonStringToEncode,
-            AziendaParametriJson parametriAziendaLogin,
-            AziendaParametriJson parametriAziendaDestinazione,
-            String crossLoginUrlTemplate) throws UnsupportedEncodingException {
-        // ho due casi praticamente uguali sulla protocollazione di una pec. Il caso in cui creo un nuovo Protocollo 
-        // e il caso in cui aggiungo la pec a un protocollo già esistente
-        // cambia solo il valore del parametro CMD, quindi fascio un ciclo per gestire questi due casi
-        String stringToEncode = "";
-
-        for (int i = 0; i < 2; i++) {
-            stringToEncode = "";
-            if (i == 0) {
-                stringToEncode = "?CMD=ricevi_from_pec;[id_message]";
-//                stringToEncode = "ricevi_from_pec;[id_message]";  // TODO: REMOVE, ONLY FOR LOCAL TESTS
-            } else {
-                stringToEncode = "?CMD=add_from_pec;[id_message]";
-//                stringToEncode = "add_from_pec;[id_message]"; // TODO: REMOVE, ONLY FOR LOCAL TESTS
-            }
-            stringToEncode += "&id_sorgente=[id_sorgente]";
-            stringToEncode += "&pec_ricezione=[pec_ricezione]";
-            stringToEncode += commonStringToEncode;
-
-            String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
-//            encodedParams = stringToEncode; // TODO: REMOVE, ONLY FOR LOCAL TESTS                
-
-            String assembledUrl = crossLoginUrlTemplate
-                    .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())
-                    .replace("[entity-id]", parametriAziendaLogin.getEntityId()) //parametriAziendaLogin.getEntityId())
-                    .replace("[app]", APP_URL_PICO)
-                    .replace("[encoded-params]", encodedParams);
-
-            if (i == 0) {
-                result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_NEW.toString(), assembledUrl);
-            } else {
-                result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_ADD.toString(), assembledUrl);
-            }
+    /**
+     * Data un azienda torna il baseUrl corretto a secondo se si è fatto il login da internet oppure no
+     * @param azienda
+     * @return
+     * @throws IOException
+     * @throws BlackBoxPermissionException 
+     */
+    public String getBaseUrl(Azienda azienda) throws IOException, BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        String baseUrl;
+        AziendaParametriJson aziendaParams = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        if (authenticatedSessionData.isFromInternet()) {
+            baseUrl = aziendaParams.getInternetBasePath();
+        } else {
+            baseUrl = aziendaParams.getBasePath();
         }
-    }
-
-    private void addArchiveUrlCommands(
-            Map<String, String> result,
-            String commonStringToEncode,
-            AziendaParametriJson parametriAziendaLogin,
-            AziendaParametriJson parametriAziendaDestinazione,
-            String crossLoginUrlTemplate) throws UnsupportedEncodingException {
-        String stringToEncode = "";
-        stringToEncode = "?CMD=fascicola_shpeck;[id_message]";
-        //stringToEncode = "CMD=ricevi_from_pec_int;[id_message]"; //local
-        stringToEncode += commonStringToEncode;
-        String encodedParams = URLEncoder.encode(stringToEncode, "UTF-8");
-        String assembledUrl = crossLoginUrlTemplate
-                .replace("[target-login-path]", parametriAziendaDestinazione.getLoginPath()) //parametriAziendaDestinazione.getLoginPath())
-                .replace("[entity-id]", parametriAziendaLogin.getEntityId()) //parametriAziendaLogin.getEntityId())
-                .replace("[app]", APP_URL_BABEL)
-                .replace("[encoded-params]", encodedParams);
-        result.put(InternautaConstants.UrlCommand.Keys.ARCHIVE_MESSAGE.toString(), assembledUrl);
+        return baseUrl;
     }
 
     /**
