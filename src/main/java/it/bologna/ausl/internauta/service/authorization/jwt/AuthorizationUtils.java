@@ -335,8 +335,10 @@ public class AuthorizationUtils {
     private boolean fromInternet(HttpServletRequest request) {
         try {
             String internet = request.getAttribute("internet").toString();
+            logger.info("letto dalla sessione request.getAttribute(\"internet\"): " + request.getAttribute("internet"));
             return Boolean.parseBoolean(internet);
         } catch (Exception ex) {
+            logger.info("nel catch di fromInternet()");
             return false;
         }
     }
