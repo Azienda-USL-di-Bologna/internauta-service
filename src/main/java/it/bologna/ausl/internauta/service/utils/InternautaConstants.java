@@ -59,7 +59,8 @@ public class InternautaConstants {
             CambioUtente,
             GetAmministrazioneMessaggiAttivi,
             GetAmministrazioneMessaggiStorico,
-            FilterMassimarioPerAzienda
+            FilterMassimarioPerAzienda,
+            GetContattiFromInde
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
