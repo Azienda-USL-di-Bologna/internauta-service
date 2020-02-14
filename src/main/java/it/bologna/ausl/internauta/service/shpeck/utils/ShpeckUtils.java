@@ -536,7 +536,7 @@ public class ShpeckUtils {
             if (!messageInDefaultRepository) {
                 List<Azienda> aziende = aziendaRepository.findAll();
                 for (Azienda azienda : aziende) {
-                    if (azienda.getId() != idAzienda) {
+                    if (azienda.getId().equals(idAzienda)) {
                         messageInRepository = isMessageInRepository(azienda.getId(), message.getUuidRepository());
                         if (messageInRepository) {
                             idAzienda = azienda.getId();
@@ -556,12 +556,13 @@ public class ShpeckUtils {
 
     private boolean isMessageInRepository(Integer idAzienda, String uuidRepository) {
 
-        boolean res = true;
+        boolean res = false;
 
         MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
         InputStream is = null;
         try {
             is = mongoWrapper.get(uuidRepository);
+            res = is != null;
         } catch (Throwable e) {
             res = false;
         } finally {
