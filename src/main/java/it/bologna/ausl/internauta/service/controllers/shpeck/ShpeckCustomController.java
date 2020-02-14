@@ -218,6 +218,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws it.bologna.ausl.internauta.service.exceptions.BadParamsException
      */
     @RequestMapping(value = "downloadEml/{idMessage}", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
     public void downloadEml(
             @PathVariable(required = true) Integer idMessage,
             @RequestParam("emlSource") EmlSource emlSource,
