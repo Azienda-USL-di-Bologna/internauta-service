@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.shpeck.utils;
 
 import com.mongodb.MongoException;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
@@ -54,8 +55,12 @@ import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.RawMessageRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.shpeck.QRawMessage;
+import it.bologna.ausl.model.entities.shpeck.RawMessage;
+import java.io.ByteArrayInputStream;
 import java.util.List;
 import javax.mail.Message.RecipientType;
 import javax.servlet.http.HttpServletRequest;
@@ -89,6 +94,9 @@ public class ShpeckUtils {
 
     @Autowired
     private MessageRepository messageRepository;
+    
+    @Autowired
+    private RawMessageRepository rawMessageRepository;
 
     @Autowired
     private MessageTagRepository messageTagRepository;
@@ -455,12 +463,29 @@ public class ShpeckUtils {
                         try {
                             is = mongoWrapper.get(message.getUuidRepository());
                             if (is == null) {
-                                throw new MongoException("File non trovato!!11");
+                                throw new MongoException("File non trovato!!");
                             }
                         } catch (Exception e) {
                             message.setIdAziendaRepository(null);
-                            mongoWrapper = mongoConnectionManager.getConnection(this.getIdAziendaRepository(message));
-                            is = mongoWrapper.get(message.getUuidRepository());
+                            Integer idAziendaRepository = this.getIdAziendaRepository(message);
+                            try {
+                                if (idAziendaRepository != null) {
+                                    mongoWrapper = mongoConnectionManager.getConnection(idAziendaRepository);
+                                    is = mongoWrapper.get(message.getUuidRepository());
+                                    if (is == null) {
+                                        throw new MongoException("File non trovato!!");
+                                    }
+                                } else  {
+                                    throw new MongoException("File non trovato!!");
+                                }
+                            } catch (Exception ex) {
+                                BooleanExpression filter = QRawMessage.rawMessage.idMessage.id.eq(id);
+                                Optional<RawMessage> rawMessage = rawMessageRepository.findOne(filter);
+                                if (rawMessage.isPresent()) {
+//                                    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(rawMessage.get().getRawData().getBytes());
+                                    is = new ByteArrayInputStream(rawMessage.get().getRawData().getBytes());
+                                }
+                            }
                         }
                         StreamUtils.copy(is, dataOs);
                     } finally {
@@ -523,7 +548,7 @@ public class ShpeckUtils {
 //    }
     private Integer getIdAziendaRepository(Message message) {
 
-        Integer idAzienda = -1;
+        Integer idAzienda = null;
 
         // -> guarda se il campo è popolato, se popolato ritorna
         if (message.getIdAziendaRepository() != null) {
@@ -545,23 +570,28 @@ public class ShpeckUtils {
             boolean messageInDefaultRepository = isMessageInRepository(idAzienda, message.getUuidRepository());
 
             // se non c'è allora cerco in tutti i repository
-            boolean messageInRepository = false;
+            boolean foundRepository = false;
             if (!messageInDefaultRepository) {
                 LOG.warn("Messaggio non trovato nel repository di default! Provo negli altri repository...");
                 List<Azienda> aziende = aziendaRepository.findAll();
                 for (Azienda azienda : aziende) {
                     if (!azienda.getId().equals(idAzienda)) {
-                        messageInRepository = isMessageInRepository(azienda.getId(), message.getUuidRepository());
+                        boolean messageInRepository = isMessageInRepository(azienda.getId(), message.getUuidRepository());
                         if (messageInRepository) {
+                            foundRepository = true;
                             idAzienda = azienda.getId();
                             break;
                         }
                     }
                 }
+                if (!foundRepository) {
+                    idAzienda = null;
+                }
             }
-
-            // salva idAziendaRepository in message
-            saveIdAziendaRepository(message, idAzienda);
+            if (messageInDefaultRepository || foundRepository) {
+                // salva idAziendaRepository in message
+                saveIdAziendaRepository(message, idAzienda);
+            }
         }
         return idAzienda;
     }
