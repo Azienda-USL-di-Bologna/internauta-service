@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
 @Projection(name = "CustomUtenteWithIdPersona", types = Utente.class)
-public interface CustomUtenteLogin extends UtenteWithIdPersona {
+public interface CustomUtenteLogin extends UtenteWithIdPersonaAndPermessiCustom {
 
     @Override
     @Value("#{@projectionBeans.getIdPersonaWithImpostazioniApplicazioniList(target)}")
@@ -22,19 +22,16 @@ public interface CustomUtenteLogin extends UtenteWithIdPersona {
 
     @Value("#{@userInfoService.getAziendaCustomLogin(target)}")
     public CustomAziendaLogin getAziendaLogin();
+
     @Value("#{@userInfoService.getAllAziendeCustomLogin(target)}")
     public List<CustomAziendaLogin> getAziende();
+
     @Value("#{@userInfoService.getRuoli(target, null)}")
     @Override
     public List<Ruolo> getRuoli();
 
-    @Value("#{@userInfoService.getPermessiDiFlusso(target)}")
-    @Override
-    public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso();
-
 //    @Value("#{@userInfoService.getAziendePersonaWithPlainField(target)}")
 //    public List<AziendaWithPlainFields> getAziende();
-
     @Value("#{@projectionBeans.getUtenteRealeWithIdPersonaImpostazioniApplicazioniList(target)}")
     @Override
     public CustomUtenteLogin getUtenteReale();

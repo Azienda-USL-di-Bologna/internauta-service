@@ -45,15 +45,20 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
+import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 import it.bologna.ausl.model.entities.logs.projections.KrintShpeckPec;
+import it.bologna.ausl.model.entities.permessi.Predicato;
+import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoWithPlainFields;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdGruppo;
+import java.util.ArrayList;
+import java.util.Arrays;
 import org.slf4j.Logger;
 
 /**
@@ -76,6 +81,9 @@ public class ProjectionBeans {
     protected UtenteRepository utenteRepository;
 
     @Autowired
+    protected PredicatoRepository predicatoRepository;
+
+    @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
 
     @Autowired
@@ -89,7 +97,7 @@ public class ProjectionBeans {
 
     @Autowired
     HttpSessionData httpSessionData;
-    
+
     @Autowired
     AziendaInterceptor aziendaInterceptor;
 
@@ -257,7 +265,6 @@ public class ProjectionBeans {
 //        }
 //        Persona person = utente.getIdPersona();
 //        Azienda aziendaLogin = utente.getIdAzienda();
-
         result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_NEW.toString(),
                 internautaUtils.getUrl(authenticatedSessionData, "?CMD=ricevi_from_pec;[id_message]&id_sorgente=[id_sorgente]&pec_ricezione=[pec_ricezione]", "procton", aziendaTarget));
         result.put(InternautaConstants.UrlCommand.Keys.PROTOCOLLA_PEC_ADD.toString(),
@@ -268,11 +275,13 @@ public class ProjectionBeans {
     }
 
     /**
-     * Data un azienda torna il baseUrl corretto a secondo se si è fatto il login da internet oppure no
+     * Data un azienda torna il baseUrl corretto a secondo se si è fatto il
+     * login da internet oppure no
+     *
      * @param azienda
      * @return
      * @throws IOException
-     * @throws BlackBoxPermissionException 
+     * @throws BlackBoxPermissionException
      */
     public String getBaseUrl(Azienda azienda) throws IOException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -300,7 +309,7 @@ public class ProjectionBeans {
         Map<String, String> result = new HashMap<>();
 
         Utente utente = (Utente) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
-        
+
         AziendaParametriJson parametri = AziendaParametriJson.parse(objectMapper, utente.getIdAzienda().getParametri());
         if (authenticatedSessionData.isFromInternet()) {
             try {
@@ -310,7 +319,7 @@ public class ProjectionBeans {
                 LOGGER.error("errore nel reperimento di isFromInternet", ex);
             }
         }
-        
+
         result.put(LOGOUT_URL_KEY, parametri.getLogoutUrl());
 
         return result;
@@ -348,5 +357,14 @@ public class ProjectionBeans {
         } else {
             return null;
         }
+    }
+
+    public List<PredicatoWithPlainFields> expandPredicati(Integer[] idPredicati) {
+        List<PredicatoWithPlainFields> res = new ArrayList();
+        for (Integer idPredicato : idPredicati) {
+            Predicato predicato = this.predicatoRepository.getOne(idPredicato);
+            res.add(factory.createProjection(PredicatoWithPlainFields.class, predicato));
+        }
+        return res;
     }
 }
