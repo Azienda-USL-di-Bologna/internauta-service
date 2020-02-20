@@ -624,4 +624,6 @@ public class UserInfoService {
         }
         return utenteProcton;
     }
+    
+    
 }
