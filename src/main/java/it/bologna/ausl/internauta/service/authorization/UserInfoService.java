@@ -467,9 +467,9 @@ public class UserInfoService {
         }
         if (pecWithStandardPermissions != null) {
             try {
-            Map<Integer, List<String>> res = pecWithStandardPermissions.stream().collect(Collectors.toMap(
-                    p -> p.getOggetto().getIdProvenienza(),
-                    p -> p.getCategorie().get(0).getPermessi().stream().map(c -> c.getPredicato()).collect(Collectors.toList())));
+                Map<Integer, List<String>> res = pecWithStandardPermissions.stream().collect(Collectors.toMap(
+                        p -> p.getOggetto().getIdProvenienza(),
+                        p -> p.getCategorie().get(0).getPermessi().stream().map(c -> c.getPredicato()).collect(Collectors.toList())));
                 return res;
             } catch (Exception ex) {
                 LOGGER.error("Errore nella gestione dei permessi pec recuperati", ex);

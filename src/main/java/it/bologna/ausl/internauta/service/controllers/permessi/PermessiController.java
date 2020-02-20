@@ -71,7 +71,11 @@ public class PermessiController implements ControllerHandledExceptions {
     ObjectMapper mapper;
 
     /**
-     * E' il controller base.Riceve una lista di PermessoEntitaStoredProcedure e chiama direttamente la managePermissions la quale di fatto passaera la lista di PermessoEntitaStoredProcedure alla store procedute. Attenzione: usando questo controller non verrà eseguito nessun controllo di sicurezza.
+     * E' il controller base.Riceve una lista di PermessoEntitaStoredProcedure e
+     * chiama direttamente la managePermissions la quale di fatto passaera la
+     * lista di PermessoEntitaStoredProcedure alla store procedute. Attenzione:
+     * usando questo controller non verrà eseguito nessun controllo di
+     * sicurezza.
      *
      * @param permessiEntita
      * @param request
@@ -82,7 +86,6 @@ public class PermessiController implements ControllerHandledExceptions {
         permissionRepositoryAccess.managePermissions(permessiEntita);
     }
 
-    
     // VECCHIA VERSIONE CHE NON GESTIVA LE LISTE
 //
 //    @Transactional
@@ -175,8 +178,7 @@ public class PermessiController implements ControllerHandledExceptions {
 //
 //        permissionManager.managePermissions(persona, pec, PECG.toString(), PEC.toString(), permessi);
 //    }
-
-        /**
+    /**
      * E' il controller che gestisce i permessi per i Gestori PEC. Prima della
      * chiamata alla Black Box viene controllato che l'utente loggato sia
      * autorizzato a gestire la PEC e la persona. In particolare: - Il CI può
@@ -184,9 +186,9 @@ public class PermessiController implements ControllerHandledExceptions {
      * all'azienda di cui è CA. - Gestire persone che abbiano un utente attivo
      * nell'azienda di cui è CA.
      *
-     * @param json - Contiene LISTE DI tre oggetti: 1 - persona - E' la persona che sta
-     * ricevendo il permesso 2 - pec - E' la pec su cui il soggetto avrà il
-     * permesso. Avrà la pecAziendaList già espansa, con l'idAzienda già
+     * @param json - Contiene LISTE DI tre oggetti: 1 - persona - E' la persona
+     * che sta ricevendo il permesso 2 - pec - E' la pec su cui il soggetto avrà
+     * il permesso. Avrà la pecAziendaList già espansa, con l'idAzienda già
      * espanso. 3 - permesso - E' di tipo PermessoStoredProcedure, conterrà
      * predicato, originePermesso.
      * @param request
@@ -207,7 +209,6 @@ public class PermessiController implements ControllerHandledExceptions {
             LOGGER.error("Errore nel casting della persona.", ex);
             throw new Http400ResponseException("1", "Errore nel casting della persona.");
         }
-        
 
         System.out.println(data);
 
@@ -217,28 +218,27 @@ public class PermessiController implements ControllerHandledExceptions {
             PermessoStoredProcedure permesso;
 
             // Controllo che ogni elemento abbia i dati che mi aspetto
-                    try {
-            persona = mapper.convertValue(element.get("persona"), Persona.class);
-        } catch (IllegalArgumentException ex) {
-            LOGGER.error("Errore nel casting della persona.", ex);
-            throw new Http400ResponseException("1", "Errore nel casting della persona.");
-        }
-                    
-            
-                    try {
-            pec = mapper.convertValue(element.get("pec"), Pec.class);
-        } catch (IllegalArgumentException ex) {
-            LOGGER.error("Errore nel casting della pec.", ex);
-            throw new Http400ResponseException("2", "Errore nel casting della pec.");
-        }
+            try {
+                persona = mapper.convertValue(element.get("persona"), Persona.class);
+            } catch (IllegalArgumentException ex) {
+                LOGGER.error("Errore nel casting della persona.", ex);
+                throw new Http400ResponseException("1", "Errore nel casting della persona.");
+            }
 
-                    try {
-            permesso = mapper.convertValue(element.get("permesso"), PermessoStoredProcedure.class);
-        } catch (IllegalArgumentException ex) {
-            LOGGER.error("Errore nel casting del permesso.", ex);
-            throw new Http400ResponseException("3", "Errore nel casting del permesso.");
-        }
-            
+            try {
+                pec = mapper.convertValue(element.get("pec"), Pec.class);
+            } catch (IllegalArgumentException ex) {
+                LOGGER.error("Errore nel casting della pec.", ex);
+                throw new Http400ResponseException("2", "Errore nel casting della pec.");
+            }
+
+            try {
+                permesso = mapper.convertValue(element.get("permesso"), PermessoStoredProcedure.class);
+            } catch (IllegalArgumentException ex) {
+                LOGGER.error("Errore nel casting del permesso.", ex);
+                throw new Http400ResponseException("3", "Errore nel casting del permesso.");
+            }
+
             if (pec.getPecAziendaList() == null) {
                 throw new Http400ResponseException("6", "La pec passata non ha il campo pecAziendaList espanso.");
             }
@@ -395,5 +395,18 @@ public class PermessiController implements ControllerHandledExceptions {
         }
 
         permissionManager.managePermissions(struttura, pec, PECG.toString(), PEC.toString(), Arrays.asList(new PermessoStoredProcedure[]{permesso}));
+    }
+
+    @RequestMapping(value = "managePermissionsFlusso", method = RequestMethod.POST)
+    public void managePermissionsFlusso(@RequestBody List<PermessoEntitaStoredProcedure> permessiEntita, HttpServletRequest request) throws BlackBoxPermissionException {
+        permissionRepositoryAccess.managePermissions(permessiEntita);
+//        for (PermessoEntitaStoredProcedure p : permessiEntita) {
+//            Utente u = utenteRepository.getOne(p.getSoggetto().getIdProvenienza());
+//            userInfoService.getPermessiDiFlussoRemoveCache(u);
+//        }
+        permessiEntita.stream().forEach(p -> {
+            Utente u = utenteRepository.getOne(p.getSoggetto().getIdProvenienza());
+            userInfoService.getPermessiDiFlussoRemoveCache(u);
+        });
     }
 }
