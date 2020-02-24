@@ -323,10 +323,9 @@ public class ShpeckUtils {
             throw new EntityNotFoundException("Element not found!");
         } catch (IOException | MessagingException ex) {
             LOG.error("Error while sending message! Trying to save the draf instead", ex);
-            throw new IOException("Error while sending message! Trying to save the draf instead");
-        } finally {
-            LOG.info("Message enqueued to outbox : ", outboxMessage);
+            throw new IOException("Error while sending message...");
         }
+        LOG.info("Message enqueued to outbox : ", outboxMessage);
     }
 
     static Specification<Tag> hasAuthor(Integer idPec) {

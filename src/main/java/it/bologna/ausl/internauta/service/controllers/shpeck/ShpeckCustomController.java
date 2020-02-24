@@ -561,6 +561,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         messageTagList.add(messageTag);
         messageDestination.setMessageTagList(messageTagList);
 
+        /* gdm: commentato perché con lo spostamento del trigger che sposta nella posta in arrivo all'inserimento di ogni messaggio in messages, 
+        *  questa parte non serve più perché viene fatta in auomatico dal trigger
         MessageFolder messageFolder = new MessageFolder();
         List<MessageFolder> mfList = new ArrayList();
 
@@ -573,7 +575,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         messageFolder.setInserted(LocalDateTime.now());
         mfList.add(messageFolder);
         messageDestination.setMessageFolderList(mfList);
-
+        */
         messageRepository.save(messageDestination);
         // assegno il tag reindirizzato out a il message source
 
