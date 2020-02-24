@@ -1,13 +1,13 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.model.entities.rubrica.projections;
 
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithEmailListAndGruppiDelContattoListAndIdPersonaCreazioneAndIdUtenteCreazioneAndIndirizziListAndTelefonoList;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.EmailWithIdDettaglioContatto;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdContattoAndIdDettaglioContatto;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdDettaglioContattoAndIdGruppo;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdGruppo;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.IndirizzoWithIdDettaglioContatto;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.TelefonoWithIdDettaglioContatto;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
@@ -19,7 +19,20 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "CustomContattoEsternoDetail", types = Contatto.class)
 public interface CustomContattoEsternoDetail extends ContattoWithEmailListAndGruppiDelContattoListAndIdPersonaCreazioneAndIdUtenteCreazioneAndIndirizziListAndTelefonoList {
 
-    @Value("#{@projectionBeans.getGruppiDelContattoWithIdGruppo(target)}")
+    @Value("#{@projectionBeans.getEmailWithIdDettaglioContatto(target)}")
     @Override
-    public List<GruppiContattiWithIdGruppo> getGruppiDelContattoList();
+    public List<EmailWithIdDettaglioContatto> getEmailList();
+    
+    @Value("#{@projectionBeans.getIndirizzoWithIdDettaglioContatto(target)}")
+    @Override
+    public List<IndirizzoWithIdDettaglioContatto> getIndirizziList();
+    
+    @Value("#{@projectionBeans.getTelefonoWithIdDettaglioContatto(target)}")
+    @Override
+    public List<TelefonoWithIdDettaglioContatto> getTelefonoList();
+    
+    @Value("#{@projectionBeans.getGruppiContattiWithIdDettaglioContattoAndIdGruppo(target)}")
+    @Override
+    public List<GruppiContattiWithIdDettaglioContattoAndIdGruppo> getGruppiDelContattoList();
+    
 }

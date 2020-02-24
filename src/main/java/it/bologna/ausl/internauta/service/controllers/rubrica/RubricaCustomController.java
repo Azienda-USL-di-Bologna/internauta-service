@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.controllers.rubrica;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -14,15 +15,18 @@ import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExcep
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
+import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
-import it.bologna.ausl.model.entities.rubrica.projections.CustomContattoWithEmailList;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithEmailList;
+import it.bologna.ausl.model.entities.rubrica.Telefono;
 import it.bologna.ausl.rubrica.maven.client.RestClient;
 import it.bologna.ausl.rubrica.maven.client.RestClientException;
 import it.bologna.ausl.rubrica.maven.resources.EmailResource;
@@ -36,15 +40,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.projection.ProjectionFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -78,6 +85,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    UtenteRepository utenteRepository;
 
     @Autowired
     RubricaRestClientConnectionManager rubricaRestClientConnectionManager;
@@ -90,6 +100,12 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Value("${babelsuite.webapi.managedestinatari.url}")
+    private String manageDestinatariUrl;
+    
+    @Value("${babelsuite.webapi.managedestinatari.method}")
+    private String manageDestinatariMethod;
 
     /**
      * Effettua la ricerca sulla rubrica locale dell'utente indicato
@@ -249,5 +265,140 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
         return new ResponseEntity(similarityResults, HttpStatus.OK);
     }
+    
+    
+    @RequestMapping(value = "sendSelectedContactsToExternalApp", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> sendSelectedContactsToExternalApp(@RequestBody ExternalAppData data) throws JsonProcessingException, IOException {
+        
+//        JSONObject jsonObject = new JSONObject(new Gson().toJson(data, ExternalAppData.class));
+//        System.out.println(jsonObject.toString());
+        
+        System.out.println("ciaooo");
+        System.out.println(data.toString());
+        
+        
+        Azienda azienda = cachedEntities.getAziendaFromCodice(data.getCodiceAzienda());
+   
+        okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(okhttp3.MediaType.get("application/json; charset=utf-8"), objectMapper.writeValueAsString(data));
+        OkHttpClient client = new OkHttpClient();
 
+        Request request = new Request.Builder()
+                .url(buildGestisciDestinatariDaRubricaInternautarUrl(azienda, data.getApp()))
+                .post(requestBody)
+                .addHeader("X-HTTP-Method-Override", manageDestinatariMethod)
+                .build();
+
+        Call call = client.newCall(request);
+        try (Response response = call.execute();) {
+            if (response.isSuccessful()) {
+                System.out.println("Tutto bene quel che finisce bene");
+            } else
+                throw new IOException(String.format("molto malo: %s", response.message()));
+        }
+
+        return new ResponseEntity(data, HttpStatus.OK);
+    }
+    
+     private String buildGestisciDestinatariDaRubricaInternautarUrl(Azienda azienda, String idApplicazione) throws IOException {
+        Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
+        AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
+        return url;
+    }
+     
+     
+     
+     
+     
+     
+     
+     @RequestMapping(value = "prova", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public void prova() throws JsonProcessingException, IOException {
+//        Contatto c = new Contatto();
+//        c.setCategoria(Contatto.CategoriaContatto.ESTERNO);
+//        c.setTipo(Contatto.TipoContatto.VARIO);
+//        c.setDescrizione("provannvnaoidun");
+//        
+//        Utente one = utenteRepository.getOne(1);
+//        c.setIdUtenteCreazione(one);
+//        c.setIdPersonaCreazione(one.getIdPersona());
+//        c.setProvenienza("jaibci");
+//        c.setModificabile(false);
+//        c.setEliminato(false);
+//        c.setDaVerificare(false);
+//        
+//        DettaglioContatto dc = new DettaglioContatto();
+//        dc.setDescrizione("odvkcnasoicdjuhn");
+//        dc.setPrincipale(true);
+//        dc.setIdContatto(c);
+//        
+//        Email e = new Email();
+//        e.setDescrizione("vfs");
+//        e.setEmail("cdvsvs");
+//        e.setProvenienza("vdsvsd");
+//        e.setPrincipale(true);
+//        e.setPec(true);
+//        e.setIdContatto(c);
+//        e.setIdDettaglioContatto(dc);
+//        
+//        List<Email> ee = new ArrayList<>();
+//        ee.add(e);
+//        
+//        dc.setEmail(ee);
+//        
+//        List<DettaglioContatto> aaa = new ArrayList<>();
+//        aaa.add(dc);
+//        c.setDettaglioContattoList(aaa);
+//        
+//        contattoRepository.save(c);
+
+        Contatto c = new Contatto();
+        c.setCategoria(Contatto.CategoriaContatto.ESTERNO);
+        c.setTipo(Contatto.TipoContatto.VARIO);
+        c.setDescrizione("provannvnaoidun");
+        Utente one = utenteRepository.getOne(1);
+        c.setIdUtenteCreazione(one);
+        c.setIdPersonaCreazione(one.getIdPersona());
+        c.setProvenienza("jaibci");
+        c.setModificabile(false);
+        c.setEliminato(false);
+        c.setDaVerificare(false);
+        
+        DettaglioContatto dc = new DettaglioContatto();
+        dc.setDescrizione("odvkcnasoicdjuhn");
+        dc.setPrincipale(true);
+        dc.setIdContatto(c);
+        
+//        Telefono t = new Telefono();
+//        t.setNumero("3434433434");
+//        t.setPrincipale(true);
+//        t.setProvenienza("dvs");
+//        t.setIdContatto(c);
+//        t.setIdDettaglioContatto(dc);
+//        
+//        List<Telefono> tt = new ArrayList();
+
+        Email e = new Email();
+        e.setDescrizione("vfs");
+        e.setEmail("cdvsvs");
+        e.setProvenienza("vdsvsd");
+        e.setPrincipale(true);
+        e.setPec(true);
+        e.setIdContatto(c);
+        e.setIdDettaglioContatto(dc);
+        List<Email> ee = new ArrayList<>();
+        ee.add(e);
+        c.setEmailList(ee);
+        
+//        DettaglioContatto dc = new DettaglioContatto();
+//        dc.setDescrizione("odvkcnasoicdjuhn");
+//        dc.setPrincipale(true);
+//        dc.setIdContatto(c);
+//        List<DettaglioContatto> aaa = new ArrayList<>();
+//        aaa.add(dc);
+//        c.setDettaglioContattoList(aaa);
+
+        contattoRepository.save(c);
+        
+    }
 }
