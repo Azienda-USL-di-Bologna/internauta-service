@@ -62,6 +62,7 @@ import it.bologna.ausl.model.entities.rubrica.Telefono;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithIdContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.EmailWithIdDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdContattoAndIdDettaglioContatto;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdDettaglioContattoAndIdGruppo;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdGruppo;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.IndirizzoWithIdDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.TelefonoWithIdDettaglioContatto;
@@ -433,6 +434,21 @@ public class ProjectionBeans {
             if (contattiDelGruppoList != null && !contattiDelGruppoList.isEmpty()) {
                 return contattiDelGruppoList.stream().map(
                         gruppoContatto -> factory.createProjection(GruppiContattiWithIdContattoAndIdDettaglioContatto.class, gruppoContatto))
+                        .collect(Collectors.toList());
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+    
+    public List<GruppiContattiWithIdDettaglioContattoAndIdGruppo> getGruppiContattiWithIdDettaglioContattoAndIdGruppo(Contatto contatto) {
+        if (contatto != null) {
+            List<GruppiContatti> gruppiDelContattoList = contatto.getGruppiDelContattoList();
+            if (gruppiDelContattoList != null && !gruppiDelContattoList.isEmpty()) {
+                return gruppiDelContattoList.stream().map(
+                        gruppoContatto -> factory.createProjection(GruppiContattiWithIdDettaglioContattoAndIdGruppo.class, gruppoContatto))
                         .collect(Collectors.toList());
             } else {
                 return null;
