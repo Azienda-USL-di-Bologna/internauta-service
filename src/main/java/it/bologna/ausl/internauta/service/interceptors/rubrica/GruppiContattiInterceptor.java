@@ -2,7 +2,7 @@ package it.bologna.ausl.internauta.service.interceptors.rubrica;
 
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.repositories.rubrica.GruppiContattiRepository;
+//import it.bologna.ausl.internauta.service.repositories.rubrica.GruppiContattiRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
@@ -24,8 +24,8 @@ import org.springframework.stereotype.Component;
 public class GruppiContattiInterceptor extends InternautaBaseInterceptor{
     private static final Logger LOGGER = LoggerFactory.getLogger(GruppiContattiInterceptor.class);
     
-    @Autowired
-    GruppiContattiRepository gruppiContattiRepository;
+//    @Autowired
+//    GruppiContattiRepository gruppiContattiRepository;
     
     @Autowired
     UserInfoService userInfoService;
