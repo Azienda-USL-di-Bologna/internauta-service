@@ -64,18 +64,21 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
         MessageFolder messageFolder = (MessageFolder) entity;
         MessageFolder beforeMessageFolder = (MessageFolder) beforeUpdateEntity;
         
-        if (messageFolder.getIdFolder().getType().equals(FolderType.TRASH.toString())) {
+        if (messageFolder.getIdFolder().getType().equals(FolderType.TRASH)) {
             try {
                 lanciaEccezioneSeNonHaPermessoDiEliminaMessage(messageFolder.getIdMessage());
             } catch (BlackBoxPermissionException | Http403ResponseException ex) {
                 throw new AbortSaveInterceptorException();
+            }
+            if (!beforeMessageFolder.getDeleted() && messageFolder.getDeleted() && KrintUtils.doIHaveToKrint(request)) {
+                krintShpeckService.writeDeletedFromTrash(messageFolder, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_DELETE_FROM_TRASH);
             }
         }
         
         if (!messageFolder.getIdFolder().getId().equals(beforeMessageFolder.getIdFolder().getId()) && KrintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeFolderChanged(messageFolder.getIdMessage(), OperazioneKrint.CodiceOperazione.PEC_MESSAGE_SPOSTAMENTO, messageFolder.getIdFolder(), beforeMessageFolder.getIdFolder());
         }
-        
+                
         return entity;
     }
     
