@@ -267,19 +267,19 @@ public class RubricaCustomController implements ControllerHandledExceptions {
     }
     
     
-    @RequestMapping(value = "sendSelectedContactsToExternalApp", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> sendSelectedContactsToExternalApp(@RequestBody ExternalAppData data) throws JsonProcessingException, IOException {
-        
-//        JSONObject jsonObject = new JSONObject(new Gson().toJson(data, ExternalAppData.class));
-//        System.out.println(jsonObject.toString());
-        
-        System.out.println("ciaooo");
-        System.out.println(data.toString());
-        
-        
+    @RequestMapping(value = "sendSelectedContactsToExternalApp", 
+            method = RequestMethod.POST, 
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> sendSelectedContactsToExternalApp(@RequestBody ExternalAppData data) 
+            throws JsonProcessingException, IOException, BlackBoxPermissionException {
         Azienda azienda = cachedEntities.getAziendaFromCodice(data.getCodiceAzienda());
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente utente = authenticatedUserProperties.getUser();
+        data.setCfUtenteOperazione(utente.getIdPersona().getCodiceFiscale());
    
-        okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(okhttp3.MediaType.get("application/json; charset=utf-8"), objectMapper.writeValueAsString(data));
+        okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
+                okhttp3.MediaType.get("application/json; charset=utf-8"), 
+                objectMapper.writeValueAsString(data));
         OkHttpClient client = new OkHttpClient();
 
         Request request = new Request.Builder()
@@ -299,7 +299,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         return new ResponseEntity(data, HttpStatus.OK);
     }
     
-     private String buildGestisciDestinatariDaRubricaInternautarUrl(Azienda azienda, String idApplicazione) throws IOException {
+    private String buildGestisciDestinatariDaRubricaInternautarUrl(Azienda azienda, String idApplicazione) throws IOException {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
