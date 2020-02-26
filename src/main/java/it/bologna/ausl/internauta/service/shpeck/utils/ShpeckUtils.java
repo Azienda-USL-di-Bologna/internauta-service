@@ -456,6 +456,16 @@ public class ShpeckUtils {
                     throw new BadParamsException(String.format("messaggio %d non trovato", id));
                 } else {
                     Message message = messageOp.get();
+                    Message messageSource = null;
+                    if (message.getUuidRepository() == null) {
+                        boolean isMessageReaddressed = message.getMessageTagList().stream().anyMatch(messageTag -> messageTag.getIdTag().getName().equals(Tag.SystemTagName.readdressed_in.toString()));
+                        if (isMessageReaddressed) {
+                            messageSource = messageRepository.getMessageOfRepository(id);
+                            message.setUuidRepository(messageSource.getUuidRepository());
+                            message.setPathRepository(messageSource.getPathRepository());
+                            messageRepository.save(message);
+                        }
+                    }
                     MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(this.getIdAziendaRepository(message));
                     InputStream is = null;
                     try (DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(emlFile))) {
@@ -478,7 +488,12 @@ public class ShpeckUtils {
                                     throw new MongoException("File non trovato!!");
                                 }
                             } catch (Exception ex) {
-                                BooleanExpression filter = QRawMessage.rawMessage.idMessage.id.eq(id);
+                                BooleanExpression filter;
+                                if (messageSource != null) {
+                                    filter = QRawMessage.rawMessage.idMessage.id.eq(messageSource.getId());
+                                } else {
+                                    filter = QRawMessage.rawMessage.idMessage.id.eq(id);
+                                }
                                 Optional<RawMessage> rawMessage = rawMessageRepository.findOne(filter);
                                 if (rawMessage.isPresent()) {
 //                                    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(rawMessage.get().getRawData().getBytes());
