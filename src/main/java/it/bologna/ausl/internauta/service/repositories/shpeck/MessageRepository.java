@@ -9,6 +9,7 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -22,6 +23,16 @@ public interface MessageRepository extends
 
     @Procedure("shpeck.get_id_azienda_repository")
     public Integer getIdAziendaRepository(
+            @Param("id_message") Integer idMessage
+    );
+    
+    @Procedure("shpeck.get_id_message_of_repository")
+    public Integer getIdMessageOfRepository(
+            @Param("id_message") Integer idMessage
+    );
+    
+    @Query(value="select * from shpeck.messages m where id = (select get_id_message_of_repository from shpeck.get_id_message_of_repository(?1))", nativeQuery = true)
+    public Message getMessageOfRepository(
             @Param("id_message") Integer idMessage
     );
     
