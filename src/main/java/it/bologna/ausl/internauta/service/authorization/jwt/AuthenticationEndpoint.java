@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.authorization.jwt;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
+import it.bologna.ausl.internauta.service.exceptions.SSOException;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.nextsw.common.utils.CommonUtils;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -61,7 +63,7 @@ public class AuthenticationEndpoint {
     CommonUtils commonUtils;
     
     @RequestMapping(value = "${security.login.endpoint.path}", method = RequestMethod.POST)
-    public ResponseEntity<LoginController.LoginResponse> loginInterApplication(@RequestBody final EndpointObject endpointObject, javax.servlet.http.HttpServletRequest request) throws ServletException, CertificateException, IOException, InvalidJwtException, MalformedClaimException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException {
+    public ResponseEntity<LoginController.LoginResponse> loginInterApplication(@RequestBody final EndpointObject endpointObject, javax.servlet.http.HttpServletRequest request) throws ServletException, CertificateException, IOException, InvalidJwtException, MalformedClaimException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException, SSOException {
         
         X509Certificate cert;
         
@@ -95,10 +97,15 @@ public class AuthenticationEndpoint {
         //  valida il JWT e processa i claims
         JwtClaims jwtClaims = jwtConsumer.processToClaims(endpointObject.jws);  
         String impersonatedUser = jwtClaims.getSubject();;
-        String realUser = null;
+        String realUser = impersonatedUser;
         String idAzienda = null;
-        if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.REAL_USER.toString())) {
+        Boolean fromInternetLogin = null;
+        if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.REAL_USER.toString()) && 
+                StringUtils.hasText(jwtClaims.getStringClaimValue(AuthorizationUtils.TokenClaims.REAL_USER.toString()))) {
             realUser = jwtClaims.getStringClaimValue(AuthorizationUtils.TokenClaims.REAL_USER.toString());
+        }
+        if (impersonatedUser.equals(realUser)) {
+            impersonatedUser = null;
         }
         if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.COMPANY.toString())) {
             String codiceAzienda = jwtClaims.getStringClaimValue(AuthorizationUtils.TokenClaims.COMPANY.toString());
@@ -107,13 +114,15 @@ public class AuthenticationEndpoint {
                 idAzienda = azienda.getId().toString();
             }
         }
-        if (impersonatedUser.equals(realUser)) {
-            impersonatedUser = null;
+        
+        logger.info("jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.FROM_INTERNET.toString()): " + jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.FROM_INTERNET.toString()));
+        if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.FROM_INTERNET.toString())) {
+            fromInternetLogin = jwtClaims.getClaimValue(AuthorizationUtils.TokenClaims.FROM_INTERNET.toString(), Boolean.class);
         }
-
+        
         String hostname = commonUtils.getHostname(request);
-    
-        return authorizationUtils.generateResponseEntityFromSAML(idAzienda, hostname, secretKey, request, realUser, impersonatedUser, endpointObject.applicazione);
+        logger.info("fromInternetLogin: " + fromInternetLogin);
+        return authorizationUtils.generateResponseEntityFromSAML(idAzienda, hostname, secretKey, request, realUser, impersonatedUser, endpointObject.applicazione, fromInternetLogin);
     }
     
     @SuppressWarnings("unused")

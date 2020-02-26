@@ -11,11 +11,17 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
+import it.bologna.ausl.internauta.service.exceptions.SSOException;
+import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.schedulers.workers.logoutmanager.LogoutManagerWorker;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.IntimusUtils;
+import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
 import it.bologna.ausl.internauta.service.utils.ProjectionBeans;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +46,7 @@ import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  *
@@ -63,7 +70,7 @@ public class LoginController {
 
     @Value("${jwt.expires-seconds}")
     private Integer tokenExpireSeconds;
-    
+
     @Value("${jwt.passtoken-expires-seconds}")
     private Integer passTokenExpireSeconds;
 
@@ -71,45 +78,47 @@ public class LoginController {
     private boolean samlEnabled;
 
     @Autowired
-    AuthorizationUtils authorizationUtils;
+    private AuthorizationUtils authorizationUtils;
 
     @Autowired
-    UserInfoService userInfoService;
+    private MasterChefUtils masterChefUtils;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private IntimusUtils intimusUtils;
 
     @Autowired
-    CommonUtils commonUtils;
+    private UserInfoService userInfoService;
 
     @Autowired
-    UtenteRepository utenteRepository;
+    private ObjectMapper objectMapper;
 
     @Autowired
-    AziendaRepository aziendaRepository;
+    private CommonUtils commonUtils;
 
     @Autowired
-    ProjectionBeans projectionBeans;
+    private UtenteRepository utenteRepository;
 
     @Autowired
-    ProjectionFactory factory;
-    
+    private AziendaRepository aziendaRepository;
+
     @Autowired
-    HttpSessionData httpSessionData;
-    
+    private ProjectionBeans projectionBeans;
+
+    @Autowired
+    private ProjectionFactory factory;
+
+    @Autowired
+    private HttpSessionData httpSessionData;
+
+    @Autowired
+    private LogoutManagerWorker logoutManagerWorker;
+
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
-    private boolean isSD(Utente user) {
-        user.setRuoli(userInfoService.getRuoli(user, null));
-        List<Ruolo> ruoli = user.getRuoli();
-        Boolean isSD = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.SD);
-        return isSD;
-    }
-    
-    @RequestMapping(value = "${internauta.security.passtoken-path}", method = RequestMethod.GET) 
+    @RequestMapping(value = "${internauta.security.passtoken-path}", method = RequestMethod.GET)
     public ResponseEntity<String> passTokenGenerator() throws BlackBoxPermissionException {
-        
+
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente user = authenticatedUserProperties.getUser();
         Utente realUser = authenticatedUserProperties.getRealUser();
@@ -128,18 +137,68 @@ public class LoginController {
 
         ZonedDateTime currentDateTime = ZonedDateTime.now();
         String token = Jwts.builder()
-                        .setSubject(String.valueOf(user.getId()))
-                        .claim(AuthorizationUtils.TokenClaims.USERNAME.name(), user.getUsername())
-                        .claim(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name(), user.getIdPersona().getCodiceFiscale())
-                        .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserStr)
-                        .claim(AuthorizationUtils.TokenClaims.REAL_USER_USERNAME.name(), realUserUsernameStr)
-                        .claim(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name(), realUserSSOFieldValue)
-                        .setIssuedAt(Date.from(currentDateTime.toInstant()))
-                        .setExpiration(tokenExpireSeconds > 0 ? Date.from(currentDateTime.plusSeconds(passTokenExpireSeconds).toInstant()): null)
-                        .signWith(SIGNATURE_ALGORITHM, secretKey).compact();
+                .setSubject(String.valueOf(user.getId()))
+                .claim(AuthorizationUtils.TokenClaims.USERNAME.name(), user.getUsername())
+                .claim(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name(), user.getIdPersona().getCodiceFiscale())
+                .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserStr)
+                .claim(AuthorizationUtils.TokenClaims.REAL_USER_USERNAME.name(), realUserUsernameStr)
+                .claim(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name(), realUserSSOFieldValue)
+                .claim(AuthorizationUtils.TokenClaims.FROM_INTERNET.name(), authenticatedUserProperties.isFromInternet())
+                .setIssuedAt(Date.from(currentDateTime.toInstant()))
+                .setExpiration(tokenExpireSeconds > 0 ? Date.from(currentDateTime.plusSeconds(passTokenExpireSeconds).toInstant()) : null)
+                .signWith(SIGNATURE_ALGORITHM, secretKey).compact();
         return new ResponseEntity(token, HttpStatus.OK);
     }
-    
+
+    @RequestMapping(value = "${security.logout.path}", method = RequestMethod.GET)
+    public ResponseEntity<LoginResponse> logout(@RequestParam("redirectUrl") String redirectUrl) throws BlackBoxPermissionException, IOException, IntimusSendCommandException {
+
+        // voglio fare il logout dell'utente reale su tutte le sue aziende
+        Persona persona = getPersonaReale();
+        try {
+            this.logoutManagerWorker.sendLogoutCommand(persona, redirectUrl);
+        } catch (Exception ex) {
+            String errorMessage = String.format("errore nell'invio del comando di logout alla persona: %s", persona.getCodiceFiscale());
+            logger.error(errorMessage, ex);
+            return new ResponseEntity(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new ResponseEntity(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "${security.refresh-session.path}", method = RequestMethod.GET)
+    public ResponseEntity<LoginResponse> refresh(@RequestParam("redirectUrl") String redirectUrl) throws BlackBoxPermissionException {
+
+        // voglio refreshare l'utente reale
+        Persona persona = getPersonaReale();
+        try {
+            this.logoutManagerWorker.addOrRefreshPersona(persona, redirectUrl);
+        } catch (Exception ex) {
+            String errorMessage = String.format("errore nell'aggiornamento della data di unltimo refresh della persona: %s con codice fiscale: %s", persona.getId(), persona.getCodiceFiscale());
+            logger.error(errorMessage, ex);
+            return new ResponseEntity(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new ResponseEntity(HttpStatus.OK);
+    }
+
+    /**
+     * ritorna la persona reale connessa: cioè la persona derivata dall'utente
+     * connesso in caso di login senza cambia utente; la persona associata
+     * all'utente reale nel caso di logon con cambio utente
+     */
+    private Persona getPersonaReale() throws BlackBoxPermissionException {
+        // leggo l'utente connesso dalla sessione
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente user = authenticatedUserProperties.getUser();
+        Utente realUser = authenticatedUserProperties.getRealUser();
+        Persona persona;
+        if (realUser != null) {
+            persona = realUser.getIdPersona();
+        } else {
+            persona = user.getIdPersona();
+        }
+
+        return persona;
+    }
 
     @RequestMapping(value = "${security.login.path}", method = RequestMethod.POST)
     public ResponseEntity<LoginResponse> loginPOST(@RequestBody final UserLogin userLogin, javax.servlet.http.HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException, IOException, BlackBoxPermissionException {
@@ -155,9 +214,9 @@ public class LoginController {
             logger.info("c'è il passToken, agisco di conseguenza...");
             try {
                 Claims claims = Jwts.parser().
-                    setSigningKey(secretKey).
-                    parseClaimsJws(userLogin.passToken).
-                    getBody();
+                        setSigningKey(secretKey).
+                        parseClaimsJws(userLogin.passToken).
+                        getBody();
 
                 Object usernameObj = claims.get(AuthorizationUtils.TokenClaims.USERNAME.name());
                 Object realUserUsernameObj = claims.get(AuthorizationUtils.TokenClaims.REAL_USER_USERNAME.name());
@@ -169,7 +228,7 @@ public class LoginController {
                 return new ResponseEntity("passToken non valido", HttpStatus.FORBIDDEN);
             }
         }
-        
+
         userInfoService.loadUtenteRemoveCache(userLogin.username, hostname);
         Utente utente = userInfoService.loadUtente(userLogin.username, hostname);
         if (utente == null) {
@@ -186,7 +245,7 @@ public class LoginController {
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);
         userInfoService.getUtentiPersonaRemoveCache(utente.getIdPersona());
         userInfoService.getPermessiPecRemoveCache(utente.getIdPersona());
-        
+
         String realUserId = null;
         if (StringUtils.hasText(userLogin.realUser)) {
             // TODO: controllare che l'utente possa fare il cambia utente
@@ -200,7 +259,7 @@ public class LoginController {
             userInfoService.getUtentiPersonaRemoveCache(utenteReale.getIdPersona());
             userInfoService.getPermessiDelegaRemoveCache(utenteReale);
             List<Integer> permessiDelega = userInfoService.getPermessiDelega(utenteReale);
-            boolean isSuperDemiurgo = isSD(utenteReale);
+            boolean isSuperDemiurgo = userInfoService.isSD(utenteReale);
             boolean isDelegato = permessiDelega != null && !permessiDelega.isEmpty() && permessiDelega.contains(utente.getId());
 
             if (!isSuperDemiurgo && !isDelegato) {
@@ -210,17 +269,16 @@ public class LoginController {
             utente.setUtenteReale(utenteReale);
             realUserId = String.valueOf(utenteReale.getId());
         }
-        
-        
+
         CustomUtenteLogin utenteWithPersona = factory.createProjection(CustomUtenteLogin.class, utente);
 
         Integer idSessionLog = authorizationUtils.createIdSessionLog().getId();
         String idSessionLogString = String.valueOf(idSessionLog);
-        
-        // mi metto in sessione l'utente_loggato e l'id_session_log, mi servirà in altri punti nella procedura di login, 
+
+        // mi metto in sessione l'utente_loggato e l'id_session_log, mi servirà in altri punti nella procedura di login,
         // in particolare in projection custom
         httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, utente);
-        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLogString);
+        httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLog);
 //        utente.setRuoli(userInfoService.getRuoli(utente));
         DateTime currentDateTime = DateTime.now();
         String token = Jwts.builder()
@@ -233,8 +291,8 @@ public class LoginController {
                 .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)
                 .signWith(SIGNATURE_ALGORITHM, secretKey)
                 .compact();
-        
-        authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application);
+
+        authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application, false);
 
 //        utente.setPasswordHash(null);
         return new ResponseEntity(
@@ -266,16 +324,21 @@ public class LoginController {
         String hostname = commonUtils.getHostname(request);
 
         String ssoFieldValue = null;
+        Boolean fromInternet = null;
         if (StringUtils.hasText(passToken)) {
             logger.info("c'è il passToken, agisco di conseguenza...");
             try {
                 Claims claims = Jwts.parser().
-                    setSigningKey(secretKey).
-                    parseClaimsJws(passToken).
-                    getBody();
+                        setSigningKey(secretKey).
+                        parseClaimsJws(passToken).
+                        getBody();
 
                 Object userSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name());
                 Object realUserSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name());
+                Object fromInternetObj = claims.get(AuthorizationUtils.TokenClaims.FROM_INTERNET.name());
+                if (fromInternetObj != null && !fromInternetObj.toString().equals("")) {
+                    fromInternet = Boolean.parseBoolean(fromInternetObj.toString());
+                }
 
                 if (realUserSSOFieldValueObj != null) {
 //                   impersonateUser = realUserSSOFieldValueObj.toString();
@@ -284,19 +347,21 @@ public class LoginController {
                         impersonateUser = userSSOFieldValueObj.toString();
                     }
                 } else {
-                   ssoFieldValue = userSSOFieldValueObj.toString();
+                    ssoFieldValue = userSSOFieldValueObj.toString();
                 }
             } catch (Exception ex) {
                 return new ResponseEntity("passToken non valido", HttpStatus.FORBIDDEN);
             }
         }
-        
+
         ResponseEntity res;
         try {
-            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione);
+            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);
+        } catch (SSOException ex) {
+            res = new ResponseEntity(HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return res;
     }

@@ -8,7 +8,9 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
@@ -39,8 +41,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-
-
 /**
  *
  * @author g.russo@nsi.it with collaboration of GDM and Gus
@@ -48,20 +48,27 @@ import org.springframework.stereotype.Component;
 @Component
 @NextSdrInterceptor(name = "pec-interceptor")
 public class PecInterceptor extends InternautaBaseInterceptor {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(PecInterceptor.class);
-    
+
     @Autowired
     PermissionManager permissionManager;
-    
+
     @Autowired
     PersonaRepository personaRepository;
-    
+
+    @Autowired
+    AziendaRepository aziendaRepository;
+
     @Autowired
     StrutturaRepository strutturaRepository;
-    
+
+    @Autowired
+    BaborgUtils baborgUtils;
+
     @Autowired
     UserInfoService userInfoService;
-    
+
     @Override
     public Class getTargetEntityClass() {
         return Pec.class;
@@ -70,10 +77,10 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        String idAzienda = null;
-        String idStruttura = null;
-        String idPersona = null;
-        
+        String idAzienda;
+        String idStruttura;
+        String idPersona;
+
         Azienda azienda = null;
         Struttura struttura = null;
         Persona persona = null;
@@ -91,7 +98,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 //                LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
 //                throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
 //            }
-//        
+//
 //            if (pecWithStandardPermissions == null){
 //                initialPredicate = Expressions.FALSE.eq(true);
 //            } else {
@@ -110,18 +117,17 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                         struttura = new Struttura(Integer.parseInt(idStruttura));
                         try {
                             List<PermessoEntitaStoredProcedure> getPermissionsOfSubject = permissionManager.getPermissionsOfSubject(
-                                struttura,
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), true);
-                            if (getPermissionsOfSubject == null){
+                                    struttura,
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), true);
+                            if (getPermissionsOfSubject == null) {
                                 initialPredicate = Expressions.FALSE.eq(true);
-                            }
-                            else {
+                            } else {
                                 BooleanExpression permessoFilter = QPec.pec.id.in(
-                                    getPermissionsOfSubject
-                                        .stream()
-                                        .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList()));
+                                        getPermissionsOfSubject
+                                                .stream()
+                                                .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList()));
                                 initialPredicate = permessoFilter.and(initialPredicate);
                             }
                             /* Conserviamo i dati estratti dalla BlackBox */
@@ -130,7 +136,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                         }
-                    break;
+                        break;
                     case FilterPecPerStandardPermissions:
                         List<PermessoEntitaStoredProcedure> pecWithStandardPermissions;
                         try {
@@ -144,37 +150,34 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                         }
 
-                        if (pecWithStandardPermissions == null){
+                        if (pecWithStandardPermissions == null) {
                             initialPredicate = Expressions.FALSE.eq(true);
                         } else {
                             BooleanExpression pecFilter = QPec.pec.id.in(
-                                pecWithStandardPermissions
-                                    .stream()
-                                    .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList()));
+                                    pecWithStandardPermissions
+                                            .stream()
+                                            .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList()));
                             initialPredicate = pecFilter.and(initialPredicate);
                         }
-                    break;
+                        break;
                     case LoadDataPerInterfacciaElencoPec:
                         idAzienda = additionalData.get(InternautaConstants.AdditionalData.Keys.idAzienda.toString());
                         idStruttura = additionalData.get(InternautaConstants.AdditionalData.Keys.idStruttura.toString());
                         idPersona = additionalData.get(InternautaConstants.AdditionalData.Keys.idPersona.toString());
-                        if(idAzienda != null){
+                        if (idAzienda != null) {
                             azienda = new Azienda(Integer.parseInt(idAzienda));
                         }
-                        if(idStruttura != null){
+                        if (idStruttura != null) {
                             struttura = new Struttura(Integer.parseInt(idStruttura));
                         }
-                        if(idPersona != null){
+                        if (idPersona != null) {
                             persona = new Persona(Integer.parseInt(idPersona));
                         }
-                        
-                        
+
                         List<Integer> pecDellaStruttura = null;
                         List<Integer> pecDellaPersona = null;
-                        
 
-                    {
-                        if(struttura != null){                     
+                        if (struttura != null) {
                             try {
                                 List<PermessoEntitaStoredProcedure> permessiDellaStruttura = permissionManager.getPermissionsOfSubject(
                                         struttura,
@@ -182,7 +185,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),
                                         true);
-                                if(permessiDellaStruttura != null){                                   
+                                if (permessiDellaStruttura != null) {
                                     pecDellaStruttura = permessiDellaStruttura.stream().map(permesso -> permesso.getOggetto().getIdProvenienza()).collect(Collectors.toList());
                                 }
                             } catch (BlackBoxPermissionException ex) {
@@ -190,8 +193,8 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                                 throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             }
                         }
-                        
-                        if(persona != null){
+
+                        if (persona != null) {
                             try {
                                 List<PermessoEntitaStoredProcedure> permessiDellaPersona = permissionManager.getPermissionsOfSubject(
                                         persona,
@@ -199,45 +202,43 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),
                                         false);
-                                if(permessiDellaPersona != null){                                   
+                                if (permessiDellaPersona != null) {
                                     pecDellaPersona = permessiDellaPersona.stream().map(permesso -> permesso.getOggetto().getIdProvenienza()).collect(Collectors.toList());
                                 }
-                                
+
                             } catch (BlackBoxPermissionException ex) {
                                 LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                                 throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             }
                         }
-                    }
-                    
-                    // interezione delle due liste di permessi
-                    Set<Integer> pecVisibili = new HashSet<>();
 
-                    if(pecDellaStruttura != null){                        
-                        pecVisibili.addAll(pecDellaStruttura);
-                        if(pecDellaPersona != null){                        
-                            pecVisibili.retainAll(pecDellaPersona);
-                        }
-                    }
-                    else if(pecDellaPersona != null){                        
-                        pecVisibili.addAll(pecDellaPersona);
-                    }
+                        // interezione delle due liste di permessi
+                        Set<Integer> pecVisibili = new HashSet<>();
 
-                    if (idAzienda != null){
-                        BooleanExpression aziendaFilter = QPec.pec.pecAziendaList.any().idAzienda.id.eq(Integer.parseInt(idAzienda)).or(QPec.pec.pecAziendaList.isEmpty());
-                        initialPredicate = aziendaFilter.and(initialPredicate);
-                    }
-                    if(idStruttura != null || idPersona != null){
-                        BooleanExpression permessoFilter = null;
-                        if(!pecVisibili.isEmpty()){                            
-                            permessoFilter = QPec.pec.id.in(pecVisibili);
-                        } else {
-                            permessoFilter = Expressions.FALSE.eq(true);
+                        if (pecDellaStruttura != null) {
+                            pecVisibili.addAll(pecDellaStruttura);
+                            if (pecDellaPersona != null) {
+                                pecVisibili.retainAll(pecDellaPersona);
+                            }
+                        } else if (pecDellaPersona != null) {
+                            pecVisibili.addAll(pecDellaPersona);
                         }
-                        initialPredicate = permessoFilter.and(initialPredicate);
-                    }                                        
-                                                        
-                    break;
+
+                        if (idAzienda != null) {
+                            BooleanExpression aziendaFilter = QPec.pec.pecAziendaList.any().idAzienda.id.eq(Integer.parseInt(idAzienda)).or(QPec.pec.pecAziendaList.isEmpty());
+                            initialPredicate = aziendaFilter.and(initialPredicate);
+                        }
+                        if (idStruttura != null || idPersona != null) {
+                            BooleanExpression permessoFilter = null;
+                            if (!pecVisibili.isEmpty()) {
+                                permessoFilter = QPec.pec.id.in(pecVisibili);
+                            } else {
+                                permessoFilter = Expressions.FALSE.eq(true);
+                            }
+                            initialPredicate = permessoFilter.and(initialPredicate);
+                        }
+
+                        break;
 
                 }
             }
@@ -251,97 +252,52 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         Pec pec = (Pec) entity;
         String idAzienda = null;
         List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject;
-        
 
-        
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
                     case AddPermissionsOnPec:
-                        List<PermessoEntitaStoredProcedure> pecConPermesso = 
-                                (List<PermessoEntitaStoredProcedure>) this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.PecOfSubject);
+                        List<PermessoEntitaStoredProcedure> pecConPermesso
+                                = (List<PermessoEntitaStoredProcedure>) this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.PecOfSubject);
                         if (pecConPermesso != null && !pecConPermesso.isEmpty()) {
-                            List<PermessoEntitaStoredProcedure> permessiPec = 
-                                    pecConPermesso.stream().filter(p -> 
-                                            p.getOggetto().getIdProvenienza()
+                            List<PermessoEntitaStoredProcedure> permessiPec
+                                    = pecConPermesso.stream().filter(p
+                                            -> p.getOggetto().getIdProvenienza()
                                             .equals(pec.getId()))
                                             .collect(Collectors.toList());
                             pec.setPermessi(permessiPec);
                         }
-                    break;
-                    case AddGestoriOnPec:                                               
-                        idAzienda = additionalData.get(InternautaConstants.AdditionalData.Keys.idAzienda.toString());                        
-                        
-                        try {
-                            subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(
-                                Arrays.asList(new Pec[]{pec}),
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ELIMINA.toString(), InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString()}),
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
-                        } catch (BlackBoxPermissionException ex) {
-                            LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
-                            throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
-                        }
-                        
-                        if (subjectsWithPermissionsOnObject != null) {
-                            List<Persona> gestori = new ArrayList();
-                            subjectsWithPermissionsOnObject.stream().forEach((t) -> {
-                                Optional<Persona> findById = personaRepository.findById(t.getSoggetto().getIdProvenienza());
-                                if (findById.isPresent())
-                                    gestori.add(findById.get());
-                            });
-                                                      
-                            List<Persona> gestoriAzienda = new ArrayList<>();
-                                                                                    
-                            if(idAzienda != null){                 
-                                for(Persona persona: gestori){
-                                    for(Utente utente: persona.getUtenteList()){
-                                        if(utente.getIdAzienda().getId().toString().equals(idAzienda)){
-                                            gestoriAzienda.add(persona);
-                                            break;
-                                        }
-                                    }
-                                }
-                            } else {
-                                gestoriAzienda = gestori;
-                            }
-                           
-                            Collections.sort(gestoriAzienda, Comparator.comparing(Persona::getDescrizione));
-                            
-                            pec.setGestori(gestoriAzienda);
-                        }
-                    break;
-                    case LoadDataPerInterfacciaElencoPec:    
-                                                
-                        idAzienda = additionalData.get(InternautaConstants.AdditionalData.Keys.idAzienda.toString());                        
+                        break;
+                    case AddGestoriOnPec:
+                        idAzienda = additionalData.get(InternautaConstants.AdditionalData.Keys.idAzienda.toString());
 
-                        // Aggiungo i gestori (stessa parte del case AddGestoriOnPec)                                            
                         try {
                             subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(
-                                Arrays.asList(new Pec[]{pec}),
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ELIMINA.toString(), InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString()}),
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
+                                    Arrays.asList(new Pec[]{pec}),
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ELIMINA.toString(), InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString()}),
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
                         } catch (BlackBoxPermissionException ex) {
                             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                         }
-                        
+
                         if (subjectsWithPermissionsOnObject != null) {
                             List<Persona> gestori = new ArrayList();
                             subjectsWithPermissionsOnObject.stream().forEach((t) -> {
                                 Optional<Persona> findById = personaRepository.findById(t.getSoggetto().getIdProvenienza());
-                                if (findById.isPresent())
+                                if (findById.isPresent()) {
                                     gestori.add(findById.get());
+                                }
                             });
-                                                      
+
                             List<Persona> gestoriAzienda = new ArrayList<>();
-                                                                                    
-                            if(idAzienda != null){                 
-                                for(Persona persona: gestori){
-                                    for(Utente utente: persona.getUtenteList()){
-                                        if(utente.getIdAzienda().getId().toString().equals(idAzienda)){
+
+                            if (idAzienda != null) {
+                                for (Persona persona : gestori) {
+                                    for (Utente utente : persona.getUtenteList()) {
+                                        if (utente.getIdAzienda().getId().toString().equals(idAzienda)) {
                                             gestoriAzienda.add(persona);
                                             break;
                                         }
@@ -350,79 +306,123 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                             } else {
                                 gestoriAzienda = gestori;
                             }
-                           
+
                             Collections.sort(gestoriAzienda, Comparator.comparing(Persona::getDescrizione));
-                            
+
                             pec.setGestori(gestoriAzienda);
                         }
-                        
-                        
+                        break;
+                    case LoadDataPerInterfacciaElencoPec:
+
+                        idAzienda = additionalData.get(InternautaConstants.AdditionalData.Keys.idAzienda.toString());
+
+                        // Aggiungo i gestori (stessa parte del case AddGestoriOnPec)
+                        try {
+                            subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(
+                                    Arrays.asList(new Pec[]{pec}),
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ELIMINA.toString(), InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString()}),
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
+                        } catch (BlackBoxPermissionException ex) {
+                            LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+                            throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+                        }
+
+                        if (subjectsWithPermissionsOnObject != null) {
+                            List<Persona> gestori = new ArrayList();
+                            subjectsWithPermissionsOnObject.stream().forEach((t) -> {
+                                Optional<Persona> findById = personaRepository.findById(t.getSoggetto().getIdProvenienza());
+                                if (findById.isPresent()) {
+                                    gestori.add(findById.get());
+                                }
+                            });
+
+                            List<Persona> gestoriAzienda = new ArrayList<>();
+
+                            if (idAzienda != null) {
+                                for (Persona persona : gestori) {
+                                    for (Utente utente : persona.getUtenteList()) {
+                                        if (utente.getIdAzienda().getId().toString().equals(idAzienda)) {
+                                            gestoriAzienda.add(persona);
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                gestoriAzienda = gestori;
+                            }
+
+                            Collections.sort(gestoriAzienda, Comparator.comparing(Persona::getDescrizione));
+
+                            pec.setGestori(gestoriAzienda);
+                        }
+
                         // Aggiungo le strutture
                         try {
                             subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(
-                                Arrays.asList(new Pec[]{pec}),
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
+                                    Arrays.asList(new Pec[]{pec}),
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
                         } catch (BlackBoxPermissionException ex) {
                             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                         }
                         if (subjectsWithPermissionsOnObject != null) {
                             List<Struttura> strutture = new ArrayList();
-                            for(PermessoEntitaStoredProcedure subjectWithPermission: subjectsWithPermissionsOnObject){
+                            for (PermessoEntitaStoredProcedure subjectWithPermission : subjectsWithPermissionsOnObject) {
                                 Optional<Struttura> findById = strutturaRepository.findById(subjectWithPermission.getSoggetto().getIdProvenienza());
                                 if (findById.isPresent()) {
                                     Struttura struttura = findById.get();
                                     Boolean propaga = subjectWithPermission.getCategorie().get(0).getPermessi().get(0).getPropagaSoggetto();
-                                    Boolean principale = subjectWithPermission.getCategorie().get(0).getPermessi().get(0).getPredicato().equals(InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString());                                                                        
+                                    Boolean principale = subjectWithPermission.getCategorie().get(0).getPermessi().get(0).getPredicato().equals(InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString());
                                     struttura.setPropagaPermessoPec(propaga);
                                     struttura.setIsPermessoPecPrincipale(principale);
                                     strutture.add(struttura);
                                 }
                             }
-                                                         
+
                             List<Struttura> struttureAzienda = new ArrayList<>();
-                                                                                    
-                            if(idAzienda != null){                
-                                for(Struttura struttura: strutture){
-                                    if(struttura.getIdAzienda().getId().toString().equals(idAzienda)){
+
+                            if (idAzienda != null) {
+                                for (Struttura struttura : strutture) {
+                                    if (struttura.getIdAzienda().getId().toString().equals(idAzienda)) {
                                         struttureAzienda.add(struttura);
-                                    }                                   
+                                    }
                                 }
                             } else {
                                 struttureAzienda = strutture;
                             }
-                           
+
                             Collections.sort(struttureAzienda, Comparator.comparing(Struttura::getNome));
-                            
-                           pec.setStrutture(struttureAzienda);
+
+                            pec.setStrutture(struttureAzienda);
                         }
-                    break;
+                        break;
                 }
             }
         }
-        
+
         //Se non ho diritti particolari su una pec metto la password a null
-        if (!isCI(authenticatedSessionData.getUser())) {
+        if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
             // se non sono CI
             Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
-            List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());                        
+            List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
             if (idAziendeCA == null || idAziendeCA.isEmpty()) {
                 // se non sono CA di nessun'azienda, non mostro la password
                 pec.setPassword(null);
             } else {
-                // sono CA di qualche azienda                         
+                // sono CA di qualche azienda
                 List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
-                if(idAziendePec != null && !idAziendePec.isEmpty()){                 
-                    if(Collections.disjoint(idAziendePec, idAziendeCA)){      
+                if (idAziendePec != null && !idAziendePec.isEmpty()) {
+                    if (Collections.disjoint(idAziendePec, idAziendeCA)) {
                         // setto a null se non sono CA di neanche un'azienda associata alla pec
                         pec.setPassword(null);
                     }
                 }
             }
         }
-        
+
         return pec;
     }
 
@@ -430,8 +430,8 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
 //        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
 //        if (operationsRequested != null && !operationsRequested.isEmpty()) {
-//            if ((operationsRequested.contains(InternautaConstants.AdditionalData.OperationsRequested.AddPermissionsOnPec) 
-//                    && this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.PecOfSubject) != null) || 
+//            if ((operationsRequested.contains(InternautaConstants.AdditionalData.OperationsRequested.AddPermissionsOnPec)
+//                    && this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.PecOfSubject) != null) ||
 //                    operationsRequested.contains(InternautaConstants.AdditionalData.OperationsRequested.AddGestoriOnPec)) {
 //                for (Object entity : entities) {
 //                    entity = afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
@@ -443,7 +443,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         }
         return entities;
     }
-    
+
     /*
      * Condizioni per l'INSERT.
      * Il CI può sempre inserire una PEC.
@@ -455,16 +455,23 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeCreateEntityInterceptor di Pec");
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
 
-        if (!isCI(authenticatedSessionData.getUser())) {
+        if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
             Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
-            
+
             if (idAziendeCA == null || idAziendeCA.isEmpty()) {
                 // Non sono ne CA ne CI fermo tutto.
                 throw new AbortSaveInterceptorException();
             }
         }
-        
+
+        // calcola AziendaRepository in base al suo dominio
+        Pec pec = (Pec) entity;
+        Azienda aziendaIdRepository = baborgUtils.getAziendaRepositoryFromPecAddress(pec.getIndirizzo());
+        if (aziendaIdRepository != null) {
+            pec.setIdAziendaRepository(aziendaIdRepository);
+        }
+
         return entity;
     }
 
@@ -479,14 +486,14 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Pec");
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        
+
         // dovrei utilizzare la beforeUpdateEntity, perchè potrei star modificando proprio le aziende associate
-        // ma non posso perchè non ha getPecAziendaList caricata. 
+        // ma non posso perchè non ha getPecAziendaList caricata.
         Pec pec = (Pec) entity;
-        
-        // Se non ho diritti particolari su impedisco l'update. 
+
+        // Se non ho diritti particolari su impedisco l'update.
         // sono gli stessi controlli dell afterSelect, quando decido se settare la pw a null
-        if (!isCI(authenticatedSessionData.getUser())) {
+        if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
             Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
             List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(persona).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
             // se non sono CI
@@ -496,24 +503,23 @@ public class PecInterceptor extends InternautaBaseInterceptor {
             } else {
                 // Qui devo controllare che la pec sia attaccata ad aziende di cui sono CA, oppure che non sia attaccata ad alcuna azienda.
                 // l'UPDATE è permesso se:
-                // la pec non ha aziende associaote, oppure 
-                // pecAziendaList  contiene almeno un'azienda a su cui sono CA 
-                // sono CA di qualche azienda                         
+                // la pec non ha aziende associaote, oppure
+                // pecAziendaList  contiene almeno un'azienda a su cui sono CA
+                // sono CA di qualche azienda
                 List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
-                if(idAziendePec != null && !idAziendePec.isEmpty()){                 
-                    if(Collections.disjoint(idAziendePec, idAziendeCA)){  
+                if (idAziendePec != null && !idAziendePec.isEmpty()) {
+                    if (Collections.disjoint(idAziendePec, idAziendeCA)) {
                         // Non sono CA  neanche un'azienda associata con la PEC
                         // TODO: Quando avremo il Clone() nuovo delle entiries dovrà valere: L'UPDATE è permesso solo se non sto cambiando alcun campo tranne la pecAziendaList.
                         throw new AbortSaveInterceptorException();
                     }
-                }                
+                }
             }
         }
-                
-        
+
         return entity;
     }
-    
+
     /*
      * Condizioni per la DELETE.
      * In nessuna circostanza permetto la DELETE.
@@ -523,6 +529,5 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeDeleteEntityInterceptor di Pec");
         throw new AbortSaveInterceptorException();
     }
-    
-    
+
 }

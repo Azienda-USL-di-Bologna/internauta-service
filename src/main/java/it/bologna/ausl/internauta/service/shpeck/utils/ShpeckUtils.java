@@ -1,5 +1,7 @@
 package it.bologna.ausl.internauta.service.shpeck.utils;
 
+import com.mongodb.MongoException;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
@@ -8,6 +10,7 @@ import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomControl
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
@@ -52,7 +55,12 @@ import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.RawMessageRepository;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.shpeck.QRawMessage;
+import it.bologna.ausl.model.entities.shpeck.RawMessage;
+import java.io.ByteArrayInputStream;
 import java.util.List;
 import javax.mail.Message.RecipientType;
 import javax.servlet.http.HttpServletRequest;
@@ -86,6 +94,9 @@ public class ShpeckUtils {
 
     @Autowired
     private MessageRepository messageRepository;
+    
+    @Autowired
+    private RawMessageRepository rawMessageRepository;
 
     @Autowired
     private MessageTagRepository messageTagRepository;
@@ -95,9 +106,12 @@ public class ShpeckUtils {
 
     @Autowired
     private ApplicazioneRepository applicazioneRepository;
-    
+
     @Autowired
     private KrintShpeckService krintShpeckService;
+
+    @Autowired
+    private AziendaRepository aziendaRepository;
 
     /**
      * usato da {@link #downloadEml(EmlSource, Integer)} per reperire l'eml
@@ -169,6 +183,7 @@ public class ShpeckUtils {
      * @param idMessageRelated L'id del messaggio correlato
      * @param messageRelatedType Tipo di relazione
      * @param emlAttachments
+     * @param request
      * @throws MessagingException
      * @throws IOException
      */
@@ -243,17 +258,24 @@ public class ShpeckUtils {
      *
      * @param pec La casella Pec mittente
      * @param subject
+     * @param idRelated
      * @param hiddenRecipients
      * @param mimeMessage Il MimeMessage da inviare
      * @param listAttachments
      * @param emlAttachments
      * @param body
+     * @param request
      * @throws MessagingException
      * @throws IOException
      */
-    public void sendMessage(Pec pec, String subject, Boolean hiddenRecipients, String body,
-            ArrayList<EmlHandlerAttachment> listAttachments, ArrayList<EmlHandlerAttachment> emlAttachments,
-            MimeMessage mimeMessage, HttpServletRequest request) throws IOException, MessagingException {
+    public void sendMessage(Pec pec,
+            String subject,
+            Integer idRelated,
+            Boolean hiddenRecipients, String body,
+            ArrayList<EmlHandlerAttachment> listAttachments,
+            ArrayList<EmlHandlerAttachment> emlAttachments,
+            MimeMessage mimeMessage,
+            HttpServletRequest request) throws IOException, MessagingException {
         Outbox outboxMessage = new Outbox();
         Applicazione shpeckApp = applicazioneRepository.getOne("shpeck");
         try {
@@ -265,6 +287,7 @@ public class ShpeckUtils {
             outboxMessage.setIdApplicazione(shpeckApp);
 
             outboxMessage.setSubject(subject);
+            outboxMessage.setIdRelated(idRelated);
             outboxMessage.setHiddenRecipients(hiddenRecipients);
             outboxMessage.setUpdateTime(LocalDateTime.now());
             ArrayList<EmlHandlerAttachment> listTemp = new ArrayList<>(listAttachments);
@@ -300,10 +323,9 @@ public class ShpeckUtils {
             throw new EntityNotFoundException("Element not found!");
         } catch (IOException | MessagingException ex) {
             LOG.error("Error while sending message! Trying to save the draf instead", ex);
-            throw new IOException("Error while sending message! Trying to save the draf instead");
-        } finally {
-            LOG.info("Message enqueued to outbox : ", outboxMessage);
+            throw new IOException("Error while sending message...");
         }
+        LOG.info("Message enqueued to outbox : ", outboxMessage);
     }
 
     static Specification<Tag> hasAuthor(Integer idPec) {
@@ -349,9 +371,9 @@ public class ShpeckUtils {
         LOG.info("Getting message...");
         Message messageRelated = messageRepository.getOne(idMessageRelated);
         Tag tag = new Tag();
-        
+
         OperazioneKrint.CodiceOperazione operazione = null;
-        
+
         LOG.info("Getting tag to apply...");
         switch (messageRelatedType) {
             case REPLIED:
@@ -437,7 +459,33 @@ public class ShpeckUtils {
                     MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(this.getIdAziendaRepository(message));
                     InputStream is = null;
                     try (DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(emlFile))) {
-                        is = mongoWrapper.get(message.getUuidRepository());
+                        try {
+                            is = mongoWrapper.get(message.getUuidRepository());
+                            if (is == null) {
+                                throw new MongoException("File non trovato!!");
+                            }
+                        } catch (Exception e) {
+                            message.setIdAziendaRepository(null);
+                            Integer idAziendaRepository = this.getIdAziendaRepository(message);
+                            try {
+                                if (idAziendaRepository != null) {
+                                    mongoWrapper = mongoConnectionManager.getConnection(idAziendaRepository);
+                                    is = mongoWrapper.get(message.getUuidRepository());
+                                    if (is == null) {
+                                        throw new MongoException("File non trovato!!");
+                                    }
+                                } else  {
+                                    throw new MongoException("File non trovato!!");
+                                }
+                            } catch (Exception ex) {
+                                BooleanExpression filter = QRawMessage.rawMessage.idMessage.id.eq(id);
+                                Optional<RawMessage> rawMessage = rawMessageRepository.findOne(filter);
+                                if (rawMessage.isPresent()) {
+//                                    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(rawMessage.get().getRawData().getBytes());
+                                    is = new ByteArrayInputStream(rawMessage.get().getRawData().getBytes());
+                                }
+                            }
+                        }
                         StreamUtils.copy(is, dataOs);
                     } finally {
                         IOUtils.closeQuietly(is);
@@ -481,7 +529,7 @@ public class ShpeckUtils {
                     }
                 }
             }
-        /* È il caso di una bozza che viene ripresa */
+            /* È il caso di una bozza che viene ripresa */
         } else if (idMessageRelatedAttachments != null && idMessageRelatedAttachments.length > 0) {
             byte[] eml = draftMessage.getEml();
             listAttachments = EmlHandler.getListAttachments(null, eml, idMessageRelatedAttachments);
@@ -489,12 +537,100 @@ public class ShpeckUtils {
         return listAttachments;
     }
 
+//    private Integer getIdAziendaRepository(Message message) {
+//        boolean isMessageReaddressed = message.getMessageTagList().stream().anyMatch(messageTag -> messageTag.getIdTag().getName().equals(Tag.SystemTagName.readdressed_in.toString()));
+//        if (!isMessageReaddressed) {
+//            return message.getIdPec().getIdAziendaRepository().getId();
+//        } else {
+//            return this.messageRepository.getIdAziendaRepository(message.getId());
+//        }
+//    }
     private Integer getIdAziendaRepository(Message message) {
-        boolean isMessageReaddressed = message.getMessageTagList().stream().anyMatch(messageTag -> messageTag.getIdTag().getName().equals(Tag.SystemTagName.readdressed_in.toString()));
-        if (!isMessageReaddressed) {
-            return message.getIdPec().getIdAziendaRepository().getId();
+
+        Integer idAzienda = null;
+
+        // -> guarda se il campo è popolato, se popolato ritorna
+        if (message.getIdAziendaRepository() != null) {
+            idAzienda = message.getIdAziendaRepository().getId();
+            LOG.info("Trovato idAziendaRepository = " + idAzienda + " per il messaggio = " + message.getId());
         } else {
-            return this.messageRepository.getIdAziendaRepository(message.getId());
+            // se non popolato, prendi idAzienda di default relativo alla pec riferita al messaggio
+            LOG.warn("idAziendaRepository non trovato per il messaggio = " + message.getId());
+            boolean isMessageReaddressed = message.getMessageTagList().stream().anyMatch(messageTag -> messageTag.getIdTag().getName().equals(Tag.SystemTagName.readdressed_in.toString()));
+            if (!isMessageReaddressed) {
+                LOG.info("Messaggio non reindirizzato!");
+                idAzienda = message.getIdPec().getIdAziendaRepository().getId();
+            } else {
+                LOG.info("Messaggio reindirizzato!");
+                idAzienda = this.messageRepository.getIdAziendaRepository(message.getId());
+            }
+            LOG.info("idAziendaRepository default = " + idAzienda + ". Controllo se il messaggio è nel repository...");
+            // vedi se messaggio è presente nel repository di default
+            boolean messageInDefaultRepository = isMessageInRepository(idAzienda, message.getUuidRepository());
+
+            // se non c'è allora cerco in tutti i repository
+            boolean foundRepository = false;
+            if (!messageInDefaultRepository) {
+                LOG.warn("Messaggio non trovato nel repository di default! Provo negli altri repository...");
+                List<Azienda> aziende = aziendaRepository.findAll();
+                for (Azienda azienda : aziende) {
+                    if (!azienda.getId().equals(idAzienda)) {
+                        boolean messageInRepository = isMessageInRepository(azienda.getId(), message.getUuidRepository());
+                        if (messageInRepository) {
+                            foundRepository = true;
+                            idAzienda = azienda.getId();
+                            break;
+                        }
+                    }
+                }
+                if (!foundRepository) {
+                    idAzienda = null;
+                }
+            }
+            if (messageInDefaultRepository || foundRepository) {
+                // salva idAziendaRepository in message
+                saveIdAziendaRepository(message, idAzienda);
+            }
         }
+        return idAzienda;
+    }
+
+    private boolean isMessageInRepository(Integer idAzienda, String uuidRepository) {
+
+        boolean res = false;
+
+        MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
+        InputStream is = null;
+        try {
+            is = mongoWrapper.get(uuidRepository);
+            res = is != null;
+        } catch (Throwable e) {
+            res = false;
+        } finally {
+            IOUtils.closeQuietly(is);
+        }
+
+        return res;
+    }
+
+    private void saveIdAziendaRepositoryOld(Message message, Integer idAziendaRepository) {
+        Optional<Message> m = messageRepository.findById(message.getId());
+        if (m.isPresent()) {
+            Message tmp = m.get();
+            Optional<Azienda> a = aziendaRepository.findById(idAziendaRepository);
+            if (a.isPresent()) {
+                Azienda azienda = a.get();
+                tmp.setIdAziendaRepository(azienda);
+            }
+            LOG.info("Salvo l'idAziendaRepository...");
+            messageRepository.save(tmp);
+        }
+    }
+    
+    private void saveIdAziendaRepository(Message message, Integer idAziendaRepository) {
+        LOG.info("Salvo l'idAziendaRepository new...");
+        Azienda a = aziendaRepository.getOne(idAziendaRepository);
+        message.setIdAziendaRepository(a);
+        messageRepository.save(message);
     }
 }

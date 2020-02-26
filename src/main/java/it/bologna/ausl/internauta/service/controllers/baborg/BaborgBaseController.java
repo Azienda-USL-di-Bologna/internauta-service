@@ -23,6 +23,7 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Gdm1;
 import it.bologna.ausl.model.entities.baborg.Gdm2;
 import it.bologna.ausl.model.entities.baborg.IdpEntityId;
+import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
 import it.bologna.ausl.model.entities.baborg.Massimario;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
@@ -33,6 +34,7 @@ import it.bologna.ausl.model.entities.baborg.Permesso;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QGdm1;
 import it.bologna.ausl.model.entities.baborg.QGdm2;
+import it.bologna.ausl.model.entities.baborg.QImportazioniOrganigramma;
 import it.bologna.ausl.model.entities.baborg.QMassimario;
 import it.bologna.ausl.model.entities.baborg.QPecAzienda;
 import it.bologna.ausl.model.entities.baborg.QTitolo;
@@ -376,6 +378,20 @@ public class BaborgBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QTitolo.titolo, Titolo.class);
+        return ResponseEntity.ok(resource);
+    }
+
+    @RequestMapping(value = {"importazioniorganigramma", "importazioniorganigramma/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+
+    public ResponseEntity<?> importazioniorganigramma(
+            @QuerydslPredicate(root = ImportazioniOrganigramma.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QImportazioniOrganigramma.importazioniOrganigramma, ImportazioniOrganigramma.class);
         return ResponseEntity.ok(resource);
     }
 }

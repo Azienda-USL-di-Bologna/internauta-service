@@ -35,8 +35,9 @@ public class AuthenticatedSessionDataBuilder {
         }
         Applicazione.Applicazioni applicazione =  threadLocalAuthentication.get().getApplicazione();
         String token =  threadLocalAuthentication.get().getToken();
+        boolean fromInternet = threadLocalAuthentication.get().isFromInternet();
 
-        return new AuthenticatedSessionData(user, realUser, person, realPerson, idSessionLog, applicazione, token);
+        return new AuthenticatedSessionData(user, realUser, person, realPerson, idSessionLog, applicazione, token, fromInternet);
     }
 
     private void setAuthentication() {

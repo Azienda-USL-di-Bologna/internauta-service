@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.logs.OperazioneKrinReposi
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QAzienda;
+import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
@@ -143,6 +144,17 @@ public class CachedEntities {
     @Cacheable(value = "persona__ribaltorg__", key = "{#id}")
     public Persona getPersona(Integer id) {
         Optional<Persona> persona = personaRepository.findById(id);
+        if (persona.isPresent()) {
+//            persona.get().setApplicazione(applicazione);
+            return persona.get();
+        } else
+            return null;
+    }
+    
+    @Cacheable(value = "personaFromCodiceFiscale__ribaltorg__", key = "{#codiceFiscale}")
+    public Persona getPersonaFromCodiceFiscale(String codiceFiscale) {
+        BooleanExpression filter = QPersona.persona.codiceFiscale.eq(codiceFiscale);
+        Optional<Persona> persona = personaRepository.findOne(filter);
         if (persona.isPresent()) {
 //            persona.get().setApplicazione(applicazione);
             return persona.get();

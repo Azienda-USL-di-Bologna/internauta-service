@@ -7,6 +7,8 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.query.Procedure;
+import org.springframework.data.repository.query.Param;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
@@ -18,4 +20,8 @@ public interface ContattoRepository extends
         NextSdrQueryDslRepository<Contatto, Integer, QContatto>,
         JpaRepository<Contatto, Integer> {
 
+    @Procedure("rubrica.get_similar_contacts")
+    public String getSimilarContacts(
+            @Param("contact") String contact
+    );
 }

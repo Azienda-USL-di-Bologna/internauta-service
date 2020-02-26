@@ -56,13 +56,12 @@ import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
 
-
 /**
  * Service per la creazione dell'oggetto UserInfoOld TODO: descrivere la
  * gestione con la cache
  */
 @Component
-public class UserInfoService {    
+public class UserInfoService {
 
     @Autowired
     AziendaRepository aziendaRepository;
@@ -72,7 +71,7 @@ public class UserInfoService {
 
     @Autowired
     UtenteRepository utenteRepository;
-    
+
     @Autowired
     UtenteStrutturaRepository utenteStrutturaRepository;
 
@@ -88,10 +87,9 @@ public class UserInfoService {
     @Autowired
     ObjectMapper objectMapper;
 
-    
     @Autowired
     CachedEntities cachedEntities;
-    
+
     @Autowired
     PostgresConnectionManager postgresConnectionManager;
 
@@ -176,7 +174,7 @@ public class UserInfoService {
             filter = qUtente.get(field).eq(ssoFieldValue.toUpperCase());
         }
         filter = filter.and(QUtente.utente.idAzienda.id.eq(azienda.getId()));
-
+        filter = filter.and(QUtente.utente.attivo.eq(true));
         Optional<Utente> utenteOp = utenteRepository.findOne(filter);
 
         if (utenteOp.isPresent()) {
@@ -226,7 +224,7 @@ public class UserInfoService {
         }
         return res;
     }
-    
+
     @Cacheable(value = "getRuoliInteraziendali__ribaltorg__", key = "{#persona.getId()}")
     public List<Ruolo> getRuoliInteraziendali(Persona persona) {
         List<Ruolo> res = new ArrayList<>();
@@ -237,31 +235,31 @@ public class UserInfoService {
                     res.add(ruolo);
                 }
             }
-        }        
+        }
         return res;
     }
-    
 
-    
     /**
      * restituisce tutti i ruoli di tutte le aziende degli utenti della persona
      * divisi per interaziendali e aziendali.I ruoli aziendali sono raggruppati
-     * per azienda 
-     * Se ancheByRuolo è true o null vale anche il viceversa: le aziende sono raggruppate per ruolo 
+     * per azienda Se ancheByRuolo è true o null vale anche il viceversa: le
+     * aziende sono raggruppate per ruolo
+     *
      * @param persona
-     * @param ancheByRuolo    
+     * @param ancheByRuolo
      * @return una mappa in cui la chiave è il codice azienda e il valore la
      * lista dei codici ruolo per quell'azienda nel caso dei ruoli
-     * interaziendali la chiave è 'interaziendali' 
-     * Se viene passato ancheByRuolo true o null alla mappa viene aggiunt una mappa in cui la
-     * chiave è il codice ruolo e il valore è una lista di codici azienda
+     * interaziendali la chiave è 'interaziendali' Se viene passato ancheByRuolo
+     * true o null alla mappa viene aggiunt una mappa in cui la chiave è il
+     * codice ruolo e il valore è una lista di codici azienda
      */
-    public Map<String, List<String>> getRuoli(Persona persona, Boolean ancheByRuolo){
-        
-        if(ancheByRuolo == null)
+    public Map<String, List<String>> getRuoli(Persona persona, Boolean ancheByRuolo) {
+
+        if (ancheByRuolo == null) {
             ancheByRuolo = true;
+        }
         Map<String, List<String>> mapAziendeRuoli = new HashMap<>();
-        
+
 //        if(persona.getUtenteList() == null){
         persona.setUtenteList(getUtentiPersona(persona));
 //        }
@@ -276,8 +274,8 @@ public class UserInfoService {
 
         // popolo mappa ruolo->listaAziene
         Map<String, List<String>> mapRuoloAziende = new HashMap<>();
-        
-        if(ancheByRuolo){            
+
+        if (ancheByRuolo) {
             for (Map.Entry<String, List<String>> entry : mapAziendeRuoli.entrySet()) {
                 for (String codiceRuolo : entry.getValue()) {
                     List<String> listAziende = mapRuoloAziende.get(codiceRuolo);
@@ -295,13 +293,11 @@ public class UserInfoService {
         finalMap.putAll(mapRuoloAziende);
 
         return finalMap;
-        
+
     }
-    
-    
-    
-    public Map<String, List<String>> getRuoliUtentiPersona(Utente utente, Boolean ancheByRuolo) {       
-        return getRuoli(utente.getIdPersona(), ancheByRuolo);        
+
+    public Map<String, List<String>> getRuoliUtentiPersona(Utente utente, Boolean ancheByRuolo) {
+        return getRuoli(utente.getIdPersona(), ancheByRuolo);
     }
 
     @CacheEvict(value = "getRuoli__ribaltorg__", key = "{#utente.getId()}")
@@ -323,7 +319,6 @@ public class UserInfoService {
         }
         return res;
     }
-
 
     @Cacheable(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId(), #onlyActive.booleanValue()}")
     public List<Utente> getUtentiPersonaByUtente(Utente utente, Boolean onlyActive) {
@@ -354,16 +349,14 @@ public class UserInfoService {
         return refreshUtente.getIdAzienda();
     }
 
-    
     @CacheEvict(value = "getUtentiPersonaByUtente__ribaltorg__", key = "{#utente.getId()}")
     public void getUtentiPersonaByUtenteRemoveCache(Utente utente) {
     }
-    
-      
+
     @CacheEvict(value = "getUtentiPersona__ribaltorg__", key = "{#persona.getId()}")
     public void getUtentiPersonaRemoveCache(Persona persona) {
     }
-    
+
     @Cacheable(value = "getUtenteStrutturaList__ribaltorg__", key = "{#utente.getId()}")
     public List<UtenteStruttura> getUtenteStrutturaList(Utente utente) {
         Utente refreshedUtente = utenteRepository.getOne(utente.getId());
@@ -406,12 +399,10 @@ public class UserInfoService {
                 false);
     }
 
-   
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Utente utente) throws BlackBoxPermissionException {
         return getPermessiDiFlussoByCodiceAzienda(utente.getIdPersona());
     }
-      
-    
+
     @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda__ribaltorg__", key = "{#persona.getId()}")
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
         Map<String, List<PermessoEntitaStoredProcedure>> map = new HashMap<>();
@@ -430,41 +421,39 @@ public class UserInfoService {
         }
         return map;
     }
-    
+
     @Cacheable(value = "getPredicatiDiFlussoByCodiceAzienda__ribaltorg__", key = "{#persona.getId()}")
     public Map<String, List<String>> getPredicatiDiFlussoByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
-        
+
         Map<String, List<PermessoEntitaStoredProcedure>> map = getPermessiDiFlussoByCodiceAzienda(persona);
-        
 
         Map<String, List<String>> resMap = new HashMap<>();
         for (Map.Entry<String, List<PermessoEntitaStoredProcedure>> entry : map.entrySet()) {
-            
+
             Set<String> setPredicati = new TreeSet<>();
-            for(PermessoEntitaStoredProcedure pesp: entry.getValue()){
-                for(CategoriaPermessiStoredProcedure c:pesp.getCategorie()){
-                    for(PermessoStoredProcedure p: c.getPermessi()){
+            for (PermessoEntitaStoredProcedure pesp : entry.getValue()) {
+                for (CategoriaPermessiStoredProcedure c : pesp.getCategorie()) {
+                    for (PermessoStoredProcedure p : c.getPermessi()) {
                         setPredicati.add(p.getPredicato());
                     }
                 }
             }
-            if(!setPredicati.isEmpty()){                
-                resMap.put(entry.getKey(), Lists.newArrayList(setPredicati));            
+            if (!setPredicati.isEmpty()) {
+                resMap.put(entry.getKey(), Lists.newArrayList(setPredicati));
             }
         }
-        
-        return resMap;
 
+        return resMap;
 
     }
 
     public Map<Integer, List<String>> getPermessiPec(Utente utente) throws BlackBoxPermissionException {
         return getPermessiPec(utente.getIdPersona());
     }
-    
+
     @Cacheable(value = "getPermessiPec__ribaltorg__", key = "{#persona.getId()}")
     public Map<Integer, List<String>> getPermessiPec(Persona persona) throws BlackBoxPermissionException {
-        
+        LOGGER.info("reperimento permessi PEC");
         List<PermessoEntitaStoredProcedure> pecWithStandardPermissions = null;
         try {
             pecWithStandardPermissions = permissionManager.getPermissionsOfSubject(
@@ -476,13 +465,22 @@ public class UserInfoService {
             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
 
         }
-
-        Map<Integer, List<String>> res = pecWithStandardPermissions.stream().collect(Collectors.toMap(
-                p -> p.getOggetto().getIdProvenienza(),
-                p -> p.getCategorie().get(0).getPermessi().stream().map(c -> c.getPredicato()).collect(Collectors.toList())));
-        return res;
+        if (pecWithStandardPermissions != null) {
+            try {
+                Map<Integer, List<String>> res = pecWithStandardPermissions.stream().collect(Collectors.toMap(
+                        p -> p.getOggetto().getIdProvenienza(),
+                        p -> p.getCategorie().get(0).getPermessi().stream().map(c -> c.getPredicato()).collect(Collectors.toList())));
+                return res;
+            } catch (Exception ex) {
+                LOGGER.error("Errore nella gestione dei permessi pec recuperati", ex);
+                return null;
+            }
+        } else {
+            LOGGER.warn("Nessu npermesso PEC");
+            return null;
+        }
     }
-    
+
     @CacheEvict(value = "getPermessiPec__ribaltorg__", key = "{#persona.getId()}")
     public void getPermessiPecRemoveCache(Persona persona) {
     }
@@ -501,11 +499,13 @@ public class UserInfoService {
     @Cacheable(value = "aziendaFromIdUtente__ribaltorg__", key = "{#idUtente}")
     public Azienda getAziendaFromIdUtente(Integer idUtente) {
         Optional<Utente> utente = utenteRepository.findById(idUtente);
-        if (utente.isPresent())
+        if (utente.isPresent()) {
             return cachedEntities.getAzienda(utente.get().getIdAzienda().getId());
-        else 
+        } else {
             return null;
+        }
     }
+
     @Cacheable(value = "isCI__ribaltorg__", key = "{#user.getId()}")
     public boolean isCI(Utente user) {
         List<Ruolo> ruoli = user.getRuoli();
@@ -518,6 +518,13 @@ public class UserInfoService {
         List<Ruolo> ruoli = user.getRuoli();
         Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
         return isCA;
+    }
+
+    @Cacheable(value = "isSD__ribaltorg__", key = "{#user.getId()}")
+    public boolean isSD(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isSD = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.SD);
+        return isSD;
     }
 
     @Cacheable(value = "getPermessiDelega__ribaltorg__", key = "{#user.getId()}")
@@ -534,92 +541,84 @@ public class UserInfoService {
     @CacheEvict(value = "getPermessiDelega__ribaltorg__", key = "{#user.getId()}")
     public void getPermessiDelegaRemoveCache(Utente user) {
     }
-    
+
     public CustomAziendaLogin getAziendaCustomLogin(Utente user) {
         return factory.createProjection(CustomAziendaLogin.class, user.getIdAzienda());
     }
-    
+
     public List<CustomAziendaLogin> getAllAziendeCustomLogin(Utente user) {
-        
+
         return user.getIdPersona().getUtenteList().stream()
                 .map(u -> factory.createProjection(CustomAziendaLogin.class, u.getIdAzienda()))
                 .collect(Collectors.toList());
     }
-    
-    
-    
 
-    
-    public Map<String, Object> getPermessiKrint(Persona persona) throws BlackBoxPermissionException{
-        
-        // TODO: da implementare        
+    public Map<String, Object> getPermessiKrint(Persona persona) throws BlackBoxPermissionException {
+
+        // TODO: da implementare
         Map<String, Object> result = new HashMap<>();
-        
+
         // permessi PEC. Chiave: l'id della casella, valore: la lista di permessi per quella casella
         result.put(InternautaConstants.Krint.PermessiKey.permessiPec.toString(), getPermessiPec(persona));
         result.put(InternautaConstants.Krint.PermessiKey.permessiFlusso.toString(), getPredicatiDiFlussoByCodiceAzienda(persona));
-        
-        
+
         return result;
     }
-    
-    
+
     public List<KrintBaborgAzienda> getAziendeKrint(Persona persona) {
-          return persona.getUtenteList().stream()
+        return persona.getUtenteList().stream()
                 .map(u -> factory.createProjection(KrintBaborgAzienda.class, u.getIdAzienda()))
                 .collect(Collectors.toList());
-    }    
+    }
 
-    
     public KrintBaborgAzienda getAziendaKrint(Utente utente) {
         return factory.createProjection(KrintBaborgAzienda.class, utente.getIdAzienda());
     }
-    
-    
+
     public List<KrintBaborgStruttura> getStruttureKrint(Utente utente) {
         utente.setUtenteStrutturaList(getUtenteStrutturaList(utente));
         return utente.getUtenteStrutturaList().stream()
-            .map(us -> {
-                //us.setIdStruttura(getIdStruttura(us));
-                return factory.createProjection(KrintBaborgStruttura.class, us);
-                })   
-            .collect(Collectors.toList());                                 
+                .map(us -> {
+                    //us.setIdStruttura(getIdStruttura(us));
+                    return factory.createProjection(KrintBaborgStruttura.class, us);
+                })
+                .collect(Collectors.toList());
     }
-    
+
     @Cacheable(value = "getIdStrutturaFromUtenteStruttura__ribaltorg__", key = "{#utenteStruttura.getId()}")
     public Struttura getIdStrutturaFromUtenteStruttura(UtenteStruttura utenteStruttura) {
         return utenteStrutturaRepository.getOne(utenteStruttura.getId()).getIdStruttura();
     }
-    
-    
-    
+
     public KrintBaborgPersona getPersonaKrint(Utente utente) {
-        return  factory.createProjection(KrintBaborgPersona.class, utente.getIdPersona());          
+        return factory.createProjection(KrintBaborgPersona.class, utente.getIdPersona());
     }
-    
-    
-    
+//
+//    public KrintBaborgPersona getPersonaKrint(Utente utente) {
+//        return  factory.createProjection(KrintBaborgPersona.class, utente.getIdPersona());
+//    }
+
     @Cacheable(value = "getUtenteProcton", key = "{#idPersona, #codiceAzienda}")
     public UtenteProcton getUtenteProcton(Integer idPersona, String codiceAzienda) throws Http404ResponseException {
         Persona persona = personaRepository.getOne(idPersona);
         String qUtenteProcton = "SELECT DISTINCT ON (u.id_utente) "
                 + "u.id_utente as idUtente, "
-                + "CASE WHEN u.id_struttura IS NOT NULL THEN u.id_struttura ELSE af.id_struttura END as idStruttura " +
-            "FROM procton.utenti u \n" +
-            "LEFT JOIN procton.appartenenze_funzionali af ON u.id_utente = af.id_utente AND af.unificata != 0\n" +
-            "WHERE cf = :codiceFiscale \n" +
-            "LIMIT 1";
-        
+                + "CASE WHEN u.id_struttura IS NOT NULL THEN u.id_struttura ELSE af.id_struttura END as idStruttura "
+                + "FROM procton.utenti u \n"
+                + "LEFT JOIN procton.appartenenze_funzionali af ON u.id_utente = af.id_utente AND af.unificata != 0\n"
+                + "WHERE cf = :codiceFiscale \n"
+                + "LIMIT 1";
+
         UtenteProcton utenteProcton;
         // Prendo la connessione dal connection manager
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
-        
+
         try (Connection conn = (Connection) dbConnection.open()) {
             utenteProcton = conn.createQuery(qUtenteProcton)
                     .addParameter("codiceFiscale", persona.getCodiceFiscale())
                     .executeAndFetchFirst(UtenteProcton.class);
         }
-        
+
         if (utenteProcton == null) {
             throw new Http404ResponseException("1", "Problemi con il recupero dell'id_utente di procton");
         }

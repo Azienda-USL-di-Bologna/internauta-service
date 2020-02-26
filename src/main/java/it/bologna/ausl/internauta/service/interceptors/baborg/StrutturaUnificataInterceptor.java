@@ -4,6 +4,7 @@ import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
@@ -15,6 +16,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,14 +26,17 @@ import org.springframework.stereotype.Component;
 @Component
 @NextSdrInterceptor(name = "struttura-unificata-interceptor")
 public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(StrutturaUnificataInterceptor.class);
-    
+
     private static final String GET_DATA_BY_STATO = "getDataByStato";
 
     private static enum Stati {
         Bozza, Corrente, Storico
     };
 
+    @Autowired
+    UserInfoService userInfoService;
 
     @Override
     public Class getTargetEntityClass() {
@@ -43,7 +48,6 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeSelectQueryInterceptor di Struttura-Unificata");
 
         String getDataByStatoValue = additionalData.get(GET_DATA_BY_STATO);
-        
 
         if (getDataByStatoValue != null) {
             LocalDateTime today = LocalDate.now().atTime(0, 0);
@@ -90,7 +94,7 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeCreateEntityInterceptor di Struttura-Unificata");
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        if (!isCI(authenticatedSessionData.getUser())) {
+        if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
             throw new AbortSaveInterceptorException();
         }
 
@@ -101,11 +105,11 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Struttura-Unificata");
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        if (!isCI(authenticatedSessionData.getUser())) {
+        if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
             throw new AbortSaveInterceptorException();
         }
 
         return entity;
     }
-   
+
 }

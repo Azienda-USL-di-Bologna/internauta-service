@@ -25,5 +25,8 @@ public interface CustomAziendaLogin {
     public Map<String, String> getParametri();
      
     @Value("#{@projectionBeans.getUrlCommands(target)}")
-    public Map<String, String> getUrlCommands();           
+    public Map<String, String> getUrlCommands();     
+    
+    @Value("#{@projectionBeans.getBaseUrl(target)}")
+    public String getBaseUrl();
 }

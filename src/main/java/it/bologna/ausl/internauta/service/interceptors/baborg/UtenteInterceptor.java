@@ -63,7 +63,7 @@ public class UtenteInterceptor extends InternautaBaseInterceptor {
                             utente = authenticatedSessionData.getUser();
                         }
 
-                        if (!isSD(utente)) {
+                        if (!userInfoService.isSD(utente)) {
                             try {
                                 // Devo controlalre se sono DELEGATO. Chiedo alla black-box
                                 List<Integer> idUtentiDelega = userInfoService.getPermessiDelega(utente);
