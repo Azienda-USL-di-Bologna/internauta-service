@@ -126,9 +126,15 @@ public class BaborgCustomController {
 
         // Se sono CA e i parametri passati sono corretti inizio l'importazione
         if (infoService.isCA(user) && !file.isEmpty() && idAzienda != null && tipo != null) {
-            res = baborgUtils.manageUploadFile(user.getId(), file, idAzienda, tipo, codiceAzienda, fileName, person);
+            ImportazioniOrganigramma newRowImportazione = null;
+            newRowImportazione = baborgUtils.insertNewRowImportazioneOrganigrama(user.getId(), idAzienda, tipo, codiceAzienda, fileName, person, newRowImportazione);
+            if (newRowImportazione != null) {
+                res = baborgUtils.manageUploadFile(user.getId(), file, idAzienda, tipo, codiceAzienda, fileName, person, newRowImportazione);
+            } else {
+                throw new Http400ResponseException("1", "Non è stato posibile far partire l'importazione");
+            }
         } else {
-            throw new Http400ResponseException("1", "I dati passati per l'importazione sono assenti o non corretti");
+            throw new Http400ResponseException("2", "I dati passati per l'importazione sono assenti o non corretti");
         }
 
         return new ResponseEntity(res, HttpStatus.OK);
