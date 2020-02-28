@@ -19,8 +19,10 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
@@ -35,6 +37,8 @@ import it.nextsw.common.utils.CommonUtils;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -69,10 +73,13 @@ import org.sql2o.Sql2o;
 @RequestMapping(value = "${rubrica.mapping.url.root}")
 public class RubricaCustomController implements ControllerHandledExceptions {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RubricaCustomController.class);
+    private static final Logger log = LoggerFactory.getLogger(RubricaCustomController.class);
 
     @Autowired
     CommonUtils commonUtils;
+    
+    @Autowired
+    MasterChefUtils masterChefUtils;
 
     @Autowired
     UserInfoService userInfoService;
@@ -245,10 +252,10 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             Query addParameter = conn.createQuery(query)
                     .addParameter("idUtente", idUtente)
                     .addParameter("toSearch", toSearch);
-            LOG.info("esecuzione query: " + addParameter.toString());
+            log.info("esecuzione query: " + addParameter.toString());
             contatti = addParameter.executeAndFetch(Integer.class);
         } catch (Exception e) {
-            LOG.error("errore nell'esecuzione della query", e);
+            log.error("errore nell'esecuzione della query", e);
             throw new Http500ResponseException("1", "Errore nell'escuzione della query");
         }
         return contatti;
@@ -272,10 +279,12 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> sendSelectedContactsToExternalApp(@RequestBody ExternalAppData data) 
             throws JsonProcessingException, IOException, BlackBoxPermissionException {
+        
         Azienda azienda = cachedEntities.getAziendaFromCodice(data.getCodiceAzienda());
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
-        data.setCfUtenteOperazione(utente.getIdPersona().getCodiceFiscale());
+        Persona persona = utente.getIdPersona();
+        data.setCfUtenteOperazione(persona.getCodiceFiscale());
    
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"), 
@@ -287,13 +296,17 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                 .post(requestBody)
                 .addHeader("X-HTTP-Method-Override", manageDestinatariMethod)
                 .build();
-
+        
+        log.info("Chiamo l'applicazione inde per salvare i contatti selezionati");
         Call call = client.newCall(request);
         try (Response response = call.execute();) {
             if (response.isSuccessful()) {
-                System.out.println("Tutto bene quel che finisce bene");
-            } else
+                log.info("Chiamata a webapi inde effettuata con successo");
+                refreshDestinatari(persona, azienda, data.getGuid());
+            } else {
+                log.info("Errore nella chiamata alla webapi indosa");
                 throw new IOException(String.format("molto malo: %s", response.message()));
+            }
         }
 
         return new ResponseEntity(data, HttpStatus.OK);
@@ -305,100 +318,21 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
         return url;
     }
-     
-     
-     
-     
-     
-     
-     
-     @RequestMapping(value = "prova", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public void prova() throws JsonProcessingException, IOException {
-//        Contatto c = new Contatto();
-//        c.setCategoria(Contatto.CategoriaContatto.ESTERNO);
-//        c.setTipo(Contatto.TipoContatto.VARIO);
-//        c.setDescrizione("provannvnaoidun");
-//        
-//        Utente one = utenteRepository.getOne(1);
-//        c.setIdUtenteCreazione(one);
-//        c.setIdPersonaCreazione(one.getIdPersona());
-//        c.setProvenienza("jaibci");
-//        c.setModificabile(false);
-//        c.setEliminato(false);
-//        c.setDaVerificare(false);
-//        
-//        DettaglioContatto dc = new DettaglioContatto();
-//        dc.setDescrizione("odvkcnasoicdjuhn");
-//        dc.setPrincipale(true);
-//        dc.setIdContatto(c);
-//        
-//        Email e = new Email();
-//        e.setDescrizione("vfs");
-//        e.setEmail("cdvsvs");
-//        e.setProvenienza("vdsvsd");
-//        e.setPrincipale(true);
-//        e.setPec(true);
-//        e.setIdContatto(c);
-//        e.setIdDettaglioContatto(dc);
-//        
-//        List<Email> ee = new ArrayList<>();
-//        ee.add(e);
-//        
-//        dc.setEmail(ee);
-//        
-//        List<DettaglioContatto> aaa = new ArrayList<>();
-//        aaa.add(dc);
-//        c.setDettaglioContattoList(aaa);
-//        
-//        contattoRepository.save(c);
+    
+    private void refreshDestinatari(Persona persona, Azienda azienda, String guid) throws IOException {
+        log.info("Inserisco su redis il comando di refresh dei destinatari");
+        List<String> dests = Arrays.asList(persona.getCodiceFiscale());
 
-        Contatto c = new Contatto();
-        c.setCategoria(Contatto.CategoriaContatto.ESTERNO);
-        c.setTipo(Contatto.TipoContatto.VARIO);
-        c.setDescrizione("provannvnaoidun");
-        Utente one = utenteRepository.getOne(1);
-        c.setIdUtenteCreazione(one);
-        c.setIdPersonaCreazione(one.getIdPersona());
-        c.setProvenienza("jaibci");
-        c.setModificabile(false);
-        c.setEliminato(false);
-        c.setDaVerificare(false);
-        
-        DettaglioContatto dc = new DettaglioContatto();
-        dc.setDescrizione("odvkcnasoicdjuhn");
-        dc.setPrincipale(true);
-        dc.setIdContatto(c);
-        
-//        Telefono t = new Telefono();
-//        t.setNumero("3434433434");
-//        t.setPrincipale(true);
-//        t.setProvenienza("dvs");
-//        t.setIdContatto(c);
-//        t.setIdDettaglioContatto(dc);
-//        
-//        List<Telefono> tt = new ArrayList();
-
-        Email e = new Email();
-        e.setDescrizione("vfs");
-        e.setEmail("cdvsvs");
-        e.setProvenienza("vdsvsd");
-        e.setPrincipale(true);
-        e.setPec(true);
-        e.setIdContatto(c);
-        e.setIdDettaglioContatto(dc);
-        List<Email> ee = new ArrayList<>();
-        ee.add(e);
-        c.setEmailList(ee);
-        
-//        DettaglioContatto dc = new DettaglioContatto();
-//        dc.setDescrizione("odvkcnasoicdjuhn");
-//        dc.setPrincipale(true);
-//        dc.setIdContatto(c);
-//        List<DettaglioContatto> aaa = new ArrayList<>();
-//        aaa.add(dc);
-//        c.setDettaglioContattoList(aaa);
-
-        contattoRepository.save(c);
+        Map<String, Object> primusCommandParams = new HashMap();
+        primusCommandParams.put("refreshDestinatari", guid);
+        AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        AziendaParametriJson.MasterChefParmas masterchefParams = aziendaParametriJson.getMasterchefParams();
+        MasterChefUtils.MasterchefJobDescriptor masterchefJobDescriptor = 
+            masterChefUtils.buildPrimusMasterchefJob(
+                MasterChefUtils.PrimusCommands.refreshDestinatari, 
+                primusCommandParams, "1", "1", dests, "*"
+        );
+        masterChefUtils.sendMasterChefJob(masterchefJobDescriptor, masterchefParams);
         
     }
 }
