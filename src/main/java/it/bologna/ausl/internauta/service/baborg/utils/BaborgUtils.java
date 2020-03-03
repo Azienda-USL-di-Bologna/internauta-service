@@ -161,7 +161,7 @@ public class BaborgUtils {
 
                         // Inserisco la riga
                         MdrAppartenenti mA = new MdrAppartenenti();
-                        mA.setCodiceEnte((Integer) appartenentiMap.get("codiceEnte"));
+                        mA.setCodiceEnte(codiceAzienda);
                         mA.setCodiceMatricola((Integer) appartenentiMap.get("codiceMatricola"));
                         mA.setCognome((String) appartenentiMap.get("cognome"));
                         mA.setNome((String) appartenentiMap.get("nome"));
@@ -190,7 +190,7 @@ public class BaborgUtils {
 
                         // Inserisco la riga
                         MdrResponsabili mR = new MdrResponsabili();
-                        mR.setCodiceEnte((Integer) responsabiliMap.get("codiceEnte"));
+                        mR.setCodiceEnte(codiceAzienda);
                         mR.setCodiceMatricola((Integer) responsabiliMap.get("codiceMatricola"));
                         mR.setIdCasella((Integer) responsabiliMap.get("idCasella"));
                         mR.setDatain(convertDateToLocaleDateTime((Date) responsabiliMap.get("datain")));
@@ -220,7 +220,7 @@ public class BaborgUtils {
                         mS.setDatain(convertDateToLocaleDateTime((Date) strutturaMap.get("datain")));
                         mS.setDatafi(convertDateToLocaleDateTime((Date) strutturaMap.get("datafi")));
                         mS.setTipoLegame((String) strutturaMap.get("tipoLegame"));
-                        mS.setCodiceEnte((Integer) strutturaMap.get("codiceEnte"));
+                        mS.setCodiceEnte(codiceAzienda);
                         mS.setIdAzienda(azienda);
                         mdrStrutturaRepository.save(mS);
                     }
@@ -240,7 +240,7 @@ public class BaborgUtils {
 
                         // Inserisco la riga
                         MdrTrasformazioni m = new MdrTrasformazioni();
-                        m.setCodiceEnte((Integer) trasformazioniMap.get("codiceEnte"));
+                        m.setCodiceEnte(codiceAzienda);
                         m.setDataTrasformazione(convertDateToLocaleDateTime((Date) trasformazioniMap.get("dataTrasformazione")));
                         m.setDatainPartenza(convertDateToLocaleDateTime((Date) trasformazioniMap.get("datainPartenza")));
                         m.setDataoraOper(convertDateToLocaleDateTime((Date) trasformazioniMap.get("dataoraOper")));
