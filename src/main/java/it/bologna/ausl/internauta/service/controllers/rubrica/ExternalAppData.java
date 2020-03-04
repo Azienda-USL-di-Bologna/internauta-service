@@ -1,8 +1,5 @@
 package it.bologna.ausl.internauta.service.controllers.rubrica;
 
-import java.util.List;
-import java.util.Map;
-
 /**
  *
  * @author gusgus
@@ -12,7 +9,9 @@ public class ExternalAppData {
     private String app; //todo fare enum
     private String guid;
     private String codiceAzienda;
-    private Map<String, List<SelectedContact>> selectedContactsLists;
+    private String selectedContactsLists;
+    private String cfUtenteOperazione;
+//    private Map<String, List<SelectedContact>> selectedContactsLists;
 
     public String getMode() {
         return mode;
@@ -38,11 +37,18 @@ public class ExternalAppData {
         this.guid = guid;
     }
 
-    public Map<String, List<SelectedContact>> getSelectedContactsLists() {
+    public String getSelectedContactsLists() {
         return selectedContactsLists;
     }
 
-    public void setSelectedContactsLists(Map<String, List<SelectedContact>> selectedContactsLists) {
+//    public Map<String, List<SelectedContact>> getSelectedContactsLists() {
+//        return selectedContactsLists;
+//    }
+//
+//    public void setSelectedContactsLists(Map<String, List<SelectedContact>> selectedContactsLists) {
+//        this.selectedContactsLists = selectedContactsLists;
+//    }
+    public void setSelectedContactsLists(String selectedContactsLists) {
         this.selectedContactsLists = selectedContactsLists;
     }
 
@@ -52,5 +58,13 @@ public class ExternalAppData {
 
     public void setCodiceAzienda(String codiceAzienda) {
         this.codiceAzienda = codiceAzienda;
+    }
+
+    public String getCfUtenteOperazione() {
+        return cfUtenteOperazione;
+    }
+
+    public void setCfUtenteOperazione(String cfUtenteOperazione) {
+        this.cfUtenteOperazione = cfUtenteOperazione;
     }
 }
