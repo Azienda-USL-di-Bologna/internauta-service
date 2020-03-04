@@ -632,7 +632,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 //            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
 //        }
 //        return messageCompleteRespository.count(filter);
-        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder);
+        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
         if (unSeen) {
             filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
         }
@@ -659,7 +659,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = "countMessageInTag/{idTag}", method = RequestMethod.GET)
     public Long countMessageInTag(@PathVariable(required = true) Integer idTag
     ) {
-        return messageTagRespository.count(QMessageTag.messageTag.idTag.id.eq(idTag));
+        return messageTagRespository.count(QMessageTag.messageTag.idTag.id.eq(idTag)
+                .and(QMessageTag.messageTag.idMessage.messageFolderList.any().deleted.eq(false)));
     }
 
     @Transactional(rollbackFor = Throwable.class)
