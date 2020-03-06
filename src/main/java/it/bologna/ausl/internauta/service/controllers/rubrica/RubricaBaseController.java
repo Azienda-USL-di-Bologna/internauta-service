@@ -3,9 +3,11 @@ package it.bologna.ausl.internauta.service.controllers.rubrica;
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
+import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.Indirizzo;
 import it.bologna.ausl.model.entities.rubrica.QContatto;
+import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.QEmail;
 import it.bologna.ausl.model.entities.rubrica.QIndirizzo;
 import it.bologna.ausl.model.entities.rubrica.QTelefono;
@@ -52,6 +54,19 @@ public class RubricaBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QContatto.contatto, Contatto.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"dettagliocontatto", "dettagliocontatto/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> dettagliocontatto(
+            @QuerydslPredicate(root = DettaglioContatto.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDettaglioContatto.dettaglioContatto, DettaglioContatto.class);
         return ResponseEntity.ok(resource);
     }
 
