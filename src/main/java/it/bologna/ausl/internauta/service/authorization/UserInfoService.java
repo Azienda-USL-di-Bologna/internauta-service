@@ -3,7 +3,6 @@ package it.bologna.ausl.internauta.service.authorization;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.PathBuilder;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
@@ -12,15 +11,16 @@ import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
+import it.bologna.ausl.internauta.service.permessi.Permesso;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.RuoloRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.bologna.ausl.model.entities.baborg.QUtente;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -31,7 +31,6 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
@@ -40,10 +39,8 @@ import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedu
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
-import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
@@ -55,6 +52,8 @@ import org.sql2o.Sql2o;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
+import java.util.Collections;
+import java.util.Comparator;
 
 /**
  * Service per la creazione dell'oggetto UserInfoOld TODO: descrivere la
@@ -71,6 +70,9 @@ public class UserInfoService {
 
     @Autowired
     UtenteRepository utenteRepository;
+    
+    @Autowired
+    StrutturaRepository strutturaRepository;
 
     @Autowired
     UtenteStrutturaRepository utenteStrutturaRepository;
@@ -398,6 +400,44 @@ public class UserInfoService {
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
                 false);
     }
+    
+    /**
+     * Restituisce tutti i permessi di un utente di tipo flusso e per gli ambiti PICO, DETE e DELI
+     * con un ordinamento di default (eg. Struttura/Ambito/Permesso/AttivoDal)
+     * @param utente L'utente di cui si stanno chiedendo i permessi
+     * @return La lista dei permessi dell'utente
+     * @throws BlackBoxPermissionException 
+     */
+    @Cacheable(value = "getPermessiDiFlussoByIdUtente__ribaltorg__", key = "{#utente.getId()}")
+    public List<Permesso> getPermessiDiFlussoByIdUtente(Utente utente) throws BlackBoxPermissionException {
+        // Chiamata alla blackbox per ricevere la lista dei permessi dell'utente  
+        List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubject(utente, null,
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
+                    InternautaConstants.Permessi.Ambiti.DETE.toString(),
+                    InternautaConstants.Permessi.Ambiti.DELI.toString()}),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
+                false);
+        
+        // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend
+        List <Permesso> permessiUtente = new ArrayList<>();
+        
+        permissionsOfSubject.forEach((permessoEntita) -> {
+            permessoEntita.getCategorie().forEach((categoria) -> {
+                categoria.getPermessi().forEach((permessoCategoria) -> {
+                    Permesso permesso = new Permesso();
+                    permesso.setAmbito(categoria.getAmbito());
+                    permesso.setPermesso(permessoCategoria.getPredicato());
+                    permesso.setAttivoDal(permessoCategoria.getAttivoDal());
+                    permesso.setAttivoAl(permessoCategoria.getAttivoAl() != null ? permessoCategoria.getAttivoAl() : null);
+                    permesso.setStruttura(strutturaRepository.getOne(permessoEntita.getOggetto().getIdProvenienza()));
+                    permessiUtente.add(permesso);
+                });
+            });
+        });
+        Collections.sort(permessiUtente);
+        
+        return permessiUtente;
+    }
 
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Utente utente) throws BlackBoxPermissionException {
         return getPermessiDiFlussoByCodiceAzienda(utente.getIdPersona());
@@ -624,6 +664,6 @@ public class UserInfoService {
         }
         return utenteProcton;
     }
-    
+
     
 }
