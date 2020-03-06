@@ -33,6 +33,7 @@ import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.supercsv.cellprocessor.ParseInt;
@@ -160,7 +161,7 @@ public class BaborgUtils {
 
                         // Inserisco la riga
                         MdrAppartenenti mA = new MdrAppartenenti();
-                        mA.setCodiceEnte((Integer) appartenentiMap.get("codiceEnte"));
+                        mA.setCodiceEnte(codiceAzienda);
                         mA.setCodiceMatricola((Integer) appartenentiMap.get("codiceMatricola"));
                         mA.setCognome((String) appartenentiMap.get("cognome"));
                         mA.setNome((String) appartenentiMap.get("nome"));
@@ -189,7 +190,7 @@ public class BaborgUtils {
 
                         // Inserisco la riga
                         MdrResponsabili mR = new MdrResponsabili();
-                        mR.setCodiceEnte((Integer) responsabiliMap.get("codiceEnte"));
+                        mR.setCodiceEnte(codiceAzienda);
                         mR.setCodiceMatricola((Integer) responsabiliMap.get("codiceMatricola"));
                         mR.setIdCasella((Integer) responsabiliMap.get("idCasella"));
                         mR.setDatain(convertDateToLocaleDateTime((Date) responsabiliMap.get("datain")));
@@ -219,7 +220,7 @@ public class BaborgUtils {
                         mS.setDatain(convertDateToLocaleDateTime((Date) strutturaMap.get("datain")));
                         mS.setDatafi(convertDateToLocaleDateTime((Date) strutturaMap.get("datafi")));
                         mS.setTipoLegame((String) strutturaMap.get("tipoLegame"));
-                        mS.setCodiceEnte((Integer) strutturaMap.get("codiceEnte"));
+                        mS.setCodiceEnte(codiceAzienda);
                         mS.setIdAzienda(azienda);
                         mdrStrutturaRepository.save(mS);
                     }
@@ -239,7 +240,7 @@ public class BaborgUtils {
 
                         // Inserisco la riga
                         MdrTrasformazioni m = new MdrTrasformazioni();
-                        m.setCodiceEnte((Integer) trasformazioniMap.get("codiceEnte"));
+                        m.setCodiceEnte(codiceAzienda);
                         m.setDataTrasformazione(convertDateToLocaleDateTime((Date) trasformazioniMap.get("dataTrasformazione")));
                         m.setDatainPartenza(convertDateToLocaleDateTime((Date) trasformazioniMap.get("datainPartenza")));
                         m.setDataoraOper(convertDateToLocaleDateTime((Date) trasformazioniMap.get("dataoraOper")));
@@ -288,28 +289,30 @@ public class BaborgUtils {
         switch (tipo) {
             case "APPARTENENTI":
                 final CellProcessor[] processorsAPPARTENENTI = new CellProcessor[]{
-                    new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
+                    // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
+                    new Optional(new ParseInt()), // codice_ente
                     new NotNull(new ParseInt()), // codice_matricola
                     new NotNull(), // cognome
                     new NotNull(), // nome
                     new NotNull(), // codice_fiscale
                     new NotNull(new ParseInt()), // id_casellla
-                    new NotNull(new ParseDate("yyyy-MM-dd HH:mm:ss")), // datain
-                    new Optional(new ParseDate("yyyy-MM-dd HH:mm:ss")), // datafi
+                    new NotNull(new ParseDate("dd/mm/yyyy")), // datain
+                    new Optional(new ParseDate("dd/mm/yyyy")), // datafi
                     new NotNull(), // tipo_appartenenza
-                    new NotNull(), // username
-                    new NotNull(new ParseDate("yyyy-MM-dd HH:mm:ss")), // data_assunzione
-                    new Optional(new ParseDate("yyyy-MM-dd HH:mm:ss")) // data_adimissione
+                    new Optional(), // username
+                    new NotNull(new ParseDate("dd/mm/yyyy")), // data_assunzione
+                    new Optional(new ParseDate("dd/mm/yyyy")) // data_adimissione
                 };
                 cellProcessor = processorsAPPARTENENTI;
                 break;
             case "RESPONSABILI":
                 final CellProcessor[] processorsRESPONSABILI = new CellProcessor[]{
-                    new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
+                    // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
+                    new Optional(new ParseInt()), // codice_ente
                     new NotNull(new ParseInt()), // codice_matricola
                     new NotNull(new ParseInt()), // id_casellla
-                    new NotNull(new ParseDate("yyyy-MM-dd HH:mm:ss")), // datain
-                    new Optional(new ParseDate("yyyy-MM-dd HH:mm:ss")), // datafi
+                    new NotNull(new ParseDate("dd/mm/yyyy")), // datain
+                    new Optional(new ParseDate("dd/mm/yyyy")), // datafi
                     new NotNull() // tipo
                 };
                 cellProcessor = processorsRESPONSABILI;
@@ -319,10 +322,10 @@ public class BaborgUtils {
                     new NotNull(new ParseInt()), // progressivo_riga
                     new NotNull(new ParseInt()), // id_casella_partenza
                     new Optional(new ParseInt()), // id_casellla_arrivo
-                    new Optional(new ParseDate("yyyy-MM-dd HH:mm:ss")), // data_trasformazione
+                    new Optional(new ParseDate("dd/mm/yyyy")), // data_trasformazione
                     new NotNull(), // motivo
-                    new Optional(new ParseDate("yyyy-MM-dd HH:mm:ss")), // datain_partenza
-                    new Optional(new ParseDate("yyyy-MM-dd HH:mm:ss")), // dataora_oper
+                    new Optional(new ParseDate("dd/mm/yyyy")), // datain_partenza
+                    new Optional(new ParseDate("dd/mm/yyyy")), // dataora_oper
                     new Optional(new ParseInt()) // codice_ente
                 };
                 cellProcessor = processorsTRASFORMAZIONI;
@@ -333,10 +336,11 @@ public class BaborgUtils {
                     new NotNull(new ParseInt()), // id_casella
                     new Optional(new ParseInt()), // id_padre
                     new NotNull(), // descrizione
-                    new NotNull(new ParseDate("yyyy-MM-dd HH:mm:ss")), // datain
-                    new ParseDate("yyyy-MM-dd HH:mm:ss"), // datafi
+                    new NotNull(new ParseDate("dd/mm/yyyy")), // datain
+                    new ParseDate("dd/mm/yyyy"), // datafi
                     new Optional(), // tipo_legame
-                    new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
+                    // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
+                    new Optional(new ParseInt()) // codice_ente
                 };
                 cellProcessor = processorsSTRUTTURA;
                 break;
@@ -385,9 +389,9 @@ public class BaborgUtils {
         return res;
     }
 
-    public ImportazioniOrganigramma manageUploadFile(Integer idUser, MultipartFile file, String idAzienda, String tipo, String codiceAzienda, String fileName, Persona person) throws Exception {
-        ImportazioniOrganigramma newRowInserted = null;
-        ImportazioniOrganigramma res = null;
+    @Transactional(rollbackFor = Throwable.class)
+    public ImportazioniOrganigramma insertNewRowImportazioneOrganigrama(Integer idUser, String idAzienda, String tipo, String codiceAzienda, String fileName, Persona person, ImportazioniOrganigramma newRowInserted) {
+//        ImportazioniOrganigramma newRowInserted = null;
 
         int idAziendaInt = Integer.parseInt(idAzienda);
         int idAziendaCodice = Integer.parseInt(codiceAzienda);
@@ -407,7 +411,14 @@ public class BaborgUtils {
             newRowInserted = importazioniOrganigrammaRepository.save(newRowInCorso);
             System.out.println("new row inserted in Importazioni Organigramma" + newRowInserted);
         }
+        return newRowInserted;
+    }
 
+    @Transactional(rollbackFor = Throwable.class)
+    public ImportazioniOrganigramma manageUploadFile(Integer idUser, MultipartFile file, String idAzienda, String tipo, String codiceAzienda, String fileName, Persona person, ImportazioniOrganigramma newRowInserted) throws Exception {
+
+        int idAziendaInt = Integer.parseInt(idAzienda);
+        int idAziendaCodice = Integer.parseInt(codiceAzienda);
 //        System.out.println("tipo " + tipo);
 //        System.out.println("codiceAzienda " + codiceAzienda);
 //        System.out.println("azienda Id " + idAzienda);
@@ -415,6 +426,7 @@ public class BaborgUtils {
 //        System.out.println("file content type: " + file.getContentType());
 //        System.out.println("file original file name: " + file.getOriginalFilename());
 //        System.out.println("file resource: " + file.getResource());
+        ImportazioniOrganigramma res = null;
         try {
             csvTransactionalReadDeleteInsert(file, tipo, idAziendaCodice, idAziendaInt);
             // Update nello storico importazioni. esito: OK e Data Fine: Data.now

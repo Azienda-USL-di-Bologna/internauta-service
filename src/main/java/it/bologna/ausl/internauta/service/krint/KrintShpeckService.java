@@ -14,6 +14,7 @@ import it.bologna.ausl.model.entities.logs.projections.KrintShpeckTag;
 import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.Message;
+import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.Outbox;
 import it.bologna.ausl.model.entities.shpeck.Tag;
 import java.util.HashMap;
@@ -432,6 +433,40 @@ public class KrintShpeckService {
                 idOggetto = tag.getId();
             } catch (Exception exa) {}
             krintService.writeKrintError(idOggetto, "writeTag", codiceOperazione);
+        }  
+    }
+    
+    /**
+     * Questa procedura logga l'eliminazione di un messaggio dal cestino
+     * @param message Il messaggio eliminato
+     * @param codiceOperazione Il codice dell'operazione
+     */
+    public void writeDeletedFromTrash(MessageFolder messageFolder, OperazioneKrint.CodiceOperazione codiceOperazione) {
+        try {
+            // Informazioni oggetto
+            KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, messageFolder.getIdMessage());    
+            String jsonKrintPecMessage = objectMapper.writeValueAsString(krintPecMessage);
+            
+            // Informazioni oggetto contenitore
+            KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, messageFolder.getIdMessage().getIdPec());   
+            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+
+            krintService.writeKrintRow(
+                messageFolder.getIdMessage().getId().toString(),
+                Krint.TipoOggettoKrint.SHPECK_MESSAGE,
+                messageFolder.getIdMessage().getId().toString(),
+                jsonKrintPecMessage,
+                messageFolder.getIdMessage().getIdPec().getId().toString(),
+                Krint.TipoOggettoKrint.BABORG_PEC,
+                messageFolder.getIdMessage().getIdPec().getIndirizzo(),
+                jsonKrintPec,
+                codiceOperazione);                                                    
+        } catch (Exception ex) {
+            Integer idOggetto = null;
+            try {
+                idOggetto = messageFolder.getIdMessage().getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeDeletedFromTrash", codiceOperazione);
         }  
     }
 }
