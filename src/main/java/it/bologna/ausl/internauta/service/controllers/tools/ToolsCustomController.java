@@ -101,9 +101,6 @@ import java.util.Properties;
 public class ToolsCustomController implements ControllerHandledExceptions {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(ToolsCustomController.class);
-    //dati per mandare la mail
-
-    
     
     //per parametri pubblici?
     @Autowired
@@ -113,7 +110,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     @Autowired
     private ObjectMapper objectMapper;
    
-    public Boolean sendMail(Integer idAzienda, String fromName, String Subject, String To, String body, List<String> cc, List<String> bcc ) throws IOException{
+    public Boolean sendMail(Integer idAzienda, String fromName, String Subject, List<String> To, String body, List<String> cc, List<String> bcc ) throws IOException{
         
         Azienda azienda = cachedEntities.getAzienda(idAzienda);
         AziendaParametriJson aziendaParametri = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
@@ -126,9 +123,8 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             String username=null;
             String password=null; 
         
-        
         Properties prop = System.getProperties();
-        prop.put("mail.smtp.host", smtpServer); //optional, defined in SMTPTransport
+        prop.put("mail.smtp.host", smtpServer);                                 //optional, defined in SMTPTransport
         
         if (StringUtils.isEmpty(username) && StringUtils.isEmpty(password)){
             prop.put("mail.smtp.auth", "false");
@@ -137,7 +133,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         }
         
         if (port != null && port != -1 ){
-            prop.put("mail.smtp.port", port.toString()); // default port 25
+            prop.put("mail.smtp.port", port.toString());                        // default port 25
         }else{
             prop.put("mail.smtp.port", "25");
         }
@@ -149,23 +145,28 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             String mailFrom = mailParams.getMailFrom();
             // from
             msg.setFrom(new InternetAddress (mailFrom,fromName));
-            
 
-            // to 
-            msg.setRecipients(Message.RecipientType.TO,
-                    InternetAddress.parse(To, false));
-            //
-            
-            if (cc!=null && !cc.isEmpty()){
+            // inserisco lista TO
+            if (To!=null && !To.isEmpty()){
 			// cc non so se va bene sicuramente no
+                for (String toElement : To) {
+                    msg.setRecipients(Message.RecipientType.TO,
+                        InternetAddress.parse(toElement, false));
+                    }
+            }
+            
+//            msg.setRecipients(Message.RecipientType.TO,
+//                    InternetAddress.parse(To, false));
+ 
+            //inserico lista CC
+            if (cc!=null && !cc.isEmpty()){
                 for (String ccElement : cc) {
                     msg.setRecipients(Message.RecipientType.CC,
                         InternetAddress.parse(ccElement, false));
                     }
             }
-            
+            //inserisco lista BCC
             if (bcc!=null && !bcc.isEmpty()){
-			// cc non so se va bene sicuramente no
                 for (String bccElement : bcc) {
                     msg.setRecipients(Message.RecipientType.CC,
                         InternetAddress.parse(bccElement, false));
@@ -187,13 +188,8 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             // Get SMTPTransport
             SMTPTransport t = (SMTPTransport) session.getTransport("smtp");
             // connect
-            
-            //attenzione verificare come funziona
-            
             t.connect(smtpServer, username, password);
-            
-
-        // send
+            // send
             t.sendMessage(msg, msg.getAllRecipients());
             System.out.println("Response: " + t.getLastServerResponse());
             t.close();
@@ -207,28 +203,23 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         return false;
     }
     
+    
+    //funzione di prova per testare sendMail
 //     @RequestMapping(value = {"testMailSend"}, method = RequestMethod.GET)
 //    public void test() throws IOException{
 //        sendMail(2, "prova.smart@ausl.bo.it", "test", "", "prova", new ArrayList<String>(), new ArrayList<String>());
 //    }
     
-    
-    
+
     @RequestMapping(value = {"sendSmartWorkingMail"}, method = RequestMethod.POST)
     public void sendSmartWorkingMail( @RequestBody Map<String, Object> jsonRequestSW) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
- 
-        
-        String smtpServer;
-        String username =null;
-        String password=null;
         
         String accountFrom="smartworking@auslbo.it";
-        
         String Subject="Richiesta SMART WORKING";
-        
         String emailTextBody = "Dati del richiedente:\n";
         
-        String to=jsonRequestSW.get("mailCentroDiGestione").toString();
+        List<String> to=null;
+        to.add(jsonRequestSW.get("mailCentroDiGestione").toString());
         
         List<String> cc = null;
         cc.add(jsonRequestSW.get("mail").toString());
