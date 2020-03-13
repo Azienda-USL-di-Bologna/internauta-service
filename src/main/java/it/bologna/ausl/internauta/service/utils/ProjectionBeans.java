@@ -34,7 +34,6 @@ import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URLEncoder;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.LoggerFactory;
@@ -45,29 +44,27 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
+import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtenteResponsabileCustom;
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdAzienda;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 import it.bologna.ausl.model.entities.logs.projections.KrintShpeckPec;
 import it.bologna.ausl.model.entities.permessi.Predicato;
 import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoWithPlainFields;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
-import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.Indirizzo;
 import it.bologna.ausl.model.entities.rubrica.Telefono;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithIdContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.EmailWithIdDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdContattoAndIdDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdDettaglioContattoAndIdGruppo;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdGruppo;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.IndirizzoWithIdDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.TelefonoWithIdDettaglioContatto;
 import java.util.ArrayList;
-import java.util.Arrays;
 import org.slf4j.Logger;
 
 /**
@@ -88,6 +85,9 @@ public class ProjectionBeans {
 
     @Autowired
     protected UtenteRepository utenteRepository;
+    
+    @Autowired
+    protected StrutturaRepository strutturaRepository;
 
     @Autowired
     protected PredicatoRepository predicatoRepository;
@@ -463,6 +463,28 @@ public class ProjectionBeans {
         for (Integer idPredicato : idPredicati) {
             Predicato predicato = this.predicatoRepository.getOne(idPredicato);
             res.add(factory.createProjection(PredicatoWithPlainFields.class, predicato));
+        }
+        return res;
+    }
+    
+    public UtenteWithIdPersona getResposabileStruttura(Struttura struttura) {
+        Integer idUtenteResposabile = strutturaRepository.getResponsabile(struttura.getId());
+        if (idUtenteResposabile != null) {
+            Utente utenteResposabile = utenteRepository.findById(idUtenteResposabile).get();
+            return factory.createProjection(UtenteWithIdPersona.class, utenteResposabile);
+        } else {
+            return null;
+        }
+    }
+    
+    public List<StrutturaWithUtenteResponsabileCustom> getStruttureUtenteWithReponsabile(Utente utente) {
+        List<StrutturaWithUtenteResponsabileCustom> res = null;
+        List<UtenteStruttura> utenteStrutturaList = utente.getUtenteStrutturaList();
+        if (utenteStrutturaList != null && !utenteStrutturaList.isEmpty()) {
+            res = utenteStrutturaList.stream().map(utenteStruttura -> {
+                Struttura struttura = utenteStruttura.getIdStruttura();
+                return factory.createProjection(StrutturaWithUtenteResponsabileCustom.class, struttura);
+            }).collect(Collectors.toList());
         }
         return res;
     }
