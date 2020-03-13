@@ -73,7 +73,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 //import per mandare mail 
 import com.sun.mail.smtp.SMTPTransport;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -85,7 +90,10 @@ import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.Properties;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 /**
  *
@@ -203,4 +211,52 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     }
     
     
+    /**
+     * Torna un oggetto che contiene varie informazioni relative al client.
+     * Attualmente torna indirizzo ip e nome del computer (hostName).
+     * @param request
+     * @return 
+     */
+    @RequestMapping(value = {"getClientInfo"}, method = RequestMethod.GET)
+    public ResponseEntity<JSONObject> getClientInfo(HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-FORWARDED-FOR");  
+        if (ipAddress == null) {  
+            ipAddress = request.getRemoteAddr();
+        } 
+        if (ipAddress.equals("0:0:0:0:0:0:0:1")) {
+            try {
+                ipAddress = java.net.InetAddress.getLocalHost().getCanonicalHostName();
+            } catch (UnknownHostException e) {
+                ipAddress = null;
+            }
+        }
+        String hostName = null;
+        if (ipAddress != null) {
+            hostName = getHostName(ipAddress);
+        }
+        
+        JSONObject o = new JSONObject();
+        o.put("ip", ipAddress);
+        o.put("hostName", hostName);
+        
+        // Esempio di HostName che riesco a prendere
+//        String hostName = getHostName("172.23.100.225");
+//        LOGGER.info("172.23.100.225" + hostName);
+
+        return new ResponseEntity(o, HttpStatus.OK);
+    }
+    
+    private String getHostName(String ip) {
+        String computerName = null;
+        try {
+            InetAddress inetAddress = InetAddress.getByName(ip);
+            computerName = inetAddress.getHostName();
+            if (computerName.equalsIgnoreCase("localhost")) {
+                computerName = java.net.InetAddress.getLocalHost().getCanonicalHostName();
+            } 
+        } catch (UnknownHostException e) {
+            LOGGER.error("UnknownHostException detected in StartAction. ", e);
+        }
+        return computerName;
+    }
 }
