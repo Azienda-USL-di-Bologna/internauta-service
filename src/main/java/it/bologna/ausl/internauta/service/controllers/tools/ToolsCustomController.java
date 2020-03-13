@@ -73,6 +73,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 //import per mandare mail 
 import com.sun.mail.smtp.SMTPTransport;
+import static com.sun.tools.internal.xjc.reader.Ring.add;
 import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -85,120 +86,200 @@ import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Date;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
  *
  * @author gdm
  */
+
+
+
 @RestController
 @RequestMapping(value = "${tools.mapping.url.root}")
 public class ToolsCustomController implements ControllerHandledExceptions {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(ToolsCustomController.class);
     //dati per mandare la mail
-    private static final String SMTP_SERVER = "smtp server ";
-    private static final String USERNAME = "";
-    private static final String PASSWORD = "";
 
-    private static final String EMAIL_FROM = "From@gmail.com";
-
-    private static final String EMAIL_SUBJECT = "richiesta SMART WORKING - ";
-    private static String EMAIL_TEXT = "Dati del richiedente:\n";
-
+    
+    
+    //per parametri pubblici?
+    @Autowired
+    private AziendaRepository aziendaRepository;
+    @Autowired
+    private CachedEntities cachedEntities;
+    @Autowired
+    private ObjectMapper objectMapper;
    
-    @RequestMapping(value = {"sendSmartWorkingMail"}, method = RequestMethod.POST)
-    public void sendSmartWorkingMail( @RequestBody Map<String, Object> jsonRequestSW) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
+    public Boolean sendMail(Integer idAzienda, String fromName, String Subject, String To, String body, List<String> cc, List<String> bcc ) throws IOException{
+        
+        Azienda azienda = cachedEntities.getAzienda(idAzienda);
+        AziendaParametriJson aziendaParametri = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        AziendaParametriJson.MailParams mailParams=aziendaParametri.getMailParams(); 
+        
+        if (mailParams != null) {
+            String smtpServer=mailParams.getMailServerSmtpUrl();
+            Integer port=mailParams.getMailServerSmtpPort();
+            
+            String username=null;
+            String password=null; 
+        
         
         Properties prop = System.getProperties();
-        prop.put("mail.smtp.host", SMTP_SERVER); //optional, defined in SMTPTransport
-        prop.put("mail.smtp.auth", "true");
-        prop.put("mail.smtp.port", "25"); // default port 25
+        prop.put("mail.smtp.host", smtpServer); //optional, defined in SMTPTransport
+        
+        if (StringUtils.isEmpty(username) && StringUtils.isEmpty(password)){
+            prop.put("mail.smtp.auth", "false");
+        }else{
+            prop.put("mail.smtp.auth", "true");
+        }
+        
+        if (port != null && port != -1 ){
+            prop.put("mail.smtp.port", port.toString()); // default port 25
+        }else{
+            prop.put("mail.smtp.port", "25");
+        }
+        
         Session session = Session.getInstance(prop, null);
-        Message msg = new MimeMessage(session);
-        
-        
-        
-        
+        Message msg = new MimeMessage(session); 
+       
         try {
-		
-			// from
-            msg.setFrom(new InternetAddress(EMAIL_FROM));
+            String mailFrom = mailParams.getMailFrom();
+            // from
+            msg.setFrom(new InternetAddress (mailFrom,fromName));
+            
 
             // to 
             msg.setRecipients(Message.RecipientType.TO,
-                    InternetAddress.parse(jsonRequestSW.get("mailCentroDiGestione").toString(), false));
+                    InternetAddress.parse(To, false));
+            //
             
-			// cc
-            msg.setRecipients(Message.RecipientType.CC,
-                    InternetAddress.parse(jsonRequestSW.get("mail").toString(), false));
-
+            if (cc!=null && !cc.isEmpty()){
+			// cc non so se va bene sicuramente no
+                for (String ccElement : cc) {
+                    msg.setRecipients(Message.RecipientType.CC,
+                        InternetAddress.parse(ccElement, false));
+                    }
+            }
+            
+            if (bcc!=null && !bcc.isEmpty()){
+			// cc non so se va bene sicuramente no
+                for (String bccElement : bcc) {
+                    msg.setRecipients(Message.RecipientType.CC,
+                        InternetAddress.parse(bccElement, false));
+                    }
+            }
+            
             // subject
             LocalDateTime today = LocalDateTime.now();
             ZoneId id = ZoneId.of("Europe/Rome");
             ZonedDateTime zonedDateTime = ZonedDateTime.of(today, id);      //That's how you add timezone to date
             String formattedDateTime = DateTimeFormatter
-                            .ofPattern("dd/MM/yyyy ore HH:mm")
-                            .format(zonedDateTime);             //11/03/2020 ore 10.44
-            msg.setSubject(EMAIL_SUBJECT+jsonRequestSW.get("richiedente").toString()+ " "+ formattedDateTime);
- 
-            EMAIL_TEXT=EMAIL_TEXT+"Richiedente: "+jsonRequestSW.get("richiedente").toString() + "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"CF: "+jsonRequestSW.get("CF").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Mail del richiedente: "+jsonRequestSW.get("mail").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Periodo richiesto dal: "+jsonRequestSW.get("periodoDal").toString()+"al: "+jsonRequestSW.get("periodoAl").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Motivazione: "+jsonRequestSW.get("motivazione").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"********";
-            EMAIL_TEXT=EMAIL_TEXT+"Dati della postazione di lavoro: \n";
-            EMAIL_TEXT=EMAIL_TEXT+"IP: "+jsonRequestSW.get("ip").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Ubicazione: "+jsonRequestSW.get("azienda").toString()+ " - "+jsonRequestSW.get("sede")+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"********";
-            EMAIL_TEXT=EMAIL_TEXT+"Dati del richiedente: \n";
-            EMAIL_TEXT=EMAIL_TEXT+"Profilo professionale: "+jsonRequestSW.get("profiloProfessionale").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Mansione: "+jsonRequestSW.get("mansione").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Responsabile: "+jsonRequestSW.get("responsabile").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Mail del responsabile: "+jsonRequestSW.get("mailResponsabile").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Centro di gestione: "+jsonRequestSW.get("mailCentroDiGestione").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"********";
-            EMAIL_TEXT=EMAIL_TEXT+"Dati della postazione smart working: \n";
-            EMAIL_TEXT=EMAIL_TEXT+"Pc Personale: "+jsonRequestSW.get("pcPersonale").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Pc Aziendale: "+jsonRequestSW.get("pcAziendale").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Sistema Operativo: "+jsonRequestSW.get("sistemaOperativo").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Connettività Domestica: "+jsonRequestSW.get("connettivitaDomestica").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Numero di telefono di contatto: "+jsonRequestSW.get("numeroTel").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Ho il cellulare aziendale: "+jsonRequestSW.get("hoCellulareAziendale").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Numero del cellulare aziendale: "+jsonRequestSW.get("cellulareAziendale").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Disponibilità: "+jsonRequestSW.get("contattabilita").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"VPN attiva: "+jsonRequestSW.get("vpn").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Firma Digitale: "+jsonRequestSW.get("firma").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Lettore smart card: "+jsonRequestSW.get("haLettoreSmartCard").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"********";
-            EMAIL_TEXT=EMAIL_TEXT+"Dati sull'attività di smart working: \n";
-            EMAIL_TEXT=EMAIL_TEXT+"Proposta attività in smart working: "+jsonRequestSW.get("attivitaSW").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Applicativi usati da internet: gru:"+jsonRequestSW.get("gru").toString()+ ", gaac: "+jsonRequestSW.get("gaac").toString()+ ", babel: "+jsonRequestSW.get("babel").toString()+ ", sirer: "+jsonRequestSW.get("sirer").toString()+ ", nextcloud: "+jsonRequestSW.get("nextcloud").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Applicativi e software utilizzati in rete aziendale: "+jsonRequestSW.get("appUsate").toString()+ "\n";
-            EMAIL_TEXT=EMAIL_TEXT+"Usa cartelle condivise: "+jsonRequestSW.get("cartelleCondivise").toString()+ "\n";
-			
-			// content 
-            msg.setText(EMAIL_TEXT);
-			
+                            .ofPattern("dd/MM/yyyy - HH:mm")
+                            .format(zonedDateTime);             //  esempio 11/03/2020 ore 10.44
+            
+            msg.setSubject(Subject+ " "+ formattedDateTime);
+            // content 
+            msg.setText(body);
             msg.setSentDate(new Date());
-
-			// Get SMTPTransport
+            // Get SMTPTransport
             SMTPTransport t = (SMTPTransport) session.getTransport("smtp");
-			
-			// connect
-            t.connect(SMTP_SERVER, USERNAME, PASSWORD);
-			
-			// send
+            // connect
+            
+            //attenzione verificare come funziona
+            
+            t.connect(smtpServer, username, password);
+            
+
+        // send
             t.sendMessage(msg, msg.getAllRecipients());
-
             System.out.println("Response: " + t.getLastServerResponse());
-
             t.close();
-
         } catch (MessagingException e) {
             e.printStackTrace();
+            return false;
         }
+        return true;
+        
+        }
+        return false;
+    }
+    
+//     @RequestMapping(value = {"testMailSend"}, method = RequestMethod.GET)
+//    public void test() throws IOException{
+//        sendMail(2, "prova.smart@ausl.bo.it", "test", "", "prova", new ArrayList<String>(), new ArrayList<String>());
+//    }
+    
+    
+    
+    @RequestMapping(value = {"sendSmartWorkingMail"}, method = RequestMethod.POST)
+    public void sendSmartWorkingMail( @RequestBody Map<String, Object> jsonRequestSW) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
+ 
+        
+        String smtpServer;
+        String username =null;
+        String password=null;
+        
+        String accountFrom="smartworking@auslbo.it";
+        
+        String Subject="Richiesta SMART WORKING";
+        
+        String emailTextBody = "Dati del richiedente:\n";
+        
+        String to=jsonRequestSW.get("mailCentroDiGestione").toString();
+        
+        List<String> cc = null;
+        cc.add(jsonRequestSW.get("mail").toString());
+        //data e ora odierni
+        
+        LocalDateTime today = LocalDateTime.now();
+        ZoneId id = ZoneId.of("Europe/Rome");
+        ZonedDateTime zonedDateTime = ZonedDateTime.of(today, id);      //That's how you add timezone to date
+        String formattedDateTime = DateTimeFormatter
+                .ofPattern("dd/MM/yyyy ore HH:mm")
+                .format(zonedDateTime);             //11/03/2020 ore 10.44
+         
+        Subject=Subject+jsonRequestSW.get("richiedente").toString()+ " "+ formattedDateTime;
+        emailTextBody=emailTextBody+"Richiedente: "+jsonRequestSW.get("richiedente").toString() + "\n";
+        emailTextBody=emailTextBody+"CF: "+jsonRequestSW.get("CF").toString()+ "\n";
+        emailTextBody=emailTextBody+"Mail del richiedente: "+jsonRequestSW.get("mail").toString()+ "\n";
+        emailTextBody=emailTextBody+"Periodo richiesto dal: "+jsonRequestSW.get("periodoDal").toString()+"al: "+jsonRequestSW.get("periodoAl").toString()+ "\n";
+        emailTextBody=emailTextBody+"Motivazione: "+jsonRequestSW.get("motivazione").toString()+ "\n";
+        emailTextBody=emailTextBody+"********";
+        emailTextBody=emailTextBody+"Dati della postazione di lavoro: \n";
+        emailTextBody=emailTextBody+"IP: "+jsonRequestSW.get("ip").toString()+ "\n";
+        emailTextBody=emailTextBody+"Ubicazione: "+jsonRequestSW.get("azienda").toString()+ " - "+jsonRequestSW.get("sede")+ "\n";
+        emailTextBody=emailTextBody+"********";
+        emailTextBody=emailTextBody+"Dati del richiedente: \n";
+        emailTextBody=emailTextBody+"Profilo professionale: "+jsonRequestSW.get("profiloProfessionale").toString()+ "\n";
+        emailTextBody=emailTextBody+"Mansione: "+jsonRequestSW.get("mansione").toString()+ "\n";
+        emailTextBody=emailTextBody+"Responsabile: "+jsonRequestSW.get("responsabile").toString()+ "\n";
+        emailTextBody=emailTextBody+"Mail del responsabile: "+jsonRequestSW.get("mailResponsabile").toString()+ "\n";
+        emailTextBody=emailTextBody+"Centro di gestione: "+jsonRequestSW.get("mailCentroDiGestione").toString()+ "\n";
+        emailTextBody=emailTextBody+"********";
+        emailTextBody=emailTextBody+"Dati della postazione smart working: \n";
+        emailTextBody=emailTextBody+"Pc Personale: "+jsonRequestSW.get("pcPersonale").toString()+ "\n";
+        emailTextBody=emailTextBody+"Pc Aziendale: "+jsonRequestSW.get("pcAziendale").toString()+ "\n";
+        emailTextBody=emailTextBody+"Sistema Operativo: "+jsonRequestSW.get("sistemaOperativo").toString()+ "\n";
+        emailTextBody=emailTextBody+"Connettività Domestica: "+jsonRequestSW.get("connettivitaDomestica").toString()+ "\n";
+        emailTextBody=emailTextBody+"Numero di telefono di contatto: "+jsonRequestSW.get("numeroTel").toString()+ "\n";
+        emailTextBody=emailTextBody+"Ho il cellulare aziendale: "+jsonRequestSW.get("hoCellulareAziendale").toString()+ "\n";
+        emailTextBody=emailTextBody+"Numero del cellulare aziendale: "+jsonRequestSW.get("cellulareAziendale").toString()+ "\n";
+        emailTextBody=emailTextBody+"Disponibilità: "+jsonRequestSW.get("contattabilita").toString()+ "\n";
+        emailTextBody=emailTextBody+"VPN attiva: "+jsonRequestSW.get("vpn").toString()+ "\n";
+        emailTextBody=emailTextBody+"Firma Digitale: "+jsonRequestSW.get("firma").toString()+ "\n";
+        emailTextBody=emailTextBody+"Lettore smart card: "+jsonRequestSW.get("haLettoreSmartCard").toString()+ "\n";
+        emailTextBody=emailTextBody+"********";
+        emailTextBody=emailTextBody+"Dati sull'attività di smart working: \n";
+        emailTextBody=emailTextBody+"Proposta attività in smart working: "+jsonRequestSW.get("attivitaSW").toString()+ "\n";
+        emailTextBody=emailTextBody+"Applicativi usati da internet: gru:"+jsonRequestSW.get("gru").toString()+ ", gaac: "+jsonRequestSW.get("gaac").toString()+ ", babel: "+jsonRequestSW.get("babel").toString()+ ", sirer: "+jsonRequestSW.get("sirer").toString()+ ", nextcloud: "+jsonRequestSW.get("nextcloud").toString()+ "\n";
+        emailTextBody=emailTextBody+"Applicativi e software utilizzati in rete aziendale: "+jsonRequestSW.get("appUsate").toString()+ "\n";
+        emailTextBody=emailTextBody+"Usa cartelle condivise: "+jsonRequestSW.get("cartelleCondivise").toString()+ "\n";
+              
+        Integer idAzienda = (Integer) jsonRequestSW.get("idAzienda");        
+        sendMail(idAzienda, accountFrom, Subject, to, emailTextBody, cc, null);
         
     }
     
