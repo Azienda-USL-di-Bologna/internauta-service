@@ -1,97 +1,44 @@
 package it.bologna.ausl.internauta.service.controllers.tools;
 
-import it.bologna.ausl.internauta.service.controllers.scrivania.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
-import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
-import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
-import it.bologna.ausl.internauta.service.authorization.UserInfoService;
-import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
-import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
-import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
-import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
-import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloader;
-import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloaderResponseBody;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
-import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
-import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.Struttura;
-import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
-import it.bologna.ausl.model.entities.scrivania.Attivita;
-import it.bologna.ausl.model.entities.scrivania.Attivita.TipoAttivita;
-import it.bologna.ausl.model.entities.scrivania.QAttivita;
-import it.nextsw.common.annotations.NextSdrRepository;
-import it.nextsw.common.controller.exceptions.NotFoundResourceException;
-import it.nextsw.common.controller.exceptions.RestControllerEngineException;
-import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
-import it.nextsw.common.utils.CommonUtils;
-import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import okhttp3.Response;
-import org.jose4j.json.internal.json_simple.JSONArray;
 import org.jose4j.json.internal.json_simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 
 //import per mandare mail 
 import com.sun.mail.smtp.SMTPTransport;
-import static com.sun.tools.internal.xjc.reader.Ring.add;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-
+import java.util.ArrayList;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.Properties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -100,9 +47,6 @@ import org.springframework.http.ResponseEntity;
  *
  * @author gdm
  */
-
-
-
 @RestController
 @RequestMapping(value = "${tools.mapping.url.root}")
 public class ToolsCustomController implements ControllerHandledExceptions {
@@ -186,11 +130,12 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             ZonedDateTime zonedDateTime = ZonedDateTime.of(today, id);      //That's how you add timezone to date
             String formattedDateTime = DateTimeFormatter
                             .ofPattern("dd/MM/yyyy - HH:mm")
-                            .format(zonedDateTime);             //  esempio 11/03/2020 ore 10.44
+                            .format(zonedDateTime);             //  esempio 11/03/2020 - 10.44
             
             msg.setSubject(Subject+ " "+ formattedDateTime);
             // content 
             msg.setText(body);
+            // msg.setContent(body, "text/html; charset=utf-8");
             msg.setSentDate(new Date());
             // Get SMTPTransport
             SMTPTransport t = (SMTPTransport) session.getTransport("smtp");
@@ -219,63 +164,84 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     
 
     @RequestMapping(value = {"sendSmartWorkingMail"}, method = RequestMethod.POST)
-    public void sendSmartWorkingMail( @RequestBody Map<String, Object> jsonRequestSW) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
+    public void sendSmartWorkingMail(@RequestBody Map<String, Object> jsonRequestSW) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
         
         String accountFrom="smartworking@auslbo.it";
         String Subject="Richiesta SMART WORKING";
-        String emailTextBody = "Dati del richiedente:\n";
+        String emailTextBody = "";
         
-        List<String> to=null;
+        List<String> to = new ArrayList();
         to.add(jsonRequestSW.get("mailCentroDiGestione").toString());
-        
-        List<String> cc = null;
+        List<String> cc = new ArrayList();
         cc.add(jsonRequestSW.get("mail").toString());
-        //data e ora odierni
         
+        //data e ora odierni
         LocalDateTime today = LocalDateTime.now();
         ZoneId id = ZoneId.of("Europe/Rome");
         ZonedDateTime zonedDateTime = ZonedDateTime.of(today, id);      //That's how you add timezone to date
         String formattedDateTime = DateTimeFormatter
-                .ofPattern("dd/MM/yyyy ore HH:mm")
-                .format(zonedDateTime);             //11/03/2020 ore 10.44
-         
-        Subject=Subject+jsonRequestSW.get("richiedente").toString()+ " "+ formattedDateTime;
-        emailTextBody=emailTextBody+"Richiedente: "+jsonRequestSW.get("richiedente").toString() + "\n";
-        emailTextBody=emailTextBody+"CF: "+jsonRequestSW.get("CF").toString()+ "\n";
-        emailTextBody=emailTextBody+"Mail del richiedente: "+jsonRequestSW.get("mail").toString()+ "\n";
-        emailTextBody=emailTextBody+"Periodo richiesto dal: "+jsonRequestSW.get("periodoDal").toString()+"al: "+jsonRequestSW.get("periodoAl").toString()+ "\n";
-        emailTextBody=emailTextBody+"Motivazione: "+jsonRequestSW.get("motivazione").toString()+ "\n";
-        emailTextBody=emailTextBody+"********";
-        emailTextBody=emailTextBody+"Dati della postazione di lavoro: \n";
-        emailTextBody=emailTextBody+"IP: "+jsonRequestSW.get("ip").toString()+ "\n";
-        emailTextBody=emailTextBody+"Ubicazione: "+jsonRequestSW.get("azienda").toString()+ " - "+jsonRequestSW.get("sede")+ "\n";
-        emailTextBody=emailTextBody+"********";
-        emailTextBody=emailTextBody+"Dati del richiedente: \n";
-        emailTextBody=emailTextBody+"Profilo professionale: "+jsonRequestSW.get("profiloProfessionale").toString()+ "\n";
-        emailTextBody=emailTextBody+"Mansione: "+jsonRequestSW.get("mansione").toString()+ "\n";
-        emailTextBody=emailTextBody+"Responsabile: "+jsonRequestSW.get("responsabile").toString()+ "\n";
-        emailTextBody=emailTextBody+"Mail del responsabile: "+jsonRequestSW.get("mailResponsabile").toString()+ "\n";
-        emailTextBody=emailTextBody+"Centro di gestione: "+jsonRequestSW.get("mailCentroDiGestione").toString()+ "\n";
-        emailTextBody=emailTextBody+"********";
-        emailTextBody=emailTextBody+"Dati della postazione smart working: \n";
-        emailTextBody=emailTextBody+"Pc Personale: "+jsonRequestSW.get("pcPersonale").toString()+ "\n";
-        emailTextBody=emailTextBody+"Pc Aziendale: "+jsonRequestSW.get("pcAziendale").toString()+ "\n";
-        emailTextBody=emailTextBody+"Sistema Operativo: "+jsonRequestSW.get("sistemaOperativo").toString()+ "\n";
-        emailTextBody=emailTextBody+"Connettività Domestica: "+jsonRequestSW.get("connettivitaDomestica").toString()+ "\n";
-        emailTextBody=emailTextBody+"Numero di telefono di contatto: "+jsonRequestSW.get("numeroTel").toString()+ "\n";
-        emailTextBody=emailTextBody+"Ho il cellulare aziendale: "+jsonRequestSW.get("hoCellulareAziendale").toString()+ "\n";
-        emailTextBody=emailTextBody+"Numero del cellulare aziendale: "+jsonRequestSW.get("cellulareAziendale").toString()+ "\n";
-        emailTextBody=emailTextBody+"Disponibilità: "+jsonRequestSW.get("contattabilita").toString()+ "\n";
-        emailTextBody=emailTextBody+"VPN attiva: "+jsonRequestSW.get("vpn").toString()+ "\n";
-        emailTextBody=emailTextBody+"Firma Digitale: "+jsonRequestSW.get("firma").toString()+ "\n";
-        emailTextBody=emailTextBody+"Lettore smart card: "+jsonRequestSW.get("haLettoreSmartCard").toString()+ "\n";
-        emailTextBody=emailTextBody+"********";
-        emailTextBody=emailTextBody+"Dati sull'attività di smart working: \n";
-        emailTextBody=emailTextBody+"Proposta attività in smart working: "+jsonRequestSW.get("attivitaSW").toString()+ "\n";
-        emailTextBody=emailTextBody+"Applicativi usati da internet: gru:"+jsonRequestSW.get("gru").toString()+ ", gaac: "+jsonRequestSW.get("gaac").toString()+ ", babel: "+jsonRequestSW.get("babel").toString()+ ", sirer: "+jsonRequestSW.get("sirer").toString()+ ", nextcloud: "+jsonRequestSW.get("nextcloud").toString()+ "\n";
-        emailTextBody=emailTextBody+"Applicativi e software utilizzati in rete aziendale: "+jsonRequestSW.get("appUsate").toString()+ "\n";
-        emailTextBody=emailTextBody+"Usa cartelle condivise: "+jsonRequestSW.get("cartelleCondivise").toString()+ "\n";
-              
+                .ofPattern("dd/MM/yyyy - HH:mm")
+                .format(zonedDateTime);             //11/03/2020 - 10.44
+        
+        // 2020-03-02T23:00:00.000Z
+        LocalDate periodoDalDate = LocalDate.parse(jsonRequestSW.get("periodoDal").toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
+        LocalDate periodoAlDate = LocalDate.parse(jsonRequestSW.get("periodoAl").toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
+        DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        String periodoDal = outputFormatter.format(periodoDalDate);
+        String periodoAl = outputFormatter.format(periodoAlDate);
+        
+        Subject = Subject + jsonRequestSW.get("richiedente").toString() + " " + formattedDateTime;
+        
+        emailTextBody += "DATI DEL RICHIEDENTE\n";
+        emailTextBody += "Richiedente: " + jsonRequestSW.get("richiedente").toString() + "\n";
+        emailTextBody += "Codice fiscale: " + jsonRequestSW.get("CF").toString()+ "\n";
+        emailTextBody += "Mail del richiedente: " + jsonRequestSW.get("mail").toString()+ "\n";
+        emailTextBody += "Profilo professionale: " + jsonRequestSW.get("profiloProfessionale").toString()+ "\n";
+        emailTextBody += "Mansione: " + jsonRequestSW.get("mansione").toString()+ "\n";
+        emailTextBody += "Responsabile: " + jsonRequestSW.get("responsabile").toString()+ "\n";
+        emailTextBody += "Mail del responsabile: " + jsonRequestSW.get("mailResponsabile").toString()+ "\n";
+        emailTextBody += "Centro di gestione: " + jsonRequestSW.get("mailCentroDiGestione").toString()+ "\n";
+        emailTextBody += "\n********\n";
+        
+        emailTextBody += "MOTIVAZIONE\n";
+        emailTextBody += "Periodo richiesto dal: " + periodoDal + " al: " + periodoAl + "\n";
+        emailTextBody += "Motivazione: " + jsonRequestSW.get("motivazione").toString()+ "\n";
+        emailTextBody += "\n********\n";
+        
+        emailTextBody += "DATI DELLA POSTAZIONE DI LAVORO\n";
+        emailTextBody += "Utente con postazione esclusiva: " + ((Boolean)jsonRequestSW.get("hoPostazioneEsclusiva") ? "Si" : "No" ) + "\n";
+        emailTextBody += "IP: " + jsonRequestSW.get("ip").toString()+ "\n";
+        emailTextBody += "Ubicazione: " + jsonRequestSW.get("azienda").toString() + " - " + jsonRequestSW.get("sede") + "\n";
+        emailTextBody += "\n********\n";
+        
+        emailTextBody += "DATI DELLA POSTAZIONE SMART WORKING\n";
+        emailTextBody += "Possiede Pc Personale: " + ((Boolean)jsonRequestSW.get("pcPersonale") ? "Si" : "No" ) + "\n";
+        emailTextBody += "Possiede Pc Aziendale: " + ((Boolean)jsonRequestSW.get("pcAziendale") ? "Si" : "No" ) + "\n";
+        emailTextBody += "Nome Pc Aziendale: " + jsonRequestSW.get("idPcAziendale").toString() + "\n";
+        emailTextBody += "Sistema Operativo: " + jsonRequestSW.get("sistemaOperativo").toString()+ "\n";
+        emailTextBody += "Dispone di connettività domestica: " + ((Boolean)jsonRequestSW.get("connettivitaDomestica") ? "Si" : "No" ) + "\n";
+        emailTextBody += "Numero di telefono di contatto: " + jsonRequestSW.get("numeroTel").toString()+ "\n";
+        // emailTextBody += "Ho il cellulare aziendale: " + jsonRequestSW.get("hoCellulareAziendale").toString()+ "\n";
+        emailTextBody += "Numero del cellulare aziendale: " + jsonRequestSW.get("cellulareAziendale").toString()+ "\n";
+        emailTextBody += "Disponibilità: " + jsonRequestSW.get("contattabilita").toString()+ "\n";
+        emailTextBody += "VPN attiva: " + ((Boolean)jsonRequestSW.get("vpn") ? "Si" : "No" ) + "\n";
+        emailTextBody += "Firma Digitale: " + ((Boolean)jsonRequestSW.get("firma") ? "Si" : "No" ) + "\n";
+        emailTextBody += "Lettore smart card: " + ((Boolean)jsonRequestSW.get("haLettoreSmartCard") ? "Si" : "No" ) + "\n";
+        emailTextBody += "\n********\n";
+        
+        emailTextBody += "DATI SULLA ATTIVITA DI SMART WORKING\n";
+        emailTextBody += "Proposta attività in smart working: " + jsonRequestSW.get("attivitaSW").toString()+ "\n";
+        emailTextBody += "Applicativi usati da internet: " 
+                + "gru: " + ((Boolean)jsonRequestSW.get("gru") ? "Si" : "No" )
+                + ", gaac: " + ((Boolean)jsonRequestSW.get("gaac") ? "Si" : "No" ) 
+                + ", babel: " + ((Boolean)jsonRequestSW.get("babel") ? "Si" : "No" )
+                + ", sirer: " + ((Boolean)jsonRequestSW.get("sirer") ? "Si" : "No" )
+                + ", nextcloud: " + ((Boolean)jsonRequestSW.get("nextcloud") ? "Si" : "No" )
+                + "\n";
+        emailTextBody += "Applicativi e software utilizzati in rete aziendale: " + jsonRequestSW.get("appUsate").toString()+ "\n";
+        emailTextBody += "Usa cartelle condivise: " + ((Boolean)jsonRequestSW.get("cartelleCondivise") ? "Si" : "No" ) + "\n";
+        emailTextBody += "\n";
+        
         Integer idAzienda = (Integer) jsonRequestSW.get("idAzienda");        
         sendMail(idAzienda, accountFrom, Subject, to, emailTextBody, cc, null);
         
@@ -293,7 +259,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         String ipAddress = request.getHeader("X-FORWARDED-FOR");  
         if (ipAddress == null) {  
             ipAddress = request.getRemoteAddr();
-        } 
+        }
         if (ipAddress.equals("0:0:0:0:0:0:0:1")) {
             try {
                 ipAddress = java.net.InetAddress.getLocalHost().getCanonicalHostName();
@@ -317,6 +283,11 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         return new ResponseEntity(o, HttpStatus.OK);
     }
     
+    /**
+     * Dato un ip viene tornato, quando possibile, il nome del computer corrispondente.
+     * @param ip
+     * @return 
+     */
     private String getHostName(String ip) {
         String computerName = null;
         try {

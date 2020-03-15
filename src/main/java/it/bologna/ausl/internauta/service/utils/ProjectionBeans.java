@@ -47,7 +47,7 @@ import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
 import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtenteResponsabileCustom;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdAzienda;
+import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabileCustom;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.util.HashMap;
 import java.util.Map;
@@ -477,18 +477,24 @@ public class ProjectionBeans {
         }
     }
     
-    public List<StrutturaWithUtenteResponsabileCustom> getStruttureUtenteWithReponsabile(Utente utente) {
-        List<StrutturaWithUtenteResponsabileCustom> res = null;
-        List<UtenteStruttura> utenteStrutturaList = utente.getUtenteStrutturaList();
-        if (utenteStrutturaList != null && !utenteStrutturaList.isEmpty()) {
-            res = utenteStrutturaList.stream().map(utenteStruttura -> {
-                Struttura struttura = utenteStruttura.getIdStruttura();
-                return factory.createProjection(StrutturaWithUtenteResponsabileCustom.class, struttura);
-            }).collect(Collectors.toList());
+    public StrutturaWithUtenteResponsabileCustom getStrutturaWithUtenteReponsabile(UtenteStruttura utenteStruttura) {
+        StrutturaWithUtenteResponsabileCustom res = null;
+        if (utenteStruttura != null) {
+            res = factory.createProjection(StrutturaWithUtenteResponsabileCustom.class, utenteStruttura.getIdStruttura());
         }
         return res;
     }
     
+    public List<UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabileCustom> getStruttureUtenteWithAfferenzaAndReponsabile(Utente utente) {
+        List<UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabileCustom> res = null;
+        List<UtenteStruttura> utenteStrutturaList = utente.getUtenteStrutturaList();
+        if (utenteStrutturaList != null && !utenteStrutturaList.isEmpty()) {
+            res = utenteStrutturaList.stream().map(utenteStruttura -> {
+                return factory.createProjection(UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabileCustom.class, utenteStruttura);
+            }).collect(Collectors.toList());
+        }
+        return res;
+    }
 //    public DettaglioContattoWithIdContatto getDettaglioContattoWithIdContatto(DettaglioContatto dettaglioContatto) {
 //        if (dettaglioContatto != null) {
 //            return factory.createProjection(DettaglioContattoWithIdContatto.class, dettaglioContatto);

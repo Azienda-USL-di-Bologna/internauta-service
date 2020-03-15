@@ -13,10 +13,12 @@ import org.springframework.data.rest.core.config.Projection;
 
 
 @Projection(name = "StrutturaWithUtenteResponsabileCustom", types = Struttura.class)
-public interface StrutturaWithUtenteResponsabileCustom extends StrutturaWithPlainFields{
+public interface StrutturaWithUtenteResponsabileCustom extends StrutturaWithPlainFields {
 
 
     @Value("#{@projectionBeans.getResposabileStruttura(target)}")
     public UtenteWithIdPersona getResponsabile();
 
+//    @Value("#{@projectionBeans.getAfferenza(target)}")
+//    public AfferenzaStruttura getAfferenza();
 }
