@@ -32,7 +32,6 @@ import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
-import it.bologna.ausl.model.entities.shpeck.QFolder;
 import it.bologna.ausl.model.entities.shpeck.QMessageFolder;
 import it.bologna.ausl.model.entities.shpeck.QMessageTag;
 import it.bologna.ausl.model.entities.shpeck.QTag;
@@ -92,9 +91,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepos
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
-import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import java.util.Arrays;
 import java.util.function.Predicate;

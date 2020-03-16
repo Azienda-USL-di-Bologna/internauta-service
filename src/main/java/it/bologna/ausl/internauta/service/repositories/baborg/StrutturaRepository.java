@@ -2,11 +2,16 @@ package it.bologna.ausl.internauta.service.repositories.baborg;
 
 import it.bologna.ausl.model.entities.baborg.QStruttura;
 import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.util.List;
+import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 
 /**
@@ -23,6 +28,9 @@ public interface StrutturaRepository extends
     // la stringa è formata dagli id numerici separati dal carattere ','
     // l'id della struttura pasasta è in prima posizione, quello della struttura radice in ultima
     @Procedure("baborg.get_strutture_antenate")
-    String getStruttureAntenate(Integer idStruttura);
+    public String getStruttureAntenate(Integer idStruttura);
+    
+    @Procedure("baborg.get_responsabile")
+    public Integer getResponsabile(Integer idStruttura);
 
 }
