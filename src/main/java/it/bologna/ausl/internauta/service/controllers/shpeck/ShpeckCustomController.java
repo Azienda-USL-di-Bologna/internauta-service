@@ -321,8 +321,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             }
         }
     }
-    
-    public void makeAdditionalData(Map<String, Map<String, Object>> additionalData,AuthenticatedSessionData authenticatedUserProperties) {  
+
+    public void makeAdditionalData(Map<String, Map<String, Object>> additionalData, AuthenticatedSessionData authenticatedUserProperties) {
         Map<String, Object> idUtenteMap = new HashMap<>();
         idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
         idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
@@ -333,17 +333,17 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         idAziendaMap.put("descrizione", authenticatedUserProperties.getUser().getIdAzienda().getDescrizione());
         additionalData.put("idAzienda", idAziendaMap);
     }
-    
-    public void addInRegistration(Map<String, Map<String, Object>> additionalData, 
-            AuthenticatedSessionData authenticatedUserProperties, 
+
+    public void addInRegistration(Map<String, Map<String, Object>> additionalData,
+            AuthenticatedSessionData authenticatedUserProperties,
             Message message,
-            MessageTag messageTagInRegistration, 
-            Tag tagInRegistration, 
+            MessageTag messageTagInRegistration,
+            Tag tagInRegistration,
             List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration
-            ) throws Exception {
+    ) throws Exception {
         LOG.info("dentro ADD_IN_REGISTRATION per il messaggio con id: " + message.getId());
-        if (additionalData == null) { 
-           throw new Exception("add tag ADD_IN_REGISTRATION no additional data");
+        if (additionalData == null) {
+            throw new Exception("add tag ADD_IN_REGISTRATION no additional data");
         }
         try {
 
@@ -363,22 +363,22 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             throw new Exception("errore nella funzione--> addInRegistration " + ex.getMessage());
         }
     }
-    
-    public void addRegistered(Map<String, Map<String, Object>> additionalData, 
-            Message message, 
-            MessageTag messageTagRegistered, 
-            AuthenticatedSessionData authenticatedUserProperties, 
+
+    public void addRegistered(Map<String, Map<String, Object>> additionalData,
+            Message message,
+            MessageTag messageTagRegistered,
+            AuthenticatedSessionData authenticatedUserProperties,
             Tag tagRegistered,
             List<Map<String, Map<String, Object>>> initialAdditionalDataArrayRegistered,
             MessageTag messageTagInRegistration,
             List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration,
             Folder folderRegistered) throws Exception {
-        
+
         LOG.info("dentro ADD_REGISTERED per il messaggio con id: " + message.getId());
-        if (additionalData == null) { 
-           throw new Exception("add tag ADD_REGISTERED no additional data");
+        if (additionalData == null) {
+            throw new Exception("add tag ADD_REGISTERED no additional data");
         }
-        try{
+        try {
             MessageTag messageTagToAdd = null;
             if (messageTagRegistered != null) {
                 messageTagToAdd = messageTagRegistered;
@@ -390,13 +390,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             }
             List<Integer> aziendePrecedentementeProtocollate = initialAdditionalDataArrayRegistered.stream()
                     .map(ad -> (Integer) ad.get("idAzienda").get("id")).collect(Collectors.toList());
-            
+
             initialAdditionalDataArrayRegistered.add(additionalData);
             messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayRegistered));
             messageTagRespository.save(messageTagToAdd);
-            
-            removeInRegistration(messageTagInRegistration,initialAdditionalDataArrayInRegistration,additionalData);
-            
+
+            removeInRegistration(messageTagInRegistration, initialAdditionalDataArrayInRegistration, additionalData);
+
 
             /* Spostamento folder.
              * Un messaggio viene spostato nella cartella protocollati qualora la sua PEC abbia nella sua aziendaList
@@ -408,59 +408,59 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
              * facente parte delle aziendePrecedentementeProtocollate allora lo sposto altrimenti non faccio nulla.
              */
             Boolean aziendaUtenteInAziendePec = message.getIdPec().getPecAziendaList().stream()
-                    .anyMatch(pecazienda ->
-                            pecazienda.getIdAzienda().getId().equals(authenticatedUserProperties.getUser().getIdAzienda().getId()));
-            
-            
+                    .anyMatch(pecazienda
+                            -> pecazienda.getIdAzienda().getId().equals(authenticatedUserProperties.getUser().getIdAzienda().getId()));
+
             Boolean aziendaPecInPrecedentementeProtocollate = message.getIdPec().getPecAziendaList().stream()
-                    .anyMatch(pecazienda ->
-                            aziendePrecedentementeProtocollate.contains(pecazienda.getIdAzienda().getId()));
-           
+                    .anyMatch(pecazienda
+                            -> aziendePrecedentementeProtocollate.contains(pecazienda.getIdAzienda().getId()));
+
             if (aziendaUtenteInAziendePec && !aziendaPecInPrecedentementeProtocollate) {
                 // Lo elimino da quella in cui era e lo metto nella cartella registered
-               List<MessageFolder> messageFolder = messageFolderRespository.findByIdMessage(message);
-               if (!messageFolder.isEmpty()) {
-                   MessageFolder mfCurrentMessage = messageFolder.get(0);
-                   mfCurrentMessage.setIdUtente(authenticatedUserProperties.getUser());
-                   mfCurrentMessage.setIdFolder(folderRegistered);
-                   if (mfCurrentMessage.getIdFolder().getType() != Folder.FolderType.REGISTERED) {
-                       messageFolderRespository.save(mfCurrentMessage);
-                   }
-               } else {
-                   MessageFolder mfRegistered = new MessageFolder();
-                   mfRegistered.setIdUtente(authenticatedUserProperties.getUser());
-                   mfRegistered.setIdMessage(message);
-                   mfRegistered.setIdFolder(folderRegistered);
-                   messageFolderRespository.save(mfRegistered);
-               }
+                List<MessageFolder> messageFolder = messageFolderRespository.findByIdMessage(message);
+                if (!messageFolder.isEmpty()) {
+                    MessageFolder mfCurrentMessage = messageFolder.get(0);
+                    mfCurrentMessage.setIdUtente(authenticatedUserProperties.getUser());
+                    mfCurrentMessage.setIdFolder(folderRegistered);
+                    if (mfCurrentMessage.getIdFolder().getType() != Folder.FolderType.REGISTERED) {
+                        messageFolderRespository.save(mfCurrentMessage);
+                    }
+                } else {
+                    MessageFolder mfRegistered = new MessageFolder();
+                    mfRegistered.setIdUtente(authenticatedUserProperties.getUser());
+                    mfRegistered.setIdMessage(message);
+                    mfRegistered.setIdFolder(folderRegistered);
+                    messageFolderRespository.save(mfRegistered);
+                }
             }
         } catch (Exception ex) {
             throw new Exception("errore nella funzione--> addRegistered " + ex.getMessage());
-        }   
+        }
     }
-    
+
     public void removeInRegistration(MessageTag messageTagInRegistration,
             List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration,
             Map<String, Map<String, Object>> additionalData) throws JsonProcessingException {
         removeAdditionalDataByIdAziendaFromTag(messageTagInRegistration, initialAdditionalDataArrayInRegistration, additionalData);
-   
+
     }
-    
+
     /**
      * TODO
+     *
      * @param messageTag
      * @param initialAdditionalDataArrayOfTag
      * @param additionalData
-     * @throws JsonProcessingException 
+     * @throws JsonProcessingException
      */
     public void removeAdditionalDataByIdAziendaFromTag(MessageTag messageTag,
             List<Map<String, Map<String, Object>>> initialAdditionalDataArrayOfTag,
             Map<String, Map<String, Object>> additionalData) throws JsonProcessingException {
         if (messageTag != null) {
             // devo togliere dal tag in_registration l'azienda passata
-            Predicate<Map<String, Map<String, Object>>> isQualified = 
-                item -> 
-                    item.get("idAzienda").get("id").equals(additionalData.get("idAzienda").get("id"));
+            Predicate<Map<String, Map<String, Object>>> isQualified
+                    = item
+                    -> item.get("idAzienda").get("id").equals(additionalData.get("idAzienda").get("id"));
 
             initialAdditionalDataArrayOfTag.removeIf(isQualified);
 
@@ -472,35 +472,33 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             }
         }
     }
-    
-    public void removeRegistered(Message message, 
+
+    public void removeRegistered(Message message,
             MessageTag messageTagRegistered,
             List<Map<String, Map<String, Object>>> initialAdditionalDataArrayRegistered,
             AuthenticatedSessionData authenticatedUserProperties,
             Map<String, Map<String, Object>> additionalData) throws JsonProcessingException {
         LOG.info("dentro REMOVE_REGISTERED per il messaggio con id: " + message.getId());
-        
+
         removeAdditionalDataByIdAziendaFromTag(messageTagRegistered, initialAdditionalDataArrayRegistered, additionalData);
-        
+
         /*
             Il tag l'ho tolto ma devo controllare se spostare il messaggio da posta protocollata a altra cartella
             Devo spostare il messaggio se esso non è protocollato in altre aziende della aziendaPecList
-        */
+         */
         List<Integer> aziendeInCuiRimaneProtocollato = initialAdditionalDataArrayRegistered.stream()
-                    .map(ad -> (Integer) ad.get("idAzienda").get("id")).collect(Collectors.toList());
-       
+                .map(ad -> (Integer) ad.get("idAzienda").get("id")).collect(Collectors.toList());
+
         Boolean daNonSpostare = message.getIdPec().getPecAziendaList().stream()
-            .anyMatch(pecazienda ->
-                    aziendeInCuiRimaneProtocollato.contains(pecazienda.getIdAzienda().getId()));
+                .anyMatch(pecazienda
+                        -> aziendeInCuiRimaneProtocollato.contains(pecazienda.getIdAzienda().getId()));
 
         if (!daNonSpostare) {
-            moveInPreviousFolder(message,authenticatedUserProperties);
+            moveInPreviousFolder(message, authenticatedUserProperties);
         }
 
     }
-    
-    
-    
+
     /**
      *
      * @param idMessage
@@ -756,7 +754,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         messageFolder.setInserted(LocalDateTime.now());
         mfList.add(messageFolder);
         messageDestination.setMessageFolderList(mfList);
-        */
+         */
         messageRepository.save(messageDestination);
         // assegno il tag reindirizzato out a il message source
 
@@ -808,7 +806,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "unSeen", required = false, defaultValue = "false") Boolean unSeen
     ) {
 
-        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
+        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false)).and(QMessageFolder.messageFolder.idMessage.messageType.eq("MAIL"));
         if (unSeen) {
             filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
         }
@@ -843,13 +841,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         try {
             // operation: IN_REGISTRATION, REGISTER, REMOVE_IN_REGISTRATION
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-            
+
             if (additionalData != null) {
-                makeAdditionalData(additionalData,authenticatedUserProperties);
+                makeAdditionalData(additionalData, authenticatedUserProperties);
             }
             // recupero tutti i messaggi con l'uuid passato
             List<Message> messages = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(uuidMessage));
-            
+
             // Ciclo sui messaggi trovati e skippo quelli che non sono di tipo MAIL
             for (Message message : messages) {
 
@@ -858,7 +856,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 }
 
                 LOG.info("processo messaggio con uuidMessage: " + message.getUuidMessage() + " e id: " + message.getId());
-                
+
                 List<Tag> tagList = message.getIdPec().getTagList();
                 List<Folder> folderList = message.getIdPec().getFolderList();
                 Tag tagInRegistration = tagList.stream().filter(t -> Tag.SystemTagName.in_registration.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
@@ -868,18 +866,18 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 MessageTag messageTagRegistered = null;
                 List<MessageTag> messageTagInRegistrationList = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
                 List<MessageTag> messageTagRegisteredList = messageTagRespository.findByIdMessageAndIdTag(message, tagRegistered);
-               //vedere se cambiare
+                //vedere se cambiare
                 List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration = new ArrayList<>();
                 List<Map<String, Map<String, Object>>> initialAdditionalDataArrayRegistered = new ArrayList<>();
-                
+
                 if (messageTagInRegistrationList != null && (messageTagInRegistrationList.size() == 1)) {
-                        messageTagInRegistration = messageTagInRegistrationList.get(0);
-                    }
-                
+                    messageTagInRegistration = messageTagInRegistrationList.get(0);
+                }
+
                 if ((messageTagRegisteredList != null) && (messageTagRegisteredList.size() == 1)) {
-                        messageTagRegistered = messageTagRegisteredList.get(0);
-                    }
-                
+                    messageTagRegistered = messageTagRegisteredList.get(0);
+                }
+
                 // leggo gli additional data del messaggio in stado di in registrazione
                 if (messageTagInRegistration != null && messageTagInRegistration.getAdditionalData() != null) {
                     try {
@@ -898,9 +896,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         initialAdditionalDataArrayRegistered = objectMapper.readValue(messageTagRegistered.getAdditionalData(), List.class);
                     }
                 }
-                
+
                 // Eseguo l'operazione richiesta
-                switch(operation.toString()) {
+                switch (operation.toString()) {
                     case "ADD_IN_REGISTRATION":
                         addInRegistration(additionalData, authenticatedUserProperties, message, messageTagInRegistration, tagInRegistration, initialAdditionalDataArrayInRegistration);
                         if (KrintUtils.doIHaveToKrint(request)) {
@@ -912,10 +910,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         if (KrintUtils.doIHaveToKrint(request)) {
                             krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_PROTOCOLLAZIONE);
                         }
-                        
+
                         break;
                     case "REMOVE_IN_REGISTRATION":
-                        removeInRegistration(messageTagInRegistration,initialAdditionalDataArrayInRegistration,additionalData);
+                        removeInRegistration(messageTagInRegistration, initialAdditionalDataArrayInRegistration, additionalData);
                         if (KrintUtils.doIHaveToKrint(request)) {
                             krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_IN_PROTOCOLLAZIONE);
                         }
@@ -927,7 +925,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         }
                     default:
                         throw new Exception("Operation requested not found");
-               }
+                }
             }
         } catch (Throwable ex) {
             LOG.error(ex.getMessage(), ex);
@@ -1005,7 +1003,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     private void moveInPreviousFolder(Message message, AuthenticatedSessionData authenticatedUserProperties) {
         List<MessageFolder> messageFolder = messageFolderRespository.findByIdMessage(message);
-    
+
         if (messageFolder != null && !messageFolder.isEmpty()) {
             MessageFolder currentMessageFolder = messageFolder.get(0);
             // se il messaggio si trova nella folder REGISTERED lo sposto nella previousFolder, se no lo lascio nella cartella in cui si trova
