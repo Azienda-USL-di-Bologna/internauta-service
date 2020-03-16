@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.sun.mail.smtp.SMTPTransport;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -125,14 +124,14 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             }
             
             // subject
-            LocalDateTime today = LocalDateTime.now();
-            ZoneId id = ZoneId.of("Europe/Rome");
-            ZonedDateTime zonedDateTime = ZonedDateTime.of(today, id);      //That's how you add timezone to date
-            String formattedDateTime = DateTimeFormatter
-                            .ofPattern("dd/MM/yyyy - HH:mm")
-                            .format(zonedDateTime);             //  esempio 11/03/2020 - 10.44
+//            LocalDateTime today = LocalDateTime.now();
+//            ZoneId id = ZoneId.of("Europe/Rome");
+//            ZonedDateTime zonedDateTime = ZonedDateTime.of(today, id);      //That's how you add timezone to date
+//            String formattedDateTime = DateTimeFormatter
+//                            .ofPattern("dd/MM/yyyy - HH:mm")
+//                            .format(zonedDateTime);             //  esempio 11/03/2020 - 10.44
             
-            msg.setSubject(Subject+ " "+ formattedDateTime);
+            msg.setSubject(Subject);
             // content 
             msg.setText(body);
             // msg.setContent(body, "text/html; charset=utf-8");
@@ -166,12 +165,13 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = {"sendSmartWorkingMail"}, method = RequestMethod.POST)
     public void sendSmartWorkingMail(@RequestBody Map<String, Object> jsonRequestSW) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
         
-        String accountFrom="smartworking@auslbo.it";
-        String Subject="Richiesta SMART WORKING";
+        String accountFrom = "babelform.smartworking@ausl.bologna.it";
+        String Subject = "Richiesta SMART WORKING";
         String emailTextBody = "";
         
         List<String> to = new ArrayList();
         to.add(jsonRequestSW.get("mailCentroDiGestione").toString());
+        to.add(jsonRequestSW.get("mailICT").toString());
         List<String> cc = new ArrayList();
         cc.add(jsonRequestSW.get("mail").toString());
         
@@ -179,7 +179,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         LocalDateTime today = LocalDateTime.now();
         ZoneId id = ZoneId.of("Europe/Rome");
         ZonedDateTime zonedDateTime = ZonedDateTime.of(today, id);      //That's how you add timezone to date
-        String formattedDateTime = DateTimeFormatter
+        String dataRichiesta = DateTimeFormatter
                 .ofPattern("dd/MM/yyyy - HH:mm")
                 .format(zonedDateTime);             //11/03/2020 - 10.44
         
@@ -190,34 +190,41 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         String periodoDal = outputFormatter.format(periodoDalDate);
         String periodoAl = outputFormatter.format(periodoAlDate);
         
-        Subject = Subject + jsonRequestSW.get("richiedente").toString() + " " + formattedDateTime;
+        Subject = Subject + " " + jsonRequestSW.get("richiedente").toString() + " " + dataRichiesta;
         
-        emailTextBody += "DATI DEL RICHIEDENTE\n";
+        
         emailTextBody += "Richiedente: " + jsonRequestSW.get("richiedente").toString() + "\n";
+        emailTextBody += "Username: " + jsonRequestSW.get("username").toString()+ "\n";
         emailTextBody += "Codice fiscale: " + jsonRequestSW.get("CF").toString()+ "\n";
-        emailTextBody += "Mail del richiedente: " + jsonRequestSW.get("mail").toString()+ "\n";
-        emailTextBody += "Profilo professionale: " + jsonRequestSW.get("profiloProfessionale").toString()+ "\n";
-        emailTextBody += "Mansione: " + jsonRequestSW.get("mansione").toString()+ "\n";
-        emailTextBody += "Responsabile: " + jsonRequestSW.get("responsabile").toString()+ "\n";
-        emailTextBody += "Mail del responsabile: " + jsonRequestSW.get("mailResponsabile").toString()+ "\n";
-        emailTextBody += "Centro di gestione: " + jsonRequestSW.get("mailCentroDiGestione").toString()+ "\n";
-        emailTextBody += "\n********\n";
-        
-        emailTextBody += "MOTIVAZIONE\n";
+        emailTextBody += "Mail del richiedente: " + jsonRequestSW.get("mail").toString() + "\n";
+        emailTextBody += "Data richiesta: " + dataRichiesta + "\n";
         emailTextBody += "Periodo richiesto dal: " + periodoDal + " al: " + periodoAl + "\n";
         emailTextBody += "Motivazione: " + jsonRequestSW.get("motivazione").toString()+ "\n";
         emailTextBody += "\n********\n";
         
         emailTextBody += "DATI DELLA POSTAZIONE DI LAVORO\n";
         emailTextBody += "Utente con postazione esclusiva: " + ((Boolean)jsonRequestSW.get("hoPostazioneEsclusiva") ? "Si" : "No" ) + "\n";
+        emailTextBody += "Nome computer: " + jsonRequestSW.get("nomePc").toString()+ "\n";
         emailTextBody += "IP: " + jsonRequestSW.get("ip").toString()+ "\n";
         emailTextBody += "Ubicazione: " + jsonRequestSW.get("azienda").toString() + " - " + jsonRequestSW.get("sede") + "\n";
         emailTextBody += "\n********\n";
         
+        emailTextBody += "DATI DEL RICHIEDENTE\n";
+        emailTextBody += "Profilo professionale: " + jsonRequestSW.get("profiloProfessionale").toString()+ "\n";
+        emailTextBody += "Mansione: " + jsonRequestSW.get("mansione").toString()+ "\n";
+        emailTextBody += "Responsabile: " + jsonRequestSW.get("responsabile").toString()+ "\n";
+        emailTextBody += "Mail del responsabile: " + jsonRequestSW.get("mailResponsabile").toString()+ "\n";
+        emailTextBody += "Centro di gestione: " + jsonRequestSW.get("mailCentroDiGestione").toString()+ "\n";
+        emailTextBody += "ICT: " + jsonRequestSW.get("mailICT").toString()+ "\n";
+        emailTextBody += "\n********\n";
+        
         emailTextBody += "DATI DELLA POSTAZIONE SMART WORKING\n";
-        emailTextBody += "Possiede Pc Personale: " + ((Boolean)jsonRequestSW.get("pcPersonale") ? "Si" : "No" ) + "\n";
-        emailTextBody += "Possiede Pc Aziendale: " + ((Boolean)jsonRequestSW.get("pcAziendale") ? "Si" : "No" ) + "\n";
-        emailTextBody += "Nome Pc Aziendale: " + jsonRequestSW.get("idPcAziendale").toString() + "\n";
+        emailTextBody += "Possiede Pc Personale: " + ((Boolean)jsonRequestSW.get("pc").equals("personale") ? "Si" : "No" ) + "\n";
+        Boolean haPcAziendale = (Boolean)jsonRequestSW.get("pc").equals("aziendale");
+        emailTextBody += "Possiede Pc Aziendale: " + (haPcAziendale ? "Si" : "No" ) + "\n";
+        if (haPcAziendale) {
+            emailTextBody += "Nome Pc Aziendale: " + jsonRequestSW.get("idPcAziendale").toString() + "\n";
+        }
         emailTextBody += "Sistema Operativo: " + jsonRequestSW.get("sistemaOperativo").toString()+ "\n";
         emailTextBody += "Dispone di connettività domestica: " + ((Boolean)jsonRequestSW.get("connettivitaDomestica") ? "Si" : "No" ) + "\n";
         emailTextBody += "Numero di telefono di contatto: " + jsonRequestSW.get("numeroTel").toString()+ "\n";
@@ -244,7 +251,6 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         
         Integer idAzienda = (Integer) jsonRequestSW.get("idAzienda");        
         sendMail(idAzienda, accountFrom, Subject, to, emailTextBody, cc, null);
-        
     }
     
     
