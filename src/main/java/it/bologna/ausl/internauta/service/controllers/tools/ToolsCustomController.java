@@ -202,13 +202,14 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         
         Subject = Subject + " id " + idRichiesta + ", " + jsonRequestSW.get("richiedente").toString() + " " + dataRichiesta;
         
-        emailTextBody += "Richiesta di autorizzazione allo smart working di " + jsonRequestSW.get("richiedente").toString() + " del " + dataRichiesta + "\n";
+        emailTextBody += "Richiesta di autorizzazione allo smart working di " + jsonRequestSW.get("richiedente").toString() + " del " + dataRichiesta + "\n\n";
+        emailTextBody += "RISERVATO AL RESPONSABILE" + "\n";
         emailTextBody += "Da inoltrare in caso di autorizzazione positiva a:" + "\n";
         emailTextBody += jsonRequestSW.get("mailUfficioPersonale").toString() + "\n";
-        emailTextBody += jsonRequestSW.get("mailICT").toString() + "\n";
-        emailTextBody += "\n********\n";
+        emailTextBody += jsonRequestSW.get("mailICT").toString() + "\n\n";
+        // emailTextBody += "\n********\n";
         
-        emailTextBody += "RISERVATO AL RESPONSABILE" + "\n";
+        
         emailTextBody += "non modificare i dati sottostanti in alcun modo al di sotto di questi asterischi" + "\n";
         emailTextBody += "\n********************************************************************************" + "\n\n";
         emailTextBody += "Dati della richiesta" + "\n";
