@@ -21,5 +21,5 @@ public interface MessageTagRepository extends
     List<MessageTag> findByIdMessageAndIdTag(Message idMessage, Tag idTag);
     
     @Procedure("shpeck.send_custom_delete_intimus_command")
-    public Boolean sendCustomDeleteIntimusCommand(String redisHost, Integer redisPort, Integer redisDb, Integer IdUtente, String entity, Integer entityId);
+    public Boolean sendCustomDeleteIntimusCommand(String redisHost, Integer redisPort, Integer redisDb, Integer IdUtente, String entity, Integer entityId, Integer messageId);
 }
