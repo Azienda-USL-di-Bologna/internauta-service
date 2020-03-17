@@ -15,6 +15,7 @@ import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.interceptors.shpeck.MessageTagInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
@@ -97,6 +98,7 @@ import java.util.Arrays;
 import java.util.function.Predicate;
 import org.apache.commons.lang3.ArrayUtils;
 import org.json.JSONArray;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.util.StringUtils;
 
 /**
@@ -154,6 +156,12 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     @Autowired
     private KrintShpeckService krintShpeckService;
 
+    @Autowired
+    private MessageTagInterceptor messageTagInterceptor;
+    
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+            
     @Autowired
     ObjectMapper objectMapper;
 
@@ -996,6 +1004,16 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         if (KrintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeArchiviation(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_FASCICOLAZIONE, jsonAdditionalData);
         }
+    }
+    
+    @Transactional
+    @RequestMapping(value = "deleteMessageTagCustom/{idMessageTag}", method = RequestMethod.GET)
+    public void deleteMessageTagCustom(
+        @PathVariable(required = true) Integer idMessageTag) {
+        MessageTag messageTagToDelete = messageTagRespository.getOne(idMessageTag);
+        Integer idTag = messageTagToDelete.getIdTag().getId();
+        messageTagRespository.deleteById(idMessageTag);
+        applicationEventPublisher.publishEvent(new ShpeckEvent(ShpeckEvent.Phase.AFTER_DELETE, ShpeckEvent.Operation.SEND_CUSTOM_DELETE_INTIMUS_COMMAND, idTag));
     }
 
     private void moveInPreviousFolder(Message message, AuthenticatedSessionData authenticatedUserProperties) {
