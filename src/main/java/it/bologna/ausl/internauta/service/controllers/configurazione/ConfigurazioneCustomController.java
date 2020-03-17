@@ -19,7 +19,6 @@ import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.configuration.QImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configuration.QParametroAziende;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
