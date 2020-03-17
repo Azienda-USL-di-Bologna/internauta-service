@@ -122,11 +122,15 @@ public class IntimusUtils {
         
         @JsonProperty("apps")
         private String apps[];
+        
+        @JsonProperty("all_aziende")
+        private Boolean allAziende;
 
-        public DestObject(Integer idPersona, Integer[] idAziende, String[] apps) {
+        public DestObject(Integer idPersona, Integer[] idAziende, String[] apps, Boolean allAziende) {
             this.idPersona = idPersona;
             this.idAziende = idAziende;
             this.apps = apps;
+            this.allAziende = allAziende;
         }
 
         public Integer getIdPersona() {
@@ -153,6 +157,14 @@ public class IntimusUtils {
             this.apps = apps;
         }
 
+        public Boolean getAllAziende() {
+            return allAziende;
+        }
+
+        public void setAllAziende(Boolean allAziende) {
+            this.allAziende = allAziende;
+        }
+        
         @Override
         public boolean equals(Object obj) {
             if (DestObject.class.isAssignableFrom(obj.getClass())) {
@@ -164,7 +176,9 @@ public class IntimusUtils {
                         HashSet<String> setApps1 = new HashSet<>(Arrays.asList(getApps()));
                         HashSet<String> setApps2 = new HashSet<>(Arrays.asList(target.getApps()));
                         if (setApps1.equals(setApps2)) {
-                            return true;
+                            if (getAllAziende().equals(target.getAllAziende())) {
+                                return true;                            
+                            }
                         }
                     }
                 }
@@ -343,21 +357,21 @@ public class IntimusUtils {
                     for (UtenteStruttura utenteStruttura: struttura.getUtenteStrutturaList()) {
                         Integer idPersona = cachedEntities.getPersonaFromIdUtente(utenteStruttura.getIdUtente().getId()).getId();
                         // Integer[] idAziende = new Integer[] {cachedEntities.getAziendaFromIdUtente(utenteStruttura.getIdUtente().getId()).getId()};
-                        DestObject destObject = new DestObject(idPersona, null, apps);
+                        DestObject destObject = new DestObject(idPersona, null, apps, true);
                         addDestIfNotExist(dests, destObject);
                     }
                 }
             }
             if (amministrazioneMessaggio.getIdAziende()!= null && amministrazioneMessaggio.getIdAziende().length > 0) {
                 Integer[] idAziende = amministrazioneMessaggio.getIdAziende(); 
-                DestObject destObject = new DestObject(null, idAziende, apps);
+                DestObject destObject = new DestObject(null, idAziende, apps, true);
                 addDestIfNotExist(dests, destObject);
             }
             if (amministrazioneMessaggio.getIdPersone() != null && amministrazioneMessaggio.getIdPersone().length > 0) {
                 for (Integer idPersona : amministrazioneMessaggio.getIdPersone()) {
                     // Integer idPersona = cachedEntities.getPersona(idPersona).getId();
 //                    Integer[] idAziende = new Integer[] {cachedEntities.getAziendaFromIdUtente(idUtente).getId()};                    
-                    DestObject destObject = new DestObject(idPersona, null, apps);
+                    DestObject destObject = new DestObject(idPersona, null, apps, true);
                     addDestIfNotExist(dests, destObject);
                 }
             }
@@ -380,7 +394,7 @@ public class IntimusUtils {
     
     public IntimusCommand buildLogoutCommand(Persona persona, String[] apps, String redirectUrl) {
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
-        DestObject dest = new DestObject(persona.getId(), aziendePersona.stream().map(p -> p.getId()).toArray(Integer[]::new), apps);
+        DestObject dest = new DestObject(persona.getId(), aziendePersona.stream().map(p -> p.getId()).toArray(Integer[]::new), apps, false);
         
         IntimusCommand logoutCommand = buildIntimusCommand(Arrays.asList(dest), new LogoutParams(redirectUrl), IntimusCommandNames.Logout);
         
