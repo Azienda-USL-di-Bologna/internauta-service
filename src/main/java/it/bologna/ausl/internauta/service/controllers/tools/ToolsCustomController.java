@@ -191,9 +191,9 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                 .ofPattern("dd/MM/yyyy - HH:mm")
                 .format(zonedDateTime);             //11/03/2020 - 10.44
         
-        // 2020-03-02T23:00:00.000Z
-        LocalDate periodoDalDate = LocalDate.parse(jsonRequestSW.get("periodoDal").toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
-        LocalDate periodoAlDate = LocalDate.parse(jsonRequestSW.get("periodoAl").toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
+        // 2020-02-29T23:00:00.000Z
+        LocalDate periodoDalDate = LocalDate.parse(jsonRequestSW.get("periodoDal").toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        LocalDate periodoAlDate = LocalDate.parse(jsonRequestSW.get("periodoAl").toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
         String periodoDal = outputFormatter.format(periodoDalDate);
         String periodoAl = outputFormatter.format(periodoAlDate);
@@ -205,7 +205,6 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         emailTextBody += "Richiesta di autorizzazione allo smart working di " + jsonRequestSW.get("richiedente").toString() + " del " + dataRichiesta + "\n\n";
         emailTextBody += "RISERVATO AL RESPONSABILE" + "\n";
         emailTextBody += "Da inoltrare solo in caso di autorizzazione positiva a:" + "\n";
-        emailTextBody += jsonRequestSW.get("mailUfficioPersonale").toString() + "\n";
         emailTextBody += jsonRequestSW.get("mailICT").toString() + "\n\n";
         // emailTextBody += "\n********\n";
         
@@ -289,8 +288,8 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         Utente utenteRichiedente = utenteRepository.getOne((Integer)jsonRequestSW.get("idUtenteRichiedente"));
         Utente utenteResponsabile = utenteRepository.getOne((Integer)jsonRequestSW.get("idUtenteResponsabile"));
         Azienda a = aziendaRepository.getOne((Integer)jsonRequestSW.get("idAzienda"));
-        LocalDate periodoDalDate = LocalDate.parse(jsonRequestSW.get("periodoDal").toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
-        LocalDate periodoAlDate = LocalDate.parse(jsonRequestSW.get("periodoAl").toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
+        LocalDate periodoDalDate = LocalDate.parse(jsonRequestSW.get("periodoDal").toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        LocalDate periodoAlDate = LocalDate.parse(jsonRequestSW.get("periodoAl").toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         
         RichiestaSmartWorking r = new RichiestaSmartWorking();
         r.setIdUtenteRichiedente(utenteRichiedente);
