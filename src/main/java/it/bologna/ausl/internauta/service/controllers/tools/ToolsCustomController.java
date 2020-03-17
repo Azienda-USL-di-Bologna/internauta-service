@@ -24,6 +24,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 //import per mandare mail 
 import com.sun.mail.smtp.SMTPTransport;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.repositories.scrivania.RichiestaSmartWorkingRepository;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDate;
@@ -59,7 +63,11 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     private CachedEntities cachedEntities;
     @Autowired
     private ObjectMapper objectMapper;
-   
+    @Autowired
+    private UtenteRepository utenteRepository;
+    @Autowired
+    private RichiestaSmartWorkingRepository richiestaSmartWorkingRepository;
+    
     public Boolean sendMail(Integer idAzienda, String fromName, String Subject, List<String> To, String body, List<String> cc, List<String> bcc ) throws IOException{
         
         Azienda azienda = cachedEntities.getAzienda(idAzienda);
@@ -142,6 +150,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             t.connect(smtpServer, username, password);
             // send
             t.sendMessage(msg, msg.getAllRecipients());
+            LOGGER.info("Invio mail");
             System.out.println("Response: " + t.getLastServerResponse());
             t.close();
         } catch (MessagingException e) {
@@ -170,10 +179,9 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         String emailTextBody = "";
         
         List<String> to = new ArrayList();
-        to.add(jsonRequestSW.get("mailCentroDiGestione").toString());
-        to.add(jsonRequestSW.get("mailICT").toString());
+        to.add(jsonRequestSW.get("mailResponsabile").toString());
         List<String> cc = new ArrayList();
-        cc.add(jsonRequestSW.get("mail").toString());
+        cc.add(jsonRequestSW.get("mailRichiedente").toString());
         
         //data e ora odierni
         LocalDateTime today = LocalDateTime.now();
@@ -183,20 +191,32 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                 .ofPattern("dd/MM/yyyy - HH:mm")
                 .format(zonedDateTime);             //11/03/2020 - 10.44
         
-        // 2020-03-02T23:00:00.000Z
-        LocalDate periodoDalDate = LocalDate.parse(jsonRequestSW.get("periodoDal").toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
-        LocalDate periodoAlDate = LocalDate.parse(jsonRequestSW.get("periodoAl").toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
+        // 2020-02-29T23:00:00.000Z
+        LocalDate periodoDalDate = LocalDate.parse(jsonRequestSW.get("periodoDal").toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        LocalDate periodoAlDate = LocalDate.parse(jsonRequestSW.get("periodoAl").toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
         String periodoDal = outputFormatter.format(periodoDalDate);
         String periodoAl = outputFormatter.format(periodoAlDate);
         
-        Subject = Subject + " " + jsonRequestSW.get("richiedente").toString() + " " + dataRichiesta;
+        Integer idRichiesta = salvaRichiestaNelDB(jsonRequestSW);
+        
+        Subject = Subject + " id " + idRichiesta + ", " + jsonRequestSW.get("richiedente").toString() + " " + dataRichiesta;
+        
+        emailTextBody += "Richiesta di autorizzazione allo smart working di " + jsonRequestSW.get("richiedente").toString() + " del " + dataRichiesta + "\n\n";
+        emailTextBody += "RISERVATO AL RESPONSABILE" + "\n";
+        emailTextBody += "Da inoltrare solo in caso di autorizzazione positiva a:" + "\n";
+        emailTextBody += jsonRequestSW.get("mailUfficioPersonale").toString() + "\n";
+        emailTextBody += jsonRequestSW.get("mailICT").toString() + "\n\n";
+        // emailTextBody += "\n********\n";
         
         
+        emailTextBody += "non modificare i dati sottostanti in alcun modo al di sotto di questi asterischi" + "\n";
+        emailTextBody += "\n********************************************************************************" + "\n\n";
+        emailTextBody += "Dati della richiesta" + "\n";
         emailTextBody += "Richiedente: " + jsonRequestSW.get("richiedente").toString() + "\n";
-        emailTextBody += "Username: " + jsonRequestSW.get("username").toString()+ "\n";
-        emailTextBody += "Codice fiscale: " + jsonRequestSW.get("CF").toString()+ "\n";
-        emailTextBody += "Mail del richiedente: " + jsonRequestSW.get("mail").toString() + "\n";
+        // emailTextBody += "Username: " + jsonRequestSW.get("username").toString()+ "\n";
+        emailTextBody += "Codice fiscale: " + jsonRequestSW.get("codiceFiscale").toString()+ "\n";
+        emailTextBody += "Mail del richiedente: " + jsonRequestSW.get("mailRichiedente").toString() + "\n";
         emailTextBody += "Data richiesta: " + dataRichiesta + "\n";
         emailTextBody += "Periodo richiesto dal: " + periodoDal + " al: " + periodoAl + "\n";
         emailTextBody += "Motivazione: " + jsonRequestSW.get("motivazione").toString()+ "\n";
@@ -204,17 +224,17 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         
         emailTextBody += "DATI DELLA POSTAZIONE DI LAVORO\n";
         emailTextBody += "Utente con postazione esclusiva: " + ((Boolean)jsonRequestSW.get("hoPostazioneEsclusiva") ? "Si" : "No" ) + "\n";
-        emailTextBody += "Nome computer: " + jsonRequestSW.get("nomePc").toString()+ "\n";
+        // emailTextBody += "Nome computer: " + jsonRequestSW.get("nomePc").toString()+ "\n";
         emailTextBody += "IP: " + jsonRequestSW.get("ip").toString()+ "\n";
         emailTextBody += "Ubicazione: " + jsonRequestSW.get("azienda").toString() + " - " + jsonRequestSW.get("sede") + "\n";
         emailTextBody += "\n********\n";
         
         emailTextBody += "DATI DEL RICHIEDENTE\n";
-        emailTextBody += "Profilo professionale: " + jsonRequestSW.get("profiloProfessionale").toString()+ "\n";
-        emailTextBody += "Mansione: " + jsonRequestSW.get("mansione").toString()+ "\n";
+        // emailTextBody += "Profilo professionale: " + jsonRequestSW.get("profiloProfessionale").toString()+ "\n";
+        // emailTextBody += "Mansione: " + jsonRequestSW.get("mansione").toString()+ "\n";
         emailTextBody += "Responsabile: " + jsonRequestSW.get("responsabile").toString()+ "\n";
         emailTextBody += "Mail del responsabile: " + jsonRequestSW.get("mailResponsabile").toString()+ "\n";
-        emailTextBody += "Centro di gestione: " + jsonRequestSW.get("mailCentroDiGestione").toString()+ "\n";
+        emailTextBody += "Ufficio personale: " + jsonRequestSW.get("mailUfficioPersonale").toString()+ "\n";
         emailTextBody += "ICT: " + jsonRequestSW.get("mailICT").toString()+ "\n";
         emailTextBody += "\n********\n";
         
@@ -223,13 +243,15 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         Boolean haPcAziendale = (Boolean)jsonRequestSW.get("pc").equals("aziendale");
         emailTextBody += "Possiede Pc Aziendale: " + (haPcAziendale ? "Si" : "No" ) + "\n";
         if (haPcAziendale) {
-            emailTextBody += "Nome Pc Aziendale: " + jsonRequestSW.get("idPcAziendale").toString() + "\n";
+            emailTextBody += "Nome Pc Aziendale: " + jsonRequestSW.get("inventario").toString() + "\n";
         }
-        emailTextBody += "Sistema Operativo: " + jsonRequestSW.get("sistemaOperativo").toString()+ "\n";
+//        emailTextBody += "Sistema Operativo: " + jsonRequestSW.get("sistemaOperativo").toString()+ "\n";
         emailTextBody += "Dispone di connettività domestica: " + ((Boolean)jsonRequestSW.get("connettivitaDomestica") ? "Si" : "No" ) + "\n";
         emailTextBody += "Numero di telefono di contatto: " + jsonRequestSW.get("numeroTel").toString()+ "\n";
-        // emailTextBody += "Ho il cellulare aziendale: " + jsonRequestSW.get("hoCellulareAziendale").toString()+ "\n";
-        emailTextBody += "Numero del cellulare aziendale: " + jsonRequestSW.get("cellulareAziendale").toString()+ "\n";
+        Boolean hoCellulareAziendale = (Boolean) jsonRequestSW.get("hoCellulareAziendale");
+        if (hoCellulareAziendale) {
+            emailTextBody += "Numero del cellulare aziendale: " + jsonRequestSW.get("numeroCellAziendale").toString() + "\n";
+        }
         emailTextBody += "Disponibilità: " + jsonRequestSW.get("contattabilita").toString()+ "\n";
         emailTextBody += "VPN attiva: " + ((Boolean)jsonRequestSW.get("vpn") ? "Si" : "No" ) + "\n";
         emailTextBody += "Firma Digitale: " + ((Boolean)jsonRequestSW.get("firma") ? "Si" : "No" ) + "\n";
@@ -237,20 +259,88 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         emailTextBody += "\n********\n";
         
         emailTextBody += "DATI SULLA ATTIVITA DI SMART WORKING\n";
-        emailTextBody += "Proposta attività in smart working: " + jsonRequestSW.get("attivitaSW").toString()+ "\n";
+        emailTextBody += "Proposta attività in smart working: " + jsonRequestSW.get("attivitaSmartWorking").toString()+ "\n";
         emailTextBody += "Applicativi usati da internet: " 
                 + "gru: " + ((Boolean)jsonRequestSW.get("gru") ? "Si" : "No" )
                 + ", gaac: " + ((Boolean)jsonRequestSW.get("gaac") ? "Si" : "No" ) 
                 + ", babel: " + ((Boolean)jsonRequestSW.get("babel") ? "Si" : "No" )
                 + ", sirer: " + ((Boolean)jsonRequestSW.get("sirer") ? "Si" : "No" )
-                + ", nextcloud: " + ((Boolean)jsonRequestSW.get("nextcloud") ? "Si" : "No" )
+//                + ", nextcloud: " + ((Boolean)jsonRequestSW.get("nextcloud") ? "Si" : "No" )
                 + "\n";
         emailTextBody += "Applicativi e software utilizzati in rete aziendale: " + jsonRequestSW.get("appUsate").toString()+ "\n";
         emailTextBody += "Usa cartelle condivise: " + ((Boolean)jsonRequestSW.get("cartelleCondivise") ? "Si" : "No" ) + "\n";
+        emailTextBody += "\n********\n";
+        
+        emailTextBody += "Il richiedente dichiara inoltre:" + "\n";
+        emailTextBody += "di essere disponibile a verificare con il servizio ICT la compatibilità tecnica del pc personale con gli applicativi aziendali" + "\n";
+        emailTextBody += "di essere consapevole che non tutti gli applicativi potranno essere resi compatibili con tale PC" + "\n";
+        emailTextBody += "di essere disponibile a configurare il PC personale secondo le policy aziendali" + "\n";
+        emailTextBody += "di aver preso visione dell'informativa sulla gestione della salute e sicurezza per i lavoratori in smartworking e di impegnarmi a seguire le indicazioni in essa contenute, nonché di rispettare le disposizioni aziendali in mateira di privacy" + "\n";
+        emailTextBody += "di avere un sistema operativo pari o superiore a Windows 7 aggiornato con gli ultimi windows update, oppure un sistema operativo Linux o MAC (IOS) con il client RDP correttamente configurato" + "\n";
+        
         emailTextBody += "\n";
         
-        Integer idAzienda = (Integer) jsonRequestSW.get("idAzienda");        
+        Integer idAzienda = (Integer) jsonRequestSW.get("idAzienda");
+        
         sendMail(idAzienda, accountFrom, Subject, to, emailTextBody, cc, null);
+    }
+    
+    private Integer salvaRichiestaNelDB(Map<String, Object> jsonRequestSW) {
+        Utente utenteRichiedente = utenteRepository.getOne((Integer)jsonRequestSW.get("idUtenteRichiedente"));
+        Utente utenteResponsabile = utenteRepository.getOne((Integer)jsonRequestSW.get("idUtenteResponsabile"));
+        Azienda a = aziendaRepository.getOne((Integer)jsonRequestSW.get("idAzienda"));
+        LocalDate periodoDalDate = LocalDate.parse(jsonRequestSW.get("periodoDal").toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        LocalDate periodoAlDate = LocalDate.parse(jsonRequestSW.get("periodoAl").toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        
+        RichiestaSmartWorking r = new RichiestaSmartWorking();
+        r.setIdUtenteRichiedente(utenteRichiedente);
+        r.setRichiedente((String)jsonRequestSW.get("richiedente"));
+        r.setCodiceFiscale((String)jsonRequestSW.get("codiceFiscale"));
+        r.setMailRichiedente((String)jsonRequestSW.get("mailRichiedente"));
+        r.setResponsabile((String)jsonRequestSW.get("responsabile"));
+        r.setIdUtenteResponsabile(utenteResponsabile);
+        r.setMailResponsabile((String)jsonRequestSW.get("mailResponsabile"));
+        r.setMailUfficioPersonale((String)jsonRequestSW.get("mailUfficioPersonale"));
+        r.setPeriodoDal(periodoDalDate);
+        r.setPeriodoAl(periodoAlDate);
+        r.setMotivazione((String)jsonRequestSW.get("motivazione"));
+        r.setHoPostazioneEsclusiva((Boolean)jsonRequestSW.get("hoPostazioneEsclusiva"));
+        r.setPostazioneIp((Boolean)jsonRequestSW.get("postazioneIp"));
+        r.setIp((String)jsonRequestSW.get("ip"));
+        r.setIdAzienda(a);
+        r.setAzienda((String)jsonRequestSW.get("azienda"));
+        r.setSede((String)jsonRequestSW.get("sede"));
+        r.setPc((String)jsonRequestSW.get("pc"));
+        r.setInventario((String)jsonRequestSW.get("inventario"));
+        r.setNomePc((String)jsonRequestSW.get("nomePc"));
+//        r.setSistemaOperativo((String)jsonRequestSW.get("sistemaOperativo"));
+        r.setConnettivitaDomestica((Boolean)jsonRequestSW.get("connettivitaDomestica"));
+        r.setNumeroTel(jsonRequestSW.get("numeroTel").toString());
+        Boolean hoCellulareAziendale = (Boolean)jsonRequestSW.get("hoCellulareAziendale");
+        r.setHoCellulareAziendale(hoCellulareAziendale);
+        if (hoCellulareAziendale) {
+            r.setNumeroCellAziendale(jsonRequestSW.get("numeroCellAziendale").toString());
+        }
+        r.setContattabilita((String)jsonRequestSW.get("contattabilita"));
+        r.setVpn((Boolean)jsonRequestSW.get("vpn"));
+        r.setFirma((Boolean)jsonRequestSW.get("firma"));
+        r.setHaLettoreSmartCard((Boolean)jsonRequestSW.get("haLettoreSmartCard"));
+        r.setAttivitaSmartWorking((String)jsonRequestSW.get("attivitaSmartWorking"));
+        r.setGru((Boolean)jsonRequestSW.get("gru"));
+        r.setGaac((Boolean)jsonRequestSW.get("gaac"));
+        r.setBabel((Boolean)jsonRequestSW.get("babel"));
+        r.setSirer((Boolean)jsonRequestSW.get("sirer"));
+//        r.setNextcloud((Boolean)jsonRequestSW.get("nextcloud"));
+        r.setAppUsate((String)jsonRequestSW.get("appUsate"));
+        r.setCartelleCondivise((Boolean)jsonRequestSW.get("cartelleCondivise"));
+        r.setIctInvolved((Boolean)jsonRequestSW.get("ictInvolved"));
+        r.setNonTuttoAndra((Boolean)jsonRequestSW.get("nonTuttoAndra"));
+        r.setPolicy((Boolean)jsonRequestSW.get("policy"));
+        r.setVisionatoInformativa((Boolean)jsonRequestSW.get("visionatoInformativa"));
+        r.setMailict((String)jsonRequestSW.get("mailICT"));
+        
+        RichiestaSmartWorking saveAndFlush = richiestaSmartWorkingRepository.saveAndFlush(r);
+        return saveAndFlush.getId();
     }
     
     
