@@ -249,7 +249,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         emailTextBody += "Numero di telefono di contatto: " + jsonRequestSW.get("numeroTel").toString()+ "\n";
         Boolean hoCellulareAziendale = (Boolean) jsonRequestSW.get("hoCellulareAziendale");
         if (hoCellulareAziendale) {
-            emailTextBody += "Numero del cellulare aziendale: " + ((Long)jsonRequestSW.get("numeroCellAziendale")).toString()+ "\n";
+            emailTextBody += "Numero del cellulare aziendale: " + jsonRequestSW.get("numeroCellAziendale").toString() + "\n";
         }
         emailTextBody += "Disponibilità: " + jsonRequestSW.get("contattabilita").toString()+ "\n";
         emailTextBody += "VPN attiva: " + ((Boolean)jsonRequestSW.get("vpn") ? "Si" : "No" ) + "\n";
@@ -314,11 +314,11 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         r.setNomePc((String)jsonRequestSW.get("nomePc"));
 //        r.setSistemaOperativo((String)jsonRequestSW.get("sistemaOperativo"));
         r.setConnettivitaDomestica((Boolean)jsonRequestSW.get("connettivitaDomestica"));
-        r.setNumeroTel(((Long)jsonRequestSW.get("numeroTel")).toString());
+        r.setNumeroTel(jsonRequestSW.get("numeroTel").toString());
         Boolean hoCellulareAziendale = (Boolean)jsonRequestSW.get("hoCellulareAziendale");
         r.setHoCellulareAziendale(hoCellulareAziendale);
         if (hoCellulareAziendale) {
-            r.setNumeroCellAziendale(((Long)jsonRequestSW.get("numeroCellAziendale")).toString());
+            r.setNumeroCellAziendale(jsonRequestSW.get("numeroCellAziendale").toString());
         }
         r.setContattabilita((String)jsonRequestSW.get("contattabilita"));
         r.setVpn((Boolean)jsonRequestSW.get("vpn"));
