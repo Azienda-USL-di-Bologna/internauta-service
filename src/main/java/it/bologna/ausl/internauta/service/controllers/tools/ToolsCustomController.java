@@ -477,7 +477,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         body += "Telefono: " + segnalazioneUtente.getTelefono() + "\n";
         body += "Mail: " + segnalazioneUtente.getMail() + "\n\n";
         body += "Oggetto: " +  segnalazioneUtente.getOggetto() + "\n";
-        body += "Data e ora: " + new Date() + "\n\n";
+        body += "Data e ora: " + DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss").format(LocalDateTime.now()) + "\n\n";
         body += "Descrizione del problema:\n" + segnalazioneUtente.getDescrizione() + "\n\n\n";
            
         try {
