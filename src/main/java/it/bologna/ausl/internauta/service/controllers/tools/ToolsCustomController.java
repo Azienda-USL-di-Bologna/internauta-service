@@ -27,7 +27,7 @@ import com.sun.mail.smtp.SMTPTransport;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.RichiestaSmartWorkingRepository;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.forms.Feedback;
+import it.bologna.ausl.model.entities.forms.Segnalazione;
 import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -45,9 +45,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Date;
 import java.util.Properties;
-import java.util.logging.Level;
 import javax.activation.DataHandler;
-import javax.activation.FileDataSource;
 import javax.mail.Multipart;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
@@ -56,6 +54,8 @@ import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.multipart.MultipartFile;
@@ -450,33 +450,38 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     
     /**
      * Api per inviare una segnalazione utente via mail al servizio di assistenza
-     * @param userFeedback La form da inviare
+     * @param segnalazioneUtente La form da inviare
      * @param result Risultato del mapping dei dati arrivati con la classe
      * @return Http response
      */
-    @RequestMapping(value = "/sendUserFeedback", method = RequestMethod.POST)
-    public ResponseEntity<?> sendUserFeedback(@Valid @ModelAttribute() Feedback userFeedback,
+    @RequestMapping(value = "/inviaSegnalazione", method = RequestMethod.POST)
+    public ResponseEntity<?> inviaSegnalazione(@Valid @ModelAttribute() Segnalazione segnalazioneUtente,
             BindingResult result) {
         if (result.hasErrors()) {
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
         }
-        Azienda aziendaForm = aziendaRepository.getOne(userFeedback.getAzienda());
+        // Prendo l'utente loggato
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Utente utente = (Utente) authentication.getPrincipal();
+        
         // Build dei campi della mail da inviare
-        String fromName = userFeedback.getMail();
-        String subject = userFeedback.getOggetto();
+        String fromName = segnalazioneUtente.getMail();
+        String subject = segnalazioneUtente.getOggetto();
         List<String> to = Arrays.asList(emailCustomerSupport);
               
-        String body = "*** Nuova Segnalazione Utente***\n\n";
-        body += "Azienda: " + aziendaForm.getDescrizione() + "\n";
-        body += "Cognome: " + userFeedback.getCognome() + "\n";
-        body += "Nome: " + userFeedback.getNome() + "\n";
-        body += "Username: " + userFeedback.getUsername() + "\n";
-        body += "Telefono: " + userFeedback.getTelefono() + "\n";
-        body += "Mail: " + userFeedback.getMail() + "\n\n";
-        body += "Descrizione:\n" + userFeedback.getDescrizione() + "\n\n\n";
+        String body = "*** Nuova Segnalazione Utente ***\n\n";
+        body += "Azienda: " + segnalazioneUtente.getAzienda() + "\n";
+        body += "Cognome: " + segnalazioneUtente.getCognome() + "\n";
+        body += "Nome: " + segnalazioneUtente.getNome() + "\n";
+        body += "Username: " + segnalazioneUtente.getUsername() + "\n";
+        body += "Telefono: " + segnalazioneUtente.getTelefono() + "\n";
+        body += "Mail: " + segnalazioneUtente.getMail() + "\n\n";
+        body += "Oggetto: " +  segnalazioneUtente.getOggetto() + "\n";
+        body += "Data e ora: " + new Date() + "\n\n";
+        body += "Descrizione del problema:\n" + segnalazioneUtente.getDescrizione() + "\n\n\n";
            
         try {
-            sendMail(aziendaForm.getId(), fromName, subject, to, body, null, null, userFeedback.getAllegati());
+            sendMail(utente.getIdAzienda().getId(), fromName, subject, to, body, null, null, segnalazioneUtente.getAllegati());
         } catch (IOException ex) {
             return new ResponseEntity("Errore durante l'invio della mail.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
