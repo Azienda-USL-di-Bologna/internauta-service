@@ -210,12 +210,12 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         // emailTextBody += "\n********\n";
         
         
-        emailTextBody += "non modificare i dati sottostanti in alcun modo al di sotto di questi asterischi" + "\n";
+        emailTextBody += "non modificare in alcun modo i dati al di sotto di questi asterischi" + "\n";
         emailTextBody += "\n********************************************************************************" + "\n\n";
         emailTextBody += "Dati della richiesta" + "\n";
         emailTextBody += "Richiedente: " + jsonRequestSW.get("richiedente").toString() + "\n";
         // emailTextBody += "Username: " + jsonRequestSW.get("username").toString()+ "\n";
-        emailTextBody += "Codice fiscale: " + jsonRequestSW.get("codiceFiscale").toString()+ "\n";
+        emailTextBody += "Codice fiscale: " + jsonRequestSW.get("codiceFiscale").toString() + "\n";
         emailTextBody += "Mail del richiedente: " + jsonRequestSW.get("mailRichiedente").toString() + "\n";
         emailTextBody += "Data richiesta: " + dataRichiesta + "\n";
         emailTextBody += "Periodo richiesto dal: " + periodoDal + " al: " + periodoAl + "\n";
@@ -253,8 +253,8 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             emailTextBody += "Numero del cellulare aziendale: " + jsonRequestSW.get("numeroCellAziendale").toString() + "\n";
         }
         emailTextBody += "Disponibilità: " + jsonRequestSW.get("contattabilita").toString()+ "\n";
-        emailTextBody += "VPN attiva: " + ((Boolean)jsonRequestSW.get("vpn") ? "Si" : "No" ) + "\n";
-        emailTextBody += "Firma Digitale: " + ((Boolean)jsonRequestSW.get("firma") ? "Si" : "No" ) + "\n";
+        emailTextBody += "VPN attiva e funzionante: " + ((Boolean)jsonRequestSW.get("vpn") ? "Si" : "No" ) + "\n";
+        emailTextBody += "Utilizza la Firma Digitale: " + ((Boolean)jsonRequestSW.get("firma") ? "Si" : "No" ) + "\n";
         emailTextBody += "Lettore smart card: " + ((Boolean)jsonRequestSW.get("haLettoreSmartCard") ? "Si" : "No" ) + "\n";
         emailTextBody += "\n********\n";
         
@@ -272,11 +272,18 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         emailTextBody += "\n********\n";
         
         emailTextBody += "Il richiedente dichiara inoltre:" + "\n";
-        emailTextBody += "di essere disponibile a verificare con il servizio ICT la compatibilità tecnica del pc personale con gli applicativi aziendali" + "\n";
-        emailTextBody += "di essere consapevole che non tutti gli applicativi potranno essere resi compatibili con tale PC" + "\n";
-        emailTextBody += "di essere disponibile a configurare il PC personale secondo le policy aziendali" + "\n";
-        emailTextBody += "di aver preso visione dell'informativa sulla gestione della salute e sicurezza per i lavoratori in smartworking e di impegnarmi a seguire le indicazioni in essa contenute, nonché di rispettare le disposizioni aziendali in mateira di privacy" + "\n";
-        emailTextBody += "di avere un sistema operativo pari o superiore a Windows 7 aggiornato con gli ultimi windows update, oppure un sistema operativo Linux o MAC (IOS) con il client RDP correttamente configurato" + "\n";
+        emailTextBody += "- di essere disponibile a verificare con il servizio ICT la compatibilità tecnica del pc personale con gli applicativi aziendali" + "\n";
+        emailTextBody += "- di essere consapevole che non tutti gli applicativi potranno essere resi compatibili con tale PC" + "\n";
+        emailTextBody += "- di essere disponibile a configurare il PC personale secondo le policy aziendali" + "\n";
+        emailTextBody += "- di aver preso visione dell'informativa sulla gestione della salute e sicurezza per i lavoratori in smartworking e di impegnarmi a seguire le indicazioni in essa contenute, nonché di rispettare le disposizioni aziendali in mateira di privacy" + "\n";
+        emailTextBody += "- di avere un sistema operativo pari o superiore a Windows 7 aggiornato con gli ultimi windows update, oppure un sistema operativo Linux o MAC (IOS) con il client RDP correttamente configurato" + "\n";
+        emailTextBody += "\n********************************************************************************" + "\n\n";
+        
+        emailTextBody += idRichiesta + ";" + 
+                jsonRequestSW.get("codiceFiscale").toString() + ";" + 
+                jsonRequestSW.get("mailRichiedente").toString() + ";" + 
+                jsonRequestSW.get("numeroTel").toString() + ";" + 
+                jsonRequestSW.get("ip").toString();
         
         emailTextBody += "\n";
         
