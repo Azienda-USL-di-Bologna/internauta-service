@@ -5,6 +5,8 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.shpeck.MessageTag;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,8 +47,8 @@ public class SpechkEventListener {
         Utente user = authenticatedUserProperties.getUser();
         switch (event.getOperation()) {
             case SEND_CUSTOM_DELETE_INTIMUS_COMMAND:
-                Integer id = (Integer) event.getData();
-                messageTagRepository.sendCustomDeleteIntimusCommand(intimusRedisHost, intimusRedisPort, intimusRedisDb, user.getId(), "MESSAGE_TAG", id);
+                Map<String, Integer> data = (Map<String, Integer>) event.getData();
+                messageTagRepository.sendCustomDeleteIntimusCommand(intimusRedisHost, intimusRedisPort, intimusRedisDb, user.getId(), "MESSAGE_TAG", data.get("idTag"), data.get("idMessage"));
             break;
         }
     }

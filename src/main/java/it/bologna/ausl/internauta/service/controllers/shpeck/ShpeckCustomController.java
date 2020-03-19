@@ -94,8 +94,11 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.Arrays;
 import java.util.function.Predicate;
+import java.util.logging.Level;
 import org.apache.commons.lang3.ArrayUtils;
 import org.json.JSONArray;
 import org.springframework.context.ApplicationEventPublisher;
@@ -939,12 +942,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     }
 
     /**
-     * Gestisco il dopo archiviazione di un messaggio. La funzione nasce per
-     * essere chiamata da Babel. Aggiunge il tag archiviazione con le
-     * informazioni su chi e fascicolo.
+     * Gestisco il dopo archiviazione di un messaggio.La funzione nasce per
+ essere chiamata da Babel. Aggiunge il tag archiviazione con le
+ informazioni su chi e fascicolo.
      *
      * @param idMessage
      * @param additionalData
+     * @param request
      * @throws BlackBoxPermissionException
      */
     @Transactional
@@ -1006,14 +1010,28 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
     }
     
-    @Transactional
-    @RequestMapping(value = "deleteMessageTagCustom/{idMessageTag}", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
+    @RequestMapping(value = "deleteMessageTagCustom", method = RequestMethod.POST)
     public void deleteMessageTagCustom(
-        @PathVariable(required = true) Integer idMessageTag) {
-        MessageTag messageTagToDelete = messageTagRespository.getOne(idMessageTag);
-        Integer idTag = messageTagToDelete.getIdTag().getId();
-        messageTagRespository.deleteById(idMessageTag);
-        applicationEventPublisher.publishEvent(new ShpeckEvent(ShpeckEvent.Phase.AFTER_DELETE, ShpeckEvent.Operation.SEND_CUSTOM_DELETE_INTIMUS_COMMAND, idTag));
+//            @RequestParam(required = false, name = "additionalData") String additionalData, 
+            @RequestBody(required = true) List<Integer> idMessageTagList,
+            HttpServletRequest request) throws AbortSaveInterceptorException {
+
+        for (Integer idMessageTag : idMessageTagList) {
+            MessageTag messageTagToDelete = messageTagRespository.getOne(idMessageTag);
+            Integer idTag = messageTagToDelete.getIdTag().getId();
+            Integer idMessage = messageTagToDelete.getIdMessage().getId();
+            try {
+                messageTagInterceptor.beforeDeleteEntityInterceptor(messageTagToDelete, null, request, true, null);
+            } catch (SkipDeleteInterceptorException ex) {
+                LOG.warn("delete skipped", ex);
+            }
+            messageTagRespository.deleteById(idMessageTag);
+            Map<String, Integer> data = new HashMap();
+            data.put("idTag", idTag);
+            data.put("idMessage", idMessage);
+            applicationEventPublisher.publishEvent(new ShpeckEvent(ShpeckEvent.Phase.AFTER_DELETE, ShpeckEvent.Operation.SEND_CUSTOM_DELETE_INTIMUS_COMMAND, data));
+        }
     }
 
     private void moveInPreviousFolder(Message message, AuthenticatedSessionData authenticatedUserProperties) {
