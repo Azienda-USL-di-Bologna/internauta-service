@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 //import per mandare mail 
 import com.sun.mail.smtp.SMTPTransport;
+import it.bologna.ausl.internauta.service.controllers.utils.ToolsUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.RichiestaSmartWorkingRepository;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -469,21 +470,22 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         String subject = segnalazioneUtente.getOggetto();
         List<String> to = Arrays.asList(emailCustomerSupport);
               
-        String body = "*** Nuova Segnalazione Utente ***\n\n";
-        body += "Azienda: " + segnalazioneUtente.getAzienda() + "\n";
-        body += "Cognome: " + segnalazioneUtente.getCognome() + "\n";
-        body += "Nome: " + segnalazioneUtente.getNome() + "\n";
-        body += "Username: " + segnalazioneUtente.getUsername() + "\n";
-        body += "Telefono: " + segnalazioneUtente.getTelefono() + "\n";
-        body += "Mail: " + segnalazioneUtente.getMail() + "\n\n";
-        body += "Oggetto: " +  segnalazioneUtente.getOggetto() + "\n";
-        body += "Data e ora: " + DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss").format(LocalDateTime.now()) + "\n\n";
-        body += "Descrizione del problema:\n" + segnalazioneUtente.getDescrizione() + "\n\n\n";
-           
+        ToolsUtils toolsUtils = new ToolsUtils();
+        // Build body mail da inviare al servizio assistenza
+        String bodyCustomerSupport = toolsUtils.buildMailForCustomerSupport(segnalazioneUtente);
+        // Build body mail da inviare all'utente
+        String bodyUser = toolsUtils.buildMailForUser(bodyCustomerSupport);
+        
         try {
-            sendMail(utente.getIdAzienda().getId(), fromName, subject, to, body, null, null, segnalazioneUtente.getAllegati());
+            sendMail(utente.getIdAzienda().getId(), fromName, subject, to, bodyCustomerSupport, null, null, segnalazioneUtente.getAllegati());
         } catch (IOException ex) {
-            return new ResponseEntity("Errore durante l'invio della mail.", HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity("Errore durante l'invio della mail al servizio assistenza.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        try {
+            List<String> toUser = Arrays.asList(fromName);
+            sendMail(utente.getIdAzienda().getId(), "Sistema", subject, toUser, bodyUser, null, null, null);
+        } catch (IOException ex) {
+            return new ResponseEntity("Errore durante l'invio della mail all'utente.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         return new ResponseEntity("Successfully sent!", HttpStatus.OK);

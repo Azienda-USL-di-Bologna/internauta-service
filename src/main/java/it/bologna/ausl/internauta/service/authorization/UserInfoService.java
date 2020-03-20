@@ -586,11 +586,17 @@ public class UserInfoService {
         return factory.createProjection(CustomAziendaLogin.class, user.getIdAzienda());
     }
 
-    public List<CustomAziendaLogin> getAllAziendeCustomLogin(Utente user) {
+    public List<CustomAziendaLogin> getAllAziendeCustomLogin(Utente user, Boolean soloUtenzaAttiva) {
 
-        return user.getIdPersona().getUtenteList().stream()
-                .map(u -> factory.createProjection(CustomAziendaLogin.class, u.getIdAzienda()))
-                .collect(Collectors.toList());
+        if (soloUtenzaAttiva) {
+            return user.getIdPersona().getUtenteList().stream().filter(u -> u.getAttivo())
+                    .map(u -> factory.createProjection(CustomAziendaLogin.class, u.getIdAzienda()))
+                    .collect(Collectors.toList());    
+        } else {
+            return user.getIdPersona().getUtenteList().stream()
+                    .map(u -> factory.createProjection(CustomAziendaLogin.class, u.getIdAzienda()))
+                    .collect(Collectors.toList());   
+        }
     }
 
     public Map<String, Object> getPermessiKrint(Persona persona) throws BlackBoxPermissionException {
