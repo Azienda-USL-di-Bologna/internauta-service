@@ -11,7 +11,7 @@ import org.springframework.data.rest.core.config.Projection;
 public interface UtenteWithStruttureAndResponsabiliCustom extends UtenteWithIdPersonaAndUtenteStrutturaList {
     
     @Override
-    @Value("#{@projectionBeans.getStruttureUtenteWithAfferenzaAndReponsabile(target)}")
-    public List<UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabileCustom> getUtenteStrutturaList();
+    @Value("#{@projectionBeans.getStruttureUtenteWithAfferenzaAndReponsabili(target)}")
+    public List<UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom> getUtenteStrutturaList();
     
 }
