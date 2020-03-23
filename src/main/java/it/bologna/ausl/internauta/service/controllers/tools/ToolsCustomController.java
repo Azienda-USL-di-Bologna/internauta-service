@@ -24,11 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 //import per mandare mail 
 import com.sun.mail.smtp.SMTPTransport;
-import it.bologna.ausl.internauta.service.controllers.utils.ToolsUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.RichiestaSmartWorkingRepository;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.forms.Segnalazione;
 import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -38,7 +36,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -46,20 +43,8 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Date;
 import java.util.Properties;
-import javax.activation.DataHandler;
-import javax.mail.Multipart;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.util.ByteArrayDataSource;
-import javax.validation.Valid;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  *
@@ -70,9 +55,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class ToolsCustomController implements ControllerHandledExceptions {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(ToolsCustomController.class);
-    
-    @Value("${customer.support.email}")
-    private String emailCustomerSupport;
     
     //per parametri pubblici?
     @Autowired
@@ -86,9 +68,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     @Autowired
     private RichiestaSmartWorkingRepository richiestaSmartWorkingRepository;
     
-    public Boolean sendMail(
-            Integer idAzienda, String fromName, String Subject, List<String> To, String body, 
-            List<String> cc, List<String> bcc, MultipartFile[] attachments) throws IOException{
+    public Boolean sendMail(Integer idAzienda, String fromName, String Subject, List<String> To, String body, List<String> cc, List<String> bcc ) throws IOException{
         
         Azienda azienda = cachedEntities.getAzienda(idAzienda);
         AziendaParametriJson aziendaParametri = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
@@ -126,30 +106,35 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 
             // inserisco lista TO
             if (To!=null && !To.isEmpty()){
-			// cc non so se va bene sicuramente no
+                String addressesTo = "";
                 for (String toElement : To) {
-                    msg.setRecipients(Message.RecipientType.TO,
-                        InternetAddress.parse(toElement, false));
+                    addressesTo += toElement + ",";
+                }
+                addressesTo = addressesTo.substring(0, addressesTo.length() - 1);
+                msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(addressesTo, false));
+            }
+ 
+            //inserico lista CC e BCC
+            if (cc != null && !cc.isEmpty()){
+                String addressesCC = "";
+                for (String ccElement : cc) {
+                    addressesCC += ccElement + ",";
+                }
+                if (bcc!=null && !bcc.isEmpty()){
+                    for (String bccElement : bcc) {
+                        addressesCC += bccElement + ",";
                     }
+                }
+                addressesCC = addressesCC.substring(0, addressesCC.length() - 1);
+                msg.setRecipients(Message.RecipientType.CC, InternetAddress.parse(addressesCC, false));
             }
             
-//            msg.setRecipients(Message.RecipientType.TO,
-//                    InternetAddress.parse(To, false));
- 
-            //inserico lista CC
-            if (cc!=null && !cc.isEmpty()){
-                for (String ccElement : cc) {
-                    msg.setRecipients(Message.RecipientType.CC,
-                        InternetAddress.parse(ccElement, false));
-                    }
-            }
-            //inserisco lista BCC
-            if (bcc!=null && !bcc.isEmpty()){
-                for (String bccElement : bcc) {
-                    msg.setRecipients(Message.RecipientType.CC,
-                        InternetAddress.parse(bccElement, false));
-                    }
-            }
+//            if (bcc!=null && !bcc.isEmpty()){
+//                for (String bccElement : bcc) {
+//                    msg.setRecipients(Message.RecipientType.CC,
+//                        InternetAddress.parse(bccElement, false));
+//                    }
+//            }
             
             // subject
 //            LocalDateTime today = LocalDateTime.now();
@@ -161,31 +146,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             
             msg.setSubject(Subject);
             // content 
-            if (attachments != null && attachments.length > 0) {
-                Multipart multipart = new MimeMultipart();
-                
-                // Body
-                MimeBodyPart messageBodyPart = new MimeBodyPart();
-                messageBodyPart.setText(body);
-                multipart.addBodyPart(messageBodyPart);
-                
-                // Allegati
-                MimeBodyPart attachmentPart; 
-                for (MultipartFile attachment : attachments) {
-                    attachmentPart = new MimeBodyPart();
-                    byte[] fileBytes = attachment.getBytes();
-                    String attachmentName = attachment.getOriginalFilename();
-                    ByteArrayDataSource source
-                            = new ByteArrayDataSource(fileBytes, attachment.getContentType());
-                    attachmentPart.setDataHandler(new DataHandler(source));
-                    attachmentPart.setFileName(attachmentName);
-                    multipart.addBodyPart(attachmentPart);
-                }
-                msg.setContent(multipart);
-            } else {
-                msg.setText(body);
-            }
-            
+            msg.setText(body);
             // msg.setContent(body, "text/html; charset=utf-8");
             msg.setSentDate(new Date());
             // Get SMTPTransport
@@ -219,13 +180,21 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     public void sendSmartWorkingMail(@RequestBody Map<String, Object> jsonRequestSW) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
         
         String accountFrom = "babelform.smartworking@ausl.bologna.it";
-        String Subject = "Richiesta SMART WORKING";
+        String subject = "Richiesta SMART WORKING";
         String emailTextBody = "";
-        
         List<String> to = new ArrayList();
-        to.add(jsonRequestSW.get("mailResponsabile").toString());
         List<String> cc = new ArrayList();
-        cc.add(jsonRequestSW.get("mailRichiedente").toString());
+        
+        Boolean  inviaRichiestaSmartWorkingAUfficioPersonale = (Boolean)jsonRequestSW.get("inviaRichiestaSmartWorkingAUfficioPersonale");
+        
+        if (inviaRichiestaSmartWorkingAUfficioPersonale) {
+            to.add(jsonRequestSW.get("mailUfficioPersonale").toString());
+            cc.add(jsonRequestSW.get("mailResponsabile").toString());
+            cc.add(jsonRequestSW.get("mailRichiedente").toString());
+        } else {
+            to.add(jsonRequestSW.get("mailResponsabile").toString());
+            cc.add(jsonRequestSW.get("mailRichiedente").toString());
+        }
         
         //data e ora odierni
         LocalDateTime today = LocalDateTime.now();
@@ -244,18 +213,18 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         
         Integer idRichiesta = salvaRichiestaNelDB(jsonRequestSW);
         
-        Subject = Subject + " id " + idRichiesta + ", " + jsonRequestSW.get("richiedente").toString() + " " + dataRichiesta;
+        subject = subject + " id " + idRichiesta + ", " + jsonRequestSW.get("richiedente").toString() + " " + dataRichiesta;
         
         emailTextBody += "Richiesta di autorizzazione allo smart working di " + jsonRequestSW.get("richiedente").toString() + " del " + dataRichiesta + "\n\n";
-        emailTextBody += "RISERVATO AL RESPONSABILE" + "\n";
-        emailTextBody += "Da inoltrare solo in caso di autorizzazione positiva a:" + "\n";
-        emailTextBody += jsonRequestSW.get("mailUfficioPersonale").toString() + "\n";
-        emailTextBody += jsonRequestSW.get("mailICT").toString() + "\n\n";
-        // emailTextBody += "\n********\n";
         
-        
-        emailTextBody += "non modificare in alcun modo i dati al di sotto di questi asterischi" + "\n";
-        emailTextBody += "\n********************************************************************************" + "\n\n";
+        if (!inviaRichiestaSmartWorkingAUfficioPersonale) {
+            emailTextBody += "RISERVATO AL RESPONSABILE" + "\n";
+            emailTextBody += "Da inoltrare solo in caso di autorizzazione positiva a:" + "\n";
+            emailTextBody += jsonRequestSW.get("mailUfficioPersonale").toString() + "\n";
+            emailTextBody += jsonRequestSW.get("mailICT").toString() + "\n\n";
+            emailTextBody += "non modificare in alcun modo i dati al di sotto di questi asterischi" + "\n";
+            emailTextBody += "\n********************************************************************************" + "\n\n";
+        }
         emailTextBody += "Dati della richiesta" + "\n";
         emailTextBody += "Richiedente: " + jsonRequestSW.get("richiedente").toString() + "\n";
         // emailTextBody += "Username: " + jsonRequestSW.get("username").toString()+ "\n";
@@ -279,7 +248,11 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         emailTextBody += "Responsabile: " + jsonRequestSW.get("responsabile").toString()+ "\n";
         emailTextBody += "Mail del responsabile: " + jsonRequestSW.get("mailResponsabile").toString()+ "\n";
         emailTextBody += "Ufficio personale: " + jsonRequestSW.get("mailUfficioPersonale").toString()+ "\n";
-        emailTextBody += "ICT: " + jsonRequestSW.get("mailICT").toString()+ "\n";
+        String mailICT = jsonRequestSW.get("mailICT").toString();
+        if (mailICT != null && !mailICT.equals("")) {
+            emailTextBody += "ICT: " + jsonRequestSW.get("mailICT").toString()+ "\n";
+        }
+        
         emailTextBody += "\n********\n";
         
         emailTextBody += "DATI DELLA POSTAZIONE SMART WORKING\n";
@@ -315,12 +288,18 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         emailTextBody += "Usa cartelle condivise: " + ((Boolean)jsonRequestSW.get("cartelleCondivise") ? "Si" : "No" ) + "\n";
         emailTextBody += "\n********\n";
         
-        emailTextBody += "Il richiedente dichiara inoltre:" + "\n";
-        emailTextBody += "- di essere disponibile a verificare con il servizio ICT la compatibilità tecnica del pc personale con gli applicativi aziendali" + "\n";
-        emailTextBody += "- di essere consapevole che non tutti gli applicativi potranno essere resi compatibili con tale PC" + "\n";
-        emailTextBody += "- di essere disponibile a configurare il PC personale secondo le policy aziendali" + "\n";
-        emailTextBody += "- di aver preso visione dell'informativa sulla gestione della salute e sicurezza per i lavoratori in smartworking e di impegnarmi a seguire le indicazioni in essa contenute, nonché di rispettare le disposizioni aziendali in mateira di privacy" + "\n";
-        emailTextBody += "- di avere un sistema operativo pari o superiore a Windows 7 aggiornato con gli ultimi windows update, oppure un sistema operativo Linux o MAC (IOS) con il client RDP correttamente configurato" + "\n";
+//        emailTextBody += "Il richiedente dichiara inoltre:" + "\n";
+//        emailTextBody += "- di essere disponibile a verificare con il servizio ICT la compatibilità tecnica del pc personale con gli applicativi aziendali" + "\n";
+//        emailTextBody += "- di essere consapevole che non tutti gli applicativi potranno essere resi compatibili con tale PC" + "\n";
+//        emailTextBody += "- di essere disponibile a configurare il PC personale secondo le policy aziendali" + "\n";
+//        emailTextBody += "- di aver preso visione dell'informativa sulla gestione della salute e sicurezza per i lavoratori in smartworking e di impegnarmi a seguire le indicazioni in essa contenute, nonché di rispettare le disposizioni aziendali in mateira di privacy" + "\n";
+//        emailTextBody += "- di avere un sistema operativo pari o superiore a Windows 7 aggiornato con gli ultimi windows update, oppure un sistema operativo Linux o MAC (IOS) con il client RDP correttamente configurato" + "\n";
+        List<String> dichiarazioniFinali = (List<String>) jsonRequestSW.get("dichiarazioniFinali");
+//        String[] dichiarazioniFinali = new String[get.size()];
+//        dichiarazioniFinali = get.toArray(dichiarazioniFinali);
+        for (String d : dichiarazioniFinali) {
+            emailTextBody += d + "\n";
+        }
         emailTextBody += "\n********************************************************************************" + "\n\n";
         
         emailTextBody += idRichiesta + ";" + 
@@ -333,12 +312,17 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         
         Integer idAzienda = (Integer) jsonRequestSW.get("idAzienda");
         
-        sendMail(idAzienda, accountFrom, Subject, to, emailTextBody, cc, null, null);
+        sendMail(idAzienda, accountFrom, subject, to, emailTextBody, cc, null);
     }
     
     private Integer salvaRichiestaNelDB(Map<String, Object> jsonRequestSW) {
         Utente utenteRichiedente = utenteRepository.getOne((Integer)jsonRequestSW.get("idUtenteRichiedente"));
-        Utente utenteResponsabile = utenteRepository.getOne((Integer)jsonRequestSW.get("idUtenteResponsabile"));
+        Object idUtenteResponsabile = jsonRequestSW.get("idUtenteResponsabile");
+        Utente utenteResponsabile = null;
+        if (idUtenteResponsabile != null) {
+             utenteResponsabile = utenteRepository.getOne((Integer)idUtenteResponsabile);
+        }
+       
         Azienda a = aziendaRepository.getOne((Integer)jsonRequestSW.get("idAzienda"));
         LocalDate periodoDalDate = LocalDate.parse(jsonRequestSW.get("periodoDal").toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         LocalDate periodoAlDate = LocalDate.parse(jsonRequestSW.get("periodoAl").toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
@@ -390,6 +374,11 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         r.setVisionatoInformativa((Boolean)jsonRequestSW.get("visionatoInformativa"));
         r.setMailict((String)jsonRequestSW.get("mailICT"));
         
+        List<String> get = (List<String>) jsonRequestSW.get("dichiarazioniFinali");
+        String[] dichiarazioniFinali = new String[get.size()];
+        dichiarazioniFinali = get.toArray(dichiarazioniFinali);
+        r.setDichiarazioniFinali(dichiarazioniFinali);
+        
         RichiestaSmartWorking saveAndFlush = richiestaSmartWorkingRepository.saveAndFlush(r);
         return saveAndFlush.getId();
     }
@@ -438,6 +427,17 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     private String getHostName(String ip) {
         String computerName = null;
         try {
+            InetAddress inetAddress = InetAddress.getByName(ip);
+            computerName = inetAddress.getHostName();
+            if (computerName.equalsIgnoreCase("localhost")) {
+                computerName = java.net.InetAddress.getLocalHost().getCanonicalHostName();
+            } 
+        } catch (UnknownHostException e) {
+            LOGGER.error("UnknownHostException detected in StartAction. ", e);
+        }
+        return computerName;
+    }
+}
             InetAddress inetAddress = InetAddress.getByName(ip);
             computerName = inetAddress.getHostName();
             if (computerName.equalsIgnoreCase("localhost")) {
