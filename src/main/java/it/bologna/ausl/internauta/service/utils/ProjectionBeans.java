@@ -46,8 +46,6 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
-import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtenteResponsabileCustom;
-import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabileCustom;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.util.HashMap;
 import java.util.Map;
@@ -66,6 +64,10 @@ import it.bologna.ausl.model.entities.rubrica.projections.generated.IndirizzoWit
 import it.bologna.ausl.model.entities.rubrica.projections.generated.TelefonoWithIdDettaglioContatto;
 import java.util.ArrayList;
 import org.slf4j.Logger;
+import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom;
+import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtentiResponsabiliCustom;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  *
@@ -467,30 +469,39 @@ public class ProjectionBeans {
         return res;
     }
     
-    public UtenteWithIdPersona getResposabileStruttura(Struttura struttura) {
-        Integer idUtenteResposabile = strutturaRepository.getResponsabile(struttura.getId());
-        if (idUtenteResposabile != null) {
-            Utente utenteResposabile = utenteRepository.findById(idUtenteResposabile).get();
-            return factory.createProjection(UtenteWithIdPersona.class, utenteResposabile);
-        } else {
-            return null;
-        }
-    }
-    
-    public StrutturaWithUtenteResponsabileCustom getStrutturaWithUtenteReponsabile(UtenteStruttura utenteStruttura) {
-        StrutturaWithUtenteResponsabileCustom res = null;
-        if (utenteStruttura != null) {
-            res = factory.createProjection(StrutturaWithUtenteResponsabileCustom.class, utenteStruttura.getIdStruttura());
+    public List<UtenteWithIdPersona> getResposabiliStruttura(Struttura struttura) {
+        List<UtenteWithIdPersona> res = null;
+        String idUtentiResponsabiliArray = strutturaRepository.getResponsabili(struttura.getId());
+        if (idUtentiResponsabiliArray != null) {
+            JSONArray array = new JSONArray(idUtentiResponsabiliArray);
+            List<Integer> idUtentiResponsabili = new ArrayList();
+            for (int i = 0; i < array.length(); ++i) {
+                idUtentiResponsabili.add(array.optInt(i));
+            }
+            if (!idUtentiResponsabili.isEmpty()) {
+                res = idUtentiResponsabili.stream().map(idUtenteResponsabile -> {
+                    Utente utenteResposabile = utenteRepository.findById(idUtenteResponsabile).get();
+                    return factory.createProjection(UtenteWithIdPersona.class, utenteResposabile);
+                }).collect(Collectors.toList());
+            }
         }
         return res;
     }
     
-    public List<UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabileCustom> getStruttureUtenteWithAfferenzaAndReponsabile(Utente utente) {
-        List<UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabileCustom> res = null;
+    public StrutturaWithUtentiResponsabiliCustom getStrutturaWithUtentiReponsabili(UtenteStruttura utenteStruttura) {
+        StrutturaWithUtentiResponsabiliCustom res = null;
+        if (utenteStruttura != null) {
+            res = factory.createProjection(StrutturaWithUtentiResponsabiliCustom.class, utenteStruttura.getIdStruttura());
+        }
+        return res;
+    }
+    
+    public List<UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom> getStruttureUtenteWithAfferenzaAndReponsabili(Utente utente) {
+        List<UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom> res = null;
         List<UtenteStruttura> utenteStrutturaList = utente.getUtenteStrutturaList();
         if (utenteStrutturaList != null && !utenteStrutturaList.isEmpty()) {
             res = utenteStrutturaList.stream().map(utenteStruttura -> {
-                return factory.createProjection(UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabileCustom.class, utenteStruttura);
+                return factory.createProjection(UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom.class, utenteStruttura);
             }).collect(Collectors.toList());
         }
         return res;
