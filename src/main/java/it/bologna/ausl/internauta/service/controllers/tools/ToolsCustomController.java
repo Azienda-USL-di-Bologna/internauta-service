@@ -356,7 +356,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         
         Integer idAzienda = (Integer) jsonRequestSW.get("idAzienda");
         
-        sendMail(idAzienda, accountFrom, subject, to, emailTextBody, cc, null);
+        sendMail(idAzienda, accountFrom, subject, to, emailTextBody, cc, null, null);
     }
     
     private Integer salvaRichiestaNelDB(Map<String, Object> jsonRequestSW) {
