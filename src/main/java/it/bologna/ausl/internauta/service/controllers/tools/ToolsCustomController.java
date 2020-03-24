@@ -329,6 +329,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 //                + ", nextcloud: " + ((Boolean)jsonRequestSW.get("nextcloud") ? "Si" : "No" )
                 + "\n";
         emailTextBody += "Applicativi e software utilizzati in rete aziendale: " + jsonRequestSW.get("appUsate").toString()+ "\n";
+        emailTextBody += "Usa MySanità: " + ((Boolean)jsonRequestSW.get("mySanita") ? "Si" : "No" ) + "\n";
         emailTextBody += "Usa cartelle condivise: " + ((Boolean)jsonRequestSW.get("cartelleCondivise") ? "Si" : "No" ) + "\n";
         emailTextBody += "\n********\n";
         
@@ -350,7 +351,8 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                 jsonRequestSW.get("codiceFiscale").toString() + ";" + 
                 jsonRequestSW.get("mailRichiedente").toString() + ";" + 
                 jsonRequestSW.get("numeroTel").toString() + ";" + 
-                jsonRequestSW.get("ip").toString();
+                jsonRequestSW.get("ip").toString() + " (" + jsonRequestSW.get("ip").toString().replace(".", " ") +")" + ";" +
+                ((Boolean)jsonRequestSW.get("mySanita") ? "Si" : "No");
         
         emailTextBody += "\n";
         
@@ -422,6 +424,8 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         String[] dichiarazioniFinali = new String[get.size()];
         dichiarazioniFinali = get.toArray(dichiarazioniFinali);
         r.setDichiarazioniFinali(dichiarazioniFinali);
+        
+        r.setMySanita((Boolean)jsonRequestSW.get("mySanita"));
         
         RichiestaSmartWorking saveAndFlush = richiestaSmartWorkingRepository.saveAndFlush(r);
         return saveAndFlush.getId();
