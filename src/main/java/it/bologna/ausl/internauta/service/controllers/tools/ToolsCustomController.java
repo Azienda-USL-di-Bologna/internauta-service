@@ -278,6 +278,8 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         
         emailTextBody += "DATI SULLA ATTIVITA DI SMART WORKING\n";
         emailTextBody += "Proposta attività in smart working: " + jsonRequestSW.get("attivitaSmartWorking").toString()+ "\n";
+        emailTextBody += "\n********\n";
+        
         emailTextBody += "Applicativi usati da internet: " 
                 + "gru: " + ((Boolean)jsonRequestSW.get("gru") ? "Si" : "No" )
                 + ", gaac: " + ((Boolean)jsonRequestSW.get("gaac") ? "Si" : "No" ) 
