@@ -23,8 +23,11 @@ public interface CustomUtenteLogin extends UtenteWithIdPersonaAndPermessiCustom 
     @Value("#{@userInfoService.getAziendaCustomLogin(target)}")
     public CustomAziendaLogin getAziendaLogin();
 
-    @Value("#{@userInfoService.getAllAziendeCustomLogin(target)}")
+    @Value("#{@userInfoService.getAllAziendeCustomLogin(target, false)}")
     public List<CustomAziendaLogin> getAziende();
+    
+    @Value("#{@userInfoService.getAllAziendeCustomLogin(target, true)}")
+    public List<CustomAziendaLogin> getAziendeAttive();
 
     @Value("#{@userInfoService.getRuoli(target, null)}")
     @Override

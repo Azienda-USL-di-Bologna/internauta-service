@@ -229,8 +229,8 @@ public class AuthorizationUtils {
         Class<?> entityClass = Class.forName(entityClassName);
 
         // carica l'utente vero che si è loggato con SSO
-        userInfoService.loadUtenteRemoveCache(entityClass, field, ssoFieldValue, aziendaRealUser);
-        Utente user = userInfoService.loadUtente(entityClass, field, ssoFieldValue, aziendaRealUser);
+        userInfoService.loadUtenteRemoveCache(entityClass, field, ssoFieldValue, aziendaRealUser, true);
+        Utente user = userInfoService.loadUtente(entityClass, field, ssoFieldValue, aziendaRealUser, true);
         if (user == null) {
             throw new ObjectNotFoundException("User not found");
         }
@@ -270,9 +270,9 @@ public class AuthorizationUtils {
                 }
             }
             
-            userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser);
-            impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser);
-            logger.info("loadedImpersonateUser: " + impersonatedUser != null? impersonatedUser.getId().toString() : "null");
+            userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser, false);
+            impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser, false);
+            logger.info("loadedImpersonateUser: " + (impersonatedUser != null? impersonatedUser.getId().toString() : "null"));
             userInfoService.loadUtenteRemoveCache(impersonatedUser.getId());
             userInfoService.getUtentiPersonaByUtenteRemoveCache(impersonatedUser);
             userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());

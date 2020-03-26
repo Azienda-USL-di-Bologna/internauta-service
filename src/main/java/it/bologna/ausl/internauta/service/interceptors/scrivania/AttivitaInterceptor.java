@@ -76,9 +76,8 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
         BooleanExpression filterUtenteConnesso = QAttivita.attivita.idPersona.id.eq(authenticatedSessionData.getUser().getIdPersona().getId());
         Utente user = authenticatedSessionData.getUser();
         Utente utenteReale = authenticatedSessionData.getRealUser();
-        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(user, utenteReale == null).stream().map(
-                x -> 
-                        x.getIdAzienda().getId()
+        List<Integer> collect = userInfoService.getUtentiPersonaByUtente(user, (utenteReale == null && !userInfoService.isSD(user))).stream().map(
+                x -> x.getIdAzienda().getId()
         ).collect(Collectors.toList());
         BooleanExpression filterUtenteAttivo = QAttivita.attivita.idAzienda.id.in(collect);   
         
