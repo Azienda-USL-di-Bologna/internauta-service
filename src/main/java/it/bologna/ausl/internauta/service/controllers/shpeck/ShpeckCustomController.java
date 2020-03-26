@@ -91,9 +91,12 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxLiteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
+import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.Arrays;
@@ -149,6 +152,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private MessageCompleteRepository messageCompleteRespository;
+
+    @Autowired
+    private OutboxLiteRepository outboxLiteRepository;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
@@ -803,23 +809,57 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     }
 
     /**
+     * Conta il numero di messaggi presenti nella folder passata
      *
-     * @param idFolder
-     * @param unSeen
+     * @param idFolder l'id della folder
+     * @param unSeen conta solo i non letti, default false (conta solo i non
+     * letti)
+     * @param draft
+     * @param outbox
      * @return
      */
     @RequestMapping(value = "countMessageInFolder/{idFolder}", method = RequestMethod.GET)
-    public Long countMessageInFolder(
+    public Long countMesisageInFolder(
             @PathVariable(required = true) Integer idFolder,
+            @RequestParam(name = "folderType", required = false) Folder.FolderType folderType,
+            @RequestParam(name = "idPec", required = false) Integer idPec,
             @RequestParam(name = "unSeen", required = false, defaultValue = "false") Boolean unSeen
     ) {
+        BooleanExpression filter;
+        if (folderType != null) {
+            switch (folderType) {
+                case OUTBOX:
 
-        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false)).and(QMessageFolder.messageFolder.idMessage.messageType.eq("MAIL"));
+                    filter = QOutboxLite.outboxLite.idPec.id.eq(idPec).and(QOutboxLite.outboxLite.ignore.eq(false));
+                    return outboxLiteRepository.count(filter);
+
+                case DRAFT:
+
+                    filter = QDraft.draft.idPec.id.eq(idPec);
+                    return draftRepository.count(filter);
+
+                default:
+                    filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
+                    if (unSeen) {
+                        filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
+                    }
+                    return messageFolderRespository.count(filter);
+            }
+
+        }
+
+        filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
         if (unSeen) {
             filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
         }
         return messageFolderRespository.count(filter);
     }
+//        BooleanExpression filter = QMessageComplete.messageComplete.idFolder.id.eq(idFolder);
+//        if (unSeen) {
+//            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
+//        }
+//        return messageCompleteRespository.count(filter);
+    
 
     /**
      * La funzione conta quanti messaggi hanno l'idTag passato

@@ -212,7 +212,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     }
     
     
-    //funzione di prova per testare sendMail
+//      funzione di prova per testare sendMail
 //     @RequestMapping(value = {"testMailSend"}, method = RequestMethod.GET)
 //    public void test() throws IOException{
 //        sendMail(2, "prova.smart@ausl.bo.it", "test", "", "prova", new ArrayList<String>(), new ArrayList<String>());
