@@ -265,7 +265,8 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             emailTextBody += "RISERVATO AL RESPONSABILE" + "\n";
             emailTextBody += "Da inoltrare solo in caso di autorizzazione positiva a:" + "\n";
             emailTextBody += jsonRequestSW.get("mailUfficioPersonale").toString() + "\n";
-            emailTextBody += jsonRequestSW.get("mailICT").toString() + "\n\n";
+            emailTextBody += jsonRequestSW.get("mailICT").toString() + "\n";
+            emailTextBody += jsonRequestSW.get("mailRichiedente").toString() + "\n\n";
             emailTextBody += "non modificare in alcun modo i dati al di sotto di questi asterischi" + "\n";
             emailTextBody += "\n********************************************************************************" + "\n\n";
         }
