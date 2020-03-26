@@ -211,7 +211,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     }
     
     
-    //funzione di prova per testare sendMail
+//      funzione di prova per testare sendMail
 //     @RequestMapping(value = {"testMailSend"}, method = RequestMethod.GET)
 //    public void test() throws IOException{
 //        sendMail(2, "prova.smart@ausl.bo.it", "test", "", "prova", new ArrayList<String>(), new ArrayList<String>());
@@ -236,8 +236,8 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         ZoneId id = ZoneId.of("Europe/Rome");
         ZonedDateTime zonedDateTime = ZonedDateTime.of(today, id);      //That's how you add timezone to date
         String formattedDateTime = DateTimeFormatter
-                .ofPattern("dd/MM/yyyy ore HH:mm")
-                .format(zonedDateTime);             //11/03/2020 ore 10.44
+                .ofPattern("dd/MM/yyyy - HH:mm")
+                .format(zonedDateTime);             //11/03/2020 - 10.44
          
         Subject=Subject+jsonRequestSW.get("richiedente").toString()+ " "+ formattedDateTime;
         emailTextBody=emailTextBody+"Richiedente: "+jsonRequestSW.get("richiedente").toString() + "\n";
