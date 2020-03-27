@@ -51,7 +51,7 @@ public class ToolsUtils {
         // IdBabel non va inviato all'utente in quanto se è il codice fiscale è un problema di privacy
         body += bodyCustomerSupport.replaceAll("IdBabel.*\\n", "");
         body += 
-            "Ricordiamo che sono in atto misure straordinarie di contenimento dell’emergenza COVID-19 " + 
+            "\nRicordiamo che sono in atto misure straordinarie di contenimento dell’emergenza COVID-19 " + 
             "pertanto il personale del servizio Babelcare e di sviluppo Babel " + 
             "sta gestendo le normali attività adottando la modalità di smartworking.\n" +
             "In questo periodo per aiutarci a gestire al meglio il servizio e per garantire tempi di risposta rapidi, " +
