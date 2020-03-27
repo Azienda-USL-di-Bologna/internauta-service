@@ -92,6 +92,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepos
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxLiteRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
@@ -170,6 +171,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
+    
+    @Autowired
+    private CachedEntities cachedEntities;
             
     @Autowired
     ObjectMapper objectMapper;
@@ -592,6 +596,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @param idMessageRelated Id del messaggio risposto opzionale
      * @param messageRelatedType Il tipo della relazione del messaggio related
      * @param idMessageRelatedAttachments
+     * @param idUtente // TODO: non usato ancora
      * @throws AddressException Errore nella creazione degli indirizzi
      * @throws IOException Errore di salvataggio
      * @throws MessagingException Errore nella creazione del mimemessage
@@ -615,7 +620,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam("attachments") MultipartFile[] attachments,
             @RequestParam("idMessageRelated") Integer idMessageRelated,
             @RequestParam("messageRelatedType") MessageRelatedType messageRelatedType,
-            @RequestParam("idMessageRelatedAttachments") Integer[] idMessageRelatedAttachments
+            @RequestParam("idMessageRelatedAttachments") Integer[] idMessageRelatedAttachments,
+            @RequestParam("idUtente") Integer idUtente
     ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException {
 
         LOG.info("Shpeck controller -> Message received from PEC with id: " + idPec);
@@ -628,7 +634,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         LOG.info("Getting draft with idDraft: ", idDraftMessage);
         Draft draftMessage = draftRepository.getOne(idDraftMessage);
-
+        if (idUtente != null) {
+            Utente utente = this.cachedEntities.getUtente(idUtente);
+            draftMessage.setIdUtente(utente);
+        }
+        
         LOG.info("Getting PEC from repository...");
         Pec pec = pecRepository.getOne(idPec);
         String from = pec.getIndirizzo();
