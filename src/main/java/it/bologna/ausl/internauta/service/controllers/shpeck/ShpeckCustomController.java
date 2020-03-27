@@ -621,7 +621,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam("idMessageRelated") Integer idMessageRelated,
             @RequestParam("messageRelatedType") MessageRelatedType messageRelatedType,
             @RequestParam("idMessageRelatedAttachments") Integer[] idMessageRelatedAttachments,
-            @RequestParam("idUtente") Integer idUtente
+            @RequestParam(name = "idUtente", required = false) Integer idUtente
     ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException {
 
         LOG.info("Shpeck controller -> Message received from PEC with id: " + idPec);
