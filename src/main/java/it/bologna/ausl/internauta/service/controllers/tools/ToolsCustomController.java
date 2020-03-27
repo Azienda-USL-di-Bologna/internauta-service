@@ -73,7 +73,8 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     
     @Value("${customer.support.email}")
     private String emailCustomerSupport;
-    
+    @Value("${customer.support.name}")
+    private String nameCustomerSupport;
     //per parametri pubblici?
     @Autowired
     private AziendaRepository aziendaRepository;
@@ -523,7 +524,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         }
         try {
             List<String> toUser = Arrays.asList(fromName);
-            sendMail(utente.getIdAzienda().getId(), "Sistema", subject, toUser, bodyUser, null, null, null);
+            sendMail(utente.getIdAzienda().getId(), nameCustomerSupport, subject, toUser, bodyUser, null, null, null);
         } catch (IOException ex) {
             return new ResponseEntity("Errore durante l'invio della mail all'utente.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
