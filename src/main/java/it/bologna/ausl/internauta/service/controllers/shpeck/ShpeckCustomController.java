@@ -824,8 +824,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @param idFolder l'id della folder
      * @param unSeen conta solo i non letti, default false (conta solo i non
      * letti)
-     * @param draft
-     * @param outbox
+     * @param folderType
+     * @param idPec
      * @return
      */
     @RequestMapping(value = "countMessageInFolder/{idFolder}", method = RequestMethod.GET)
