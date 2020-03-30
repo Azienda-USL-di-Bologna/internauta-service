@@ -24,9 +24,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 //import per mandare mail 
 import com.sun.mail.smtp.SMTPTransport;
+import it.bologna.ausl.internauta.service.controllers.utils.ToolsUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.RichiestaSmartWorkingRepository;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.forms.Segnalazione;
 import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -36,6 +38,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -43,8 +46,20 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Date;
 import java.util.Properties;
+import javax.activation.DataHandler;
+import javax.mail.Multipart;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMultipart;
+import javax.mail.util.ByteArrayDataSource;
+import javax.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  *
@@ -56,6 +71,10 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(ToolsCustomController.class);
     
+    @Value("${customer.support.email}")
+    private String emailCustomerSupport;
+    @Value("${customer.support.name}")
+    private String nameCustomerSupport;
     //per parametri pubblici?
     @Autowired
     private AziendaRepository aziendaRepository;
@@ -68,7 +87,9 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     @Autowired
     private RichiestaSmartWorkingRepository richiestaSmartWorkingRepository;
     
-    public Boolean sendMail(Integer idAzienda, String fromName, String Subject, List<String> To, String body, List<String> cc, List<String> bcc ) throws IOException{
+    public Boolean sendMail(
+            Integer idAzienda, String fromName, String Subject, List<String> To, String body, 
+            List<String> cc, List<String> bcc, MultipartFile[] attachments) throws IOException{
         
         Azienda azienda = cachedEntities.getAzienda(idAzienda);
         AziendaParametriJson aziendaParametri = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
@@ -146,7 +167,31 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             
             msg.setSubject(Subject);
             // content 
-            msg.setText(body);
+            if (attachments != null && attachments.length > 0) {
+                Multipart multipart = new MimeMultipart();
+                
+                // Body
+                MimeBodyPart messageBodyPart = new MimeBodyPart();
+                messageBodyPart.setText(body);
+                multipart.addBodyPart(messageBodyPart);
+                
+                // Allegati
+                MimeBodyPart attachmentPart; 
+                for (MultipartFile attachment : attachments) {
+                    attachmentPart = new MimeBodyPart();
+                    byte[] fileBytes = attachment.getBytes();
+                    String attachmentName = attachment.getOriginalFilename();
+                    ByteArrayDataSource source
+                            = new ByteArrayDataSource(fileBytes, attachment.getContentType());
+                    attachmentPart.setDataHandler(new DataHandler(source));
+                    attachmentPart.setFileName(attachmentName);
+                    multipart.addBodyPart(attachmentPart);
+                }
+                msg.setContent(multipart);
+            } else {
+                msg.setText(body);
+            }
+            
             // msg.setContent(body, "text/html; charset=utf-8");
             msg.setSentDate(new Date());
             // Get SMTPTransport
@@ -317,7 +362,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         
         Integer idAzienda = (Integer) jsonRequestSW.get("idAzienda");
         
-        sendMail(idAzienda, accountFrom, subject, to, emailTextBody, cc, null);
+        sendMail(idAzienda, accountFrom, subject, to, emailTextBody, cc, null, null);
     }
     
     private Integer salvaRichiestaNelDB(Map<String, Object> jsonRequestSW) {
@@ -443,5 +488,47 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             LOGGER.error("UnknownHostException detected in StartAction. ", e);
         }
         return computerName;
+    }
+    
+    /**
+     * Api per inviare una segnalazione utente via mail al servizio di assistenza
+     * @param segnalazioneUtente La form da inviare
+     * @param result Risultato del mapping dei dati arrivati con la classe
+     * @return Http response
+     */
+    @RequestMapping(value = "/inviaSegnalazione", method = RequestMethod.POST)
+    public ResponseEntity<?> inviaSegnalazione(@Valid @ModelAttribute() Segnalazione segnalazioneUtente,
+            BindingResult result) {
+        if (result.hasErrors()) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+        // Prendo l'utente loggato
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Utente utente = (Utente) authentication.getPrincipal();
+        
+        // Build dei campi della mail da inviare
+        String fromName = segnalazioneUtente.getMail();
+        String subject = segnalazioneUtente.getOggetto();
+        List<String> to = Arrays.asList(emailCustomerSupport);
+              
+        ToolsUtils toolsUtils = new ToolsUtils();
+        // Build body mail da inviare al servizio assistenza
+        String bodyCustomerSupport = toolsUtils.buildMailForCustomerSupport(segnalazioneUtente);
+        // Build body mail da inviare all'utente
+        String bodyUser = toolsUtils.buildMailForUser(bodyCustomerSupport);
+        
+        try {
+            sendMail(utente.getIdAzienda().getId(), fromName, subject, to, bodyCustomerSupport, null, null, segnalazioneUtente.getAllegati());
+        } catch (IOException ex) {
+            return new ResponseEntity("Errore durante l'invio della mail al servizio assistenza.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        try {
+            List<String> toUser = Arrays.asList(fromName);
+            sendMail(utente.getIdAzienda().getId(), nameCustomerSupport, subject, toUser, bodyUser, null, null, null);
+        } catch (IOException ex) {
+            return new ResponseEntity("Errore durante l'invio della mail all'utente.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        return new ResponseEntity("Successfully sent!", HttpStatus.OK);
     }
 }
