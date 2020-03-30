@@ -54,11 +54,14 @@ public class BaborgDebugController {
 
     @RequestMapping(value = "test", method = RequestMethod.GET)
     @Transactional(rollbackFor = Throwable.class)
-    public Object test() throws EmlHandlerException, UnsupportedEncodingException {
-          
-        
-          
-          
+    public Object test() throws EmlHandlerException, UnsupportedEncodingException {      
+//       return EmlHandler.handleEml("C:\\Users\\mdonza\\Desktop\\Eml\\test_mail.eml");
+       return EmlHandler.handleEml("C:\\Users\\mdonza\\Desktop\\Eml\\Email_Richiesta documentazione medica_5544953.eml");
+    }
+    
+    @RequestMapping(value = "test2", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
+    public Object test2() throws EmlHandlerException, UnsupportedEncodingException {      
 //       return EmlHandler.handleEml("C:\\Users\\mdonza\\Desktop\\Eml\\test_mail.eml");
        return EmlHandler.handleEml("C:\\Users\\mdonza\\Desktop\\Eml\\0_originale.eml");
     }
