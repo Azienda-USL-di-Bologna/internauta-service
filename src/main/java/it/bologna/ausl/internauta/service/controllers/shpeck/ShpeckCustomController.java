@@ -701,9 +701,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             if (mt.getIdTag().getName().equals(Tag.SystemTagName.readdressed_out.toString())) {
                 throw new Http409ResponseException("1", "il messaggio è gia stato reindirizzato.");
             } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.registered.toString())) {
-                throw new Http409ResponseException("2", "il messaggio è stato protocollato.");
+                //throw new Http409ResponseException("2", "il messaggio è stato protocollato.");
             } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.in_registration.toString())) {
-                throw new Http409ResponseException("3", "il messaggio è in protocollazione.");
+                //throw new Http409ResponseException("3", "il messaggio è in protocollazione.");
             }
         }
         if (messageSource.getInOut().equals(Message.InOut.OUT.toString())) {
