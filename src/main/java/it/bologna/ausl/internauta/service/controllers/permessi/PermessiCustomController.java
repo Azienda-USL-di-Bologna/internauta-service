@@ -45,9 +45,9 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(value = "${permessi.mapping.url.root}")
-public class PermessiController implements ControllerHandledExceptions {
+public class PermessiCustomController implements ControllerHandledExceptions {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PermessiController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PermessiCustomController.class);
 
     @Autowired
     PermissionRepositoryAccess permissionRepositoryAccess;
