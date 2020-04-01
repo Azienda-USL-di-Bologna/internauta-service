@@ -931,6 +931,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         if (KrintUtils.doIHaveToKrint(request)) {
                             krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REMOVE_PROTOCOLLAZIONE);
                         }
+                        break;
                     default:
                         throw new Exception("Operation requested not found");
                 }
