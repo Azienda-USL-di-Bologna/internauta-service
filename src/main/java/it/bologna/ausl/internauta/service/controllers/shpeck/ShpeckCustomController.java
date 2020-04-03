@@ -91,9 +91,13 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxLiteRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
+import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.Arrays;
@@ -151,6 +155,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     private MessageCompleteRepository messageCompleteRespository;
 
     @Autowired
+    private OutboxLiteRepository outboxLiteRepository;
+
+    @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     @Autowired
@@ -164,6 +171,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
+    
+    @Autowired
+    private CachedEntities cachedEntities;
             
     @Autowired
     ObjectMapper objectMapper;
@@ -586,6 +596,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @param idMessageRelated Id del messaggio risposto opzionale
      * @param messageRelatedType Il tipo della relazione del messaggio related
      * @param idMessageRelatedAttachments
+     * @param idUtente // TODO: non usato ancora
      * @throws AddressException Errore nella creazione degli indirizzi
      * @throws IOException Errore di salvataggio
      * @throws MessagingException Errore nella creazione del mimemessage
@@ -609,7 +620,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam("attachments") MultipartFile[] attachments,
             @RequestParam("idMessageRelated") Integer idMessageRelated,
             @RequestParam("messageRelatedType") MessageRelatedType messageRelatedType,
-            @RequestParam("idMessageRelatedAttachments") Integer[] idMessageRelatedAttachments
+            @RequestParam("idMessageRelatedAttachments") Integer[] idMessageRelatedAttachments,
+            @RequestParam(name = "idUtente", required = false) Integer idUtente
     ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException {
 
         LOG.info("Shpeck controller -> Message received from PEC with id: " + idPec);
@@ -622,7 +634,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         LOG.info("Getting draft with idDraft: ", idDraftMessage);
         Draft draftMessage = draftRepository.getOne(idDraftMessage);
-
+        if (idUtente != null) {
+            Utente utente = this.cachedEntities.getUtente(idUtente);
+            draftMessage.setIdUtente(utente);
+        }
+        
         LOG.info("Getting PEC from repository...");
         Pec pec = pecRepository.getOne(idPec);
         String from = pec.getIndirizzo();
@@ -803,23 +819,57 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     }
 
     /**
+     * Conta il numero di messaggi presenti nella folder passata
      *
-     * @param idFolder
-     * @param unSeen
+     * @param idFolder l'id della folder
+     * @param unSeen conta solo i non letti, default false (conta solo i non
+     * letti)
+     * @param folderType
+     * @param idPec
      * @return
      */
     @RequestMapping(value = "countMessageInFolder/{idFolder}", method = RequestMethod.GET)
-    public Long countMessageInFolder(
+    public Long countMesisageInFolder(
             @PathVariable(required = true) Integer idFolder,
+            @RequestParam(name = "folderType", required = false) Folder.FolderType folderType,
+            @RequestParam(name = "idPec", required = false) Integer idPec,
             @RequestParam(name = "unSeen", required = false, defaultValue = "false") Boolean unSeen
     ) {
+        BooleanExpression filter;
+        if (folderType != null) {
+            switch (folderType) {
+                case OUTBOX:
 
-        BooleanExpression filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false)).and(QMessageFolder.messageFolder.idMessage.messageType.eq("MAIL"));
+                    filter = QOutboxLite.outboxLite.idPec.id.eq(idPec).and(QOutboxLite.outboxLite.ignore.eq(false));
+                    return outboxLiteRepository.count(filter);
+
+                case DRAFT:
+
+                    filter = QDraft.draft.idPec.id.eq(idPec);
+                    return draftRepository.count(filter);
+
+                default:
+                    filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
+                    if (unSeen) {
+                        filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
+                    }
+                    return messageFolderRespository.count(filter);
+            }
+
+        }
+
+        filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
         if (unSeen) {
             filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
         }
         return messageFolderRespository.count(filter);
     }
+//        BooleanExpression filter = QMessageComplete.messageComplete.idFolder.id.eq(idFolder);
+//        if (unSeen) {
+//            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
+//        }
+//        return messageCompleteRespository.count(filter);
+    
 
     /**
      * La funzione conta quanti messaggi hanno l'idTag passato

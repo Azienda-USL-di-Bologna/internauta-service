@@ -66,6 +66,8 @@ import java.util.ArrayList;
 import org.slf4j.Logger;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom;
 import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtentiResponsabiliCustom;
+import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiByIdUtenteCustom;
+import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiCustom;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -506,34 +508,12 @@ public class ProjectionBeans {
         }
         return res;
     }
-//    public DettaglioContattoWithIdContatto getDettaglioContattoWithIdContatto(DettaglioContatto dettaglioContatto) {
-//        if (dettaglioContatto != null) {
-//            return factory.createProjection(DettaglioContattoWithIdContatto.class, dettaglioContatto);
-//        } else {
-//            return null;
-//        }
-//    }
-    
-//    public DettaglioContattoWithIdContatto getDettaglioContattoWithIdContatto(GruppiContatti gruppoContatto) {
-//        if (gruppoContatto != null) {
-//            return factory.createProjection(DettaglioContattoWithIdContatto.class, gruppoContatto);
-//        } else {
-//            return null;
-//        }
-//    }
-//    
-//    public List<CustomGruppiContattiWithIdDettaglioContatto> getCustomGruppiContattiWithIdDettaglioContatto(Contatto contatto) {
-//        if (contatto != null) {
-//            List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
-//            if (contattiDelGruppoList != null && !contattiDelGruppoList.isEmpty()) {
-//                return contattiDelGruppoList.stream().map(
-//                        gruppoContatto -> factory.createProjection(CustomGruppiContattiWithIdDettaglioContatto.class, gruppoContatto))
-//                        .collect(Collectors.toList());
-//            } else {
-//                return null;
-//            }
-//        } else {
-//            return null;
-//        }
-//    }
+
+    public UtenteWithIdPersonaAndPermessiCustom getUtenteWithIdPersonaAndPermessiCustom(UtenteStruttura utenteStruttura) {
+        UtenteWithIdPersonaAndPermessiCustom res = null;
+        if (utenteStruttura != null) {
+            res = factory.createProjection(UtenteWithIdPersonaAndPermessiCustom.class, utenteStruttura.getIdUtente());
+        }
+        return res;
+    }
 }
