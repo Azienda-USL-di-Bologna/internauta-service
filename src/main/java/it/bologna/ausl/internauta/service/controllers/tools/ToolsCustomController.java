@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 //import per mandare mail 
 import com.sun.mail.smtp.SMTPTransport;
 import it.bologna.ausl.internauta.service.controllers.utils.ToolsUtils;
+import it.bologna.ausl.internauta.service.exceptions.SendMailException;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.RichiestaSmartWorkingRepository;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -102,112 +103,113 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             String username=null;
             String password=null; 
         
-        Properties prop = System.getProperties();
-        prop.put("mail.smtp.host", smtpServer);                                 //optional, defined in SMTPTransport
-        
-        if (StringUtils.isEmpty(username) && StringUtils.isEmpty(password)){
-            prop.put("mail.smtp.auth", "false");
-        }else{
-            prop.put("mail.smtp.auth", "true");
-        }
-        
-        if (port != null && port != -1 ){
-            prop.put("mail.smtp.port", port.toString());                        // default port 25
-        }else{
-            prop.put("mail.smtp.port", "25");
-        }
-        
-        Session session = Session.getInstance(prop, null);
-        Message msg = new MimeMessage(session); 
-       
-        try {
-            String mailFrom = mailParams.getMailFrom();
-            // from
-            msg.setFrom(new InternetAddress (mailFrom,fromName));
+            Properties prop = System.getProperties();
+            prop.put("mail.smtp.host", smtpServer);                                 //optional, defined in SMTPTransport
 
-            // inserisco lista TO
-            if (To!=null && !To.isEmpty()){
-                String addressesTo = "";
-                for (String toElement : To) {
-                    addressesTo += toElement + ",";
-                }
-                addressesTo = addressesTo.substring(0, addressesTo.length() - 1);
-                msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(addressesTo, false));
+            if (StringUtils.isEmpty(username) && StringUtils.isEmpty(password)){
+                prop.put("mail.smtp.auth", "false");
+            }else{
+                prop.put("mail.smtp.auth", "true");
             }
- 
-            //inserico lista CC e BCC
-            if (cc != null && !cc.isEmpty()){
-                String addressesCC = "";
-                for (String ccElement : cc) {
-                    addressesCC += ccElement + ",";
-                }
-                if (bcc!=null && !bcc.isEmpty()){
-                    for (String bccElement : bcc) {
-                        addressesCC += bccElement + ",";
+
+            if (port != null && port != -1 ){
+                prop.put("mail.smtp.port", port.toString());                        // default port 25
+            }else{
+                prop.put("mail.smtp.port", "25");
+            }
+
+            Session session = Session.getInstance(prop, null);
+            Message msg = new MimeMessage(session); 
+
+            try {
+                String mailFrom = mailParams.getMailFrom();
+                // from
+                msg.setFrom(new InternetAddress (mailFrom,fromName));
+
+                // inserisco lista TO
+                if (To!=null && !To.isEmpty()){
+                    String addressesTo = "";
+                    for (String toElement : To) {
+                        addressesTo += toElement + ",";
                     }
+                    addressesTo = addressesTo.substring(0, addressesTo.length() - 1);
+                    msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(addressesTo, false));
                 }
-                addressesCC = addressesCC.substring(0, addressesCC.length() - 1);
-                msg.setRecipients(Message.RecipientType.CC, InternetAddress.parse(addressesCC, false));
-            }
-            
-//            if (bcc!=null && !bcc.isEmpty()){
-//                for (String bccElement : bcc) {
-//                    msg.setRecipients(Message.RecipientType.CC,
-//                        InternetAddress.parse(bccElement, false));
-//                    }
-//            }
-            
-            // subject
-//            LocalDateTime today = LocalDateTime.now();
-//            ZoneId id = ZoneId.of("Europe/Rome");
-//            ZonedDateTime zonedDateTime = ZonedDateTime.of(today, id);      //That's how you add timezone to date
-//            String formattedDateTime = DateTimeFormatter
-//                            .ofPattern("dd/MM/yyyy - HH:mm")
-//                            .format(zonedDateTime);             //  esempio 11/03/2020 - 10.44
-            
-            msg.setSubject(Subject);
-            // content 
-            if (attachments != null && attachments.length > 0) {
-                Multipart multipart = new MimeMultipart();
-                
-                // Body
-                MimeBodyPart messageBodyPart = new MimeBodyPart();
-                messageBodyPart.setText(body);
-                multipart.addBodyPart(messageBodyPart);
-                
-                // Allegati
-                MimeBodyPart attachmentPart; 
-                for (MultipartFile attachment : attachments) {
-                    attachmentPart = new MimeBodyPart();
-                    byte[] fileBytes = attachment.getBytes();
-                    String attachmentName = attachment.getOriginalFilename();
-                    ByteArrayDataSource source
-                            = new ByteArrayDataSource(fileBytes, attachment.getContentType());
-                    attachmentPart.setDataHandler(new DataHandler(source));
-                    attachmentPart.setFileName(attachmentName);
-                    multipart.addBodyPart(attachmentPart);
+
+                //inserico lista CC e BCC
+                if (cc != null && !cc.isEmpty()){
+                    String addressesCC = "";
+                    for (String ccElement : cc) {
+                        addressesCC += ccElement + ",";
+                    }
+                    if (bcc!=null && !bcc.isEmpty()){
+                        for (String bccElement : bcc) {
+                            addressesCC += bccElement + ",";
+                        }
+                    }
+                    addressesCC = addressesCC.substring(0, addressesCC.length() - 1);
+                    msg.setRecipients(Message.RecipientType.CC, InternetAddress.parse(addressesCC, false));
                 }
-                msg.setContent(multipart);
-            } else {
-                msg.setText(body);
+
+    //            if (bcc!=null && !bcc.isEmpty()){
+    //                for (String bccElement : bcc) {
+    //                    msg.setRecipients(Message.RecipientType.CC,
+    //                        InternetAddress.parse(bccElement, false));
+    //                    }
+    //            }
+
+                // subject
+    //            LocalDateTime today = LocalDateTime.now();
+    //            ZoneId id = ZoneId.of("Europe/Rome");
+    //            ZonedDateTime zonedDateTime = ZonedDateTime.of(today, id);      //That's how you add timezone to date
+    //            String formattedDateTime = DateTimeFormatter
+    //                            .ofPattern("dd/MM/yyyy - HH:mm")
+    //                            .format(zonedDateTime);             //  esempio 11/03/2020 - 10.44
+
+                msg.setSubject(Subject);
+                // content 
+                if (attachments != null && attachments.length > 0) {
+                    Multipart multipart = new MimeMultipart();
+
+                    // Body
+                    MimeBodyPart messageBodyPart = new MimeBodyPart();
+                    messageBodyPart.setText(body);
+                    multipart.addBodyPart(messageBodyPart);
+
+                    // Allegati
+                    MimeBodyPart attachmentPart; 
+                    for (MultipartFile attachment : attachments) {
+                        attachmentPart = new MimeBodyPart();
+                        byte[] fileBytes = attachment.getBytes();
+                        String attachmentName = attachment.getOriginalFilename();
+                        ByteArrayDataSource source
+                                = new ByteArrayDataSource(fileBytes, attachment.getContentType());
+                        attachmentPart.setDataHandler(new DataHandler(source));
+                        attachmentPart.setFileName(attachmentName);
+                        multipart.addBodyPart(attachmentPart);
+                    }
+                    msg.setContent(multipart);
+                } else {
+                    msg.setText(body);
+                }
+
+                // msg.setContent(body, "text/html; charset=utf-8");
+                msg.setSentDate(new Date());
+                // Get SMTPTransport
+                SMTPTransport t = (SMTPTransport) session.getTransport("smtp");
+                // connect
+                t.connect(smtpServer, username, password);
+                // send
+                t.sendMessage(msg, msg.getAllRecipients());
+                LOGGER.info("Invio mail");
+                System.out.println("Response: " + t.getLastServerResponse());
+                t.close();
+            } catch (MessagingException e) {
+                e.printStackTrace();
+                LOGGER.info("Invio mail fallito", e);
+                return false;
             }
-            
-            // msg.setContent(body, "text/html; charset=utf-8");
-            msg.setSentDate(new Date());
-            // Get SMTPTransport
-            SMTPTransport t = (SMTPTransport) session.getTransport("smtp");
-            // connect
-            t.connect(smtpServer, username, password);
-            // send
-            t.sendMessage(msg, msg.getAllRecipients());
-            LOGGER.info("Invio mail");
-            System.out.println("Response: " + t.getLastServerResponse());
-            t.close();
-        } catch (MessagingException e) {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
+            return true;
         
         }
         return false;
@@ -222,7 +224,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     
 
     @RequestMapping(value = {"sendSmartWorkingMail"}, method = RequestMethod.POST)
-    public void sendSmartWorkingMail(@RequestBody Map<String, Object> jsonRequestSW) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
+    public void sendSmartWorkingMail(@RequestBody Map<String, Object> jsonRequestSW) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException, SendMailException {
         
         String accountFrom = "babelform.smartworking@ausl.bologna.it";
         String subject = "Richiesta SMART WORKING";
@@ -362,7 +364,9 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         
         Integer idAzienda = (Integer) jsonRequestSW.get("idAzienda");
         
-        sendMail(idAzienda, accountFrom, subject, to, emailTextBody, cc, null, null);
+        if (!sendMail(idAzienda, accountFrom, subject, to, emailTextBody, cc, null, null)) {
+            throw new SendMailException("Fallito invio mail");
+        }
     }
     
     private Integer salvaRichiestaNelDB(Map<String, Object> jsonRequestSW) {
