@@ -17,9 +17,7 @@ public class ToolsUtils {
     public String buildMailForCustomerSupport(Segnalazione segnalazioneUtente, Integer numeroSegnalazione) {
 
         String body = "*** Riepilogo Segnalazione Utente ***\n\n";
-        if (numeroSegnalazione != null) {
-            body += "Numero: " + numeroSegnalazione.toString() + "\n";
-        }
+        body += "Numero: " + (numeroSegnalazione != null ? numeroSegnalazione.toString() : "[NON CREATA]") + "\n";
         body += "Azienda: " + segnalazioneUtente.getAzienda() + "\n";
         body += "Cognome: " + segnalazioneUtente.getCognome() + "\n";
         body += "Nome: " + segnalazioneUtente.getNome() + "\n";
