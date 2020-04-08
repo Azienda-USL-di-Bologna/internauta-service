@@ -40,8 +40,10 @@ public class IssueWrapper {
     final String ATTIVITA_SUPPORTO_VALUE = "Attività Supporto";
     final String SEGNALAZIONE_UTENTE_VALUE = "Segnalazione utente";
     final String TEMPO_CHIAMATA_VALUE = "Tempo di chiamata";
-    final String AZIENDA_VALUE = "Azienda";
     final String TEMPO_DI_CHIAMATA_NESSUNO = "nessuno";
+    final String TIPO_DI_CHIAMATA_VALUE = "Tipo Chiamata ";
+    final String TIPO_DI_CHIAMATA_BABEL_FORM = "Babelform";
+    final String AZIENDA_VALUE = "Azienda";
     final String UTENTE_AFFLITTO_KEY = "Utente afflitto (username)";
     final String UTENTE_SEGNALANTE_KEY = "Utente segnalante (username)";
     final String PROJECT_ID_KEY = "project_id";

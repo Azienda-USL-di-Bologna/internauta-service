@@ -99,6 +99,9 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     @Autowired
     private RichiestaSmartWorkingRepository richiestaSmartWorkingRepository;
 
+    @Value("${redmine-test-mode}")
+    boolean redmineTestMode;
+
     public Boolean sendMail(
             Integer idAzienda, String fromName, String Subject, List<String> To, String body,
             List<String> cc, List<String> bcc, MultipartFile[] attachments) throws IOException {
@@ -501,26 +504,6 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         return computerName;
     }
 
-    private void printSegnalazione(Segnalazione segnalazioneUtente) {
-        System.out.println("SEGNALAZIONE UTENTE: \n" + segnalazioneUtente.toString());
-        System.out.println("\tAzienda: " + segnalazioneUtente.getAzienda());
-        System.out.println("\tCognome: " + segnalazioneUtente.getCognome());
-        System.out.println("\tNome: " + segnalazioneUtente.getNome());
-        System.out.println("\tUsername: " + segnalazioneUtente.getUsername());
-        System.out.println("\tDescrizione:\n***\n" + segnalazioneUtente.getDescrizione() + "\n***");
-        System.out.println("\tOggetto: " + segnalazioneUtente.getOggetto());
-        System.out.println("\tUsername: " + segnalazioneUtente.getUsername());
-        if (segnalazioneUtente.getAllegati() != null) {
-            for (MultipartFile multipartFile : segnalazioneUtente.getAllegati()) {
-                System.out.println("\tAllegato:\n"
-                        + "\t\tName: " + multipartFile.getOriginalFilename());
-                System.out.println("\t\tContentType: " + multipartFile.getContentType());
-                System.out.println("\t\tSize: " + multipartFile.getSize());
-            }
-        }
-
-    }
-
     /**
      * Api per inviare una segnalazione utente via mail al servizio di
      * assistenza
@@ -536,15 +519,16 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
         }
         Integer numeroNuovaSegnalazione = null;
-        //printSegnalazione(segnalazioneUtente);
-        try {
-            MiddleMineNewIssueManager middleMineNewIssueManager = MiddleMineManagerFactory.getAndBuildMiddleMineNewIssueManager();
-            ResponseEntity<String> res = middleMineNewIssueManager.postNewIssue(segnalazioneUtente);
-            MiddleMineNewIssueResponseManager resManager = new MiddleMineNewIssueResponseManager();
-            numeroNuovaSegnalazione = resManager.getNewIssueIdByResponse(res);
-        } catch (Exception e) {
-            LOGGER.error("Errore nella creazione della nuova segnlazione: " + e.getMessage());
-            e.printStackTrace();
+        if (!redmineTestMode) {
+            try {
+                MiddleMineNewIssueManager middleMineNewIssueManager = MiddleMineManagerFactory.getAndBuildMiddleMineNewIssueManager();
+                ResponseEntity<String> res = middleMineNewIssueManager.postNewIssue(segnalazioneUtente);
+                MiddleMineNewIssueResponseManager resManager = new MiddleMineNewIssueResponseManager();
+                numeroNuovaSegnalazione = resManager.getNewIssueIdByResponse(res);
+            } catch (Exception e) {
+                LOGGER.error("Errore nella creazione della nuova segnlazione: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
         // Prendo l'utente loggato
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
