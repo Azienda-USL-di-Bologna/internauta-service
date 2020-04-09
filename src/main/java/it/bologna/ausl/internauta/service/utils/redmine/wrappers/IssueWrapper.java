@@ -9,6 +9,9 @@ import it.bologna.ausl.internauta.service.utils.redmine.managers.RedmineProjectM
 import it.bologna.ausl.internauta.service.utils.redmine.managers.RedmineTrackerManager;
 import it.bologna.ausl.middelmine.interfaces.ParametersManagerInterface;
 import it.bologna.ausl.model.entities.forms.Segnalazione;
+import java.text.SimpleDateFormat;
+import java.text.DateFormat;
+import java.util.Date;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -35,26 +38,50 @@ public class IssueWrapper {
         }
     }
 
-    ParametersManagerInterface parametersManager;
+    private ParametersManagerInterface parametersManager;
+    private RedmineCustmoFiledsManager manager;
 
+    // CUSTOM FIELD
+    final String TEMPO_CHIAMATA = "Tempo di chiamata";
+    final String TELEFONO_UTENTE = "Telefono utente";
+    final String EMAIL_UTENTE = "Email utente";
+    final String TIPO_DI_CHIAMATA = "Tipo Chiamata ";
+    final String UTENTE_AFFLITTO = "Utente afflitto (username)";
+    final String UTENTE_SEGNALANTE = "Utente segnalante (username)";
+    final String AZIENDA = "Azienda";
+    final String DATA_MAIL_SEGNALAZIONE = "Data mail segnalazione";
+
+    // VALUES
     final String ATTIVITA_SUPPORTO_VALUE = "Attività Supporto";
     final String SEGNALAZIONE_UTENTE_VALUE = "Segnalazione utente";
-    final String TEMPO_CHIAMATA_VALUE = "Tempo di chiamata";
     final String TEMPO_DI_CHIAMATA_NESSUNO = "nessuno";
-    final String TIPO_DI_CHIAMATA_VALUE = "Tipo Chiamata ";
-    final String TIPO_DI_CHIAMATA_BABEL_FORM = "Babelform";
-    final String AZIENDA_VALUE = "Azienda";
-    final String UTENTE_AFFLITTO_KEY = "Utente afflitto (username)";
-    final String UTENTE_SEGNALANTE_KEY = "Utente segnalante (username)";
+    final String BABEL_FORM_TIPO_DI_CHIAMATA = "Babelform";
+
+    // JSON_KEYS
     final String PROJECT_ID_KEY = "project_id";
     final String PRIORITY_ID_KEY = "priority_id";
     final String TRACKER_ID_KEY = "tracker_id";
     final String STATUS_ID_KEY = "status_id";
+    final String SUBJECT_KEY = "subject";
+    final String DESCRIPTION_KEY = "description";
+    final String CUSTOM_FIELDS_KEY = "custom_fields";
+
     final String ID_KEY = "id";
     final String VALUE_KEY = "value";
 
     public IssueWrapper(ParametersManagerInterface pm) {
         parametersManager = pm;
+    }
+
+    /**
+     * Questo metodo chiama redmine e chiede l'id del campo e lo usa come chiave
+     * del json da tornare, mentre il valore è il valore deciso da noi.
+     */
+    private JSONObject getNewJsonCustomFieldParamFromRedmine(String fieldName, String valString) throws RedmineException {
+        JSONObject param = new JSONObject();
+        param.putOnce(ID_KEY, manager.getCustomFieldIdByName(fieldName).toString());
+        param.putOnce(VALUE_KEY, valString);
+        return param;
     }
 
     private JSONArray getCustomFiledsJSONArray(Segnalazione segnalazione) throws Exception {
@@ -65,26 +92,31 @@ public class IssueWrapper {
             String user = segnalazione.getCognome() + " " + segnalazione.getNome()
                     + " (" + segnalazione.getUsername() + ")";
 
-            JSONObject utenteSegnalante = new JSONObject();
-            utenteSegnalante.put(ID_KEY, manager.getCustomFieldIdByName(UTENTE_SEGNALANTE_KEY).toString());
-            utenteSegnalante.put(VALUE_KEY, user);
-
-            JSONObject utenteAfflitto = new JSONObject();
-            utenteAfflitto.put(ID_KEY, manager.getCustomFieldIdByName(UTENTE_AFFLITTO_KEY).toString());
-            utenteAfflitto.put(VALUE_KEY, user);
-
-            JSONObject azienda = new JSONObject();
-            azienda.put(ID_KEY, manager.getCustomFieldIdByName(AZIENDA_VALUE).toString());
-            azienda.put(VALUE_KEY, AziendaWrapper.convertAziendaToAvailableValues(segnalazione.getAzienda()));
-
-            JSONObject tempoChiamata = new JSONObject();
-            tempoChiamata.put(ID_KEY, manager.getCustomFieldIdByName(TEMPO_CHIAMATA_VALUE).toString());
-            tempoChiamata.put(VALUE_KEY, TEMPO_DI_CHIAMATA_NESSUNO);
-
-            array.put(utenteSegnalante);
-            array.put(utenteAfflitto);
-            array.put(azienda);
-            array.put(tempoChiamata);
+            // chiama diverse volte getNewJsonCustomFieldParamFromRedmine(key, val)
+            // UTENTE SEGNALANTE
+            array.put(getNewJsonCustomFieldParamFromRedmine(UTENTE_SEGNALANTE.toString(),
+                    user));
+            // UTENTE AFFLITTO
+            array.put(getNewJsonCustomFieldParamFromRedmine(UTENTE_AFFLITTO.toString(),
+                    user));
+            //TELEFONO UTENTE
+            array.put(getNewJsonCustomFieldParamFromRedmine(TELEFONO_UTENTE.toString(),
+                    segnalazione.getTelefono()));
+            //MAIL UTENTE
+            array.put(getNewJsonCustomFieldParamFromRedmine(EMAIL_UTENTE.toString(),
+                    segnalazione.getMail()));
+            //TIPO DI CHIAMATA
+            array.put(getNewJsonCustomFieldParamFromRedmine(TIPO_DI_CHIAMATA.toString(),
+                    BABEL_FORM_TIPO_DI_CHIAMATA.toString()));
+            //AZIENDA
+            array.put(getNewJsonCustomFieldParamFromRedmine(AZIENDA.toString(),
+                    AziendaWrapper.convertAziendaToAvailableValues(segnalazione.getAzienda())));
+            //TEMPO DI CHIAMATA
+            array.put(getNewJsonCustomFieldParamFromRedmine(TEMPO_CHIAMATA.toString(),
+                    TEMPO_DI_CHIAMATA_NESSUNO.toString()));
+            //DATA MAIL SEGNALAZIONE
+            array.put(getNewJsonCustomFieldParamFromRedmine(DATA_MAIL_SEGNALAZIONE.toString(),
+                    new SimpleDateFormat("yyyy-MM-dd").format(new Date()).toString()));
 
             return array;
         } catch (RedmineException ex) {
@@ -135,12 +167,17 @@ public class IssueWrapper {
         }
     }
 
+    public void buildRedmineCustmoFiledsManager() {
+        manager = (RedmineCustmoFiledsManager) RedmineManagerFactory.getRedmineCustomFieldManager(parametersManager);
+    }
+
     public JSONObject buildAndReturnMiddleMineIssueBySegnalazione(Segnalazione segnalazione) throws RedmineException {
         try {
+            buildRedmineCustmoFiledsManager();
             JSONObject issue = getDefaultJsonIssue();
-            issue.put("subject", segnalazione.getOggetto());
-            issue.put("description", segnalazione.getDescrizione());
-            issue.put("custom_fields", getCustomFiledsJSONArray(segnalazione));
+            issue.put(SUBJECT_KEY.toString(), segnalazione.getOggetto());
+            issue.put(DESCRIPTION_KEY.toString(), segnalazione.getDescrizione());
+            issue.put(CUSTOM_FIELDS_KEY.toString(), getCustomFiledsJSONArray(segnalazione));
             return issue;
         } catch (Exception ex) {
             throw new RedmineException("Errore durante la build dei parametri della segnlazione: " + ex.getMessage(), ex);
