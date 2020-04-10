@@ -518,7 +518,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         String bodyUser = toolsUtils.buildMailForUser(bodyCustomerSupport);
         
         try {
-            sendMail(utente.getIdAzienda().getId(), fromName, subject, to, bodyCustomerSupport, null, null, segnalazioneUtente.getAllegati());
+            sendMail(utente.getIdAzienda().getId(), nameCustomerSupport, subject, to, bodyCustomerSupport, null, null, segnalazioneUtente.getAllegati());
         } catch (IOException ex) {
             return new ResponseEntity("Errore durante l'invio della mail al servizio assistenza.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
