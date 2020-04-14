@@ -526,8 +526,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                 MiddleMineNewIssueResponseManager resManager = new MiddleMineNewIssueResponseManager();
                 numeroNuovaSegnalazione = resManager.getNewIssueIdByResponse(res);
             } catch (Exception e) {
-                LOGGER.error("Errore nella creazione della nuova segnlazione: " + e.getMessage());
-                e.printStackTrace();
+                LOGGER.error("Errore nella creazione della nuova segnlazione: ", e);
             }
         }
         // Prendo l'utente loggato

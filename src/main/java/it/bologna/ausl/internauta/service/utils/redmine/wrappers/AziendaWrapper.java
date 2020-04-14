@@ -16,7 +16,7 @@ public class AziendaWrapper {
     final static String AUSL_FERRARA = "AUSL Ferrara";
     final static String AOSP_FERRARA = "AOSP Ferrara";
     final static String AUSL_IMOLA = "AUSL Imola";
-    final static String AUSL_PARMA = "ASUL Parma";
+    final static String AUSL_PARMA = "AUSL Parma";
     final static String AOSP_PARMA = "AOSP Parma";
     final static String IOR = "IOR (Rizzoli)";
     final static String TUTTE = "TUTTE";
