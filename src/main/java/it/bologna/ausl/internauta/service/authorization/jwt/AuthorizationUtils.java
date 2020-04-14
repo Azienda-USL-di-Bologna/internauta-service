@@ -279,6 +279,9 @@ public class AuthorizationUtils {
             userInfoService.getRuoliRemoveCache(impersonatedUser);
             // TODO: funzione di rimozione permessi cache
             userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
+            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, false);
+            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, true);
+            
             impersonatedUser.setUtenteReale(user);
             
             boolean isDelegato = permessiDelega != null && !permessiDelega.isEmpty() && permessiDelega.contains(impersonatedUser.getId());
