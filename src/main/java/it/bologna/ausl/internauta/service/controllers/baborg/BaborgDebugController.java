@@ -1,5 +1,8 @@
 package it.bologna.ausl.internauta.service.controllers.baborg;
 
+import it.bologna.ausl.eml.handler.EmlHandler;
+import it.bologna.ausl.eml.handler.EmlHandlerException;
+import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomController;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.PecUtente;
 import it.bologna.ausl.model.entities.baborg.Permesso;
@@ -7,10 +10,12 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecUtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithPlainFields;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -49,23 +54,13 @@ public class BaborgDebugController {
 
     @RequestMapping(value = "test", method = RequestMethod.GET)
     @Transactional(rollbackFor = Throwable.class)
-    public Object test() {
-        
-//        Utente u = strutturaRepository.getResponsabile(28046);
-        Integer u = strutturaRepository.getResponsabile(28046);
-//        UtenteWithPlainFields u2 = factory.createProjection(UtenteWithPlainFields.class, u);
+    public Object test() throws EmlHandlerException, UnsupportedEncodingException {
+          
 
-        System.out.println("sonno  qui:");        
-        
-        Utente one = utenteRepository.findById(u).get();
-        UtenteWithIdAzienda u2 = factory.createProjection(UtenteWithIdAzienda.class, one);
-        System.out.println("sonno  qui 2:");
-        
-//        System.out.println(one.getIdPersona());
-//        System.out.println(u.getEmail());
-//        System.out.println(u.getOmonimia());
-        
-        return u2;
-       
+//       return EmlHandler.handleEml("C:\\Users\\mdonza\\Desktop\\Eml\\test_mail.eml");
+       return EmlHandler.handleEml("C:\\Users\\mdonza\\Desktop\\Eml\\donazione sig.ra Giliola Grillini.eml");
     }
+    
+    
+    
 }

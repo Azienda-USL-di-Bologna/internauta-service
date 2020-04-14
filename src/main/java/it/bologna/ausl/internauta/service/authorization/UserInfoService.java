@@ -161,10 +161,11 @@ public class UserInfoService {
      * @param ssoFieldValue campo che identifica l'utente iniettato da shibbolet
      * nella richiesta
      * @param azienda campo che identifica l'azienda
+     * @param onlyActive indica se caricare solo gli utenti attivi
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId()}")
-    public Utente loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId(), #onlyActive}")
+    public Utente loadUtente(Class entityClass, String field, String ssoFieldValue, Azienda azienda, Boolean onlyActive) {
 
         Utente res = null;
         BooleanExpression filter;
@@ -176,13 +177,15 @@ public class UserInfoService {
             filter = qUtente.get(field).eq(ssoFieldValue.toUpperCase());
         }
         filter = filter.and(QUtente.utente.idAzienda.id.eq(azienda.getId()));
-        filter = filter.and(QUtente.utente.attivo.eq(true));
+        if (onlyActive) {
+            filter = filter.and(QUtente.utente.attivo.eq(true));
+        }
         Optional<Utente> utenteOp = utenteRepository.findOne(filter);
 
         if (utenteOp.isPresent()) {
             res = utenteOp.get();
 //            res.getIdPersona().setApplicazione(applicazione);
-            return utenteOp.get();
+            return res;
         }
         return res;
     }
@@ -195,9 +198,10 @@ public class UserInfoService {
      * @param field
      * @param ssoFieldValue
      * @param azienda
+     * @param onlyActive
      */
-    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId()}")
-    public void loadUtenteRemoveCache(Class entityClass, String field, String ssoFieldValue, Azienda azienda) {
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#entityClass.getName(), #field, #ssoFieldValue, #azienda.getId(), #onlyActive}")
+    public void loadUtenteRemoveCache(Class entityClass, String field, String ssoFieldValue, Azienda azienda, Boolean onlyActive) {
     }
 
     /**
