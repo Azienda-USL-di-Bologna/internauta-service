@@ -75,7 +75,7 @@ public class UserInfoService {
 
     @Autowired
     UtenteRepository utenteRepository;
-    
+
     @Autowired
     StrutturaRepository strutturaRepository;
 
@@ -99,7 +99,7 @@ public class UserInfoService {
 
     @Autowired
     PostgresConnectionManager postgresConnectionManager;
-    
+
     @Autowired
     HttpServletRequest aaa;
 
@@ -411,37 +411,39 @@ public class UserInfoService {
     @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico}")
     public void getPermessiDiFlussoRemoveCache(Utente utente, LocalDate dataPermesso, Boolean estratiStorico) {
     }
-    
+
     @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico}")
     public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente, LocalDate dataPermesso, Boolean estratiStorico) throws BlackBoxPermissionException {
         return permissionManager.getPermissionsOfSubject(utente, null,
-               Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
             InternautaConstants.Permessi.Ambiti.DETE.toString(),
             InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
-                false, dataPermesso, estratiStorico); 
+                false, dataPermesso, estratiStorico);
     }
-    
+
     /**
-     * Restituisce tutti i permessi di un utente di tipo flusso e per gli ambiti PICO, DETE e DELI
-     * con un ordinamento di default (eg. Struttura/Ambito/Permesso/AttivoDal)
+     * Restituisce tutti i permessi di un utente di tipo flusso e per gli ambiti
+     * PICO, DETE e DELI con un ordinamento di default (eg.
+     * Struttura/Ambito/Permesso/AttivoDal)
+     *
      * @param utente L'utente di cui si stanno chiedendo i permessi
      * @return La lista dei permessi dell'utente
-     * @throws BlackBoxPermissionException 
+     * @throws BlackBoxPermissionException
      */
 //    @Cacheable(value = "getPermessiDiFlussoByIdUtente__ribaltorg__", key = "{#utente.getId()}")
-    public List<Permesso> getPermessiDiFlussoByIdUtente(Utente utente, HttpServletRequest request) throws BlackBoxPermissionException {
+    public List<Permesso> getPermessiDiFlussoByIdUtente(Utente utente) throws BlackBoxPermissionException {
         // Chiamata alla blackbox per ricevere la lista dei permessi dell'utente  
         List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubject(utente, null,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
-                    InternautaConstants.Permessi.Ambiti.DETE.toString(),
-                    InternautaConstants.Permessi.Ambiti.DELI.toString()}),
+            InternautaConstants.Permessi.Ambiti.DETE.toString(),
+            InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
                 false, null, null);
-        
+
         // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend
-        List <Permesso> permessiUtente = new ArrayList<>();
-        
+        List<Permesso> permessiUtente = new ArrayList<>();
+
         permissionsOfSubject.forEach((permessoEntita) -> {
             permessoEntita.getCategorie().forEach((categoria) -> {
                 categoria.getPermessi().forEach((permessoCategoria) -> {
@@ -456,7 +458,7 @@ public class UserInfoService {
             });
         });
         Collections.sort(permessiUtente);
-        
+
         return permessiUtente;
     }
 
@@ -612,11 +614,11 @@ public class UserInfoService {
         if (soloUtenzaAttiva) {
             return user.getIdPersona().getUtenteList().stream().filter(u -> u.getAttivo())
                     .map(u -> factory.createProjection(CustomAziendaLogin.class, u.getIdAzienda()))
-                    .collect(Collectors.toList());    
+                    .collect(Collectors.toList());
         } else {
             return user.getIdPersona().getUtenteList().stream()
                     .map(u -> factory.createProjection(CustomAziendaLogin.class, u.getIdAzienda()))
-                    .collect(Collectors.toList());   
+                    .collect(Collectors.toList());
         }
     }
 
@@ -692,5 +694,4 @@ public class UserInfoService {
         return utenteProcton;
     }
 
-    
 }
