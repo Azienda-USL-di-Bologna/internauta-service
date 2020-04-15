@@ -23,7 +23,8 @@ public class AdditionalDataParamsExtractor {
         if (additionalData != null) {
             String dataPermesso = additionalData.get("dataPermesso");
             if (StringUtils.hasText(dataPermesso)) {
-                return LocalDate.ofInstant(Instant.ofEpochMilli(Long.parseLong(dataPermesso)), ZoneId.systemDefault());
+                return Instant.ofEpochMilli(Long.parseLong(dataPermesso)).atZone(ZoneId.systemDefault()).toLocalDate(); // java <= 8
+//                return LocalDate.ofInstant(Instant.ofEpochMilli(Long.parseLong(dataPermesso)), ZoneId.systemDefault()); // java > 8
             }
         }
         return null;
