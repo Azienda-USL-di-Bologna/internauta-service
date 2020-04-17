@@ -407,6 +407,8 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         permessiEntita.stream().forEach(p -> {
             Utente u = utenteRepository.getOne(p.getSoggetto().getIdProvenienza());
             userInfoService.getPermessiDiFlussoRemoveCache(u);
+            userInfoService.getPermessiDiFlussoRemoveCache(u, null, true);
+            userInfoService.getPermessiDiFlussoRemoveCache(u, null, false);
         });
     }
 }

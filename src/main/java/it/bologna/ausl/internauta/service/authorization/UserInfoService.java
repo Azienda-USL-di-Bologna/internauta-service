@@ -52,8 +52,13 @@ import org.sql2o.Sql2o;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.Comparator;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * Service per la creazione dell'oggetto UserInfoOld TODO: descrivere la
@@ -70,7 +75,7 @@ public class UserInfoService {
 
     @Autowired
     UtenteRepository utenteRepository;
-    
+
     @Autowired
     StrutturaRepository strutturaRepository;
 
@@ -94,6 +99,9 @@ public class UserInfoService {
 
     @Autowired
     PostgresConnectionManager postgresConnectionManager;
+
+    @Autowired
+    HttpServletRequest aaa;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
 
@@ -397,34 +405,45 @@ public class UserInfoService {
 
     @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId()}")
     public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente) throws BlackBoxPermissionException {
+        return getPermessiDiFlusso(utente, null, null);
+    }
+
+    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico}")
+    public void getPermessiDiFlussoRemoveCache(Utente utente, LocalDate dataPermesso, Boolean estratiStorico) {
+    }
+
+    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico}")
+    public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente, LocalDate dataPermesso, Boolean estratiStorico) throws BlackBoxPermissionException {
         return permissionManager.getPermissionsOfSubject(utente, null,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
             InternautaConstants.Permessi.Ambiti.DETE.toString(),
             InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
-                false);
+                false, dataPermesso, estratiStorico);
     }
-    
+
     /**
-     * Restituisce tutti i permessi di un utente di tipo flusso e per gli ambiti PICO, DETE e DELI
-     * con un ordinamento di default (eg. Struttura/Ambito/Permesso/AttivoDal)
+     * Restituisce tutti i permessi di un utente di tipo flusso e per gli ambiti
+     * PICO, DETE e DELI con un ordinamento di default (eg.
+     * Struttura/Ambito/Permesso/AttivoDal)
+     *
      * @param utente L'utente di cui si stanno chiedendo i permessi
      * @return La lista dei permessi dell'utente
-     * @throws BlackBoxPermissionException 
+     * @throws BlackBoxPermissionException
      */
-    @Cacheable(value = "getPermessiDiFlussoByIdUtente__ribaltorg__", key = "{#utente.getId()}")
+//    @Cacheable(value = "getPermessiDiFlussoByIdUtente__ribaltorg__", key = "{#utente.getId()}")
     public List<Permesso> getPermessiDiFlussoByIdUtente(Utente utente) throws BlackBoxPermissionException {
         // Chiamata alla blackbox per ricevere la lista dei permessi dell'utente  
         List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubject(utente, null,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
-                    InternautaConstants.Permessi.Ambiti.DETE.toString(),
-                    InternautaConstants.Permessi.Ambiti.DELI.toString()}),
+            InternautaConstants.Permessi.Ambiti.DETE.toString(),
+            InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
-                false);
-        
+                false, null, null);
+
         // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend
-        List <Permesso> permessiUtente = new ArrayList<>();
-        
+        List<Permesso> permessiUtente = new ArrayList<>();
+
         permissionsOfSubject.forEach((permessoEntita) -> {
             permessoEntita.getCategorie().forEach((categoria) -> {
                 categoria.getPermessi().forEach((permessoCategoria) -> {
@@ -439,7 +458,7 @@ public class UserInfoService {
             });
         });
         Collections.sort(permessiUtente);
-        
+
         return permessiUtente;
     }
 
@@ -460,7 +479,7 @@ public class UserInfoService {
                         InternautaConstants.Permessi.Ambiti.DETE.toString(),
                         InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                             Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
-                            false)
+                            false, null, null)
             );
         }
         return map;
@@ -504,7 +523,7 @@ public class UserInfoService {
                     persona,
                     null,
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
+                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false, null, null);
         } catch (BlackBoxPermissionException ex) {
             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
 
@@ -576,7 +595,7 @@ public class UserInfoService {
         List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubject(user,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.DELEGA.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.AVATAR.toString()}),
-                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.DELEGA.toString()}), false);
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.DELEGA.toString()}), false, null, null);
 
         List<Integer> utentiDeleganti = permissionsOfSubject.stream().map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList());
         return utentiDeleganti;
@@ -595,11 +614,11 @@ public class UserInfoService {
         if (soloUtenzaAttiva) {
             return user.getIdPersona().getUtenteList().stream().filter(u -> u.getAttivo())
                     .map(u -> factory.createProjection(CustomAziendaLogin.class, u.getIdAzienda()))
-                    .collect(Collectors.toList());    
+                    .collect(Collectors.toList());
         } else {
             return user.getIdPersona().getUtenteList().stream()
                     .map(u -> factory.createProjection(CustomAziendaLogin.class, u.getIdAzienda()))
-                    .collect(Collectors.toList());   
+                    .collect(Collectors.toList());
         }
     }
 
@@ -675,5 +694,4 @@ public class UserInfoService {
         return utenteProcton;
     }
 
-    
 }
