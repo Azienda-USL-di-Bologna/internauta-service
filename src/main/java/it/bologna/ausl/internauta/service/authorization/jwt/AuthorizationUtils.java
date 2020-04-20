@@ -11,6 +11,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.SSOException;
+import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.CounterRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -86,6 +87,9 @@ public class AuthorizationUtils {
     
     @Autowired
     HttpSessionData httpSessionData;
+    
+    @Autowired
+    PermessiUtilities permessiUtilities;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizationUtils.class);
 
@@ -277,10 +281,11 @@ public class AuthorizationUtils {
             userInfoService.getUtentiPersonaByUtenteRemoveCache(impersonatedUser);
             userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());
             userInfoService.getRuoliRemoveCache(impersonatedUser);
-            // TODO: funzione di rimozione permessi cache
-            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
-            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, false);
-            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, true);
+            
+//            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
+//            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, false);
+//            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, true);
+            permessiUtilities.cleanCachePermessiDiFlusso(impersonatedUser.getId());
             
             impersonatedUser.setUtenteReale(user);
             

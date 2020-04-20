@@ -405,15 +405,15 @@ public class UserInfoService {
 
     @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId()}")
     public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente) throws BlackBoxPermissionException {
-        return getPermessiDiFlusso(utente, null, null);
+        return getPermessiDiFlusso(utente, null, null, null);
     }
 
-    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico}")
-    public void getPermessiDiFlussoRemoveCache(Utente utente, LocalDate dataPermesso, Boolean estratiStorico) {
-    }
+//    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico}")
+//    public void getPermessiDiFlussoRemoveCache(Utente utente, LocalDate dataPermesso, Boolean estratiStorico) {
+//    }
 
-    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico}")
-    public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente, LocalDate dataPermesso, Boolean estratiStorico) throws BlackBoxPermissionException {
+    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico, #idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null'}")
+    public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente, LocalDate dataPermesso, Boolean estratiStorico, Integer idProvenienzaOggetto) throws BlackBoxPermissionException {
         return permissionManager.getPermissionsOfSubject(utente, null,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
             InternautaConstants.Permessi.Ambiti.DETE.toString(),

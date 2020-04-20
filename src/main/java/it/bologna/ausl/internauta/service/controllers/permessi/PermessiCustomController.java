@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.permessi;
 
+import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.PermissionManager;
@@ -24,8 +25,10 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -69,7 +72,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
     @Autowired
     ObjectMapper mapper;
-
+    
     /**
      * E' il controller base.Riceve una lista di PermessoEntitaStoredProcedure e
      * chiama direttamente la managePermissions la quale di fatto passaera la
@@ -404,11 +407,20 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 //            Utente u = utenteRepository.getOne(p.getSoggetto().getIdProvenienza());
 //            userInfoService.getPermessiDiFlussoRemoveCache(u);
 //        }
+//        permessiEntita.stream().forEach(p -> {
+//            Utente u = utenteRepository.getOne(p.getSoggetto().getIdProvenienza());
+//            userInfoService.getPermessiDiFlussoRemoveCache(u);
+//            userInfoService.getPermessiDiFlussoRemoveCache(u, null, true);
+//            userInfoService.getPermessiDiFlussoRemoveCache(u, null, false);
+//        });
+        Set<Integer> idUtentiSet = new HashSet();
+        
         permessiEntita.stream().forEach(p -> {
-            Utente u = utenteRepository.getOne(p.getSoggetto().getIdProvenienza());
-            userInfoService.getPermessiDiFlussoRemoveCache(u);
-            userInfoService.getPermessiDiFlussoRemoveCache(u, null, true);
-            userInfoService.getPermessiDiFlussoRemoveCache(u, null, false);
+            idUtentiSet.add(p.getSoggetto().getIdProvenienza());
+        });
+        
+        idUtentiSet.forEach(idUtente -> {
+            permessiUtilities.cleanCachePermessiDiFlusso(idUtente);
         });
     }
 }

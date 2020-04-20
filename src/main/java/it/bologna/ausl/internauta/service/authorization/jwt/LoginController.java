@@ -13,6 +13,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.SSOException;
 import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandException;
+import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.logoutmanager.LogoutManagerWorker;
@@ -99,7 +100,7 @@ public class LoginController {
     private UtenteRepository utenteRepository;
 
     @Autowired
-    private AziendaRepository aziendaRepository;
+    private PermessiUtilities permessiUtilities;
 
     @Autowired
     private ProjectionBeans projectionBeans;
@@ -239,11 +240,14 @@ public class LoginController {
         }
 
         userInfoService.getRuoliRemoveCache(utente);
-        // TODO: permessi
-        userInfoService.getPermessiDiFlussoRemoveCache(utente);
-        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, true);
-        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, false);
-        userInfoService.getPermessiDiFlussoRemoveCache(utente);
+        
+//        userInfoService.getPermessiDiFlussoRemoveCache(utente);
+//        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, true);
+//        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, false);
+//        userInfoService.getPermessiDiFlussoRemoveCache(utente);
+
+        permessiUtilities.cleanCachePermessiDiFlusso(utente.getId());
+
         userInfoService.loadUtenteRemoveCache(utente.getId());
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);
         userInfoService.getUtentiPersonaRemoveCache(utente.getIdPersona());
