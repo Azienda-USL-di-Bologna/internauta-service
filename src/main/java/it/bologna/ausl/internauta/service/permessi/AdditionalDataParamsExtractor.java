@@ -40,4 +40,15 @@ public class AdditionalDataParamsExtractor {
         }
         return false;
     }
+    
+    public Integer getIdProvenienzaOggetto() {
+        Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
+        if (additionalData != null) {
+            String idProvenienzaOggetto = additionalData.get("idProvenienzaOggetto");
+            if (StringUtils.hasText(idProvenienzaOggetto)) {
+                return Integer.parseInt(idProvenienzaOggetto);
+            }
+        }
+        return null;
+    }
 }

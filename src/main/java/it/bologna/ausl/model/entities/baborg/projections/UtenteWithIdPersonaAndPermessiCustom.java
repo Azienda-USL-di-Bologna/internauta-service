@@ -11,7 +11,11 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "UtenteWithIdPersonaAndPermessiCustom", types = Utente.class)
 public interface UtenteWithIdPersonaAndPermessiCustom extends UtenteWithIdPersona {
 
-    @Value("#{@userInfoService.getPermessiDiFlusso(target, @additionalDataParamsExtractor.getDataPermesso(), @additionalDataParamsExtractor.getEstraiStorico())}")
+    @Value("#{@userInfoService.getPermessiDiFlusso("
+            + "target, "
+            + "@additionalDataParamsExtractor.getDataPermesso(), "
+            + "@additionalDataParamsExtractor.getEstraiStorico(),"
+            + "@additionalDataParamsExtractor.getIdProvenienzaOggetto())}")
     @Override
     public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso();
 
