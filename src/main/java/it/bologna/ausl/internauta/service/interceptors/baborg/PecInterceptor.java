@@ -118,6 +118,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                         try {
                             List<PermessoEntitaStoredProcedure> getPermissionsOfSubject = permissionManager.getPermissionsOfSubject(
                                     struttura,
+                                    null,
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), true, null, null);
@@ -142,6 +143,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                         try {
                             pecWithStandardPermissions = permissionManager.getPermissionsOfSubject(
                                     authenticatedSessionData.getPerson(),
+                                    null,
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString(), InternautaConstants.Permessi.Predicati.ELIMINA.toString()}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false, null, null);
@@ -181,6 +183,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                             try {
                                 List<PermessoEntitaStoredProcedure> permessiDellaStruttura = permissionManager.getPermissionsOfSubject(
                                         struttura,
+                                        null,
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),
@@ -198,6 +201,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                             try {
                                 List<PermessoEntitaStoredProcedure> permessiDellaPersona = permissionManager.getPermissionsOfSubject(
                                         persona,
+                                        null,
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString(), InternautaConstants.Permessi.Predicati.ELIMINA.toString()}),
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),

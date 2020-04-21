@@ -411,11 +411,11 @@ public class UserInfoService {
 //    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico}")
 //    public void getPermessiDiFlussoRemoveCache(Utente utente, LocalDate dataPermesso, Boolean estratiStorico) {
 //    }
-
     @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico, #idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null'}")
-    public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente, LocalDate dataPermesso, Boolean estratiStorico, Integer idProvenienzaOggetto) throws BlackBoxPermissionException {
-        return permissionManager.getPermissionsOfSubject(utente, null,
-                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
+    public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente, LocalDate dataPermesso,
+            Boolean estratiStorico, Integer idProvenienzaOggetto) throws BlackBoxPermissionException {
+        return permissionManager.getPermissionsOfSubject(utente, idProvenienzaOggetto != null ? Lists.newArrayList(new Struttura(idProvenienzaOggetto)) : null,
+                null, Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
             InternautaConstants.Permessi.Ambiti.DETE.toString(),
             InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
@@ -434,7 +434,7 @@ public class UserInfoService {
 //    @Cacheable(value = "getPermessiDiFlussoByIdUtente__ribaltorg__", key = "{#utente.getId()}")
     public List<Permesso> getPermessiDiFlussoByIdUtente(Utente utente) throws BlackBoxPermissionException {
         // Chiamata alla blackbox per ricevere la lista dei permessi dell'utente  
-        List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubject(utente, null,
+        List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubject(utente, null, null,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
             InternautaConstants.Permessi.Ambiti.DETE.toString(),
             InternautaConstants.Permessi.Ambiti.DELI.toString()}),
@@ -462,10 +462,12 @@ public class UserInfoService {
         return permessiUtente;
     }
 
+    // NB: non è by CODICEAZIENDA, ma è ByUtente da cui prendo Persona da cui prendo codice azienda
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Utente utente) throws BlackBoxPermissionException {
         return getPermessiDiFlussoByCodiceAzienda(utente.getIdPersona());
     }
 
+    // NB: non è by CODICEAZIENDA, ma è ByPersona da cui prendo codice azienda
     @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda__ribaltorg__", key = "{#persona.getId()}")
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
         Map<String, List<PermessoEntitaStoredProcedure>> map = new HashMap<>();
@@ -474,7 +476,7 @@ public class UserInfoService {
 
         for (int i = 0; i < utentiPersona.size(); i++) {
             map.put(utentiPersona.get(i).getIdAzienda().getCodice(),
-                    permissionManager.getPermissionsOfSubject(utentiPersona.get(i), null,
+                    permissionManager.getPermissionsOfSubject(utentiPersona.get(i), null, null,
                             Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
                         InternautaConstants.Permessi.Ambiti.DETE.toString(),
                         InternautaConstants.Permessi.Ambiti.DELI.toString()}),
@@ -485,6 +487,7 @@ public class UserInfoService {
         return map;
     }
 
+    // NB: non è by CODICEAZIENDA, ma è ByPersona da cui prendo codice azienda
     @Cacheable(value = "getPredicatiDiFlussoByCodiceAzienda__ribaltorg__", key = "{#persona.getId()}")
     public Map<String, List<String>> getPredicatiDiFlussoByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
 
@@ -521,6 +524,7 @@ public class UserInfoService {
         try {
             pecWithStandardPermissions = permissionManager.getPermissionsOfSubject(
                     persona,
+                    null,
                     null,
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false, null, null);
@@ -592,10 +596,11 @@ public class UserInfoService {
 
     @Cacheable(value = "getPermessiDelega__ribaltorg__", key = "{#user.getId()}")
     public List<Integer> getPermessiDelega(Utente user) throws BlackBoxPermissionException {
-        List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubject(user,
+        List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubject(user, null,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.DELEGA.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.AVATAR.toString()}),
-                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.DELEGA.toString()}), false, null, null);
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.DELEGA.toString()}),
+                false, null, null);
 
         List<Integer> utentiDeleganti = permissionsOfSubject.stream().map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList());
         return utentiDeleganti;
