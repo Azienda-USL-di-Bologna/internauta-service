@@ -408,18 +408,18 @@ public class UserInfoService {
         return getPermessiDiFlusso(utente, null, null, null);
     }
 
-//    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico}")
-//    public void getPermessiDiFlussoRemoveCache(Utente utente, LocalDate dataPermesso, Boolean estratiStorico) {
+//    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estraiStorico}")
+//    public void getPermessiDiFlussoRemoveCache(Utente utente, LocalDate dataPermesso, Boolean estraiStorico) {
 //    }
-    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estratiStorico, #idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null'}")
+    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estraiStorico, #idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null'}")
     public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente, LocalDate dataPermesso,
-            Boolean estratiStorico, Integer idProvenienzaOggetto) throws BlackBoxPermissionException {
+            Boolean estraiStorico, Integer idProvenienzaOggetto) throws BlackBoxPermissionException {
         return permissionManager.getPermissionsOfSubject(utente, idProvenienzaOggetto != null ? Lists.newArrayList(new Struttura(idProvenienzaOggetto)) : null,
                 null, Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
             InternautaConstants.Permessi.Ambiti.DETE.toString(),
             InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
-                false, dataPermesso, estratiStorico);
+                false, dataPermesso, estraiStorico);
     }
 
     /**
@@ -433,18 +433,17 @@ public class UserInfoService {
      */
 //    @Cacheable(value = "getPermessiDiFlussoByIdUtente__ribaltorg__", key = "{#utente.getId()}")
     public List<Permesso> getPermessiDiFlussoByIdUtente(Utente utente) throws BlackBoxPermissionException {
-        // Chiamata alla blackbox per ricevere la lista dei permessi dell'utente  
-        List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubject(utente, null, null,
-                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
-            InternautaConstants.Permessi.Ambiti.DETE.toString(),
-            InternautaConstants.Permessi.Ambiti.DELI.toString()}),
-                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
-                false, null, null);
+        return getPermessiDiFlussoByIdUtente(utente, null, null, null);
+    }
 
+    @Cacheable(value = "getPermessiDiFlussoByIdUtente__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estraiStorico, #idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null'}")
+    public List<Permesso> getPermessiDiFlussoByIdUtente(Utente utente, LocalDate dataPermesso,
+            Boolean estraiStorico, Integer idProvenienzaOggetto) throws BlackBoxPermissionException {
+        List<PermessoEntitaStoredProcedure> permessiDiFlusso = getPermessiDiFlusso(utente, dataPermesso, estraiStorico, idProvenienzaOggetto);
         // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend
         List<Permesso> permessiUtente = new ArrayList<>();
 
-        permissionsOfSubject.forEach((permessoEntita) -> {
+        permessiDiFlusso.forEach((permessoEntita) -> {
             permessoEntita.getCategorie().forEach((categoria) -> {
                 categoria.getPermessi().forEach((permessoCategoria) -> {
                     Permesso permesso = new Permesso();
