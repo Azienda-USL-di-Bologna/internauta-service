@@ -30,3 +30,5 @@ public class PermessiUtilities {
         redisTemplate.delete(keys);
     }
 }
+
+
