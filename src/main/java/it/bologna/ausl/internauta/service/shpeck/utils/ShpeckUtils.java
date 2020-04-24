@@ -156,6 +156,7 @@ public class ShpeckUtils {
         if (hostname.equals("localhost")) {
             props = new Properties();
             props.put("mail.host", "localhost");
+//            props.setProperty("mail.mime.base64.ignoreerrors", "true");
         }
         MimeMessage mimeMessage = null;
         try {
