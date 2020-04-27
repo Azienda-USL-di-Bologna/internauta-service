@@ -535,10 +535,11 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 
         // Build dei campi della mail da inviare
         String fromName = segnalazioneUtente.getMail();
+        String subject = "";
         if (numeroNuovaSegnalazione != null) {
-            String subject = "(Segnalazione " + numeroNuovaSegnalazione + ") " + segnalazioneUtente.getOggetto();
+            subject = "(Segnalazione " + numeroNuovaSegnalazione + ") " + segnalazioneUtente.getOggetto();
         } else {
-            String subject = segnalazioneUtente.getOggetto();
+            subject = segnalazioneUtente.getOggetto();
         }
         List<String> to = Arrays.asList(emailCustomerSupport);
 
