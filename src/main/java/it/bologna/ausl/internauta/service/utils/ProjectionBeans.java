@@ -46,6 +46,7 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
+import it.bologna.ausl.model.entities.baborg.projections.PersonaWithUtentiAndStruttureAndAfferenzeCustom;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,6 +69,7 @@ import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAf
 import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtentiResponsabiliCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiByIdUtenteCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiCustom;
+import it.bologna.ausl.model.entities.baborg.projections.UtenteWithStruttureAndResponsabiliCustom;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -513,6 +515,25 @@ public class ProjectionBeans {
         UtenteWithIdPersonaAndPermessiCustom res = null;
         if (utenteStruttura != null) {
             res = factory.createProjection(UtenteWithIdPersonaAndPermessiCustom.class, utenteStruttura.getIdUtente());
+        }
+        return res;
+    }
+    
+    public PersonaWithUtentiAndStruttureAndAfferenzeCustom getPersonaWithUtentiAndStruttureAndAfferenzeCustom(Contatto contatto) {
+        PersonaWithUtentiAndStruttureAndAfferenzeCustom res = null;
+        if (contatto != null) {
+            res = factory.createProjection(PersonaWithUtentiAndStruttureAndAfferenzeCustom.class, contatto.getIdPersona());
+        }
+        return res;
+    }
+    
+    public List<UtenteWithStruttureAndResponsabiliCustom> getUtenteWithStruttureAndResponsabiliCustom(Persona persona) {
+        List<UtenteWithStruttureAndResponsabiliCustom> res = null;
+        List<Utente> utenteList = persona.getUtenteList();
+        if (utenteList != null && !utenteList.isEmpty()) {
+            res = utenteList.stream().map(utente -> {
+                return factory.createProjection(UtenteWithStruttureAndResponsabiliCustom.class, utente);
+            }).collect(Collectors.toList());
         }
         return res;
     }
