@@ -296,12 +296,12 @@ public class BaborgUtils {
                     new NotNull(), // nome
                     new NotNull(), // codice_fiscale
                     new NotNull(new ParseInt()), // id_casellla
-                    new NotNull(new ParseDate("dd/mm/yyyy")), // datain
-                    new Optional(new ParseDate("dd/mm/yyyy")), // datafi
+                    new NotNull(new ParseDate("dd/MM/yyyy")), // datain
+                    new Optional(new ParseDate("dd/MM/yyyy")), // datafi
                     new NotNull(), // tipo_appartenenza
                     new Optional(), // username
-                    new NotNull(new ParseDate("dd/mm/yyyy")), // data_assunzione
-                    new Optional(new ParseDate("dd/mm/yyyy")) // data_adimissione
+                    new NotNull(new ParseDate("dd/MM/yyyy")), // data_assunzione
+                    new Optional(new ParseDate("dd/MM/yyyy")) // data_adimissione
                 };
                 cellProcessor = processorsAPPARTENENTI;
                 break;
@@ -311,8 +311,8 @@ public class BaborgUtils {
                     new Optional(new ParseInt()), // codice_ente
                     new NotNull(new ParseInt()), // codice_matricola
                     new NotNull(new ParseInt()), // id_casellla
-                    new NotNull(new ParseDate("dd/mm/yyyy")), // datain
-                    new Optional(new ParseDate("dd/mm/yyyy")), // datafi
+                    new NotNull(new ParseDate("dd/MM/yyyy")), // datain
+                    new Optional(new ParseDate("dd/MM/yyyy")), // datafi
                     new NotNull() // tipo
                 };
                 cellProcessor = processorsRESPONSABILI;
@@ -322,10 +322,10 @@ public class BaborgUtils {
                     new NotNull(new ParseInt()), // progressivo_riga
                     new NotNull(new ParseInt()), // id_casella_partenza
                     new Optional(new ParseInt()), // id_casellla_arrivo
-                    new Optional(new ParseDate("dd/mm/yyyy")), // data_trasformazione
+                    new Optional(new ParseDate("dd/MM/yyyy")), // data_trasformazione
                     new NotNull(), // motivo
-                    new Optional(new ParseDate("dd/mm/yyyy")), // datain_partenza
-                    new Optional(new ParseDate("dd/mm/yyyy")), // dataora_oper
+                    new Optional(new ParseDate("dd/MM/yyyy")), // datain_partenza
+                    new Optional(new ParseDate("dd/MM/yyyy")), // dataora_oper
                     new Optional(new ParseInt()) // codice_ente
                 };
                 cellProcessor = processorsTRASFORMAZIONI;
@@ -336,8 +336,8 @@ public class BaborgUtils {
                     new NotNull(new ParseInt()), // id_casella
                     new Optional(new ParseInt()), // id_padre
                     new NotNull(), // descrizione
-                    new NotNull(new ParseDate("dd/mm/yyyy")), // datain
-                    new Optional(new ParseDate("dd/mm/yyyy")), // datafi
+                    new NotNull(new ParseDate("dd/MM/yyyy")), // datain
+                    new Optional(new ParseDate("dd/MM/yyyy")), // datafi
                     new Optional(), // tipo_legame
                     // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
                     new Optional(new ParseInt()) // codice_ente
