@@ -337,7 +337,7 @@ public class BaborgUtils {
                     new Optional(new ParseInt()), // id_padre
                     new NotNull(), // descrizione
                     new NotNull(new ParseDate("dd/mm/yyyy")), // datain
-                    new ParseDate("dd/mm/yyyy"), // datafi
+                    new Optional(new ParseDate("dd/mm/yyyy")), // datafi
                     new Optional(), // tipo_legame
                     // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
                     new Optional(new ParseInt()) // codice_ente
