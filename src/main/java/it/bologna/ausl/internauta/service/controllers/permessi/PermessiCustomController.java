@@ -415,10 +415,10 @@ public class PermessiCustomController implements ControllerHandledExceptions {
      * @throws it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException
      * @throws com.fasterxml.jackson.core.JsonProcessingException
      */
-    @RequestMapping(value = "managePermissionsFlusso", method = RequestMethod.POST)
-    public void managePermissionsFlusso(@RequestBody Map<String, Object> params, HttpServletRequest request) throws BlackBoxPermissionException, Http409ResponseException, JsonProcessingException {
+    @RequestMapping(value = "managePermissionsAdvanced", method = RequestMethod.POST)
+    public void managePermissionsAdvanced(@RequestBody Map<String, Object> params, HttpServletRequest request) throws BlackBoxPermissionException, Http409ResponseException, JsonProcessingException {
         List<PermessoEntitaStoredProcedure> permessiEntita = objectMapper.convertValue(params.get("permessiEntita"), new TypeReference<List<PermessoEntitaStoredProcedure>>() {});
-        List<PermessoEntitaStoredProcedure> permessiAggiunti = null;
+        List<PermessoEntitaStoredProcedure> permessiAggiunti;
 
 //        Long dataMillis = (Long) params.get("data");
 //        LocalDate data = Instant.ofEpochMilli(dataMillis).atZone(ZoneId.systemDefault()).toLocalDate();
@@ -444,34 +444,35 @@ public class PermessiCustomController implements ControllerHandledExceptions {
                                 permessoStoredProcedure.getAttivoAl() != null ? permessoStoredProcedure.getAttivoAl().toLocalDate(): null);
                         
                         if (risposte != null && !risposte.isEmpty()) {
-                            if (permessoStoredProcedure.getAttivoAl() != null) {
+//                            if (permessoStoredProcedure.getAttivoAl() != null) {
                                 for (PermessoEntitaStoredProcedure risposta : risposte) {
                                     for (CategoriaPermessiStoredProcedure resCategoria : risposta.getCategorie()) {
                                         
                                         for (PermessoStoredProcedure resPermesso : resCategoria.getPermessi()) {
-                                            if (permessoStoredProcedure.getAttivoAl().isAfter(resPermesso.getAttivoDal())) {
+                                            if (permessoStoredProcedure.getAttivoAl() == null || permessoStoredProcedure.getAttivoAl().isAfter(resPermesso.getAttivoDal())) {
                                                 String soggetto = permessiAggiunto.getSoggetto().getIdProvenienza().toString();
                                                 String oggetto = permessiAggiunto.getOggetto().getIdProvenienza().toString();
                                                 String predicato = permessoStoredProcedure.getPredicato();
                                                 String ambito = categoriaPermessiStoredProcedure.getAmbito();
                                                 String tipo = categoriaPermessiStoredProcedure.getTipo();
-                                                PermessoError permessoError=new PermessoError(soggetto, oggetto, predicato, ambito, tipo, permessoStoredProcedure.getAttivoDal().toLocalDate());
+                                                PermessoError permessoError=new PermessoError(soggetto, oggetto, predicato, ambito, tipo, resPermesso.getAttivoDal().toLocalDate());
                                                 //throw new Http409ResponseException("permesso_furuto", "trovato un permesso nel futuro che si sovrappone");
                                                 risultanze.add(permessoError);
                                             }
                                         }
                                     }
                                 }
-                            } else {
-                                String soggetto = permessiAggiunto.getSoggetto().getIdProvenienza().toString();
-                                String oggetto = permessiAggiunto.getOggetto().getIdProvenienza().toString();
-                                String predicato = permessoStoredProcedure.getPredicato();
-                                String ambito = categoriaPermessiStoredProcedure.getAmbito();
-                                String tipo = categoriaPermessiStoredProcedure.getTipo();
-                                PermessoError permessoError=new PermessoError(soggetto, oggetto, predicato, ambito, tipo, permessoStoredProcedure.getAttivoDal().toLocalDate());
-                                //throw new Http409ResponseException("permesso_furuto", "trovato un permesso nel futuro che si sovrappone");
-                                risultanze.add(permessoError);
-                            }
+//                            } 
+//                            else {
+//                                String soggetto = permessiAggiunto.getSoggetto().getIdProvenienza().toString();
+//                                String oggetto = permessiAggiunto.getOggetto().getIdProvenienza().toString();
+//                                String predicato = permessoStoredProcedure.getPredicato();
+//                                String ambito = categoriaPermessiStoredProcedure.getAmbito();
+//                                String tipo = categoriaPermessiStoredProcedure.getTipo();
+//                                PermessoError permessoError=new PermessoError(soggetto, oggetto, predicato, ambito, tipo, permessoStoredProcedure.getAttivoDal().toLocalDate());
+//                                //throw new Http409ResponseException("permesso_furuto", "trovato un permesso nel futuro che si sovrappone");
+//                                risultanze.add(permessoError);
+//                            }
                         }
                     }
                 }
