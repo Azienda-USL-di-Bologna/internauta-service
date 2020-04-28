@@ -1,8 +1,10 @@
 package it.bologna.ausl.internauta.service.controllers.permessi;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.PermissionRepositoryAccess;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
@@ -12,16 +14,20 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException;
+import it.bologna.ausl.internauta.service.permessi.PermessoError;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Ambiti.PECG;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi.PEC;
+import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -71,8 +77,8 @@ public class PermessiCustomController implements ControllerHandledExceptions {
     UtenteRepository utenteRepository;
 
     @Autowired
-    ObjectMapper mapper;
-    
+    ObjectMapper objectMapper;
+
     /**
      * E' il controller base.Riceve una lista di PermessoEntitaStoredProcedure e
      * chiama direttamente la managePermissions la quale di fatto passaera la
@@ -206,7 +212,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         List<Map<String, Object>> data;
         // Controllo che i dati nella richiesta rispettino gli standard richiesti
         try {
-            data = mapper.convertValue(json, new TypeReference<List<Map<String, Object>>>() {
+            data = objectMapper.convertValue(json, new TypeReference<List<Map<String, Object>>>() {
             });
         } catch (IllegalArgumentException ex) {
             LOGGER.error("Errore nel casting della persona.", ex);
@@ -222,21 +228,21 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
             // Controllo che ogni elemento abbia i dati che mi aspetto
             try {
-                persona = mapper.convertValue(element.get("persona"), Persona.class);
+                persona = objectMapper.convertValue(element.get("persona"), Persona.class);
             } catch (IllegalArgumentException ex) {
                 LOGGER.error("Errore nel casting della persona.", ex);
                 throw new Http400ResponseException("1", "Errore nel casting della persona.");
             }
 
             try {
-                pec = mapper.convertValue(element.get("pec"), Pec.class);
+                pec = objectMapper.convertValue(element.get("pec"), Pec.class);
             } catch (IllegalArgumentException ex) {
                 LOGGER.error("Errore nel casting della pec.", ex);
                 throw new Http400ResponseException("2", "Errore nel casting della pec.");
             }
 
             try {
-                permesso = mapper.convertValue(element.get("permesso"), PermessoStoredProcedure.class);
+                permesso = objectMapper.convertValue(element.get("permesso"), PermessoStoredProcedure.class);
             } catch (IllegalArgumentException ex) {
                 LOGGER.error("Errore nel casting del permesso.", ex);
                 throw new Http400ResponseException("3", "Errore nel casting del permesso.");
@@ -400,9 +406,85 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         permissionManager.managePermissions(struttura, pec, PECG.toString(), PEC.toString(), Arrays.asList(new PermessoStoredProcedure[]{permesso}));
     }
 
-    @RequestMapping(value = "managePermissionsFlusso", method = RequestMethod.POST)
-    public void managePermissionsFlusso(@RequestBody List<PermessoEntitaStoredProcedure> permessiEntita, HttpServletRequest request) throws BlackBoxPermissionException {
+    /**
+     *
+     * @param params mappa che contiene permessiEntita Date Lista
+     * PermessoAggiunto
+     * @param request
+     * @throws BlackBoxPermissionException
+     * @throws it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException
+     * @throws com.fasterxml.jackson.core.JsonProcessingException
+     */
+    @RequestMapping(value = "managePermissionsAdvanced", method = RequestMethod.POST)
+    public void managePermissionsAdvanced(@RequestBody Map<String, Object> params, HttpServletRequest request) throws BlackBoxPermissionException, Http409ResponseException, JsonProcessingException {
+        List<PermessoEntitaStoredProcedure> permessiEntita = objectMapper.convertValue(params.get("permessiEntita"), new TypeReference<List<PermessoEntitaStoredProcedure>>() {});
+        List<PermessoEntitaStoredProcedure> permessiAggiunti;
+
+//        Long dataMillis = (Long) params.get("data");
+//        LocalDate data = Instant.ofEpochMilli(dataMillis).atZone(ZoneId.systemDefault()).toLocalDate();
+        List<PermessoError> risultanze = new ArrayList<>();
+        if (params.get("permessiAggiunti") != null) {
+            permessiAggiunti = objectMapper.convertValue(params.get("permessiAggiunti"), new TypeReference<List<PermessoEntitaStoredProcedure>>(){});
+
+            for (PermessoEntitaStoredProcedure permessiAggiunto : permessiAggiunti) {
+
+                for (CategoriaPermessiStoredProcedure categoriaPermessiStoredProcedure : permessiAggiunto.getCategorie()) {
+
+                    for (PermessoStoredProcedure permessoStoredProcedure : categoriaPermessiStoredProcedure.getPermessi()) {
+
+                        List<PermessoEntitaStoredProcedure> risposte;
+                        risposte = permissionRepositoryAccess.getPermissionsOfSubjectFutureFromDate(
+                                permessiAggiunto.getSoggetto(),
+                                Lists.newArrayList(permessiAggiunto.getOggetto()),
+                                Lists.newArrayList(permessoStoredProcedure.getPredicato()),
+                                Lists.newArrayList(categoriaPermessiStoredProcedure.getAmbito()),
+                                Lists.newArrayList(categoriaPermessiStoredProcedure.getTipo()),
+                                true,
+                                permessoStoredProcedure.getAttivoDal().toLocalDate(),
+                                permessoStoredProcedure.getAttivoAl() != null ? permessoStoredProcedure.getAttivoAl().toLocalDate(): null);
+                        
+                        if (risposte != null && !risposte.isEmpty()) {
+//                            if (permessoStoredProcedure.getAttivoAl() != null) {
+                                for (PermessoEntitaStoredProcedure risposta : risposte) {
+                                    for (CategoriaPermessiStoredProcedure resCategoria : risposta.getCategorie()) {
+                                        
+                                        for (PermessoStoredProcedure resPermesso : resCategoria.getPermessi()) {
+                                            if (permessoStoredProcedure.getAttivoAl() == null || permessoStoredProcedure.getAttivoAl().isAfter(resPermesso.getAttivoDal())) {
+                                                String soggetto = permessiAggiunto.getSoggetto().getIdProvenienza().toString();
+                                                String oggetto = permessiAggiunto.getOggetto().getIdProvenienza().toString();
+                                                String predicato = permessoStoredProcedure.getPredicato();
+                                                String ambito = categoriaPermessiStoredProcedure.getAmbito();
+                                                String tipo = categoriaPermessiStoredProcedure.getTipo();
+                                                PermessoError permessoError=new PermessoError(soggetto, oggetto, predicato, ambito, tipo, resPermesso.getAttivoDal().toLocalDate());
+                                                //throw new Http409ResponseException("permesso_furuto", "trovato un permesso nel futuro che si sovrappone");
+                                                risultanze.add(permessoError);
+                                            }
+                                        }
+                                    }
+                                }
+//                            } 
+//                            else {
+//                                String soggetto = permessiAggiunto.getSoggetto().getIdProvenienza().toString();
+//                                String oggetto = permessiAggiunto.getOggetto().getIdProvenienza().toString();
+//                                String predicato = permessoStoredProcedure.getPredicato();
+//                                String ambito = categoriaPermessiStoredProcedure.getAmbito();
+//                                String tipo = categoriaPermessiStoredProcedure.getTipo();
+//                                PermessoError permessoError=new PermessoError(soggetto, oggetto, predicato, ambito, tipo, permessoStoredProcedure.getAttivoDal().toLocalDate());
+//                                //throw new Http409ResponseException("permesso_furuto", "trovato un permesso nel futuro che si sovrappone");
+//                                risultanze.add(permessoError);
+//                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (!risultanze.isEmpty()){
+            throw new Http409ResponseException("permesso_futuro", objectMapper.writeValueAsString(risultanze));
+        }
+        
         permissionRepositoryAccess.managePermissions(permessiEntita);
+
 //        for (PermessoEntitaStoredProcedure p : permessiEntita) {
 //            Utente u = utenteRepository.getOne(p.getSoggetto().getIdProvenienza());
 //            userInfoService.getPermessiDiFlussoRemoveCache(u);
@@ -413,14 +495,14 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 //            userInfoService.getPermessiDiFlussoRemoveCache(u, null, true);
 //            userInfoService.getPermessiDiFlussoRemoveCache(u, null, false);
 //        });
-        Set<Integer> idUtentiSet = new HashSet();
-        
-        permessiEntita.stream().forEach(p -> {
-            idUtentiSet.add(p.getSoggetto().getIdProvenienza());
-        });
-        
-        idUtentiSet.forEach(idUtente -> {
-            permessiUtilities.cleanCachePermessiDiFlusso(idUtente);
-        });
+            Set<Integer> idUtentiSet = new HashSet();
+
+            permessiEntita.stream().forEach(p -> {
+                idUtentiSet.add(p.getSoggetto().getIdProvenienza());
+            });
+
+            idUtentiSet.forEach(idUtente -> {
+                permessiUtilities.cleanCachePermessiDiFlusso(idUtente);
+            });
+        }
     }
-}
