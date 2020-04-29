@@ -70,6 +70,8 @@ import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtentiResp
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiByIdUtenteCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithStruttureAndResponsabiliCustom;
+import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithUtenteStruttura;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -533,6 +535,17 @@ public class ProjectionBeans {
         if (utenteList != null && !utenteList.isEmpty()) {
             res = utenteList.stream().map(utente -> {
                 return factory.createProjection(UtenteWithStruttureAndResponsabiliCustom.class, utente);
+            }).collect(Collectors.toList());
+        }
+        return res;
+    }
+    
+    public List<DettaglioContattoWithUtenteStruttura> getDettaglioContattoWithUtenteStruttura(Contatto contatto) {
+        List<DettaglioContattoWithUtenteStruttura> res = null;
+        List<DettaglioContatto> dettaglioContattoList = contatto.getDettaglioContattoList();
+        if (dettaglioContattoList != null && !dettaglioContattoList.isEmpty()) {
+            res = dettaglioContattoList.stream().map(dettaglioContatto -> {
+                return factory.createProjection(DettaglioContattoWithUtenteStruttura.class, dettaglioContatto);
             }).collect(Collectors.toList());
         }
         return res;
