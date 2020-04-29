@@ -1,5 +1,6 @@
 package it.bologna.ausl.model.entities.rubrica.projections;
 
+import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithIdAzienda;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithDettaglioContattoListAndIdPersonaCreazioneAndIdStruttura;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithUtenteStruttura;
@@ -14,8 +15,11 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "CustomContattoList", types = Contatto.class)
 public interface CustomContattoList extends ContattoWithDettaglioContattoListAndIdPersonaCreazioneAndIdStruttura {
 
-    @Value("#{@projectionBeans.getDettaglioContattoWithUtenteStruttura(target)}")
+    @Value("#{@projectionBeans.getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda(target)}")
     @Override
-    public List<DettaglioContattoWithUtenteStruttura> getDettaglioContattoList();
-    
+    public List<CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda> getDettaglioContattoList();
+ 
+    @Value("#{@projectionBeans.getStrutturaWithIdAzienda(target)}")
+    @Override
+    public StrutturaWithIdAzienda getIdStruttura();
 }
