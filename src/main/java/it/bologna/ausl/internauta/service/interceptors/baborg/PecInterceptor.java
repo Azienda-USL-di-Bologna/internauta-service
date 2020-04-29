@@ -116,12 +116,12 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                         idStruttura = additionalData.get(InternautaConstants.AdditionalData.Keys.idStruttura.toString());
                         struttura = new Struttura(Integer.parseInt(idStruttura));
                         try {
-                            List<PermessoEntitaStoredProcedure> getPermissionsOfSubject = permissionManager.getPermissionsOfSubject(
+                            List<PermessoEntitaStoredProcedure> getPermissionsOfSubject = permissionManager.getPermissionsOfSubjectActualFromDate(
                                     struttura,
                                     null,
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), true, null, null);
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), true, null);
                             if (getPermissionsOfSubject == null) {
                                 initialPredicate = Expressions.FALSE.eq(true);
                             } else {
@@ -141,12 +141,12 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                     case FilterPecPerStandardPermissions:
                         List<PermessoEntitaStoredProcedure> pecWithStandardPermissions;
                         try {
-                            pecWithStandardPermissions = permissionManager.getPermissionsOfSubject(
+                            pecWithStandardPermissions = permissionManager.getPermissionsOfSubjectActualFromDate(
                                     authenticatedSessionData.getPerson(),
                                     null,
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString(), InternautaConstants.Permessi.Predicati.ELIMINA.toString()}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false, null, null);
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false, null);
                         } catch (BlackBoxPermissionException ex) {
                             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
@@ -181,13 +181,13 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
                         if (struttura != null) {
                             try {
-                                List<PermessoEntitaStoredProcedure> permessiDellaStruttura = permissionManager.getPermissionsOfSubject(
+                                List<PermessoEntitaStoredProcedure> permessiDellaStruttura = permissionManager.getPermissionsOfSubjectActualFromDate(
                                         struttura,
                                         null,
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),
-                                        true, null, null);
+                                        true, null);
                                 if (permessiDellaStruttura != null) {
                                     pecDellaStruttura = permessiDellaStruttura.stream().map(permesso -> permesso.getOggetto().getIdProvenienza()).collect(Collectors.toList());
                                 }
@@ -199,13 +199,13 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
                         if (persona != null) {
                             try {
-                                List<PermessoEntitaStoredProcedure> permessiDellaPersona = permissionManager.getPermissionsOfSubject(
+                                List<PermessoEntitaStoredProcedure> permessiDellaPersona = permissionManager.getPermissionsOfSubjectActualFromDate(
                                         persona,
                                         null,
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString(), InternautaConstants.Permessi.Predicati.ELIMINA.toString()}),
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                                         Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),
-                                        false, null, null);
+                                        false, null);
                                 if (permessiDellaPersona != null) {
                                     pecDellaPersona = permessiDellaPersona.stream().map(permesso -> permesso.getOggetto().getIdProvenienza()).collect(Collectors.toList());
                                 }

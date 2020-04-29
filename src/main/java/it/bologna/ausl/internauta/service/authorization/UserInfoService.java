@@ -6,6 +6,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.PathBuilder;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
@@ -414,12 +415,18 @@ public class UserInfoService {
     @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estraiStorico, #idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null'}")
     public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente, LocalDate dataPermesso,
             Boolean estraiStorico, Integer idProvenienzaOggetto) throws BlackBoxPermissionException {
-        return permissionManager.getPermissionsOfSubject(utente, idProvenienzaOggetto != null ? Lists.newArrayList(new Struttura(idProvenienzaOggetto)) : null,
+        BlackBoxConstants.Direzione direzione;
+        if (estraiStorico != null && estraiStorico) {
+            direzione = BlackBoxConstants.Direzione.PASSATO;
+        } else {
+            direzione = BlackBoxConstants.Direzione.PRESENTE;
+        }
+        return permissionManager.getPermissionsOfSubjectAdvanced(utente, idProvenienzaOggetto != null ? Lists.newArrayList(new Struttura(idProvenienzaOggetto)) : null,
                 null, Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
             InternautaConstants.Permessi.Ambiti.DETE.toString(),
             InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
-                false, dataPermesso, estraiStorico);
+                false, dataPermesso, null, direzione);
     }
 
     /**
@@ -475,12 +482,12 @@ public class UserInfoService {
 
         for (int i = 0; i < utentiPersona.size(); i++) {
             map.put(utentiPersona.get(i).getIdAzienda().getCodice(),
-                    permissionManager.getPermissionsOfSubject(utentiPersona.get(i), null, null,
+                    permissionManager.getPermissionsOfSubjectActualFromDate(utentiPersona.get(i), null, null,
                             Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
                         InternautaConstants.Permessi.Ambiti.DETE.toString(),
                         InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                             Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
-                            false, null, null)
+                            false, null)
             );
         }
         return map;
@@ -521,12 +528,12 @@ public class UserInfoService {
         LOGGER.info("reperimento permessi PEC");
         List<PermessoEntitaStoredProcedure> pecWithStandardPermissions = null;
         try {
-            pecWithStandardPermissions = permissionManager.getPermissionsOfSubject(
+            pecWithStandardPermissions = permissionManager.getPermissionsOfSubjectActualFromDate(
                     persona,
                     null,
                     null,
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false, null, null);
+                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false, null);
         } catch (BlackBoxPermissionException ex) {
             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
 
@@ -595,11 +602,11 @@ public class UserInfoService {
 
     @Cacheable(value = "getPermessiDelega__ribaltorg__", key = "{#user.getId()}")
     public List<Integer> getPermessiDelega(Utente user) throws BlackBoxPermissionException {
-        List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubject(user, null,
+        List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubjectActualFromDate(user, null,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.DELEGA.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.AVATAR.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.DELEGA.toString()}),
-                false, null, null);
+                false, null);
 
         List<Integer> utentiDeleganti = permissionsOfSubject.stream().map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList());
         return utentiDeleganti;
