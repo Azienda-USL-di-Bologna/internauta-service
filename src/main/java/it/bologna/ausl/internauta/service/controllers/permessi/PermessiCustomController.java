@@ -27,7 +27,9 @@ import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -92,7 +94,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
      */
     @RequestMapping(value = "managePermissions", method = RequestMethod.POST)
     public void updatePermesso(@RequestBody List<PermessoEntitaStoredProcedure> permessiEntita, HttpServletRequest request) throws BlackBoxPermissionException {
-        permissionRepositoryAccess.managePermissions(permessiEntita);
+        permissionRepositoryAccess.managePermissions(permessiEntita, null);
     }
 
     // VECCHIA VERSIONE CHE NON GESTIVA LE LISTE
@@ -300,7 +302,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
                 permessi = new ArrayList<>();
             }
 
-            permissionManager.managePermissions(persona, pec, PECG.toString(), PEC.toString(), permessi);
+            permissionManager.managePermissions(persona, pec, PECG.toString(), PEC.toString(), permessi, null);
 
         }
     }
@@ -403,7 +405,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
             }
         }
 
-        permissionManager.managePermissions(struttura, pec, PECG.toString(), PEC.toString(), Arrays.asList(new PermessoStoredProcedure[]{permesso}));
+        permissionManager.managePermissions(struttura, pec, PECG.toString(), PEC.toString(), Arrays.asList(new PermessoStoredProcedure[]{permesso}), null);
     }
 
     /**
@@ -420,8 +422,11 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         List<PermessoEntitaStoredProcedure> permessiEntita = objectMapper.convertValue(params.get("permessiEntita"), new TypeReference<List<PermessoEntitaStoredProcedure>>() {});
         List<PermessoEntitaStoredProcedure> permessiAggiunti;
 
-//        Long dataMillis = (Long) params.get("data");
-//        LocalDate data = Instant.ofEpochMilli(dataMillis).atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate dataDiLavoro = null;
+        if (params.get("dataDiLavoro") != null) {
+            Long dataMillis = (Long) params.get("dataDiLavoro");
+            dataDiLavoro = Instant.ofEpochMilli(dataMillis).atZone(ZoneId.systemDefault()).toLocalDate();
+        }
         List<PermessoError> risultanze = new ArrayList<>();
         if (params.get("permessiAggiunti") != null) {
             permessiAggiunti = objectMapper.convertValue(params.get("permessiAggiunti"), new TypeReference<List<PermessoEntitaStoredProcedure>>(){});
@@ -483,7 +488,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
             throw new Http409ResponseException("permesso_futuro", objectMapper.writeValueAsString(risultanze));
         }
         
-        permissionRepositoryAccess.managePermissions(permessiEntita);
+        permissionRepositoryAccess.managePermissions(permessiEntita, dataDiLavoro);
 
 //        for (PermessoEntitaStoredProcedure p : permessiEntita) {
 //            Utente u = utenteRepository.getOne(p.getSoggetto().getIdProvenienza());
