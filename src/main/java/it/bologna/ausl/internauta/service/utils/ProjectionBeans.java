@@ -46,6 +46,8 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
+import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteStrutturaWithIdStrutturaAndIdAzienda;
+import it.bologna.ausl.model.entities.baborg.projections.PersonaWithUtentiAndStruttureAndAfferenzeCustom;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,6 +70,10 @@ import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAf
 import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtentiResponsabiliCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiByIdUtenteCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiCustom;
+import it.bologna.ausl.model.entities.baborg.projections.UtenteWithStruttureAndResponsabiliCustom;
+import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
+import it.bologna.ausl.model.entities.rubrica.projections.CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithUtenteStruttura;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -151,7 +157,25 @@ public class ProjectionBeans {
     public StrutturaWithIdAzienda getStrutturaConAzienda(Struttura struttura) {
         return factory.createProjection(StrutturaWithIdAzienda.class, struttura);
     }
-
+    
+    public StrutturaWithIdAzienda getStrutturaWithIdAzienda(Contatto contatto) {
+        StrutturaWithIdAzienda res = null;
+        Struttura struttura = contatto.getIdStruttura();
+        if (struttura != null) {
+            res = factory.createProjection(StrutturaWithIdAzienda.class, struttura);
+        }
+        return res;
+    }
+    
+    public CustomUtenteStrutturaWithIdStrutturaAndIdAzienda getUtenteStrutturaWithIdStrutturaAndIdAzienda(DettaglioContatto dettaglioContatto) {
+        CustomUtenteStrutturaWithIdStrutturaAndIdAzienda res = null;
+        UtenteStruttura utenteStruttura = dettaglioContatto.getUtenteStruttura();
+        if (utenteStruttura != null) {
+            res = factory.createProjection(CustomUtenteStrutturaWithIdStrutturaAndIdAzienda.class, utenteStruttura);
+        }
+        return res;
+    }
+            
     public List<AttivitaWithIdPersona> getAttivitaWithIdPersona(Azienda azienda) {
         return azienda.getAttivitaList().stream().map(
                 a -> {
@@ -492,8 +516,9 @@ public class ProjectionBeans {
     
     public StrutturaWithUtentiResponsabiliCustom getStrutturaWithUtentiReponsabili(UtenteStruttura utenteStruttura) {
         StrutturaWithUtentiResponsabiliCustom res = null;
-        if (utenteStruttura != null) {
-            res = factory.createProjection(StrutturaWithUtentiResponsabiliCustom.class, utenteStruttura.getIdStruttura());
+        Struttura idStruttura = utenteStruttura.getIdStruttura();
+        if (idStruttura != null) {
+            res = factory.createProjection(StrutturaWithUtentiResponsabiliCustom.class, idStruttura);
         }
         return res;
     }
@@ -511,8 +536,40 @@ public class ProjectionBeans {
 
     public UtenteWithIdPersonaAndPermessiCustom getUtenteWithIdPersonaAndPermessiCustom(UtenteStruttura utenteStruttura) {
         UtenteWithIdPersonaAndPermessiCustom res = null;
-        if (utenteStruttura != null) {
-            res = factory.createProjection(UtenteWithIdPersonaAndPermessiCustom.class, utenteStruttura.getIdUtente());
+        Utente idUtente = utenteStruttura.getIdUtente();
+        if (idUtente != null) {
+            res = factory.createProjection(UtenteWithIdPersonaAndPermessiCustom.class, idUtente);
+        }
+        return res;
+    }
+    
+    public PersonaWithUtentiAndStruttureAndAfferenzeCustom getPersonaWithUtentiAndStruttureAndAfferenzeCustom(Contatto contatto) {
+        PersonaWithUtentiAndStruttureAndAfferenzeCustom res = null;
+        Persona idPersona = contatto.getIdPersona();
+        if (idPersona != null) {
+            res = factory.createProjection(PersonaWithUtentiAndStruttureAndAfferenzeCustom.class, idPersona);
+        }
+        return res;
+    }
+    
+    public List<UtenteWithStruttureAndResponsabiliCustom> getUtenteWithStruttureAndResponsabiliCustom(Persona persona) {
+        List<UtenteWithStruttureAndResponsabiliCustom> res = null;
+        List<Utente> utenteList = persona.getUtenteList();
+        if (utenteList != null && !utenteList.isEmpty()) {
+            res = utenteList.stream().map(utente -> {
+                return factory.createProjection(UtenteWithStruttureAndResponsabiliCustom.class, utente);
+            }).collect(Collectors.toList());
+        }
+        return res;
+    }
+    
+    public List<CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda> getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda(Contatto contatto) {
+        List<CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda> res = null;
+        List<DettaglioContatto> dettaglioContattoList = contatto.getDettaglioContattoList();
+        if (dettaglioContattoList != null && !dettaglioContattoList.isEmpty()) {
+            res = dettaglioContattoList.stream().map(dettaglioContatto -> {
+                return factory.createProjection(CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda.class, dettaglioContatto);
+            }).collect(Collectors.toList());
         }
         return res;
     }

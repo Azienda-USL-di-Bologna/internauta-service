@@ -28,17 +28,9 @@ import it.bologna.ausl.internauta.service.controllers.utils.ToolsUtils;
 import it.bologna.ausl.internauta.service.exceptions.SendMailException;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.RichiestaSmartWorkingRepository;
-import it.bologna.ausl.internauta.service.utils.redmine.factories.IssueWrapperFactory;
 import it.bologna.ausl.internauta.service.utils.redmine.factories.MiddleMineManagerFactory;
 import it.bologna.ausl.internauta.service.utils.redmine.middlemine.communications.MiddleMineNewIssueManager;
 import it.bologna.ausl.internauta.service.utils.redmine.middlemine.communications.MiddleMineNewIssueResponseManager;
-import it.bologna.ausl.internauta.service.utils.redmine.wrappers.IssueWrapper;
-import it.bologna.ausl.middelmine.builders.LoadableParametersManagerBuilder;
-import it.bologna.ausl.middelmine.factories.ParametersManagerFactory;
-import it.bologna.ausl.middelmine.factories.RedMineCallerManagerFactory;
-import it.bologna.ausl.middelmine.interfaces.ParametersManagerInterface;
-import it.bologna.ausl.middelmine.managers.configuration.LoadableParametersManager;
-import it.bologna.ausl.middelmine.rest.RedMineCallManager;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.forms.Segnalazione;
 import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
@@ -535,7 +527,12 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 
         // Build dei campi della mail da inviare
         String fromName = segnalazioneUtente.getMail();
-        String subject = segnalazioneUtente.getOggetto();
+        String subject = "";
+        if (numeroNuovaSegnalazione != null) {
+            subject = "(Segnalazione " + numeroNuovaSegnalazione + ") " + segnalazioneUtente.getOggetto();
+        } else {
+            subject = segnalazioneUtente.getOggetto();
+        }
         List<String> to = Arrays.asList(emailCustomerSupport);
 
         ToolsUtils toolsUtils = new ToolsUtils();
