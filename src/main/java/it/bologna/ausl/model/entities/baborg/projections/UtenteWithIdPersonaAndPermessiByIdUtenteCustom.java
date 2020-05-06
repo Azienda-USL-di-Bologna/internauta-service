@@ -14,12 +14,21 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "UtenteWithIdPersonaAndPermessiByIdUtenteCustom", types = Utente.class)
 public interface UtenteWithIdPersonaAndPermessiByIdUtenteCustom extends UtenteWithIdPersona {
 
-    @Override
-    @Value("#{@userInfoService.getPermessiDiFlussoByIdUtente("
-            + "target, "
-            + "@additionalDataParamsExtractor.getDataPermesso(), "
-            + "@additionalDataParamsExtractor.getEstraiStorico(),"
-            + "@additionalDataParamsExtractor.getIdProvenienzaOggetto())}")
-    public List<Permesso> getPermessiDiFlussoByIdUtente();
-
+//    @Override
+//    @Value("#{@userInfoService.getPermessiDiFlussoByIdUtente("
+//            + "target, "
+//            + "@additionalDataParamsExtractor.getDataPermesso(), "
+//            + "@additionalDataParamsExtractor.getEstraiStorico(),"
+//            + "@additionalDataParamsExtractor.getIdProvenienzaOggetto())}")
+//    public List<Permesso> getPermessiDiFlussoByIdUtente();
+    
+    @Value("#{@userInfoService.getPermessiFilteredByAdditionalDataByIdUtente("
+        + "target, "
+        + "@additionalDataParamsExtractor.getDataPermesso(),"
+        + "@additionalDataParamsExtractor.getEstraiStorico(),"
+        + "@additionalDataParamsExtractor.getIdProvenienzaOggetto(),"
+        + "@additionalDataParamsExtractor.getAmbitiPermesso(),"
+        + "@additionalDataParamsExtractor.getTipiPermesso(),"
+        + ")}")
+    public List<Permesso> getPermessiFilteredByAdditionalDataByIdUtente();
 }

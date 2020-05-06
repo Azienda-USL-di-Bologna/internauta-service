@@ -246,7 +246,7 @@ public class LoginController {
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, false);
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente);
 
-        permessiUtilities.cleanCachePermessiDiFlusso(utente.getId());
+        permessiUtilities.cleanCachePermessiUtente(utente.getId());
 
         userInfoService.loadUtenteRemoveCache(utente.getId());
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);

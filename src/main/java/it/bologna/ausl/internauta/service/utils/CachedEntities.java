@@ -10,6 +10,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.OperazioneKrinRepository;
+import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QAzienda;
@@ -18,11 +19,14 @@ import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
+import it.bologna.ausl.model.entities.permessi.projections.PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -40,6 +44,10 @@ public class CachedEntities {
     
     @Value("${internauta.mode}")
     String internautaMode;
+    
+    @Autowired
+    protected ProjectionFactory factory;
+
     
     @Autowired
     private AziendaRepository aziendaRepository;
@@ -61,6 +69,9 @@ public class CachedEntities {
     
     @Autowired
     private UserInfoService userInfoService;
+    
+    @Autowired
+    private PredicatoAmbitoRepository predicatoAmbitoRepository;
     
     
     @Cacheable(value = "azienda", key = "{#id}")
@@ -184,4 +195,10 @@ public class CachedEntities {
     public OperazioneKrint getLastOperazioneVersionataKrint(OperazioneKrint.CodiceOperazione codiceOperazione){
         return operazioneKrinRepository.findByCodice(codiceOperazione.toString()).orElse(null);
     }
+    
+//    @Cacheable(value = "predicatoAmbito__ribaltorg__", key = "{#id}")
+//    public PredicatoAmbito getPredicatoAmbito(Integer id) {
+//        PredicatoAmbito predicatoAmbito = this.predicatoAmbitoRepository.getOne(id);
+//        return predicatoAmbito;
+//    }
 }
