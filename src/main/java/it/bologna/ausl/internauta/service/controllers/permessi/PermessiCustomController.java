@@ -507,7 +507,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
             });
 
             idUtentiSet.forEach(idUtente -> {
-                permessiUtilities.cleanCachePermessiDiFlusso(idUtente);
+                permessiUtilities.cleanCachePermessiUtente(idUtente);
             });
         }
     }
