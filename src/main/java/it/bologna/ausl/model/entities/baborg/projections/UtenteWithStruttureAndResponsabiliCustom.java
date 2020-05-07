@@ -9,9 +9,9 @@ import org.springframework.data.rest.core.config.Projection;
 
 @Projection(name = "UtenteWithStruttureAndResponsabiliCustom", types = Utente.class)
 public interface UtenteWithStruttureAndResponsabiliCustom extends UtenteWithIdAziendaAndIdPersonaAndUtenteStrutturaList {
-    
+
     @Override
-    @Value("#{@projectionBeans.getStruttureUtenteWithAfferenzaAndReponsabili(target)}")
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getUtenteStrutturaList', 'UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom')}")
     public List<UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom> getUtenteStrutturaList();
-    
+
 }
