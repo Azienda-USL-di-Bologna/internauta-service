@@ -1,14 +1,14 @@
 package it.bologna.ausl.internauta.service.permessi;
 
 import it.bologna.ausl.model.entities.baborg.Struttura;
+import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 
 /**
  *
  * @author Giuseppe Russo
  */
-public class Permesso implements Comparable<Permesso>{
+public class Permesso implements Comparable<Permesso>, Serializable{
  
     private String ambito;
     private String permesso;
