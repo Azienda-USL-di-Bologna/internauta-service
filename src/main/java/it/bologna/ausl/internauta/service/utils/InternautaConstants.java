@@ -25,11 +25,11 @@ public class InternautaConstants {
         }
 
         public enum Ambiti {
-            PICO, DETE, DELI, GEDI, PECG, AVATAR
+            PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO
         }
 
         public enum Tipi {
-            FLUSSO, PEC, FASCICOLO, DELEGA
+            DELEGA, FASCICOLO, PEC, FLUSSO, TEST, INCARICO
         }
     }
 
