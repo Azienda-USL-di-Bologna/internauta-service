@@ -16,6 +16,7 @@ import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandE
 import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.repositories.tools.UserAccessRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.logoutmanager.LogoutManagerWorker;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
@@ -45,8 +46,10 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
+import it.bologna.ausl.model.entities.tools.UserAccess;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
@@ -66,6 +69,9 @@ public class LoginController {
     private final String AZIENDA = "azienda";
     private final String PASS_TOKEN = "passToken";
     private final String NEW_USER_ACCESS = "newUserAccess";
+
+    @Autowired
+    private UserAccessRepository userAccessRepository;
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -211,7 +217,7 @@ public class LoginController {
         logger.info("login realUser: " + userLogin.realUser);
         logger.info("login applicazione: " + userLogin.application);
         logger.info("passToken: " + userLogin.passToken);
-        logger.info("login, is user access?: " + userLogin.newUserAccess);
+        logger.info("login, is a new user access ?: " + userLogin.newUserAccess);
 
         if (userLogin.passToken != null) {
             logger.info("c'è il passToken, agisco di conseguenza...");
@@ -312,6 +318,7 @@ public class LoginController {
     }
 
     @RequestMapping(value = "${security.login.path}", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<LoginResponse> loginGET(HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, ClassNotFoundException {
 
         String impersonateUser = request.getParameter(IMPERSONATE_USER);
@@ -324,7 +331,7 @@ public class LoginController {
         logger.info("applicazione: " + applicazione);
         logger.info("azienda: " + azienda);
         logger.info("passToken: " + passToken);
-        logger.info("is new user access " + newUserAccessString);
+        logger.info("is a new user access ?" + newUserAccessString);
 
         //LOGIN SAML
         if (!samlEnabled) {
@@ -367,7 +374,7 @@ public class LoginController {
 
         ResponseEntity res;
         try {
-            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet);
+            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet, true);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);
