@@ -477,7 +477,7 @@ public class UserInfoService {
                     permesso.setPermesso(permessoCategoria.getPredicato());
                     permesso.setAttivoDal(permessoCategoria.getAttivoDal());
                     permesso.setAttivoAl(permessoCategoria.getAttivoAl() != null ? permessoCategoria.getAttivoAl() : null);
-                    permesso.setStruttura(strutturaRepository.getOne(permessoEntita.getOggetto().getIdProvenienza()));
+                    permesso.setNomeStruttura(strutturaRepository.getOne(permessoEntita.getOggetto().getIdProvenienza()).getNome());
                     permessiUtente.add(permesso);
                 });
             });
@@ -504,7 +504,7 @@ public class UserInfoService {
                     permesso.setPermesso(permessoCategoria.getPredicato());
                     permesso.setAttivoDal(permessoCategoria.getAttivoDal());
                     permesso.setAttivoAl(permessoCategoria.getAttivoAl() != null ? permessoCategoria.getAttivoAl() : null);
-                    permesso.setStruttura(strutturaRepository.getOne(permessoEntita.getOggetto().getIdProvenienza()));
+                    permesso.setNomeStruttura(strutturaRepository.getOne(permessoEntita.getOggetto().getIdProvenienza()).getNome());
                     permessiUtente.add(permesso);
                 });
             });
