@@ -14,7 +14,7 @@ public class Permesso implements Comparable<Permesso>, Serializable{
     private String permesso;
     private LocalDateTime attivoDal;
     private LocalDateTime attivoAl;
-    private Struttura struttura;
+    private String nomeStruttura;
     private Boolean attivo;
 
     public String getAmbito() {
@@ -49,12 +49,12 @@ public class Permesso implements Comparable<Permesso>, Serializable{
         this.attivoAl = attivoAl;
     }
 
-    public Struttura getStruttura() {
-        return struttura;
+    public String getNomeStruttura() {
+        return nomeStruttura;
     }
 
-    public void setStruttura(Struttura struttura) {
-        this.struttura = struttura;
+    public void setNomeStruttura(String nomeStruttura) {
+        this.nomeStruttura = nomeStruttura;
     }
 
     public Boolean getAttivo() {
@@ -67,7 +67,7 @@ public class Permesso implements Comparable<Permesso>, Serializable{
 
     @Override
     public int compareTo(Permesso o) {
-        int compareStruttura = this.getStruttura().getNome().compareTo(o.getStruttura().getNome());
+        int compareStruttura = this.getNomeStruttura().compareTo(o.getNomeStruttura());
         if (compareStruttura == 0) {
             int compareAmbito = this.getAmbito().compareTo(o.getAmbito());
             if (compareAmbito == 0) {
