@@ -339,6 +339,7 @@ public class AuthorizationUtils {
                     HttpStatus.OK);
         }
         if (writeUserAccess) {
+//          write information to DB about real new LOG IN 
             this.writeNewUserAccess(user, fromInternetLogin, applicazione, aziendaRealUser.getCodice());
         }
         return res;
@@ -362,6 +363,7 @@ public class AuthorizationUtils {
         //    }
     }
 
+//  funtion that calls the repository needed to write to DB info about real new LOG IN from Scrivania
     private void writeNewUserAccess(Utente realUser, Boolean fromInternet, String applicazione, String codiceAzienda) {
         UserAccess userAccess = new UserAccess(realUser.getId(), realUser.getIdPersona().getCodiceFiscale(), realUser.getIdPersona().getDescrizione(), fromInternet, applicazione, codiceAzienda);
         userAccessRepository.save(userAccess);

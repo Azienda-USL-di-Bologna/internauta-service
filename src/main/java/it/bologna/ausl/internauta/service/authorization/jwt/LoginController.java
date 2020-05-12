@@ -16,7 +16,6 @@ import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandE
 import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
-import it.bologna.ausl.internauta.service.repositories.tools.UserAccessRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.logoutmanager.LogoutManagerWorker;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
@@ -46,7 +45,8 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
-import it.bologna.ausl.model.entities.tools.UserAccess;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,9 +69,6 @@ public class LoginController {
     private final String AZIENDA = "azienda";
     private final String PASS_TOKEN = "passToken";
     private final String NEW_USER_ACCESS = "newUserAccess";
-
-    @Autowired
-    private UserAccessRepository userAccessRepository;
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -373,8 +370,12 @@ public class LoginController {
         }
 
         ResponseEntity res;
+//      Create a boolean to manage writes to DB of real new LOG IN
+        Boolean writeUserAccess = false;
+        Applicazioni scrivania = Applicazioni.scrivania;
         try {
-            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet, true);
+            writeUserAccess = Boolean.valueOf(newUserAccessString) && applicazione.equals("scrivania");
+            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet, writeUserAccess);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);
