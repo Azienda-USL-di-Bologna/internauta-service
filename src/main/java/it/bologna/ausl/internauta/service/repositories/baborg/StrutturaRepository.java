@@ -8,6 +8,7 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.List;
+import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
@@ -38,6 +39,7 @@ public interface StrutturaRepository extends
 //    @Query(value = "select id from baborg.utenti_strutture where id_struttura = ?1 union select id from baborg.get_utenti_struttura_sottoresponsabili(?1) order by id", nativeQuery = true)
 //    public List<Integer> getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(@Param("id_struttura") Integer idStruttura);
     @Query(value = "select * from baborg.get_utenti_struttura_sottoresponsabili(?1)", nativeQuery = true)
+//     @Query(value = "select * from baborg.utenti_strutture where id = ?1", nativeQuery = true)
 //    @Procedure("baborg.get_utenti_struttura_sottoresponsabili")
-    public List<UtenteStruttura> getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(Integer idStruttura);
+    public List<Map<String, Object>> getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(Integer idStruttura);
 }
