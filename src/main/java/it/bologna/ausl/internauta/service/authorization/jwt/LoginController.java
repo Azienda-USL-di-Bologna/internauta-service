@@ -373,8 +373,10 @@ public class LoginController {
 //      Create a boolean to manage writes to DB of real new LOG IN
         Boolean writeUserAccess = false;
         Applicazioni scrivania = Applicazioni.scrivania;
+        logger.info("aaaaaaaaaaaaaaaaaa", Applicazioni.scrivania.toString());
         try {
-            writeUserAccess = Boolean.valueOf(newUserAccessString) && applicazione.equals("scrivania");
+            writeUserAccess = Boolean.valueOf(newUserAccessString) && applicazione.equals(Applicazioni.scrivania.toString());
+            logger.info("writeUserAccess: ", writeUserAccess);
             res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet, writeUserAccess);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
