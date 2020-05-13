@@ -6,6 +6,7 @@ import it.bologna.ausl.model.entities.gru.projections.generated.MdrTrasformazion
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.time.LocalDateTime;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -25,4 +26,8 @@ public interface MdrTrasformazioniRepository extends
     @Modifying
     @Query(value = "DELETE FROM gru.mdr_trasformazioni where id_azienda = ?1", nativeQuery = true)
     public void deleteByIdAzienda(Integer idAzienda);
+    
+    
+    @Query(value = "select count(ms.id_casella) FROM gru.mdr_struttura ms where ms.id_azienda = ?1 and ms.id_casella=?2 and ms.datain <= ?3 and ms.datafi > ?3 ", nativeQuery = true)
+    public Integer isTransformableByIdAzienda(Integer idAzienda, Integer id_casella, LocalDateTime data);
 }
