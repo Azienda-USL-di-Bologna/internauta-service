@@ -365,6 +365,11 @@ public class AuthorizationUtils {
 
 //  funtion that calls the repository needed to write to DB info about real new LOG IN from Scrivania
     private void writeNewUserAccess(Utente realUser, Boolean fromInternet, String applicazione, String codiceAzienda) {
+        logger.info("writeNewUserAccess");
+        logger.info("realUser", realUser.getId());
+        logger.info("fromInternet", fromInternet);
+        logger.info("applicazione", applicazione);
+        logger.info("codiceAzienda", codiceAzienda);
         UserAccess userAccess = new UserAccess(realUser.getId(), realUser.getIdPersona().getCodiceFiscale(), realUser.getIdPersona().getDescrizione(), fromInternet, applicazione, codiceAzienda);
         userAccessRepository.save(userAccess);
     }
