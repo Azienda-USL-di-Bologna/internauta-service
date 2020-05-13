@@ -27,4 +27,6 @@ public interface PersonaRepository extends
 //    @Query("update Persona p set p.messaggiVisti = ?2, p.nome = ?3 where p.id = ?1 and version = ?4")
     @Query(value = "update baborg.persone set messaggi_visti = tools.string_to_integer_array(?2, ','), nome = ?3 where id = ?1", nativeQuery = true)
     public void updateSeenMessage(Integer id, String messaggiVisti, String nome);
+    
+    
 }
