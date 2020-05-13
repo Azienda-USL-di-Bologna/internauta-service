@@ -315,7 +315,7 @@ public class LoginController {
     }
 
     @RequestMapping(value = "${security.login.path}", method = RequestMethod.GET)
-    @Transactional(rollbackFor = Throwable.class)
+//    @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<LoginResponse> loginGET(HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, ClassNotFoundException {
 
         String impersonateUser = request.getParameter(IMPERSONATE_USER);
