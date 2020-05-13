@@ -69,7 +69,7 @@ public class BaborgDebugController {
 
     @Autowired
     ProjectionFactory factory;
-    
+
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
 
@@ -90,7 +90,7 @@ public class BaborgDebugController {
                         Object value = map.get(columnAnnotation.name());
                         if (value != null) {
                             if (value.getClass().isAssignableFrom(java.sql.Timestamp.class)) {
-                                value = ZonedDateTime.ofInstant(((java.sql.Timestamp)value).toInstant(), ZoneId.systemDefault());
+                                value = ZonedDateTime.ofInstant(((java.sql.Timestamp) value).toInstant(), ZoneId.systemDefault());
                             }
                             setMethod.invoke(res, value);
                         }
@@ -109,7 +109,7 @@ public class BaborgDebugController {
 
                             setMethod.invoke(res, fkObject);
                         } catch (Exception ex) {
-                             ex.printStackTrace();
+                            ex.printStackTrace();
                         }
                     }
                 }
@@ -117,22 +117,22 @@ public class BaborgDebugController {
                 //ex.printStackTrace();
             }
         }
-        
+
         return res;
     }
-    
-       private UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom getUtenteStruttura(Map<String, Object> map) {
-            UtenteStruttura utenteStruttura = utenteStrutturaRepository.getOne((Integer) map.get("id"));
-            UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom res = factory.createProjection(UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom.class, utenteStruttura);
+
+    private UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom getUtenteStruttura(Map<String, Object> map) {
+        UtenteStruttura utenteStruttura = utenteStrutturaRepository.getOne((Integer) map.get("id"));
+        UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom res = factory.createProjection(UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom.class, utenteStruttura);
         return res;
     }
-    
+
     @RequestMapping(value = "test", method = RequestMethod.GET)
 //    @Transactional(rollbackFor = Throwable.class)
     public Object test(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException { //26839
         projectionsInterceptorLauncher.setRequestParams(new HashMap<String, String>(), request);
 //        List<UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom> res;
-        List<Map<String, Object>>  utentiStrutturaSottoResponsabili = strutturaRepository.getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(26839);
+        List<Map<String, Object>> utentiStrutturaSottoResponsabili = strutturaRepository.getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(26839);
 
         List<UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom> res = utentiStrutturaSottoResponsabili.stream().map(utenteStrutturaMap -> {
             UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom utenteStruttura = this.getUtenteStruttura(utenteStrutturaMap);
@@ -159,7 +159,7 @@ public class BaborgDebugController {
         ],
         "attivo_dal": "2020-05-07T09:29:19.377+0000",
         "id_struttura": 26850
-        */
+         */
         return res;
 
 //       return EmlHandler.handleEml("C:\\Users\\mdonza\\Desktop\\Eml\\test_mail.eml");

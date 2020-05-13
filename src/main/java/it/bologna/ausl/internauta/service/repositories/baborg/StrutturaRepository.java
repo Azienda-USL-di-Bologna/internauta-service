@@ -36,10 +36,7 @@ public interface StrutturaRepository extends
     @Procedure("baborg.get_responsabili")
     public String getResponsabili(Integer idStruttura);
 
-//    @Query(value = "select id from baborg.utenti_strutture where id_struttura = ?1 union select id from baborg.get_utenti_struttura_sottoresponsabili(?1) order by id", nativeQuery = true)
-//    public List<Integer> getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(@Param("id_struttura") Integer idStruttura);
-    @Query(value = "select * from baborg.get_utenti_struttura_sottoresponsabili(?1)", nativeQuery = true)
-//     @Query(value = "select * from baborg.utenti_strutture where id = ?1", nativeQuery = true)
+    @Query(value = "select * from baborg.get_utenti_struttura_sottoresponsabili_filtered(?1)", nativeQuery = true)
 //    @Procedure("baborg.get_utenti_struttura_sottoresponsabili")
     public List<Map<String, Object>> getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(Integer idStruttura);
 }
