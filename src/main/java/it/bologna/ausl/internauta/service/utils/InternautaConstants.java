@@ -43,7 +43,7 @@ public class InternautaConstants {
     public static class AdditionalData {
 
         public enum Keys {
-            OperationRequested, idPec, idAzienda, idStruttura, idPersona
+            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto
         }
 
         public enum OperationsRequested {
@@ -60,7 +60,8 @@ public class InternautaConstants {
             GetAmministrazioneMessaggiAttivi,
             GetAmministrazioneMessaggiStorico,
             FilterMassimarioPerAzienda,
-            GetContattiFromInde
+            GetContattiFromInde,
+            CaricaSottoResponsabili
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
