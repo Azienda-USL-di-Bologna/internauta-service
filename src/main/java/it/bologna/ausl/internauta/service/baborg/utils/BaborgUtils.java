@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.baborg.utils;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.BaborgCSVException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ImportazioniOrganigrammaRepository;
@@ -22,7 +23,8 @@ import it.bologna.ausl.model.entities.gru.QMdrAppartenenti;
 import it.bologna.ausl.model.entities.gru.QMdrResponsabili;
 import it.bologna.ausl.model.entities.gru.QMdrStruttura;
 import it.bologna.ausl.model.entities.gru.QMdrTrasformazioni;
-import java.io.FileNotFoundException;
+import it.bologna.ausl.mongowrapper.MongoWrapper;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -32,11 +34,9 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,6 +106,9 @@ public class BaborgUtils {
 
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    MongoConnectionManager mongoConnectionManager;
 
     public Azienda getAziendaRepositoryFromPecAddress(String address) {
 
@@ -136,11 +139,16 @@ public class BaborgUtils {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
         //todozuk chiedere a gdm
-        String csv_error_link = "C:/Users/mdonza/Desktop/CSV PER RM 44258/Errori/" + sdf.format(timestamp).toString() + "_Error_" + tipo + ".csv";
+        String nameCsv = sdf.format(timestamp) + "_Error_" + tipo + ".csv";
+
+        File csvErrorFile = new File(System.getProperty("java.io.tmpdir"), nameCsv);
+        csvErrorFile.deleteOnExit();
+        String uuid = null;
         boolean bloccante = false;
         ICsvMapReader mapReader = null;
         ICsvMapWriter mapWriter = null;
         try {
+
             InputStreamReader inputFileStreamReader = new InputStreamReader(file.getInputStream());
             CsvPreference SEMICOLON_DELIMITED = new CsvPreference.Builder('"', ';', "\r\n").build();
 //        Reading with CsvMapReader
@@ -159,7 +167,7 @@ public class BaborgUtils {
             BooleanExpression predicateAzienda = null;
 
             //preparo file di errore
-            mapWriter = new CsvMapWriter(new FileWriter(csv_error_link),
+            mapWriter = new CsvMapWriter(new FileWriter(csvErrorFile),
                     SEMICOLON_DELIMITED);
             mapWriter.writeHeader(headers_Error_Generator(tipo));
 
@@ -186,8 +194,7 @@ public class BaborgUtils {
                         if (appartenentiMap.get("codiceMatricola") == null || appartenentiMap.get("codiceMatricola").equals("")) {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " codiceMatricola,");
                             map_Error.put("CODICE_MATRICOLA", "");
-                            mA.setCodiceMatricola(null);
-                            bloccante = true;
+                            mA.setCodiceMatricola(null);                            
                         } else {
                             map_Error.put("CODICE_MATRICOLA", appartenentiMap.get("codiceMatricola"));
                             mA.setCodiceMatricola(Integer.parseInt(appartenentiMap.get("codiceMatricola").toString()));
@@ -225,7 +232,6 @@ public class BaborgUtils {
 //                      ID_CASELLA bloccante
                         if (appartenentiMap.get("idCasella") == null || appartenentiMap.get("idCasella").equals("")) {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " idCasella,");
-                            bloccante = true;
                             map_Error.put("ID_CASELLA", "");
                             mA.setIdCasella(null);
                         } else {
@@ -239,7 +245,6 @@ public class BaborgUtils {
 //                      DATAIN bloccante
                         if (appartenentiMap.get("datain") == null || appartenentiMap.get("datain").equals("")) {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " datain,");
-                            bloccante = true;
                             map_Error.put("DATAIN", "");
                             mA.setDatain(null);
                         } else {
@@ -262,17 +267,15 @@ public class BaborgUtils {
 //                      TIPO_APPARTENENZA bloccante
                         if (appartenentiMap.get("tipoAppartenenza") == null || appartenentiMap.get("tipoAppartenenza").equals("")) {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " tipoAppartenenza,");
-                            bloccante = true;
                             map_Error.put("TIPO_APPARTENENZA", "");
                             mA.setTipoAppartenenza(null);
                         } else {
                             map_Error.put("TIPO_APPARTENENZA", appartenentiMap.get("tipoAppartenenza"));
                             mA.setTipoAppartenenza(appartenentiMap.get("tipoAppartenenza").toString());
                         }
-//                      TIPO_APPARTENENZA bloccante
+//                      DataAssunzione bloccante
                         if (appartenentiMap.get("dataAssunzione") == null || appartenentiMap.get("dataAssunzione").equals("")) {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " dataAssunzione,");
-                            bloccante = true;
                             map_Error.put("DATA_ASSUNZIONE", "");
                         } else {
                             map_Error.put("DATA_ASSUNZIONE", appartenentiMap.get("dataAssunzione"));
@@ -282,7 +285,7 @@ public class BaborgUtils {
                         if (appartenentiMap.get("username") == null || appartenentiMap.get("username").equals("")) {
                             mA.setUsername("");
                             map_Error.put("USERNAME", "");
-                            bloccante = true;
+                            map_Error.put("ERRORE", map_Error.get("ERRORE") + " manca username,");
                         } else {
                             map_Error.put("USERNAME", appartenentiMap.get("username"));
                             mA.setUsername(appartenentiMap.get("username").toString());
@@ -323,7 +326,6 @@ public class BaborgUtils {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " codiceMatricola,");
                             map_Error.put("CODICE_MATRICOLA", "");
                             mR.setCodiceMatricola(null);
-                            bloccante = true;
                         } else {
                             map_Error.put("CODICE_MATRICOLA", responsabiliMap.get("codiceMatricola"));
                             mR.setCodiceMatricola(Integer.parseInt(responsabiliMap.get("codiceMatricola").toString()));
@@ -335,7 +337,6 @@ public class BaborgUtils {
 //                      ID_CASELLA bloccante
                         if (responsabiliMap.get("idCasella") == null || responsabiliMap.get("idCasella").equals("")) {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " idCasella,");
-                            bloccante = true;
                             map_Error.put("ID_CASELLA", "");
                             mR.setIdCasella(null);
                         } else {
@@ -348,7 +349,6 @@ public class BaborgUtils {
 //                      DATAIN bloccante                        
                         if (responsabiliMap.get("datain") == null || responsabiliMap.get("datain").equals("")) {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " datain,");
-                            bloccante = true;
                             map_Error.put("DATAIN", "");
                             mR.setDatain(null);
                         } else {
@@ -372,7 +372,6 @@ public class BaborgUtils {
 //                      TIPO bloccante                        
                         if (responsabiliMap.get("tipo") == null || responsabiliMap.get("tipo").equals("")) {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " tipo,");
-                            bloccante = true;
                             mR.setTipo(null);
                         } else {
                             map_Error.put("TIPO", responsabiliMap.get("tipo"));
@@ -424,7 +423,6 @@ public class BaborgUtils {
                         }
 
                         if (strutturaMap.get("idPadre") == null || strutturaMap.get("idPadre").equals("")) {
-                            map_Error.put("ERRORE", map_Error.get("ERRORE") + " ID_PADRE,");
                             map_Error.put("ID_PADRE", "");
                             mS.setIdPadre(null);
                         } else {
@@ -568,27 +566,21 @@ public class BaborgUtils {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " DATAIN_PARTENZA,");
                             map_Error.put("DATAIN_PARTENZA", "");
                             mT.setDatainPartenza(null);
+                            bloccante=true;
                         } else {
                             map_Error.put("DATAIN_PARTENZA", trasformazioniMap.get("datainPartenza"));
                             mT.setDatainPartenza(formattattore(trasformazioniMap.get("datainPartenza"), "yyyy-MM-dd hh:mm:ss"));
                         }
 
                         if (trasformazioniMap.get("dataoraOper") == null || trasformazioniMap.get("dataoraOper").equals("")) {
-                            map_Error.put("ERRORE", map_Error.get("ERRORE") + " DATAORA_OPER,");
-                            map_Error.put("DATAORA_OPER", "");
-                            mT.setDataoraOper(null);
+                            map_Error.put("ERRORE", map_Error.get("ERRORE") + " DATAORA_OPER inserito automaticamente,");
+                            LocalDateTime now = LocalDateTime.now();
+                            map_Error.put("DATAORA_OPER", now.toString());
+                            mT.setDataoraOper(now);
                         } else {
                             map_Error.put("DATAORA_OPER", trasformazioniMap.get("dataoraOper"));
                             mT.setDataoraOper(formattattore(trasformazioniMap.get("dataoraOper"), "yyyy-MM-dd hh:mm:ss"));
                         }
-
-//                        mT.setProgressivoRiga((Integer) trasformazioniMap.get("progressivoRiga"));
-//                        mT.setIdCasellaPartenza((Integer) trasformazioniMap.get("idCasellaPartenza"));
-//                        mT.setIdCasellaArrivo((Integer) trasformazioniMap.get("idCasellaArrivo"));
-//                        mT.setDataTrasformazione(convertDateToLocaleDateTime((Date) trasformazioniMap.get("dataTrasformazione")));
-//                        mT.setMotivo((String) trasformazioniMap.get("motivo"));
-//                        mT.setDatainPartenza(convertDateToLocaleDateTime((Date) trasformazioniMap.get("datainPartenza")));
-//                        mT.setDataoraOper(convertDateToLocaleDateTime((Date) trasformazioniMap.get("dataoraOper")));
                         map_Error.put("CODICE_ENTE", codiceAzienda);
                         mT.setCodiceEnte(codiceAzienda);
 
@@ -605,7 +597,7 @@ public class BaborgUtils {
             }
         } catch (Exception e) {
 
-            throw new BaborgCSVException(csv_error_link, e);
+            throw new BaborgCSVException(csvErrorFile.getAbsolutePath(), e);
         } finally {
             if (mapReader != null) {
                 try {
@@ -616,16 +608,20 @@ public class BaborgUtils {
             }
             if (mapWriter != null) {
                 try {
+                    MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
                     mapWriter.close();
+                    uuid = mongoWrapper.put(csvErrorFile, csvErrorFile.getName(), "/importazioniCSV/csv_error_GRU", true);
+
                 } catch (IOException ex) {
                     log.error("mapWriter non chiudibile", ex);
                 }
             }
         }
+        csvErrorFile.delete();
         if (bloccante) {
-            throw new BaborgCSVException(csv_error_link);
+            throw new BaborgCSVException(uuid);
         }
-        return csv_error_link;
+        return uuid;
     }
 
     LocalDateTime convertDateToLocaleDateTime(Date dateToConvert) {
@@ -635,6 +631,8 @@ public class BaborgUtils {
         return new java.sql.Timestamp(
                 dateToConvert.getTime()).toLocalDateTime();
     }
+
+   
 
     /**
      * Sets up the processors used for APPARTENENTI, RESPONSABILI, STRUTTURA,
