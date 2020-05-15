@@ -45,6 +45,7 @@ import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteStrutturaWithIdStrutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.PersonaWithUtentiAndStruttureAndAfferenzeCustom;
@@ -71,11 +72,17 @@ import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtentiResp
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiByIdUtenteCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithStruttureAndResponsabiliCustom;
+import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
+import it.bologna.ausl.model.entities.permessi.projections.PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded;
+import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoAmbitoWithIdPredicato;
+import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoAmbitoWithPlainFields;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithUtenteStruttura;
+import java.util.Arrays;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.cache.annotation.Cacheable;
 
 /**
  *
@@ -100,7 +107,7 @@ public class ProjectionBeans {
     protected StrutturaRepository strutturaRepository;
 
     @Autowired
-    protected PredicatoRepository predicatoRepository;
+    protected PredicatoAmbitoRepository predicatoAmbitoRepository;
 
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
@@ -486,15 +493,29 @@ public class ProjectionBeans {
         }
     }
 
-    public List<PredicatoWithPlainFields> expandPredicati(Integer[] idPredicati) {
-        List<PredicatoWithPlainFields> res = new ArrayList();
-        for (Integer idPredicato : idPredicati) {
-            Predicato predicato = this.predicatoRepository.getOne(idPredicato);
-            res.add(factory.createProjection(PredicatoWithPlainFields.class, predicato));
+//    public List<PredicatoAmbitoWithIdPredicato> expandPredicatiAmbiti(Integer[] idPredicatiAmbiti) {
+//        List<PredicatoAmbitoWithIdPredicato> res = new ArrayList();
+//        if (idPredicatiAmbiti != null) {
+//            for (Integer idPredicatoAmbito : idPredicatiAmbiti) {
+//                PredicatoAmbito predicatoAmbito = this.predicatoAmbitoRepository.getOne(idPredicatoAmbito);
+//                res.add(factory.createProjection(PredicatoAmbitoWithIdPredicato.class, predicatoAmbito));
+//            }
+//        }
+//        return res;
+//    }
+    
+//    @Cacheable(value = "permessi__ribaltorg__", key = "{#idPredicatiAmbiti.toString()}")
+    public List<PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded> expandPredicatiAmbiti(Integer[] idPredicatiAmbiti) {
+        List<PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded> res = new ArrayList();
+        if (idPredicatiAmbiti != null) {
+            for (Integer idPredicatoAmbito : idPredicatiAmbiti) {
+                PredicatoAmbito predicatoAmbito = this.predicatoAmbitoRepository.getOne(idPredicatoAmbito);
+                res.add(factory.createProjection(PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded.class, predicatoAmbito));
+            }
         }
         return res;
     }
-    
+
     public List<UtenteWithIdPersona> getResposabiliStruttura(Struttura struttura) {
         List<UtenteWithIdPersona> res = null;
         String idUtentiResponsabiliArray = strutturaRepository.getResponsabili(struttura.getId());

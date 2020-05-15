@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class PermessiUtilities {
 
-    private final String PREFIX_PERMESSI_DI_FLUSSO = "getPermessiDiFlusso*__ribaltorg__";
+    private final String PREFIX_PERMESSI = "getPermessi*__ribaltorg__";
 
     @Value("${internauta.cache.redis.prefix}")
     private String prefixInternauta;
@@ -25,8 +25,8 @@ public class PermessiUtilities {
     @Qualifier(value = "redisCache")
     private RedisTemplate redisTemplate;
 
-    public void cleanCachePermessiDiFlusso(Integer idUtente) {
-        Set<String> keys = redisTemplate.keys(prefixInternauta + PREFIX_PERMESSI_DI_FLUSSO + "::" + idUtente + "*");
+    public void cleanCachePermessiUtente(Integer idUtente) {
+        Set<String> keys = redisTemplate.keys(prefixInternauta + PREFIX_PERMESSI + "::" + idUtente + "*");
         redisTemplate.delete(keys);
     }
 }

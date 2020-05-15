@@ -429,6 +429,25 @@ public class UserInfoService {
                 false, dataPermesso, null, direzione);
     }
 
+    @Cacheable(value = "getPermessiFilteredByAdditionalData__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estraiStorico, "
+            + "#idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null', #ambitiPermesso != null? #ambitiPermesso.toString(): 'null', "
+            + "#tipiPermesso != null? #tipiPermesso.toString(): 'null'}")
+    public List<PermessoEntitaStoredProcedure> getPermessiFilteredByAdditionalData(Utente utente, LocalDate dataPermesso,
+            Boolean estraiStorico, Integer idProvenienzaOggetto, List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
+        BlackBoxConstants.Direzione direzione;
+        if (estraiStorico != null && estraiStorico) {
+            direzione = BlackBoxConstants.Direzione.PASSATO;
+        } else {
+            direzione = BlackBoxConstants.Direzione.PRESENTE;
+        }
+        return permissionManager.getPermissionsOfSubjectAdvanced(utente, 
+                idProvenienzaOggetto != null ? Lists.newArrayList(new Struttura(idProvenienzaOggetto)) : null,
+                null, 
+                ambitiPermesso != null ? ambitiPermesso.stream().map(ambito -> ambito.toString()).collect(Collectors.toList()): null,
+                tipiPermesso != null? tipiPermesso.stream().map(tipo -> tipo.toString()).collect(Collectors.toList()): null,
+                false, dataPermesso, null, direzione);
+    }
+
     /**
      * Restituisce tutti i permessi di un utente di tipo flusso e per gli ambiti
      * PICO, DETE e DELI con un ordinamento di default (eg.
@@ -458,7 +477,34 @@ public class UserInfoService {
                     permesso.setPermesso(permessoCategoria.getPredicato());
                     permesso.setAttivoDal(permessoCategoria.getAttivoDal());
                     permesso.setAttivoAl(permessoCategoria.getAttivoAl() != null ? permessoCategoria.getAttivoAl() : null);
-                    permesso.setStruttura(strutturaRepository.getOne(permessoEntita.getOggetto().getIdProvenienza()));
+                    permesso.setNomeStruttura(strutturaRepository.getOne(permessoEntita.getOggetto().getIdProvenienza()).getNome());
+                    permessiUtente.add(permesso);
+                });
+            });
+        });
+        Collections.sort(permessiUtente);
+
+        return permessiUtente;
+    }
+
+    @Cacheable(value = "getPermessiFilteredByAdditionalDataByIdUtente__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estraiStorico, "
+            + "#idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null', #ambitiPermesso != null? #ambitiPermesso.toString(): 'null', "
+            + "#tipiPermesso != null? #tipiPermesso.toString(): 'null'}")
+    public List<Permesso> getPermessiFilteredByAdditionalDataByIdUtente(Utente utente, LocalDate dataPermesso,
+            Boolean estraiStorico, Integer idProvenienzaOggetto, List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
+        List<PermessoEntitaStoredProcedure> permessiFilteredByAdditionalData = getPermessiFilteredByAdditionalData(utente, dataPermesso, estraiStorico, idProvenienzaOggetto, ambitiPermesso, tipiPermesso);
+        // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend
+        List<Permesso> permessiUtente = new ArrayList<>();
+
+        permessiFilteredByAdditionalData.forEach((permessoEntita) -> {
+            permessoEntita.getCategorie().forEach((categoria) -> {
+                categoria.getPermessi().forEach((permessoCategoria) -> {
+                    Permesso permesso = new Permesso();
+                    permesso.setAmbito(categoria.getAmbito());
+                    permesso.setPermesso(permessoCategoria.getPredicato());
+                    permesso.setAttivoDal(permessoCategoria.getAttivoDal());
+                    permesso.setAttivoAl(permessoCategoria.getAttivoAl() != null ? permessoCategoria.getAttivoAl() : null);
+                    permesso.setNomeStruttura(strutturaRepository.getOne(permessoEntita.getOggetto().getIdProvenienza()).getNome());
                     permessiUtente.add(permesso);
                 });
             });

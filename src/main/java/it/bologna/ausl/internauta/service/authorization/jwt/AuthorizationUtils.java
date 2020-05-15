@@ -14,6 +14,7 @@ import it.bologna.ausl.internauta.service.exceptions.SSOException;
 import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.CounterRepository;
+import it.bologna.ausl.internauta.service.repositories.tools.UserAccessRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
@@ -38,6 +39,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
+import it.bologna.ausl.model.entities.tools.UserAccess;
 import java.util.Arrays;
 import org.springframework.util.StringUtils;
 
@@ -65,11 +67,14 @@ public class AuthorizationUtils {
     private final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
 
     @Autowired
+    UserAccessRepository userAccessRepository;
+
+    @Autowired
     UtenteRepository utenteRepository;
 
     @Autowired
     UserInfoService userInfoService;
-    
+
     @Autowired
     CachedEntities cachedEntities;
 
@@ -84,10 +89,10 @@ public class AuthorizationUtils {
 
     @Autowired
     ProjectionFactory factory;
-    
+
     @Autowired
     HttpSessionData httpSessionData;
-    
+
     @Autowired
     PermessiUtilities permessiUtilities;
 
@@ -113,12 +118,12 @@ public class AuthorizationUtils {
         Integer userId = Integer.parseInt(claims.getSubject());
         Integer realUserId = null;
         Object realUserString = claims.get(AuthorizationUtils.TokenClaims.REAL_USER.name());
-        if (realUserString != null && !((String)realUserString).isEmpty()) {
-            realUserId =  Integer.parseInt((String)realUserString);
+        if (realUserString != null && !((String) realUserString).isEmpty()) {
+            realUserId = Integer.parseInt((String) realUserString);
         }
         Integer idSessionLog = Integer.parseInt((String) claims.get(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name()));
         Utente user = userInfoService.loadUtente(userId);
-        logger.info("user: " + (user != null? user.getId(): "null"));
+        logger.info("user: " + (user != null ? user.getId() : "null"));
         user.setRuoli(userInfoService.getRuoli(user, null));
         logger.info("ruoli user: ");
         try {
@@ -144,11 +149,11 @@ public class AuthorizationUtils {
         }
         return claims;
     }
-    
+
     public void insertInContext(Utente user, Integer idSessionLog, String token, String idApplicazione, boolean fromInternet) {
         insertInContext(null, user, idSessionLog, token, idApplicazione, fromInternet);
     }
-    
+
     public void insertInContext(Utente realUser, Utente user, Integer idSessionLog, String token, String idApplicazione, boolean fromInternet) {
         logger.info("insertInContext fromInternet: " + fromInternet);
         TokenBasedAuthentication authentication;
@@ -164,9 +169,11 @@ public class AuthorizationUtils {
     }
 
     /**
-     * 
-     * @param idAzienda se è presente viene usato per caricare l'azienda, altrimenti usa il parametro path
-     * @param path il path che identifica l'azienda dalla quale è partito il login (es. babel-auslbo.avec.emr.it)
+     *
+     * @param idAzienda se è presente viene usato per caricare l'azienda,
+     * altrimenti usa il parametro path
+     * @param path il path che identifica l'azienda dalla quale è partito il
+     * login (es. babel-auslbo.avec.emr.it)
      * @param secretKey
      * @param request
      * @param ssoFieldValue
@@ -177,9 +184,11 @@ public class AuthorizationUtils {
      * @throws IOException
      * @throws ClassNotFoundException
      * @throws ObjectNotFoundException
-     * @throws BlackBoxPermissionException 
+     * @throws BlackBoxPermissionException
      */
-    public ResponseEntity generateResponseEntityFromSAML(String idAzienda, String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione, Boolean fromInternetLogin) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException, SSOException {
+    public ResponseEntity generateResponseEntityFromSAML(String idAzienda, String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione, Boolean fromInternetLogin, Boolean writeUserAccess) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException, SSOException {
+
+        ResponseEntity res;
 
         if (fromInternetLogin == null) {
             fromInternetLogin = fromInternet(request);
@@ -190,7 +199,7 @@ public class AuthorizationUtils {
         Azienda aziendaRealUser = null;
         if (fromInternetLogin) {
             if (StringUtils.isEmpty(ssoFieldValue)) {
-                if (!StringUtils.isEmpty(request.getAttribute("CodiceFiscale"))) {                
+                if (!StringUtils.isEmpty(request.getAttribute("CodiceFiscale"))) {
                     ssoFieldValue = request.getAttribute("CodiceFiscale").toString();
                 } else {
                     throw new SSOException("ssoFieldValue is empty");
@@ -206,15 +215,14 @@ public class AuthorizationUtils {
             }
             aziendaRealUser = cachedEntities.getAziendaFromPath(path);
         }
-        
+
         Utente impersonatedUser;
         boolean isSuperDemiurgo = false;
-        Azienda aziendaImpersonatedUser = (idAzienda == null || aziendaRealUser.getId() == Integer.parseInt(idAzienda)? 
-                                                aziendaRealUser: 
-                                                cachedEntities.getAzienda(Integer.parseInt(idAzienda)));
+        Azienda aziendaImpersonatedUser = (idAzienda == null || aziendaRealUser.getId() == Integer.parseInt(idAzienda)
+                ? aziendaRealUser
+                : cachedEntities.getAzienda(Integer.parseInt(idAzienda)));
 
         //userInfoService.loadAziendaByPathRemoveCache(path);
-
         AziendaParametriJson aziendaRealUserParams = AziendaParametriJson.parse(objectMapper, aziendaRealUser.getParametri());
         //AziendaParametriJson aziendaImpersonatedUserParams = AziendaParametriJson.parse(objectMapper, aziendaImpersonatedUser.getParametri());
 
@@ -252,12 +260,12 @@ public class AuthorizationUtils {
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         userInfoService.getPermessiDelegaRemoveCache(user);
         logger.info("realUser: " + objectMapper.writeValueAsString(user));
-        logger.info("aziendaRealUserLoaded: " + (aziendaRealUser != null? aziendaRealUser.getId().toString(): "null"));
+        logger.info("aziendaRealUserLoaded: " + (aziendaRealUser != null ? aziendaRealUser.getId().toString() : "null"));
         logger.info("impersonatedUser: " + utenteImpersonatoStr);
-        logger.info("aziendaImpersonatedUserLoaded: " + (aziendaImpersonatedUser != null? aziendaImpersonatedUser.getId().toString(): "null"));
+        logger.info("aziendaImpersonatedUserLoaded: " + (aziendaImpersonatedUser != null ? aziendaImpersonatedUser.getId().toString() : "null"));
         List<Integer> permessiDelega = userInfoService.getPermessiDelega(user);
         logger.info("permessiDelega: " + Arrays.toString(permessiDelega.toArray()));
-        
+
         if (user == null) {
             throw new ObjectNotFoundException("User not found");
         }
@@ -273,36 +281,34 @@ public class AuthorizationUtils {
                     break;
                 }
             }
-            
+
             userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser, false);
             impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser, false);
-            logger.info("loadedImpersonateUser: " + (impersonatedUser != null? impersonatedUser.getId().toString() : "null"));
+            logger.info("loadedImpersonateUser: " + (impersonatedUser != null ? impersonatedUser.getId().toString() : "null"));
             userInfoService.loadUtenteRemoveCache(impersonatedUser.getId());
             userInfoService.getUtentiPersonaByUtenteRemoveCache(impersonatedUser);
             userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());
             userInfoService.getRuoliRemoveCache(impersonatedUser);
-            
+
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, false);
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, true);
-            permessiUtilities.cleanCachePermessiDiFlusso(impersonatedUser.getId());
-            
+            permessiUtilities.cleanCachePermessiUtente(impersonatedUser.getId());
+
             impersonatedUser.setUtenteReale(user);
-            
+
             boolean isDelegato = permessiDelega != null && !permessiDelega.isEmpty() && permessiDelega.contains(impersonatedUser.getId());
 
             logger.info("isSuperDemiurgo: " + isSuperDemiurgo);
             logger.info("isDelegato: " + isDelegato);
             if (isSuperDemiurgo || isDelegato) {
                 logger.info(String.format("utente %s ha ruolo SD", realUserSubject));
-                
-                
+
                 // mi metto in sessione l'utente loggato, mi servirà in altri punti nella procedura di login, in particolare in projection custom
                 httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, impersonatedUser);
 //                impersonatedUser.setPasswordHash(null);
 
 //                CustomUtenteLogin impersonatedUserWithPersonaAndAzienda = factory.createProjection(CustomUtenteLogin.class, impersonatedUser);
-
                 String impersonateUserSubject = String.valueOf(impersonatedUser.getId());
 
                 // se utente reale = utente impersonato allora non si fa il cambia utente
@@ -312,7 +318,7 @@ public class AuthorizationUtils {
                 }
 
                 // ritorna utente impersonato con informazioni dell'utente reale
-                return new ResponseEntity(
+                res = new ResponseEntity(
                         generateLoginResponse(impersonatedUser, user, aziendaImpersonatedUser, entityClass, field, utenteImpersonatoStr, secretKey, applicazione, fromInternetLogin),
                         HttpStatus.OK);
             } else {
@@ -320,20 +326,25 @@ public class AuthorizationUtils {
                 httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, user);
                 // ritorna l'utente stesso perchè non ha i permessi per fare il cambia utente
                 logger.info(String.format("utente %s non ha ruolo SD, ritorna se stesso nel token", realUserSubject));
-                return new ResponseEntity(
+                res = new ResponseEntity(
                         generateLoginResponse(user, null, aziendaRealUser, entityClass, field, ssoFieldValue, secretKey, applicazione, fromInternetLogin),
                         HttpStatus.OK);
-            }            
+            }
         } else {
             httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, user);
-            
+
             // ritorna l'utente reale perchè non è stato passato l'utente impersonato
-            return new ResponseEntity(
+            res = new ResponseEntity(
                     generateLoginResponse(user, null, aziendaRealUser, entityClass, field, ssoFieldValue, secretKey, applicazione, fromInternetLogin),
                     HttpStatus.OK);
         }
-        //        DateTime currentDateTime = DateTime.now();
+        if (writeUserAccess) {
+//          write information to DB about real new LOG IN 
+            this.writeNewUserAccess(user, fromInternetLogin, applicazione, aziendaRealUser.getCodice());
+        }
+        return res;
 
+        //        DateTime currentDateTime = DateTime.now();
         //        return new ResponseEntity(
         //                new LoginController.LoginResponse(
         //                        Jwts.builder()
@@ -351,7 +362,13 @@ public class AuthorizationUtils {
         //                HttpStatus.OK);
         //    }
     }
-    
+
+//  funtion that calls the repository needed to write to DB info about real new LOG IN from Scrivania
+    private void writeNewUserAccess(Utente realUser, Boolean fromInternet, String applicazione, String codiceAzienda) {
+        UserAccess userAccess = new UserAccess(realUser.getId(), realUser.getIdPersona().getCodiceFiscale(), realUser.getIdPersona().getDescrizione(), fromInternet, applicazione, codiceAzienda);
+        userAccessRepository.save(userAccess);
+    }
+
     private boolean fromInternet(HttpServletRequest request) {
         try {
             String internet = request.getAttribute("internet").toString();
@@ -374,7 +391,7 @@ public class AuthorizationUtils {
             Class<?> entityClass,
             String field,
             String ssoFieldValue,
-            String secretKey, 
+            String secretKey,
             String applicazione,
             boolean fromInternet) {
         DateTime currentDateTime = DateTime.now();
@@ -389,29 +406,28 @@ public class AuthorizationUtils {
         Integer idSessionLog = createIdSessionLog().getId();
         String idSessionLogString = String.valueOf(idSessionLog);
         String token = Jwts.builder()
-                        .setSubject(String.valueOf(currentUser.getId()))
-                        .claim(AuthorizationUtils.TokenClaims.COMPANY.name(), String.valueOf(azienda.getId()))
-                        .claim(AuthorizationUtils.TokenClaims.SSO_LOGIN.name(), true)
-                        .claim(AuthorizationUtils.TokenClaims.USER_ENTITY_CLASS.name(), entityClass)
-                        .claim(AuthorizationUtils.TokenClaims.USER_FIELD.name(), field)
-                        .claim(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name(), realUserCfStr)
-                        .claim(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name(), ssoFieldValue)
-                        .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLogString)
-                        .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserStr)
-                        .claim(AuthorizationUtils.TokenClaims.FROM_INTERNET.name(), fromInternet)
-                        .setIssuedAt(currentDateTime.toDate())
-                        .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)
-                        .signWith(SIGNATURE_ALGORITHM, secretKey).compact();
+                .setSubject(String.valueOf(currentUser.getId()))
+                .claim(AuthorizationUtils.TokenClaims.COMPANY.name(), String.valueOf(azienda.getId()))
+                .claim(AuthorizationUtils.TokenClaims.SSO_LOGIN.name(), true)
+                .claim(AuthorizationUtils.TokenClaims.USER_ENTITY_CLASS.name(), entityClass)
+                .claim(AuthorizationUtils.TokenClaims.USER_FIELD.name(), field)
+                .claim(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name(), realUserCfStr)
+                .claim(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name(), ssoFieldValue)
+                .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLogString)
+                .claim(AuthorizationUtils.TokenClaims.REAL_USER.name(), realUserStr)
+                .claim(AuthorizationUtils.TokenClaims.FROM_INTERNET.name(), fromInternet)
+                .setIssuedAt(currentDateTime.toDate())
+                .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)
+                .signWith(SIGNATURE_ALGORITHM, secretKey).compact();
         httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.IdSessionLog, idSessionLog);
         if (realUser != null) {
             insertInContext(realUser, currentUser, idSessionLog, token, applicazione, fromInternet);
         } else {
             insertInContext(currentUser, idSessionLog, field, applicazione, fromInternet);
         }
-        
-        
+
         CustomUtenteLogin customUtenteLogin = factory.createProjection(CustomUtenteLogin.class, currentUser);
-                        
+
         return new LoginController.LoginResponse(
                 token, currentUser.getUsername(), customUtenteLogin);
     }

@@ -45,8 +45,11 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
@@ -65,6 +68,7 @@ public class LoginController {
     private final String APPLICATION = "application";
     private final String AZIENDA = "azienda";
     private final String PASS_TOKEN = "passToken";
+    private final String NEW_USER_ACCESS = "newUserAccess";
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -210,6 +214,7 @@ public class LoginController {
         logger.info("login realUser: " + userLogin.realUser);
         logger.info("login applicazione: " + userLogin.application);
         logger.info("passToken: " + userLogin.passToken);
+        logger.info("login, is a new user access ?: " + userLogin.newUserAccess);
 
         if (userLogin.passToken != null) {
             logger.info("c'è il passToken, agisco di conseguenza...");
@@ -240,13 +245,12 @@ public class LoginController {
         }
 
         userInfoService.getRuoliRemoveCache(utente);
-        
+
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente);
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, true);
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, false);
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente);
-
-        permessiUtilities.cleanCachePermessiDiFlusso(utente.getId());
+        permessiUtilities.cleanCachePermessiUtente(utente.getId());
 
         userInfoService.loadUtenteRemoveCache(utente.getId());
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);
@@ -311,16 +315,20 @@ public class LoginController {
     }
 
     @RequestMapping(value = "${security.login.path}", method = RequestMethod.GET)
+//    @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<LoginResponse> loginGET(HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, ClassNotFoundException {
 
         String impersonateUser = request.getParameter(IMPERSONATE_USER);
         String applicazione = request.getParameter(APPLICATION);
         String azienda = request.getParameter(AZIENDA);
         String passToken = request.getParameter(PASS_TOKEN);
+        String newUserAccessString = request.getParameter(NEW_USER_ACCESS);
+
         logger.info("impersonate user: " + impersonateUser);
         logger.info("applicazione: " + applicazione);
         logger.info("azienda: " + azienda);
         logger.info("passToken: " + passToken);
+        logger.info("is a new user access ?" + newUserAccessString);
 
         //LOGIN SAML
         if (!samlEnabled) {
@@ -362,8 +370,12 @@ public class LoginController {
         }
 
         ResponseEntity res;
+//      Create a boolean to manage writes to DB of real new LOG IN
+        Boolean writeUserAccess = false;
         try {
-            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet);
+            writeUserAccess = Boolean.valueOf(newUserAccessString) && applicazione.equals(Applicazioni.scrivania.toString()) && StringUtils.isEmpty(impersonateUser);
+            logger.info("writeUserAccess: " + writeUserAccess);
+            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet, writeUserAccess);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);
@@ -381,6 +393,7 @@ public class LoginController {
         public String password;
         public String application;
         public String passToken;
+        public Boolean newUserAccess;
     }
 
     @SuppressWarnings("unused")
