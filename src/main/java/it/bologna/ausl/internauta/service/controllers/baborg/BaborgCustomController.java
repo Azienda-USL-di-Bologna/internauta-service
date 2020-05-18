@@ -150,8 +150,8 @@ public class BaborgCustomController {
 
         MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
         InputStream is = null;
-        String fileName = String.format("%s_%d_%s.csv", uuid, idAzienda, UUID.randomUUID().toString());
-        File csvFile = new File(System.getProperty("java.io.tmpdir"), fileName);
+//        String fileName = String.format("%s_%d_%s.csv", uuid, idAzienda, UUID.randomUUID().toString());
+//        File csvFile = new File(System.getProperty("java.io.tmpdir"), fileName);
         //System.out.println(emlFile.getAbsolutePath());
         try {
             try {
@@ -160,7 +160,7 @@ public class BaborgCustomController {
                     throw new MongoException("File non trovato!!");
                 }
             } catch (Exception e) {
-                throw new MongoException("qualcosa è andato storto in downloadFileFromUUIDAndidAzienda");
+                throw new MongoException("qualcosa è andato storto in downloadFileFromUUIDAndidAzienda",e);
             }
             StreamUtils.copy(is, response.getOutputStream());
         } catch (IOException ex) {
