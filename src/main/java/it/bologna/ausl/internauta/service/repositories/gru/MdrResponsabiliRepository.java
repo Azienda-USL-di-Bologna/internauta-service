@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
+import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -27,6 +29,11 @@ public interface MdrResponsabiliRepository extends
     @Query(value = "DELETE FROM gru.mdr_responsabili where id_azienda = ?1", nativeQuery = true)
     public void deleteByIdAzienda(Integer idAzienda);
     
-    @Query(value="select gru.count_multidefinictions_respo_byidazienda(?1,?2,?3,?4)", nativeQuery=true)
-    public Integer countMultiReponsabilePerStruttura(Integer codiceEnte, Integer idCasella, LocalDateTime datafine, LocalDateTime datainizio);
+    @Procedure("gru.count_multidefinictions_respo_byidazienda")
+    public Integer countMultiReponsabilePerStruttura(
+            @Param("codice_ente_par") Integer codiceEnte,
+            @Param("id_casella_par")Integer idCasella,
+            @Param("datafi_par") String datafine,
+            @Param("datain_par") String datainizio
+    );
 }
