@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.baborg.utils;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.BaborgCSVException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
@@ -251,11 +252,25 @@ public class BaborgUtils {
                             map_Error.put("DATAIN", appartenentiMap.get("datain"));
                             mA.setDatain(formattattore(appartenentiMap.get("datain"), "yyyy-MM-dd hh:mm:ss"));
                         }
+                        LocalDateTime datafi = null;
+                        LocalDateTime datain = null;
+                        String datafiString = null;
+                        String datainString = null;
+                        
+                        if (appartenentiMap.get("datafi") != null && appartenentiMap.get("datafi") != "") {
+                            datafi = formattattore(appartenentiMap.get("datafi"), "yyyy-MM-dd hh:mm:ss");
+                            datafiString=UtilityFunctions.getLocalDateTimeString(datafi);
+                        }
+                        
+                        if (appartenentiMap.get("datain") != null && appartenentiMap.get("datain") != "") {
+                            datain = formattattore(appartenentiMap.get("datain"), "yyyy-MM-dd hh:mm:ss");
+                            datainString=UtilityFunctions.getLocalDateTimeString(datain);
+                        }
                         if ((!bloccante) && (mdrAppartenentiRepository.select_multidefinictions_user_byidazienda(codiceAzienda,
                                 Integer.parseInt(appartenentiMap.get("codiceMatricola").toString()),
                                 Integer.parseInt(appartenentiMap.get("idCasella").toString()),
-                                formattattore(appartenentiMap.get("datafi"), "yyyy-MM-dd hh:mm:ss"),
-                                formattattore(appartenentiMap.get("datain"), "yyyy-MM-dd hh:mm:ss"))) > 0) {
+                                datafiString,
+                                datainString)) > 0) {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
                         }
                         if (appartenentiMap.get("datafi") == null || appartenentiMap.get("datafi").equals("")) {
@@ -355,11 +370,23 @@ public class BaborgUtils {
                             map_Error.put("DATAIN", responsabiliMap.get("datain"));
                             mR.setDatain(formattattore(responsabiliMap.get("datain"), "yyyy-MM-dd hh:mm:ss"));
                         }
+                        LocalDateTime datafi = null;
+                        LocalDateTime datain = null;
+                        String datafiString = null;
+                        String datainString = null;
+                        if (responsabiliMap.get("datafi") != null && responsabiliMap.get("datafi") != "") {
+                            datafi = formattattore(responsabiliMap.get("datafi"), "yyyy-MM-dd hh:mm:ss");
+                            datafiString=UtilityFunctions.getLocalDateTimeString(datafi);
+                        }
+                        
+                        if (responsabiliMap.get("datain") != null && responsabiliMap.get("datain") != "") {
+                            datain = formattattore(responsabiliMap.get("datain"), "yyyy-MM-dd hh:mm:ss");
+                            datainString=UtilityFunctions.getLocalDateTimeString(datain);
+                        }
                         if (!bloccante && mdrResponsabiliRepository.countMultiReponsabilePerStruttura(codiceAzienda,
                                 Integer.parseInt(responsabiliMap.get("idCasella").toString()),
-                                //usare formattatore
-                                formattattore(responsabiliMap.get("datafi"), "yyyy-MM-dd hh:mm:ss"),
-                                formattattore(responsabiliMap.get("datain"), "yyyy-MM-dd hh:mm:ss")) > 0) {
+                                datafiString,
+                                datainString) > 0) {
                             map_Error.put("ERRORE", map_Error.get("ERRORE") + " la struttura di questo responsabile è già assegnata ad un altro respondabile,");
                         }
 //                      DATAFI non bloccante
@@ -400,11 +427,16 @@ public class BaborgUtils {
                         MdrStruttura mS = new MdrStruttura();
                         LocalDateTime datafi = null;
                         LocalDateTime datain = null;
+                        String datafiString = null;
+                        String datainString = null;
                         if (strutturaMap.get("datafi") != null && strutturaMap.get("datafi") != "") {
                             datafi = formattattore(strutturaMap.get("datafi"), "yyyy-MM-dd hh:mm:ss");
+                            datafiString=UtilityFunctions.getLocalDateTimeString(datafi);
                         }
+                        
                         if (strutturaMap.get("datain") != null && strutturaMap.get("datain") != "") {
                             datain = formattattore(strutturaMap.get("datain"), "yyyy-MM-dd hh:mm:ss");
+                            datainString=UtilityFunctions.getLocalDateTimeString(datain);
                         }
 
                         if (strutturaMap.get("idCasella") == null || strutturaMap.get("idCasella").equals("")) {
@@ -416,7 +448,7 @@ public class BaborgUtils {
                             map_Error.put("ID_CASELLA", strutturaMap.get("idCasella"));
                             mS.setIdCasella(Integer.parseInt(strutturaMap.get("idCasella").toString()));
                             //struttura definita piu volte nello stesso arco temporale
-                            if (mdrStrutturaRepository.selectMultiDefinictionsStructureByIdAzienda(idAzienda, Integer.parseInt(strutturaMap.get("idCasella").toString()), datafi, datain) > 0) {
+                            if (mdrStrutturaRepository.selectMultiDefinictionsStructureByIdAzienda(idAzienda, Integer.parseInt(strutturaMap.get("idCasella").toString()), datainString, datainString) > 0) {
                                 bloccante = true;
                                 map_Error.put("ERRORE", map_Error.get("ERRORE") + " struttura definita piu volte nello stesso arco temporale,");
                             }
@@ -596,7 +628,6 @@ public class BaborgUtils {
                     break;
             }
         } catch (Exception e) {
-
             throw new BaborgCSVException(csvErrorFile.getAbsolutePath(), e);
         } finally {
             if (mapReader != null) {
@@ -915,6 +946,7 @@ public class BaborgUtils {
     public LocalDateTime formattattore(Object o, String formatoDestinazione) throws ParseException {
         if (o != null) {
             try {
+                
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(o.toString()).toInstant();
                 return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
