@@ -43,7 +43,7 @@ public class InternautaConstants {
     public static class AdditionalData {
 
         public enum Keys {
-            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto
+            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto, dataRiferimento
         }
 
         public enum OperationsRequested {
