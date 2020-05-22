@@ -35,7 +35,7 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     private static final String GET_DATA_BY_STATO = "getDataByStato";
 
     private static enum Stati {
-        Bozza, Corrente, Storico, ByData
+        Bozza, Corrente, Storico, ByData, None
     };
 
     @Autowired
@@ -50,7 +50,12 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) {
         LOGGER.info("in: beforeSelectQueryInterceptor di Struttura-Unificata");
 
-        Stati getDataByStatoValue = Stati.valueOf(additionalData.get(GET_DATA_BY_STATO));
+        Stati getDataByStatoValue;
+        try {
+            getDataByStatoValue = Stati.valueOf(additionalData.get(GET_DATA_BY_STATO));
+        } catch (Exception ex) {
+            getDataByStatoValue = Stati.None;
+        }
         
         if (getDataByStatoValue != null) {
             LocalDateTime today = LocalDate.now().atTime(0, 0);
