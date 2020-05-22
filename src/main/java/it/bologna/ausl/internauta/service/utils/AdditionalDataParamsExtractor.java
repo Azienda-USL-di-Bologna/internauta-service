@@ -1,9 +1,10 @@
-package it.bologna.ausl.internauta.service.permessi;
+package it.bologna.ausl.internauta.service.utils;
 
 import it.bologna.ausl.internauta.service.utils.AdditionalDataUtils;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
@@ -69,7 +70,7 @@ public class AdditionalDataParamsExtractor {
         return null;
     }
 
-    public List<InternautaConstants.Permessi.Tipi>  getTipiPermesso() {
+    public List<InternautaConstants.Permessi.Tipi> getTipiPermesso() {
         Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
         if (additionalData != null) {
             String tipiPermessoString = additionalData.get("tipiPermesso");
@@ -77,6 +78,18 @@ public class AdditionalDataParamsExtractor {
                 List<InternautaConstants.Permessi.Tipi> tipiPermesso = Arrays.asList(tipiPermessoString.split("\\s*;\\s*"))
                         .stream().map(ambitoStr -> InternautaConstants.Permessi.Tipi.valueOf(ambitoStr.toUpperCase())).collect(Collectors.toList());
                 return tipiPermesso;
+            }
+        }
+        return null;
+    }
+
+    public LocalDateTime getDataRiferimento() {
+        Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
+        if (additionalData != null) {
+            String dataRiferimento = additionalData.get("dataRiferimento");
+            if (StringUtils.hasText(dataRiferimento)) {
+                return Instant.ofEpochMilli(Long.parseLong(dataRiferimento)).atZone(ZoneId.systemDefault()).toLocalDateTime(); // java <= 8
+//                return LocalDate.ofInstant(Instant.ofEpochMilli(Long.parseLong(dataPermesso)), ZoneId.systemDefault()); // java > 8
             }
         }
         return null;
