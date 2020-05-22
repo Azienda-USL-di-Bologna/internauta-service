@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
@@ -44,9 +45,12 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
+import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
+import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
+import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteStrutturaWithIdStrutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.PersonaWithUtentiAndStruttureAndAfferenzeCustom;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
@@ -72,6 +76,8 @@ import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtentiResp
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiByIdUtenteCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithStruttureAndResponsabiliCustom;
+import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
+import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithStruttureFiglieList;
 import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
 import it.bologna.ausl.model.entities.permessi.projections.PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded;
 import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoAmbitoWithIdPredicato;
@@ -79,6 +85,9 @@ import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoAm
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithUtenteStruttura;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -105,6 +114,9 @@ public class ProjectionBeans {
     
     @Autowired
     protected StrutturaRepository strutturaRepository;
+    
+    @Autowired
+    protected StoricoRelazioneRepository storicoRelazioneRepository;
 
     @Autowired
     protected PredicatoAmbitoRepository predicatoAmbitoRepository;
@@ -126,6 +138,9 @@ public class ProjectionBeans {
 
     @Autowired
     AziendaInterceptor aziendaInterceptor;
+
+    @Autowired
+    AdditionalDataParamsExtractor additionalDataParamsExtractor;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -593,5 +608,27 @@ public class ProjectionBeans {
             }).collect(Collectors.toList());
         }
         return res;
+    }
+    
+    public StrutturaWithPlainFields getStrutturaFigliaWithFogliaCalcolata(StoricoRelazione storicoRelazione) {
+        Struttura idStrutturaFiglia = storicoRelazione.getIdStrutturaFiglia();
+        if (idStrutturaFiglia != null) {
+            LocalDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimento();
+            if (dataRiferimento == null) {
+                dataRiferimento = LocalDateTime.now();
+            }
+            QStoricoRelazione qStoricoRelazione = QStoricoRelazione.storicoRelazione;
+            BooleanExpression filter = qStoricoRelazione.idStrutturaPadre.id.eq(idStrutturaFiglia.getId()).and(qStoricoRelazione.attivaDal.loe(dataRiferimento)
+                    .and((qStoricoRelazione.attivaAl.isNull()).or(qStoricoRelazione.attivaAl.goe(dataRiferimento))));
+            boolean isLeaf = !storicoRelazioneRepository.exists(filter);
+//                List<Struttura> struttureFiglieDellaStrutturaFiglia = new ArrayList<>();
+//                struttureFiglieDellaStrutturaFigliaInStoricoRelazione.forEach(storicoRelazioneFiglie -> {
+//                    struttureFiglieDellaStrutturaFiglia.add(storicoRelazioneFiglie.getIdStrutturaFiglia());
+//                });
+            idStrutturaFiglia.setFogliaCalcolata(isLeaf);
+            
+            return factory.createProjection(StrutturaWithPlainFields.class, idStrutturaFiglia);
+        }
+        return null;
     }
 }

@@ -37,8 +37,10 @@ import it.bologna.ausl.model.entities.baborg.QGdm2;
 import it.bologna.ausl.model.entities.baborg.QImportazioniOrganigramma;
 import it.bologna.ausl.model.entities.baborg.QMassimario;
 import it.bologna.ausl.model.entities.baborg.QPecAzienda;
+import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.QTitolo;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
+import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.TipoPermesso;
@@ -382,7 +384,6 @@ public class BaborgBaseController extends BaseCrudController {
     }
 
     @RequestMapping(value = {"importazioniorganigramma", "importazioniorganigramma/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-
     public ResponseEntity<?> importazioniorganigramma(
             @QuerydslPredicate(root = ImportazioniOrganigramma.class) Predicate predicate,
             Pageable pageable,
@@ -392,6 +393,19 @@ public class BaborgBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QImportazioniOrganigramma.importazioniOrganigramma, ImportazioniOrganigramma.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"storicorelazione", "storicorelazione/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> storicorelazione(
+            @QuerydslPredicate(root = StoricoRelazione.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QStoricoRelazione.storicoRelazione , StoricoRelazione.class);
         return ResponseEntity.ok(resource);
     }
 }

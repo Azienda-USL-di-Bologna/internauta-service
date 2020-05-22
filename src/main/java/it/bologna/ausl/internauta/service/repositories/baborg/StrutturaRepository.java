@@ -27,6 +27,8 @@ public interface StrutturaRepository extends
     // la store procedure prende in ingresso un idStruttura e restituisce una stringa in cui sono presenti gli id delle strutture antenate della struttura passata
     // la stringa è formata dagli id numerici separati dal carattere ','
     // l'id della struttura pasasta è in prima posizione, quello della struttura radice in ultima
+    // RM 44811: È stata sostituita con la store procedure che si trova in storico relazione repository
+    // la differenza è che le strutture vengono estratte dalla tabella Storico Relazione
     @Procedure("baborg.get_strutture_antenate")
     public String getStruttureAntenate(Integer idStruttura);
 
