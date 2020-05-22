@@ -6,12 +6,15 @@ import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -32,7 +35,7 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     private static final String GET_DATA_BY_STATO = "getDataByStato";
 
     private static enum Stati {
-        Bozza, Corrente, Storico
+        Bozza, Corrente, Storico, ByData
     };
 
     @Autowired
@@ -47,44 +50,57 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) {
         LOGGER.info("in: beforeSelectQueryInterceptor di Struttura-Unificata");
 
-        String getDataByStatoValue = additionalData.get(GET_DATA_BY_STATO);
-
+        Stati getDataByStatoValue = Stati.valueOf(additionalData.get(GET_DATA_BY_STATO));
+        
         if (getDataByStatoValue != null) {
             LocalDateTime today = LocalDate.now().atTime(0, 0);
             QStrutturaUnificata strutturaUnificata = QStrutturaUnificata.strutturaUnificata;
 //            AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
 
             BooleanExpression customFilter;
-            if (getDataByStatoValue.equals(Stati.Bozza.toString())) {
-                /*  La bozza ha la data disattivazione a null.
-                    La data attivazione può essere null.
-                    Se non è null deve essere maggiore di oggi
-                    oppure può essere minore/uguale ad oggi purché la data accensione ativazione sia null sia disattivo.  */
-                customFilter = strutturaUnificata.dataDisattivazione.isNull()
-                        .and(strutturaUnificata.dataAttivazione.isNull()
-                                .or(strutturaUnificata.dataAttivazione.isNotNull().and(strutturaUnificata.dataAttivazione.gt(today))
-                                        .or(strutturaUnificata.dataAttivazione.isNotNull().and(strutturaUnificata.dataAttivazione.loe(today)).and(strutturaUnificata.dataAccensioneAttivazione.isNull()))));
+            switch (getDataByStatoValue) {
+                case Bozza:
+                    /*  La bozza ha la data disattivazione a null.
+                        La data attivazione può essere null.
+                        Se non è null deve essere maggiore di oggi
+                        oppure può essere minore/uguale ad oggi purché la data accensione ativazione sia null sia disattivo. 
+                    */
+                    customFilter = strutturaUnificata.dataDisattivazione.isNull()
+                            .and(strutturaUnificata.dataAttivazione.isNull()
+                                    .or(strutturaUnificata.dataAttivazione.isNotNull().and(strutturaUnificata.dataAttivazione.gt(today))
+                                            .or(strutturaUnificata.dataAttivazione.isNotNull().and(strutturaUnificata.dataAttivazione.loe(today)).and(strutturaUnificata.dataAccensioneAttivazione.isNull()))));
 
-                initialPredicate = customFilter.and(initialPredicate);
+                    initialPredicate = customFilter.and(initialPredicate);
+                    break;
+                case Corrente:
+                    customFilter = strutturaUnificata.dataDisattivazione.isNull()
+                            .or(strutturaUnificata.dataDisattivazione.isNotNull().and(strutturaUnificata.dataDisattivazione.gt(today)))
+                            .and(strutturaUnificata.dataAttivazione.isNotNull()
+                            .and(strutturaUnificata.dataAttivazione.loe(today)
+                            .and(strutturaUnificata.dataAccensioneAttivazione.isNotNull())));
 
-            } else if (getDataByStatoValue.equals(Stati.Corrente.toString())) {
-                customFilter = strutturaUnificata.dataDisattivazione.isNull()
-                        .or(strutturaUnificata.dataDisattivazione.isNotNull().and(strutturaUnificata.dataDisattivazione.gt(today)))
-                        .and(strutturaUnificata.dataAttivazione.isNotNull()
-                                .and(strutturaUnificata.dataAttivazione.loe(today)
-                                        .and(strutturaUnificata.dataAccensioneAttivazione.isNotNull())));
+                    initialPredicate = customFilter.and(initialPredicate);
+                    break;
+                case Storico:
+                    customFilter = strutturaUnificata.dataDisattivazione.isNotNull()
+                            .and(strutturaUnificata.dataDisattivazione.loe(today));
 
-                initialPredicate = customFilter.and(initialPredicate);
-
-            } else if (getDataByStatoValue.equals(Stati.Storico.toString())) {
-                customFilter = strutturaUnificata.dataDisattivazione.isNotNull()
-                        .and(strutturaUnificata.dataDisattivazione.loe(today));
-
-                initialPredicate = customFilter.and(initialPredicate);
-
-            } else {
-                customFilter = Expressions.asBoolean(true).isFalse();
-                initialPredicate = customFilter.and(initialPredicate);
+                    initialPredicate = customFilter.and(initialPredicate);
+                    break;
+                case ByData:
+                    String dataRiferimentoString = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
+                    LocalDateTime dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(dataRiferimentoString))).atZone(ZoneId.systemDefault()).toLocalDateTime();
+                    customFilter = (strutturaUnificata.dataDisattivazione.isNull()
+                            .or(strutturaUnificata.dataDisattivazione.gt(dataRiferimento)))
+                            .and(strutturaUnificata.dataAttivazione.isNotNull()
+                            .and(strutturaUnificata.dataAttivazione.loe(dataRiferimento)
+                            .and(strutturaUnificata.dataAccensioneAttivazione.isNotNull())));
+                    initialPredicate = customFilter.and(initialPredicate);
+                    break;
+                default:
+                    customFilter = Expressions.asBoolean(true).isFalse();
+                    initialPredicate = customFilter.and(initialPredicate);
+                    break;
             }
         }
         return initialPredicate;
