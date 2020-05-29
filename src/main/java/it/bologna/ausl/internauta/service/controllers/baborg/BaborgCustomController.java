@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.controllers.baborg;
 
 import com.mongodb.MongoException;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -10,6 +11,7 @@ import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionMan
 import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ImportazioniOrganigrammaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -22,6 +24,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -58,6 +63,9 @@ public class BaborgCustomController {
 
     @Autowired
     StrutturaRepository strutturaRepository;
+    
+    @Autowired
+    StoricoRelazioneRepository storicoRelazioneRepository;
 
     @Autowired
     AziendaRepository aziendaRepository;
@@ -76,10 +84,16 @@ public class BaborgCustomController {
 
     @RequestMapping(value = "struttureAntenate/{idStruttura}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> struttureAntenate(
-            @PathVariable(required = true) Integer idStruttura) {
-
-        String struttureAntenate = strutturaRepository.getStruttureAntenate(idStruttura);
-        System.out.println("struttureAntenate: " + struttureAntenate);
+            @PathVariable(required= true) Integer idStruttura,
+            @RequestParam(required= false) Long dataRiferimento) {
+        
+        String dataRiferimentoString = null;
+        if (dataRiferimento != null) {
+            LocalDateTime dataRiferimentoLDT = Instant.ofEpochMilli(dataRiferimento).atZone(ZoneId.systemDefault()).toLocalDateTime();     
+            dataRiferimentoString = UtilityFunctions.getLocalDateTimeString(dataRiferimentoLDT);
+        }
+        
+        String struttureAntenate = storicoRelazioneRepository.getStruttureAntenateInStoricoRelazione(idStruttura, dataRiferimentoString);
 
         // trasformiamo la stringa restituita in un array
         String[] struttureAntenateArray = struttureAntenate.split(",");

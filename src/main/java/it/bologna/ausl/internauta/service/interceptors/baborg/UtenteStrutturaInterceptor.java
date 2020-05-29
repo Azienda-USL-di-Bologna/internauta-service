@@ -7,11 +7,16 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdUtente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -95,6 +100,11 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
                                 return utenteStruttura;
                             }).collect(Collectors.toList());
                             entities.addAll(res);
+//                            List entitiesList = new ArrayList(entities);
+//                            Collections.sort(entitiesList, (UtenteStrutturaWithIdUtente us1, UtenteStrutturaWithIdUtente us2) -> {
+//                                return ((Utente)(us1.getIdUtente())).getIdPersona().getDescrizione().compareToIgnoreCase(((Utente)us2.getIdUtente()).getIdPersona().getDescrizione());
+//                            });
+//                            entities = entitiesList;
                         }
                         break;
 
