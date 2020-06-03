@@ -6,8 +6,8 @@ import it.bologna.ausl.model.entities.gru.projections.generated.MdrAppartenentiW
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -29,6 +29,9 @@ public interface MdrAppartenentiRepository extends
     @Modifying
     @Query(value = "DELETE FROM gru.mdr_appartenenti where id_azienda = ?1", nativeQuery = true)
     public void deleteByIdAzienda(Integer idAzienda);
+    
+    @Query(value = "SELECT codice_ente, codice_matricola, cognome, nome, codice_fiscale, id_casella, datain, datafi, tipo_appartenenza, username, data_assunzione, data_dimissione, id_azienda FROM gru.mdr_appartenenti WHERE id_azienda = ?1", nativeQuery = true)
+    public List<Map<String,Object>> selectAppartenentiByIdAzienda(Integer idAzienda);
         
     @Procedure("gru.select_multidefinictions_user_byidazienda")
     public Integer select_multidefinictions_user_byidazienda(

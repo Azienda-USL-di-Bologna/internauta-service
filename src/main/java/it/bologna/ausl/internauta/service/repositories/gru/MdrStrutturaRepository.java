@@ -1,23 +1,18 @@
 package it.bologna.ausl.internauta.service.repositories.gru;
 
-import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
 import it.bologna.ausl.model.entities.gru.MdrStruttura;
 import it.bologna.ausl.model.entities.gru.QMdrStruttura;
 import it.bologna.ausl.model.entities.gru.projections.generated.MdrStrutturaWithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
-import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.Temporal;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -34,6 +29,9 @@ public interface MdrStrutturaRepository extends
     @Modifying
     @Query(value = "DELETE FROM gru.mdr_struttura where id_azienda = ?1", nativeQuery = true)
     public void deleteByIdAzienda(Integer idAzienda);
+    
+    @Query(value = "SELECT id_casella, id_padre, descrizione, datain, datafi, tipo_legame, codice_ente, id_azienda FROM gru.mdr_struttura WHERE id_azienda= ?1", nativeQuery = true)
+    public  List<Map<String,Object>> selectStruttureByIdAzienda(Integer idAzienda);
     
     @Procedure("gru.select_multidefinictions_structure_byidazienda")
     public Integer selectMultiDefinictionsStructureByIdAzienda(
