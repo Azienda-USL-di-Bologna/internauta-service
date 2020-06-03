@@ -62,7 +62,7 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
         String filterComboValue = null;
         LocalDateTime dataRiferimento = null;
         if (additionalData != null && additionalData.containsKey(FILTER_COMBO)) {
-            filterComboValue = additionalData.get(additionalData.get(FILTER_COMBO));
+            filterComboValue = additionalData.get(FILTER_COMBO);
         }
         String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
         if (additionalData != null && additionalData.containsKey(key)) {
