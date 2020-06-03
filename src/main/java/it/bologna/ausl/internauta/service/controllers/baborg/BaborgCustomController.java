@@ -13,15 +13,17 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ImportazioniOrganigrammaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.gru.MdrAppartenentiRepository;
+import it.bologna.ausl.internauta.service.repositories.gru.MdrResponsabiliRepository;
+import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.gru.MdrTrasformazioniRepository;
 import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.mongowrapper.MongoWrapper;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
@@ -30,13 +32,11 @@ import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import okhttp3.Response;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +57,17 @@ import org.springframework.web.multipart.MultipartFile;
 public class BaborgCustomController {
 
     private static final Logger log = LoggerFactory.getLogger(RestController.class);
+    @Autowired
+    MdrTrasformazioniRepository mdrTrasformazioniRepository;
+
+    @Autowired
+    MdrAppartenentiRepository mdrAppartenentiRepository;
+
+    @Autowired
+    MdrResponsabiliRepository mdrResponsabiliRepository;
+
+    @Autowired
+    MdrStrutturaRepository mdrStrutturaRepository;
 
     @Autowired
     MongoConnectionManager mongoConnectionManager;
@@ -108,7 +119,46 @@ public class BaborgCustomController {
 
         return new ResponseEntity(struttureAntenateList, HttpStatus.OK);
     }
+    
+    @RequestMapping(value = "downloadCSVFileFromIdAzienda", method = RequestMethod.GET)
+    public void downloadCSVFileFromIdAzienda(
+            @RequestParam("idAzienda") String idAzienda,
+            @RequestParam("tipo") String tipo,
+            HttpServletResponse response,
+            HttpServletRequest request){
+        File buildCSV=null;
+        int idAziendaInt = Integer.parseInt(idAzienda);
+        switch (tipo) {
+                case "APPARTENENTI":
+                    List<Map<String, Object>> selectAppartenentiByIdAzienda = mdrAppartenentiRepository.selectAppartenentiByIdAzienda(idAziendaInt);
+                    buildCSV = baborgUtils.buildCSV(selectAppartenentiByIdAzienda,tipo);
+                    break;
 
+                case "RESPONSABILI":
+                    List<Map<String, Object>> selectResponsabiliByIdAzienda = mdrResponsabiliRepository.selectResponsabiliByIdAzienda(idAziendaInt);
+                    buildCSV = baborgUtils.buildCSV(selectResponsabiliByIdAzienda,tipo);
+                    break;
+
+                case "STRUTTURA":
+                    List<Map<String, Object>> selectStruttureByIdAzienda = mdrStrutturaRepository.selectStruttureByIdAzienda(idAziendaInt);
+                    buildCSV = baborgUtils.buildCSV(selectStruttureByIdAzienda,tipo);
+                    break;
+
+                case "TRASFORMAZIONI":
+                    List<Map<String, Object>> selectTrasformazioniByIdAzienda = mdrTrasformazioniRepository.selectTrasformazioniByIdAzienda(idAziendaInt);
+                    buildCSV = baborgUtils.buildCSV(selectTrasformazioniByIdAzienda,tipo);
+                    break;
+        }
+        if (buildCSV != null) {
+            try {
+                StreamUtils.copy(new FileInputStream(buildCSV), response.getOutputStream());
+            } catch (IOException ex) {
+                java.util.logging.Logger.getLogger(BaborgCustomController.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    
+    
     @RequestMapping(value = "insertImpOrgRowAndCsvUpload", method = RequestMethod.POST)
     public ResponseEntity<String> insertImpOrgRowAndCsvUpload(
             HttpServletRequest request,

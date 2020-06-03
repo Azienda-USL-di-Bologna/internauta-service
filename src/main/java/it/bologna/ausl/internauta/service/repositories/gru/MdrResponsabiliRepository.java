@@ -6,7 +6,8 @@ import it.bologna.ausl.model.entities.gru.projections.generated.MdrResponsabiliW
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -28,6 +29,9 @@ public interface MdrResponsabiliRepository extends
     @Modifying
     @Query(value = "DELETE FROM gru.mdr_responsabili where id_azienda = ?1", nativeQuery = true)
     public void deleteByIdAzienda(Integer idAzienda);
+    
+    @Query(value = "SELECT codice_ente, codice_matricola, id_casella, datain, datafi, tipo, id_azienda FROM gru.mdr_responsabili WHERE id_azienda = ?1", nativeQuery = true)
+    public  List<Map<String,Object>> selectResponsabiliByIdAzienda(Integer idAzienda);
     
     @Procedure("gru.count_multidefinictions_respo_byidazienda")
     public Integer countMultiReponsabilePerStruttura(
