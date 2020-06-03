@@ -13,6 +13,10 @@ import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAf
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdUtente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -21,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
@@ -54,7 +59,15 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) {
         System.out.println("in: beforeSelectQueryInterceptor di UtenteStruttura");
 
-        String filterComboValue = additionalData.get(FILTER_COMBO);
+        String filterComboValue = null;
+        LocalDateTime dataRiferimento = null;
+        if (additionalData != null && additionalData.containsKey(FILTER_COMBO)) {
+            filterComboValue = additionalData.get(additionalData.get(FILTER_COMBO));
+        }
+        String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
+        if (additionalData != null && additionalData.containsKey(key)) {
+            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime();
+        }
 
         if (filterComboValue != null) {
             BooleanExpression customFilter = QUtenteStruttura.utenteStruttura.idUtente.idPersona.cognome
@@ -63,11 +76,20 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
                     .containsIgnoreCase(filterComboValue);
             initialPredicate = customFilter.and(initialPredicate);
         }
+        if (dataRiferimento != null && !dataRiferimento.toLocalDate().isEqual(LocalDate.now())) {
+            QUtenteStruttura qUtenteStruttura = QUtenteStruttura.utenteStruttura;
+            BooleanExpression filter = qUtenteStruttura.attivoDal.loe(dataRiferimento.atZone(ZoneId.systemDefault()))
+                    .and((qUtenteStruttura.attivoAl.isNull()).or(qUtenteStruttura.attivoAl.goe(dataRiferimento.atZone(ZoneId.systemDefault()))));
+            initialPredicate = filter.and(initialPredicate);
+        } else {
+            /* vogliamo che per default, se non si passa una data di riferimento, oppure si passa come data di riferimento la data odierna,
+            * si cerchino le righe con campo attivo = true
+            * NB: il front-end a volte lo mette già nei filtri dell'initialPredicate
+            */
+            BooleanExpression customFilterUtenteStrutturaAttivo = QUtenteStruttura.utenteStruttura.attivo.eq(true);
+            initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
+        }
 
-        // vogliamo che per default si cerchino le righe con campo attivo = true
-        // NB: il front-end a volte lo mette già nei filtri dell'initialPredicate
-        BooleanExpression customFilterUtenteStrutturaAttivo = QUtenteStruttura.utenteStruttura.attivo.eq(true);
-        initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
 
         return initialPredicate;
     }
