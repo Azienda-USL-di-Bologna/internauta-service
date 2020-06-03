@@ -9,6 +9,8 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -166,11 +168,15 @@ public class InternautaUtils {
     }
     
     public Object getEntityFromEntitaStoredProcedure(EntitaStoredProcedure entitaStoredProcedure){
-        
-        
-        
-        
+
         return null;
     }
-    
+//    
+//    public boolean isSameDay(LocalDateTime date1, LocalDateTime date2) {
+//        return this.isSameDay(date1.toLocalDate(), date2.toLocalDate());
+//    }
+//    
+//    public boolean isSameDay(LocalDate date1, LocalDate date2) {
+//        return date1.isEqual(date2);
+//    }
 }

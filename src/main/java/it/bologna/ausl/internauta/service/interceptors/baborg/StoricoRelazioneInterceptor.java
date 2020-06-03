@@ -40,7 +40,7 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
         String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
         if (additionalData != null && additionalData.containsKey(key)) {
 
-            LocalDateTime dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime();            
+            LocalDateTime dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime();
             QStoricoRelazione qStoricoRelazione = QStoricoRelazione.storicoRelazione;
 
             BooleanExpression filter = qStoricoRelazione.attivaDal.loe(dataRiferimento)
