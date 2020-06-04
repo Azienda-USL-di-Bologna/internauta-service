@@ -135,7 +135,7 @@ public class BaborgUtils {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
         String nameCsv = sdf.format(timestamp) + "_" + tipo + ".csv";
-        File csvFile = new File(System.getProperty("java.io.tmpdir"+"/csv/"), nameCsv);
+        File csvFile = new File(System.getProperty("java.io.tmpdir" + "/csv/"), nameCsv);
         csvFile.deleteOnExit();
         CsvPreference SEMICOLON_DELIMITED = new CsvPreference.Builder('"', ';', "\r\n").build();
         Map<String, Object> row = new HashMap<>();
@@ -143,7 +143,7 @@ public class BaborgUtils {
 
             mapWriter.writeHeader(headersGenerator(tipo));
             for (Map<String, Object> elemento : elementi) {
-                
+
                 row.putAll(elemento);
                 if (elemento.get("datain") != null && !elemento.get("datain").equals("")) {
                     if (Timestamp.class.isAssignableFrom(elemento.get("datain").getClass())) {
@@ -392,7 +392,6 @@ public class BaborgUtils {
                         mdrAppartenentiRepository.save(mA);
                         mapWriter.write(mapError, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
                     }
-                    
 
                     //query intratabelle
                     break;
@@ -410,7 +409,7 @@ public class BaborgUtils {
                         MdrResponsabili mR = new MdrResponsabili();
 //                      inizio a settare i dati
 //                      CODICE_ENTE preso da interfaccia
-                        
+
 //                      CODICE_MATRICOLA bloccante
                         String codice_matricola = null;
                         if (responsabiliMap.get("codice_matricola") == null || responsabiliMap.get("codice_matricola").equals("")) {
@@ -496,7 +495,7 @@ public class BaborgUtils {
                             mapError.put("codice_ente", responsabiliMap.get("codice_ente"));
                             mR.setCodiceEnte(Integer.parseInt(responsabiliMap.get("codice_ente").toString()));
                         }
-                        
+
                         mR.setIdAzienda(azienda);
                         mdrResponsabiliRepository.save(mR);
                         mapWriter.write(mapError, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
@@ -513,11 +512,6 @@ public class BaborgUtils {
                     Map<String, Object> strutturaMap = null;
                     while ((strutturaMap = mapReader.read(headers, processors)) != null) {
 //                      inizio a creare la mappa degli errori e 
-//                        count++;
-//                        if (count==108){
-//                            count =0;
-//                            System.out.println("qui");
-//                        }
                         mapError.put("ERRORE", "");
                         // Inserisco la riga
                         MdrStruttura mS = new MdrStruttura();
@@ -525,15 +519,35 @@ public class BaborgUtils {
                         LocalDateTime datain = null;
                         String datafiString = null;
                         String datainString = null;
-                        if (strutturaMap.get("datafi") != null && !strutturaMap.get("datafi").equals("")) {
-                            datafi = formattattore(strutturaMap.get("datafi"));
-                            datafiString = UtilityFunctions.getLocalDateTimeString(datafi);
-                        }
 
                         if (strutturaMap.get("datain") != null && !strutturaMap.get("datain").equals("")) {
                             datain = formattattore(strutturaMap.get("datain"));
                             datainString = UtilityFunctions.getLocalDateTimeString(datain);
                         }
+
+                        if (strutturaMap.get("datain") == null || strutturaMap.get("datain").equals("")) {
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " datain,");
+                            mapError.put("datain", "");
+                            mS.setDatain(null);
+                            bloccante = true;
+                        } else {
+                            mapError.put("datain", strutturaMap.get("datain"));
+                            mS.setDatain(datain);
+                        }
+
+                        if (strutturaMap.get("datafi") != null && !strutturaMap.get("datafi").equals("")) {
+                            datafi = formattattore(strutturaMap.get("datafi"));
+                            datafiString = UtilityFunctions.getLocalDateTimeString(datafi);
+                        }
+
+                        if (strutturaMap.get("datafi") == null || strutturaMap.get("datafi").equals("")) {
+                            mapError.put("datafi", "");
+                            mS.setDatafi(null);
+                        } else {
+                            mapError.put("datafi", strutturaMap.get("datafi"));
+                            mS.setDatafi(datafi);
+                        }
+
                         String id_casella = null;
                         if (strutturaMap.get("id_casella") == null || strutturaMap.get("id_casella").equals("")) {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella assente,");
@@ -568,24 +582,6 @@ public class BaborgUtils {
                         } else {
                             mapError.put("descrizione", strutturaMap.get("descrizione"));
                             mS.setDescrizione(strutturaMap.get("descrizione").toString());
-                        }
-
-                        if (strutturaMap.get("datain") == null || strutturaMap.get("datain").equals("")) {
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " datain,");
-                            mapError.put("datain", "");
-                            mS.setDatain(null);
-                            bloccante = true;
-                        } else {
-                            mapError.put("datain", strutturaMap.get("datain"));
-                            mS.setDatain(datain);
-                        }
-
-                        if (strutturaMap.get("datafi") == null || strutturaMap.get("datafi").equals("")) {
-                            mapError.put("datafi", "");
-                            mS.setDatafi(null);
-                        } else {
-                            mapError.put("datafi", strutturaMap.get("datafi"));
-                            mS.setDatafi(datafi);
                         }
 
                         if (strutturaMap.get("tipo_legame") == null || strutturaMap.get("tipo_legame").equals("")) {
@@ -1014,8 +1010,8 @@ public class BaborgUtils {
                     "username", "data_assunzione", "data_dimissione", "ERRORE"};
                 break;
             case "RESPONSABILI":
-                headers = new String[]{"codiece_ente", "codice_matricola",
-                    "id_azienda", "datain", "datafi", "tipo", "ERRORE"};
+                headers = new String[]{"codice_ente", "codice_matricola",
+                    "id_casella", "datain", "datafi", "tipo", "ERRORE"};
                 break;
             case "STRUTTURA":
                 headers = new String[]{"id_casella", "id_padre", "descrizione",
@@ -1106,6 +1102,8 @@ public class BaborgUtils {
     public LocalDateTime formattattore(Object o) throws ParseException {
         if (o != null) {
             try {
+                
+               // String format = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                 Instant toInstant = new SimpleDateFormat("dd/mm/yyyy").parse(o.toString()).toInstant();
                 return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
