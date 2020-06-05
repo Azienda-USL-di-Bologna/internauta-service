@@ -588,7 +588,12 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         });
 
         idUtentiSet.forEach(idUtente -> {
-            permessiUtilities.cleanCachePermessiUtente(idUtente);
+            Utente u = utenteRepository.getOne(idUtente);
+            Persona idPersona = u.getIdPersona();
+            List<Utente> utentiPersona = userInfoService.getUtentiPersona(idPersona);
+            utentiPersona.forEach(utente -> {
+                permessiUtilities.cleanCachePermessiUtente(utente.getId());
+            });
         });
     }
 }
