@@ -177,7 +177,7 @@ public class BaborgUtils {
                 }
                 if (elemento.get("dataora_oper") != null && !elemento.get("dataora_oper").equals("")) {
                     if (Timestamp.class.isAssignableFrom(elemento.get("dataora_oper").getClass())) {
-                        row.put("dataora_oper", ((Timestamp) elemento.get("dataora_oper")).toLocalDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm:ss")));
+                        row.put("dataora_oper", ((Timestamp) elemento.get("dataora_oper")).toLocalDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
                     }
                 }
 
@@ -507,7 +507,6 @@ public class BaborgUtils {
                     // Delete delle righe da sostituire
                     predicateAzienda = QMdrStruttura.mdrStruttura.idAzienda.id.eq(idAzienda);
                     mdrStrutturaRepository.deleteByIdAzienda(idAzienda);
-//                     Integer count=0;
                     // Reading with CsvMapReader
                     Map<String, Object> strutturaMap = null;
                     while ((strutturaMap = mapReader.read(headers, processors)) != null) {
@@ -608,14 +607,14 @@ public class BaborgUtils {
                     List<Integer> selectDaddyByIdAzienda = mdrStrutturaRepository.selectDaddyByIdAzienda(idAzienda);
                     if (selectDaddyByIdAzienda != null && selectDaddyByIdAzienda.size() > 0 && selectDaddyByIdAzienda.get(0) != null) {
                         bloccante = true;
-
                     }
                     //strutture che non rispettano il padre
-                    List<Integer> caselleInvalide = mdrStrutturaRepository.caselleInvalide(idAzienda);
-                    if (caselleInvalide != null && caselleInvalide.size() > 0 && caselleInvalide.get(0) != null) {
-                        bloccante = true;
-
-                    }
+//                    List<Integer> caselleInvalide = mdrStrutturaRepository.caselleInvalide(idAzienda);
+//
+//                    if (caselleInvalide != null && caselleInvalide.size() > 0 && caselleInvalide.get(0) != null) {
+//                        bloccante = true;
+//
+//                    }
                     mapWriter.close();
                     try (InputStreamReader csvErrorFileRIP = new InputStreamReader(new FileInputStream(csvErrorFile));) {
 
@@ -629,14 +628,20 @@ public class BaborgUtils {
                         while ((strutturaErrorMap = mapErrorReader.read(headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda))) != null) {
                             Map<String, Object> strutturaErrorMapWrite = null;
                             strutturaErrorMapWrite = strutturaErrorMap;
-                            if (caselleInvalide.contains(Integer.parseInt(strutturaErrorMap.get("id_casella").toString()))) {
-                                if (strutturaErrorMap.get("ERRORE") != null) {
-                                    strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " non rispetta l'arco temporale del padre,");
-                                } else {
-                                    strutturaErrorMapWrite.put("ERRORE", " non rispetta l'arco temporale del padre,");
+                            if (strutturaErrorMap.get("id_padre") != null && !strutturaErrorMap.get("id_padre").equals("0")) {
+                                List<Map<String, Object>> elementi = mdrStrutturaRepository.mieiPadri(idAzienda, Integer.parseInt(strutturaErrorMap.get("id_padre").toString()));
+                                if (!arco(elementi, formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi")))) {
+                                    if (strutturaErrorMap.get("ERRORE") != null) {
+                                        bloccante = true;
+                                        strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " non rispetta l'arco temporale del padre,");
+                                    } else {
+                                        bloccante = true;
+                                        strutturaErrorMapWrite.put("ERRORE", " non rispetta l'arco temporale del padre,");
 
+                                    }
                                 }
                             }
+
                             if (selectDaddyByIdAzienda.contains(strutturaErrorMap.get("id_padre")) && selectDaddyByIdAzienda.get(0) != null) {
                                 if (strutturaErrorMap.get("ERRORE") != null) {
                                     strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " padre non presente,");
@@ -732,7 +737,7 @@ public class BaborgUtils {
                                     mT.setIdCasellaArrivo(null);
                                 } else {
                                     mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
-                                    mapError.put("ERRORE", mapError.get("ERRORE") + " casella di trovata una casella di arrivo ma il motivo non è valido ,");
+                                    mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo trovata ma il motivo non è valido ,");
                                     mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
                                 }
                             }
@@ -1093,24 +1098,70 @@ public class BaborgUtils {
     }
 
     /**
+     * ATTENZIONE gli elementi devono essere ordinati per datain ASC
+     *
+     * @param elementi lista di padri/elementi/strutture con datain e data fi
+     * @param dataInizio data di inizio del figlio
+     * @param dataFine data di fine del figlio
+     * @return true se il figlio rispetta l'arco temporale del o dei padri nel
+     * caso in cui il padre sia spezzato ma continuo
+     */
+    public Boolean arco(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
+        if (elementi.isEmpty()) {
+            return false;
+        }
+        Map<String, Object> elemento = elementi.get(0);
+        if (formattattore(elemento.get("datain")).equals(dataInizio) || formattattore(elemento.get("datain")).isBefore(dataInizio)) {
+            if (elemento.get("datafi") == null) {
+                return true;
+            } else if (dataFine != null) {
+                if (formattattore(elemento.get("datafi")).equals(dataFine) || formattattore(elemento.get("datafi")).isAfter(dataFine)) {
+                    return true;
+                } else {
+                    elementi.remove(0);
+                    return arco(elementi, formattattore(elemento.get("datafi")).plusDays(1), dataFine);
+                }
+            } else {
+                return false;
+            }
+        } else {
+            elementi.remove(0);
+            return arco(elementi, dataInizio, dataFine);
+        }
+    }
+
+    /**
      *
      * @param o
      * @param formatoDestinazione
      * @return
      * @throws ParseException
      */
-    public LocalDateTime formattattore(Object o) throws ParseException {
+    public LocalDateTime formattattore(Object o) {
         if (o != null) {
             try {
-                
-               // String format = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                Instant toInstant = new SimpleDateFormat("dd/mm/yyyy").parse(o.toString()).toInstant();
+
+                // String format = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(o.toString()).toInstant();
                 return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non è stato parsato
             }
             try {
-                Instant toInstant = new SimpleDateFormat("dd/mm/yyyy hh:mm").parse(o.toString()).toInstant();
+                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(o.toString()).toInstant();
+                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+            } catch (ParseException e) {
+                //non è stato parsato
+            }
+            try {
+                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(o.toString()).toInstant();
+                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+            } catch (ParseException e) {
+                //non è stato parsato
+            }
+            try {
+                String time = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(time).toInstant();
                 return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non è stato parsato
