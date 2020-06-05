@@ -10,7 +10,7 @@ import it.bologna.ausl.model.entities.baborg.QPec;
 import it.bologna.ausl.model.entities.baborg.QPecProvider;
 import it.bologna.ausl.model.entities.baborg.QPecStruttura;
 import it.bologna.ausl.model.entities.baborg.QPecUtente;
-import it.bologna.ausl.model.entities.baborg.QPermesso;
+import it.bologna.ausl.model.entities.baborg.QPermessoBaborg;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.QRuolo;
 import it.bologna.ausl.model.entities.baborg.QStruttura;
@@ -30,7 +30,7 @@ import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.PecProvider;
 import it.bologna.ausl.model.entities.baborg.PecStruttura;
 import it.bologna.ausl.model.entities.baborg.PecUtente;
-import it.bologna.ausl.model.entities.baborg.Permesso;
+import it.bologna.ausl.model.entities.baborg.PermessoBaborg;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QGdm1;
 import it.bologna.ausl.model.entities.baborg.QGdm2;
@@ -47,7 +47,6 @@ import it.bologna.ausl.model.entities.baborg.TipoPermesso;
 import it.bologna.ausl.model.entities.baborg.Titolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
-import it.bologna.ausl.model.entities.baborg.projections.generated.Gdm1WithPlainFields;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.NotFoundResourceException;
@@ -250,14 +249,14 @@ public class BaborgBaseController extends BaseCrudController {
 
     @RequestMapping(value = {"permessoold", "permessoold/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> permessoold(
-            @QuerydslPredicate(root = Permesso.class) Predicate predicate,
+            @QuerydslPredicate(root = PermessoBaborg.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPermesso.permesso, Permesso.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPermessoBaborg.permessoBaborg, PermessoBaborg.class);
         return ResponseEntity.ok(resource);
     }
 

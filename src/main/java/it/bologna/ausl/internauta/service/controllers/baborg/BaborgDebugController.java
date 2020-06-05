@@ -1,51 +1,30 @@
 package it.bologna.ausl.internauta.service.controllers.baborg;
 
-import com.google.common.collect.Lists;
-import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomController;
-import it.bologna.ausl.model.entities.baborg.Pec;
-import it.bologna.ausl.model.entities.baborg.PecUtente;
-import it.bologna.ausl.model.entities.baborg.Permesso;
-import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.PecUtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositoryImpl;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
-import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
-import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdAfferenzaStruttura;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdUtente;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithPlainFields;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdAzienda;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithPlainFields;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.persistence.Column;
 import javax.persistence.JoinColumn;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -129,10 +108,11 @@ public class BaborgDebugController {
 
     @RequestMapping(value = "test", method = RequestMethod.GET)
 //    @Transactional(rollbackFor = Throwable.class)
-    public Object test(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException { //26839
+    public Object test(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException { //26839
         projectionsInterceptorLauncher.setRequestParams(new HashMap<String, String>(), request);
 //        List<UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom> res;
-        List<Map<String, Object>> utentiStrutturaSottoResponsabili = strutturaRepository.getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(26839);
+//        List<Map<String, Object>> utentiStrutturaSottoResponsabili = strutturaRepository.getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(34513, null);
+        List<Map<String, Object>> utentiStrutturaSottoResponsabili = strutturaRepository.getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(34513, LocalDateTime.now());
 
         List<UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom> res = utentiStrutturaSottoResponsabili.stream().map(utenteStrutturaMap -> {
             UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom utenteStruttura = this.getUtenteStruttura(utenteStrutturaMap);
