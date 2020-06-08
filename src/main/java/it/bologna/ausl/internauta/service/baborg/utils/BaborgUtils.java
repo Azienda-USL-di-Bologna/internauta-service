@@ -207,7 +207,9 @@ public class BaborgUtils {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
         String nameCsv = sdf.format(timestamp) + "_Error_" + tipo + ".csv";
         File csvErrorFile = new File(System.getProperty("java.io.tmpdir"), nameCsv);
-        csvErrorFile.deleteOnExit();
+        String nameCsv2 = sdf.format(timestamp) + "_Error2_" + tipo + ".csv";
+        File csvErrorFile2 = new File(System.getProperty("java.io.tmpdir"), nameCsv2);
+        
         String uuid = null;
         boolean bloccante = false;
         ICsvMapReader mapReader = null;
@@ -605,29 +607,25 @@ public class BaborgUtils {
 
                     //struttura padre non trovata
                     List<Integer> selectDaddyByIdAzienda = mdrStrutturaRepository.selectDaddyByIdAzienda(idAzienda);
-                    if (selectDaddyByIdAzienda != null && selectDaddyByIdAzienda.size() > 0 && selectDaddyByIdAzienda.get(0) != null) {
+                    if (selectDaddyByIdAzienda != null && selectDaddyByIdAzienda.size() > 0 && !selectDaddyByIdAzienda.isEmpty()) {
                         bloccante = true;
                     }
-                    //strutture che non rispettano il padre
-//                    List<Integer> caselleInvalide = mdrStrutturaRepository.caselleInvalide(idAzienda);
-//
-//                    if (caselleInvalide != null && caselleInvalide.size() > 0 && caselleInvalide.get(0) != null) {
-//                        bloccante = true;
-//
-//                    }
                     mapWriter.close();
+                    mapReader.close();
+                    
                     try (InputStreamReader csvErrorFileRIP = new InputStreamReader(new FileInputStream(csvErrorFile));) {
 
                         mapErrorReader = new CsvMapReader(csvErrorFileRIP, SEMICOLON_DELIMITED);
                         mapErrorReader.getHeader(true);
-
-                        mapErrorWriter = new CsvMapWriter(new FileWriter(csvErrorFile), SEMICOLON_DELIMITED);
+                        
+                        mapErrorWriter = new CsvMapWriter(new FileWriter(csvErrorFile2), SEMICOLON_DELIMITED);
                         mapErrorWriter.writeHeader(headersErrorGenerator(tipo));
 
-                        Map<String, Object> strutturaErrorMap = null;
+                        Map<String, Object> strutturaErrorMap = new HashMap();
                         while ((strutturaErrorMap = mapErrorReader.read(headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda))) != null) {
-                            Map<String, Object> strutturaErrorMapWrite = null;
-                            strutturaErrorMapWrite = strutturaErrorMap;
+                            Map<String, Object> strutturaErrorMapWrite = new HashMap();
+                            
+                            strutturaErrorMapWrite.putAll(strutturaErrorMap);
                             if (strutturaErrorMap.get("id_padre") != null && !strutturaErrorMap.get("id_padre").equals("0")) {
                                 List<Map<String, Object>> elementi = mdrStrutturaRepository.mieiPadri(idAzienda, Integer.parseInt(strutturaErrorMap.get("id_padre").toString()));
                                 if (!arco(elementi, formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi")))) {
@@ -642,7 +640,7 @@ public class BaborgUtils {
                                 }
                             }
 
-                            if (selectDaddyByIdAzienda.contains(strutturaErrorMap.get("id_padre")) && selectDaddyByIdAzienda.get(0) != null) {
+                            if (selectDaddyByIdAzienda.contains(Integer.parseInt(strutturaErrorMap.get("id_padre").toString())) && !selectDaddyByIdAzienda.isEmpty()) {
                                 if (strutturaErrorMap.get("ERRORE") != null) {
                                     strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " padre non presente,");
                                 } else {
@@ -653,7 +651,10 @@ public class BaborgUtils {
                             mapErrorWriter.write(strutturaErrorMapWrite, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
 
                         }
+                        csvErrorFile.deleteOnExit();
+                        csvErrorFile2.deleteOnExit();
                     } catch (Exception ex) {
+                        bloccante=true;
                         System.out.println("ex:" + ex);
                     }
 
@@ -782,7 +783,12 @@ public class BaborgUtils {
                     break;
             }
         } catch (Exception e) {
-            throw new BaborgCSVException(csvErrorFile.getAbsolutePath(), e);
+             if (!tipo.equals("STRUTTURA")) {
+                throw new BaborgCSVException(csvErrorFile.getAbsolutePath(), e);
+             }else{
+                throw new BaborgCSVException(csvErrorFile2.getAbsolutePath(), e);
+             
+             }
         } finally {
             if (mapReader != null) {
                 try {
@@ -807,7 +813,7 @@ public class BaborgUtils {
                 try {
                     mapErrorWriter.close();
                     MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
-                    uuid = mongoWrapper.put(csvErrorFile, csvErrorFile.getName(), "/importazioniCSV/csv_error_GRU", true);
+                    uuid = mongoWrapper.put(csvErrorFile2, csvErrorFile2.getName(), "/importazioniCSV/csv_error_GRU", true);
 
                 } catch (IOException ex) {
                     log.error("mapWriter non chiudibile", ex);
@@ -815,6 +821,7 @@ public class BaborgUtils {
             }
         }
         csvErrorFile.delete();
+        csvErrorFile2.delete();
         if (bloccante) {
             throw new BaborgCSVException(uuid);
         }
@@ -1088,7 +1095,7 @@ public class BaborgUtils {
             res = updateEsitoImportazioneOrganigramma(newRowInserted, "Ok", csv_error_link);
         } catch (BaborgCSVException e) {
             System.out.println(e.getMessage());
-            res = updateEsitoImportazioneOrganigramma(newRowInserted, "Errore", e.getMessage());
+            res = updateEsitoImportazioneOrganigramma(newRowInserted, "Errore BaborgCSVException", e.getMessage());
         } catch (Throwable e) {
             System.out.println(e.getMessage());
             res = updateEsitoImportazioneOrganigramma(newRowInserted, "Errore", null);
@@ -1122,7 +1129,8 @@ public class BaborgUtils {
                     return arco(elementi, formattattore(elemento.get("datafi")).plusDays(1), dataFine);
                 }
             } else {
-                return false;
+                elementi.remove(0);
+                return arco(elementi, formattattore(elemento.get("datafi")).plusDays(1), dataFine);
             }
         } else {
             elementi.remove(0);
