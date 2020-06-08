@@ -829,7 +829,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @return
      */
     @RequestMapping(value = "countMessageInFolder/{idFolder}", method = RequestMethod.GET)
-    public Long countMesisageInFolder(
+    public Long countMessageInFolder(
             @PathVariable(required = true) Integer idFolder,
             @RequestParam(name = "folderType", required = false) Folder.FolderType folderType,
             @RequestParam(name = "idPec", required = false) Integer idPec,
