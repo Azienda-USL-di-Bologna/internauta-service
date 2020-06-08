@@ -31,6 +31,8 @@ public class StrutturaRepositoryImpl implements StrutturaRepositoryCustom {
         query.setParameter(1, new TypedParameterValue(IntegerType.INSTANCE, idStruttura));
         query.setParameter(2, new TypedParameterValue(LocalDateTimeType.INSTANCE, dataRiferimento));
         List<Object[]> resultList = query.getResultList();
+//        System.out.println("dentro:");
+//        resultList.stream().forEach(r -> System.out.println(r[1]));
 
         NativeQueryTools nativeQueryTools = new NativeQueryTools(em);
         List<Map<String, Object>> res = nativeQueryTools.asListOfMaps(resultList, nativeQueryTools.getColumnNameToIndexMap(queryString));

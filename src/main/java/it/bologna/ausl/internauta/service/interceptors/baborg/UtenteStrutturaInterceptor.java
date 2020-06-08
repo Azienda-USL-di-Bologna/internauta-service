@@ -1,5 +1,7 @@
 package it.bologna.ausl.internauta.service.interceptors.baborg;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
@@ -44,9 +46,12 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     StrutturaRepository strutturaRepository;
-
+    
     @Autowired
     UtenteStrutturaRepository utenteStrutturaRepository;
+    
+    @Autowired
+    ObjectMapper objectMapper;
 
     @Autowired
     ProjectionFactory projectionFactory;
@@ -125,15 +130,26 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
                             List<Map<String, Object>> utentiStrutturaSottoResponsabili;
                             try {
                                 utentiStrutturaSottoResponsabili = strutturaRepository.getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(idStruttura, dataRiferimento);
-                            } catch (SQLException ex) {
+                            } catch (Exception ex) {
                                 throw new AbortLoadInterceptorException("errore nell'estrazione dei sotto resposabili", ex);
                             }
-
+                            System.out.println("aaaaaaaaaa");
+                    try {
+                        System.out.println(objectMapper.writeValueAsString(utentiStrutturaSottoResponsabili));
+                    } catch (JsonProcessingException ex) {
+                        Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                             List<Object> res = utentiStrutturaSottoResponsabili.stream().map(utenteStrutturaMap -> {
                                 Object utenteStruttura = this.getUtenteStruttura(utenteStrutturaMap, projectionClass);
                                 //return factory.createProjection(UtenteStrutturaWithIdUtente.class, utenteStruttura);
                                 return utenteStruttura;
                             }).collect(Collectors.toList());
+                            System.out.println("res");
+                    try {
+                        System.out.println(objectMapper.writeValueAsString(res));
+                    } catch (JsonProcessingException ex) {
+                        Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                             entities.addAll(res);
 //                            List entitiesList = new ArrayList(entities);
 //                            Collections.sort(entitiesList, (UtenteStrutturaWithIdUtente us1, UtenteStrutturaWithIdUtente us2) -> {

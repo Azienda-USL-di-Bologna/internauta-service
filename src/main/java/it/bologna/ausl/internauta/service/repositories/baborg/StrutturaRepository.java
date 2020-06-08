@@ -43,9 +43,9 @@ public interface StrutturaRepository extends
     @Query(value = "select * from baborg.get_utenti_struttura_sottoresponsabili_filtered(?1)", nativeQuery = true)
     public List<Map<String, Object>> getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(Integer idStruttura);
     
-//    @Query(value = "select * from baborg.get_utenti_struttura_sottoresponsabili_filtered_at_date(?1, cast(?2 as date))", nativeQuery = true)
+//    @Query(value = "select * from baborg.get_utenti_struttura_sottoresponsabili_filtered_at_date(?1, ?2)", nativeQuery = true)
 ////    @Procedure("baborg.get_utenti_struttura_sottoresponsabili_filtered_at_date")
-//    public List<Map<String, Object>> getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(Integer idStruttura, LocalDateTime dataRiferimento);
+//    public List<Map<String, Object>> getIdUtentiStruttureWithSottoResponsabiliByIdStruttura1(Integer idStruttura, LocalDateTime dataRiferimento);
  
     
 }
