@@ -55,6 +55,7 @@ import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Collections;
@@ -412,8 +413,8 @@ public class UserInfoService {
 //    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estraiStorico}")
 //    public void getPermessiDiFlussoRemoveCache(Utente utente, LocalDate dataPermesso, Boolean estraiStorico) {
 //    }
-    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estraiStorico, #idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null'}")
-    public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente, LocalDate dataPermesso,
+    @Cacheable(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toLocalDate().toEpochDay(): 'null', #estraiStorico, #idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null'}")
+    public List<PermessoEntitaStoredProcedure> getPermessiDiFlusso(Utente utente, LocalDateTime dataPermesso,
             Boolean estraiStorico, Integer idProvenienzaOggetto) throws BlackBoxPermissionException {
         BlackBoxConstants.Direzione direzione;
         if (estraiStorico != null && estraiStorico) {
@@ -426,13 +427,13 @@ public class UserInfoService {
             InternautaConstants.Permessi.Ambiti.DETE.toString(),
             InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
-                false, dataPermesso, null, direzione);
+                false, dataPermesso != null? dataPermesso.toLocalDate(): null, null, direzione);
     }
 
-    @Cacheable(value = "getPermessiFilteredByAdditionalData__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estraiStorico, "
+    @Cacheable(value = "getPermessiFilteredByAdditionalData__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toLocalDate().toEpochDay(): 'null', #estraiStorico, "
             + "#idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null', #ambitiPermesso != null? #ambitiPermesso.toString(): 'null', "
             + "#tipiPermesso != null? #tipiPermesso.toString(): 'null'}")
-    public List<PermessoEntitaStoredProcedure> getPermessiFilteredByAdditionalData(Utente utente, LocalDate dataPermesso,
+    public List<PermessoEntitaStoredProcedure> getPermessiFilteredByAdditionalData(Utente utente, LocalDateTime dataPermesso,
             Boolean estraiStorico, Integer idProvenienzaOggetto, List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
         BlackBoxConstants.Direzione direzione;
         if (estraiStorico != null && estraiStorico) {
@@ -445,7 +446,7 @@ public class UserInfoService {
                 null, 
                 ambitiPermesso != null ? ambitiPermesso.stream().map(ambito -> ambito.toString()).collect(Collectors.toList()): null,
                 tipiPermesso != null? tipiPermesso.stream().map(tipo -> tipo.toString()).collect(Collectors.toList()): null,
-                false, dataPermesso, null, direzione);
+                false, dataPermesso != null? dataPermesso.toLocalDate(): null, null, direzione);
     }
 
     /**
@@ -462,8 +463,8 @@ public class UserInfoService {
         return getPermessiDiFlussoByIdUtente(utente, null, null, null);
     }
 
-    @Cacheable(value = "getPermessiDiFlussoByIdUtente__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estraiStorico, #idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null'}")
-    public List<Permesso> getPermessiDiFlussoByIdUtente(Utente utente, LocalDate dataPermesso,
+    @Cacheable(value = "getPermessiDiFlussoByIdUtente__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toLocalDate().toEpochDay(): 'null', #estraiStorico, #idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null'}")
+    public List<Permesso> getPermessiDiFlussoByIdUtente(Utente utente, LocalDateTime dataPermesso,
             Boolean estraiStorico, Integer idProvenienzaOggetto) throws BlackBoxPermissionException {
         List<PermessoEntitaStoredProcedure> permessiDiFlusso = getPermessiDiFlusso(utente, dataPermesso, estraiStorico, idProvenienzaOggetto);
         // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend
@@ -487,10 +488,10 @@ public class UserInfoService {
         return permessiUtente;
     }
 
-    @Cacheable(value = "getPermessiFilteredByAdditionalDataByIdUtente__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toEpochDay(): 'null', #estraiStorico, "
+    @Cacheable(value = "getPermessiFilteredByAdditionalDataByIdUtente__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermessodataPermesso.toLocalDate().toEpochDay(): 'null', #estraiStorico, "
             + "#idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null', #ambitiPermesso != null? #ambitiPermesso.toString(): 'null', "
             + "#tipiPermesso != null? #tipiPermesso.toString(): 'null'}")
-    public List<Permesso> getPermessiFilteredByAdditionalDataByIdUtente(Utente utente, LocalDate dataPermesso,
+    public List<Permesso> getPermessiFilteredByAdditionalDataByIdUtente(Utente utente, LocalDateTime dataPermesso,
             Boolean estraiStorico, Integer idProvenienzaOggetto, List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
         List<PermessoEntitaStoredProcedure> permessiFilteredByAdditionalData = getPermessiFilteredByAdditionalData(utente, dataPermesso, estraiStorico, idProvenienzaOggetto, ambitiPermesso, tipiPermesso);
         // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend

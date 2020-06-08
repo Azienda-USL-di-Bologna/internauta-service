@@ -13,7 +13,7 @@ public interface UtenteWithIdPersonaAndPermessiCustom extends UtenteWithIdPerson
 
     @Value("#{@userInfoService.getPermessiFilteredByAdditionalData("
             + "target, "
-            + "@additionalDataParamsExtractor.getDataPermesso(),"
+            + "@additionalDataParamsExtractor.getDataRiferimento(),"
             + "@additionalDataParamsExtractor.getEstraiStorico(),"
             + "@additionalDataParamsExtractor.getIdProvenienzaOggetto(),"
             + "@additionalDataParamsExtractor.getAmbitiPermesso(),"

@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.configuration.spring;
 
 import org.apache.catalina.connector.Connector;
+import org.apache.coyote.ajp.AbstractAjpProtocol;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
@@ -28,13 +29,14 @@ public class ConnectorConfig {
     }
 
     private Connector redirectConnector(int ajpPort, int maxPostSize) {
-        Connector connector = new Connector("AJP/1.3");
-        connector.setScheme("http");
-        connector.setPort(ajpPort);
-        connector.setSecure(false);
-        connector.setAllowTrace(false);
-        connector.setMaxPostSize(maxPostSize);
-        return connector;
+        Connector ajpConnector = new Connector("AJP/1.3");
+        ajpConnector.setScheme("http");
+        ajpConnector.setPort(ajpPort);
+        ajpConnector.setSecure(false);
+        ajpConnector.setAllowTrace(false);
+        ajpConnector.setMaxPostSize(maxPostSize);
+        ((AbstractAjpProtocol) ajpConnector.getProtocolHandler()).setSecretRequired(false);
+        return ajpConnector;
     }
 
 }

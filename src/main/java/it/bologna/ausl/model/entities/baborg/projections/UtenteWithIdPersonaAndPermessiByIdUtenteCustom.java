@@ -17,14 +17,14 @@ public interface UtenteWithIdPersonaAndPermessiByIdUtenteCustom extends UtenteWi
 //    @Override
 //    @Value("#{@userInfoService.getPermessiDiFlussoByIdUtente("
 //            + "target, "
-//            + "@additionalDataParamsExtractor.getDataPermesso(), "
+//            + "@additionalDataParamsExtractor.getDataRiferimento(), "
 //            + "@additionalDataParamsExtractor.getEstraiStorico(),"
 //            + "@additionalDataParamsExtractor.getIdProvenienzaOggetto())}")
 //    public List<Permesso> getPermessiDiFlussoByIdUtente();
     
     @Value("#{@userInfoService.getPermessiFilteredByAdditionalDataByIdUtente("
         + "target, "
-        + "@additionalDataParamsExtractor.getDataPermesso(),"
+        + "@additionalDataParamsExtractor.getDataRiferimento(),"
         + "@additionalDataParamsExtractor.getEstraiStorico(),"
         + "@additionalDataParamsExtractor.getIdProvenienzaOggetto(),"
         + "@additionalDataParamsExtractor.getAmbitiPermesso(),"
