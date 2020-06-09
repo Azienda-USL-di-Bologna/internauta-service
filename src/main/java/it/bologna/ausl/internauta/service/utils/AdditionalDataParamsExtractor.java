@@ -35,15 +35,17 @@ public class AdditionalDataParamsExtractor {
         return null;
     }
     
-    public Boolean getEstraiStorico() {
+    public String getModalita() {
         Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
         if (additionalData != null) {
-            String estraiStorico = additionalData.get("estraiStorico");
-            if (StringUtils.hasText(estraiStorico)) {
-                return Boolean.valueOf(estraiStorico);
+            String modalita = additionalData.get("modalita");
+            if (StringUtils.hasText(modalita)) {
+                return modalita;
+            } else {
+                return null;
             }
         }
-        return false;
+        return null;
     }
     
     public Integer getIdProvenienzaOggetto() {

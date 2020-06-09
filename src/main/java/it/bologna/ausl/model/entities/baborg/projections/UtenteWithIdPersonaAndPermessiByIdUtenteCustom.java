@@ -1,6 +1,7 @@
 package it.bologna.ausl.model.entities.baborg.projections;
 
 import it.bologna.ausl.internauta.service.permessi.Permesso;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
 import java.util.List;
@@ -25,10 +26,20 @@ public interface UtenteWithIdPersonaAndPermessiByIdUtenteCustom extends UtenteWi
     @Value("#{@userInfoService.getPermessiFilteredByAdditionalDataByIdUtente("
         + "target, "
         + "@additionalDataParamsExtractor.getDataRiferimento(),"
-        + "@additionalDataParamsExtractor.getEstraiStorico(),"
+        + "@additionalDataParamsExtractor.getModalita(),"
         + "@additionalDataParamsExtractor.getIdProvenienzaOggetto(),"
         + "@additionalDataParamsExtractor.getAmbitiPermesso(),"
         + "@additionalDataParamsExtractor.getTipiPermesso(),"
         + ")}")
     public List<Permesso> getPermessiFilteredByAdditionalDataByIdUtente();
+    
+//    @Value("#{@userInfoService.getPermessiFilteredByAdditionalData("
+//        + "target, "
+//        + "@additionalDataParamsExtractor.getDataRiferimento(),"
+//        + "@additionalDataParamsExtractor.getModalita(),"
+//        + "@additionalDataParamsExtractor.getIdProvenienzaOggetto(),"
+//        + "@additionalDataParamsExtractor.getAmbitiPermesso(),"
+//        + "@additionalDataParamsExtractor.getTipiPermesso(),"
+//        + ")}")
+//   List<PermessoEntitaStoredProcedure> getPermessiFilteredByAdditionalData();
 }
