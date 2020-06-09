@@ -430,14 +430,26 @@ public class UserInfoService {
                 false, dataPermesso != null? dataPermesso.toLocalDate(): null, null, direzione);
     }
 
-    @Cacheable(value = "getPermessiFilteredByAdditionalData__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toLocalDate().toEpochDay(): 'null', #estraiStorico, "
+    @Cacheable(value = "getPermessiFilteredByAdditionalData__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toLocalDate().toEpochDay(): 'null', #modalita, "
             + "#idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null', #ambitiPermesso != null? #ambitiPermesso.toString(): 'null', "
             + "#tipiPermesso != null? #tipiPermesso.toString(): 'null'}")
     public List<PermessoEntitaStoredProcedure> getPermessiFilteredByAdditionalData(Utente utente, LocalDateTime dataPermesso,
-            Boolean estraiStorico, Integer idProvenienzaOggetto, List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
+            String modalita, Integer idProvenienzaOggetto, List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
         BlackBoxConstants.Direzione direzione;
-        if (estraiStorico != null && estraiStorico) {
-            direzione = BlackBoxConstants.Direzione.PASSATO;
+        if (modalita != null) {
+            switch (modalita) {
+                case "storico":
+                    direzione = BlackBoxConstants.Direzione.PASSATO;
+                    break;
+                 case "non_scaduti":
+                    direzione = BlackBoxConstants.Direzione.NON_SCADUTI;
+                    break;
+                 case "futuro":
+                    direzione = BlackBoxConstants.Direzione.FUTURO;
+                    break;
+                default:
+                    direzione = BlackBoxConstants.Direzione.PRESENTE;
+            }
         } else {
             direzione = BlackBoxConstants.Direzione.PRESENTE;
         }
@@ -488,12 +500,12 @@ public class UserInfoService {
         return permessiUtente;
     }
 
-    @Cacheable(value = "getPermessiFilteredByAdditionalDataByIdUtente__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermessodataPermesso.toLocalDate().toEpochDay(): 'null', #estraiStorico, "
+    @Cacheable(value = "getPermessiFilteredByAdditionalDataByIdUtente__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toLocalDate().toEpochDay(): 'null', #modalita, "
             + "#idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null', #ambitiPermesso != null? #ambitiPermesso.toString(): 'null', "
             + "#tipiPermesso != null? #tipiPermesso.toString(): 'null'}")
     public List<Permesso> getPermessiFilteredByAdditionalDataByIdUtente(Utente utente, LocalDateTime dataPermesso,
-            Boolean estraiStorico, Integer idProvenienzaOggetto, List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
-        List<PermessoEntitaStoredProcedure> permessiFilteredByAdditionalData = getPermessiFilteredByAdditionalData(utente, dataPermesso, estraiStorico, idProvenienzaOggetto, ambitiPermesso, tipiPermesso);
+            String modalita, Integer idProvenienzaOggetto, List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
+        List<PermessoEntitaStoredProcedure> permessiFilteredByAdditionalData = getPermessiFilteredByAdditionalData(utente, dataPermesso, modalita, idProvenienzaOggetto, ambitiPermesso, tipiPermesso);
         // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend
         List<Permesso> permessiUtente = new ArrayList<>();
 
