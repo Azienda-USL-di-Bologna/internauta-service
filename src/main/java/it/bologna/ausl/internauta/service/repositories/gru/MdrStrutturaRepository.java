@@ -53,7 +53,7 @@ public interface MdrStrutturaRepository extends
     @Query(value="select ms.datain , ms.datafi from gru.mdr_struttura ms where ms.id_casella = ?2 and ms.id_azienda=?1 order by ms.datain asc", nativeQuery=true)
     public List<Map<String,Object>> mieiPadri(Integer idAzienda,Integer id_casella);
     
-    @Query(value = "select array_agg(id_padre) from (select distinct(ms.id_padre) from gru.mdr_struttura ms where (ms.id_padre is not null and ms.id_padre != 0) and ms.id_azienda = ?1) as padri where padri.id_padre not in (select distinct(ms.id_casella) from gru.mdr_struttura ms where ms.id_casella in (select distinct(ms.id_padre) from gru.mdr_struttura ms where (ms.id_padre is not null and ms.id_padre != 0) and ms.id_azienda =?1))", nativeQuery = true)
+    @Query(value = "select array_agg(distinct(id_casella)) from gru.mdr_struttura ms where ms.id_padre is not null and ms.id_padre != 0 and id_azienda = ?1 and ms.id_padre not in (select id_casella from gru.mdr_struttura ms3 where id_azienda =?1)", nativeQuery = true)
     public List<Integer> selectDaddyByIdAzienda(Integer idAzienda);
     
     @Query(value = "select array_agg(ms2.id_casella) from gru.mdr_struttura ms2 where ms2.id_azienda =?1 and (ms2.id_padre is not null and ms2.id_padre != 0) and " +
@@ -65,5 +65,11 @@ public interface MdrStrutturaRepository extends
     
     @Query(value = "select count(id_casella) from gru.mdr_struttura ms where id_casella =?1 and id_azienda=?2", nativeQuery = true)
     public Integer selectStrutturaUtenteByIdCasellaAndIdAzienda(Integer idCasella,Integer idAzienda);
+    
+    @Query(value = "select case when exists (select id_casella from gru.mdr_struttura where id_casella=?1  and id_azienda =?2) then true else false end", nativeQuery = true)
+    public Boolean esistePapa(Integer idCasella,Integer idAzienda);
+    
+    @Query(value = "select id_casella from gru.mdr_struttura where id_azienda=?1", nativeQuery = true)
+    public List<Integer> listaStrutture(Integer idAzienda);
     
 }
