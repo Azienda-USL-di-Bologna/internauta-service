@@ -9,13 +9,13 @@ package it.bologna.ausl.internauta.service.exceptions;
  *
  * @author mdonza
  */
-public class BaborgCSVException extends Throwable{
+public class BaborgCSVBloccanteException extends Throwable{
 
-    public BaborgCSVException(String message) {
+    public BaborgCSVBloccanteException(String message) {
         super(message);
     }
 
-    public BaborgCSVException(String message, Throwable cause) {
+    public BaborgCSVBloccanteException(String message, Throwable cause) {
         super(message, cause);
     }
     
