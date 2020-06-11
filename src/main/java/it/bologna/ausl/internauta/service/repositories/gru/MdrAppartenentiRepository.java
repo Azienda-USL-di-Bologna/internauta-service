@@ -35,9 +35,8 @@ public interface MdrAppartenentiRepository extends
         
     @Procedure("gru.select_multidefinictions_user_byidazienda")
     public Integer select_multidefinictions_user_byidazienda(
-            @Param("codice_ente_par") Integer codiceEnte,
+            @Param("id_azienda_par") Integer idAzienda,
             @Param("codice_matricola_par")Integer codiceMatricola,
-            @Param("id_casella_par")Integer idCasella,
             @Param("datafi_par") String datafine,
             @Param("datain_par") String datainizio
     );
