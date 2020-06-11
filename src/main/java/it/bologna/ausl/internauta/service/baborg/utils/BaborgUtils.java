@@ -374,16 +374,17 @@ public class BaborgUtils {
                         } else {
                             mapError.put("tipo_appartenenza", appartenentiMap.get("tipo_appartenenza"));
                             mA.setTipoAppartenenza(appartenentiMap.get("tipo_appartenenza").toString());
+                            
+                            if ((appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")) &&
+                                    (mdrAppartenentiRepository.select_multidefinictions_user_byidazienda(idAzienda,
+                                    Integer.parseInt(codiceMatricola),
+                                    datafiString,
+                                    datainString) > 0)) {
+                                anomalia=true;
+                                mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
+                            }
                         }
                         //controllo multiafferenza diretta
-                        if ((!bloccante) && (mdrAppartenentiRepository.select_multidefinictions_user_byidazienda(codiceAzienda,
-                                Integer.parseInt(codiceMatricola),
-                                Integer.parseInt(idCasella),
-                                datafiString,
-                                datainString)) > 0) {
-                            anomalia=true;
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
-                        }
 //                      DataAssunzione bloccante
                         if (appartenentiMap.get("data_assunzione") == null || appartenentiMap.get("data_assunzione").toString().trim().equals("") || appartenentiMap.get("data_assunzione") == "") {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " data_assunzione,");
@@ -682,7 +683,7 @@ public class BaborgUtils {
 
                                 if (!arco(elementi, formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi")))) {
                                     bloccante = true;
-                                    strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " non rispetta l'arco temporale del padre,");
+                                    strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE")!=null ? strutturaErrorMap.get("ERRORE") : "" + " non rispetta l'arco temporale del padre,");
                                 }
                             }
 
