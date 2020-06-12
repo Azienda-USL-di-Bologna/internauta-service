@@ -470,24 +470,6 @@ public class BaborgUtils {
                             }
                         }
 
-//                      ID_CASELLA bloccante
-                        String id_casella = null;
-                        if (responsabiliMap.get("id_casella") == null || responsabiliMap.get("id_casella").toString().trim().equals("") || responsabiliMap.get("id_casella") == "") {
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella,");
-                            id_casella = "";
-                            mapError.put("id_casella", "");
-                            mR.setIdCasella(null);
-                            anomalia = true;
-                        } else {
-                            mapError.put("id_casella", responsabiliMap.get("id_casella"));
-                            id_casella = responsabiliMap.get("id_casella").toString();
-                            mR.setIdCasella(Integer.parseInt(responsabiliMap.get("id_casella").toString()));
-
-                            if (mdrStrutturaRepository.selectStrutturaUtenteByIdCasellaAndIdAzienda(Integer.parseInt(responsabiliMap.get("id_casella").toString()), idAzienda) <= 0) {
-                                mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella non trovata nella tabella strutture,");
-                                anomalia = true;
-                            }
-                        }
 //                      DATAIN bloccante                        
                         if (responsabiliMap.get("datain") == null || responsabiliMap.get("datain").toString().trim().equals("") || responsabiliMap.get("datain") == "") {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " datain non presente,");
@@ -511,11 +493,39 @@ public class BaborgUtils {
                             datain = formattattore(responsabiliMap.get("datain"));
                             datainString = UtilityFunctions.getLocalDateTimeString(datain);
                         }
-                        if (!bloccante && mdrResponsabiliRepository.countMultiReponsabilePerStruttura(codiceAzienda,
+
+//                      ID_CASELLA bloccante
+                        String id_casella = null;
+                        if (responsabiliMap.get("id_casella") == null || responsabiliMap.get("id_casella").toString().trim().equals("") || responsabiliMap.get("id_casella") == "") {
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella,");
+                            id_casella = "";
+                            mapError.put("id_casella", "");
+                            mR.setIdCasella(null);
+                            anomalia = true;
+                        } else {
+                            mapError.put("id_casella", responsabiliMap.get("id_casella"));
+                            id_casella = responsabiliMap.get("id_casella").toString();
+                            mR.setIdCasella(Integer.parseInt(responsabiliMap.get("id_casella").toString()));
+
+                            if (mdrStrutturaRepository.selectStrutturaUtenteByIdCasellaAndIdAzienda(Integer.parseInt(responsabiliMap.get("id_casella").toString()), idAzienda) <= 0) {
+                                mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella non trovata nella tabella strutture,");
+                                anomalia = true;
+                            } else {
+                                List<Map<String, Object>> mieiPadri = mdrStrutturaRepository.mieiPadri(idAzienda, Integer.parseInt(responsabiliMap.get("id_casella").toString()));
+                                if (responsabiliMap.get("datain") != null && !responsabiliMap.get("datain").toString().trim().equals("") && responsabiliMap.get("datain") != "") {
+                                    if (!arco(mieiPadri, formattattore(responsabiliMap.get("datain")), formattattore(responsabiliMap.get("datafi")))) {
+                                        mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella non valida per periodo temporale,");
+                                        anomalia = true;
+                                    }
+                                }
+                            }
+                        }
+//                      
+                        if (mdrResponsabiliRepository.countMultiReponsabilePerStruttura(codiceAzienda,
                                 Integer.parseInt(id_casella),
                                 datafiString,
                                 datainString) > 0) {
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " la struttura di questo responsabile Ã¨ giÃ  assegnata ad un altro respondabile,");
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " la struttura di questo responsabile è già  assegnata ad un altro respondabile,");
                         }
 //                      DATAFI non bloccante
                         if (responsabiliMap.get("datafi") == null || responsabiliMap.get("datafi").toString().trim().equals("") || responsabiliMap.get("datafi") == "") {
@@ -761,8 +771,8 @@ public class BaborgUtils {
                         } else {
                             mapError.put("motivo", trasformazioniMap.get("motivo"));
                             mT.setMotivo(trasformazioniMap.get("motivo").toString());
-                            //TODO controllo su casella di arrivo
-                            if (trasformazioniMap.get("motivo").toString().equalsIgnoreCase("x")) {
+                            
+                            if (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("x")) {
                                 if (trasformazioniMap.get("id_casella_arrivo") == null || trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")) {
                                     mapError.put("ERRORE", mapError.get("ERRORE") + " ID_CASELLA_ARRIVO,");
                                     mapError.put("id_casella_arrivo", "");
@@ -775,6 +785,11 @@ public class BaborgUtils {
                                         bloccante = true;
                                         mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non trovata nella tabella strutture,");
                                     }
+                                    List<Map<String, Object>> mieiPadri = mdrStrutturaRepository.mieiPadri(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                    if (!arco(mieiPadri, formattattore(trasformazioniMap.get("data_trasformazione")), formattattore(trasformazioniMap.get("data_trasformazione")))) {
+                                        mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non ha il periodo valido,");
+                                        anomalia = true;
+                                    }
                                 }
                             } else {
                                 if (trasformazioniMap.get("id_casella_arrivo") == null || trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")) {
@@ -785,6 +800,24 @@ public class BaborgUtils {
                                     mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo trovata ma il motivo non è valido ,");
                                     anomalia = true;
                                     mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                }
+                            }
+                            if (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("r")
+                                    || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("t")
+                                    || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("u")
+                                    || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("x")) {
+                                List<Map<String, Object>> mieiPadri = mdrStrutturaRepository.mieiPadri(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()));
+                                if (!arco(mieiPadri, formattattore(trasformazioniMap.get("data_trasformazione")).minusDays(1), formattattore(trasformazioniMap.get("data_trasformazione")).minusDays(1))) {
+                                    mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non chiusa il giorno prima della data trasformazione quindi non rispetta l'arco temporale sulla tabella struttura,");
+                                    anomalia = true;
+                                }
+                            }
+                            if (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("r")
+                                    || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("t")) {
+                                List<Map<String, Object>> mieiPadri = mdrStrutturaRepository.mieiPadri(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()));
+                                if (!arco(mieiPadri, formattattore(trasformazioniMap.get("data_trasformazione")), formattattore(trasformazioniMap.get("data_trasformazione")))) {
+                                    mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non aperta il giorno della data trasformazione quindi non rispetta l'arco temporale sulla tabella struttura,");
+                                    anomalia = true;
                                 }
                             }
                         }
