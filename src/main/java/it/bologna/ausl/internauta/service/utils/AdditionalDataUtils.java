@@ -18,7 +18,7 @@ public class AdditionalDataUtils {
     @Autowired
     private HttpServletRequest request;
     
-    // es: additionalData=dataPermesso=1586854870098,param2=val2
+    // es: additionalData=dataRiferimento=1586854870098,param2=val2
     public Map<String, String> getAdditionalData() {
         if (request != null) {
             String additionaDataString = request.getParameter("additionalData");

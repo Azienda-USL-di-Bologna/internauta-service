@@ -19,14 +19,16 @@ public class PermessoError {
     private String ambito;
     private String tipo;
     private LocalDate dataPermesso;
+    private LocalDate dataFinePermesso;
 
-    public PermessoError(String soggetto, String oggetto, String predicato, String ambito, String tipo, LocalDate dataPermesso) {
+    public PermessoError(String soggetto, String oggetto, String predicato, String ambito, String tipo, LocalDate dataPermesso, LocalDate dataFinePermesso) {
         this.soggetto = soggetto;
         this.oggetto = oggetto;
         this.predicato = predicato;
         this.ambito = ambito;
         this.tipo = tipo;
         this.dataPermesso = dataPermesso;
+        this.dataFinePermesso = dataFinePermesso;
     }
 
     public String getSoggetto() {

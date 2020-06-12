@@ -1,5 +1,7 @@
 package it.bologna.ausl.internauta.service.interceptors.baborg;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
@@ -13,14 +15,22 @@ import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAf
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdUtente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
@@ -36,9 +46,12 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     StrutturaRepository strutturaRepository;
-
+    
     @Autowired
     UtenteStrutturaRepository utenteStrutturaRepository;
+    
+    @Autowired
+    ObjectMapper objectMapper;
 
     @Autowired
     ProjectionFactory projectionFactory;
@@ -54,7 +67,15 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) {
         System.out.println("in: beforeSelectQueryInterceptor di UtenteStruttura");
 
-        String filterComboValue = additionalData.get(FILTER_COMBO);
+        String filterComboValue = null;
+        LocalDateTime dataRiferimento = null;
+        if (additionalData != null && additionalData.containsKey(FILTER_COMBO)) {
+            filterComboValue = additionalData.get(FILTER_COMBO);
+        }
+        String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
+        if (additionalData != null && additionalData.containsKey(key)) {
+            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime();
+        }
 
         if (filterComboValue != null) {
             BooleanExpression customFilter = QUtenteStruttura.utenteStruttura.idUtente.idPersona.cognome
@@ -63,11 +84,20 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
                     .containsIgnoreCase(filterComboValue);
             initialPredicate = customFilter.and(initialPredicate);
         }
+        if (dataRiferimento != null && !dataRiferimento.toLocalDate().isEqual(LocalDate.now())) {
+            QUtenteStruttura qUtenteStruttura = QUtenteStruttura.utenteStruttura;
+            BooleanExpression filter = qUtenteStruttura.attivoDal.loe(dataRiferimento.atZone(ZoneId.systemDefault()))
+                    .and((qUtenteStruttura.attivoAl.isNull()).or(qUtenteStruttura.attivoAl.goe(dataRiferimento.atZone(ZoneId.systemDefault()))));
+            initialPredicate = filter.and(initialPredicate);
+        } else {
+            /* vogliamo che per default, se non si passa una data di riferimento, oppure si passa come data di riferimento la data odierna,
+            * si cerchino le righe con campo attivo = true
+            * NB: il front-end a volte lo mette già nei filtri dell'initialPredicate
+            */
+            BooleanExpression customFilterUtenteStrutturaAttivo = QUtenteStruttura.utenteStruttura.attivo.eq(true);
+            initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
+        }
 
-        // vogliamo che per default si cerchino le righe con campo attivo = true
-        // NB: il front-end a volte lo mette già nei filtri dell'initialPredicate
-        BooleanExpression customFilterUtenteStrutturaAttivo = QUtenteStruttura.utenteStruttura.attivo.eq(true);
-        initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
 
         return initialPredicate;
     }
@@ -90,15 +120,36 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
                     case CaricaSottoResponsabili:
                         //idProvenienzaOggetto=28618
                         String idStrutturaString = additionalData.get(InternautaConstants.AdditionalData.Keys.idProvenienzaOggetto.toString());
+                        LocalDateTime dataRiferimento = null;
+                        String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
+                        if (additionalData.containsKey(key)) {
+                            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime();
+                        }
                         if (StringUtils.hasText(idStrutturaString)) {
                             Integer idStruttura = Integer.parseInt(idStrutturaString);
-                            List<Map<String, Object>> utentiStrutturaSottoResponsabili = strutturaRepository.getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(idStruttura);
-
+                            List<Map<String, Object>> utentiStrutturaSottoResponsabili;
+                            try {
+                                utentiStrutturaSottoResponsabili = strutturaRepository.getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(idStruttura, dataRiferimento);
+                            } catch (Exception ex) {
+                                throw new AbortLoadInterceptorException("errore nell'estrazione dei sotto resposabili", ex);
+                            }
+                            System.out.println("aaaaaaaaaa");
+                    try {
+                        System.out.println(objectMapper.writeValueAsString(utentiStrutturaSottoResponsabili));
+                    } catch (JsonProcessingException ex) {
+                        Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                             List<Object> res = utentiStrutturaSottoResponsabili.stream().map(utenteStrutturaMap -> {
                                 Object utenteStruttura = this.getUtenteStruttura(utenteStrutturaMap, projectionClass);
                                 //return factory.createProjection(UtenteStrutturaWithIdUtente.class, utenteStruttura);
                                 return utenteStruttura;
                             }).collect(Collectors.toList());
+                            System.out.println("res");
+                    try {
+                        System.out.println(objectMapper.writeValueAsString(res));
+                    } catch (JsonProcessingException ex) {
+                        Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                             entities.addAll(res);
 //                            List entitiesList = new ArrayList(entities);
 //                            Collections.sort(entitiesList, (UtenteStrutturaWithIdUtente us1, UtenteStrutturaWithIdUtente us2) -> {

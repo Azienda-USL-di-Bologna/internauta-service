@@ -23,27 +23,29 @@ public class AdditionalDataParamsExtractor {
     @Autowired
     AdditionalDataUtils additionalDataUtils;
     
-    public LocalDate getDataPermesso() {
+    public LocalDateTime getDataRiferimento() {
         Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
         if (additionalData != null) {
-            String dataPermesso = additionalData.get("dataPermesso");
-            if (StringUtils.hasText(dataPermesso)) {
-                return Instant.ofEpochMilli(Long.parseLong(dataPermesso)).atZone(ZoneId.systemDefault()).toLocalDate(); // java <= 8
+            String dataRiferimento = additionalData.get("dataRiferimento");
+            if (StringUtils.hasText(dataRiferimento)) {
+                return Instant.ofEpochMilli(Long.parseLong(dataRiferimento)).atZone(ZoneId.systemDefault()).toLocalDateTime(); // java <= 8
 //                return LocalDate.ofInstant(Instant.ofEpochMilli(Long.parseLong(dataPermesso)), ZoneId.systemDefault()); // java > 8
             }
         }
         return null;
     }
     
-    public Boolean getEstraiStorico() {
+    public String getModalita() {
         Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
         if (additionalData != null) {
-            String estraiStorico = additionalData.get("estraiStorico");
-            if (StringUtils.hasText(estraiStorico)) {
-                return Boolean.valueOf(estraiStorico);
+            String modalita = additionalData.get("modalita");
+            if (StringUtils.hasText(modalita)) {
+                return modalita;
+            } else {
+                return null;
             }
         }
-        return false;
+        return null;
     }
     
     public Integer getIdProvenienzaOggetto() {
@@ -78,18 +80,6 @@ public class AdditionalDataParamsExtractor {
                 List<InternautaConstants.Permessi.Tipi> tipiPermesso = Arrays.asList(tipiPermessoString.split("\\s*;\\s*"))
                         .stream().map(ambitoStr -> InternautaConstants.Permessi.Tipi.valueOf(ambitoStr.toUpperCase())).collect(Collectors.toList());
                 return tipiPermesso;
-            }
-        }
-        return null;
-    }
-
-    public LocalDateTime getDataRiferimento() {
-        Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
-        if (additionalData != null) {
-            String dataRiferimento = additionalData.get("dataRiferimento");
-            if (StringUtils.hasText(dataRiferimento)) {
-                return Instant.ofEpochMilli(Long.parseLong(dataRiferimento)).atZone(ZoneId.systemDefault()).toLocalDateTime(); // java <= 8
-//                return LocalDate.ofInstant(Instant.ofEpochMilli(Long.parseLong(dataPermesso)), ZoneId.systemDefault()); // java > 8
             }
         }
         return null;
