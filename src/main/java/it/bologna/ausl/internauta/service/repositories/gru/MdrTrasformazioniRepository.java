@@ -35,5 +35,14 @@ public interface MdrTrasformazioniRepository extends
     
     @Query(value = "select count(ms.id_casella) FROM gru.mdr_struttura ms where ms.id_azienda = ?1 and ms.id_casella=?2 and ms.datain <= ?3 and ms.datafi > ?3 ", nativeQuery = true)
     public Integer isTransformableByIdAzienda(Integer idAzienda, Integer id_casella, LocalDateTime data);
+    
+    @Query(value = "select count(ms.id_casella) FROM gru.mdr_struttura ms where ms.id_azienda = ?1 and ms.id_casella=?2 and ms.datafi = ?3 - interval '1 day' and ms.datain=?4 ", nativeQuery = true)
+    public Integer isSpentaAccesaBeneByIdAzienda(Integer idAzienda, Integer id_casella, LocalDateTime data_trasformazione,LocalDateTime datain);
+    
+    @Query(value = "select count(ms.id_casella) FROM gru.mdr_struttura ms where ms.id_azienda = ?1 and ms.id_casella=?2 and ms.datain=?3 ", nativeQuery = true)
+    public Integer isAccesaBeneByIdAzienda(Integer idAzienda, Integer id_casella, LocalDateTime data_trasformazione);
+    
+    @Query(value = "select count(ms.id_casella) FROM gru.mdr_struttura ms where ms.id_azienda = ?1 and ms.id_casella=?2 and ms.datain<=?3 and (ms.datafi is null or ms.datafi >= ?3)", nativeQuery = true)
+    public Integer isAccesaIntervalloByIdAzienda(Integer idAzienda, Integer id_casella, LocalDateTime data_trasformazione);
 }
 
