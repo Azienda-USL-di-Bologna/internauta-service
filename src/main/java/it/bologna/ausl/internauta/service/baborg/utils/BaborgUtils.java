@@ -776,7 +776,7 @@ public class BaborgUtils {
 //                          DA AGGIUNGERE CONTOLLO DETTO SOPRA
 //                          controllo che non ci sia un blocco precedente perche potrei non avere la data quindi la chiamata successiva potrebbe dare errore
                             if (!bloccante) {
-                                Integer spentaAccesaBeneByIdAzienda = mdrTrasformazioniRepository.isSpentaAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), formattattore(trasformazioniMap.get("data_trasformazione")), formattattore(trasformazioniMap.get("datain_partenza")));
+                                Integer spentaAccesaBeneByIdAzienda = mdrTrasformazioniRepository.isSpentaAccesaBeneByIdAzienda(idAzienda,Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), UtilityFunctions.getLocalDateTimeString(formattattore(trasformazioniMap.get("data_trasformazione").toString())), UtilityFunctions.getLocalDateTimeString(formattattore(trasformazioniMap.get("datain_partenza").toString())));
                                 if (spentaAccesaBeneByIdAzienda != 1) {
                                     bloccante = true;
                                     tempi_ok = false;
