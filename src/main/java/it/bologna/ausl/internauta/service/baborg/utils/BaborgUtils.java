@@ -269,7 +269,7 @@ public class BaborgUtils {
                         MdrAppartenenti mA = new MdrAppartenenti();
 //                      preparo la mappa di errore
                         mapError.put("ERRORE", "");
-
+                        List<Map<String, Object>> selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta = null;
 //                      CODICE_MATRICOLA bloccante
                         String codiceMatricola = null;
                         if (appartenentiMap.get("codice_matricola") == null || appartenentiMap.get("codice_matricola").toString().trim().equals("") || appartenentiMap.get("codice_matricola") == "") {
@@ -282,6 +282,7 @@ public class BaborgUtils {
                             mapError.put("codice_matricola", appartenentiMap.get("codice_matricola"));
                             codiceMatricola = appartenentiMap.get("codice_matricola").toString();
                             mA.setCodiceMatricola(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
+                            selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta = mdrAppartenentiRepository.selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), idAzienda);
                         }
 //                      COGNOME bloccante
                         if (appartenentiMap.get("cognome") == null || appartenentiMap.get("cognome").toString().trim().equals("") || appartenentiMap.get("cognome") == "") {
@@ -379,14 +380,12 @@ public class BaborgUtils {
                             mapError.put("tipo_appartenenza", appartenentiMap.get("tipo_appartenenza"));
                             mA.setTipoAppartenenza(appartenentiMap.get("tipo_appartenenza").toString());
                             if (appartenentiMap.get("codice_ente") != null && !appartenentiMap.get("codice_ente").toString().trim().equals("") && appartenentiMap.get("codice_ente") != "") {
-                                if ((appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T"))
-                                        && (mdrAppartenentiRepository.select_multidefinictions_user_byidazienda(idAzienda,
-                                                Integer.parseInt(appartenentiMap.get("codice_ente").toString()),
-                                                Integer.parseInt(codiceMatricola),
-                                                datafiString,
-                                                datainString) > 0)) {
-                                    anomalia = true;
-                                    mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
+                                if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")){
+                                    if (!arco(selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta, datain, datafi)) {
+                                        anomalia = true;
+                                        mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
+
+                                    }
                                 }
                             }
                         }

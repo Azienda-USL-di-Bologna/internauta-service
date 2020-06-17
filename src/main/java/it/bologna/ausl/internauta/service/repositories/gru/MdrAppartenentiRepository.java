@@ -41,7 +41,11 @@ public interface MdrAppartenentiRepository extends
             @Param("datafi_par") String datafine,
             @Param("datain_par") String datainizio
     );
-     
+    
+    
     @Query(value = "select count(ma.codice_matricola) from gru.mdr_appartenenti ma where ma.codice_matricola = ?1", nativeQuery = true)
     public  Integer countUsertByCodiceMatricola(Integer codice_matricola);
+    
+    @Query(value = "select ma.datain, ma.datafi from gru.mdr_appartenenti ma where ma.codice_matricola =?1 and ma.id_azienda =?2 and ma.tipo_appartenenza = 'T'", nativeQuery = true)
+    public  List<Map<String,Object>> selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta(Integer codice_matricola, Integer id_azienda);
 }
