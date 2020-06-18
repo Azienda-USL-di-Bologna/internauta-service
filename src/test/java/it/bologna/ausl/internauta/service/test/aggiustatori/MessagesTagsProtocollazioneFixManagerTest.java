@@ -6,7 +6,9 @@
 package it.bologna.ausl.internauta.service.test.aggiustatori;
 
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
-import it.bologna.ausl.internauta.service.utils.aggiustatori.MessagesTagsProtocollazioneFixManager;
+import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.factories.DataHolderFactory;
+import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.holders.MessagesTagsProtocollazioneFixDataHolder;
+import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,17 +24,31 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 public class MessagesTagsProtocollazioneFixManagerTest {
 
+    public final static int ID_MESSAGE = 189280;  //  in protocollazione
+    //public final static int ID_MESSAGE = 188770;    //  protocollato
+
     @Autowired
     private MessageRepository messageRepository;
 
     @Autowired
     MessagesTagsProtocollazioneFixManager mtpfm;
 
+    @Autowired
+    private MessagesTagsProtocollazioneFixDataHolder dataHolder;
+    @Autowired
+    private DataHolderFactory dataHolderFactory;
+
     //private static final Logger log = LoggerFactory.getLogger(MessagesTagsProtocollazioneFixManagerTest.class);
+//    @Test
+//    public void testaSpecifico() {
+//        System.out.println("testaSpecifico...");
+//        Message mess = messageRepository.findById(ID_MESSAGE).get();
+//        dataHolderFactory.createNewMessagesTagsProctocollazioneFixDataHolder(mess);
+//    }
     @Test
-    public void testaSeFunzia() {
+    public void xxxTestaIlMain() {
         System.out.println("SUPERFIKO DELUXXXE!!");
-        Message mess = messageRepository.findById(188766).get();
+        Message mess = messageRepository.findById(ID_MESSAGE).get();
         mtpfm.fixDatiProtocollazioneMessaggio(mess);
     }
 }

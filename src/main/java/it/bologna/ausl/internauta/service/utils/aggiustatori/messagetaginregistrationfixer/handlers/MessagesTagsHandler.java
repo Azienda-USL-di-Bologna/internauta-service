@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package it.bologna.ausl.internauta.service.shpeck.utils;
+package it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.handlers;
 
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
@@ -12,6 +12,7 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
 import java.util.List;
+import org.json.JSONArray;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -21,12 +22,21 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class MessagesTagsHandler {
-
+    
     @Autowired
     MessageTagRepository messageTagRepository;
-
+    
     @Autowired
     TagRepository tagRepository;
+    
+    public MessageTag createNewRegisteredMessageTag(Message message) {
+        Tag tag = tagRepository.findByidPecAndName(message.getIdPec(), Tag.SystemTagName.registered.toString());
+        MessageTag mt = new MessageTag();
+        mt.setIdMessage(message);
+        mt.setIdTag(tag);
+        mt.setAdditionalData(new JSONArray().toString());
+        return mt;
+    }
 
     /**
      * Ritorna il Tag con il nome richiesto del Message passato come parametro.

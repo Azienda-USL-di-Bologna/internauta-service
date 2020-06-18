@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package it.bologna.ausl.internauta.service.shpeck.utils;
+package it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.handlers;
 
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepository;
@@ -35,7 +35,6 @@ public class MessagesFoldersHandler {
      * @return Folder
      */
     public Folder getActualFolder(Message message) {
-        System.out.println("getActualFolder()!");
         Folder folderToReturn = null;
         List<MessageFolder> messagesFolders = messageFolderRepository.findByIdMessage(message);
         if (messagesFolders != null && messagesFolders.size() > 0) {
