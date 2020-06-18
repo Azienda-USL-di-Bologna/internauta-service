@@ -381,8 +381,8 @@ public class BaborgUtils {
                             mA.setTipoAppartenenza(appartenentiMap.get("tipo_appartenenza").toString());
                             if (appartenentiMap.get("codice_ente") != null && !appartenentiMap.get("codice_ente").toString().trim().equals("") && appartenentiMap.get("codice_ente") != "") {
                                 if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")){
-                                    if (!arco(selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta, datain, datafi)) {
-                                        anomalia = true;
+                                    if (arco(selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta, datain, datafi)) {
+                                        bloccante = true;
                                         mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
 
                                     }
