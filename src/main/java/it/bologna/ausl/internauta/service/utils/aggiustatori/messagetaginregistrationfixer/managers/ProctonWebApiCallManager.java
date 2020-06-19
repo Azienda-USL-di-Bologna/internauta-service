@@ -5,22 +5,18 @@
  */
 package it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers;
 
-import it.bologna.ausl.internauta.service.externalcommunications.GenericHttpCallManager;
-import it.bologna.ausl.internauta.service.externalcommunications.RequestBodyBuilder;
+import static it.bologna.ausl.middelmine.builders.RequestBodyBuilder.JSON;
 import it.bologna.ausl.model.entities.baborg.Azienda;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.HashMap;
-import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.http.client.HttpResponseException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +33,7 @@ public class ProctonWebApiCallManager {
     String getDatiProtocollazioneDocumentoWebApiUrl;
 
     private final String BASE_PATH_KEY = "basePath";
+    private final String BABEL_SUITE_API_URL = "babelSuiteWebApiUrl";
 
     private final String DOCUMENT_DATA_URL_PARAM_KEY = "documentData";
 
@@ -44,41 +41,38 @@ public class ProctonWebApiCallManager {
 
     private final String X_HTTP_METHOD_OVERRIDE = "X-Http-Method-Override";
 
-    public void getDatiProtocollazioneDocumento(Azienda azienda, String numeroProposta) throws IOException {
-        String basePath = new JSONObject(azienda.getParametri()).getString(BASE_PATH_KEY);
+    public JSONObject getDatiProtocollazioneDocumento(Azienda azienda, String numeroProposta) throws IOException {
+        String basePath = new JSONObject(azienda.getParametri()).getString(BABEL_SUITE_API_URL);
         HashMap headers = new HashMap();
         headers.put(X_HTTP_METHOD_OVERRIDE, "getRegisteringDocumentData");
         headers.put("content-type", "application/json");
+
         JSONObject numeroPropostaJsonParam = new JSONObject();
         numeroPropostaJsonParam.put(NUMERO_PROPOSTA_URL_PARAM_KEY, numeroProposta);
-        String url = basePath + getDatiProtocollazioneDocumentoWebApiUrl;
-        log.info(url);
-
-        HashMap urlParams = new HashMap();
+        JSONObject urlParams = new JSONObject();
         urlParams.put(DOCUMENT_DATA_URL_PARAM_KEY, numeroPropostaJsonParam.toString());
-        url = "http://gdml:8080/Procton/GetDatiProtocollazioneDocumento";
-        HttpUrl buildedHttpUrl = GenericHttpCallManager.buildHttpUrl(url, urlParams);
+        String url = basePath + getDatiProtocollazioneDocumentoWebApiUrl;
+        OkHttpClient client = new OkHttpClient();
+        RequestBody body = RequestBody.create(JSON, urlParams.toString().getBytes("UTF-8"));
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader(X_HTTP_METHOD_OVERRIDE, "getRegisteringDocumentData")
+                .post(body)
+                .build();
 
-        Request getRequest = GenericHttpCallManager.getGetRequest(buildedHttpUrl.toString(), headers);
-        log.info(getRequest.toString());
-
-        Response response = GenericHttpCallManager.requestCall(getRequest);
-        //log.info("Response -> " + response.toString());
-        try {
-            InputStream byteStream = response.body().byteStream();
-            StringBuilder res = new StringBuilder();
-            try (Reader reader = new InputStreamReader(byteStream);) {
-                int c = 0;
-                while ((c = reader.read()) != -1) {
-                    res.append((char) c);
-                }
-            }
-            System.out.println("RES -> " + res.toString());
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw t;
+        JSONObject documentData = new JSONObject();
+        String resBody = null;
+        Response response = client.newCall(request).execute();
+        if (response.isSuccessful()) {
+            resBody = response.body().string();
+            log.info("Response body ->\n" + resBody);
+            JSONObject resBodyJsonObject = new JSONObject(resBody);
+            documentData = new JSONObject((String) resBodyJsonObject.get("Message"));
+        } else {
+            throw new HttpResponseException(response.code(),
+                    "Errore nella ricerca del documento: " + response.message());
         }
-
+        return documentData;
     }
 
 }

@@ -5,10 +5,12 @@
  */
 package it.bologna.ausl.internauta.service.test.aggiustatori;
 
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.factories.DataHolderFactory;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.holders.MessagesTagsProtocollazioneFixDataHolder;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,6 +33,9 @@ public class MessagesTagsProtocollazioneFixManagerTest {
     private MessageRepository messageRepository;
 
     @Autowired
+    private UtenteRepository utenteRepository;
+
+    @Autowired
     MessagesTagsProtocollazioneFixManager mtpfm;
 
     @Autowired
@@ -46,9 +51,23 @@ public class MessagesTagsProtocollazioneFixManagerTest {
 //        dataHolderFactory.createNewMessagesTagsProctocollazioneFixDataHolder(mess);
 //    }
     @Test
-    public void xxxTestaIlMain() {
-        System.out.println("SUPERFIKO DELUXXXE!!");
-        Message mess = messageRepository.findById(ID_MESSAGE).get();
-        mtpfm.fixDatiProtocollazioneMessaggio(mess);
+    public void caricaUtenteTest() {
+        Utente u = utenteRepository.getIdUtenteByIdAziendaAndPersonaDescrizione(2, "Gusella Francesco");
+        System.out.println(u.toString());
     }
+
+//    @Test
+//    public void doubleTest() {
+//        System.out.println("doubleTest!!");
+//        Message mess = messageRepository.findById(189280).get();
+//        mtpfm.fixDatiProtocollazioneMessaggio(mess);
+//        mess = messageRepository.findById(188770).get();
+//        mtpfm.fixDatiProtocollazioneMessaggio(mess);
+//    }
+//    @Test
+//    public void xxxTestaIlMain() {
+//        System.out.println("SUPERFIKO DELUXXXE!!");
+//        Message mess = messageRepository.findById(ID_MESSAGE).get();
+//        mtpfm.fixDatiProtocollazioneMessaggio(mess);
+//    }
 }
