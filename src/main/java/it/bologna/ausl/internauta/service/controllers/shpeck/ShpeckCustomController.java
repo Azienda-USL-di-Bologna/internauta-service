@@ -891,7 +891,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @return String Un json di risposta
      */
     @RequestMapping(value = "fixMessageTagInRegistration/{idMessage}", method = RequestMethod.GET)
-    public String fixMessageTagInRegistration(Integer idMessage) {
+    public String fixMessageTagInRegistration(@PathVariable(required = true) Integer idMessage) {
         LOG.info("Ho chiamato la funzione per aggiustare il MessageTag di "
                 + "message con id {} ...", idMessage);
 

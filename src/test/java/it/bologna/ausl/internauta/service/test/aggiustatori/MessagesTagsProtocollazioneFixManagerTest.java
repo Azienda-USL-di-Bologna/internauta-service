@@ -56,13 +56,12 @@ public class MessagesTagsProtocollazioneFixManagerTest {
 //        Message mess = messageRepository.findById(ID_MESSAGE).get();
 //        dataHolderFactory.createNewMessagesTagsProctocollazioneFixDataHolder(mess);
 //    }
-    @Test
-    public void caricaUtenteTest() {
-        Persona p = personaRepository.findByCodiceFiscale("SLMLNZ85C13A944M");
-        Utente u = utenteRepository.findByIdAziendaAndIdPersona(2, p.getId());
-        System.out.println(u.toString());
-    }
-
+//    @Test
+//    public void caricaUtenteTest() {
+//        Persona p = personaRepository.findByCodiceFiscale("SLMLNZ85C13A944M");
+//        Utente u = utenteRepository.findByIdAziendaAndIdPersona(2, p.getId());
+//        System.out.println(u.toString());
+//    }
 //    @Test
 //    public void doubleTest() {
 //        System.out.println("doubleTest!!");
