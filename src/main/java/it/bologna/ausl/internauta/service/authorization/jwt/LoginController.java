@@ -365,6 +365,7 @@ public class LoginController {
                     ssoFieldValue = userSSOFieldValueObj.toString();
                 }
             } catch (Exception ex) {
+                logger.error("passToken non valido", ex);
                 return new ResponseEntity("passToken non valido", HttpStatus.FORBIDDEN);
             }
         }

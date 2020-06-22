@@ -35,13 +35,17 @@ public interface MdrAppartenentiRepository extends
         
     @Procedure("gru.select_multidefinictions_user_byidazienda")
     public Integer select_multidefinictions_user_byidazienda(
-            @Param("codice_ente_par") Integer codiceEnte,
+            @Param("id_azienda_par") Integer idAzienda,
+            @Param("codice_ente") Integer codice_ente,
             @Param("codice_matricola_par")Integer codiceMatricola,
-            @Param("id_casella_par")Integer idCasella,
             @Param("datafi_par") String datafine,
             @Param("datain_par") String datainizio
     );
-     
+    
+    
     @Query(value = "select count(ma.codice_matricola) from gru.mdr_appartenenti ma where ma.codice_matricola = ?1", nativeQuery = true)
     public  Integer countUsertByCodiceMatricola(Integer codice_matricola);
+    
+    @Query(value = "select ma.datain, ma.datafi from gru.mdr_appartenenti ma where ma.codice_matricola =?1 and ma.id_azienda =?2 and ma.tipo_appartenenza = 'T'", nativeQuery = true)
+    public  List<Map<String,Object>> selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta(Integer codice_matricola, Integer id_azienda);
 }

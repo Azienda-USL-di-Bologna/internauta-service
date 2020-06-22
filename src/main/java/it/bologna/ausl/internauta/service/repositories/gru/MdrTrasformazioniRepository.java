@@ -12,6 +12,8 @@ import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
+import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -35,5 +37,19 @@ public interface MdrTrasformazioniRepository extends
     
     @Query(value = "select count(ms.id_casella) FROM gru.mdr_struttura ms where ms.id_azienda = ?1 and ms.id_casella=?2 and ms.datain <= ?3 and ms.datafi > ?3 ", nativeQuery = true)
     public Integer isTransformableByIdAzienda(Integer idAzienda, Integer id_casella, LocalDateTime data);
+    
+    @Procedure("gru.isSpentaAccesaBeneByIdAzienda")
+    public Integer isSpentaAccesaBeneByIdAzienda(
+            @Param("p_id_azienda") Integer idAzienda,
+            @Param("p_id_casella")Integer idCasella,
+            @Param("p_data_trasformazione") String data_trasformazione,
+            @Param("p_datain") String datain
+    );
+    
+    @Query(value = "select count(ms.id_casella) FROM gru.mdr_struttura ms where ms.id_azienda = ?1 and ms.id_casella=?2 and ms.datain=?3 ", nativeQuery = true)
+    public Integer isAccesaBeneByIdAzienda(Integer idAzienda, Integer id_casella, LocalDateTime data_trasformazione);
+    
+    @Query(value = "select count(ms.id_casella) FROM gru.mdr_struttura ms where ms.id_azienda = ?1 and ms.id_casella=?2 and ms.datain<=?3 and (ms.datafi is null or ms.datafi >= ?3)", nativeQuery = true)
+    public Integer isAccesaIntervalloByIdAzienda(Integer idAzienda, Integer id_casella, LocalDateTime data_trasformazione);
 }
 

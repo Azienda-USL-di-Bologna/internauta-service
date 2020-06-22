@@ -9,15 +9,14 @@ package it.bologna.ausl.internauta.service.exceptions;
  *
  * @author mdonza
  */
-public class BaborgCSVException extends Exception{
-
-    public BaborgCSVException(String message) {
+public class BaborgCSVAnomaliaException extends Throwable{
+    
+    public BaborgCSVAnomaliaException(String message) {
         super(message);
     }
 
-    public BaborgCSVException(String message, Throwable cause) {
+    public BaborgCSVAnomaliaException(String message, Throwable cause) {
         super(message, cause);
     }
-    
     
 }

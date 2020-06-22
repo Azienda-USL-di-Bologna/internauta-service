@@ -483,7 +483,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
                                 Lists.newArrayList(categoriaPermessiStoredProcedure.getAmbito()),
                                 Lists.newArrayList(categoriaPermessiStoredProcedure.getTipo()),
                                 true,
-                                permessoStoredProcedure.getAttivoDal().toLocalDate(),
+                                permessoStoredProcedure.getAttivoDal() != null ? permessoStoredProcedure.getAttivoDal().toLocalDate(): null,
                                 permessoStoredProcedure.getAttivoAl() != null ? permessoStoredProcedure.getAttivoAl().toLocalDate() : null);
 
                         if (risposte != null && !risposte.isEmpty()) {
@@ -498,7 +498,8 @@ public class PermessiCustomController implements ControllerHandledExceptions {
                                             String predicato = permessoStoredProcedure.getPredicato();
                                             String ambito = categoriaPermessiStoredProcedure.getAmbito();
                                             String tipo = categoriaPermessiStoredProcedure.getTipo();
-                                            PermessoError permessoError = new PermessoError(soggetto, oggetto, predicato, ambito, tipo, resPermesso.getAttivoDal().toLocalDate());
+                                            PermessoError permessoError = new PermessoError(soggetto, oggetto, predicato, ambito, tipo, 
+                                                    resPermesso.getAttivoDal().toLocalDate(), resPermesso.getAttivoAl() != null ? resPermesso.getAttivoAl().toLocalDate() : null);
                                             //throw new Http409ResponseException("permesso_furuto", "trovato un permesso nel futuro che si sovrappone");
                                             risultanze.add(permessoError);
                                         }
@@ -588,7 +589,12 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         });
 
         idUtentiSet.forEach(idUtente -> {
-            permessiUtilities.cleanCachePermessiUtente(idUtente);
+            Utente u = utenteRepository.getOne(idUtente);
+            Persona idPersona = u.getIdPersona();
+            List<Utente> utentiPersona = userInfoService.getUtentiPersona(idPersona);
+            utentiPersona.forEach(utente -> {
+                permessiUtilities.cleanCachePermessiUtente(utente.getId());
+            });
         });
     }
 }
