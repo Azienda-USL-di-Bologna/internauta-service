@@ -5,11 +5,13 @@
  */
 package it.bologna.ausl.internauta.service.test.aggiustatori;
 
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.factories.DataHolderFactory;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.holders.MessagesTagsProtocollazioneFixDataHolder;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import org.junit.Test;
@@ -36,10 +38,14 @@ public class MessagesTagsProtocollazioneFixManagerTest {
     private UtenteRepository utenteRepository;
 
     @Autowired
+    private PersonaRepository personaRepository;
+
+    @Autowired
     MessagesTagsProtocollazioneFixManager mtpfm;
 
     @Autowired
     private MessagesTagsProtocollazioneFixDataHolder dataHolder;
+
     @Autowired
     private DataHolderFactory dataHolderFactory;
 
@@ -52,7 +58,8 @@ public class MessagesTagsProtocollazioneFixManagerTest {
 //    }
     @Test
     public void caricaUtenteTest() {
-        Utente u = utenteRepository.getIdUtenteByIdAziendaAndPersonaDescrizione(2, "Gusella Francesco");
+        Persona p = personaRepository.findByCodiceFiscale("SLMLNZ85C13A944M");
+        Utente u = utenteRepository.findByIdAziendaAndIdPersona(2, p.getId());
         System.out.println(u.toString());
     }
 

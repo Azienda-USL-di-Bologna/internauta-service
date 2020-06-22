@@ -6,6 +6,7 @@
 package it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers;
 
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.holders.AdditionalDataOjectHolder;
 import it.bologna.ausl.model.entities.baborg.Azienda;
@@ -28,6 +29,9 @@ public class AdditionalDataFixManager {
 
     @Autowired
     AziendaRepository aziendaRepository;
+
+    @Autowired
+    PersonaRepository personaRepository;
 
     @Autowired
     UtenteRepository utenteRepository;
@@ -134,7 +138,8 @@ public class AdditionalDataFixManager {
     }
 
     private Utente getUtente(Integer idAzienda, String descrizioneUtente) {
-        return utenteRepository.getIdUtenteByIdAziendaAndPersonaDescrizione(idAzienda, descrizioneUtente);
+        //return utenteRepository.getIdUtenteByIdAziendaAndPersonaDescrizione(idAzienda, descrizioneUtente);
+        return null;
     }
 
     private JSONObject getNewRegisteredAdditionalDataJSONObject(JSONObject datiDocumentiDaPico, JSONObject aziendaObject) {
