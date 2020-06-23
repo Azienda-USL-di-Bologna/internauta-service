@@ -94,6 +94,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxLiteRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
@@ -177,6 +178,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     ObjectMapper objectMapper;
+
+    @Autowired
+    MessagesTagsProtocollazioneFixManager messagesTagsProtocollazioneFixManager;
 
     /**
      *
@@ -891,13 +895,27 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @return String Un json di risposta
      */
     @RequestMapping(value = "fixMessageTagInRegistration/{idMessage}", method = RequestMethod.GET)
-    public String fixMessageTagInRegistration(@PathVariable(required = true) Integer idMessage) {
+    public String fixMessageTagInRegistration(@PathVariable(required = true) Integer idMessage) throws Throwable {
         LOG.info("Ho chiamato la funzione per aggiustare il MessageTag di "
                 + "message con id {} ...", idMessage);
-
-        // fai cose
         JSONObject risposta = new JSONObject();
-        risposta.put("Response", "Tutto ok");
+        try {
+            Message message = messageRepository.findById(idMessage).get();
+            LOG.info("Trovato messagggio: uuidMessage {}", message.getUuidMessage());
+            JSONArray fixedData = messagesTagsProtocollazioneFixManager.fixDatiProtocollazioneMessaggio(message);
+
+            String fixedDataString = "Fixed Data: ";
+            if (fixedData != null) {
+                fixedDataString += fixedData.toString(4);
+            } else {
+                fixedDataString += "NO DATA FIXED";
+            }
+            String responseString = "Tutto ok - " + fixedDataString;
+            risposta.put("Response", responseString);
+        } catch (Throwable t) {
+            t.printStackTrace();
+            risposta.put("Response", "PROBLEMI: " + t.getMessage());
+        }
         return risposta.toString();
     }
 
