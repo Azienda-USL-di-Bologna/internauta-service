@@ -9,6 +9,7 @@ import static it.bologna.ausl.middelmine.builders.RequestBodyBuilder.JSON;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -52,7 +53,11 @@ public class ProctonWebApiCallManager {
         JSONObject urlParams = new JSONObject();
         urlParams.put(DOCUMENT_DATA_URL_PARAM_KEY, numeroPropostaJsonParam.toString());
         String url = basePath + getDatiProtocollazioneDocumentoWebApiUrl;
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(60, TimeUnit.SECONDS) // connection timeout
+                .writeTimeout(60, TimeUnit.SECONDS) // (probabilmente non serve, ma mettiamolo lo stesso)
+                .readTimeout(60, TimeUnit.SECONDS) // socket timeout
+                .build();
         RequestBody body = RequestBody.create(JSON, urlParams.toString().getBytes("UTF-8"));
         Request request = new Request.Builder()
                 .url(url)

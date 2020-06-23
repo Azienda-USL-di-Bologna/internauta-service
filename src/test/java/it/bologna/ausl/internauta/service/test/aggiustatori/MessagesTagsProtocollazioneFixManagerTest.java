@@ -14,6 +14,8 @@ import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistr
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.shpeck.Message;
+import java.io.IOException;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,11 +26,12 @@ import org.springframework.test.context.junit4.SpringRunner;
  *
  * @author Salo
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
+//@RunWith(SpringRunner.class)
+//@SpringBootTest
 public class MessagesTagsProtocollazioneFixManagerTest {
 
-    public final static int ID_MESSAGE = 189280;  //  in protocollazione
+    public final static int ID_MESSAGE = 189573;  //  TEST
+    //public final static int ID_MESSAGE = 189280;  //  in protocollazione
     //public final static int ID_MESSAGE = 188770;    //  protocollato
 
     @Autowired
@@ -74,6 +77,16 @@ public class MessagesTagsProtocollazioneFixManagerTest {
 //    public void xxxTestaIlMain() {
 //        System.out.println("SUPERFIKO DELUXXXE!!");
 //        Message mess = messageRepository.findById(ID_MESSAGE).get();
-//        mtpfm.fixDatiProtocollazioneMessaggio(mess);
+//        try {
+//            mtpfm.fixDatiProtocollazioneMessaggio(mess);
+//        } catch (Throwable t) {
+//            t.printStackTrace();
+//        }
+//    }
+//    @Test
+//    public void testaLaFaccendaDelleMailSimili() throws IOException {
+//        Message mess = messageRepository.findById(ID_MESSAGE).get();
+//        List<Message> geminiMails = mtpfm.getGeminiMails(mess);
+//        System.out.println(geminiMails.size());
 //    }
 }
