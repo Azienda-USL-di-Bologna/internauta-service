@@ -70,17 +70,17 @@ public class MessagesTagsProtocollazioneFixManager {
     public JSONArray fixDatiProtocollazioneMessaggio(Message message) throws IOException {
         log.debug("Entrato in fixDatiProtocollazioneMessaggio(" + message.getId() + ")");
         dataHolder = dataHolderFactory.createNewMessagesTagsProctocollazioneFixDataHolder(message);
-        JSONArray elementiDaRimuovere = null;
+        JSONArray fixedElements = null;
         MessageTag inRegistrationMessagesTag = dataHolder.getInRegistrationMessagesTag();
         if (inRegistrationMessagesTag == null) {
             log.info("Beh, NON ESISTE un tag IN_REGISTRATION per il messaggio " + message.getId());
-            return elementiDaRimuovere;
+            return fixedElements;
         }
         MessageTag registeredTag = dataHolder.getRegisteredTag();
-        elementiDaRimuovere = additionalDataFixManager.verifyAndFixInRegistrationAdditionalData(inRegistrationMessagesTag, registeredTag);
-        if (elementiDaRimuovere.length() > 0) {
+        fixedElements = additionalDataFixManager.verifyAndFixInRegistrationAdditionalData(inRegistrationMessagesTag, registeredTag);
+        if (fixedElements.length() > 0) {
             log.info("Andiamo ad aggiustare gli additional_data dei vari MessageTag...");
-            JSONArray purifiedAdditionalData = getAdditionalDataRemovingElementiInutili(inRegistrationMessagesTag, elementiDaRimuovere);
+            JSONArray purifiedAdditionalData = getAdditionalDataRemovingElementiInutili(inRegistrationMessagesTag, fixedElements);
             log.info("Ora additionalData di MT InRegistration è\n{} ", purifiedAdditionalData.toString(4));
             inRegistrationMessagesTag.setAdditionalData(purifiedAdditionalData.toString());
             if (purifiedAdditionalData.length() == 0) {
@@ -95,11 +95,11 @@ public class MessagesTagsProtocollazioneFixManager {
                 registeredTag = messageTagRepository.save(registeredTag);
             }
             // ORA SI SISTEMANO LE PEC CON UUID_MESSAGE UGUALE
-            geminiMailFixing(message, purifiedAdditionalData);
+            geminiMailFixing(message, fixedElements);
         } else {
             log.info("Sembra tutto normale... Quindi niente");
         }
-        return elementiDaRimuovere;
+        return fixedElements;
     }
 
     public List<Message> getGeminiMails(Message message) {

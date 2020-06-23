@@ -127,6 +127,7 @@ public class AdditionalDataFixManager {
                 && (!document.get(IdDocumentoKey.NUMERO_PROTOCOLLO.toString()).equals(""))) {
             isAlreadyRegistered = true;
         }
+        log.info("ritorno {}", isAlreadyRegistered);
         return isAlreadyRegistered;
     }
 
