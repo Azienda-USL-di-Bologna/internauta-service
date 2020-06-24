@@ -72,6 +72,12 @@ public class ProctonWebApiCallManager {
             resBody = response.body().string();
             log.info("Response body ->\n" + resBody);
             JSONObject resBodyJsonObject = new JSONObject(resBody);
+            int picoResponseStatus = Integer.parseInt((String) resBodyJsonObject.get("Status"));
+            log.info("Verifichiamo davvero lo Status: " + resBodyJsonObject.get("Status"));
+            if (picoResponseStatus != 200) {
+                throw new HttpResponseException(picoResponseStatus,
+                        "ErrorMessage da Pico: " + resBodyJsonObject.get("Message"));
+            }
             documentData = new JSONObject((String) resBodyJsonObject.get("Message"));
         } else {
             throw new HttpResponseException(response.code(),

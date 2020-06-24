@@ -5,6 +5,7 @@
  */
 package it.bologna.ausl.internauta.service.test.aggiustatori;
 
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
@@ -14,6 +15,8 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.factories.DataHolderFactory;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.holders.MessagesTagsProtocollazioneFixDataHolder;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
+import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.ProctonWebApiCallManager;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -44,8 +47,13 @@ public class MessagesTagsProtocollazioneFixManagerTest {
     //public final static int ID_MESSAGE = 188770;    //  protocollato
 
     @Autowired
+    private ProctonWebApiCallManager proctonWebApiCallManager;
+
+    @Autowired
     private MessageRepository messageRepository;
 
+    @Autowired
+    private AziendaRepository aziendaRepository;
     @Autowired
     private MessageTagRepository messageTagRepository;
 
@@ -174,6 +182,15 @@ public class MessagesTagsProtocollazioneFixManagerTest {
 //            mtpfm.fixDatiProtocollazioneMessaggio(message);
 //        } catch (Throwable t) {
 //            t.printStackTrace();
+//        }
+//    }
+//    @Test
+//    public void testaSoloChiamataPico() throws IOException {
+//        Azienda azienda = aziendaRepository.findById(2).get();
+//        try {
+//            proctonWebApiCallManager.getDatiProtocollazioneDocumento(azienda, "2020-320");
+//        } catch (Throwable t) {
+//            System.out.println("PERFETTO! " + t.getMessage());
 //        }
 //    }
 }
