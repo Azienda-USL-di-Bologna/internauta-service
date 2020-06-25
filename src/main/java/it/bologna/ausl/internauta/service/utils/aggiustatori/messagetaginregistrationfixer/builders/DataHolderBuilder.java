@@ -22,18 +22,20 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DataHolderBuilder {
-
+    
     private static final Logger log = LoggerFactory.getLogger(DataHolderBuilder.class);
-
+    
     @Autowired
     private MessagesFoldersHandler messagesFoldersHandler;
-
+    
     @Autowired
     private MessagesTagsHandler messagesTagsHandler;
-
+    
     public void buildNewMessagesTagsProctocollazioneFixDataHolder(MessagesTagsProtocollazioneFixDataHolder dataHolder, Message message) {
         log.info("Buildo MessagesTagsProctocollazioneFixDataHolder");
         dataHolder.setMessage(message);
+        
+        dataHolder.setMessagesFoldersHandler(messagesFoldersHandler);
 
         //setto l'actualFolder
         Folder actualFolder = messagesFoldersHandler.getActualFolder(message);
@@ -58,5 +60,5 @@ public class DataHolderBuilder {
         }
         dataHolder.setRegisteredTag(registeredTag);
     }
-
+    
 }

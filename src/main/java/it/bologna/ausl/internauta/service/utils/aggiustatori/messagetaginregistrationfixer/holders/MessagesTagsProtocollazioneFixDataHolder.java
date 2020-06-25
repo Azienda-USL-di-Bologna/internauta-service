@@ -5,6 +5,7 @@
  */
 package it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.holders;
 
+import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.handlers.MessagesFoldersHandler;
 import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
@@ -21,6 +22,8 @@ public class MessagesTagsProtocollazioneFixDataHolder {
 
     private Folder actualFolder;
 
+    MessagesFoldersHandler messagesFoldersHandler;
+
     private Message message;
 
     private MessageTag inRegistrationMessagesTag;
@@ -29,6 +32,22 @@ public class MessagesTagsProtocollazioneFixDataHolder {
 
     public Folder getActualFolder() {
         return actualFolder;
+    }
+
+    public MessagesFoldersHandler getMessagesFoldersHandler() {
+        return messagesFoldersHandler;
+    }
+
+    public void setMessagesFoldersHandler(MessagesFoldersHandler messagesFoldersHandler) {
+        this.messagesFoldersHandler = messagesFoldersHandler;
+    }
+
+    public MessageTag getRegisteredMessageTag() {
+        return registeredMessageTag;
+    }
+
+    public void setRegisteredMessageTag(MessageTag registeredMessageTag) {
+        this.registeredMessageTag = registeredMessageTag;
     }
 
     public void setActualFolder(Folder actualFolder) {

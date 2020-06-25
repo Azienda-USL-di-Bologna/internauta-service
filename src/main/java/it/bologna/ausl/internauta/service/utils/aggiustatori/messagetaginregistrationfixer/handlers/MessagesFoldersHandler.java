@@ -39,8 +39,18 @@ public class MessagesFoldersHandler {
         List<MessageFolder> messagesFolders = messageFolderRepository.findByIdMessage(message);
         if (messagesFolders != null && messagesFolders.size() > 0) {
             MessageFolder messageFolder = messagesFolders.get(0);
-            folderToReturn = folderRepository.getOne(messageFolder.getIdFolder().getId());
+            folderToReturn = folderRepository.findById(messageFolder.getIdFolder().getId()).get();
         }
         return folderToReturn;
+    }
+
+    public void moveToRegisteredFolder(Message message) {
+        Folder registered = folderRepository.findByIdPecAndType(message.getIdPec().getId(), Folder.FolderType.REGISTERED.toString());
+        List<MessageFolder> messagesFolders = messageFolderRepository.findByIdMessage(message);
+        if (messagesFolders != null && messagesFolders.size() > 0) {
+            MessageFolder messageFolder = messagesFolders.get(0);
+            messageFolder.setIdFolder(registered);
+            messageFolderRepository.save(messageFolder);
+        }
     }
 }

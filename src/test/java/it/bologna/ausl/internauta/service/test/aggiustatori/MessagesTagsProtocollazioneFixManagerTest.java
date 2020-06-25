@@ -102,7 +102,7 @@ public class MessagesTagsProtocollazioneFixManagerTest {
 //    @Test
 //    public void xxxTestaIlMain() {
 //        System.out.println("SUPERFIKO DELUXXXE!!");
-//        Message mess = messageRepository.findById(ID_MESSAGE).get();
+//        Message mess = messageRepository.findById(189573).get();
 //        try {
 //            mtpfm.fixDatiProtocollazioneMessaggio(mess);
 //        } catch (Throwable t) {

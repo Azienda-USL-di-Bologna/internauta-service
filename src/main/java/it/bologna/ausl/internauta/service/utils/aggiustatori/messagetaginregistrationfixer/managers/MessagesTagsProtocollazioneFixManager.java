@@ -5,10 +5,15 @@
  */
 package it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers;
 
+import it.bologna.ausl.internauta.service.repositories.baborg.PecAziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.factories.DataHolderFactory;
+import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.handlers.MessagesFoldersHandler;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.holders.MessagesTagsProtocollazioneFixDataHolder;
+import it.bologna.ausl.model.entities.baborg.Pec;
+import it.bologna.ausl.model.entities.baborg.PecAzienda;
+import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import java.io.IOException;
@@ -43,11 +48,44 @@ public class MessagesTagsProtocollazioneFixManager {
     MessageTagRepository messageTagRepository;
 
     @Autowired
+    PecAziendaRepository pecAziendaRepository;
+
+    @Autowired
     MessageRepository messageRepository;
 
     private int getIdAziendaFromAdditionalDataEleemnt(JSONObject element) {
         JSONObject aziendaElement = element.getJSONObject("idAzienda");
         return aziendaElement.getInt("id");
+    }
+
+    private boolean isPecAziendaOwned(Integer idPec, Integer idAzienda) {
+        boolean appartiene = false;
+        Integer idByIdPecAndIdAzienda = pecAziendaRepository.getIdByIdPecAndIdAzienda(idPec, idAzienda);
+        if (idByIdPecAndIdAzienda != null && idByIdPecAndIdAzienda != 0) {
+            appartiene = true;
+        }
+        return appartiene;
+    }
+
+    private void spostaMessageInProtocollati(Message message) {
+        Folder actualFolder = dataHolder.getActualFolder();
+        if (!actualFolder.getType().toString().equals(Folder.FolderType.REGISTERED.toString())) {
+            MessagesFoldersHandler messagesFoldersHandler = dataHolder.getMessagesFoldersHandler();
+            messagesFoldersHandler.moveToRegisteredFolder(message);
+        }
+    }
+
+    private void verificaAndSpostaMessaggioInProtocollatiSeAppartenenteAdAzienda(Message message, JSONArray fixedElements) {
+        log.info("verificaAndSpostaMessaggioInProtocollatiSeAppartenenteAdAzienda....");
+        for (int i = 0; i < fixedElements.length(); i++) {
+            JSONObject elemento = (JSONObject) fixedElements.get(i);
+            JSONObject idAziendaObject = (JSONObject) elemento.get("idAzienda");
+            int idAzienda = idAziendaObject.getInt("id");
+            if (isPecAziendaOwned(message.getIdPec().getId(), idAzienda)) {
+                spostaMessageInProtocollati(message);
+                return;
+            }
+        }
     }
 
     private JSONArray getAdditionalDataRemovingElementiInutili(MessageTag inRegistrationMessagesTag, JSONArray elementiDaRimuovere) {
@@ -94,8 +132,13 @@ public class MessagesTagsProtocollazioneFixManager {
                 log.info("Salvo MT Registered...");
                 registeredTag = messageTagRepository.save(registeredTag);
             }
+
+            // decidiamo di spostare la pec in protocollati
+            verificaAndSpostaMessaggioInProtocollatiSeAppartenenteAdAzienda(message, fixedElements);
+
             // ORA SI SISTEMANO LE PEC CON UUID_MESSAGE UGUALE
             geminiMailFixing(message, fixedElements);
+
         } else {
             log.info("Sembra tutto normale... Quindi niente");
         }
@@ -156,6 +199,7 @@ public class MessagesTagsProtocollazioneFixManager {
                     log.info("Salvo i dati aggiornati di Registered MessageTag");
                     registeredTag = messageTagRepository.save(registeredTag);
                 }
+                verificaAndSpostaMessaggioInProtocollatiSeAppartenenteAdAzienda(message, verifiedElements);
             }
         } else {
             log.info("Nessun altro messaggio da sistemare.");
