@@ -52,8 +52,11 @@ public class ContattoInterceptor extends InternautaBaseInterceptor{
         BooleanExpression permessoAziendaleFilter = QContatto.contatto.idAziende.isNull().or(
             Expressions.booleanTemplate("tools.array_overlap({0}, tools.string_to_integer_array({1}, ','))=true", 
                 QContatto.contatto.idAziende, org.apache.commons.lang3.StringUtils.join(aziendePersona.stream().map(a -> a.getId()).collect(Collectors.toList()), ",")
+            ).or(
+                Expressions.booleanTemplate("cardinality({0}) = 0", 
+                QContatto.contatto.idAziende
             )
-        );
+        ));
         
         
         initialPredicate = permessoAziendaleFilter.and(initialPredicate);
