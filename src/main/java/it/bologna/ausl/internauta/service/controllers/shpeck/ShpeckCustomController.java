@@ -102,9 +102,11 @@ import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.apache.commons.lang3.ArrayUtils;
+import org.jose4j.json.internal.json_simple.parser.JSONParser;
 import org.json.JSONArray;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.util.StringUtils;
@@ -712,18 +714,34 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     public String readdressMessage(
             @RequestParam("idMessageSource") Integer idMessageSource,
             @RequestParam("idPecDestination") Integer idPecDestination,
-            HttpServletRequest request) throws CloneNotSupportedException, Http409ResponseException {
+            HttpServletRequest request) throws CloneNotSupportedException, Http409ResponseException, JsonProcessingException {
         // la funzione è disponibile solo se il messaggio non è stato già reindirizzato
         // recupero message sorgente
         Message messageSource = messageRepository.getOne(idMessageSource);
         List<MessageTag> messageTagListSource = messageSource.getMessageTagList();
+        List<Integer> idAziendePec = messageSource.getIdPec().getPecAziendaList().stream().map(pa -> pa.getIdAzienda().getId()).collect(Collectors.toList());
+
         for (MessageTag mt : messageTagListSource) {
             if (mt.getIdTag().getName().equals(Tag.SystemTagName.readdressed_out.toString())) {
                 throw new Http409ResponseException("1", "il messaggio è gia stato reindirizzato.");
             } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.registered.toString())) {
-                //throw new Http409ResponseException("2", "il messaggio è stato protocollato.");
+                ArrayList<HashMap> additionalData = objectMapper.readValue(mt.getAdditionalData(), ArrayList.class);
+                for (HashMap hashMap : additionalData) {
+                    HashMap obj = (HashMap) hashMap.get("idAzienda");
+                    int idAzienda = (int) obj.get("id");
+                    if (idAziendePec.contains(idAzienda)) {
+                        throw new Http409ResponseException("2", "il messaggio è stato protocollato.");
+                    }
+                }
             } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.in_registration.toString())) {
-                //throw new Http409ResponseException("3", "il messaggio è in protocollazione.");
+                ArrayList<HashMap> additionalData = objectMapper.readValue(mt.getAdditionalData(), ArrayList.class);
+                for (HashMap hashMap : additionalData) {
+                    HashMap obj = (HashMap) hashMap.get("idAzienda");
+                    int idAzienda = (int) obj.get("id");
+                    if (idAziendePec.contains(idAzienda)) {
+                        throw new Http409ResponseException("3", "il messaggio è in protocollazione.");
+                    }
+                }
             }
         }
         if (messageSource.getInOut().equals(Message.InOut.OUT.toString())) {
