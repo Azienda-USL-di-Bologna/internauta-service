@@ -94,6 +94,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxLiteRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
@@ -168,15 +169,18 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private MessageTagInterceptor messageTagInterceptor;
-    
+
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
-    
+
     @Autowired
     private CachedEntities cachedEntities;
-            
+
     @Autowired
     ObjectMapper objectMapper;
+
+    @Autowired
+    MessagesTagsProtocollazioneFixManager messagesTagsProtocollazioneFixManager;
 
     /**
      *
@@ -638,7 +642,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             Utente utente = this.cachedEntities.getUtente(idUtente);
             draftMessage.setIdUtente(utente);
         }
-        
+
         LOG.info("Getting PEC from repository...");
         Pec pec = pecRepository.getOne(idPec);
         String from = pec.getIndirizzo();
@@ -869,7 +873,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 //            filter = filter.and(QMessageComplete.messageComplete.seen.eq(false));
 //        }
 //        return messageCompleteRespository.count(filter);
-    
 
     /**
      * La funzione conta quanti messaggi hanno l'idTag passato
@@ -882,6 +885,38 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     ) {
         return messageTagRespository.count(QMessageTag.messageTag.idTag.id.eq(idTag)
                 .and(QMessageTag.messageTag.idMessage.messageFolderList.any().deleted.eq(false)));
+    }
+
+    /**
+     * Chiama il metodo per il fix degli additionalData del MessagesTag
+     * "InRegistration".
+     *
+     * @param idMessage L'id del messaggio di cui recuperare il MessageTag
+     * @return String Un json di risposta
+     */
+    @RequestMapping(value = "fixMessageTagInRegistration/{idMessage}", method = RequestMethod.GET)
+    public String fixMessageTagInRegistration(@PathVariable(required = true) Integer idMessage) throws Throwable {
+        LOG.info("Ho chiamato la funzione per aggiustare il MessageTag di "
+                + "message con id {} ...", idMessage);
+        JSONObject risposta = new JSONObject();
+        try {
+            Message message = messageRepository.findById(idMessage).get();
+            LOG.info("Trovato messagggio: uuidMessage {}", message.getUuidMessage());
+            JSONArray fixedData = messagesTagsProtocollazioneFixManager.fixDatiProtocollazioneMessaggio(message);
+
+            String fixedDataString = "Fixed Data: ";
+            if (fixedData != null) {
+                fixedDataString += fixedData.toString(4);
+            } else {
+                fixedDataString += "NO DATA FIXED";
+            }
+            String responseString = "Tutto ok - " + fixedDataString;
+            risposta.put("Response", responseString);
+        } catch (Throwable t) {
+            t.printStackTrace();
+            risposta.put("Response", "PROBLEMI: " + t.getMessage());
+        }
+        return risposta.toString();
     }
 
     @Transactional(rollbackFor = Throwable.class)
@@ -994,8 +1029,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     /**
      * Gestisco il dopo archiviazione di un messaggio.La funzione nasce per
- essere chiamata da Babel. Aggiunge il tag archiviazione con le
- informazioni su chi e fascicolo.
+     * essere chiamata da Babel. Aggiunge il tag archiviazione con le
+     * informazioni su chi e fascicolo.
      *
      * @param idMessage
      * @param additionalData
@@ -1060,11 +1095,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             krintShpeckService.writeArchiviation(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_FASCICOLAZIONE, jsonAdditionalData);
         }
     }
-    
+
     @Transactional(rollbackFor = Throwable.class)
     @RequestMapping(value = "deleteMessageTagCustom", method = RequestMethod.POST)
     public void deleteMessageTagCustom(
-//            @RequestParam(required = false, name = "additionalData") String additionalData, 
+            //            @RequestParam(required = false, name = "additionalData") String additionalData, 
             @RequestBody(required = true) List<Integer> idMessageTagList,
             HttpServletRequest request) throws AbortSaveInterceptorException {
 

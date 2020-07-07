@@ -7,6 +7,8 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
@@ -17,4 +19,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PecAziendaRepository extends
         NextSdrQueryDslRepository<PecAzienda, Integer, QPecAzienda>,
         JpaRepository<PecAzienda, Integer> {
+
+    @Query(value = "select id from baborg.pec_aziende where id_pec = ?1 and id_azienda = ?2", nativeQuery = true)
+    public Integer getIdByIdPecAndIdAzienda(
+            @Param("id_pec") Integer idPec,
+            @Param("id_azienda") Integer idAzienda);
 }

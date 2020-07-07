@@ -15,11 +15,13 @@ import org.springframework.data.jpa.repository.query.Procedure;
 @NextSdrRepository(repositoryPath = "${shpeck.mapping.url.root}/messagetag", defaultProjection = MessageTagWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "messagetag", path = "messagetag", exported = false, excerptProjection = MessageTagWithPlainFields.class)
 public interface MessageTagRepository extends
-        NextSdrQueryDslRepository<MessageTag, Integer, QMessageTag>, 
+        NextSdrQueryDslRepository<MessageTag, Integer, QMessageTag>,
         JpaRepository<MessageTag, Integer> {
-    
+
     List<MessageTag> findByIdMessageAndIdTag(Message idMessage, Tag idTag);
-    
+
+    List<MessageTag> findByIdMessage(Message idMessage);
+
     @Procedure("shpeck.send_custom_delete_intimus_command")
     public Boolean sendCustomDeleteIntimusCommand(String redisHost, Integer redisPort, Integer redisDb, Integer IdUtente, String entity, Integer entityId, Integer messageId);
 }
