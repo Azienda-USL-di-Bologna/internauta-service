@@ -601,8 +601,13 @@ public class BaborgUtils {
                             datafi = formattattore(strutturaMap.get("datafi"));
                             datafiString = UtilityFunctions.getLocalDateTimeString(datafi);
                         }
-
-                        if (strutturaMap.get("datafi") == null || strutturaMap.get("datafi").toString().trim().equals("") || strutturaMap.get("datafi") == "") {
+                        
+                        if (strutturaMap.get("datafi") == null || 
+                                strutturaMap.get("datafi").toString().trim().equals("") || 
+                                strutturaMap.get("datafi") == "" ||
+                                strutturaMap.get("datafi").toString().trim().equals("3000-12-31")|| 
+                                strutturaMap.get("datafi").toString().trim().equals("31/12/3000") 
+                                ) {
                             mapError.put("datafi", "");
                             mS.setDatafi(null);
                         } else {
