@@ -48,4 +48,6 @@ public interface MdrAppartenentiRepository extends
     
     @Query(value = "select ma.datain, ma.datafi from gru.mdr_appartenenti ma where ma.codice_matricola =?1 and ma.id_azienda =?2 and ma.tipo_appartenenza = 'T'", nativeQuery = true)
     public  List<Map<String,Object>> selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta(Integer codice_matricola, Integer id_azienda);
+    
+    
 }
