@@ -963,7 +963,7 @@ public class BaborgUtils {
                                     || (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("T"))) {
                                 if (trasformazioniMap.get("id_casella_arrivo") == null || trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")) {
                                     mapError.put("id_casella_arrivo", "");
-                                    mT.setIdCasellaArrivo(Integer.parseInt(""));
+                                    mT.setIdCasellaArrivo(null);
 
                                 } else {
                                     mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
