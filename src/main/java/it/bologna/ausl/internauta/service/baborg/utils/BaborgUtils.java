@@ -413,14 +413,14 @@ public class BaborgUtils {
                                         periodoCasellato.add(periodoDaCasellare);
                                         appartenentiDiretti.put(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), appDiretto);
                                     } else {
-                                        Boolean afferenzaDiretta=false;
+                                        Boolean afferenzaDiretta = false;
                                         //l'appartenente c'è devo ciclare su tutte le strutture
-                                        
+
                                         for (Map.Entry<Integer, List<Map<String, Object>>> listaCasella : appDiretto.entrySet()) {
-                                            
+
                                             if (!afferenzaDiretta && arco(listaCasella.getValue(), datain, datafi)) {
                                                 bloccante = true;
-                                                afferenzaDiretta=true;
+                                                afferenzaDiretta = true;
                                                 mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
                                             }
                                         }
@@ -469,7 +469,7 @@ public class BaborgUtils {
                                             periodoCasellato.add(periodoDaCasellare);
                                             appFunzionale.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
                                         } else {
-                                            
+
                                             if (arco(periodoCasellato, datain, datafi)) {
                                                 bloccante = true;
                                                 mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura,");
@@ -817,7 +817,8 @@ public class BaborgUtils {
                     break;
 
                 case "TRASFORMAZIONI":
-
+                    //TODO per ottimizzazioni successive decommentare riga successiva
+                    //Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda1 = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
                     // Delete delle righe da sostituire
                     predicateAzienda = QMdrTrasformazioni.mdrTrasformazioni.idAzienda.id.eq(idAzienda);
                     mdrTrasformazioniRepository.deleteByIdAzienda(idAzienda);
@@ -825,6 +826,9 @@ public class BaborgUtils {
                     //Reading with CsvMapReader
                     Map<String, Object> trasformazioniMap;
                     while ((trasformazioniMap = mapReader.read(headers, processors)) != null) {
+                        Boolean tempi_ok = true;
+                        Boolean dataTrasformazione = true;
+                        Boolean dataInPartenza = true;
                         // Inserisco la riga
                         MdrTrasformazioni mT = new MdrTrasformazioni();
                         mapError.put("ERRORE", "");
@@ -838,11 +842,13 @@ public class BaborgUtils {
                             mapError.put("progressivo_riga", trasformazioniMap.get("progressivo_riga"));
                             mT.setProgressivoRiga(Integer.parseInt(trasformazioniMap.get("progressivo_riga").toString()));
                         }
+
 //                      DATA TRASFORMAZIONE DEVE ESISTERE SEMPRE
                         if (trasformazioniMap.get("data_trasformazione") == null || trasformazioniMap.get("data_trasformazione").toString().trim().equals("") || trasformazioniMap.get("data_trasformazione") == "") {
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " data_trasformazione,");
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " data_trasformazione assente,");
                             mapError.put("data_trasformazione", "");
                             bloccante = true;
+                            dataTrasformazione = false;
                             mT.setDataTrasformazione(null);
                         } else {
                             mapError.put("data_trasformazione", trasformazioniMap.get("data_trasformazione"));
@@ -851,16 +857,18 @@ public class BaborgUtils {
 //                       DATA IN PARTENZA DEVE ESISTERE SEMPRE
 //                       PER MOTIVO DI "X", "T","R" E "U" è LA DATA INIZIO DELLA CASELLA DI PARTENZA
 //                      AGGIUNGERE BOOLEANO TEMPI_CASELLA_OK
+
                         if (trasformazioniMap.get("datain_partenza") == null || trasformazioniMap.get("datain_partenza").toString().trim().equals("") || trasformazioniMap.get("datain_partenza") == "") {
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " datain_partenza,");
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " datain_partenza assente,");
                             mapError.put("datain_partenza", "");
                             mT.setDatainPartenza(null);
                             bloccante = true;
+                            dataInPartenza = false;
                         } else {
                             mapError.put("datain_partenza", trasformazioniMap.get("datain_partenza"));
                             mT.setDatainPartenza(formattattore(trasformazioniMap.get("datain_partenza")));
                         }
-                        Boolean tempi_ok = true;
+
                         //ID CASELLA DI PARTENZA
                         //SEMPRE SPENTO IL GIORNO PRIMA DELLA DATA DI TRASFORMAZIONE
                         //DI CONSEGUENZA DEVE ESISTERE
@@ -874,8 +882,8 @@ public class BaborgUtils {
                             mT.setIdCasellaPartenza(Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()));
 //                          DA AGGIUNGERE CONTOLLO DETTO SOPRA
 //                          controllo che non ci sia un blocco precedente perche potrei non avere la data quindi la chiamata successiva potrebbe dare errore
-                            if (!bloccante) {
-                                Integer spentaAccesaBeneByIdAzienda = mdrTrasformazioniRepository.isSpentaAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), UtilityFunctions.getLocalDateTimeString(formattattore(trasformazioniMap.get("data_trasformazione").toString())), UtilityFunctions.getLocalDateTimeString(formattattore(trasformazioniMap.get("datain_partenza").toString())));
+                            if (dataInPartenza && dataTrasformazione) {
+                                Integer spentaAccesaBeneByIdAzienda = mdrTrasformazioniRepository.isSpentaAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), UtilityFunctions.getLocalDateString(formattattore(trasformazioniMap.get("data_trasformazione").toString()).toLocalDate()), UtilityFunctions.getLocalDateString(formattattore(trasformazioniMap.get("datain_partenza").toString()).toLocalDate()));
                                 if (spentaAccesaBeneByIdAzienda != 1) {
                                     bloccante = true;
                                     tempi_ok = false;
@@ -905,8 +913,15 @@ public class BaborgUtils {
                             mapError.put("codice_ente", trasformazioniMap.get("codice_ente"));
                             mT.setCodiceEnte(Integer.parseInt(trasformazioniMap.get("codice_ente").toString()));
                         }
+
 //                      MOTIVO
-                        if (trasformazioniMap.get("motivo") == null || trasformazioniMap.get("motivo").toString().trim().equals("") || trasformazioniMap.get("motivo") == "") {
+                        if (trasformazioniMap.get("motivo") == null
+                                || trasformazioniMap.get("motivo").toString().trim().equals("")
+                                || trasformazioniMap.get("motivo") == ""
+                                || !(trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("X")
+                                || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("R")
+                                || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("T")
+                                || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("U"))) {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " MOTIVO,");
                             mapError.put("motivo", "");
                             mT.setMotivo(null);
@@ -915,34 +930,58 @@ public class BaborgUtils {
                             mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
                             mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
                         } else {
+                            mapError.put("motivo", trasformazioniMap.get("motivo"));
+                            mT.setMotivo(trasformazioniMap.get("motivo").toString());
+
                             if (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("X")) {
+                                mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
                                 if (tempi_ok) {
                                     if (trasformazioniMap.get("id_casella_arrivo") == null || trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")) {
-                                        mapError.put("ERRORE", mapError.get("ERRORE") + " ID_CASELLA_ARRIVO,");
+                                        mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non presente nella tabella struttura,");
                                         mapError.put("id_casella_arrivo", "");
                                         mT.setIdCasellaArrivo(null);
                                         bloccante = true;
+
                                     } else {
                                         mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
                                         mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
-                                        Integer accesaIntervalloByIdAzienda = mdrTrasformazioniRepository.isAccesaIntervalloByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
-                                        if (accesaIntervalloByIdAzienda != 1) {
+                                        if (!trasformazioniMap.get("id_casella_arrivo").equals(trasformazioniMap.get("partenza"))) {
+                                            mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                            //TODO usare metodo appartenenti per ottimizzare 
+                                            Integer accesaIntervalloByIdAzienda = mdrTrasformazioniRepository.isAccesaIntervalloByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
+                                            if (accesaIntervalloByIdAzienda != 1) {
+                                                bloccante = true;
+                                                mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non valida nella data di trasformazione,");
+                                            }
+                                        } else {
                                             bloccante = true;
-                                            mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non valida nella data di trasformazione,");
+                                            mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo e di partenza sono uguali,");
                                         }
                                     }
                                 }
                             } else if (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("R")
                                     || (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("T"))) {
-                                Integer accesaBeneByIdAzienda = mdrTrasformazioniRepository.isAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
-                                if (accesaBeneByIdAzienda != 1) {
-                                    bloccante = true;
-                                    mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non valida nella data di trasformazione,");
-                                }
-                            }
+                                if (trasformazioniMap.get("id_casella_arrivo") == null || trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")) {
+                                    mapError.put("id_casella_arrivo", "");
+                                    mT.setIdCasellaArrivo(Integer.parseInt(""));
 
-                            mapError.put("motivo", trasformazioniMap.get("motivo"));
-                            mT.setMotivo(trasformazioniMap.get("motivo").toString());
+                                } else {
+                                    mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
+                                    mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                    if (!trasformazioniMap.get("id_casella_partenza").equals(trasformazioniMap.get("id_casella_arrivo"))) {
+                                        bloccante = true;
+                                        mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella_arrivo diversa da id_casella_partenza,");
+                                    } else {
+                                        Integer accesaBeneByIdAzienda = mdrTrasformazioniRepository.isAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
+                                        if (accesaBeneByIdAzienda != 1) {
+                                            bloccante = true;
+                                            mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non valida nella data di trasformazione,");
+                                        }
+
+                                    }
+                                }
+
+                            }
 
                         }
                         mT.setIdAzienda(azienda);
