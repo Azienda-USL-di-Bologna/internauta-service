@@ -464,7 +464,11 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         if (params.get("ambitiInteressati") != null) {
             tipi = (List<String>) params.get("tipiInteressati");
         }
-
+        
+        /*
+            Se sono stati aggiunti permessi allora controllo se c'è un permesso nel futuro. Perché in quel caso devo bloccare l'aggiunta del permesso
+            nel caso che il nuovo permesso ha una data fine nulla o che supera la data inizio del permesso futuro
+        */
         if (params.get("permessiAggiunti") != null) {
             permessiAggiunti = objectMapper.convertValue(params.get("permessiAggiunti"), new TypeReference<List<PermessoEntitaStoredProcedure>>() {
             });
@@ -527,27 +531,27 @@ public class PermessiCustomController implements ControllerHandledExceptions {
             throw new Http409ResponseException("permesso_futuro", objectMapper.writeValueAsString(risultanze));
         }
 
-        for (PermessoEntitaStoredProcedure permessoEntita : permessiEntita) {
-            Integer idUtente = permessoEntita.getSoggetto().getIdProvenienza();
-            Integer idStruttura = permessoEntita.getOggetto().getIdProvenienza();
-            BooleanExpression filter = QUtenteStruttura.utenteStruttura.idUtente.id.eq(idUtente).and(QUtenteStruttura.utenteStruttura.idStruttura.id.eq(idStruttura));
-            boolean exists = utenteStrutturaRepository.exists(filter);
-            if (!exists) {
-                UtenteStruttura utenteStrutturaNew = new UtenteStruttura();
-                Utente u = utenteRepository.getOne(idUtente);
-                utenteStrutturaNew.setIdUtente(u);
-                Struttura s = strutturaRepository.getOne(idStruttura);
-                utenteStrutturaNew.setIdStruttura(s);
-                AfferenzaStruttura afferenzaStruttura = afferenzaStrutturaRepository
-                        .findOne(QAfferenzaStruttura.afferenzaStruttura.codice.eq(AfferenzaStruttura.CodiciAfferenzaStruttura.FUNZIONALE.toString())).get();
-                utenteStrutturaNew.setIdAfferenzaStruttura(afferenzaStruttura);
-                utenteStrutturaNew.setAttivoDal(ZonedDateTime.now());
-                utenteStrutturaNew.setBitRuoli(128);
-                utenteStrutturaNew.setAttivo(true);
-                utenteStrutturaRepository.save(utenteStrutturaNew);
-            }
-
-        }
+//        for (PermessoEntitaStoredProcedure permessoEntita : permessiEntita) {
+//            Integer idUtente = permessoEntita.getSoggetto().getIdProvenienza();
+//            Integer idStruttura = permessoEntita.getOggetto().getIdProvenienza();
+//            BooleanExpression filter = QUtenteStruttura.utenteStruttura.idUtente.id.eq(idUtente).and(QUtenteStruttura.utenteStruttura.idStruttura.id.eq(idStruttura));
+//            boolean exists = utenteStrutturaRepository.exists(filter);
+//            if (!exists) {
+//                UtenteStruttura utenteStrutturaNew = new UtenteStruttura();
+//                Utente u = utenteRepository.getOne(idUtente);
+//                utenteStrutturaNew.setIdUtente(u);
+//                Struttura s = strutturaRepository.getOne(idStruttura);
+//                utenteStrutturaNew.setIdStruttura(s);
+//                AfferenzaStruttura afferenzaStruttura = afferenzaStrutturaRepository
+//                        .findOne(QAfferenzaStruttura.afferenzaStruttura.codice.eq(AfferenzaStruttura.CodiciAfferenzaStruttura.FUNZIONALE.toString())).get();
+//                utenteStrutturaNew.setIdAfferenzaStruttura(afferenzaStruttura);
+//                utenteStrutturaNew.setAttivoDal(ZonedDateTime.now());
+//                utenteStrutturaNew.setBitRuoli(128);
+//                utenteStrutturaNew.setAttivo(true);
+//                utenteStrutturaRepository.save(utenteStrutturaNew);
+//            }
+//
+//        }
 
         permissionRepositoryAccess.managePermissions(permessiEntita, dataDiLavoro);
         /*
