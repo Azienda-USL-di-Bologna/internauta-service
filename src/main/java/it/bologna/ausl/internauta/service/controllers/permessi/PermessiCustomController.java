@@ -550,7 +550,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         }
 
         permissionRepositoryAccess.managePermissions(permessiEntita, dataDiLavoro);
-
+        /*
         if (permessiAggiunti == null || permessiAggiunti.isEmpty()) {
 
             for (PermessoEntitaStoredProcedure permessoEntita : permessiEntita) {
@@ -571,7 +571,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
             }
         }
-
+        */
 //        for (PermessoEntitaStoredProcedure p : permessiEntita) {
 //            Utente u = utenteRepository.getOne(p.getSoggetto().getIdProvenienza());
 //            userInfoService.getPermessiDiFlussoRemoveCache(u);
