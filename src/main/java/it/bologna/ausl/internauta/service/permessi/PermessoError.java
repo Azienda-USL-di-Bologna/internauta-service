@@ -78,4 +78,12 @@ public class PermessoError {
     public void setDataPermesso(LocalDate dataPermesso) {
         this.dataPermesso = dataPermesso;
     }
+
+    public LocalDate getDataFinePermesso() {
+        return dataFinePermesso;
+    }
+
+    public void setDataFinePermesso(LocalDate dataFinePermesso) {
+        this.dataFinePermesso = dataFinePermesso;
+    }
 }

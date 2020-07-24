@@ -12,6 +12,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrAppartenentiRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrResponsabiliRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepositoryCustomImpl;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrTrasformazioniRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
@@ -31,6 +32,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import static java.lang.System.out;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -38,6 +40,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +48,7 @@ import java.util.Locale;
 import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import org.json.JSONObject;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +76,9 @@ public class BaborgUtils {
     private static final Logger log = LoggerFactory.getLogger(BaborgUtils.class);
 
     private static Map<String, Integer> map;
+
+    @Autowired
+    MdrStrutturaRepositoryCustomImpl mdrStrutturaRepositoryCustomImpl;
 
     @Autowired
     ImportazioniOrganigrammaRepository importazioniOrganigrammaRepository;
@@ -259,17 +266,27 @@ public class BaborgUtils {
 
             switch (tipo) {
                 case "APPARTENENTI":
+
+                    Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
+                    //integer1 appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
+                    Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti = new HashMap<>();
+                    //integer1 appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
+                    Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali = new HashMap<>();
                     // Delete delle righe da sostituire
                     predicateAzienda = QMdrAppartenenti.mdrAppartenenti.idAzienda.id.eq(idAzienda);
                     mdrAppartenentiRepository.deleteByIdAzienda(idAzienda);
                     //Reading with CsvMapReader
                     Map<String, Object> appartenentiMap;
+                    Integer riga = 0;
+                    log.info("ora inizio: " + LocalDateTime.now());
                     while ((appartenentiMap = mapReader.read(headers, processors)) != null) {
+                        riga++;
+                        log.info("riga: " + riga);
                         // Inserisco la riga
                         MdrAppartenenti mA = new MdrAppartenenti();
 //                      preparo la mappa di errore
                         mapError.put("ERRORE", "");
-                        List<Map<String, Object>> selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta = null;
+                        //List<Map<String, Object>> selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta = null;
 //                      CODICE_MATRICOLA bloccante
                         String codiceMatricola = null;
                         if (appartenentiMap.get("codice_matricola") == null || appartenentiMap.get("codice_matricola").toString().trim().equals("") || appartenentiMap.get("codice_matricola") == "") {
@@ -282,7 +299,7 @@ public class BaborgUtils {
                             mapError.put("codice_matricola", appartenentiMap.get("codice_matricola"));
                             codiceMatricola = appartenentiMap.get("codice_matricola").toString();
                             mA.setCodiceMatricola(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
-                            selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta = mdrAppartenentiRepository.selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), idAzienda);
+//                            selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta = mdrAppartenentiRepository.selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), idAzienda);
                         }
 //                      COGNOME bloccante
                         if (appartenentiMap.get("cognome") == null || appartenentiMap.get("cognome").toString().trim().equals("") || appartenentiMap.get("cognome") == "") {
@@ -323,12 +340,13 @@ public class BaborgUtils {
                             mapError.put("id_casella", "");
                             mA.setIdCasella(null);
                         } else {
-                            if (mdrStrutturaRepository.selectStrutturaUtenteByIdCasellaAndIdAzienda(Integer.parseInt(appartenentiMap.get("id_casella").toString()), idAzienda) <= 0) {
+                            if (!selectDateOnStruttureByIdAzienda.containsKey(Integer.parseInt(appartenentiMap.get("id_casella").toString()))) {
+//                            if (mdrStrutturaRepository.selectStrutturaUtenteByIdCasellaAndIdAzienda(Integer.parseInt(appartenentiMap.get("id_casella").toString()), idAzienda) <= 0) {
                                 mapError.put("ERRORE", " manca la struttura nella tabella struttura,");
                                 bloccante = true;
                             } else {
-                                List<Map<String, Object>> mieiPadri = mdrStrutturaRepository.mieiPadri(idAzienda, Integer.parseInt(appartenentiMap.get("id_casella").toString()));
-                                if (!arco(mieiPadri, formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
+//                                List<Map<String, Object>> mieiPadri = mdrStrutturaRepository.mieiPadri(idAzienda, Integer.parseInt(appartenentiMap.get("id_casella").toString()));
+                                if (!arco(selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString())), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
                                     mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura,");
                                     bloccante = true;
 
@@ -380,16 +398,92 @@ public class BaborgUtils {
                             mapError.put("tipo_appartenenza", appartenentiMap.get("tipo_appartenenza"));
                             mA.setTipoAppartenenza(appartenentiMap.get("tipo_appartenenza").toString());
                             if (appartenentiMap.get("codice_ente") != null && !appartenentiMap.get("codice_ente").toString().trim().equals("") && appartenentiMap.get("codice_ente") != "") {
-                                if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")){
-                                    if (arco(selectDatebyMatricolaAndIdAziendaAndAfferenzaDiretta, datain, datafi)) {
-                                        bloccante = true;
-                                        mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
+                                if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")) {
 
+                                    Map<Integer, List<Map<String, Object>>> appDiretto = appartenentiDiretti.get(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
+                                    if (appDiretto == null) {
+                                        //non ho quella matricola nella mappa
+                                        //adda crea tutto
+                                        appDiretto = new HashMap();
+                                        List<Map<String, Object>> periodoCasellato = new ArrayList<>();
+                                        appDiretto.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
+                                        Map<String, Object> periodoDaCasellare = new HashMap();
+                                        periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                        periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                        periodoCasellato.add(periodoDaCasellare);
+                                        appartenentiDiretti.put(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), appDiretto);
+                                    } else {
+                                        Boolean afferenzaDiretta = false;
+                                        //l'appartenente c'è devo ciclare su tutte le strutture
+
+                                        for (Map.Entry<Integer, List<Map<String, Object>>> listaCasella : appDiretto.entrySet()) {
+
+                                            if (!afferenzaDiretta && arco(listaCasella.getValue(), datain, datafi)) {
+                                                bloccante = true;
+                                                afferenzaDiretta = true;
+                                                mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
+                                            }
+                                        }
+
+                                        //integer1 appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
+                                        //Da modificare
+                                        List<Map<String, Object>> periodoCasellato = appDiretto.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
+                                        if (periodoCasellato == null) {
+                                            periodoCasellato = new ArrayList<>();
+                                            Map<String, Object> periodoDaCasellare = new HashMap();
+                                            periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                            periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                            periodoCasellato.add(periodoDaCasellare);
+                                            appDiretto.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
+                                        } else {
+                                            if (!afferenzaDiretta && arco(periodoCasellato, datain, datafi)) {
+                                                bloccante = true;
+                                                mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
+                                            }
+                                            Map<String, Object> periodoDaCasellare = new HashMap();
+                                            periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                            periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                            periodoCasellato.add(periodoDaCasellare);
+                                        }
+                                    }
+                                } else {
+                                    Map<Integer, List<Map<String, Object>>> appFunzionale = appartenentiFunzionali.get(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
+                                    if (appFunzionale == null) {
+                                        //non ho quella matricola nella mappa
+                                        //adda crea tutto
+                                        appFunzionale = new HashMap();
+                                        List<Map<String, Object>> periodoCasellato = new ArrayList<>();
+                                        appFunzionale.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
+                                        Map<String, Object> periodoDaCasellare = new HashMap();
+                                        periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                        periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                        periodoCasellato.add(periodoDaCasellare);
+                                        appartenentiFunzionali.put(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), appFunzionale);
+                                    } else {
+                                        List<Map<String, Object>> periodoCasellato = appFunzionale.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
+                                        if (periodoCasellato == null) {
+                                            periodoCasellato = new ArrayList<>();
+                                            Map<String, Object> periodoDaCasellare = new HashMap();
+                                            periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                            periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                            periodoCasellato.add(periodoDaCasellare);
+                                            appFunzionale.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
+                                        } else {
+
+                                            if (arco(periodoCasellato, datain, datafi)) {
+                                                bloccante = true;
+                                                mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura,");
+                                            }
+                                            Map<String, Object> periodoDaCasellare = new HashMap();
+                                            periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                            periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                            periodoCasellato.add(periodoDaCasellare);
+                                        }
                                     }
                                 }
                             }
                         }
-                        //controllo multiafferenza diretta
+
 //                      DataAssunzione bloccante
                         if (appartenentiMap.get("data_assunzione") == null || appartenentiMap.get("data_assunzione").toString().trim().equals("") || appartenentiMap.get("data_assunzione") == "") {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " data_assunzione,");
@@ -399,7 +493,7 @@ public class BaborgUtils {
                             mapError.put("data_assunzione", appartenentiMap.get("data_assunzione"));
                             mA.setDataAssunzione(formattattore(appartenentiMap.get("data_assunzione")));
                         }
-//                      USERNAME bloccante
+//                      USERNAME 
                         if (appartenentiMap.get("username") == null || appartenentiMap.get("username").toString().trim().equals("") || appartenentiMap.get("username") == "") {
                             mA.setUsername("");
                             mapError.put("username", "");
@@ -435,6 +529,8 @@ public class BaborgUtils {
                         em.persist(mA);
                         mapWriter.write(mapError, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
                     }
+
+                    log.info("ora fine: " + LocalDateTime.now());
 
                     break;
 
@@ -602,7 +698,11 @@ public class BaborgUtils {
                             datafiString = UtilityFunctions.getLocalDateTimeString(datafi);
                         }
 
-                        if (strutturaMap.get("datafi") == null || strutturaMap.get("datafi").toString().trim().equals("") || strutturaMap.get("datafi") == "") {
+                        if (strutturaMap.get("datafi") == null
+                                || strutturaMap.get("datafi").toString().trim().equals("")
+                                || strutturaMap.get("datafi") == ""
+                                || strutturaMap.get("datafi").toString().trim().equals("3000-12-31")
+                                || strutturaMap.get("datafi").toString().trim().equals("31/12/3000")) {
                             mapError.put("datafi", "");
                             mS.setDatafi(null);
                         } else {
@@ -717,7 +817,8 @@ public class BaborgUtils {
                     break;
 
                 case "TRASFORMAZIONI":
-
+                    //TODO per ottimizzazioni successive decommentare riga successiva
+                    //Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda1 = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
                     // Delete delle righe da sostituire
                     predicateAzienda = QMdrTrasformazioni.mdrTrasformazioni.idAzienda.id.eq(idAzienda);
                     mdrTrasformazioniRepository.deleteByIdAzienda(idAzienda);
@@ -725,6 +826,9 @@ public class BaborgUtils {
                     //Reading with CsvMapReader
                     Map<String, Object> trasformazioniMap;
                     while ((trasformazioniMap = mapReader.read(headers, processors)) != null) {
+                        Boolean tempi_ok = true;
+                        Boolean dataTrasformazione = true;
+                        Boolean dataInPartenza = true;
                         // Inserisco la riga
                         MdrTrasformazioni mT = new MdrTrasformazioni();
                         mapError.put("ERRORE", "");
@@ -738,11 +842,13 @@ public class BaborgUtils {
                             mapError.put("progressivo_riga", trasformazioniMap.get("progressivo_riga"));
                             mT.setProgressivoRiga(Integer.parseInt(trasformazioniMap.get("progressivo_riga").toString()));
                         }
+
 //                      DATA TRASFORMAZIONE DEVE ESISTERE SEMPRE
                         if (trasformazioniMap.get("data_trasformazione") == null || trasformazioniMap.get("data_trasformazione").toString().trim().equals("") || trasformazioniMap.get("data_trasformazione") == "") {
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " data_trasformazione,");
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " data_trasformazione assente,");
                             mapError.put("data_trasformazione", "");
                             bloccante = true;
+                            dataTrasformazione = false;
                             mT.setDataTrasformazione(null);
                         } else {
                             mapError.put("data_trasformazione", trasformazioniMap.get("data_trasformazione"));
@@ -751,16 +857,18 @@ public class BaborgUtils {
 //                       DATA IN PARTENZA DEVE ESISTERE SEMPRE
 //                       PER MOTIVO DI "X", "T","R" E "U" è LA DATA INIZIO DELLA CASELLA DI PARTENZA
 //                      AGGIUNGERE BOOLEANO TEMPI_CASELLA_OK
+
                         if (trasformazioniMap.get("datain_partenza") == null || trasformazioniMap.get("datain_partenza").toString().trim().equals("") || trasformazioniMap.get("datain_partenza") == "") {
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " datain_partenza,");
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " datain_partenza assente,");
                             mapError.put("datain_partenza", "");
                             mT.setDatainPartenza(null);
                             bloccante = true;
+                            dataInPartenza = false;
                         } else {
                             mapError.put("datain_partenza", trasformazioniMap.get("datain_partenza"));
                             mT.setDatainPartenza(formattattore(trasformazioniMap.get("datain_partenza")));
                         }
-                        Boolean tempi_ok = true;
+
                         //ID CASELLA DI PARTENZA
                         //SEMPRE SPENTO IL GIORNO PRIMA DELLA DATA DI TRASFORMAZIONE
                         //DI CONSEGUENZA DEVE ESISTERE
@@ -774,8 +882,8 @@ public class BaborgUtils {
                             mT.setIdCasellaPartenza(Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()));
 //                          DA AGGIUNGERE CONTOLLO DETTO SOPRA
 //                          controllo che non ci sia un blocco precedente perche potrei non avere la data quindi la chiamata successiva potrebbe dare errore
-                            if (!bloccante) {
-                                Integer spentaAccesaBeneByIdAzienda = mdrTrasformazioniRepository.isSpentaAccesaBeneByIdAzienda(idAzienda,Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), UtilityFunctions.getLocalDateTimeString(formattattore(trasformazioniMap.get("data_trasformazione").toString())), UtilityFunctions.getLocalDateTimeString(formattattore(trasformazioniMap.get("datain_partenza").toString())));
+                            if (dataInPartenza && dataTrasformazione) {
+                                Integer spentaAccesaBeneByIdAzienda = mdrTrasformazioniRepository.isSpentaAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), UtilityFunctions.getLocalDateString(formattattore(trasformazioniMap.get("data_trasformazione").toString()).toLocalDate()), UtilityFunctions.getLocalDateString(formattattore(trasformazioniMap.get("datain_partenza").toString()).toLocalDate()));
                                 if (spentaAccesaBeneByIdAzienda != 1) {
                                     bloccante = true;
                                     tempi_ok = false;
@@ -805,8 +913,15 @@ public class BaborgUtils {
                             mapError.put("codice_ente", trasformazioniMap.get("codice_ente"));
                             mT.setCodiceEnte(Integer.parseInt(trasformazioniMap.get("codice_ente").toString()));
                         }
+
 //                      MOTIVO
-                        if (trasformazioniMap.get("motivo") == null || trasformazioniMap.get("motivo").toString().trim().equals("") || trasformazioniMap.get("motivo") == "") {
+                        if (trasformazioniMap.get("motivo") == null
+                                || trasformazioniMap.get("motivo").toString().trim().equals("")
+                                || trasformazioniMap.get("motivo") == ""
+                                || !(trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("X")
+                                || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("R")
+                                || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("T")
+                                || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("U"))) {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " MOTIVO,");
                             mapError.put("motivo", "");
                             mT.setMotivo(null);
@@ -815,34 +930,58 @@ public class BaborgUtils {
                             mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
                             mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
                         } else {
+                            mapError.put("motivo", trasformazioniMap.get("motivo"));
+                            mT.setMotivo(trasformazioniMap.get("motivo").toString());
+
                             if (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("X")) {
+                                mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
                                 if (tempi_ok) {
                                     if (trasformazioniMap.get("id_casella_arrivo") == null || trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")) {
-                                        mapError.put("ERRORE", mapError.get("ERRORE") + " ID_CASELLA_ARRIVO,");
+                                        mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non presente nella tabella struttura,");
                                         mapError.put("id_casella_arrivo", "");
                                         mT.setIdCasellaArrivo(null);
                                         bloccante = true;
+
                                     } else {
                                         mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
                                         mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
-                                        Integer accesaIntervalloByIdAzienda = mdrTrasformazioniRepository.isAccesaIntervalloByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
-                                        if (accesaIntervalloByIdAzienda != 1) {
+                                        if (!trasformazioniMap.get("id_casella_arrivo").equals(trasformazioniMap.get("partenza"))) {
+                                            mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                            //TODO usare metodo appartenenti per ottimizzare 
+                                            Integer accesaIntervalloByIdAzienda = mdrTrasformazioniRepository.isAccesaIntervalloByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
+                                            if (accesaIntervalloByIdAzienda != 1) {
+                                                bloccante = true;
+                                                mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non valida nella data di trasformazione,");
+                                            }
+                                        } else {
                                             bloccante = true;
-                                            mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non valida nella data di trasformazione,");
+                                            mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo e di partenza sono uguali,");
                                         }
                                     }
                                 }
                             } else if (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("R")
                                     || (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("T"))) {
-                                Integer accesaBeneByIdAzienda = mdrTrasformazioniRepository.isAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
-                                if (accesaBeneByIdAzienda!=1){
-                                    bloccante = true;
-                                    mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non valida nella data di trasformazione,");
-                                }
-                            }
+                                if (trasformazioniMap.get("id_casella_arrivo") == null || trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")) {
+                                    mapError.put("id_casella_arrivo", "");
+                                    mT.setIdCasellaArrivo(null);
 
-                            mapError.put("motivo", trasformazioniMap.get("motivo"));
-                            mT.setMotivo(trasformazioniMap.get("motivo").toString());
+                                } else {
+                                    mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
+                                    mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                    if (!trasformazioniMap.get("id_casella_partenza").equals(trasformazioniMap.get("id_casella_arrivo"))) {
+                                        bloccante = true;
+                                        mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella_arrivo diversa da id_casella_partenza,");
+                                    } else {
+                                        Integer accesaBeneByIdAzienda = mdrTrasformazioniRepository.isAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
+                                        if (accesaBeneByIdAzienda != 1) {
+                                            bloccante = true;
+                                            mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non valida nella data di trasformazione,");
+                                        }
+
+                                    }
+                                }
+
+                            }
 
                         }
                         mT.setIdAzienda(azienda);
@@ -1193,7 +1332,7 @@ public class BaborgUtils {
      * @return true se il figlio rispetta l'arco temporale del o dei padri nel
      * caso in cui il padre sia spezzato ma continuo
      */
-    public Boolean arco(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
+    public Boolean arco_old(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
         if (elementi.isEmpty()) {
             return false;
         }
@@ -1216,6 +1355,42 @@ public class BaborgUtils {
             elementi.remove(0);
             return arco(elementi, dataInizio, dataFine);
         }
+    }
+
+    /**
+     *
+     * @param elementi lista fi elementi da controllare se hanno un periodo in
+     * comune con il periodo passato
+     * @param dataInizio inizio intervallo
+     * @param dataFine fine intervallo
+     * @return true se gli intervalli si sovrappongono con l'intervallo passato
+     * false se non si sovrappongo
+     */
+    public Boolean arco(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
+        if (elementi.isEmpty()) {
+            return false;
+        }
+        return elementi.stream().anyMatch(elemento -> overlap(formattattore(elemento.get("datain")), formattattore(elemento.get("datafi")), dataInizio, dataFine));
+    }
+
+    /**
+     *
+     * @param dataInizioA data di inizio del periodo A da controllare
+     * @param dataFineA data di fine del periodo da A controllare
+     * @param dataInizioB data di inizio del periodo B che potrebbe coincidere
+     * con A
+     * @param dataFineB data di fine del periodo B che potrebbe coincidere con A
+     * @return true se si sovrappongono false se non si sovrappongono
+     */
+    public Boolean overlap(LocalDateTime dataInizioA, LocalDateTime dataFineA, LocalDateTime dataInizioB, LocalDateTime dataFineB) {
+
+        if (dataFineA == null) {
+            dataFineA = LocalDateTime.MAX;
+        }
+        if (dataFineB == null) {
+            dataFineB = LocalDateTime.MAX;
+        }
+        return (dataInizioA.compareTo(dataFineB) <= 0 && dataFineA.compareTo(dataInizioB) >= 0);
     }
 
     /**
@@ -1258,6 +1433,13 @@ public class BaborgUtils {
 
             try {
                 String time = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(time).toInstant();
+                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+            } catch (ParseException e) {
+                //non Ã¨ stato parsato
+            }
+            try {
+                String time = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(time).toInstant();
                 return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
