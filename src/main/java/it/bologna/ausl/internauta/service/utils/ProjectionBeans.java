@@ -90,6 +90,7 @@ import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioCon
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -632,9 +633,9 @@ public class ProjectionBeans {
     public StrutturaWithPlainFields getStrutturaFigliaWithFogliaCalcolata(StoricoRelazione storicoRelazione) {
         Struttura idStrutturaFiglia = storicoRelazione.getIdStrutturaFiglia();
         if (idStrutturaFiglia != null) {
-            LocalDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimento();
+            LocalDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimento().truncatedTo(ChronoUnit.DAYS);
             if (dataRiferimento == null) {
-                dataRiferimento = LocalDateTime.now();
+                dataRiferimento = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
             }
             QStoricoRelazione qStoricoRelazione = QStoricoRelazione.storicoRelazione;
             BooleanExpression filter = qStoricoRelazione.idStrutturaPadre.id.eq(idStrutturaFiglia.getId()).and(qStoricoRelazione.attivaDal.loe(dataRiferimento)
