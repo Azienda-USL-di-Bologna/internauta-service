@@ -83,7 +83,9 @@ import it.bologna.ausl.model.entities.permessi.projections.PredicatiAmbitiWithPr
 import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoAmbitoWithIdPredicato;
 import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoAmbitoWithPlainFields;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
+import it.bologna.ausl.model.entities.rubrica.projections.CustomContattoWithIdStrutturaAndIdPersona;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda;
+import it.bologna.ausl.model.entities.rubrica.projections.CustomGruppiContattiWithIdContattoAndIdDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithUtenteStruttura;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -477,13 +479,14 @@ public class ProjectionBeans {
             return null;
         }
     }
+   
     
-    public List<GruppiContattiWithIdContattoAndIdDettaglioContatto> getGruppiContattiWithIdContattoAndIdDettaglioContatto(Contatto contatto) {
+    public List<CustomGruppiContattiWithIdContattoAndIdDettaglioContatto> getGruppiContattiWithIdContattoAndIdDettaglioContatto(Contatto contatto) {
         if (contatto != null) {
             List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
             if (contattiDelGruppoList != null && !contattiDelGruppoList.isEmpty()) {
                 return contattiDelGruppoList.stream().map(
-                        gruppoContatto -> factory.createProjection(GruppiContattiWithIdContattoAndIdDettaglioContatto.class, gruppoContatto))
+                        gruppoContatto -> factory.createProjection(CustomGruppiContattiWithIdContattoAndIdDettaglioContatto.class, gruppoContatto))
                         .collect(Collectors.toList());
             } else {
                 return null;
@@ -608,6 +611,22 @@ public class ProjectionBeans {
             }).collect(Collectors.toList());
         }
         return res;
+    }
+    
+    public CustomContattoWithIdStrutturaAndIdPersona getContattoWithIdStrutturaAndIdPersonaByGruppoContatto(GruppiContatti gruppoContatto) {
+        Contatto idContatto = gruppoContatto.getIdContatto();
+        if (idContatto != null) {
+                return factory.createProjection(CustomContattoWithIdStrutturaAndIdPersona.class, idContatto);
+        }
+        return null;
+    }
+    
+    public CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAziendaByGruppoContatto(GruppiContatti gruppoContatto) {
+        DettaglioContatto dettaglioContatto = gruppoContatto.getIdDettaglioContatto();
+        if (dettaglioContatto != null) {
+                return factory.createProjection(CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda.class, dettaglioContatto);
+        }
+        return null;
     }
     
     public StrutturaWithPlainFields getStrutturaFigliaWithFogliaCalcolata(StoricoRelazione storicoRelazione) {

@@ -8,6 +8,9 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.List;
 import java.util.Map;
+import org.codehaus.jackson.annotate.JsonSubTypes;
+import org.hibernate.annotations.Type;
+import org.json.JSONObject;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -23,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RepositoryRestResource(collectionResourceRel = "mdrstruttura", path = "mdrstruttura", exported = false, excerptProjection = MdrStrutturaWithPlainFields.class)
 public interface MdrStrutturaRepository extends
         NextSdrQueryDslRepository<MdrStruttura, Integer, QMdrStruttura>,
-        JpaRepository<MdrStruttura, Integer> {
+        JpaRepository<MdrStruttura, Integer>, MdrStrutturaRepositoryCustom {
 
     @Transactional
     @Modifying
@@ -32,6 +35,12 @@ public interface MdrStrutturaRepository extends
     
     @Query(value = "SELECT id_casella, id_padre, descrizione, datain, datafi, tipo_legame, codice_ente, id_azienda FROM gru.mdr_struttura WHERE id_azienda= ?1", nativeQuery = true)
     public  List<Map<String,Object>> selectStruttureByIdAzienda(Integer idAzienda);
+    
+    @Query(value = "with arrays as (select id_casella, array_agg( json_build_object('datain',cast(datain as date), 'datafi', cast(datafi as date))) FROM gru.mdr_struttura WHERE id_azienda= ?1 group by id_casella) select cast(json_object_agg(id_casella, array_agg) as Json) from arrays ;", nativeQuery = true)
+    public  JSONObject selectStruttureeeeeByIdAzienda(Integer idAzienda);
+    
+    @Query(value = "SELECT datain, datafi FROM gru.mdr_struttura WHERE id_azienda= ?1 order by id_casella", nativeQuery = true)
+    public  List<Map<String,Object>> selectDateStruttureByIdAzienda(Integer idAzienda);
     
     @Procedure("gru.select_multidefinictions_structure_byidazienda")
     public Integer selectMultiDefinictionsStructureByIdAzienda(
