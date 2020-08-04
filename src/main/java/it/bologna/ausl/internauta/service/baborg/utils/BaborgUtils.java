@@ -27,6 +27,7 @@ import it.bologna.ausl.model.entities.gru.QMdrResponsabili;
 import it.bologna.ausl.model.entities.gru.QMdrStruttura;
 import it.bologna.ausl.model.entities.gru.QMdrTrasformazioni;
 import it.bologna.ausl.mongowrapper.MongoWrapper;
+import it.bologna.ausl.mongowrapper.exceptions.MongoWrapperException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -226,7 +227,7 @@ public class BaborgUtils {
      * it.bologna.ausl.internauta.service.exceptions.BaborgCSVAnomaliaException
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = BaborgCSVAnomaliaException.class, propagation = Propagation.REQUIRES_NEW)
-    public String csvTransactionalReadDeleteInsert(MultipartFile file, String tipo, Integer codiceAzienda, Integer idAzienda) throws BaborgCSVBloccanteException, BaborgCSVAnomaliaException {
+    public String csvTransactionalReadDeleteInsert(MultipartFile file, String tipo, Integer codiceAzienda, Integer idAzienda) throws BaborgCSVBloccanteException, BaborgCSVAnomaliaException, MongoWrapperException {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
         String nameCsv = sdf.format(timestamp) + "_Error_" + tipo + ".csv";
