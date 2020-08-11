@@ -40,6 +40,7 @@ public class RequestInterceptor extends HandlerInterceptorAdapter{
                 try {
                     krintList.forEach(k -> krintRepository.save(k) );
                 } catch (Exception e) {
+                    e.printStackTrace();
                     LOGGER.error("KRINT ERROR: errore nel salvataggio di una riga di krint");
                 }
             }

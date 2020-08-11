@@ -62,7 +62,7 @@ public class KrintService {
             Krint.TipoOggettoKrint tipoOggettoContenitore, 
             String descrizioneOggettoContenitore, 
             String informazioniOggettocontenitore, 
-            OperazioneKrint.CodiceOperazione codiceOperazione) {
+            OperazioneKrint.CodiceOperazione codiceOperazione) throws Exception {
         
         try {
             Utente utente = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser();
@@ -82,10 +82,13 @@ public class KrintService {
             krint.setTipoOggetto(tipoOggetto);
             krint.setInformazioniOggetto(informazioniOggetto);
             krint.setDescrizioneOggetto(descrizioneOggetto);
-            krint.setIdOggettoContenitore(idOggettoContenitore);
-            krint.setTipoOggettoContenitore(tipoOggettoContenitore);
-            krint.setInformazioniOggettoContenitore(informazioniOggettocontenitore);
-            krint.setDescrizioneOggettoContenitore(descrizioneOggettoContenitore);
+            if (idOggettoContenitore != null && idOggettoContenitore != "") {
+                krint.setIdOggettoContenitore(idOggettoContenitore);
+                krint.setTipoOggettoContenitore(tipoOggettoContenitore);
+                krint.setInformazioniOggettoContenitore(informazioniOggettocontenitore);
+                krint.setDescrizioneOggettoContenitore(descrizioneOggettoContenitore);
+            }
+            
             krint.setIdOperazioneVersionata(operazioneVersionataKrint);
 
             Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser().getUtenteReale();
@@ -109,8 +112,8 @@ public class KrintService {
             
         }  catch (Exception ex) {
             // TODO: log
+            throw ex;
         } 
-        
     }
     
     public void writeKrintError(Integer idOggetto, String functionName, CodiceOperazione codiceOperazione) {
