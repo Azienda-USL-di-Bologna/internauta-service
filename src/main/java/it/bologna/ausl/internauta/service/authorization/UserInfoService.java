@@ -254,6 +254,20 @@ public class UserInfoService {
         }
         return res;
     }
+    
+    @Cacheable(value = "getRuoliUtenteStruttura__ribaltorg__", key = "{#utenteStruttura.getId()}")
+    public List<String> getRuoliUtenteStruttura(UtenteStruttura utenteStruttura) {
+        List<String> res = new ArrayList<>();
+        List<Ruolo> ruoliAll = ruoloRepository.findAll();
+        for (Ruolo ruolo : ruoliAll) {
+            if (ruolo.getSuperAziendale() == false) {
+                if ((utenteStruttura.getBitRuoli() & ruolo.getMascheraBit()) > 0) {
+                    res.add(ruolo.getNomeBreve().name());
+                }
+            }
+        }
+        return res;
+    }
 
     /**
      * restituisce tutti i ruoli di tutte le aziende degli utenti della persona
