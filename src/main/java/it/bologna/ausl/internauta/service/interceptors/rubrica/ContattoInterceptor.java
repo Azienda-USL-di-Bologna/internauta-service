@@ -97,6 +97,29 @@ public class ContattoInterceptor extends InternautaBaseInterceptor{
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
+    @Override
+    public Object afterUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        Contatto contatto = (Contatto)entity;
+        boolean isEliminato = contatto.getEliminato();
+        if(KrintUtils.doIHaveToKrint(request)){
+            if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)) {
+                if(isEliminato){
+                    krintRubricaService.writeGroupDelete(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_DELETE);
+                }else{
+                    krintRubricaService.writeGroupUpdate(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_UPDATE);
+                }
+            } else if (contatto.getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
+                if(isEliminato){
+                    krintRubricaService.writeContactDelete(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DELETE);
+                }else{
+                    krintRubricaService.writeContactUpdate(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_UPDATE);
+                }
+            }
+        }
+        
+        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+    }
+
 }
     
 

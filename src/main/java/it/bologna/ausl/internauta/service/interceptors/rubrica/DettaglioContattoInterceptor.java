@@ -18,6 +18,7 @@ import it.bologna.ausl.model.entities.rubrica.QContatto;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -60,6 +61,46 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor{
         }
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
+
+    @Override
+    public Object afterUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        DettaglioContatto dettaglioContatto = (DettaglioContatto)entity;
+        if (KrintUtils.doIHaveToKrint(request)) {
+            if (dettaglioContatto.getIdContatto().getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
+                krintRubricaService.writeContactDetailUpdate(dettaglioContatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DETAIL_UPDATE);
+            }
+        }
+        
+        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        DettaglioContatto dettaglioContatto = (DettaglioContatto)entity;
+        if (KrintUtils.doIHaveToKrint(request)) {
+            if (dettaglioContatto.getIdContatto().getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
+                krintRubricaService.writeContactDetailDelete(dettaglioContatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DETAIL_DELETE);
+            }
+        }
+        
+        super.beforeDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+    }
+    
+    
+
+    @Override
+    public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        DettaglioContatto dettaglioContatto = (DettaglioContatto)entity;
+        if (KrintUtils.doIHaveToKrint(request)) {
+            if (dettaglioContatto.getIdContatto().getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
+                krintRubricaService.writeContactDetailDelete(dettaglioContatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DETAIL_DELETE);
+            }
+        }
+        
+        super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+    }
+    
+    
 }
     
 
