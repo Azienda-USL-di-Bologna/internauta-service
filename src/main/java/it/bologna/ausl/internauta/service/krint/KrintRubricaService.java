@@ -114,28 +114,78 @@ public class KrintRubricaService {
         }
     }
     
-     public void writeGroupContactCreation(GruppiContatti gruppoContatto, OperazioneKrint.CodiceOperazione codiceOperazione){
-        try{
-            KrintRubricaGruppoContatto krintRubricaGruppoContatto = factory.createProjection(KrintRubricaGruppoContatto.class, gruppoContatto);
-            String jsonKrintGruppo = objectMapper.writeValueAsString(krintRubricaGruppoContatto);
-            
-            krintService.writeKrintRow(gruppoContatto.getId().toString(),
-                Krint.TipoOggettoKrint.RUBRICA_GRUPPO_CONTATTO,
-                gruppoContatto.getId().toString(),
-                jsonKrintGruppo,
-                gruppoContatto.getIdGruppo().getId().toString(),
-                Krint.TipoOggettoKrint.RUBRICA_GRUPPO,
-                gruppoContatto.getIdGruppo().getDescrizione(),
-                null,
-                codiceOperazione);
-            
-        } catch (Exception ex){
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = gruppoContatto.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeGroupContactCreation", codiceOperazione);
-        }
+    public void writeGroupContactCreation(GruppiContatti gruppoContatto, OperazioneKrint.CodiceOperazione codiceOperazione){
+       try{
+           KrintRubricaGruppoContatto krintRubricaGruppoContatto = factory.createProjection(KrintRubricaGruppoContatto.class, gruppoContatto);
+           String jsonKrintGruppo = objectMapper.writeValueAsString(krintRubricaGruppoContatto);
+
+           krintService.writeKrintRow(gruppoContatto.getId().toString(),
+               Krint.TipoOggettoKrint.RUBRICA_GRUPPO_CONTATTO,
+               gruppoContatto.getId().toString(),
+               jsonKrintGruppo,
+               gruppoContatto.getIdGruppo().getId().toString(),
+               Krint.TipoOggettoKrint.RUBRICA_GRUPPO,
+               gruppoContatto.getIdGruppo().getDescrizione(),
+               null,
+               codiceOperazione);
+
+       } catch (Exception ex){
+           Integer idOggetto = null;
+           try {
+               ex.printStackTrace();
+               idOggetto = gruppoContatto.getId();
+           } catch (Exception exa) {}
+           krintService.writeKrintError(idOggetto, "writeGroupContactCreation", codiceOperazione);
+       }
+    }
+    
+    public void writeGroupContactDelete(GruppiContatti gruppoContatto, OperazioneKrint.CodiceOperazione codiceOperazione){
+       try{
+           KrintRubricaGruppoContatto krintRubricaGruppoContatto = factory.createProjection(KrintRubricaGruppoContatto.class, gruppoContatto);
+           String jsonKrintGruppo = objectMapper.writeValueAsString(krintRubricaGruppoContatto);
+
+           krintService.writeKrintRow(gruppoContatto.getId().toString(),
+               Krint.TipoOggettoKrint.RUBRICA_GRUPPO_CONTATTO,
+               gruppoContatto.getId().toString(),
+               jsonKrintGruppo,
+               gruppoContatto.getIdGruppo().getId().toString(),
+               Krint.TipoOggettoKrint.RUBRICA_GRUPPO,
+               gruppoContatto.getIdGruppo().getDescrizione(),
+               null,
+               codiceOperazione);
+
+       } catch (Exception ex){
+           Integer idOggetto = null;
+           try {
+               ex.printStackTrace();
+               idOggetto = gruppoContatto.getId();
+           } catch (Exception exa) {}
+           krintService.writeKrintError(idOggetto, "writeGroupContactDelete", codiceOperazione);
+       }
+    }
+    
+    public void writeGroupContactUpdate(GruppiContatti gruppoContatto, OperazioneKrint.CodiceOperazione codiceOperazione){
+       try{
+           KrintRubricaGruppoContatto krintRubricaGruppoContatto = factory.createProjection(KrintRubricaGruppoContatto.class, gruppoContatto);
+           String jsonKrintGruppo = objectMapper.writeValueAsString(krintRubricaGruppoContatto);
+
+           krintService.writeKrintRow(gruppoContatto.getId().toString(),
+               Krint.TipoOggettoKrint.RUBRICA_GRUPPO_CONTATTO,
+               gruppoContatto.getId().toString(),
+               jsonKrintGruppo,
+               gruppoContatto.getIdGruppo().getId().toString(),
+               Krint.TipoOggettoKrint.RUBRICA_GRUPPO,
+               gruppoContatto.getIdGruppo().getDescrizione(),
+               null,
+               codiceOperazione);
+
+       } catch (Exception ex){
+           Integer idOggetto = null;
+           try {
+               ex.printStackTrace();
+               idOggetto = gruppoContatto.getId();
+           } catch (Exception exa) {}
+           krintService.writeKrintError(idOggetto, "writeGroupContactUpdate", codiceOperazione);
+       }
     }
 }
