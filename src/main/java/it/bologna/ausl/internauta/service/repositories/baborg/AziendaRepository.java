@@ -17,4 +17,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AziendaRepository extends
         NextSdrQueryDslRepository<Azienda, Integer, QAzienda>,
         JpaRepository<Azienda, Integer> {
+    
+    public Azienda findByCodice(String codice);
 }

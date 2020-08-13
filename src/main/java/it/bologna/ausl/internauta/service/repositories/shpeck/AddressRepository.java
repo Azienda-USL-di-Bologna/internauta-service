@@ -13,4 +13,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AddressRepository extends
         NextSdrQueryDslRepository<Address, Integer, QAddress>, 
         JpaRepository<Address, Integer> {
+
+    public Address findByMailAddress(String mail);
 }

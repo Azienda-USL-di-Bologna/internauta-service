@@ -94,7 +94,7 @@ public class ShpeckUtils {
 
     @Autowired
     private MessageRepository messageRepository;
-    
+
     @Autowired
     private RawMessageRepository rawMessageRepository;
 
@@ -485,7 +485,7 @@ public class ShpeckUtils {
                                     if (is == null) {
                                         throw new MongoException("File non trovato!!");
                                     }
-                                } else  {
+                                } else {
                                     throw new MongoException("File non trovato!!");
                                 }
                             } catch (Exception ex) {
@@ -510,6 +510,22 @@ public class ShpeckUtils {
                 break;
         }
         return emlFile;
+    }
+
+    public MongoWrapper getMongoWrapperFromUuid(String uuid) {
+        List<Azienda> allAziende = aziendaRepository.findAll();
+        for (Azienda azienda : allAziende) {
+            MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(azienda.getId());
+            try {
+                if (mongoWrapper.getFileName(uuid) != null) {
+                    return mongoWrapper;
+                }
+            } catch (Exception ex) {
+                System.out.println("azienda non giusta");
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -642,7 +658,7 @@ public class ShpeckUtils {
             messageRepository.save(tmp);
         }
     }
-    
+
     private void saveIdAziendaRepository(Message message, Integer idAziendaRepository) {
         LOG.info("Salvo l'idAziendaRepository new...");
         Azienda a = aziendaRepository.getOne(idAziendaRepository);
