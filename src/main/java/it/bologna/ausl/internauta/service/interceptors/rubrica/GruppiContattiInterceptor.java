@@ -67,10 +67,11 @@ public class GruppiContattiInterceptor extends InternautaBaseInterceptor{
         GruppiContatti gc = (GruppiContatti) entity;
         if(gc.getIdGruppo() != null){
             if (KrintUtils.doIHaveToKrint(request)) {
-                Object data = this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.ContattoGruppoAppenaCreato);
-                if (data == null) {
-                    krintRubricaService.writeGroupContactCreation(gc, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_CONTACT_CREATION);
-                }
+                krintRubricaService.writeGroupContactCreation(gc, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_CONTACT_CREATION);
+//                Object data = this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.ContattoGruppoAppenaCreato);
+//                if (data == null) {
+//                    
+//                }
             }
         }
         
