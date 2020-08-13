@@ -6,6 +6,7 @@ import it.bologna.ausl.model.entities.baborg.projections.generated.PecAziendaWit
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,5 +24,9 @@ public interface PecAziendaRepository extends
     @Query(value = "select id from baborg.pec_aziende where id_pec = ?1 and id_azienda = ?2", nativeQuery = true)
     public Integer getIdByIdPecAndIdAzienda(
             @Param("id_pec") Integer idPec,
+            @Param("id_azienda") Integer idAzienda);
+    
+    @Query(value = "select id_pec from baborg.pec_aziende where id_azienda = ?1", nativeQuery = true)
+    public List<Integer> getIdPecByIdAzienda(
             @Param("id_azienda") Integer idAzienda);
 }
