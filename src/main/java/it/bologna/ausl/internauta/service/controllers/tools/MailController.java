@@ -5,7 +5,6 @@
  */
 package it.bologna.ausl.internauta.service.controllers.tools;
 
-import com.mongodb.util.JSON;
 import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecAziendaRepository;
@@ -14,26 +13,19 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.AddressRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageAddressRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
-import static it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData.Keys.idAzienda;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Pec;
-import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.shpeck.Address;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.mongowrapper.MongoWrapper;
 import java.time.LocalDateTime;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.http.client.HttpResponseException;
-import org.graalvm.compiler.code.DataSection;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -106,7 +98,7 @@ public class MailController {
 //            },...
 //          "TotaleAzienda":sizetotaleAzienda
 //        }
-
+        long sommaAzienda=0;
         JSONObject aziendaJson = new JSONObject();
         JSONObject jsonObjectCasella = new JSONObject();
         for (Integer idPecAzienda : idPecsAzienda) {
@@ -149,18 +141,20 @@ public class MailController {
 
                 jsonObjectMailDettagli.put("data", receiveTime);
                 jsonObjectMailDettagli.put("oggetto", message.getSubject());
-                jsonObjectMailDettagli.put("size", sizeByUuid.toString());
+                jsonObjectMailDettagli.put("size", sizeByUuid.toString() + " byte");
 
                 jsonObjectMail.put(message.getId().toString(), jsonObjectMailDettagli);
                 jsonObjectMails.put(jsonObjectMail);
                 sommaCasellaMails += sizeByUuid;
+                sommaAzienda+=sommaCasellaMails;
             }
             jsonObjectDettagliCasella.put("mails", jsonObjectMails);
-            jsonObjectDettagliCasella.put("sommaCasellaMails", sommaCasellaMails);
-
+            jsonObjectDettagliCasella.put("sommaCasellaMails", sommaCasellaMails/(1024*1024) + " MB");
+            
             jsonObjectCasella.put(pecAzienda.getIndirizzo(), jsonObjectDettagliCasella);
         }
         aziendaJson.put("Azienda", jsonObjectCasella);
+        aziendaJson.put("size", sommaAzienda/(1024*1024)+ " MB");
         return aziendaJson.toString();
     }
 }
