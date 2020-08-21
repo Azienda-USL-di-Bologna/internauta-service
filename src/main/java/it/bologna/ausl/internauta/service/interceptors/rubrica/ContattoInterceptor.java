@@ -3,6 +3,8 @@ package it.bologna.ausl.internauta.service.interceptors.rubrica;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import it.bologna.ausl.blackbox.PermissionManager;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
@@ -10,7 +12,9 @@ import it.bologna.ausl.internauta.service.krint.KrintRubricaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.QPec;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
@@ -18,6 +22,7 @@ import it.bologna.ausl.model.entities.rubrica.QContatto;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -45,6 +50,9 @@ public class ContattoInterceptor extends InternautaBaseInterceptor{
     @Autowired
     KrintRubricaService krintRubricaService;
     
+    @Autowired
+    PermissionManager permissionManager;
+    
     @Override
     public Class getTargetEntityClass() {
         return Contatto.class;
@@ -57,6 +65,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor{
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(user.getIdPersona());
         // List<Integer> idAziendePersona = aziendePersona.stream().map(a -> a.getId()).collect(Collectors.toList());
         
+        // QUESTO E' IL FILTRO PER FAR SI CHE UNO VEDA SOLO I CONTATTI DELLE SUE AZIENDE
         BooleanExpression permessoAziendaleFilter = QContatto.contatto.idAziende.isNull().or(
             Expressions.booleanTemplate("tools.array_overlap({0}, tools.string_to_integer_array({1}, ','))=true", 
                 QContatto.contatto.idAziende, org.apache.commons.lang3.StringUtils.join(aziendePersona.stream().map(a -> a.getId()).collect(Collectors.toList()), ",")
@@ -65,10 +74,30 @@ public class ContattoInterceptor extends InternautaBaseInterceptor{
                 QContatto.contatto.idAziende
             )
         ));
-        
-        
         initialPredicate = permessoAziendaleFilter.and(initialPredicate);
-     
+        
+        // QUESTO E' IL FILTRO PER FAR SI CHE UNO VEDA SOLO I CONTATTI RISERVATI SU CUI HA UN PERMESSO UTENTE
+        List<PermessoEntitaStoredProcedure> contattiWithStandardPermissions;
+        try {
+            contattiWithStandardPermissions = permissionManager.getPermissionsOfSubjectActualFromDate(
+                    authenticatedSessionData.getPerson(),
+                    null,
+                    Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ACCESSO.toString()}),
+                    Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.RUBRICA.toString()}),
+                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.CONTATTO.toString()}), false, null);
+        } catch (BlackBoxPermissionException ex) {
+            LOGGER.error("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
+            throw new AbortLoadInterceptorException("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
+        }
+        BooleanExpression contactFilter = QContatto.contatto.id.in(
+                    contattiWithStandardPermissions
+                            .stream()
+                            .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList()))
+                .or(
+                QContatto.contatto.riservato.eq(false));
+        
+        initialPredicate = contactFilter.and(initialPredicate);
+        
         return initialPredicate;
     }
     
