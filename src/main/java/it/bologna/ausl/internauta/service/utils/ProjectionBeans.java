@@ -78,6 +78,9 @@ import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndP
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithStruttureAndResponsabiliCustom;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithStruttureFiglieList;
+import it.bologna.ausl.model.entities.logs.projections.KrintRubricaContatto;
+import it.bologna.ausl.model.entities.logs.projections.KrintRubricaDettaglioContatto;
+import it.bologna.ausl.model.entities.logs.projections.KrintRubricaGruppoContatto;
 import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
 import it.bologna.ausl.model.entities.permessi.projections.PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded;
 import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoAmbitoWithIdPredicato;
@@ -90,6 +93,7 @@ import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioCon
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -632,9 +636,9 @@ public class ProjectionBeans {
     public StrutturaWithPlainFields getStrutturaFigliaWithFogliaCalcolata(StoricoRelazione storicoRelazione) {
         Struttura idStrutturaFiglia = storicoRelazione.getIdStrutturaFiglia();
         if (idStrutturaFiglia != null) {
-            LocalDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimento();
+            LocalDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimento().truncatedTo(ChronoUnit.DAYS);
             if (dataRiferimento == null) {
-                dataRiferimento = LocalDateTime.now();
+                dataRiferimento = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
             }
             QStoricoRelazione qStoricoRelazione = QStoricoRelazione.storicoRelazione;
             BooleanExpression filter = qStoricoRelazione.idStrutturaPadre.id.eq(idStrutturaFiglia.getId()).and(qStoricoRelazione.attivaDal.loe(dataRiferimento)
@@ -647,6 +651,42 @@ public class ProjectionBeans {
             idStrutturaFiglia.setFogliaCalcolata(isLeaf);
             
             return factory.createProjection(StrutturaWithPlainFields.class, idStrutturaFiglia);
+        }
+        return null;
+    }
+    
+    public List<KrintRubricaDettaglioContatto> getCustomKrintDettaglioContattoList(Contatto contatto) {
+        List<DettaglioContatto> dettaglioContattoList = contatto.getDettaglioContattoList();
+        List<KrintRubricaDettaglioContatto> res = null;
+        if (dettaglioContattoList != null && !dettaglioContattoList.isEmpty()) {
+            res = dettaglioContattoList.stream().map(dettaglioContatto -> {
+                return factory.createProjection(KrintRubricaDettaglioContatto.class, dettaglioContatto);
+            }).collect(Collectors.toList());
+        }
+        return res;
+    }
+    
+    public List<KrintRubricaGruppoContatto> getCustomKrintContattiDelGruppoList(Contatto gruppo) {
+        List<GruppiContatti> contattiDelGruppoList = gruppo.getContattiDelGruppoList();
+        List<KrintRubricaGruppoContatto> res = null;
+        if (contattiDelGruppoList != null && !contattiDelGruppoList.isEmpty()) {
+            res = contattiDelGruppoList.stream().map(gruppoContatto -> {
+                return factory.createProjection(KrintRubricaGruppoContatto.class, gruppoContatto);
+            }).collect(Collectors.toList());
+        }
+        return res;
+    }
+    
+    public KrintRubricaContatto getCustomKrintContatto(Contatto contatto){
+        if(contatto!=null){
+            return factory.createNullableProjection(KrintRubricaContatto.class, contatto);
+        }
+        return null;
+    }
+    
+    public KrintRubricaDettaglioContatto getCustomKrintDettaglioContatto(DettaglioContatto dettaglioContatto){
+        if(dettaglioContatto!=null){
+            return factory.createNullableProjection(KrintRubricaDettaglioContatto.class, dettaglioContatto);
         }
         return null;
     }

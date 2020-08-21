@@ -10,6 +10,8 @@ import it.nextsw.common.annotations.NextSdrInterceptor;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -40,7 +42,8 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
         String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
         if (additionalData != null && additionalData.containsKey(key)) {
 
-            LocalDateTime dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime();
+            LocalDateTime dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime().truncatedTo(ChronoUnit.DAYS);
+           
             QStoricoRelazione qStoricoRelazione = QStoricoRelazione.storicoRelazione;
 
             BooleanExpression filter = qStoricoRelazione.attivaDal.loe(dataRiferimento)
