@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.repositories.EntitaRepository;
 import it.bologna.ausl.blackbox.repositories.TipoEntitaRepository;
@@ -47,10 +48,12 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteStrutturaWithIdStrutturaAndIdAzienda;
@@ -84,6 +87,7 @@ import it.bologna.ausl.model.entities.logs.projections.KrintRubricaContatto;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaDettaglioContatto;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaGruppoContatto;
 import it.bologna.ausl.model.entities.permessi.Entita;
+import it.bologna.ausl.model.entities.permessi.Permesso;
 import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
 import it.bologna.ausl.model.entities.permessi.QEntita;
 import it.bologna.ausl.model.entities.permessi.QTipoEntita;
@@ -141,10 +145,16 @@ public class ProjectionBeans {
     protected StrutturaRepository strutturaRepository;
 
     @Autowired
+    protected PersonaRepository personaRepository;
+
+    @Autowired
     protected StoricoRelazioneRepository storicoRelazioneRepository;
 
     @Autowired
     protected PredicatoAmbitoRepository predicatoAmbitoRepository;
+
+    @Autowired
+    protected PredicatoRepository predicatoRepository;
 
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
@@ -154,6 +164,9 @@ public class ProjectionBeans {
 
     @Autowired
     UserInfoService userInfoService;
+
+    @Autowired
+    PermissionManager permissionManager;
 
     @Autowired
     InternautaUtils internautaUtils;
@@ -719,5 +732,35 @@ public class ProjectionBeans {
                 QEntita.entita.idProvenienza.eq(Integer.parseInt(idEsterno.toString()))
                         .and(QEntita.entita.idTipoEntita.id.eq(tipoEntita.getId()))).get();
         return factory.createProjection(EntitaWithPlainFields.class, entita);
+    }
+
+    public Object getPredicato(Permesso permesso) {
+        return predicatoRepository.findById(permesso.getIdPredicato().getId()).get();
+    }
+
+    public List<PermessoEntitaStoredProcedure> getPermessiContatto(Contatto contatto) throws BlackBoxPermissionException {
+
+        List<String> predicati = new ArrayList<>();
+        predicati.add("ACCESSO");
+        List<String> ambiti = new ArrayList<>();
+        ambiti.add("RUBRICA");
+        List<String> tipi = new ArrayList<>();
+        tipi.add("CONTATTO");
+
+        List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = new ArrayList<>();
+        subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(contatto, predicati, ambiti, tipi, Boolean.FALSE);
+        if (subjectsWithPermissionsOnObject != null) {
+            for (PermessoEntitaStoredProcedure permessoEntitaStoredProcedure : subjectsWithPermissionsOnObject) {
+                if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.strutture.toString())) {
+                    Struttura strutturaSoggetto = strutturaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
+                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(strutturaSoggetto.getNome() + " [" + strutturaSoggetto.getCodice() + "]");
+                } else if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.persone.toString())) {
+                    Persona personaSoggetto = personaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
+                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(personaSoggetto.getDescrizione() + " [" + personaSoggetto.getCodiceFiscale() + "]");
+                }
+            }
+        }
+
+        return subjectsWithPermissionsOnObject;
     }
 }
