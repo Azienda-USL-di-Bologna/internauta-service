@@ -280,7 +280,7 @@ public class BaborgUtils {
 
                     Integer riga;
                     LocalDateTime inizio = LocalDateTime.now();
-                    log.info("ora inizio: " + LocalDateTime.now());
+//                    log.info("ora inizio: " + LocalDateTime.now());
 //                    List<Integer> codiciMatricoleConMultiafferenzaDiretta = new ArrayList<>();
 
 //                    List<Integer> codiciMatricoleConMultiafferenzaFunzionale = new ArrayList<>();
@@ -290,7 +290,7 @@ public class BaborgUtils {
 
                         mapError = new HashMap<>();
                         riga = mapReader.getLineNumber();
-//                        log.info("getLineNumber: " + mapReader.getLineNumber());
+                        log.info("getLineNumber: " + mapReader.getLineNumber());
                         // Inserisco la riga
                         MdrAppartenenti mA = new MdrAppartenenti();
 //                      preparo la mappa di errore
@@ -514,6 +514,7 @@ public class BaborgUtils {
                                         Map<String, Object> periodoDaCasellare = new HashMap();
                                         periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
                                         periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                        periodoDaCasellare.put("riga", mapReader.getLineNumber());
                                         periodoCasellato.add(periodoDaCasellare);
                                         appartenentiFunzionali.put(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), appFunzionale);
                                     } else {
@@ -523,6 +524,7 @@ public class BaborgUtils {
                                             Map<String, Object> periodoDaCasellare = new HashMap();
                                             periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
                                             periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                            periodoDaCasellare.put("riga", mapReader.getLineNumber());
                                             periodoCasellato.add(periodoDaCasellare);
                                             appFunzionale.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
                                         } else {
@@ -550,6 +552,7 @@ public class BaborgUtils {
                                             Map<String, Object> periodoDaCasellare = new HashMap();
                                             periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
                                             periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                            periodoDaCasellare.put("riga", mapReader.getLineNumber());
                                             periodoCasellato.add(periodoDaCasellare);
                                         }
                                     }
