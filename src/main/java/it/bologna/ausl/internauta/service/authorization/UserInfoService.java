@@ -36,8 +36,10 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import java.util.HashMap;
@@ -45,6 +47,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
+import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
@@ -53,6 +56,7 @@ import org.sql2o.Sql2o;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -60,6 +64,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 
 /**
@@ -103,7 +109,7 @@ public class UserInfoService {
     PostgresConnectionManager postgresConnectionManager;
 
     @Autowired
-    HttpServletRequest aaa;
+    ParametriAziende parametriAziende;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
 
@@ -233,6 +239,40 @@ public class UserInfoService {
             if (interaziendali == null || interaziendali == false) {
                 if (ruolo.getSuperAziendale() == false) {
                     if ((utente.getBitRuoli() & ruolo.getMascheraBit()) > 0) {
+                        res.add(ruolo);
+                    }
+                }
+            }
+        }
+        List<ParametroAziende> filtraResponsabiliMatrintParams = parametriAziende.getParameters("AccessoMatrintFiltratoPerRuolo", new Integer[] {utente.getIdAzienda().getId()});
+        try {
+            if (filtraResponsabiliMatrintParams != null && !filtraResponsabiliMatrintParams.isEmpty() && parametriAziende.getValue(filtraResponsabiliMatrintParams.get(0), Boolean.class)) {
+                res.addAll(getStruttureRuolo(utente, Arrays.asList(Ruolo.CodiciRuolo.R)));
+            }
+        } catch (IOException ex) {
+           LOGGER.error("errore nell'inserimento dei ruoli utente-struttura", ex);
+        }
+        return res;
+    }
+    
+    /**
+     * Torna la lista dei ruoli intersacati con i ruoli passati in input dell'utente sulle sue strutture
+     * @param utente
+     * @param codiciRuoloUtenteStruttura torna una lista che li contiente se questi sono presenti in utenti_strutture per l'utente passato
+     * @return la lista dei ruoli intersacati con i ruoli passati in input dell'utente sulle sue strutture
+     */
+    @Cacheable(value = "getStruttureRuolo__ribaltorg__", key = "{#utente.getId(), #codiciRuoloUtenteStruttura != null? #codiciRuoloUtenteStruttura.toString(): 'null'}")
+    public Set<Ruolo> getStruttureRuolo(Utente utente, List<Ruolo.CodiciRuolo> codiciRuoloUtenteStruttura) {
+        Set<Ruolo> res = new HashSet();
+        Iterable<UtenteStruttura> struttureUtente = utenteStrutturaRepository.findAll(
+                    QUtenteStruttura.utenteStruttura.attivo.eq(true).and(
+                    QUtenteStruttura.utenteStruttura.idUtente.id.eq(utente.getId()))
+        );
+        for (Ruolo.CodiciRuolo codiceRuolo : codiciRuoloUtenteStruttura) {
+            Ruolo ruolo = cachedEntities.getRuoloByNomeBreve(codiceRuolo);
+            if (struttureUtente != null) {
+                for (UtenteStruttura utenteStruttura : struttureUtente) {
+                    if ((utenteStruttura.getBitRuoli() & ruolo.getMascheraBit()) > 0) {
                         res.add(ruolo);
                     }
                 }

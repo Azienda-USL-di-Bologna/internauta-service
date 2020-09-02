@@ -1,14 +1,24 @@
 package it.bologna.ausl.internauta.service.controllers.baborg;
 
+import com.querydsl.core.types.Expression;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.NumberTemplate;
+import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
+import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositoryImpl;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
+import it.bologna.ausl.internauta.service.utils.ParametriAziende;
+import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
+import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -40,6 +50,9 @@ public class BaborgDebugController {
 
     @Autowired
     StrutturaRepository strutturaRepository;
+    
+    @Autowired
+    StoricoRelazioneRepository storicoRelazioneRepository;
 
     @Autowired
     UtenteRepository utenteRepository;
@@ -49,6 +62,9 @@ public class BaborgDebugController {
 
     @Autowired
     ProjectionFactory factory;
+    
+    @Autowired
+    ParametriAziende parametriAziende;
 
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
@@ -148,4 +164,28 @@ public class BaborgDebugController {
         //return EmlHandler.handleEml("C:\\Users\\mdonza\\Desktop\\Eml\\donazione sig.ra Giliola Grillini.eml");
     }
 
+    @RequestMapping(value = "test2", method = RequestMethod.GET)
+    public Object test2(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException {
+        
+//        Expression<Integer> value = Expressions.asNumber(16);
+//        NumberTemplate<Integer> numberTemplate = Expressions.numberTemplate(Integer.class, "function('bitand', {0}, {1})", QUtenteStruttura.utenteStruttura.bitRuoli, value);
+//        
+//        BooleanExpression filter = QUtenteStruttura.utenteStruttura.id.eq(28075300).and(numberTemplate.gt(0));
+//        Iterable<UtenteStruttura> res = utenteStrutturaRepository.findAll(filter);
+//        
+//        List<ParametroAziende> parameters1 = parametriAziende.getParameters("FiltraResponsabiliMatrint", new Integer[] {2});
+//        List<ParametroAziende> parameters2 = parametriAziende.getParameters("FiltraResponsabiliMatrint", new Integer[] {3});
+//        
+//        if (parameters1 != null && !parameters1.isEmpty())
+//            System.out.println(parametriAziende.getValue(parameters1.get(0), Boolean.class));
+//        else 
+//            System.out.println("parameters1 empty");
+//        if (parameters2 != null && !parameters2.isEmpty())
+//            System.out.println(parametriAziende.getValue(parameters2.get(0), Boolean.class));
+//        else 
+//            System.out.println("parameters2 empty");
+        Object struttureRuolo = storicoRelazioneRepository.getStruttureRuolo(256, 351272);
+        
+        return struttureRuolo;
+    }
 }
