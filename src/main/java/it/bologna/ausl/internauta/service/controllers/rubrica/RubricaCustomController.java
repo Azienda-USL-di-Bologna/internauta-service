@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
@@ -43,6 +44,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -77,7 +79,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     CommonUtils commonUtils;
-    
+
     @Autowired
     MasterChefUtils masterChefUtils;
 
@@ -92,7 +94,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     PersonaRepository personaRepository;
-    
+
     @Autowired
     UtenteRepository utenteRepository;
 
@@ -107,10 +109,10 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-    
+
     @Value("${babelsuite.webapi.managedestinatari.url}")
     private String manageDestinatariUrl;
-    
+
     @Value("${babelsuite.webapi.managedestinatari.method}")
     private String manageDestinatariMethod;
 
@@ -131,7 +133,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 //    }
     /**
      * Questa funzione cerca nelle rubriche dei db argo usando principalmente la
-     * rubricarest.La fuznione è specifica per la ricerca della mail. Restituirà un oggetto composto da descrizione contatto e sua email.
+     * rubricarest.La fuznione è specifica per la ricerca della mail. Restituirà
+     * un oggetto composto da descrizione contatto e sua email.
      *
      * @param toSearch
      * @param request
@@ -148,13 +151,13 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             @RequestParam("toSearch") String toSearch,
             HttpServletRequest request
     ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException, Http404ResponseException, RestClientException, BlackBoxPermissionException {
-        
+
         // Prendo le informazioni che mi servono per chiamare la rubrica
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
         Azienda azienda = cachedEntities.getAzienda(utente.getIdAzienda().getId());
         UtenteProcton utenteProcton = (UtenteProcton) userInfoService.getUtenteProcton(utente.getIdPersona().getId(), azienda.getCodice());
-        
+
         // Faccio la chiamata alla rubrica
         RestClient restClient = rubricaRestClientConnectionManager.getConnection(azienda.getId());
         List<FullContactResource> searchContact = restClient.searchContact(toSearch, utenteProcton.getIdUtente(), utenteProcton.getIdStruttura(), false);
@@ -262,32 +265,39 @@ public class RubricaCustomController implements ControllerHandledExceptions {
     }
 
     @RequestMapping(value = "getSimilarities", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getSimilarities(@RequestBody Map contatto) throws JsonProcessingException, IOException {
+    public ResponseEntity<String> getSimilarities(@RequestBody Map contatto) throws JsonProcessingException, IOException, BlackBoxPermissionException {
 
         String contattoString = objectMapper.writeValueAsString(contatto);
 
-        String res = contattoRepository.getSimilarContacts(contattoString);
+        // prendo utente connesso
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente utente = authenticatedUserProperties.getUser();
+        Persona persona = utente.getIdPersona();
+
+        List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
+        List<Integer> collect = aziendePersona.stream().map(p -> p.getId()).collect(Collectors.toList());
+        String idAziendeStr = UtilityFunctions.getArrayString(objectMapper, collect);
+        String res = contattoRepository.getSimilarContacts(contattoString, idAziendeStr);
 
         SqlSimilarityResults similarityResults = objectMapper.readValue(res, SqlSimilarityResults.class);
 
         return new ResponseEntity(similarityResults, HttpStatus.OK);
     }
-    
-    
-    @RequestMapping(value = "sendSelectedContactsToExternalApp", 
-            method = RequestMethod.POST, 
+
+    @RequestMapping(value = "sendSelectedContactsToExternalApp",
+            method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> sendSelectedContactsToExternalApp(@RequestBody ExternalAppData data) 
+    public ResponseEntity<String> sendSelectedContactsToExternalApp(@RequestBody ExternalAppData data)
             throws JsonProcessingException, IOException, BlackBoxPermissionException {
-        
+
         Azienda azienda = cachedEntities.getAziendaFromCodice(data.getCodiceAzienda());
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
         Persona persona = utente.getIdPersona();
         data.setCfUtenteOperazione(persona.getCodiceFiscale());
-   
+
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
-                okhttp3.MediaType.get("application/json; charset=utf-8"), 
+                okhttp3.MediaType.get("application/json; charset=utf-8"),
                 objectMapper.writeValueAsString(data));
         OkHttpClient client = new OkHttpClient();
 
@@ -296,7 +306,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                 .post(requestBody)
                 .addHeader("X-HTTP-Method-Override", manageDestinatariMethod)
                 .build();
-        
+
         log.info("Chiamo l'applicazione inde per salvare i contatti selezionati");
         Call call = client.newCall(request);
         try (Response response = call.execute();) {
@@ -311,14 +321,14 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
         return new ResponseEntity(data, HttpStatus.OK);
     }
-    
+
     private String buildGestisciDestinatariDaRubricaInternautarUrl(Azienda azienda, String idApplicazione) throws IOException {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
         return url;
     }
-    
+
     private void refreshDestinatari(Persona persona, Azienda azienda, String guid) throws IOException {
         log.info("Inserisco su redis il comando di refresh dei destinatari");
         List<String> dests = Arrays.asList(persona.getCodiceFiscale());
@@ -327,12 +337,12 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         primusCommandParams.put("refreshDestinatari", guid);
         AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         AziendaParametriJson.MasterChefParmas masterchefParams = aziendaParametriJson.getMasterchefParams();
-        MasterChefUtils.MasterchefJobDescriptor masterchefJobDescriptor = 
-            masterChefUtils.buildPrimusMasterchefJob(
-                MasterChefUtils.PrimusCommands.refreshDestinatari, 
-                primusCommandParams, "1", "1", dests, "*"
-        );
+        MasterChefUtils.MasterchefJobDescriptor masterchefJobDescriptor
+                = masterChefUtils.buildPrimusMasterchefJob(
+                        MasterChefUtils.PrimusCommands.refreshDestinatari,
+                        primusCommandParams, "1", "1", dests, "*"
+                );
         masterChefUtils.sendMasterChefJob(masterchefJobDescriptor, masterchefParams);
-        
+
     }
 }
