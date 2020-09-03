@@ -244,14 +244,13 @@ public class UserInfoService {
                 }
             }
         }
-        List<ParametroAziende> filtraResponsabiliMatrintParams = parametriAziende.getParameters("AccessoMatrintFiltratoPerRuolo", new Integer[] {utente.getIdAzienda().getId()});
-        try {
-            if (filtraResponsabiliMatrintParams != null && !filtraResponsabiliMatrintParams.isEmpty() && parametriAziende.getValue(filtraResponsabiliMatrintParams.get(0), Boolean.class)) {
-                res.addAll(getStruttureRuolo(utente, Arrays.asList(Ruolo.CodiciRuolo.R)));
-            }
-        } catch (IOException ex) {
-           LOGGER.error("errore nell'inserimento dei ruoli utente-struttura", ex);
+        Persona persona = utente.getIdPersona();
+        Integer[] idAziende = getAziendePersona(persona).stream().map(a -> a.getId()).collect(Collectors.toList()).toArray(new Integer[0]);
+        List<ParametroAziende> filtraResponsabiliMatrintParams = parametriAziende.getParameters("AccessoMatrintFiltratoPerRuolo", idAziende);
+        if (filtraResponsabiliMatrintParams != null && !filtraResponsabiliMatrintParams.isEmpty() && filtraResponsabiliMatrintParams.stream().anyMatch(param -> parametriAziende.getValue(param, Boolean.class))) {
+            res.addAll(getStruttureRuolo(utente, Arrays.asList(Ruolo.CodiciRuolo.R)));
         }
+        
         return res;
     }
     
