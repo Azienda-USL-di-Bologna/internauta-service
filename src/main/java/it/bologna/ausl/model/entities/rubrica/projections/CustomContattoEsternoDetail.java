@@ -1,5 +1,7 @@
 package it.bologna.ausl.model.entities.rubrica.projections;
 
+import it.bologna.ausl.internauta.service.permessi.Permesso;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithEmailListAndGruppiDelContattoListAndIdPersonaCreazioneAndIdUtenteCreazioneAndIndirizziListAndTelefonoList;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.EmailWithIdDettaglioContatto;
@@ -22,17 +24,23 @@ public interface CustomContattoEsternoDetail extends ContattoWithEmailListAndGru
     @Value("#{@projectionBeans.getEmailWithIdDettaglioContatto(target)}")
     @Override
     public List<EmailWithIdDettaglioContatto> getEmailList();
-    
+
     @Value("#{@projectionBeans.getIndirizzoWithIdDettaglioContatto(target)}")
     @Override
     public List<IndirizzoWithIdDettaglioContatto> getIndirizziList();
-    
+
     @Value("#{@projectionBeans.getTelefonoWithIdDettaglioContatto(target)}")
     @Override
     public List<TelefonoWithIdDettaglioContatto> getTelefonoList();
-    
+
     @Value("#{@projectionBeans.getGruppiContattiWithIdDettaglioContattoAndIdGruppo(target)}")
     @Override
     public List<GruppiContattiWithIdDettaglioContattoAndIdGruppo> getGruppiDelContattoList();
-    
+
+    @Value("#{@projectionBeans.getEntita(target)}")
+    public Object getEntita();
+
+    @Value("#{@projectionBeans.getPermessiContatto(target)}")
+    public List<PermessoEntitaStoredProcedure> getPermessiContatto();
+
 }

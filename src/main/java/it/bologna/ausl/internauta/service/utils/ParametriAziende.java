@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.BooleanTemplate;
@@ -10,6 +11,8 @@ import it.bologna.ausl.model.entities.configuration.QParametroAziende;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -69,9 +72,12 @@ public class ParametriAziende {
      * @param parametroAziende 
      * @param valueType
      * @return 
-     * @throws java.io.IOException 
      */    
-    public <T extends Object> T getValue(ParametroAziende parametroAziende, Class<T> valueType) throws IOException {
-        return objectMapper.readValue(parametroAziende.getValore(), valueType);
+    public <T extends Object> T getValue(ParametroAziende parametroAziende, Class<T> valueType) {
+        try {
+            return objectMapper.readValue(parametroAziende.getValore(), valueType);
+        } catch (JsonProcessingException ex) {
+            return null;
+        }
     }
 }

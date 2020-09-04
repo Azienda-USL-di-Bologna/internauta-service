@@ -18,6 +18,7 @@ import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.shpeck.Address;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.mongowrapper.MongoWrapper;
+import it.bologna.ausl.mongowrapper.exceptions.MongoWrapperException;
 import java.time.LocalDateTime;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
@@ -68,7 +69,7 @@ public class MailController {
             @RequestParam(required = true) String mail,
             @RequestParam(required = true) String codiceAzienda,
             HttpServletResponse response,
-            HttpServletRequest request) throws HttpResponseException {
+            HttpServletRequest request) throws HttpResponseException, MongoWrapperException {
 
         //prima cosa mi becco id azienda da codice azienda
         Azienda aziendaTrovata = aziendaRepository.findByCodice(codiceAzienda);

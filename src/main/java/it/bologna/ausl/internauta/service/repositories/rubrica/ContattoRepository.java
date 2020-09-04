@@ -22,6 +22,7 @@ public interface ContattoRepository extends
 
     @Procedure("rubrica.get_similar_contacts")
     public String getSimilarContacts(
-            @Param("contact") String contact
+            @Param("contact") String contact,
+            @Param("p_id_aziende") String idAziende
     );
 }
