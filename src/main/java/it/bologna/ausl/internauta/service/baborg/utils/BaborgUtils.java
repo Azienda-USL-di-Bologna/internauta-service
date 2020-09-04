@@ -916,6 +916,7 @@ public class BaborgUtils {
                             mapError.put("tipo_legame", "");
                             mS.setTipoLegame(null);
                             anomalia = true;
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " tipo_legame assente,");
                         } else {
                             mapError.put("tipo_legame", strutturaMap.get("tipo_legame"));
                             mS.setTipoLegame(strutturaMap.get("tipo_legame").toString());
