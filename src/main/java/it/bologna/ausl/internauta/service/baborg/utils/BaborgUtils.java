@@ -37,6 +37,7 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -1582,12 +1583,11 @@ public class BaborgUtils {
     public LocalDateTime formattattore(Object o) {
         if (o != null) {
             try {
-
                 // String format = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(o.toString()).toInstant();
-                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
-            } catch (ParseException e) {
-                //non Ã¨ stato parsato
+//                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(o.toString()).toInstant();
+                return LocalDate.parse(o.toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy")).atStartOfDay();
+            } catch (Exception e) {
+            
             }
             try {
 
