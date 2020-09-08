@@ -1,27 +1,14 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.repositories.gru;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepositoryCustom;
-import it.bologna.ausl.internauta.utils.jpa.natiquery.NativeQueryTools;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.persistence.Convert;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
-import org.hibernate.jpa.TypedParameterValue;
-import org.hibernate.type.IntegerType;
-import org.hibernate.type.LocalDateTimeType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -40,7 +27,7 @@ public class MdrStrutturaRepositoryCustomImpl implements MdrStrutturaRepositoryC
 
     @Override
     public Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda(Integer idAzienda) throws SQLException {
-        String queryString = "select * from gru.select_strutture_date(2)";
+        String queryString = "select * from gru.select_strutture_date(" + idAzienda + ")";
         Query query = em.createNativeQuery(queryString);
         //query.setParameter ( 1 , new TypedParameterValue(IntegerType.INSTANCE, idAzienda));
 //        Object resultList = query.getResultList();
