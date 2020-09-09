@@ -40,7 +40,7 @@ public class MdrStrutturaRepositoryCustomImpl implements MdrStrutturaRepositoryC
 
     @Override
     public Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda(Integer idAzienda) throws SQLException {
-        String queryString = "select * from gru.select_strutture_date(2)";
+        String queryString = "select * from gru.select_strutture_date("+ idAzienda +")";
         Query query = em.createNativeQuery(queryString);
         //query.setParameter ( 1 , new TypedParameterValue(IntegerType.INSTANCE, idAzienda));
 //        Object resultList = query.getResultList();

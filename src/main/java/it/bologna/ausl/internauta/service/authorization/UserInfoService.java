@@ -697,6 +697,13 @@ public class UserInfoService {
         Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
         return isCI;
     }
+    
+    @Cacheable(value = "isR__ribaltorg__", key = "{#user.getId()}")
+    public boolean isR(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isR = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.R);
+        return isR;
+    }
 
     @Cacheable(value = "isCA__ribaltorg__", key = "{#user.getId()}")
     public boolean isCA(Utente user) {
