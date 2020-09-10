@@ -20,6 +20,7 @@ public class SqlSimilarityContact {
     private String codice_fiscale;
     private String email;
     private String descrizione_indirizzo;
+    private boolean riservato;
 
     public SqlSimilarityContact() {
     }
@@ -90,6 +91,14 @@ public class SqlSimilarityContact {
 
     public String getDescrizione_indirizzo() {
         return descrizione_indirizzo;
+    }
+
+    public boolean isRiservato() {
+        return riservato;
+    }
+
+    public void setRiservato(boolean riservato) {
+        this.riservato = riservato;
     }
 
     public void setDescrizione_indirizzo(String descrizione_indirizzo) {
