@@ -5,6 +5,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
@@ -15,6 +16,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.QPec;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
@@ -26,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,16 +83,19 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         // QUESTO E' IL FILTRO PER FAR SI CHE UNO VEDA SOLO I CONTATTI RISERVATI SU CUI HA UN PERMESSO UTENTE
         List<PermessoEntitaStoredProcedure> contattiWithStandardPermissions;
         try {
-            contattiWithStandardPermissions = permissionManager.getPermissionsOfSubjectActualFromDate(
+            
+            List<Object> struttureUtente = userInfoService.getUtenteStrutturaList(authenticatedSessionData.getUser()).stream().map(us -> us.getIdStruttura()).collect(Collectors.toList());
+            contattiWithStandardPermissions = permissionManager.getPermissionsOfSubjectAdvanced(
                     authenticatedSessionData.getPerson(),
                     null,
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ACCESSO.toString()}),
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.RUBRICA.toString()}),
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.CONTATTO.toString()}), false, null);
+                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.CONTATTO.toString()}), false, null, null, struttureUtente, BlackBoxConstants.Direzione.PRESENTE);
         } catch (BlackBoxPermissionException ex) {
             LOGGER.error("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
             throw new AbortLoadInterceptorException("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
         }
+        
         BooleanExpression contactFilter = QContatto.contatto.id.in(
                 contattiWithStandardPermissions
                         .stream()
