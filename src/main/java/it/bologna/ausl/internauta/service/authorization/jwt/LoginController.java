@@ -255,6 +255,8 @@ public class LoginController {
         userInfoService.loadUtenteRemoveCache(utente.getId());
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);
         userInfoService.getUtentiPersonaRemoveCache(utente.getIdPersona());
+        userInfoService.getUtenteStrutturaListRemoveCache(utente, true);
+        userInfoService.getUtenteStrutturaListRemoveCache(utente, false);
         userInfoService.getPermessiPecRemoveCache(utente.getIdPersona());
 
         String realUserId = null;
@@ -268,6 +270,8 @@ public class LoginController {
             userInfoService.loadUtenteRemoveCache(utenteReale.getId());
             userInfoService.getUtentiPersonaByUtenteRemoveCache(utenteReale);
             userInfoService.getUtentiPersonaRemoveCache(utenteReale.getIdPersona());
+            userInfoService.getUtenteStrutturaListRemoveCache(utenteReale, true);
+            userInfoService.getUtenteStrutturaListRemoveCache(utenteReale, false);
             userInfoService.getPermessiDelegaRemoveCache(utenteReale);
             List<Integer> permessiDelega = userInfoService.getPermessiDelega(utenteReale);
             boolean isSuperDemiurgo = userInfoService.isSD(utenteReale);

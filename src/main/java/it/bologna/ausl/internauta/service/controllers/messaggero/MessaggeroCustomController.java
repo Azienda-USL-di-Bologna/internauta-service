@@ -137,7 +137,7 @@ public class MessaggeroCustomController {
                         QAmministrazioneMessaggio.amministrazioneMessaggio.idAziende, org.apache.commons.lang3.StringUtils.join(userInfoService.getAziendePersona(person).stream().map(a -> a.getId()).collect(Collectors.toList()), ",")));
         BooleanExpression struttureFilter = QAmministrazioneMessaggio.amministrazioneMessaggio.idStrutture.isNotNull().and(
                 Expressions.booleanTemplate("tools.array_overlap({0}, tools.string_to_integer_array({1}, ','))=true", 
-                        QAmministrazioneMessaggio.amministrazioneMessaggio.idStrutture, org.apache.commons.lang3.StringUtils.join(userInfoService.getUtenteStrutturaList(user).stream().map(us -> us.getIdStruttura().getId()).collect(Collectors.toList()), ",")));
+                        QAmministrazioneMessaggio.amministrazioneMessaggio.idStrutture, org.apache.commons.lang3.StringUtils.join(userInfoService.getUtenteStrutturaList(user, true).stream().map(us -> us.getIdStruttura().getId()).collect(Collectors.toList()), ",")));
         BooleanExpression personeFilter = QAmministrazioneMessaggio.amministrazioneMessaggio.idPersone.isNotNull().and(
                 Expressions.booleanTemplate("arraycontains({0}, tools.string_to_integer_array({1}, ','))=true", QAmministrazioneMessaggio.amministrazioneMessaggio.idPersone, String.valueOf(person.getId())));
         
