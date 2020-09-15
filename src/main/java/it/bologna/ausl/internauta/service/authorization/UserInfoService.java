@@ -426,10 +426,19 @@ public class UserInfoService {
     public void getUtentiPersonaRemoveCache(Persona persona) {
     }
 
-    @Cacheable(value = "getUtenteStrutturaList__ribaltorg__", key = "{#utente.getId()}")
-    public List<UtenteStruttura> getUtenteStrutturaList(Utente utente) {
+    
+    @Cacheable(value = "getUtenteStrutturaList__ribaltorg__", key = "{#utente.getId(), #soloAttive}")
+    public List<UtenteStruttura> getUtenteStrutturaList(Utente utente, boolean soloAttive) {
         Utente refreshedUtente = utenteRepository.getOne(utente.getId());
-        return refreshedUtente.getUtenteStrutturaList();
+        if (soloAttive) {
+            return refreshedUtente.getUtenteStrutturaList().stream().filter(us -> us.getAttivo()).collect(Collectors.toList());
+        } else {
+            return refreshedUtente.getUtenteStrutturaList();
+        }
+    }
+    
+    @CacheEvict(value = "getUtenteStrutturaList__ribaltorg__", key = "{#utente.getId(), #soloAttive}")
+    public void getUtenteStrutturaListRemoveCache(Utente utente, boolean soloAttive) {
     }
 
     /**
@@ -775,7 +784,7 @@ public class UserInfoService {
     }
 
     public List<KrintBaborgStruttura> getStruttureKrint(Utente utente) {
-        utente.setUtenteStrutturaList(getUtenteStrutturaList(utente));
+        utente.setUtenteStrutturaList(getUtenteStrutturaList(utente, true));
         return utente.getUtenteStrutturaList().stream()
                 .map(us -> {
                     //us.setIdStruttura(getIdStruttura(us));

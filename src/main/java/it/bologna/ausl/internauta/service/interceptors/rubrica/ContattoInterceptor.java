@@ -84,7 +84,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         List<PermessoEntitaStoredProcedure> contattiWithStandardPermissions;
         try {
             
-            List<Object> struttureUtente = userInfoService.getUtenteStrutturaList(authenticatedSessionData.getUser()).stream().map(us -> us.getIdStruttura()).collect(Collectors.toList());
+            List<Object> struttureUtente = userInfoService.getUtenteStrutturaList(authenticatedSessionData.getUser(), true).stream().map(us -> us.getIdStruttura()).collect(Collectors.toList());
             contattiWithStandardPermissions = permissionManager.getPermissionsOfSubjectAdvanced(
                     authenticatedSessionData.getPerson(),
                     null,
