@@ -36,8 +36,10 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import java.util.HashMap;
@@ -45,6 +47,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
+import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
@@ -53,6 +56,7 @@ import org.sql2o.Sql2o;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -60,6 +64,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 
 /**
@@ -103,7 +109,7 @@ public class UserInfoService {
     PostgresConnectionManager postgresConnectionManager;
 
     @Autowired
-    HttpServletRequest aaa;
+    ParametriAziende parametriAziende;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
 
@@ -238,6 +244,39 @@ public class UserInfoService {
                 }
             }
         }
+        Persona persona = utente.getIdPersona();
+        Integer[] idAziende = getAziendePersona(persona).stream().map(a -> a.getId()).collect(Collectors.toList()).toArray(new Integer[0]);
+        List<ParametroAziende> filtraResponsabiliMatrintParams = parametriAziende.getParameters("AccessoMatrintFiltratoPerRuolo", idAziende);
+        if (filtraResponsabiliMatrintParams != null && !filtraResponsabiliMatrintParams.isEmpty() && filtraResponsabiliMatrintParams.stream().anyMatch(param -> parametriAziende.getValue(param, Boolean.class))) {
+            res.addAll(getStruttureRuolo(utente, Arrays.asList(Ruolo.CodiciRuolo.R)));
+        }
+        
+        return res;
+    }
+    
+    /**
+     * Torna la lista dei ruoli intersacati con i ruoli passati in input dell'utente sulle sue strutture
+     * @param utente
+     * @param codiciRuoloUtenteStruttura torna una lista che li contiente se questi sono presenti in utenti_strutture per l'utente passato
+     * @return la lista dei ruoli intersacati con i ruoli passati in input dell'utente sulle sue strutture
+     */
+    @Cacheable(value = "getStruttureRuolo__ribaltorg__", key = "{#utente.getId(), #codiciRuoloUtenteStruttura != null? #codiciRuoloUtenteStruttura.toString(): 'null'}")
+    public Set<Ruolo> getStruttureRuolo(Utente utente, List<Ruolo.CodiciRuolo> codiciRuoloUtenteStruttura) {
+        Set<Ruolo> res = new HashSet();
+        Iterable<UtenteStruttura> struttureUtente = utenteStrutturaRepository.findAll(
+                    QUtenteStruttura.utenteStruttura.attivo.eq(true).and(
+                    QUtenteStruttura.utenteStruttura.idUtente.id.eq(utente.getId()))
+        );
+        for (Ruolo.CodiciRuolo codiceRuolo : codiciRuoloUtenteStruttura) {
+            Ruolo ruolo = cachedEntities.getRuoloByNomeBreve(codiceRuolo);
+            if (struttureUtente != null) {
+                for (UtenteStruttura utenteStruttura : struttureUtente) {
+                    if ((utenteStruttura.getBitRuoli() & ruolo.getMascheraBit()) > 0) {
+                        res.add(ruolo);
+                    }
+                }
+            }
+        }
         return res;
     }
 
@@ -249,6 +288,20 @@ public class UserInfoService {
             if (ruolo.getSuperAziendale()) {
                 if ((persona.getBitRuoli() & ruolo.getMascheraBit()) > 0) {
                     res.add(ruolo);
+                }
+            }
+        }
+        return res;
+    }
+    
+    @Cacheable(value = "getRuoliUtenteStruttura__ribaltorg__", key = "{#utenteStruttura.getId()}")
+    public List<String> getRuoliUtenteStruttura(UtenteStruttura utenteStruttura) {
+        List<String> res = new ArrayList<>();
+        List<Ruolo> ruoliAll = ruoloRepository.findAll();
+        for (Ruolo ruolo : ruoliAll) {
+            if (ruolo.getSuperAziendale() == false) {
+                if ((utenteStruttura.getBitRuoli() & ruolo.getMascheraBit()) > 0) {
+                    res.add(ruolo.getNomeBreve().name());
                 }
             }
         }
@@ -373,10 +426,19 @@ public class UserInfoService {
     public void getUtentiPersonaRemoveCache(Persona persona) {
     }
 
-    @Cacheable(value = "getUtenteStrutturaList__ribaltorg__", key = "{#utente.getId()}")
-    public List<UtenteStruttura> getUtenteStrutturaList(Utente utente) {
+    
+    @Cacheable(value = "getUtenteStrutturaList__ribaltorg__", key = "{#utente.getId(), #soloAttive}")
+    public List<UtenteStruttura> getUtenteStrutturaList(Utente utente, boolean soloAttive) {
         Utente refreshedUtente = utenteRepository.getOne(utente.getId());
-        return refreshedUtente.getUtenteStrutturaList();
+        if (soloAttive) {
+            return refreshedUtente.getUtenteStrutturaList().stream().filter(us -> us.getAttivo()).collect(Collectors.toList());
+        } else {
+            return refreshedUtente.getUtenteStrutturaList();
+        }
+    }
+    
+    @CacheEvict(value = "getUtenteStrutturaList__ribaltorg__", key = "{#utente.getId(), #soloAttive}")
+    public void getUtenteStrutturaListRemoveCache(Utente utente, boolean soloAttive) {
     }
 
     /**
@@ -644,6 +706,13 @@ public class UserInfoService {
         Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
         return isCI;
     }
+    
+    @Cacheable(value = "isR__ribaltorg__", key = "{#user.getId()}")
+    public boolean isR(Utente user) {
+        List<Ruolo> ruoli = user.getRuoli();
+        Boolean isR = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.R);
+        return isR;
+    }
 
     @Cacheable(value = "isCA__ribaltorg__", key = "{#user.getId()}")
     public boolean isCA(Utente user) {
@@ -715,7 +784,7 @@ public class UserInfoService {
     }
 
     public List<KrintBaborgStruttura> getStruttureKrint(Utente utente) {
-        utente.setUtenteStrutturaList(getUtenteStrutturaList(utente));
+        utente.setUtenteStrutturaList(getUtenteStrutturaList(utente, true));
         return utente.getUtenteStrutturaList().stream()
                 .map(us -> {
                     //us.setIdStruttura(getIdStruttura(us));

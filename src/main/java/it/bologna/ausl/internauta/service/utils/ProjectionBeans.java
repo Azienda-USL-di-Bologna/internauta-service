@@ -2,7 +2,10 @@ package it.bologna.ausl.internauta.service.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.repositories.EntitaRepository;
+import it.bologna.ausl.blackbox.repositories.TipoEntitaRepository;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
@@ -45,10 +48,12 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteStrutturaWithIdStrutturaAndIdAzienda;
@@ -78,8 +83,17 @@ import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndP
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithStruttureAndResponsabiliCustom;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithStruttureFiglieList;
+import it.bologna.ausl.model.entities.logs.projections.KrintRubricaContatto;
+import it.bologna.ausl.model.entities.logs.projections.KrintRubricaDettaglioContatto;
+import it.bologna.ausl.model.entities.logs.projections.KrintRubricaGruppoContatto;
+import it.bologna.ausl.model.entities.permessi.Entita;
+import it.bologna.ausl.model.entities.permessi.Permesso;
 import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
+import it.bologna.ausl.model.entities.permessi.QEntita;
+import it.bologna.ausl.model.entities.permessi.QTipoEntita;
+import it.bologna.ausl.model.entities.permessi.TipoEntita;
 import it.bologna.ausl.model.entities.permessi.projections.PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded;
+import it.bologna.ausl.model.entities.permessi.projections.generated.EntitaWithPlainFields;
 import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoAmbitoWithIdPredicato;
 import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoAmbitoWithPlainFields;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
@@ -87,11 +101,16 @@ import it.bologna.ausl.model.entities.rubrica.projections.CustomContattoWithIdSt
 import it.bologna.ausl.model.entities.rubrica.projections.CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomGruppiContattiWithIdContattoAndIdDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithUtenteStruttura;
+import it.nextsw.common.utils.EntityReflectionUtils;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Optional;
+import javax.persistence.Table;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.cache.annotation.Cacheable;
@@ -103,6 +122,8 @@ import org.springframework.cache.annotation.Cacheable;
 @Component
 public class ProjectionBeans {
 
+    public Object o = new Object();
+
     @Autowired
     protected ProjectionFactory factory;
 
@@ -110,19 +131,30 @@ public class ProjectionBeans {
     protected CachedEntities cachedEntities;
 
     @Autowired
+    protected EntitaRepository entitaRepository;
+    @Autowired
+    protected TipoEntitaRepository tipoEntitaRepository;
+
+    @Autowired
     protected ImpostazioniApplicazioniRepository impostazioniApplicazioniRepository;
 
     @Autowired
     protected UtenteRepository utenteRepository;
-    
+
     @Autowired
     protected StrutturaRepository strutturaRepository;
-    
+
+    @Autowired
+    protected PersonaRepository personaRepository;
+
     @Autowired
     protected StoricoRelazioneRepository storicoRelazioneRepository;
 
     @Autowired
     protected PredicatoAmbitoRepository predicatoAmbitoRepository;
+
+    @Autowired
+    protected PredicatoRepository predicatoRepository;
 
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
@@ -132,6 +164,9 @@ public class ProjectionBeans {
 
     @Autowired
     UserInfoService userInfoService;
+
+    @Autowired
+    PermissionManager permissionManager;
 
     @Autowired
     InternautaUtils internautaUtils;
@@ -182,7 +217,7 @@ public class ProjectionBeans {
     public StrutturaWithIdAzienda getStrutturaConAzienda(Struttura struttura) {
         return factory.createProjection(StrutturaWithIdAzienda.class, struttura);
     }
-    
+
     public StrutturaWithIdAzienda getStrutturaWithIdAzienda(Contatto contatto) {
         StrutturaWithIdAzienda res = null;
         Struttura struttura = contatto.getIdStruttura();
@@ -191,7 +226,7 @@ public class ProjectionBeans {
         }
         return res;
     }
-    
+
     public CustomUtenteStrutturaWithIdStrutturaAndIdAzienda getUtenteStrutturaWithIdStrutturaAndIdAzienda(DettaglioContatto dettaglioContatto) {
         CustomUtenteStrutturaWithIdStrutturaAndIdAzienda res = null;
         UtenteStruttura utenteStruttura = dettaglioContatto.getUtenteStruttura();
@@ -200,7 +235,7 @@ public class ProjectionBeans {
         }
         return res;
     }
-            
+
     public List<AttivitaWithIdPersona> getAttivitaWithIdPersona(Azienda azienda) {
         return azienda.getAttivitaList().stream().map(
                 a -> {
@@ -420,7 +455,6 @@ public class ProjectionBeans {
 //            return null;
 //        }
 //    }
-    
 //    public List<DettaglioContattoWithEmailListAndGruppiDelDettaglioListAndIndirizzoListAndTelefonoList> getDettaglioContattoExpanded(Contatto contatto) {
 //        if (contatto != null) {
 //            List<DettaglioContatto> dettaglioContattoList = contatto.getDettaglioContattoList();
@@ -435,7 +469,6 @@ public class ProjectionBeans {
 //            return null;
 //        }
 //    }
-    
     public List<EmailWithIdDettaglioContatto> getEmailWithIdDettaglioContatto(Contatto contatto) {
         if (contatto != null) {
             List<Email> emailList = contatto.getEmailList();
@@ -450,7 +483,7 @@ public class ProjectionBeans {
             return null;
         }
     }
-    
+
     public List<IndirizzoWithIdDettaglioContatto> getIndirizzoWithIdDettaglioContatto(Contatto contatto) {
         if (contatto != null) {
             List<Indirizzo> indirizziList = contatto.getIndirizziList();
@@ -465,7 +498,7 @@ public class ProjectionBeans {
             return null;
         }
     }
-    
+
     public List<TelefonoWithIdDettaglioContatto> getTelefonoWithIdDettaglioContatto(Contatto contatto) {
         if (contatto != null) {
             List<Telefono> telefonoList = contatto.getTelefonoList();
@@ -480,8 +513,7 @@ public class ProjectionBeans {
             return null;
         }
     }
-   
-    
+
     public List<CustomGruppiContattiWithIdContattoAndIdDettaglioContatto> getGruppiContattiWithIdContattoAndIdDettaglioContatto(Contatto contatto) {
         if (contatto != null) {
             List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
@@ -496,7 +528,7 @@ public class ProjectionBeans {
             return null;
         }
     }
-    
+
     public List<GruppiContattiWithIdDettaglioContattoAndIdGruppo> getGruppiContattiWithIdDettaglioContattoAndIdGruppo(Contatto contatto) {
         if (contatto != null) {
             List<GruppiContatti> gruppiDelContattoList = contatto.getGruppiDelContattoList();
@@ -522,7 +554,6 @@ public class ProjectionBeans {
 //        }
 //        return res;
 //    }
-    
 //    @Cacheable(value = "permessi__ribaltorg__", key = "{#idPredicatiAmbiti.toString()}")
     public List<PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded> expandPredicatiAmbiti(Integer[] idPredicatiAmbiti) {
         List<PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded> res = new ArrayList();
@@ -553,7 +584,7 @@ public class ProjectionBeans {
         }
         return res;
     }
-    
+
     public StrutturaWithUtentiResponsabiliCustom getStrutturaWithUtentiReponsabili(UtenteStruttura utenteStruttura) {
         StrutturaWithUtentiResponsabiliCustom res = null;
         Struttura idStruttura = utenteStruttura.getIdStruttura();
@@ -562,7 +593,7 @@ public class ProjectionBeans {
         }
         return res;
     }
-    
+
     public List<UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom> getStruttureUtenteWithAfferenzaAndReponsabili(Utente utente) {
         List<UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom> res = null;
         List<UtenteStruttura> utenteStrutturaList = utente.getUtenteStrutturaList();
@@ -582,7 +613,7 @@ public class ProjectionBeans {
         }
         return res;
     }
-    
+
     public PersonaWithUtentiAndStruttureAndAfferenzeCustom getPersonaWithUtentiAndStruttureAndAfferenzeCustom(Contatto contatto) {
         PersonaWithUtentiAndStruttureAndAfferenzeCustom res = null;
         Persona idPersona = contatto.getIdPersona();
@@ -591,7 +622,7 @@ public class ProjectionBeans {
         }
         return res;
     }
-    
+
     public List<UtenteWithStruttureAndResponsabiliCustom> getUtenteWithStruttureAndResponsabiliCustom(Persona persona) {
         List<UtenteWithStruttureAndResponsabiliCustom> res = null;
         List<Utente> utenteList = persona.getUtenteList();
@@ -602,7 +633,7 @@ public class ProjectionBeans {
         }
         return res;
     }
-    
+
     public List<CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda> getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda(Contatto contatto) {
         List<CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda> res = null;
         List<DettaglioContatto> dettaglioContattoList = contatto.getDettaglioContattoList();
@@ -613,23 +644,23 @@ public class ProjectionBeans {
         }
         return res;
     }
-    
+
     public CustomContattoWithIdStrutturaAndIdPersona getContattoWithIdStrutturaAndIdPersonaByGruppoContatto(GruppiContatti gruppoContatto) {
         Contatto idContatto = gruppoContatto.getIdContatto();
         if (idContatto != null) {
-                return factory.createProjection(CustomContattoWithIdStrutturaAndIdPersona.class, idContatto);
+            return factory.createProjection(CustomContattoWithIdStrutturaAndIdPersona.class, idContatto);
         }
         return null;
     }
-    
+
     public CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAziendaByGruppoContatto(GruppiContatti gruppoContatto) {
         DettaglioContatto dettaglioContatto = gruppoContatto.getIdDettaglioContatto();
         if (dettaglioContatto != null) {
-                return factory.createProjection(CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda.class, dettaglioContatto);
+            return factory.createProjection(CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda.class, dettaglioContatto);
         }
         return null;
     }
-    
+
     public StrutturaWithPlainFields getStrutturaFigliaWithFogliaCalcolata(StoricoRelazione storicoRelazione) {
         Struttura idStrutturaFiglia = storicoRelazione.getIdStrutturaFiglia();
         if (idStrutturaFiglia != null) {
@@ -646,9 +677,90 @@ public class ProjectionBeans {
 //                    struttureFiglieDellaStrutturaFiglia.add(storicoRelazioneFiglie.getIdStrutturaFiglia());
 //                });
             idStrutturaFiglia.setFogliaCalcolata(isLeaf);
-            
+
             return factory.createProjection(StrutturaWithPlainFields.class, idStrutturaFiglia);
         }
         return null;
+    }
+
+    public List<KrintRubricaDettaglioContatto> getCustomKrintDettaglioContattoList(Contatto contatto) {
+        List<DettaglioContatto> dettaglioContattoList = contatto.getDettaglioContattoList();
+        List<KrintRubricaDettaglioContatto> res = null;
+        if (dettaglioContattoList != null && !dettaglioContattoList.isEmpty()) {
+            res = dettaglioContattoList.stream().map(dettaglioContatto -> {
+                return factory.createProjection(KrintRubricaDettaglioContatto.class, dettaglioContatto);
+            }).collect(Collectors.toList());
+        }
+        return res;
+    }
+
+    public List<KrintRubricaGruppoContatto> getCustomKrintContattiDelGruppoList(Contatto gruppo) {
+        List<GruppiContatti> contattiDelGruppoList = gruppo.getContattiDelGruppoList();
+        List<KrintRubricaGruppoContatto> res = null;
+        if (contattiDelGruppoList != null && !contattiDelGruppoList.isEmpty()) {
+            res = contattiDelGruppoList.stream().map(gruppoContatto -> {
+                return factory.createProjection(KrintRubricaGruppoContatto.class, gruppoContatto);
+            }).collect(Collectors.toList());
+        }
+        return res;
+    }
+
+    public KrintRubricaContatto getCustomKrintContatto(Contatto contatto) {
+        if (contatto != null) {
+            return factory.createNullableProjection(KrintRubricaContatto.class, contatto);
+        }
+        return null;
+    }
+
+    public KrintRubricaDettaglioContatto getCustomKrintDettaglioContatto(DettaglioContatto dettaglioContatto) {
+        if (dettaglioContatto != null) {
+            return factory.createNullableProjection(KrintRubricaDettaglioContatto.class, dettaglioContatto);
+        }
+        return null;
+    }
+
+    public Object getEntita(Object object) throws EntityReflectionException, NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        Class entityClass = EntityReflectionUtils.getEntityFromProxyObject(object);
+        Table tableAnnotation = (Table) entityClass.getAnnotation(Table.class);
+        String targetSchema = tableAnnotation.schema();
+        String targetTable = tableAnnotation.name();
+        TipoEntita tipoEntita = tipoEntitaRepository.findOne(QTipoEntita.tipoEntita.targetSchema.eq(targetSchema)
+                .and(QTipoEntita.tipoEntita.targetTable.eq(targetTable))).get();
+        Method primaryKeyGetMethod = EntityReflectionUtils.getPrimaryKeyGetMethod(object);
+        Object idEsterno = primaryKeyGetMethod.invoke(object);
+        Entita entita = entitaRepository.findOne(
+                QEntita.entita.idProvenienza.eq(Integer.parseInt(idEsterno.toString()))
+                        .and(QEntita.entita.idTipoEntita.id.eq(tipoEntita.getId()))).get();
+        return factory.createProjection(EntitaWithPlainFields.class, entita);
+    }
+
+    public Object getPredicato(Permesso permesso) {
+        return predicatoRepository.findById(permesso.getIdPredicato().getId()).get();
+    }
+
+    public List<PermessoEntitaStoredProcedure> getPermessiContatto(Contatto contatto) throws BlackBoxPermissionException {
+
+        List<String> predicati = new ArrayList<>();
+        predicati.add("ACCESSO");
+        List<String> ambiti = new ArrayList<>();
+        ambiti.add("RUBRICA");
+        List<String> tipi = new ArrayList<>();
+        tipi.add("CONTATTO");
+
+        List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = new ArrayList<>();
+        subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(contatto, predicati, ambiti, tipi, Boolean.FALSE);
+        if (subjectsWithPermissionsOnObject != null) {
+            for (PermessoEntitaStoredProcedure permessoEntitaStoredProcedure : subjectsWithPermissionsOnObject) {
+                if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.strutture.toString())) {
+                    Struttura strutturaSoggetto = strutturaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
+                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(strutturaSoggetto.getNome() + " [" + strutturaSoggetto.getCodice() + "]");
+                } else if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.persone.toString())) {
+                    Persona personaSoggetto = personaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
+                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(personaSoggetto.getDescrizione() + " [" + personaSoggetto.getCodiceFiscale() + "]");
+                }
+            }
+        }
+
+        return subjectsWithPermissionsOnObject;
     }
 }

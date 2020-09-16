@@ -223,4 +223,8 @@ public class CachedEntities {
 //        PredicatoAmbito predicatoAmbito = this.predicatoAmbitoRepository.getOne(id);
 //        return predicatoAmbito;
 //    }
+
+    public void getRuoloByNomeBreve(String ruoloNomeBreve) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }

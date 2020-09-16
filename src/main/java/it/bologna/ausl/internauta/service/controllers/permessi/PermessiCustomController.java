@@ -464,11 +464,11 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         if (params.get("ambitiInteressati") != null) {
             tipi = (List<String>) params.get("tipiInteressati");
         }
-        
+
         /*
             Se sono stati aggiunti permessi allora controllo se c'è un permesso nel futuro. Perché in quel caso devo bloccare l'aggiunta del permesso
             nel caso che il nuovo permesso ha una data fine nulla o che supera la data inizio del permesso futuro
-        */
+         */
         if (params.get("permessiAggiunti") != null) {
             permessiAggiunti = objectMapper.convertValue(params.get("permessiAggiunti"), new TypeReference<List<PermessoEntitaStoredProcedure>>() {
             });
@@ -552,7 +552,6 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 //            }
 //
 //        }
-
         permissionRepositoryAccess.managePermissions(permessiEntita, dataDiLavoro);
         /*
         if (permessiAggiunti == null || permessiAggiunti.isEmpty()) {
@@ -575,7 +574,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
             }
         }
-        */
+         */
 //        for (PermessoEntitaStoredProcedure p : permessiEntita) {
 //            Utente u = utenteRepository.getOne(p.getSoggetto().getIdProvenienza());
 //            userInfoService.getPermessiDiFlussoRemoveCache(u);
@@ -589,7 +588,10 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         Set<Integer> idUtentiSet = new HashSet();
 
         permessiEntita.stream().forEach(p -> {
-            idUtentiSet.add(p.getSoggetto().getIdProvenienza());
+            if (p.getSoggetto().getTable().equals("utenti")) {
+                idUtentiSet.add(p.getSoggetto().getIdProvenienza());
+            }
+
         });
 
         idUtentiSet.forEach(idUtente -> {

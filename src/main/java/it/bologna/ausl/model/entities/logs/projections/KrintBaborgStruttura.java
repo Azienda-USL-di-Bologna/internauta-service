@@ -2,8 +2,11 @@
 package it.bologna.ausl.model.entities.logs.projections;
 
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
+import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
@@ -30,6 +33,8 @@ public interface KrintBaborgStruttura {
     @Value("#{target.getIdAfferenzaStruttura().getCodice()}")
     String getAfferenza();
     
+    @Value("#{@userInfoService.getRuoliUtenteStruttura(target)}")
+    List<String> getRuoliUtenteStruttura();
     // TODO: non so se mettere solo l'id o ancqhe qui usare questa stessa projection
     // getIdStrutturaPadre();
           
