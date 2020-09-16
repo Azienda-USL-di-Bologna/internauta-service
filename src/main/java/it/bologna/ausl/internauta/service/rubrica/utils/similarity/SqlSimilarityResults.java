@@ -206,4 +206,24 @@ public class SqlSimilarityResults {
         return res;
     }
 
+    public Integer similaritiesNumber() {
+        Integer res = 0;
+        if (emailList != null) {
+            res += emailList.size();
+        }
+        if (codiceFiscale != null) {
+            res += codiceFiscale.size();
+        }
+        if (cognomeAndNome != null) {
+            res += cognomeAndNome.size();
+        }
+        if (partitaIva != null) {
+            res += partitaIva.size();
+        }
+        if (ragioneSociale != null) {
+            res += ragioneSociale.size();
+        }
+
+        return res;
+    }
 }
