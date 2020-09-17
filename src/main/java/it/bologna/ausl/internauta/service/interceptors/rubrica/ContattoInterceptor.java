@@ -13,12 +13,15 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintRubricaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPec;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
@@ -52,6 +55,12 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private ContattoRepository contattoRepository;
+
+    @Autowired
+    private PersonaRepository personaRepository;
+
+    @Autowired
+    private UtenteRepository utenteRepository;
 
     @Autowired
     private UserInfoService userInfoService;
@@ -213,10 +222,12 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 }
             }
             if (contatto.getIdUtenteCreazione() == null) {
-                contatto.setIdUtenteCreazione(authenticatedUserProperties.getUser());
+                Utente one = utenteRepository.getOne(authenticatedUserProperties.getUser().getId());
+                contatto.setIdUtenteCreazione(one);
             }
             if (contatto.getIdPersonaCreazione() == null) {
-                contatto.setIdPersonaCreazione(authenticatedUserProperties.getPerson());
+                Persona one = personaRepository.getOne(authenticatedUserProperties.getPerson().getId());
+                contatto.setIdPersonaCreazione(one);
             }
             Integer[] idAziende = userInfoService.getAziendePersona(authenticatedUserProperties.getPerson()).stream().map(a -> a.getId()).toArray(Integer[]::new);
             if (contatto.getIdAziende() == null) {
