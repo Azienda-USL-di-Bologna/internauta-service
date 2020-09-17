@@ -18,7 +18,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = {"it.bologna.ausl", "it.nextsw"})
-@EnableJpaRepositories(value =  {"it.bologna.ausl.internauta.service.repositories", "it.bologna.ausl.blackbox.repositories"}, repositoryFactoryBeanClass = CustomJpaRepositoryFactoryBean.class)
+@EnableJpaRepositories(value =  {"it.bologna.ausl.internauta.service.repositories", "it.bologna.ausl.blackbox.repositories"},
+//        repositoryBaseClass = NextQuerydslJpaPredicateExecutorImpl.class
+        repositoryFactoryBeanClass = CustomJpaRepositoryFactoryBean.class
+)
 
 @EntityScan("it.bologna.ausl.model.entities")
 @EnableCaching
