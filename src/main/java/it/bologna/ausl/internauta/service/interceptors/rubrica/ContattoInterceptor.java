@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.interceptors.rubrica;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -22,7 +21,6 @@ import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.QPec;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.configuration.ParametroAziende;
@@ -35,7 +33,6 @@ import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
