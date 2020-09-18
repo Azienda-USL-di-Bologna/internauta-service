@@ -213,9 +213,13 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 contatto.setDaVerificare(true);
             } else {
                 SqlSimilarityResults similarityResults = objectMapper.readValue(res, SqlSimilarityResults.class);
+                LOGGER.info("faccio la get similarities");
                 similarityResults.filterByPermission(authenticatedUserProperties.getPerson(), permissionManager);
                 if (similarityResults.similaritiesNumber() > 0) {
+                    LOGGER.info("è simile");
                     contatto.setDaVerificare(true);
+                }else{
+                    LOGGER.info("non c'è niente di simile");
                 }
             }
             if (contatto.getIdUtenteCreazione() == null) {
