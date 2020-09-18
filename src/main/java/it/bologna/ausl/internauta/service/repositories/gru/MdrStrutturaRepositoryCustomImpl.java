@@ -9,6 +9,9 @@ import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import org.hibernate.jpa.TypedParameterValue;
+import org.hibernate.type.IntegerType;
+import org.hibernate.type.LocalDateTimeType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +30,7 @@ public class MdrStrutturaRepositoryCustomImpl implements MdrStrutturaRepositoryC
 
     @Override
     public Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda(Integer idAzienda) throws SQLException {
-        String queryString = "select * from gru.select_strutture_date(" + idAzienda + ")";
+        String queryString = "select * from gru.select_strutture_date("+ idAzienda +")";
         Query query = em.createNativeQuery(queryString);
         //query.setParameter ( 1 , new TypedParameterValue(IntegerType.INSTANCE, idAzienda));
 //        Object resultList = query.getResultList();
