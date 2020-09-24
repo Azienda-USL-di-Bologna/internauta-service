@@ -252,7 +252,7 @@ public class ProjectionBeans {
         } else {
             return null;
         }
-//        
+//
 //            if (impostazioniApplicazioniList != null && !impostazioniApplicazioniList.isEmpty()) {
 //            return impostazioniApplicazioniList.stream().map(
 //                        imp -> factory.createProjection(ImpostazioniApplicazioniWithPlainFields.class, imp)
@@ -757,6 +757,29 @@ public class ProjectionBeans {
                 } else if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.persone.toString())) {
                     Persona personaSoggetto = personaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
                     permessoEntitaStoredProcedure.getSoggetto().setDescrizione(personaSoggetto.getDescrizione() + " [" + personaSoggetto.getCodiceFiscale() + "]");
+                }
+            }
+        }
+
+        return subjectsWithPermissionsOnObject;
+    }
+
+    public List<PermessoEntitaStoredProcedure> getStruttureConnesseAUfficio(Struttura struttura) throws BlackBoxPermissionException {
+
+        List<String> predicati = new ArrayList<>();
+        predicati.add("CONNESSO");
+        List<String> ambiti = new ArrayList<>();
+        ambiti.add("BABORG");
+        List<String> tipi = new ArrayList<>();
+        tipi.add("UFFICIO");
+
+        List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = new ArrayList<>();
+        subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(struttura, predicati, ambiti, tipi, Boolean.FALSE);
+        if (subjectsWithPermissionsOnObject != null) {
+            for (PermessoEntitaStoredProcedure permessoEntitaStoredProcedure : subjectsWithPermissionsOnObject) {
+                if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.strutture.toString())) {
+                    Struttura strutturaSoggetto = strutturaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
+                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(strutturaSoggetto.getNome() + " [" + strutturaSoggetto.getCodice() + "]");
                 }
             }
         }
