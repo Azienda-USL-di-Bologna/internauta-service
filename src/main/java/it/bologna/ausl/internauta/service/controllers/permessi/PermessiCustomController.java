@@ -9,6 +9,10 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.PermissionRepositoryAccess;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
+import it.bologna.ausl.blackbox.utils.UtilityFunctions;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -23,11 +27,13 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
+import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Ambiti.PECG;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi.PEC;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -37,6 +43,8 @@ import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -54,12 +62,16 @@ import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -104,6 +116,9 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
     @Autowired
     ObjectMapper objectMapper;
+    
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     /**
      * E' il controller base.Riceve una lista di PermessoEntitaStoredProcedure e
@@ -120,6 +135,31 @@ public class PermessiCustomController implements ControllerHandledExceptions {
     public void updatePermesso(@RequestBody List<PermessoEntitaStoredProcedure> permessiEntita, HttpServletRequest request) throws BlackBoxPermissionException {
         permissionRepositoryAccess.managePermissions(permessiEntita, null);
     }
+    
+    @RequestMapping(value = "getPermissionsAdvanced", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List> getPermissionsAdvanced(
+    @RequestParam("predicati") List<String> predicati,
+    @RequestParam("tipi") List<String> tipi,
+    @RequestParam("aziende") List<String> aziende,
+    @RequestParam("ambiti") List<String> ambiti) 
+    throws JsonProcessingException, IOException, BlackBoxPermissionException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InvocationTargetException, InvocationTargetException, InvocationTargetException {
+        
+//        String permessoString = objectMapper.writeValueAsString(permesso);
+
+//        // prendo utente connesso
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente utente = authenticatedUserProperties.getUser();
+        Persona persona = utente.getIdPersona();
+        
+        List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
+        List<String> idAziende = aziendePersona.stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        List<PermessoEntitaStoredProcedure> res = permissionManager.getPermissionsAdvanced(predicati, ambiti, tipi, aziende, null, null,null);
+//        objectMapper.readValue(res, new TypeReference<List<PermessoEntitaStoredProcedure>>(){});
+//        similarityResults.filterByPermission(persona, permissionManager);
+        return new ResponseEntity(res, HttpStatus.OK);
+    }
+    
+    
 
     // VECCHIA VERSIONE CHE NON GESTIVA LE LISTE
 //
@@ -431,6 +471,8 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
         permissionManager.managePermissions(struttura, pec, PECG.toString(), PEC.toString(), Arrays.asList(new PermessoStoredProcedure[]{permesso}), null);
     }
+    
+    
 
     /**
      *
