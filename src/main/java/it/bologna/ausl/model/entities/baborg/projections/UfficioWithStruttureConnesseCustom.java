@@ -17,4 +17,6 @@ public interface UfficioWithStruttureConnesseCustom extends StrutturaWithPlainFi
     @Value("#{@projectionBeans.getStruttureConnesseAUfficio(target)}")
     public List<PermessoEntitaStoredProcedure> getPermessiUfficio();
 
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getAttributiStruttura', 'AttributiStrutturaWithIdTipologiaStruttura')}")
+    public Object getAttributiStruttura();
 }

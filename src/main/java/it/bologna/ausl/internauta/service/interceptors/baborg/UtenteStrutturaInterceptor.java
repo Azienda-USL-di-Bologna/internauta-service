@@ -79,8 +79,8 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
         }
         if (dataRiferimento != null && !dataRiferimento.toLocalDate().isEqual(LocalDate.now())) {
             QUtenteStruttura qUtenteStruttura = QUtenteStruttura.utenteStruttura;
-            BooleanExpression filter = qUtenteStruttura.attivoDal.loe(dataRiferimento.atZone(ZoneId.systemDefault()))
-                    .and((qUtenteStruttura.attivoAl.isNull()).or(qUtenteStruttura.attivoAl.goe(dataRiferimento.atZone(ZoneId.systemDefault()))));
+            BooleanExpression filter = qUtenteStruttura.attivoDal.loe(dataRiferimento)
+                    .and((qUtenteStruttura.attivoAl.isNull()).or(qUtenteStruttura.attivoAl.goe(dataRiferimento)));
             filter = filter.and(qUtenteStruttura.idStruttura.dataAttivazione.loe(dataRiferimento)
                     .and((qUtenteStruttura.idStruttura.dataCessazione.isNull()).or(qUtenteStruttura.idStruttura.dataCessazione.goe(dataRiferimento))));
             initialPredicate = filter.and(initialPredicate);

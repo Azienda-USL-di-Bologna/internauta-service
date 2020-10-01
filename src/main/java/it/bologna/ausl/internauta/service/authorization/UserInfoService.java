@@ -39,6 +39,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
@@ -47,6 +48,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdAfferenzaStruttura;
+import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdAfferenzaStrutturaAndIdStruttura;
 import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import java.util.Arrays;
 import java.util.Set;
@@ -345,14 +348,12 @@ public class UserInfoService {
         if (ancheByRuolo == null) {
             ancheByRuolo = true;
         }
-        Map<String, List<String>> mapAziendeRuoli = new HashMap<>();
-
 //        if(persona.getUtenteList() == null){
         persona.setUtenteList(getUtentiPersona(persona));
 //        }
 
         // popolo mappa azienda->listaRuoli
-        mapAziendeRuoli = persona.getUtenteList().stream().collect(
+        Map<String, List<String>> mapAziendeRuoli = persona.getUtenteList().stream().collect(
                 Collectors.toMap(u
                         -> u.getIdAzienda().getCodice(), u
                         -> getRuoli(u, false).stream().map(r
@@ -360,14 +361,14 @@ public class UserInfoService {
         mapAziendeRuoli.put("interaziendali", getRuoliInteraziendali(persona).stream().map(r -> r.getNomeBreve().toString()).collect(Collectors.toList()));
 
         // popolo mappa ruolo->listaAziene
-        Map<String, List<String>> mapRuoloAziende = new HashMap<>();
+        Map<String, List<String>> mapRuoloAziende = new HashMap();
 
         if (ancheByRuolo) {
             for (Map.Entry<String, List<String>> entry : mapAziendeRuoli.entrySet()) {
                 for (String codiceRuolo : entry.getValue()) {
                     List<String> listAziende = mapRuoloAziende.get(codiceRuolo);
                     if (listAziende == null) {
-                        listAziende = new ArrayList<>();
+                        listAziende = new ArrayList();
                     }
                     listAziende.add(entry.getKey());
                     mapRuoloAziende.put(codiceRuolo, listAziende);
@@ -376,7 +377,7 @@ public class UserInfoService {
         }
 
         // mergio le due mappe
-        Map<String, List<String>> finalMap = new HashMap<>(mapAziendeRuoli);
+        Map<String, List<String>> finalMap = new HashMap(mapAziendeRuoli);
         finalMap.putAll(mapRuoloAziende);
 
         return finalMap;
@@ -452,6 +453,31 @@ public class UserInfoService {
         } else {
             return refreshedUtente.getUtenteStrutturaList();
         }
+    }
+    
+    /**
+     * Torna per l'utente dell'utenteStruttura passato, la struttura sulla quale ha un afferenza Diretta, se non ne ha torna la Unificata, se non ne ha ne torna una a caso
+     * @param utenteStruttura
+     * @return 
+     */
+//    @Cacheable(value = "getUtenteStrutturaAfferenzaPrincipaleAttiva__ribaltorg__", key = "{#utenteStruttura.getId()}")
+    public UtenteStrutturaWithIdAfferenzaStrutturaAndIdStruttura getUtenteStrutturaAfferenzaPrincipaleAttiva(UtenteStruttura utenteStruttura) {
+        Iterable<UtenteStruttura> afferenze = utenteStrutturaRepository.findAll(QUtenteStruttura.utenteStruttura.idUtente.id.eq(utenteStruttura.getIdUtente().getId()));
+        UtenteStruttura afferenzaPrincipale = null;
+        for (UtenteStruttura afferenza: afferenze) {
+            if (afferenzaPrincipale == null) {
+                afferenzaPrincipale = afferenza;
+            } else if (afferenzaPrincipale.getIdAfferenzaStruttura().getCodice() != AfferenzaStruttura.CodiciAfferenzaStruttura.DIRETTA) {
+                if ( afferenza.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.DIRETTA) {
+                    afferenzaPrincipale = afferenza;
+                } else if (afferenzaPrincipale.getIdAfferenzaStruttura().getCodice() != AfferenzaStruttura.CodiciAfferenzaStruttura.UNIFICATA) {
+                    if ( afferenza.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.UNIFICATA) {
+                        afferenzaPrincipale = afferenza;
+                    }
+                }
+            }
+        }
+        return factory.createProjection(UtenteStrutturaWithIdAfferenzaStrutturaAndIdStruttura.class, afferenzaPrincipale);
     }
 
     @CacheEvict(value = "getUtenteStrutturaList__ribaltorg__", key = "{#utente.getId(), #soloAttive}")
