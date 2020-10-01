@@ -744,6 +744,9 @@ public class ProjectionBeans {
                 if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.strutture.toString())) {
                     Struttura strutturaSoggetto = strutturaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
                     permessoEntitaStoredProcedure.getSoggetto().setDescrizione(strutturaSoggetto.getNome() + " [" + strutturaSoggetto.getCodice() + "]");
+                    permessoEntitaStoredProcedure.getSoggetto().setAdditionalData(
+                            strutturaRepository.getCountUtentiStruttura(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza())
+                    );                    
                 } else if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.persone.toString())) {
                     Persona personaSoggetto = personaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
                     permessoEntitaStoredProcedure.getSoggetto().setDescrizione(personaSoggetto.getDescrizione() + " [" + personaSoggetto.getCodiceFiscale() + "]");
@@ -775,5 +778,9 @@ public class ProjectionBeans {
         }
 
         return subjectsWithPermissionsOnObject;
+    }
+    
+    public String getCountUtentiStruttura(Struttura struttura) {
+        return strutturaRepository.getCountUtentiStruttura(struttura.getId());
     }
 }

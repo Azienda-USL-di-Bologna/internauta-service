@@ -5,10 +5,11 @@ import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
-import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.PermissionRepositoryAccess;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -27,39 +28,47 @@ import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Ambiti.PECG;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi.PEC;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
-import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;
+import it.bologna.ausl.internauta.utils.bds.types.EntitaStoredProcedure;
+import it.bologna.ausl.model.entities.EntityInterface;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.QAfferenzaStruttura;
-import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
-import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.persistence.Entity;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Table;
 import javax.servlet.http.HttpServletRequest;
+import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -74,6 +83,9 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
     @Autowired
     CachedEntities cachedEntities;
+
+    @PersistenceContext
+    EntityManager eM;
 
     @Autowired
     PermissionRepositoryAccess permissionRepositoryAccess;
@@ -105,6 +117,9 @@ public class PermessiCustomController implements ControllerHandledExceptions {
     @Autowired
     ObjectMapper objectMapper;
 
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+
     /**
      * E' il controller base.Riceve una lista di PermessoEntitaStoredProcedure e
      * chiama direttamente la managePermissions la quale di fatto passaera la
@@ -119,6 +134,58 @@ public class PermessiCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = "managePermissions", method = RequestMethod.POST)
     public void updatePermesso(@RequestBody List<PermessoEntitaStoredProcedure> permessiEntita, HttpServletRequest request) throws BlackBoxPermissionException {
         permissionRepositoryAccess.managePermissions(permessiEntita, null);
+    }
+
+    @RequestMapping(value = "getPermissionsAdvanced", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List> getPermissionsAdvanced(
+            @RequestParam("predicati") List<String> predicati,
+            @RequestParam("tipi") List<String> tipi,
+            @RequestParam("aziende") List<String> aziende,
+            @RequestParam("ambiti") List<String> ambiti)
+            throws JsonProcessingException, IOException, BlackBoxPermissionException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InvocationTargetException, InvocationTargetException, InvocationTargetException {
+
+//        String permessoString = objectMapper.writeValueAsString(permesso);
+//        // prendo utente connesso
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente utente = authenticatedUserProperties.getUser();
+        Persona persona = utente.getIdPersona();
+
+        List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
+        List<String> idAziende = aziendePersona.stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        List<PermessoEntitaStoredProcedure> res = permissionManager.getPermissionsAdvanced(predicati, ambiti, tipi, aziende, null, null, null);
+
+        Set<Class<?>> entityClasses = new Reflections("it.bologna.ausl.model.entities").getTypesAnnotatedWith(Entity.class);
+
+        Class<?> utenteClass = Utente.class;
+        HashMap<String, Class> hashMapSchemaTable = new HashMap<String, Class>();
+
+        for (Class entityClass : entityClasses) {
+            LOGGER.info("classe trovata: " + entityClass.getName());
+            Table annotation = (Table) entityClass.getAnnotation(Table.class);
+            String schema = annotation.schema();
+            String name = annotation.name();
+            hashMapSchemaTable.put(schema + "--" + name, entityClass);
+        }
+
+        //EntityInterface find = (EntityInterface) eM.find(utenteClass, 34);
+        //find.getEntityDescription();
+        for (PermessoEntitaStoredProcedure permesso : res) {
+            EntitaStoredProcedure soggetto = permesso.getSoggetto();
+            String schemaSoggetto = soggetto.getSchema();
+            String tableSoggetto = soggetto.getTable();
+            EntitaStoredProcedure oggetto = permesso.getOggetto();
+            String schemaOggetto = oggetto.getSchema();
+            String tableOggetto = oggetto.getTable();
+
+            EntityInterface findSoggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaSoggetto + "--" + tableSoggetto), soggetto.getIdProvenienza());
+            EntityInterface findOggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaOggetto + "--" + tableOggetto), oggetto.getIdProvenienza());
+
+            soggetto.setDescrizione(findSoggetto.getEntityDescription());
+            oggetto.setDescrizione(findOggetto.getEntityDescription());
+        }
+//        objectMapper.readValue(res, new TypeReference<List<PermessoEntitaStoredProcedure>>(){});
+//        similarityResults.filterByPermission(persona, permissionManager);
+        return new ResponseEntity(res, HttpStatus.OK);
     }
 
     // VECCHIA VERSIONE CHE NON GESTIVA LE LISTE
