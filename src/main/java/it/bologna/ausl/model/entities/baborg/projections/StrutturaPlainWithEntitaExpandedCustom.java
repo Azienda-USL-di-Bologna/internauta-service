@@ -2,8 +2,6 @@ package it.bologna.ausl.model.entities.baborg.projections;
 
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
-import it.bologna.ausl.model.entities.permessi.Entita;
-import it.bologna.ausl.model.entities.permessi.projections.generated.EntitaWithPlainFields;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
@@ -16,4 +14,7 @@ public interface StrutturaPlainWithEntitaExpandedCustom extends StrutturaWithPla
 
     @Value("#{@projectionBeans.getEntita(target)}")
     public Object getEntita();
+    
+    @Value("#{@projectionBeans.getCountUtentiStruttura(target)}")
+    public String getAdditionalData();
 }
