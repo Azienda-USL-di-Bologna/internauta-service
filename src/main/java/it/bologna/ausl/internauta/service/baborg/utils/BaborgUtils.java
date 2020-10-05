@@ -630,7 +630,7 @@ public class BaborgUtils {
                             appMapWithErrorAndAnomalia.put("Anomalia", "true");
                         }
                         if (righeAnomaleDirette.contains(riga)) {
-                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
+                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " utente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura,");
 
                             anomalia = true;
                             appMapWithErrorAndAnomalia.put("Anomalia", "true");
