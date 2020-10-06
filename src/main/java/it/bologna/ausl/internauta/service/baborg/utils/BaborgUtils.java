@@ -371,6 +371,31 @@ public class BaborgUtils {
                                     anomalia = true;
                                     mapError.put("Anomalia", "true");
 
+                                } else {
+                                    List<Map<String, Object>> elementi = selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
+//                                    LocalDateTime dataMax = elementi.stream().map(u -> formattattore(u.get("datafi"))).max(LocalDateTime::compareTo).get();
+                                    LocalDateTime dataMax = LocalDateTime.MIN;
+
+                                    for (Map<String, Object> e : elementi) {
+                                        LocalDateTime dataFineElemento = formattattore(e.get("datafi"));
+                                        if (dataFineElemento == null) {
+                                            dataMax = LocalDateTime.MAX;
+                                            break;
+                                        }
+
+                                        if (dataFineElemento.compareTo(dataMax) > 0) {
+                                            dataMax = dataFineElemento;
+                                        }
+                                    }
+                                    LocalDateTime dataFineUtente = formattattore(appartenentiMap.get("datafi"));
+                                    if (dataFineUtente == null) {
+                                        dataFineUtente = LocalDateTime.MAX;
+                                    }
+                                    if (dataMax.compareTo(dataFineUtente) < 0) {
+                                        mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura,");
+                                        anomalia = true;
+                                        mapError.put("Anomalia", "true");
+                                    }
                                 }
                             }
                             mapError.put("id_casella", appartenentiMap.get("id_casella"));
@@ -446,19 +471,19 @@ public class BaborgUtils {
                                         for (Map.Entry<Integer, List<Map<String, Object>>> listaCasella : appDiretto.entrySet()) {
 
                                             if (!afferenzaDiretta && arcoBool(listaCasella.getValue(), datain, datafi)) {
-                                                if (!righeAnomaleDirette.contains(mapReader.getLineNumber())){
-                                                        righeAnomaleDirette.add(mapReader.getLineNumber());
-                                                    }
+                                                if (!righeAnomaleDirette.contains(mapReader.getLineNumber())) {
+                                                    righeAnomaleDirette.add(mapReader.getLineNumber());
+                                                }
                                                 anomalia = true;
                                                 mapError.put("Anomalia", "true");
                                                 afferenzaDiretta = true;
                                                 List<Integer> righeAnomaleDaControllare = arco(listaCasella.getValue(), datain, datafi);
                                                 for (Integer rigaAnomala : righeAnomaleDaControllare) {
-                                                    if (!righeAnomaleDirette.contains(rigaAnomala)){
+                                                    if (!righeAnomaleDirette.contains(rigaAnomala)) {
                                                         righeAnomaleDirette.add(rigaAnomala);
                                                     }
                                                 }
-                                                
+
 //                                                mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
                                                 //controllo lista di mappa3
 //                                                if (!codiciMatricoleConMultiafferenzaDiretta.contains(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()))) {
@@ -480,14 +505,14 @@ public class BaborgUtils {
                                             appDiretto.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
                                         } else {
                                             if (!afferenzaDiretta && arcoBool(periodoCasellato, datain, datafi)) {
-                                                if (!righeAnomaleDirette.contains(mapReader.getLineNumber())){
-                                                        righeAnomaleDirette.add(mapReader.getLineNumber());
-                                                    }
+                                                if (!righeAnomaleDirette.contains(mapReader.getLineNumber())) {
+                                                    righeAnomaleDirette.add(mapReader.getLineNumber());
+                                                }
                                                 anomalia = true;
                                                 mapError.put("Anomalia", "true");
                                                 List<Integer> righeAnomaleDaControllare = arco(periodoCasellato, datain, datafi);
                                                 for (Integer rigaAnomala : righeAnomaleDaControllare) {
-                                                    if (!righeAnomaleDirette.contains(rigaAnomala)){
+                                                    if (!righeAnomaleDirette.contains(rigaAnomala)) {
                                                         righeAnomaleDirette.add(rigaAnomala);
                                                     }
                                                 }
@@ -533,13 +558,13 @@ public class BaborgUtils {
                                             if (arcoBool(periodoCasellato, datain, datafi)) {
                                                 anomalia = true;
                                                 mapError.put("Anomalia", "true");
-                                                
-                                                if (!righeAnomaleFunzionali.contains(mapReader.getLineNumber())){
-                                                        righeAnomaleFunzionali.add(mapReader.getLineNumber());
-                                                    }
+
+                                                if (!righeAnomaleFunzionali.contains(mapReader.getLineNumber())) {
+                                                    righeAnomaleFunzionali.add(mapReader.getLineNumber());
+                                                }
                                                 List<Integer> righeAnomaleDaControllare = arco(periodoCasellato, datain, datafi);
                                                 for (Integer rigaAnomala : righeAnomaleDaControllare) {
-                                                    if (!righeAnomaleFunzionali.contains(rigaAnomala)){
+                                                    if (!righeAnomaleFunzionali.contains(rigaAnomala)) {
                                                         righeAnomaleFunzionali.add(rigaAnomala);
                                                     }
                                                 }
@@ -573,7 +598,7 @@ public class BaborgUtils {
                             mapError.put("data_assunzione", appartenentiMap.get("data_assunzione"));
 //                            mA.setDataAssunzione(formattattore(appartenentiMap.get("data_assunzione")));
                         }
-//                      USERNAME 
+//                      USERNAME
                         if (appartenentiMap.get("username") == null || appartenentiMap.get("username").toString().trim().equals("") || appartenentiMap.get("username") == "") {
                             mA.setUsername("");
                             mapError.put("username", "");
@@ -646,27 +671,27 @@ public class BaborgUtils {
 //                            log.info("tutto ok sulla riga: " + riga);
                             MdrAppartenenti mA = new MdrAppartenenti();
                             mA.setIdAzienda(azienda);
-//                      "codice_ente", 
+//                      "codice_ente",
                             mA.setCodiceEnte(!appMapWithErrorAndAnomalia.get("codice_ente").toString().equals("") ? Integer.parseInt(appMapWithErrorAndAnomalia.get("codice_ente").toString()) : null);
-//                      "codice_matricola", 
+//                      "codice_matricola",
                             mA.setCodiceMatricola(!appMapWithErrorAndAnomalia.get("codice_matricola").toString().equals("") ? Integer.parseInt(appMapWithErrorAndAnomalia.get("codice_matricola").toString()) : null);
 //                      "cognome",
                             mA.setCognome(!appMapWithErrorAndAnomalia.get("cognome").toString().equals("") ? appMapWithErrorAndAnomalia.get("cognome").toString() : null);
-//                      "nome", 
+//                      "nome",
                             mA.setNome(!appMapWithErrorAndAnomalia.get("nome").toString().equals("") ? appMapWithErrorAndAnomalia.get("nome").toString() : null);
-//                      "codice_fiscale", 
+//                      "codice_fiscale",
                             mA.setCodiceFiscale(!appMapWithErrorAndAnomalia.get("codice_fiscale").toString().equals("") ? appMapWithErrorAndAnomalia.get("codice_fiscale").toString() : null);
-//                      "id_casella", 
+//                      "id_casella",
                             mA.setIdCasella(!appMapWithErrorAndAnomalia.get("id_casella").toString().equals("") ? Integer.parseInt(appMapWithErrorAndAnomalia.get("id_casella").toString()) : null);
-//                      "datain", 
+//                      "datain",
                             mA.setDatain(!appMapWithErrorAndAnomalia.get("datain").toString().equals("") ? formattattore(appMapWithErrorAndAnomalia.get("datain")) : null);
-//                      "datafi", 
+//                      "datafi",
                             mA.setDatafi(!appMapWithErrorAndAnomalia.get("datafi").toString().equals("") ? formattattore(appMapWithErrorAndAnomalia.get("datafi")) : null);
 //                      "tipo_appartenenza",
                             mA.setTipoAppartenenza(!appMapWithErrorAndAnomalia.get("tipo_appartenenza").toString().equals("") ? appMapWithErrorAndAnomalia.get("tipo_appartenenza").toString() : null);
-//                      "username", 
+//                      "username",
                             mA.setUsername(!appMapWithErrorAndAnomalia.get("username").toString().equals("") ? appMapWithErrorAndAnomalia.get("username").toString() : null);
-//                      "data_assunzione", 
+//                      "data_assunzione",
                             mA.setDataAssunzione(!appMapWithErrorAndAnomalia.get("data_assunzione").toString().equals("") ? formattattore(appMapWithErrorAndAnomalia.get("data_assunzione")) : null);
 //                      "data_dimissione"
                             mA.setDataDimissione(!appMapWithErrorAndAnomalia.get("data_dimissione").toString().equals("") ? formattattore(appMapWithErrorAndAnomalia.get("data_dimissione")) : null);
@@ -680,14 +705,10 @@ public class BaborgUtils {
                         mapWriter.write(appMapWithErrorAndAnomalia, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
                         riga++;
                     }
-                LocalDateTime fine = LocalDateTime.now();
+                    LocalDateTime fine = LocalDateTime.now();
                     log.info("ora fine: " + LocalDateTime.now());
-                    
-                    
+
                     break;
-
-
-
 
                 case "RESPONSABILI":
                     Boolean anomaliaRiga = false;
@@ -725,7 +746,7 @@ public class BaborgUtils {
                             }
                         }
 
-//                      DATAIN bloccante                        
+//                      DATAIN bloccante
                         if (responsabiliMap.get("datain") == null || responsabiliMap.get("datain").toString().trim().equals("") || responsabiliMap.get("datain") == "") {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " datain non presente,");
                             anomalia = true;
@@ -780,7 +801,7 @@ public class BaborgUtils {
                                 }
                             }
                         }
-//                      
+//
                         if (mdrResponsabiliRepository.countMultiReponsabilePerStruttura(codiceAzienda,
                                 Integer.parseInt(id_casella),
                                 datafiString,
@@ -796,7 +817,7 @@ public class BaborgUtils {
                             mapError.put("datafi", responsabiliMap.get("datafi"));
                             mR.setDatafi(formattattore(responsabiliMap.get("datafi")));
                         }
-//                      TIPO bloccante                        
+//                      TIPO bloccante
                         if (responsabiliMap.get("tipo") == null || responsabiliMap.get("tipo").toString().trim().equals("") || responsabiliMap.get("tipo") == "") {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " tipo,");
                             mR.setTipo(null);
@@ -823,7 +844,7 @@ public class BaborgUtils {
                         if (!anomaliaRiga) {
                             mdrResponsabiliRepository.save(mR);
                         }
-                        anomaliaRiga=false;
+                        anomaliaRiga = false;
                         mapWriter.write(mapError, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
                     }
                     break;
@@ -836,7 +857,7 @@ public class BaborgUtils {
                     // Reading with CsvMapReader
                     Map<String, Object> strutturaMap = null;
                     while ((strutturaMap = mapReader.read(headers, processors)) != null) {
-//                      inizio a creare la mappa degli errori e 
+//                      inizio a creare la mappa degli errori e
                         mapError.put("ERRORE", "");
                         // Inserisco la riga
                         MdrStruttura mS = new MdrStruttura();
@@ -1060,7 +1081,7 @@ public class BaborgUtils {
                             }
                         }
 
-//                      DATA ORA OPERAZIONE 
+//                      DATA ORA OPERAZIONE
                         if (trasformazioniMap.get("dataora_oper") == null || trasformazioniMap.get("dataora_oper").toString().trim().equals("")) {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " DATAORA_OPER inserito automaticamente,");
                             LocalDateTime now = LocalDateTime.now();
@@ -1115,7 +1136,7 @@ public class BaborgUtils {
                                         mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
                                         if (!trasformazioniMap.get("id_casella_arrivo").equals(trasformazioniMap.get("partenza"))) {
                                             mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
-                                            //TODO usare metodo appartenenti per ottimizzare 
+                                            //TODO usare metodo appartenenti per ottimizzare
                                             Integer accesaIntervalloByIdAzienda = mdrTrasformazioniRepository.isAccesaIntervalloByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
                                             if (accesaIntervalloByIdAzienda != 1) {
                                                 bloccante = true;
@@ -1237,13 +1258,13 @@ public class BaborgUtils {
             case "APPARTENENTI":
                 final CellProcessor[] processorsAPPARTENENTI = new CellProcessor[]{
                     // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
-                    new Optional(), // codice_ente 
+                    new Optional(), // codice_ente
                     new Optional(), // codice_matricola Non Bloccante
                     new Optional(), // cognome Bloccante
                     new Optional(), // nome Bloccante
                     new Optional(), // codice_fiscale bloccante
                     new Optional(), // id_casella bloccante
-                    new Optional(), // datain bloccante 
+                    new Optional(), // datain bloccante
                     new Optional(), // datafi
                     new Optional(), // tipo_appartenenza bloccante
                     new Optional(), // username
@@ -1308,13 +1329,13 @@ public class BaborgUtils {
             case "APPARTENENTI":
                 final CellProcessor[] processorsAPPARTENENTI = new CellProcessor[]{
                     // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
-                    new Optional(), // codice_ente 
+                    new Optional(), // codice_ente
                     new Optional(), // codice_matricola Non Bloccante
                     new Optional(), // cognome Bloccante
                     new Optional(), // nome Bloccante
                     new Optional(), // codice_fiscale bloccante
                     new Optional(), // id_casella bloccante
-                    new Optional(), // datain bloccante 
+                    new Optional(), // datain bloccante
                     new Optional(), // datafi
                     new Optional(), // tipo_appartenenza bloccante
                     new Optional(), // username
@@ -1587,7 +1608,7 @@ public class BaborgUtils {
 //                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(o.toString()).toInstant();
                 return LocalDate.parse(o.toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy")).atStartOfDay();
             } catch (Exception e) {
-            
+
             }
             try {
 
