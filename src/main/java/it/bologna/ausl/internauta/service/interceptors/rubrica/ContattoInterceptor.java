@@ -120,6 +120,13 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 
         initialPredicate = contactFilter.and(initialPredicate);
 
+        if (additionalData != null && additionalData.size() > 0) {
+            boolean daVerificare = Boolean.valueOf(additionalData.get("daVerificare"));
+            boolean protocontatto = Boolean.valueOf(additionalData.get("protocontatto"));
+            BooleanExpression protocontattoFilter = QContatto.contatto.daVerificare.eq(daVerificare).or(QContatto.contatto.protocontatto.eq(protocontatto));
+            initialPredicate = protocontattoFilter.and(initialPredicate);
+        }
+
         return initialPredicate;
     }
 
@@ -129,7 +136,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 //        if (c.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)) {
 //            this.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.ContattoGruppoAppenaCreato, c);
 //        }
-//        
+//
 //        return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
 //    }
     @Override
@@ -218,7 +225,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 if (similarityResults.similaritiesNumber() > 0) {
                     LOGGER.info("è simile");
                     contatto.setDaVerificare(true);
-                }else{
+                } else {
                     LOGGER.info("non c'è niente di simile");
                 }
             }
