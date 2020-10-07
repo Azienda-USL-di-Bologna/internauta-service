@@ -367,7 +367,7 @@ public class BaborgUtils {
                             } else {
 //                                List<Map<String, Object>> mieiPadri = mdrStrutturaRepository.mieiPadri(idAzienda, Integer.parseInt(appartenentiMap.get("id_casella").toString()));
                                 if (!arcoBool(selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString())), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
-                                    mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura,");
+                                    mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l arco temporale della struttura,");
                                     anomalia = true;
                                     mapError.put("Anomalia", "true");
 
@@ -655,14 +655,14 @@ public class BaborgUtils {
                             appMapWithErrorAndAnomalia.put("Anomalia", "true");
                         }
                         if (righeAnomaleDirette.contains(riga)) {
-                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " utente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura,");
+                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura,");
 
                             anomalia = true;
                             appMapWithErrorAndAnomalia.put("Anomalia", "true");
                         }
                         //DA CHIEDERE A GUS
                         if (righeAnomaleFunzionali.contains(riga)) {
-                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze funzionali nello stesso periodo");
+                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura");
 
                             anomalia = true;
                             appMapWithErrorAndAnomalia.put("Anomalia", "true");
