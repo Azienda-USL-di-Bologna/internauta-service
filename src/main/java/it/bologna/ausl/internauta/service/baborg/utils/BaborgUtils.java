@@ -808,6 +808,7 @@ public class BaborgUtils {
                                         if (!controllaEstremi(formattattore(mieiPadri.get(0).get("datain")), formattattore(mieiPadri.get(mieiPadri.size() - 1).get("datafi")), formattattore(responsabiliMap.get("datain")), formattattore(responsabiliMap.get("datafi")))) {
                                             mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura,");
                                             anomalia = true;
+                                            anomaliaRiga = true;
                                             mapError.put("Anomalia", "true");
                                         }
                                     }
