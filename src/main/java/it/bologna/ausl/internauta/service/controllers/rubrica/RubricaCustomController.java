@@ -2,10 +2,8 @@ package it.bologna.ausl.internauta.service.controllers.rubrica;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -15,17 +13,16 @@ import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.configuration.utils.RubricaRestClientConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
+import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
-import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResult;
+import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -34,6 +31,7 @@ import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
+import it.bologna.ausl.model.entities.rubrica.Indirizzo;
 import it.bologna.ausl.model.entities.rubrica.Telefono;
 import it.bologna.ausl.rubrica.maven.client.RestClient;
 import it.bologna.ausl.rubrica.maven.client.RestClientException;
@@ -41,9 +39,9 @@ import it.bologna.ausl.rubrica.maven.resources.EmailResource;
 import it.bologna.ausl.rubrica.maven.resources.FullContactResource;
 import it.nextsw.common.utils.CommonUtils;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -54,11 +52,11 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
+import net.bytebuddy.implementation.bytecode.Throw;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,14 +64,21 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.sql2o.Connection;
 import org.sql2o.Query;
 import org.sql2o.Sql2o;
+import org.supercsv.cellprocessor.Optional;
+import org.supercsv.cellprocessor.ift.CellProcessor;
+import org.supercsv.io.CsvMapReader;
+import org.supercsv.io.ICsvMapReader;
+import org.supercsv.prefs.CsvPreference;
 
 /**
  *
@@ -82,48 +87,51 @@ import org.sql2o.Sql2o;
 @RestController
 @RequestMapping(value = "${rubrica.mapping.url.root}")
 public class RubricaCustomController implements ControllerHandledExceptions {
-    
+
     private static final Logger log = LoggerFactory.getLogger(RubricaCustomController.class);
-    
+
     @Autowired
     CommonUtils commonUtils;
-    
+
     @Autowired
     MasterChefUtils masterChefUtils;
-    
+
     @Autowired
     UserInfoService userInfoService;
-    
+
     @Autowired
     CachedEntities cachedEntities;
-    
+
     @Autowired
     PostgresConnectionManager postgresConnectionManager;
-    
+
     @Autowired
     PermissionManager permissionManager;
-    
+
     @Autowired
     PersonaRepository personaRepository;
-    
+
     @Autowired
     UtenteRepository utenteRepository;
-    
+
     @Autowired
     RubricaRestClientConnectionManager rubricaRestClientConnectionManager;
-    
+
     @Autowired
     private ContattoRepository contattoRepository;
-    
+
+    @Autowired
+    private DettaglioContattoRepository dettaglioContattoRepository;
+
     @Autowired
     private ObjectMapper objectMapper;
-    
+
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-    
+
     @Value("${babelsuite.webapi.managedestinatari.url}")
     private String manageDestinatariUrl;
-    
+
     @Value("${babelsuite.webapi.managedestinatari.method}")
     private String manageDestinatariMethod;
 
@@ -172,10 +180,10 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         // Faccio la chiamata alla rubrica
         RestClient restClient = rubricaRestClientConnectionManager.getConnection(azienda.getId());
         List<FullContactResource> searchContact = restClient.searchContact(toSearch, utenteProcton.getIdUtente(), utenteProcton.getIdStruttura(), false);
-        
+
         List<FullContactResource> contattiTrovati = new ArrayList();
         Set<Integer> idContatti = new HashSet();
-        
+
         searchContact.forEach((c) -> {
             List<EmailResource> emails = c.getEmails();
             if (emails != null && !emails.isEmpty()) {
@@ -261,7 +269,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         // Prendo la connessione dal connection manager
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
         List<Integer> contatti;
-        
+
         try (Connection conn = (Connection) dbConnection.open()) {
             Query addParameter = conn.createQuery(query)
                     .addParameter("idUtente", idUtente)
@@ -274,50 +282,50 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         }
         return contatti;
     }
-    
+
     @RequestMapping(value = "getSimilarities", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getSimilarities(@RequestBody Map contatto) throws JsonProcessingException, IOException, BlackBoxPermissionException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InvocationTargetException, InvocationTargetException, InvocationTargetException {
-        
+
         String contattoString = objectMapper.writeValueAsString(contatto);
 
         // prendo utente connesso
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
         Persona persona = utente.getIdPersona();
-        
+
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
         List<Integer> collect = aziendePersona.stream().map(p -> p.getId()).collect(Collectors.toList());
         String idAziendeStr = UtilityFunctions.getArrayString(objectMapper, collect);
         String res = contattoRepository.getSimilarContacts(contattoString, idAziendeStr);
-        
+
         SqlSimilarityResults similarityResults = objectMapper.readValue(res, SqlSimilarityResults.class);
         similarityResults.filterByPermission(persona, permissionManager);
         return new ResponseEntity(similarityResults, HttpStatus.OK);
     }
-    
+
     @RequestMapping(value = "sendSelectedContactsToExternalApp",
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> sendSelectedContactsToExternalApp(@RequestBody ExternalAppData data)
             throws JsonProcessingException, IOException, BlackBoxPermissionException {
-        
+
         Azienda azienda = cachedEntities.getAziendaFromCodice(data.getCodiceAzienda());
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
         Persona persona = utente.getIdPersona();
         data.setCfUtenteOperazione(persona.getCodiceFiscale());
-        
+
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"),
                 objectMapper.writeValueAsString(data));
         OkHttpClient client = new OkHttpClient();
-        
+
         Request request = new Request.Builder()
                 .url(buildGestisciDestinatariDaRubricaInternautarUrl(azienda, data.getApp()))
                 .post(requestBody)
                 .addHeader("X-HTTP-Method-Override", manageDestinatariMethod)
                 .build();
-        
+
         log.info("Chiamo l'applicazione inde per salvare i contatti selezionati");
         Call call = client.newCall(request);
         try (Response response = call.execute();) {
@@ -329,21 +337,21 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                 throw new IOException(String.format("molto malo: %s", response.message()));
             }
         }
-        
+
         return new ResponseEntity(data, HttpStatus.OK);
     }
-    
+
     private String buildGestisciDestinatariDaRubricaInternautarUrl(Azienda azienda, String idApplicazione) throws IOException {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
         return url;
     }
-    
+
     private void refreshDestinatari(Persona persona, Azienda azienda, String guid) throws IOException {
         log.info("Inserisco su redis il comando di refresh dei destinatari");
         List<String> dests = Arrays.asList(persona.getCodiceFiscale());
-        
+
         Map<String, Object> primusCommandParams = new HashMap();
         primusCommandParams.put("refreshDestinatari", guid);
         AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
@@ -354,6 +362,217 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                         primusCommandParams, "1", "1", dests, "*"
                 );
         masterChefUtils.sendMasterChefJob(masterchefJobDescriptor, masterchefParams);
-        
+
+    }
+
+    @Transactional(rollbackFor = Throwable.class)
+    @RequestMapping(value = "insertCSVEstemporaneo",
+            method = RequestMethod.POST,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> insertCSVEstemporaneo(
+            @RequestParam("idUtente") Integer idUtente,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("idAzienda") String idAzienda) throws Http400ResponseException, BlackBoxPermissionException {
+
+        if (!file.isEmpty() && (idUtente != null || !idUtente.equals("")) && (idAzienda != null || !idAzienda.equals(""))) {
+            try {
+                importaCSV(idUtente, idAzienda, file);
+            } catch (IOException ex) {
+                throw new Http400ResponseException("2", "I dati passati per l'importazione non sono corretti");
+            }
+        } else {
+            throw new Http400ResponseException("2", "I dati passati per l'importazione sono assenti");
+        }
+
+        return new ResponseEntity("0", HttpStatus.OK);
+
+    }
+
+    private void importaCSV(Integer idUtente, String idAzienda, MultipartFile fileContatti) throws IOException, BlackBoxPermissionException {
+        String provenienza = "importatoreCSV";
+        Utente u = utenteRepository.findById(idUtente).get();
+        Persona p = personaRepository.findById(u.getIdPersona().getId()).get();
+        ICsvMapReader mapReader = null;
+        InputStreamReader inputFileStreamReader = new InputStreamReader(fileContatti.getInputStream());
+        CsvPreference SEMICOLON_DELIMITED = new CsvPreference.Builder('"', ';', "\r\n").build();
+        Map<String, Object> dettagliContattiMap;
+        mapReader = new CsvMapReader(inputFileStreamReader, SEMICOLON_DELIMITED);
+        mapReader.getHeader(true);
+        boolean fax = true;
+        boolean telefono = true;
+        boolean email = true;
+        boolean indirizzo = true;
+
+        String[] headers = new String[]{"cognomeRagiorneSociale", "nome", "privatoAzienda",
+            "codiceFiscale", "pIva", "descrizione", "email", "pec",
+            "indirizzo", "civico", "comune", "cap", "provincia", "telefono", "fax"};
+        CellProcessor[] processors = new CellProcessor[]{
+            // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
+            new Optional(), // cognomeRagiorneSociale 
+            new Optional(), // nome
+            new Optional(), // privatoAzienda
+            new Optional(), // codiceFiscale
+            new Optional(), // pIva 
+            new Optional(), // descrizione
+            new Optional(), // email
+            new Optional(), // pec
+            new Optional(), // indirizzo
+            new Optional(), // civico
+            new Optional(), // comune
+            new Optional(), // cap
+            new Optional(), // provincia
+            new Optional(), // telefono
+            new Optional() // fax
+        };
+
+        List<Contatto> cs = new ArrayList<Contatto>();
+        while ((dettagliContattiMap = mapReader.read(headers, processors)) != null) {
+            log.info("rigo: " + mapReader.getRowNumber());
+            boolean principale = true;
+            Contatto c = new Contatto();
+            DettaglioContatto dcEmail = new DettaglioContatto();
+            dcEmail.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
+            DettaglioContatto dcIndirizzo = new DettaglioContatto();
+            dcIndirizzo.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+            DettaglioContatto dcTelefono = new DettaglioContatto();
+            dcTelefono.setTipo(DettaglioContatto.TipoDettaglio.TELEFONO);
+
+            if (dettagliContattiMap.get("privatoAzienda") != null && !dettagliContattiMap.get("privatoAzienda").toString().trim().equalsIgnoreCase("")) {
+                if (dettagliContattiMap.get("privatoAzienda").toString().equalsIgnoreCase("a")) {
+                    if (dettagliContattiMap.get("cognomeRagiorneSociale") != null && !dettagliContattiMap.get("cognomeRagiorneSociale").toString().trim().equalsIgnoreCase("")) {
+                        c.setRagioneSociale(dettagliContattiMap.get("cognomeRagiorneSociale").toString());
+                    } else {
+                        //errore RagiorneSociale vuoto
+                    }
+                    c.setTipo(Contatto.TipoContatto.AZIENDA);
+                } else if (dettagliContattiMap.get("privatoAzienda").toString().equalsIgnoreCase("p")) {
+                    if (dettagliContattiMap.get("cognomeRagiorneSociale") != null && !dettagliContattiMap.get("cognomeRagiorneSociale").toString().trim().equalsIgnoreCase("")) {
+                        c.setCognome(dettagliContattiMap.get("cognomeRagiorneSociale").toString());
+                    } else {
+                        //errore Cognome vuoto
+                    }
+                    if (dettagliContattiMap.get("nome") != null && !dettagliContattiMap.get("nome").toString().trim().equalsIgnoreCase("")) {
+                        c.setNome(dettagliContattiMap.get("nome").toString());
+                    } else {
+                        //errore nome vuoto
+                    }
+                    c.setTipo(Contatto.TipoContatto.PERSONA_FISICA);
+                } else {
+                    //errore inserito privato azienda sbagliato
+                }
+            } else {
+                //errore non inserito privato azienda 
+            }
+            if (dettagliContattiMap.get("codiceFiscale") != null && !dettagliContattiMap.get("codiceFiscale").toString().trim().equalsIgnoreCase("")) {
+                c.setCodiceFiscale(dettagliContattiMap.get("codiceFiscale").toString());
+            }
+            if (dettagliContattiMap.get("pIva") != null && !dettagliContattiMap.get("pIva").toString().trim().equalsIgnoreCase("")) {
+                c.setPartitaIva(dettagliContattiMap.get("pIva").toString());
+            }
+            if (dettagliContattiMap.get("pIva") != null && !dettagliContattiMap.get("pIva").toString().trim().equalsIgnoreCase("")) {
+                c.setPartitaIva(dettagliContattiMap.get("pIva").toString());
+            }
+
+            if (dettagliContattiMap.get("email") != null && !dettagliContattiMap.get("email").toString().trim().equalsIgnoreCase("")) {
+
+                List<Email> es = new ArrayList<>();
+                Email e = new Email();
+                if (dettagliContattiMap.get("pec") != null && dettagliContattiMap.get("pec").toString().trim().equalsIgnoreCase("S")) {
+                    e.setPec(true);
+                } else {
+                    e.setPec(false);
+                }
+                e.setPrincipale(principale);
+                dcEmail.setPrincipale(principale);
+                principale = false;
+                e.setProvenienza(provenienza);
+                e.setIdContatto(c);
+                e.setEmail(dettagliContattiMap.get("email").toString());
+                es.add(e);
+                dcEmail.setEmail(e);
+                dcEmail.setDescrizione(dettagliContattiMap.get("email").toString());
+                c.setEmailList(es);
+
+            }
+            if (dettagliContattiMap.get("indirizzo") != null && !dettagliContattiMap.get("indirizzo").toString().trim().equalsIgnoreCase("")) {
+                if (dettagliContattiMap.get("civico") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
+                    if (dettagliContattiMap.get("comune") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
+                        if (dettagliContattiMap.get("cap") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
+                            if (dettagliContattiMap.get("provincia") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
+                                Indirizzo i = new Indirizzo();
+                                i.setVia(dettagliContattiMap.get("indirizzo").toString());
+                                i.setCivico(dettagliContattiMap.get("civico").toString());
+                                i.setComune(dettagliContattiMap.get("comune").toString());
+                                i.setCap(dettagliContattiMap.get("cap").toString());
+                                i.setProvincia(dettagliContattiMap.get("provincia").toString());
+                                List<Indirizzo> indirizziList = new ArrayList<>();
+                                i.setPrincipale(principale);
+                                dcIndirizzo.setPrincipale(principale);
+                                principale = false;
+                                i.setProvenienza(provenienza);
+                                i.setIdContatto(c);
+                                indirizziList.add(i);
+                                c.setIndirizziList(indirizziList);
+                                dcIndirizzo.setIndirizzo(i);
+                                dcIndirizzo.setDescrizione(i.getDescrizione());
+                            }
+                        }
+                    }
+                }
+            }
+            if (dettagliContattiMap.get("telefono") != null && !dettagliContattiMap.get("telefono").toString().trim().equalsIgnoreCase("")) {
+                Telefono t = new Telefono();
+                t.setNumero(dettagliContattiMap.get("telefono").toString());
+                List<Telefono> telefonoList = new ArrayList<>();
+                t.setPrincipale(principale);
+                dcTelefono.setPrincipale(principale);
+                if (dettagliContattiMap.get("fax") != null && !dettagliContattiMap.get("fax").toString().trim().equalsIgnoreCase("")) {
+                    t.setFax(true);
+                } else {
+                    t.setFax(false);
+                }
+                t.setProvenienza(provenienza);
+                t.setIdContatto(c);
+                telefonoList.add(t);
+                c.setTelefonoList(telefonoList);
+                dcTelefono.setTelefono(t);
+                dcTelefono.setDescrizione(t.getDescrizione());
+
+            }
+            c.setCategoria(Contatto.CategoriaContatto.ESTERNO);
+            c.setDaVerificare(true);
+
+            c.setEliminato(false);
+            c.setModificabile(true);
+            c.setProvenienza(provenienza);
+            c.setIdUtenteCreazione(u);
+            c.setIdPersonaCreazione(p);
+            c.setRiservato(false);
+
+            if (dettagliContattiMap.get("fax") == null && dettagliContattiMap.get("telefono") == null && dettagliContattiMap.get("indirizzo") == null && dettagliContattiMap.get("mail") == null) {
+                //errore inserire almeno un campo tra tutti i mezzi
+            } else {
+                if (dettagliContattiMap.get("descrizione") != null && !dettagliContattiMap.get("descrizione").toString().trim().equalsIgnoreCase("")) {
+                    c.setDescrizione(dettagliContattiMap.get("descrizione").toString());
+                } else {
+                    c.setDescrizione("");
+                }
+                Contatto cSaved = contattoRepository.save(c);
+                dcEmail.setIdContatto(cSaved);
+                dcIndirizzo.setIdContatto(cSaved);
+                dcTelefono.setIdContatto(cSaved);
+                log.info("fin qui tutto ok");
+                log.info("email " + dcEmail.getPrincipale());
+                log.info("indirizzo " + dcIndirizzo.getPrincipale());
+                log.info("telefono " + dcTelefono.getPrincipale());
+
+                dettaglioContattoRepository.save(dcEmail);
+                dettaglioContattoRepository.save(dcIndirizzo);
+                dettaglioContattoRepository.save(dcTelefono);
+                //cs.add(c);
+            }
+        }
+
+        //contattoRepository.saveAll(cs);
     }
 }
