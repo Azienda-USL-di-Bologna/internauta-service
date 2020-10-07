@@ -1448,6 +1448,25 @@ public class BaborgUtils {
         return headers;
     }
 
+    private boolean controllaEstremi(LocalDateTime dataStrutturaInizio, LocalDateTime dataStrutturaFine, LocalDateTime dataAppartenenteInizio, LocalDateTime dataAppartenenteFine) {
+        if (dataAppartenenteFine == null) {
+            dataAppartenenteFine = LocalDateTime.MAX;
+        }
+        if (dataStrutturaFine == null) {
+            dataStrutturaFine = LocalDateTime.MAX;
+        }
+        if (dataStrutturaFine.compareTo(dataAppartenenteFine) > 0) {
+            return false;
+        }
+        if (dataStrutturaInizio.compareTo(dataAppartenenteFine) < 0) {
+            return false;
+        }
+        if (dataStrutturaInizio.compareTo(dataAppartenenteInizio) >= 0) {
+            return false;
+        }
+        return true;
+    }
+
     @Transactional(rollbackFor = Throwable.class)
     public ImportazioniOrganigramma updateEsitoImportazioneOrganigramma(ImportazioniOrganigramma newRowInserted, String esito, String csv_error_link) {
         // Update nello storico importazioni. esito: Errore o Ok

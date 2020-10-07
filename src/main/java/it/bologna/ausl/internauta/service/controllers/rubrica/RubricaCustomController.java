@@ -365,214 +365,214 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     }
 
-    @Transactional(rollbackFor = Throwable.class)
-    @RequestMapping(value = "insertCSVEstemporaneo",
-            method = RequestMethod.POST,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> insertCSVEstemporaneo(
-            @RequestParam("idUtente") Integer idUtente,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("idAzienda") String idAzienda) throws Http400ResponseException, BlackBoxPermissionException {
-
-        if (!file.isEmpty() && (idUtente != null || !idUtente.equals("")) && (idAzienda != null || !idAzienda.equals(""))) {
-            try {
-                importaCSV(idUtente, idAzienda, file);
-            } catch (IOException ex) {
-                throw new Http400ResponseException("2", "I dati passati per l'importazione non sono corretti");
-            }
-        } else {
-            throw new Http400ResponseException("2", "I dati passati per l'importazione sono assenti");
-        }
-
-        return new ResponseEntity("0", HttpStatus.OK);
-
-    }
-
-    private void importaCSV(Integer idUtente, String idAzienda, MultipartFile fileContatti) throws IOException, BlackBoxPermissionException {
-        String provenienza = "importatoreCSV";
-        Utente u = utenteRepository.findById(idUtente).get();
-        Persona p = personaRepository.findById(u.getIdPersona().getId()).get();
-        ICsvMapReader mapReader = null;
-        InputStreamReader inputFileStreamReader = new InputStreamReader(fileContatti.getInputStream());
-        CsvPreference SEMICOLON_DELIMITED = new CsvPreference.Builder('"', ';', "\r\n").build();
-        Map<String, Object> dettagliContattiMap;
-        mapReader = new CsvMapReader(inputFileStreamReader, SEMICOLON_DELIMITED);
-        mapReader.getHeader(true);
-        boolean fax = true;
-        boolean telefono = true;
-        boolean email = true;
-        boolean indirizzo = true;
-
-        String[] headers = new String[]{"cognomeRagiorneSociale", "nome", "privatoAzienda",
-            "codiceFiscale", "pIva", "descrizione", "email", "pec",
-            "indirizzo", "civico", "comune", "cap", "provincia", "telefono", "fax"};
-        CellProcessor[] processors = new CellProcessor[]{
-            // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
-            new Optional(), // cognomeRagiorneSociale 
-            new Optional(), // nome
-            new Optional(), // privatoAzienda
-            new Optional(), // codiceFiscale
-            new Optional(), // pIva 
-            new Optional(), // descrizione
-            new Optional(), // email
-            new Optional(), // pec
-            new Optional(), // indirizzo
-            new Optional(), // civico
-            new Optional(), // comune
-            new Optional(), // cap
-            new Optional(), // provincia
-            new Optional(), // telefono
-            new Optional() // fax
-        };
-
-        List<Contatto> cs = new ArrayList<Contatto>();
-        while ((dettagliContattiMap = mapReader.read(headers, processors)) != null) {
-            log.info("rigo: " + mapReader.getRowNumber());
-            boolean principale = true;
-            Contatto c = new Contatto();
-            DettaglioContatto dcEmail = new DettaglioContatto();
-            dcEmail.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
-            DettaglioContatto dcIndirizzo = new DettaglioContatto();
-            dcIndirizzo.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
-            DettaglioContatto dcTelefono = new DettaglioContatto();
-            dcTelefono.setTipo(DettaglioContatto.TipoDettaglio.TELEFONO);
-
-            if (dettagliContattiMap.get("privatoAzienda") != null && !dettagliContattiMap.get("privatoAzienda").toString().trim().equalsIgnoreCase("")) {
-                if (dettagliContattiMap.get("privatoAzienda").toString().equalsIgnoreCase("a")) {
-                    if (dettagliContattiMap.get("cognomeRagiorneSociale") != null && !dettagliContattiMap.get("cognomeRagiorneSociale").toString().trim().equalsIgnoreCase("")) {
-                        c.setRagioneSociale(dettagliContattiMap.get("cognomeRagiorneSociale").toString());
-                    } else {
-                        //errore RagiorneSociale vuoto
-                    }
-                    c.setTipo(Contatto.TipoContatto.AZIENDA);
-                } else if (dettagliContattiMap.get("privatoAzienda").toString().equalsIgnoreCase("p")) {
-                    if (dettagliContattiMap.get("cognomeRagiorneSociale") != null && !dettagliContattiMap.get("cognomeRagiorneSociale").toString().trim().equalsIgnoreCase("")) {
-                        c.setCognome(dettagliContattiMap.get("cognomeRagiorneSociale").toString());
-                    } else {
-                        //errore Cognome vuoto
-                    }
-                    if (dettagliContattiMap.get("nome") != null && !dettagliContattiMap.get("nome").toString().trim().equalsIgnoreCase("")) {
-                        c.setNome(dettagliContattiMap.get("nome").toString());
-                    } else {
-                        //errore nome vuoto
-                    }
-                    c.setTipo(Contatto.TipoContatto.PERSONA_FISICA);
-                } else {
-                    //errore inserito privato azienda sbagliato
-                }
-            } else {
-                //errore non inserito privato azienda 
-            }
-            if (dettagliContattiMap.get("codiceFiscale") != null && !dettagliContattiMap.get("codiceFiscale").toString().trim().equalsIgnoreCase("")) {
-                c.setCodiceFiscale(dettagliContattiMap.get("codiceFiscale").toString());
-            }
-            if (dettagliContattiMap.get("pIva") != null && !dettagliContattiMap.get("pIva").toString().trim().equalsIgnoreCase("")) {
-                c.setPartitaIva(dettagliContattiMap.get("pIva").toString());
-            }
-            if (dettagliContattiMap.get("pIva") != null && !dettagliContattiMap.get("pIva").toString().trim().equalsIgnoreCase("")) {
-                c.setPartitaIva(dettagliContattiMap.get("pIva").toString());
-            }
-
-            if (dettagliContattiMap.get("email") != null && !dettagliContattiMap.get("email").toString().trim().equalsIgnoreCase("")) {
-
-                List<Email> es = new ArrayList<>();
-                Email e = new Email();
-                if (dettagliContattiMap.get("pec") != null && dettagliContattiMap.get("pec").toString().trim().equalsIgnoreCase("S")) {
-                    e.setPec(true);
-                } else {
-                    e.setPec(false);
-                }
-                e.setPrincipale(principale);
-                dcEmail.setPrincipale(principale);
-                principale = false;
-                e.setProvenienza(provenienza);
-                e.setIdContatto(c);
-                e.setEmail(dettagliContattiMap.get("email").toString());
-                es.add(e);
-                dcEmail.setEmail(e);
-                dcEmail.setDescrizione(dettagliContattiMap.get("email").toString());
-                c.setEmailList(es);
-
-            }
-            if (dettagliContattiMap.get("indirizzo") != null && !dettagliContattiMap.get("indirizzo").toString().trim().equalsIgnoreCase("")) {
-                if (dettagliContattiMap.get("civico") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
-                    if (dettagliContattiMap.get("comune") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
-                        if (dettagliContattiMap.get("cap") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
-                            if (dettagliContattiMap.get("provincia") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
-                                Indirizzo i = new Indirizzo();
-                                i.setVia(dettagliContattiMap.get("indirizzo").toString());
-                                i.setCivico(dettagliContattiMap.get("civico").toString());
-                                i.setComune(dettagliContattiMap.get("comune").toString());
-                                i.setCap(dettagliContattiMap.get("cap").toString());
-                                i.setProvincia(dettagliContattiMap.get("provincia").toString());
-                                List<Indirizzo> indirizziList = new ArrayList<>();
-                                i.setPrincipale(principale);
-                                dcIndirizzo.setPrincipale(principale);
-                                principale = false;
-                                i.setProvenienza(provenienza);
-                                i.setIdContatto(c);
-                                indirizziList.add(i);
-                                c.setIndirizziList(indirizziList);
-                                dcIndirizzo.setIndirizzo(i);
-                                dcIndirizzo.setDescrizione(i.getDescrizione());
-                            }
-                        }
-                    }
-                }
-            }
-            if (dettagliContattiMap.get("telefono") != null && !dettagliContattiMap.get("telefono").toString().trim().equalsIgnoreCase("")) {
-                Telefono t = new Telefono();
-                t.setNumero(dettagliContattiMap.get("telefono").toString());
-                List<Telefono> telefonoList = new ArrayList<>();
-                t.setPrincipale(principale);
-                dcTelefono.setPrincipale(principale);
-                if (dettagliContattiMap.get("fax") != null && !dettagliContattiMap.get("fax").toString().trim().equalsIgnoreCase("")) {
-                    t.setFax(true);
-                } else {
-                    t.setFax(false);
-                }
-                t.setProvenienza(provenienza);
-                t.setIdContatto(c);
-                telefonoList.add(t);
-                c.setTelefonoList(telefonoList);
-                dcTelefono.setTelefono(t);
-                dcTelefono.setDescrizione(t.getDescrizione());
-
-            }
-            c.setCategoria(Contatto.CategoriaContatto.ESTERNO);
-            c.setDaVerificare(true);
-
-            c.setEliminato(false);
-            c.setModificabile(true);
-            c.setProvenienza(provenienza);
-            c.setIdUtenteCreazione(u);
-            c.setIdPersonaCreazione(p);
-            c.setRiservato(false);
-
-            if (dettagliContattiMap.get("fax") == null && dettagliContattiMap.get("telefono") == null && dettagliContattiMap.get("indirizzo") == null && dettagliContattiMap.get("mail") == null) {
-                //errore inserire almeno un campo tra tutti i mezzi
-            } else {
-                if (dettagliContattiMap.get("descrizione") != null && !dettagliContattiMap.get("descrizione").toString().trim().equalsIgnoreCase("")) {
-                    c.setDescrizione(dettagliContattiMap.get("descrizione").toString());
-                } else {
-                    c.setDescrizione("");
-                }
-                Contatto cSaved = contattoRepository.save(c);
-                dcEmail.setIdContatto(cSaved);
-                dcIndirizzo.setIdContatto(cSaved);
-                dcTelefono.setIdContatto(cSaved);
-                log.info("fin qui tutto ok");
-                log.info("email " + dcEmail.getPrincipale());
-                log.info("indirizzo " + dcIndirizzo.getPrincipale());
-                log.info("telefono " + dcTelefono.getPrincipale());
-
-                dettaglioContattoRepository.save(dcEmail);
-                dettaglioContattoRepository.save(dcIndirizzo);
-                dettaglioContattoRepository.save(dcTelefono);
-                //cs.add(c);
-            }
-        }
-
-        //contattoRepository.saveAll(cs);
-    }
+//    @Transactional(rollbackFor = Throwable.class)
+//    @RequestMapping(value = "insertCSVEstemporaneo",
+//            method = RequestMethod.POST,
+//            produces = MediaType.APPLICATION_JSON_VALUE)
+//    public ResponseEntity<String> insertCSVEstemporaneo(
+//            @RequestParam("idUtente") Integer idUtente,
+//            @RequestParam("file") MultipartFile file,
+//            @RequestParam("idAzienda") String idAzienda) throws Http400ResponseException, BlackBoxPermissionException {
+//
+//        if (!file.isEmpty() && (idUtente != null || !idUtente.equals("")) && (idAzienda != null || !idAzienda.equals(""))) {
+//            try {
+//                importaCSV(idUtente, idAzienda, file);
+//            } catch (IOException ex) {
+//                throw new Http400ResponseException("2", "I dati passati per l'importazione non sono corretti");
+//            }
+//        } else {
+//            throw new Http400ResponseException("2", "I dati passati per l'importazione sono assenti");
+//        }
+//
+//        return new ResponseEntity("0", HttpStatus.OK);
+//
+//    }
+//
+//    private void importaCSV(Integer idUtente, String idAzienda, MultipartFile fileContatti) throws IOException, BlackBoxPermissionException {
+//        String provenienza = "importatoreCSV";
+//        Utente u = utenteRepository.findById(idUtente).get();
+//        Persona p = personaRepository.findById(u.getIdPersona().getId()).get();
+//        ICsvMapReader mapReader = null;
+//        InputStreamReader inputFileStreamReader = new InputStreamReader(fileContatti.getInputStream());
+//        CsvPreference SEMICOLON_DELIMITED = new CsvPreference.Builder('"', ';', "\r\n").build();
+//        Map<String, Object> dettagliContattiMap;
+//        mapReader = new CsvMapReader(inputFileStreamReader, SEMICOLON_DELIMITED);
+//        mapReader.getHeader(true);
+//        boolean fax = true;
+//        boolean telefono = true;
+//        boolean email = true;
+//        boolean indirizzo = true;
+//
+//        String[] headers = new String[]{"cognomeRagiorneSociale", "nome", "privatoAzienda",
+//            "codiceFiscale", "pIva", "descrizione", "email", "pec",
+//            "indirizzo", "civico", "comune", "cap", "provincia", "telefono", "fax"};
+//        CellProcessor[] processors = new CellProcessor[]{
+//            // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
+//            new Optional(), // cognomeRagiorneSociale 
+//            new Optional(), // nome
+//            new Optional(), // privatoAzienda
+//            new Optional(), // codiceFiscale
+//            new Optional(), // pIva 
+//            new Optional(), // descrizione
+//            new Optional(), // email
+//            new Optional(), // pec
+//            new Optional(), // indirizzo
+//            new Optional(), // civico
+//            new Optional(), // comune
+//            new Optional(), // cap
+//            new Optional(), // provincia
+//            new Optional(), // telefono
+//            new Optional() // fax
+//        };
+//
+//        List<Contatto> cs = new ArrayList<Contatto>();
+//        while ((dettagliContattiMap = mapReader.read(headers, processors)) != null) {
+//            log.info("rigo: " + mapReader.getRowNumber());
+//            boolean principale = true;
+//            Contatto c = new Contatto();
+//            DettaglioContatto dcEmail = new DettaglioContatto();
+//            dcEmail.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
+//            DettaglioContatto dcIndirizzo = new DettaglioContatto();
+//            dcIndirizzo.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+//            DettaglioContatto dcTelefono = new DettaglioContatto();
+//            dcTelefono.setTipo(DettaglioContatto.TipoDettaglio.TELEFONO);
+//
+//            if (dettagliContattiMap.get("privatoAzienda") != null && !dettagliContattiMap.get("privatoAzienda").toString().trim().equalsIgnoreCase("")) {
+//                if (dettagliContattiMap.get("privatoAzienda").toString().equalsIgnoreCase("a")) {
+//                    if (dettagliContattiMap.get("cognomeRagiorneSociale") != null && !dettagliContattiMap.get("cognomeRagiorneSociale").toString().trim().equalsIgnoreCase("")) {
+//                        c.setRagioneSociale(dettagliContattiMap.get("cognomeRagiorneSociale").toString());
+//                    } else {
+//                        //errore RagiorneSociale vuoto
+//                    }
+//                    c.setTipo(Contatto.TipoContatto.AZIENDA);
+//                } else if (dettagliContattiMap.get("privatoAzienda").toString().equalsIgnoreCase("p")) {
+//                    if (dettagliContattiMap.get("cognomeRagiorneSociale") != null && !dettagliContattiMap.get("cognomeRagiorneSociale").toString().trim().equalsIgnoreCase("")) {
+//                        c.setCognome(dettagliContattiMap.get("cognomeRagiorneSociale").toString());
+//                    } else {
+//                        //errore Cognome vuoto
+//                    }
+//                    if (dettagliContattiMap.get("nome") != null && !dettagliContattiMap.get("nome").toString().trim().equalsIgnoreCase("")) {
+//                        c.setNome(dettagliContattiMap.get("nome").toString());
+//                    } else {
+//                        //errore nome vuoto
+//                    }
+//                    c.setTipo(Contatto.TipoContatto.PERSONA_FISICA);
+//                } else {
+//                    //errore inserito privato azienda sbagliato
+//                }
+//            } else {
+//                //errore non inserito privato azienda 
+//            }
+//            if (dettagliContattiMap.get("codiceFiscale") != null && !dettagliContattiMap.get("codiceFiscale").toString().trim().equalsIgnoreCase("")) {
+//                c.setCodiceFiscale(dettagliContattiMap.get("codiceFiscale").toString());
+//            }
+//            if (dettagliContattiMap.get("pIva") != null && !dettagliContattiMap.get("pIva").toString().trim().equalsIgnoreCase("")) {
+//                c.setPartitaIva(dettagliContattiMap.get("pIva").toString());
+//            }
+//            if (dettagliContattiMap.get("pIva") != null && !dettagliContattiMap.get("pIva").toString().trim().equalsIgnoreCase("")) {
+//                c.setPartitaIva(dettagliContattiMap.get("pIva").toString());
+//            }
+//
+//            if (dettagliContattiMap.get("email") != null && !dettagliContattiMap.get("email").toString().trim().equalsIgnoreCase("")) {
+//
+//                List<Email> es = new ArrayList<>();
+//                Email e = new Email();
+//                if (dettagliContattiMap.get("pec") != null && dettagliContattiMap.get("pec").toString().trim().equalsIgnoreCase("S")) {
+//                    e.setPec(true);
+//                } else {
+//                    e.setPec(false);
+//                }
+//                e.setPrincipale(principale);
+//                dcEmail.setPrincipale(principale);
+//                principale = false;
+//                e.setProvenienza(provenienza);
+//                e.setIdContatto(c);
+//                e.setEmail(dettagliContattiMap.get("email").toString());
+//                es.add(e);
+//                dcEmail.setEmail(e);
+//                dcEmail.setDescrizione(dettagliContattiMap.get("email").toString());
+//                c.setEmailList(es);
+//
+//            }
+//            if (dettagliContattiMap.get("indirizzo") != null && !dettagliContattiMap.get("indirizzo").toString().trim().equalsIgnoreCase("")) {
+//                if (dettagliContattiMap.get("civico") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
+//                    if (dettagliContattiMap.get("comune") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
+//                        if (dettagliContattiMap.get("cap") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
+//                            if (dettagliContattiMap.get("provincia") != null && !dettagliContattiMap.get("civico").toString().trim().equalsIgnoreCase("")) {
+//                                Indirizzo i = new Indirizzo();
+//                                i.setVia(dettagliContattiMap.get("indirizzo").toString());
+//                                i.setCivico(dettagliContattiMap.get("civico").toString());
+//                                i.setComune(dettagliContattiMap.get("comune").toString());
+//                                i.setCap(dettagliContattiMap.get("cap").toString());
+//                                i.setProvincia(dettagliContattiMap.get("provincia").toString());
+//                                List<Indirizzo> indirizziList = new ArrayList<>();
+//                                i.setPrincipale(principale);
+//                                dcIndirizzo.setPrincipale(principale);
+//                                principale = false;
+//                                i.setProvenienza(provenienza);
+//                                i.setIdContatto(c);
+//                                indirizziList.add(i);
+//                                c.setIndirizziList(indirizziList);
+//                                dcIndirizzo.setIndirizzo(i);
+//                                dcIndirizzo.setDescrizione(i.getDescrizione());
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//            if (dettagliContattiMap.get("telefono") != null && !dettagliContattiMap.get("telefono").toString().trim().equalsIgnoreCase("")) {
+//                Telefono t = new Telefono();
+//                t.setNumero(dettagliContattiMap.get("telefono").toString());
+//                List<Telefono> telefonoList = new ArrayList<>();
+//                t.setPrincipale(principale);
+//                dcTelefono.setPrincipale(principale);
+//                if (dettagliContattiMap.get("fax") != null && !dettagliContattiMap.get("fax").toString().trim().equalsIgnoreCase("")) {
+//                    t.setFax(true);
+//                } else {
+//                    t.setFax(false);
+//                }
+//                t.setProvenienza(provenienza);
+//                t.setIdContatto(c);
+//                telefonoList.add(t);
+//                c.setTelefonoList(telefonoList);
+//                dcTelefono.setTelefono(t);
+//                dcTelefono.setDescrizione(t.getDescrizione());
+//
+//            }
+//            c.setCategoria(Contatto.CategoriaContatto.ESTERNO);
+//            c.setDaVerificare(true);
+//
+//            c.setEliminato(false);
+//            c.setModificabile(true);
+//            c.setProvenienza(provenienza);
+//            c.setIdUtenteCreazione(u);
+//            c.setIdPersonaCreazione(p);
+//            c.setRiservato(false);
+//
+//            if (dettagliContattiMap.get("fax") == null && dettagliContattiMap.get("telefono") == null && dettagliContattiMap.get("indirizzo") == null && dettagliContattiMap.get("mail") == null) {
+//                //errore inserire almeno un campo tra tutti i mezzi
+//            } else {
+//                if (dettagliContattiMap.get("descrizione") != null && !dettagliContattiMap.get("descrizione").toString().trim().equalsIgnoreCase("")) {
+//                    c.setDescrizione(dettagliContattiMap.get("descrizione").toString());
+//                } else {
+//                    c.setDescrizione("");
+//                }
+//                Contatto cSaved = contattoRepository.save(c);
+//                dcEmail.setIdContatto(cSaved);
+//                dcIndirizzo.setIdContatto(cSaved);
+//                dcTelefono.setIdContatto(cSaved);
+//                log.info("fin qui tutto ok");
+//                log.info("email " + dcEmail.getPrincipale());
+//                log.info("indirizzo " + dcIndirizzo.getPrincipale());
+//                log.info("telefono " + dcTelefono.getPrincipale());
+//
+//                dettaglioContattoRepository.save(dcEmail);
+//                dettaglioContattoRepository.save(dcIndirizzo);
+//                dettaglioContattoRepository.save(dcTelefono);
+//                //cs.add(c);
+//            }
+//        }
+//
+//        //contattoRepository.saveAll(cs);
+//    }
 }
