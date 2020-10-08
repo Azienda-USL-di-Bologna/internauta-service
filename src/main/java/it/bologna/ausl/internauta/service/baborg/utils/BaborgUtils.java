@@ -367,35 +367,42 @@ public class BaborgUtils {
                             } else {
 //                                List<Map<String, Object>> mieiPadri = mdrStrutturaRepository.mieiPadri(idAzienda, Integer.parseInt(appartenentiMap.get("id_casella").toString()));
                                 if (!arcoBool(selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString())), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
-                                    mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura,");
+                                    mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l arco temporale della struttura,");
                                     anomalia = true;
                                     mapError.put("Anomalia", "true");
 
                                 } else {
                                     List<Map<String, Object>> elementi = selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
-//                                    LocalDateTime dataMax = elementi.stream().map(u -> formattattore(u.get("datafi"))).max(LocalDateTime::compareTo).get();
-                                    LocalDateTime dataMax = LocalDateTime.MIN;
-
-                                    for (Map<String, Object> e : elementi) {
-                                        LocalDateTime dataFineElemento = formattattore(e.get("datafi"));
-                                        if (dataFineElemento == null) {
-                                            dataMax = LocalDateTime.MAX;
-                                            break;
-                                        }
-
-                                        if (dataFineElemento.compareTo(dataMax) > 0) {
-                                            dataMax = dataFineElemento;
-                                        }
-                                    }
-                                    LocalDateTime dataFineUtente = formattattore(appartenentiMap.get("datafi"));
-                                    if (dataFineUtente == null) {
-                                        dataFineUtente = LocalDateTime.MAX;
-                                    }
-                                    if (dataMax.compareTo(dataFineUtente) < 0) {
-                                        mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura,");
+                                    Map<String, LocalDateTime> maxMin = maxMin(elementi);
+                                    if (!controllaEstremi(maxMin.get("min"), maxMin.get("max"), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
+                                        
+                                        mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura, ");
                                         anomalia = true;
                                         mapError.put("Anomalia", "true");
                                     }
+//                                    LocalDateTime dataMax = elementi.stream().map(u -> formattattore(u.get("datafi"))).max(LocalDateTime::compareTo).get();
+//                                    LocalDateTime dataMax = LocalDateTime.MIN;
+//
+//                                    for (Map<String, Object> e : elementi) {
+//                                        LocalDateTime dataFineElemento = formattattore(e.get("datafi"));
+//                                        if (dataFineElemento == null) {
+//                                            dataMax = LocalDateTime.MAX;
+//                                            break;
+//                                        }
+//
+//                                        if (dataFineElemento.compareTo(dataMax) > 0) {
+//                                            dataMax = dataFineElemento;
+//                                        }
+//                                    }
+//                                    LocalDateTime dataFineUtente = formattattore(appartenentiMap.get("datafi"));
+//                                    if (dataFineUtente == null) {
+//                                        dataFineUtente = LocalDateTime.MAX;
+//                                    }
+//                                    if (dataMax.compareTo(dataFineUtente) < 0) {
+//                                        mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura,");
+//                                        anomalia = true;
+//                                        mapError.put("Anomalia", "true");
+//                                    }
                                 }
                             }
                             mapError.put("id_casella", appartenentiMap.get("id_casella"));
@@ -655,14 +662,14 @@ public class BaborgUtils {
                             appMapWithErrorAndAnomalia.put("Anomalia", "true");
                         }
                         if (righeAnomaleDirette.contains(riga)) {
-                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " utente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura,");
+                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura,");
 
                             anomalia = true;
                             appMapWithErrorAndAnomalia.put("Anomalia", "true");
                         }
                         //DA CHIEDERE A GUS
                         if (righeAnomaleFunzionali.contains(riga)) {
-                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze funzionali nello stesso periodo");
+                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura");
 
                             anomalia = true;
                             appMapWithErrorAndAnomalia.put("Anomalia", "true");
@@ -797,6 +804,13 @@ public class BaborgUtils {
                                         anomalia = true;
                                         anomaliaRiga = true;
 
+                                    } else {
+                                        if (!controllaEstremi(formattattore(mieiPadri.get(0).get("datain")), formattattore(mieiPadri.get(mieiPadri.size() - 1).get("datafi")), formattattore(responsabiliMap.get("datain")), formattattore(responsabiliMap.get("datafi")))) {
+                                            mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura,");
+                                            anomalia = true;
+                                            anomaliaRiga = true;
+                                            mapError.put("Anomalia", "true");
+                                        }
                                     }
                                 }
                             }
@@ -1448,6 +1462,23 @@ public class BaborgUtils {
         return headers;
     }
 
+    private boolean controllaEstremi(LocalDateTime dataStrutturaInizio, LocalDateTime dataStrutturaFine, LocalDateTime dataAppartenenteInizio, LocalDateTime dataAppartenenteFine) {
+        if (dataAppartenenteFine == null) {
+            dataAppartenenteFine = LocalDateTime.MAX;
+        }
+        if (dataStrutturaFine == null) {
+            dataStrutturaFine = LocalDateTime.MAX;
+        }
+        if (dataStrutturaFine.compareTo(dataAppartenenteFine) < 0) {
+            return false;
+        }
+        if (dataStrutturaInizio.compareTo(dataAppartenenteInizio) > 0) {
+            return false;
+        }
+
+        return true;
+    }
+
     @Transactional(rollbackFor = Throwable.class)
     public ImportazioniOrganigramma updateEsitoImportazioneOrganigramma(ImportazioniOrganigramma newRowInserted, String esito, String csv_error_link) {
         // Update nello storico importazioni. esito: Errore o Ok
@@ -1593,7 +1624,26 @@ public class BaborgUtils {
         }
         return (dataInizioA.compareTo(dataFineB) <= 0 && dataFineA.compareTo(dataInizioB) >= 0);
     }
-
+    private Map<String,LocalDateTime> maxMin(List<Map<String,Object>> elementi){
+        HashMap<String, LocalDateTime> maxmin = new HashMap<>();
+        LocalDateTime min=LocalDateTime.MAX;
+        LocalDateTime max=LocalDateTime.MIN;
+        
+        for (Map<String, Object> map1 : elementi) {
+            if (min.compareTo(formattattore(map1.get("datain").toString()))>0 ){
+                min=formattattore(map1.get("datain").toString());
+            }
+            if (map1.get("datafi")==null){
+                max=LocalDateTime.MAX;
+            }else if (max.compareTo(formattattore(map1.get("datafi").toString()))<0){
+                max=formattattore(map1.get("datafi").toString());
+            }
+            
+        }
+        maxmin.put("max", max);
+        maxmin.put("min", min);
+        return maxmin;
+    }
     /**
      *
      * @param o
