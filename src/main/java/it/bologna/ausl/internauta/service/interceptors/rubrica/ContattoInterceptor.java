@@ -85,6 +85,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         Utente user = authenticatedSessionData.getUser();
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(user.getIdPersona());
         // List<Integer> idAziendePersona = aziendePersona.stream().map(a -> a.getId()).collect(Collectors.toList());
+        BooleanExpression protocontattoFilter;
 
         // QUESTO E' IL FILTRO PER FAR SI CHE UNO VEDA SOLO I CONTATTI DELLE SUE AZIENDE
         BooleanExpression permessoAziendaleFilter = QContatto.contatto.idAziende.isNull().or(
@@ -122,20 +123,24 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 
         if (additionalData != null && additionalData.size() > 0) {
             Utente loggedUser = authenticatedSessionData.getUser();
-            BooleanExpression protocontattoFilter;
+
             boolean daVerificare = Boolean.valueOf(additionalData.get("daVerificare"));
             boolean protocontatto = Boolean.valueOf(additionalData.get("protocontatto"));
 
             // i protocontatti devono essere visibili da CA, CI e creatore del protocontatto
             if (userInfoService.isCI(loggedUser) || userInfoService.isCA(loggedUser)) {
                 protocontattoFilter = QContatto.contatto.daVerificare.eq(daVerificare).or(QContatto.contatto.protocontatto.eq(protocontatto));
-                //BooleanExpression protocontattoFilter = (QContatto.contatto.protocontatto.eq(protocontatto));
+                // usato per test: protocontattoFilter = (QContatto.contatto.protocontatto.eq(protocontatto));
                 initialPredicate = protocontattoFilter.and(initialPredicate);
             } else {
                 // faccio vedere solo i protocontatti creati da me
                 BooleanExpression creatoDaMe = QContatto.contatto.daVerificare.eq(daVerificare).or(QContatto.contatto.idUtenteCreazione.id.eq(loggedUser.getId()).and(QContatto.contatto.protocontatto.eq(protocontatto)));
                 initialPredicate = creatoDaMe.and(initialPredicate);
             }
+        } else {
+            // non far vedere i protocontatti
+            protocontattoFilter = (QContatto.contatto.protocontatto.eq(false));
+            initialPredicate = protocontattoFilter.and(initialPredicate);
         }
         return initialPredicate;
     }
