@@ -121,12 +121,22 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         initialPredicate = contactFilter.and(initialPredicate);
 
         if (additionalData != null && additionalData.size() > 0) {
+            Utente loggedUser = authenticatedSessionData.getUser();
+            BooleanExpression protocontattoFilter;
             boolean daVerificare = Boolean.valueOf(additionalData.get("daVerificare"));
             boolean protocontatto = Boolean.valueOf(additionalData.get("protocontatto"));
-            BooleanExpression protocontattoFilter = QContatto.contatto.daVerificare.eq(daVerificare).or(QContatto.contatto.protocontatto.eq(protocontatto));
-            initialPredicate = protocontattoFilter.and(initialPredicate);
-        }
 
+            // i protocontatti devono essere visibili da CA, CI e creatore del protocontatto
+            if (userInfoService.isCI(loggedUser) || userInfoService.isCA(loggedUser)) {
+                protocontattoFilter = QContatto.contatto.daVerificare.eq(daVerificare).or(QContatto.contatto.protocontatto.eq(protocontatto));
+                //BooleanExpression protocontattoFilter = (QContatto.contatto.protocontatto.eq(protocontatto));
+                initialPredicate = protocontattoFilter.and(initialPredicate);
+            } else {
+                // faccio vedere solo i protocontatti creati da me
+                BooleanExpression creatoDaMe = QContatto.contatto.daVerificare.eq(daVerificare).or(QContatto.contatto.idUtenteCreazione.id.eq(loggedUser.getId()).and(QContatto.contatto.protocontatto.eq(protocontatto)));
+                initialPredicate = creatoDaMe.and(initialPredicate);
+            }
+        }
         return initialPredicate;
     }
 
