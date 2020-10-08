@@ -47,6 +47,7 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomPersonaLogin;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
@@ -119,6 +120,7 @@ public class ProjectionBeans {
 
     @Autowired
     protected EntitaRepository entitaRepository;
+
     @Autowired
     protected TipoEntitaRepository tipoEntitaRepository;
 
@@ -126,11 +128,14 @@ public class ProjectionBeans {
     protected ImpostazioniApplicazioniRepository impostazioniApplicazioniRepository;
 
     @Autowired
+    protected AziendaRepository aziendaRepository;
+
+    @Autowired
     protected UtenteRepository utenteRepository;
 
     @Autowired
     protected StrutturaRepository strutturaRepository;
-    
+
     @Autowired
     protected UtenteStrutturaRepository utenteStrutturaRepository;
 
@@ -198,7 +203,6 @@ public class ProjectionBeans {
 //            return null;
 //        }
 //    }
-
     public UtenteStrutturaWithIdAfferenzaStrutturaCustom
             getUtenteStrutturaWithIdAfferenzaStrutturaCustom(UtenteStruttura utenteStruttura) {
         return factory.createProjection(UtenteStrutturaWithIdAfferenzaStrutturaCustom.class, utenteStruttura);
@@ -207,7 +211,6 @@ public class ProjectionBeans {
 //    public StrutturaWithAttributiStrutturaAndIdAzienda getStrutturaConAzienda(Struttura struttura) {
 //        return factory.createProjection(StrutturaWithAttributiStrutturaAndIdAzienda.class, struttura);
 //    }
-
     public StrutturaWithAttributiStrutturaAndIdAzienda getStrutturaWithIdAzienda(Contatto contatto) {
         StrutturaWithAttributiStrutturaAndIdAzienda res = null;
         Struttura struttura = contatto.getIdStruttura();
@@ -728,6 +731,21 @@ public class ProjectionBeans {
         return predicatoRepository.findById(permesso.getIdPredicato().getId()).get();
     }
 
+    private String getElencoCodiciAziendeAttualiPersona(Persona persona) {
+        String codiciAziende = "";
+        List<Utente> utenteList = persona.getUtenteList();
+        if (utenteList != null) {
+            for (Utente utente : utenteList) {
+                utente = utenteRepository.findById(utente.getId()).get();
+                if (utente.getAttivo()) {
+                    Azienda azienda = aziendaRepository.findById(utente.getIdAzienda().getId()).get();
+                    codiciAziende = codiciAziende + (codiciAziende.length() == 0 ? "" : ", ") + azienda.getNome();
+                }
+            }
+        }
+        return codiciAziende;
+    }
+
     public List<PermessoEntitaStoredProcedure> getPermessiContatto(Contatto contatto) throws BlackBoxPermissionException {
 
         List<String> predicati = new ArrayList<>();
@@ -746,10 +764,11 @@ public class ProjectionBeans {
                     permessoEntitaStoredProcedure.getSoggetto().setDescrizione(strutturaSoggetto.getNome() + " [" + strutturaSoggetto.getCodice() + "]");
                     permessoEntitaStoredProcedure.getSoggetto().setAdditionalData(
                             strutturaRepository.getCountUtentiStruttura(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza())
-                    );                    
+                    );
                 } else if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.persone.toString())) {
                     Persona personaSoggetto = personaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
-                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(personaSoggetto.getDescrizione() + " [" + personaSoggetto.getCodiceFiscale() + "]");
+                    //permessoEntitaStoredProcedure.getSoggetto().setDescrizione(personaSoggetto.getDescrizione() + " [" + personaSoggetto.getCodiceFiscale() + "]");
+                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(personaSoggetto.getDescrizione() + " [" + getElencoCodiciAziendeAttualiPersona(personaSoggetto) + "]");
                 }
             }
         }
@@ -779,7 +798,7 @@ public class ProjectionBeans {
 
         return subjectsWithPermissionsOnObject;
     }
-    
+
     public String getCountUtentiStruttura(Struttura struttura) {
         return strutturaRepository.getCountUtentiStruttura(struttura.getId());
     }
