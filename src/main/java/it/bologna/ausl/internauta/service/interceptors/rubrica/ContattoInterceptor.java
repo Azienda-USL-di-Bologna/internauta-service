@@ -129,8 +129,8 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 
             // i protocontatti devono essere visibili da CA, CI e creatore del protocontatto
             if (userInfoService.isCI(loggedUser) || userInfoService.isCA(loggedUser)) {
-                //protocontattoFilter = QContatto.contatto.daVerificare.eq(daVerificare).or(QContatto.contatto.protocontatto.eq(protocontatto));
-                protocontattoFilter = (QContatto.contatto.protocontatto.eq(protocontatto));
+                protocontattoFilter = QContatto.contatto.daVerificare.eq(daVerificare).or(QContatto.contatto.protocontatto.eq(protocontatto));
+                // usato per test: protocontattoFilter = (QContatto.contatto.protocontatto.eq(protocontatto));
                 initialPredicate = protocontattoFilter.and(initialPredicate);
             } else {
                 // faccio vedere solo i protocontatti creati da me
