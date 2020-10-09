@@ -1,16 +1,22 @@
 package it.bologna.ausl.internauta.service.controllers.rubrica;
 
 import it.bologna.ausl.model.entities.rubrica.Contatto;
+import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 
 /**
  *
  * @author gusgus
  */
 class SelectedContact {
+
     private Contatto contact;
-    private Object address; // Class: Email, Indirizzo, Telefono
-    private String status; // TODO fare Enum
-    private String contactInde;
+    private DettaglioContatto address;
+    private Boolean estemporaneo;
+    private Boolean addToRubrica;
+    private SelectedContactStatus status;
+
+    public SelectedContact() {
+    }
 
     public Contatto getContact() {
         return contact;
@@ -20,29 +26,42 @@ class SelectedContact {
         this.contact = contact;
     }
 
-    public Object getAddress() {
+    public DettaglioContatto getAddress() {
         return address;
     }
 
-    public void setAddress(Object address) {
+    public void setAddress(DettaglioContatto address) {
         this.address = address;
     }
 
-    public String getStatus() {
+    public Boolean getEstemporaneo() {
+        return estemporaneo;
+    }
+
+    public void setEstemporaneo(Boolean estemporaneo) {
+        this.estemporaneo = estemporaneo;
+    }
+
+    public Boolean getAddToRubrica() {
+        return addToRubrica;
+    }
+
+    public void setAddToRubrica(Boolean addToRubrica) {
+        this.addToRubrica = addToRubrica;
+    }
+
+    public SelectedContactStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(SelectedContactStatus status) {
         this.status = status;
     }
 
-    public String getContactInde() {
-        return contactInde;
-    }
+}
 
-    public void setContactInde(String contactInde) {
-        this.contactInde = contactInde;
-    }
-    
-    
+enum SelectedContactStatus {
+    INITIAL,
+    INSERTED,
+    UPDATED
 }
