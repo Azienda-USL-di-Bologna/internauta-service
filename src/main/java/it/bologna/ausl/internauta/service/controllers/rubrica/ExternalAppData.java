@@ -1,5 +1,12 @@
 package it.bologna.ausl.internauta.service.controllers.rubrica;
 
+import com.fasterxml.jackson.annotation.JacksonInject;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonRawValue;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.gson.annotations.SerializedName;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import java.util.List;
 
@@ -85,13 +92,16 @@ public class ExternalAppData {
 class SelectedContactsLists {
 
     private List<SelectedContact> A;
+
     private List<SelectedContact> CC; //todo fare enum
+
     private List<SelectedContact> MITTENTE;
 
     public List<SelectedContact> getA() {
         return A;
     }
 
+    @JsonProperty("A")
     public void setA(List<SelectedContact> A) {
         this.A = A;
     }
@@ -100,6 +110,7 @@ class SelectedContactsLists {
         return CC;
     }
 
+    @JsonProperty("CC")
     public void setCC(List<SelectedContact> CC) {
         this.CC = CC;
     }
@@ -108,6 +119,7 @@ class SelectedContactsLists {
         return MITTENTE;
     }
 
+    @JsonProperty("MITTENTE")
     public void setMITTENTE(List<SelectedContact> MITTENTE) {
         this.MITTENTE = MITTENTE;
     }
