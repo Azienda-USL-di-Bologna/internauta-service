@@ -1,16 +1,13 @@
 package it.bologna.ausl.internauta.service.controllers.rubrica;
 
-import it.bologna.ausl.model.entities.rubrica.Contatto;
-import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
-
 /**
  *
  * @author gusgus
  */
 class SelectedContact {
 
-    private Contatto contact;
-    private DettaglioContatto address;
+    private Object contact;
+    private Object address;
     private Boolean estemporaneo;
     private Boolean addToRubrica;
     private SelectedContactStatus status;
@@ -18,19 +15,19 @@ class SelectedContact {
     public SelectedContact() {
     }
 
-    public Contatto getContact() {
+    public Object getContact() {
         return contact;
     }
 
-    public void setContact(Contatto contact) {
+    public void setContact(Object contact) {
         this.contact = contact;
     }
 
-    public DettaglioContatto getAddress() {
+    public Object getAddress() {
         return address;
     }
 
-    public void setAddress(DettaglioContatto address) {
+    public void setAddress(Object address) {
         this.address = address;
     }
 

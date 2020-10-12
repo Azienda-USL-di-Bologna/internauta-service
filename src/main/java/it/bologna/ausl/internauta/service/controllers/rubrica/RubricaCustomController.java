@@ -311,6 +311,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Persona getPersona = personaRepository.findById(persona.getId()).get();
         Utente getUtente = utenteRepository.findById(utente.getId()).get();
 
+        List<Contatto> listContattiAsProtocontatti = new ArrayList<Contatto>();
+
         for (Contatto contattoAsProtocontatto : estemporaneiToAddToRubricaAsProtocontatti) {
             final List<Email> emailList = contattoAsProtocontatto.getEmailList();
             if (!emailList.isEmpty()) {
@@ -337,8 +339,11 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             contattoAsProtocontatto.setIdPersonaCreazione(getPersona);
             contattoAsProtocontatto.setIdUtenteCreazione(getUtente);
 
-            contattoRepository.save(contattoAsProtocontatto);
+            listContattiAsProtocontatti.add(contattoAsProtocontatto);
+//            contattoRepository.save(contattoAsProtocontatto);
+
         }
+        contattoRepository.saveAll(listContattiAsProtocontatti);
         log.info("Contatti as protocontatti sono stati salvati");
 
         ObjectMapper mapper = new ObjectMapper();
@@ -346,6 +351,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         SelectedContactsLists selectedContactsLists = mapper.readValue(data.getSelectedContactsLists(), SelectedContactsLists.class);
 
 //        to do enum selectionMode, MITTENTE, DESTINATARI
+//      set status imported on contatti salvati
         if (data.getMode().equals("MITTENTE")) {
             getSelectedContactsListAndSetAsInsertedToRubrica(selectedContactsLists.getMITTENTE());
         }
@@ -361,7 +367,6 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         log.info("setEstemporaneiToAddToRubrica to null");
         data.setEstemporaneiToAddToRubrica(null);
 
-//      set status imported on contatti salvati
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"),
                 objectMapper.writeValueAsString(data));
@@ -396,8 +401,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     private void setSelectedContactAsInsertedToRubrica(List<SelectedContact> selectedContactsList) {
         for (SelectedContact selectedContact : selectedContactsList) {
-            selectedContact.getContact().setTipo(Contatto.TipoContatto.PERSONA_FISICA);
-            selectedContact.getContact().setCategoria(Contatto.CategoriaContatto.ESTERNO);
+//            selectedContact.getContact().setTipo(Contatto.TipoContatto.PERSONA_FISICA);
+//            selectedContact.getContact().setCategoria(Contatto.CategoriaContatto.ESTERNO);
             if (selectedContact.getAddToRubrica() != null && selectedContact.getAddToRubrica() && selectedContact.getStatus() != null && selectedContact.getStatus().equals(SelectedContactStatus.INITIAL) && selectedContact.getEstemporaneo() != null && selectedContact.getEstemporaneo()) {
                 selectedContact.setAddToRubrica(Boolean.FALSE);
                 selectedContact.setStatus(SelectedContactStatus.INSERTED);
