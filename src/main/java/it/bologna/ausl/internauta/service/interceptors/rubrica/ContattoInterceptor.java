@@ -226,20 +226,20 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             
 
             List<ParametroAziende> parameters = parametriAziende.getParameters("protocontatti", new Integer[]{authenticatedUserProperties.getUser().getIdAzienda().getId()}, new String[]{Applicazione.Applicazioni.rubrica.toString()});
-            contatto.setDaVerificare(false);
+            contatto.setProtocontatto(false);
             if (parameters != null && !parameters.isEmpty() && parametriAziende.getValue(parameters.get(0), Boolean.class) == true) {
-                contatto.setDaVerificare(true);
+                contatto.setProtocontatto(true);
             } else {
-                String res = contattoRepository.getSimilarContacts(contattoString, idAziendeStr);
-                SqlSimilarityResults similarityResults = objectMapper.readValue(res, SqlSimilarityResults.class);
-                LOGGER.info("faccio la get similarities");
-                similarityResults.filterByPermission(authenticatedUserProperties.getPerson(), permissionManager);
-                if (similarityResults.similaritiesNumber() > 0) {
-                    LOGGER.info("è simile");
-                    contatto.setDaVerificare(true);
-                } else {
-                    LOGGER.info("non c'è niente di simile");
-                }
+//                String res = contattoRepository.getSimilarContacts(contattoString, idAziendeStr);
+//                SqlSimilarityResults similarityResults = objectMapper.readValue(res, SqlSimilarityResults.class);
+//                LOGGER.info("faccio la get similarities");
+//                similarityResults.filterByPermission(authenticatedUserProperties.getPerson(), permissionManager);
+//                if (similarityResults.similaritiesNumber() > 0) {
+//                    LOGGER.info("è simile");
+//                    contatto.setDaVerificare(true);
+//                } else {
+//                    LOGGER.info("non c'è niente di simile");
+//                }
             }
             if (contatto.getIdUtenteCreazione() == null) {
                 Utente one = utenteRepository.getOne(authenticatedUserProperties.getUser().getId());

@@ -101,7 +101,7 @@ public class SqlSimilarityResults {
         if (emailList != null) {
             List<SqlSimilarityResult> res = new ArrayList();
             for (SqlSimilarityResult sqlSimilarityResult : emailList) {
-                if (!sqlSimilarityResult.getContact().isRiservato() || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
+                if (!sqlSimilarityResult.getContact().isRiservato() || (sqlSimilarityResult.getContact().isRiservato() && sqlSimilarityResult.getContact().getId_persona_creazione().equals(persona.getId())) || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
                     res.add(sqlSimilarityResult);
                 }
             }
@@ -110,7 +110,7 @@ public class SqlSimilarityResults {
         if (codiceFiscale != null) {
             List<SqlSimilarityResult> res = new ArrayList();
             for (SqlSimilarityResult sqlSimilarityResult : codiceFiscale) {
-                if (!sqlSimilarityResult.getContact().isRiservato() || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
+                if (!sqlSimilarityResult.getContact().isRiservato() || (sqlSimilarityResult.getContact().isRiservato() && sqlSimilarityResult.getContact().getId_persona_creazione().equals(persona.getId())) || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
                     res.add(sqlSimilarityResult);
                 }
             }
@@ -119,7 +119,7 @@ public class SqlSimilarityResults {
         if (cognomeAndNome != null) {
             List<SqlSimilarityResult> res = new ArrayList();
             for (SqlSimilarityResult sqlSimilarityResult : cognomeAndNome) {
-                if (!sqlSimilarityResult.getContact().isRiservato() || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
+                if (!sqlSimilarityResult.getContact().isRiservato() || (sqlSimilarityResult.getContact().isRiservato() && sqlSimilarityResult.getContact().getId_persona_creazione().equals(persona.getId())) || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
                     res.add(sqlSimilarityResult);
                 }
             }
@@ -128,7 +128,7 @@ public class SqlSimilarityResults {
         if (partitaIva != null) {
             List<SqlSimilarityResult> res = new ArrayList();
             for (SqlSimilarityResult sqlSimilarityResult : partitaIva) {
-                if (!sqlSimilarityResult.getContact().isRiservato() || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
+                if (!sqlSimilarityResult.getContact().isRiservato() || (sqlSimilarityResult.getContact().isRiservato() && sqlSimilarityResult.getContact().getId_persona_creazione().equals(persona.getId())) || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
                     res.add(sqlSimilarityResult);
                 }
             }
@@ -137,7 +137,7 @@ public class SqlSimilarityResults {
         if (ragioneSociale != null) {
             List<SqlSimilarityResult> res = new ArrayList();
             for (SqlSimilarityResult sqlSimilarityResult : ragioneSociale) {
-                if (!sqlSimilarityResult.getContact().isRiservato() || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
+                if (!sqlSimilarityResult.getContact().isRiservato() || (sqlSimilarityResult.getContact().isRiservato() && sqlSimilarityResult.getContact().getId_persona_creazione().equals(persona.getId())) || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
                     res.add(sqlSimilarityResult);
                 }
             }
