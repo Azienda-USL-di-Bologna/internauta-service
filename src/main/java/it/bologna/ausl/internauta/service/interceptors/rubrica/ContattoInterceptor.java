@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.interceptors.rubrica;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -82,8 +83,8 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        Utente user = authenticatedSessionData.getUser();
-        List<Azienda> aziendePersona = userInfoService.getAziendePersona(user.getIdPersona());
+        Utente loggedUser = authenticatedSessionData.getUser();
+        List<Azienda> aziendePersona = userInfoService.getAziendePersona(loggedUser.getIdPersona());
         // List<Integer> idAziendePersona = aziendePersona.stream().map(a -> a.getId()).collect(Collectors.toList());
         BooleanExpression protocontattoFilter;
 
@@ -115,45 +116,40 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 contattiWithStandardPermissions
                         .stream()
                         .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList()))
-                .or(QContatto.contatto.idPersonaCreazione.id.eq(user.getIdPersona().getId()))
+                .or(QContatto.contatto.idPersonaCreazione.id.eq(loggedUser.getIdPersona().getId()))
                 .or(
                         QContatto.contatto.riservato.eq(false));
 
         initialPredicate = contactFilter.and(initialPredicate);
+        
+        // QUESTO E' IL FILTRO PER I PROTOCONTATTI. Un protocontatto lo può vedeere solo un CA/CI o il creatore del contatto
+        BooleanExpression sonoCAoCI = (userInfoService.isCI(loggedUser) || userInfoService.isCA(loggedUser)) ? Expressions.TRUE : Expressions.FALSE;
+        BooleanExpression protocontattoFilters = QContatto.contatto.protocontatto.eq(false)
+                .or(QContatto.contatto.idUtenteCreazione.id.eq(loggedUser.getId()))
+                .or(sonoCAoCI.isTrue());
+        initialPredicate = protocontattoFilters.and(initialPredicate);
 
-        if (additionalData != null && additionalData.size() > 0) {
-            Utente loggedUser = authenticatedSessionData.getUser();
-
-            boolean daVerificare = Boolean.valueOf(additionalData.get("daVerificare"));
-            boolean protocontatto = Boolean.valueOf(additionalData.get("protocontatto"));
-
-            // i protocontatti devono essere visibili da CA, CI e creatore del protocontatto
-            if (userInfoService.isCI(loggedUser) || userInfoService.isCA(loggedUser)) {
-                protocontattoFilter = QContatto.contatto.daVerificare.eq(daVerificare).or(QContatto.contatto.protocontatto.eq(protocontatto));
-                // usato per test: protocontattoFilter = (QContatto.contatto.protocontatto.eq(protocontatto));
-                initialPredicate = protocontattoFilter.and(initialPredicate);
-            } else {
-                // faccio vedere solo i protocontatti creati da me
-                BooleanExpression creatoDaMe = QContatto.contatto.daVerificare.eq(daVerificare).or(QContatto.contatto.idUtenteCreazione.id.eq(loggedUser.getId()).and(QContatto.contatto.protocontatto.eq(protocontatto)));
-                initialPredicate = creatoDaMe.and(initialPredicate);
+        // QUESTO E' IL FILTRO CHE RIGUARDA I PROTOCONTATTI E I CONTATTI DA VERIFICARE
+        // Serve a mettere in OR i due booleani (cosa che dal front-end non si può fare))
+        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                switch (operationRequested) {
+                    case FilterContattiDaVerificareOProtocontatti:
+                            protocontattoFilter = QContatto.contatto.daVerificare.eq(true).or(QContatto.contatto.protocontatto.eq(true));
+                            initialPredicate = protocontattoFilter.and(initialPredicate);
+                        break;
+                }
             }
-        } else {
-            // non far vedere i protocontatti
-            protocontattoFilter = (QContatto.contatto.protocontatto.eq(false));
-            initialPredicate = protocontattoFilter.and(initialPredicate);
-        }
+        } 
+//        else {
+//            // non far vedere i protocontatti
+////            protocontattoFilter = (QContatto.contatto.protocontatto.eq(false));
+////            initialPredicate = protocontattoFilter.and(initialPredicate);
+//        }
         return initialPredicate;
     }
 
-//    @Override
-//    public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
-//        Contatto c = (Contatto) entity;
-//        if (c.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)) {
-//            this.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.ContattoGruppoAppenaCreato, c);
-//        }
-//
-//        return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
-//    }
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Contatto contatto = (Contatto) entity;
@@ -227,13 +223,14 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             List<Azienda> aziendePersona = userInfoService.getAziendePersona(authenticatedUserProperties.getPerson());
             List<Integer> collect = aziendePersona.stream().map(p -> p.getId()).collect(Collectors.toList());
             String idAziendeStr = UtilityFunctions.getArrayString(objectMapper, collect);
-            String res = contattoRepository.getSimilarContacts(contattoString, idAziendeStr);
+            
 
             List<ParametroAziende> parameters = parametriAziende.getParameters("protocontatti", new Integer[]{authenticatedUserProperties.getUser().getIdAzienda().getId()}, new String[]{Applicazione.Applicazioni.rubrica.toString()});
             contatto.setDaVerificare(false);
             if (parameters != null && !parameters.isEmpty() && parametriAziende.getValue(parameters.get(0), Boolean.class) == true) {
                 contatto.setDaVerificare(true);
             } else {
+                String res = contattoRepository.getSimilarContacts(contattoString, idAziendeStr);
                 SqlSimilarityResults similarityResults = objectMapper.readValue(res, SqlSimilarityResults.class);
                 LOGGER.info("faccio la get similarities");
                 similarityResults.filterByPermission(authenticatedUserProperties.getPerson(), permissionManager);
@@ -264,4 +261,60 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         return contatto;
     }
 
+    @Override
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
+        Contatto contatto = (Contatto) entity;
+        Contatto oldContatto = (Contatto) beforeUpdateEntity;
+        
+        
+        
+        
+
+        return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+    }
+
+//    public void manageFlagDaVerificare(Contatto contatto, Contatto oldContatto) throws JsonProcessingException {
+//        /*  
+//            PASSI DELLA GESTIONE DEL FLAG DA VERIFICARE
+//            Dall'oldContatto voglio prendere i contatti simili. contattiSimiliBefore.
+//            Dal contatto voglio prendere i contatti simili. contattiSimiliNow.
+//            Se contattiSimiliNow è vuoto allora il contatto non è da verificare altirementi lo è.
+//            Se contattiSimiliNow è pieno allora ciclo i contatti e li setto da_verificare.
+//                Se uno di loro è presente nella lista contattiSimiliBefore allora lo rimuovo.
+//            Infine guardo se ci sono similarità su contattiSimiliBefore e:
+//                - se hanno similarità e non sono da verificare li setto da verificare 
+//                - se non hanno similarità e sono da verificare li setto non da verificare
+//        */
+//        AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
+//        String contattoString = objectMapper.writeValueAsString(contatto);
+//        String oldContattoString = objectMapper.writeValueAsString(oldContatto);
+//        List<Azienda> aziendePersona = userInfoService.getAziendePersona(authenticatedUserProperties.getPerson());
+//        List<Integer> collect = aziendePersona.stream().map(p -> p.getId()).collect(Collectors.toList());
+//        String idAziendeStr = UtilityFunctions.getArrayString(objectMapper, collect);
+//        
+//        String res = contattoRepository.getSimilarContacts(contattoString, idAziendeStr);
+//        List<Contatto> contattiSimiliNow = objectMapper.readValue(res, SqlSimilarityResults.class).getContatti(SqlSimilarityResults.ContactListInclude.ALL);
+//        
+//        res = contattoRepository.getSimilarContacts(oldContattoString, idAziendeStr);
+//        List<Contatto> contattiSimiliBefore = objectMapper.readValue(res, SqlSimilarityResults.class).getContatti(SqlSimilarityResults.ContactListInclude.ALL);
+//
+//        if (contattiSimiliNow.isEmpty()) {
+//            contatto.setDaVerificare(Boolean.FALSE);
+//        } else {
+//            contatto.setDaVerificare(Boolean.TRUE);
+//            for (Contatto c : contattiSimiliNow) {
+//                if (!c.getDaVerificare()) {
+//                    c.setDaVerificare(Boolean.TRUE);
+//                    contattoRepository.save(c);
+//                }
+//                //TODO: rimuovere,se c'è, dalla lista contattiSimiliBefore il contatto con id = c.getId()
+//            }
+//        }
+//        
+//        for (Contatto c : contattiSimiliBefore) {
+//            // TODO..
+//        }
+//    }
+    
 }

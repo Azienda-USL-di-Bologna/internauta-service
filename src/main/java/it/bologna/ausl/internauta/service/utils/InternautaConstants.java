@@ -62,7 +62,8 @@ public class InternautaConstants {
             FilterMassimarioPerAzienda,
             GetContattiFromInde,
             CaricaSottoResponsabili,
-            RootLoading
+            RootLoading,
+            FilterContattiDaVerificareOProtocontatti
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
