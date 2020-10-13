@@ -312,7 +312,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Persona getPersona = personaRepository.findById(persona.getId()).get();
         Utente getUtente = utenteRepository.findById(utente.getId()).get();
 
-        if (!estemporaneiToAddToRubricaAsProtocontatti.isEmpty()) {
+        if (estemporaneiToAddToRubricaAsProtocontatti != null && !estemporaneiToAddToRubricaAsProtocontatti.isEmpty()) {
             List<Contatto> listContattiAsProtocontattiDaSalvare = new ArrayList<Contatto>();
 
             for (Contatto contattoAsProtocontatto : estemporaneiToAddToRubricaAsProtocontatti) {
@@ -380,6 +380,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         OkHttpClient client = new OkHttpClient();
 
         Request request = new Request.Builder()
+//                .url(buildGestisciDestinatariDaRubricaInternautarUrl(azienda, data.getApp()))
                 .url(buildGestisciDestinatariDaRubricaInternautarUrl(azienda, data.getApp()))
                 .post(requestBody)
                 .addHeader("X-HTTP-Method-Override", manageDestinatariMethod)
@@ -422,6 +423,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
+//        url="http://localhost:8080/Procton/GestisciDestinatariDaRubricaInternauta";
         return url;
     }
 
