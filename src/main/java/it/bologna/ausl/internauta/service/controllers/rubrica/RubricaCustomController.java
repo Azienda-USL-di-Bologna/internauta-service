@@ -30,8 +30,10 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
+import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.Indirizzo;
+import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Telefono;
 import it.bologna.ausl.rubrica.maven.client.RestClient;
 import it.bologna.ausl.rubrica.maven.client.RestClientException;
@@ -47,6 +49,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
@@ -315,6 +318,16 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         if (estemporaneiToAddToRubricaAsProtocontatti != null && !estemporaneiToAddToRubricaAsProtocontatti.isEmpty()) {
             List<Contatto> listContattiAsProtocontattiDaSalvare = new ArrayList<Contatto>();
 
+            ObjectMapper mapper = new ObjectMapper();
+//            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+//            mapper.setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE);
+            SelectedContactsLists selectedContactsLists = mapper.readValue(data.getSelectedContactsLists(), SelectedContactsLists.class);
+
+//            liste
+            List<SelectedContact> allSelectedContactsMITTENTE = selectedContactsLists.getMITTENTE();
+            List<SelectedContact> allSelectedContactsA = selectedContactsLists.getA();
+            List<SelectedContact> allSelectedContactsCC = selectedContactsLists.getCC();
+
             for (Contatto contattoAsProtocontatto : estemporaneiToAddToRubricaAsProtocontatti) {
                 final List<Email> emailList = contattoAsProtocontatto.getEmailList();
                 if (!emailList.isEmpty()) {
@@ -341,39 +354,39 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                 contattoAsProtocontatto.setIdPersonaCreazione(getPersona);
                 contattoAsProtocontatto.setIdUtenteCreazione(getUtente);
 
-                listContattiAsProtocontattiDaSalvare.add(contattoAsProtocontatto);
-//            contattoRepository.save(contattoAsProtocontatto);
+//                listContattiAsProtocontattiDaSalvare.add(contattoAsProtocontatto);
+                Contatto savedContatto = contattoRepository.save(contattoAsProtocontatto);
+
+                log.info("Contatto as protocontatto è stato salvato");
+                //      to do enum selectionMode, MITTENTE, DESTINATARI
+                //      set status INSERTED on contatti salvati
+                if (data.getMode().equals("MITTENTE")) {
+                    allSelectedContactsMITTENTE = getSelectedContactsListAndSetAsInsertedToRubrica(allSelectedContactsMITTENTE, savedContatto);
+
+                }
+                if (data.getMode().equals("DESTINATARI")) {
+                    if (data.getApp().equals("procton")) {
+                        allSelectedContactsA = getSelectedContactsListAndSetAsInsertedToRubrica(allSelectedContactsA, savedContatto);
+                        allSelectedContactsCC = getSelectedContactsListAndSetAsInsertedToRubrica(allSelectedContactsCC, savedContatto);
+                    } else {
+                        allSelectedContactsA = getSelectedContactsListAndSetAsInsertedToRubrica(allSelectedContactsA, savedContatto);
+                    }
+                }
 
             }
-            contattoRepository.saveAll(listContattiAsProtocontattiDaSalvare);
-            log.info("Contatti as protocontatti sono stati salvati");
-
-            log.info("Loop Selected Contatti, update keys estemporaneo, addToRubrica, status");
-            ObjectMapper mapper = new ObjectMapper();
-//            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
-//            mapper.setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE);
-            SelectedContactsLists selectedContactsLists = mapper.readValue(data.getSelectedContactsLists(), SelectedContactsLists.class);
-
-//      to do enum selectionMode, MITTENTE, DESTINATARI
-//      set status imported on contatti salvati
-            if (data.getMode().equals("MITTENTE")) {
-                getSelectedContactsListAndSetAsInsertedToRubrica(selectedContactsLists.getMITTENTE());
-            }
-
-            if (data.getMode().equals("DESTINATARI")) {
-                getSelectedContactsListAndSetAsInsertedToRubrica(selectedContactsLists.getA());
-                getSelectedContactsListAndSetAsInsertedToRubrica(selectedContactsLists.getCC());
-            }
+//            contattoRepository.saveAll(listContattiAsProtocontattiDaSalvare);
+            selectedContactsLists.setA(allSelectedContactsA);
+            selectedContactsLists.setCC(allSelectedContactsCC);
+            selectedContactsLists.setMITTENTE(allSelectedContactsMITTENTE);
 
             String selectedContactsListsAsString = mapper.writeValueAsString(selectedContactsLists);
-            log.info("selectedContactsListsAsString to send at inde: " + data.getSelectedContactsLists());
+//            log.info("selectedContactsListsAsString to send at inde: " + selectedContactsListsAsString);
             data.setSelectedContactsLists(selectedContactsListsAsString);
         }
         log.info("set Estemporanei To AddToRubrica to null");
         data.setEstemporaneiToAddToRubrica(null);
 
-        log.info("prima di okhttp3 , data " + data.toString());
-
+ 
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"),
                 objectMapper.writeValueAsString(data));
@@ -401,22 +414,38 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         return new ResponseEntity(data, HttpStatus.OK);
     }
 
-    private void getSelectedContactsListAndSetAsInsertedToRubrica(List<SelectedContact> selectedContactsList) {
+    private List<SelectedContact> getSelectedContactsListAndSetAsInsertedToRubrica(List<SelectedContact> selectedContactsList, Contatto savedContatto) {
+        List<SelectedContact> selectedContactAsInsertedToRubrica = null;
         if (!selectedContactsList.isEmpty()) {
-            setSelectedContactAsInsertedToRubrica(selectedContactsList);
+            selectedContactAsInsertedToRubrica = setSelectedContactAsInsertedToRubrica(selectedContactsList, savedContatto);
         }
+        return selectedContactAsInsertedToRubrica;
     }
 
-    private void setSelectedContactAsInsertedToRubrica(List<SelectedContact> selectedContactsList) {
-        for (SelectedContact selectedContact : selectedContactsList) {
-//            selectedContact.getContact().setTipo(Contatto.TipoContatto.PERSONA_FISICA);
-//            selectedContact.getContact().setCategoria(Contatto.CategoriaContatto.ESTERNO);
-            if (selectedContact.getAddToRubrica() != null && selectedContact.getAddToRubrica() && selectedContact.getStatus() != null && selectedContact.getStatus().equals(SelectedContactStatus.INITIAL) && selectedContact.getEstemporaneo() != null && selectedContact.getEstemporaneo()) {
-                selectedContact.setAddToRubrica(Boolean.FALSE);
-                selectedContact.setStatus(SelectedContactStatus.INSERTED);
-                selectedContact.setEstemporaneo(Boolean.FALSE);
+    private List<SelectedContact> setSelectedContactAsInsertedToRubrica(List<SelectedContact> selectedContactsList, Contatto savedContatto) {
+        for (SelectedContact selectedContactEstemporaneo : selectedContactsList) {
+            log.info("Loop Selected Contatti, update keys, Id, estemporaneo, addToRubrica, status");
+            Contatto selectedContact = objectMapper.convertValue(selectedContactEstemporaneo.getContact(), Contatto.class);
+            DettaglioContatto selectedAddress = objectMapper.convertValue(selectedContactEstemporaneo.getAddress(), DettaglioContatto.class);
+//            if (selectedContact.getDescrizione().equals(savedContatto.getDescrizione()) && ((!selectedContact.getEmailList().isEmpty() && selectedAddressDescrizione.equals(selectedContact.getEmailList().get(0)))
+//                    || (!selectedContact.getTelefonoList().isEmpty() && selectedAddressDescrizione.equals(selectedContact.getTelefonoList().get(0)))
+//                    || (!selectedContact.getIndirizziList().isEmpty() && selectedAddressDescrizione.equals(selectedContact.getIndirizziList().get(0))))) {
+
+            if (selectedContact.getDescrizione().equals(savedContatto.getDescrizione())
+                    && selectedContactEstemporaneo.getAddToRubrica() != null && selectedContactEstemporaneo.getAddToRubrica()
+                    && selectedContactEstemporaneo.getStatus() != null && selectedContactEstemporaneo.getStatus().equals(SelectedContactStatus.INITIAL)
+                    && selectedContactEstemporaneo.getEstemporaneo() != null && selectedContactEstemporaneo.getEstemporaneo()) {
+                selectedContact.setId(savedContatto.getId());
+                selectedAddress.setIdContatto(savedContatto);
+                log.info("Update selected contact DESCRIZIONE:" + savedContatto.getDescrizione() + " - INDIRIZZO: " + selectedAddress.getDescrizione());
+                selectedContactEstemporaneo.setAddToRubrica(Boolean.FALSE);
+                selectedContactEstemporaneo.setStatus(SelectedContactStatus.INSERTED);
+                selectedContactEstemporaneo.setEstemporaneo(Boolean.FALSE);
+                selectedContactEstemporaneo.setContact(selectedContact);
+                selectedContactEstemporaneo.setAddress(selectedAddress);
             }
         }
+        return selectedContactsList;
     }
 
     private String buildGestisciDestinatariDaRubricaInternautarUrl(Azienda azienda, String idApplicazione) throws IOException {
