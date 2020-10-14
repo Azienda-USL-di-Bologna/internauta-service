@@ -84,7 +84,7 @@ public class SqlSimilarityResults {
 
     public void filterByPermission(Persona persona, PermissionManager permissionManager) throws BlackBoxPermissionException {
 
-        List<Object> contatti = getContatti(SqlSimilarityResults.ContactListInclude.RISERVATI);
+        List<Object> contatti = new ArrayList<Object>(getContatti(SqlSimilarityResults.ContactListInclude.RISERVATI));
 
         Map<Integer, PermessoStoredProcedure> mappa = null;
         try {
@@ -146,8 +146,8 @@ public class SqlSimilarityResults {
 
     }
 
-    private List<Object> getContatti(ContactListInclude contactListInclude) {
-        List<Object> res = new ArrayList();
+    public List<Contatto> getContatti(ContactListInclude contactListInclude) {
+        List<Contatto> res = new ArrayList();
         if (emailList != null) {
             for (SqlSimilarityResult sqlSimilarityResult : emailList) {
                 if (contactListInclude == ContactListInclude.ALL
@@ -225,5 +225,23 @@ public class SqlSimilarityResults {
         }
 
         return res;
+    }
+    
+    public void removeSimileById(Integer idSimileDaRimuovere) {
+        if (emailList != null) {
+            emailList.removeIf(e -> e.getIdContact().equals(idSimileDaRimuovere));
+        }
+        if (codiceFiscale != null) {
+            codiceFiscale.removeIf(e -> e.getIdContact().equals(idSimileDaRimuovere));
+        }
+        if (cognomeAndNome != null) {
+            cognomeAndNome.removeIf(e -> e.getIdContact().equals(idSimileDaRimuovere));
+        }
+        if (partitaIva != null) {
+            partitaIva.removeIf(e -> e.getIdContact().equals(idSimileDaRimuovere));
+        }
+        if (ragioneSociale != null) {
+            ragioneSociale.removeIf(e -> e.getIdContact().equals(idSimileDaRimuovere));
+        }
     }
 }
