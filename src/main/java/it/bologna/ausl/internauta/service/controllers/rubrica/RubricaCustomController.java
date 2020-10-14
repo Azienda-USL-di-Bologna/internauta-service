@@ -394,7 +394,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                 refreshDestinatari(persona, azienda, data.getGuid());
             } else {
                 log.info("Errore nella chiamata alla webapi indosa");
-                throw new IOException(String.format("molto malo: %s", response.message()));
+                throw new IOException(String.format("molto malo indemmerda: %s", response.message()));
             }
         }
 
@@ -423,7 +423,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
-//        url="http://localhost:8080/Procton/GestisciDestinatariDaRubricaInternauta";
+       // url="http://localhost:8080/Procton/GestisciDestinatariDaRubricaInternauta";
         return url;
     }
 
