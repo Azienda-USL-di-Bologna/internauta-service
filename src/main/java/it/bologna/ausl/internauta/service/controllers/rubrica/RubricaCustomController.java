@@ -386,14 +386,12 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         log.info("set Estemporanei To AddToRubrica to null");
         data.setEstemporaneiToAddToRubrica(null);
 
- 
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"),
                 objectMapper.writeValueAsString(data));
         OkHttpClient client = new OkHttpClient();
 
         Request request = new Request.Builder()
-//                .url(buildGestisciDestinatariDaRubricaInternautarUrl(azienda, data.getApp()))
                 .url(buildGestisciDestinatariDaRubricaInternautarUrl(azienda, data.getApp()))
                 .post(requestBody)
                 .addHeader("X-HTTP-Method-Override", manageDestinatariMethod)
@@ -415,11 +413,11 @@ public class RubricaCustomController implements ControllerHandledExceptions {
     }
 
     private List<SelectedContact> getSelectedContactsListAndSetAsInsertedToRubrica(List<SelectedContact> selectedContactsList, Contatto savedContatto) {
-        List<SelectedContact> selectedContactAsInsertedToRubrica = null;
         if (!selectedContactsList.isEmpty()) {
-            selectedContactAsInsertedToRubrica = setSelectedContactAsInsertedToRubrica(selectedContactsList, savedContatto);
+            return setSelectedContactAsInsertedToRubrica(selectedContactsList, savedContatto);
+        } else {
+            return selectedContactsList;
         }
-        return selectedContactAsInsertedToRubrica;
     }
 
     private List<SelectedContact> setSelectedContactAsInsertedToRubrica(List<SelectedContact> selectedContactsList, Contatto savedContatto) {
@@ -452,7 +450,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
-       // url="http://localhost:8080/Procton/GestisciDestinatariDaRubricaInternauta";
+        // url="http://localhost:8080/Procton/GestisciDestinatariDaRubricaInternauta";
         return url;
     }
 
