@@ -40,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
@@ -264,11 +263,19 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             if (contatto.getIdAziende() == null) {
                 contatto.setIdAziende(idAziende);
             }
-
         } catch (Exception ex) {
             throw new AbortSaveInterceptorException("fallito controllo similarità", ex);
         }
-
+        
+        // Se la descrizione è nulla provo a riempirla con un euristica.
+        if (contatto.getDescrizione() == null || contatto.getDescrizione().equals("")) {
+            if (contatto.getTipo().toString().equals(Contatto.TipoContatto.PERSONA_FISICA)) {
+                contatto.setDescrizione((contatto.getCognome() + " " + contatto.getNome()).trim());
+            } else if (contatto.getTipo().toString().equals(Contatto.TipoContatto.AZIENDA)) {
+                contatto.setDescrizione((contatto.getRagioneSociale()).trim());
+            }
+        }
+        
         return contatto;
     }
 
