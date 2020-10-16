@@ -1,7 +1,9 @@
 package it.bologna.ausl.internauta.service.controllers.rubrica;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
@@ -13,7 +15,6 @@ import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.configuration.utils.RubricaRestClientConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
-import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -32,6 +33,7 @@ import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.Indirizzo;
+import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Telefono;
 import it.bologna.ausl.rubrica.maven.client.RestClient;
 import it.bologna.ausl.rubrica.maven.client.RestClientException;
@@ -39,7 +41,6 @@ import it.bologna.ausl.rubrica.maven.resources.EmailResource;
 import it.bologna.ausl.rubrica.maven.resources.FullContactResource;
 import it.nextsw.common.utils.CommonUtils;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -48,11 +49,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
-import net.bytebuddy.implementation.bytecode.Throw;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -70,15 +70,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import org.sql2o.Connection;
 import org.sql2o.Query;
 import org.sql2o.Sql2o;
-import org.supercsv.cellprocessor.Optional;
-import org.supercsv.cellprocessor.ift.CellProcessor;
-import org.supercsv.io.CsvMapReader;
-import org.supercsv.io.ICsvMapReader;
-import org.supercsv.prefs.CsvPreference;
 
 /**
  *
@@ -303,6 +297,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         return new ResponseEntity(similarityResults, HttpStatus.OK);
     }
 
+    @Transactional(rollbackFor = Throwable.class)
     @RequestMapping(value = "sendSelectedContactsToExternalApp",
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -314,6 +309,82 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Utente utente = authenticatedUserProperties.getUser();
         Persona persona = utente.getIdPersona();
         data.setCfUtenteOperazione(persona.getCodiceFiscale());
+
+        List<Contatto> estemporaneiToAddToRubricaAsProtocontatti = data.getEstemporaneiToAddToRubrica();
+
+        Persona getPersona = personaRepository.findById(persona.getId()).get();
+        Utente getUtente = utenteRepository.findById(utente.getId()).get();
+
+        if (estemporaneiToAddToRubricaAsProtocontatti != null && !estemporaneiToAddToRubricaAsProtocontatti.isEmpty()) {
+            List<Contatto> listContattiAsProtocontattiDaSalvare = new ArrayList<Contatto>();
+
+            ObjectMapper mapper = new ObjectMapper();
+//            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+//            mapper.setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE);
+            SelectedContactsLists selectedContactsLists = mapper.readValue(data.getSelectedContactsLists(), SelectedContactsLists.class);
+
+//            liste
+            List<SelectedContact> allSelectedContactsMITTENTE = selectedContactsLists.getMITTENTE();
+            List<SelectedContact> allSelectedContactsA = selectedContactsLists.getA();
+            List<SelectedContact> allSelectedContactsCC = selectedContactsLists.getCC();
+
+            for (Contatto contattoAsProtocontatto : estemporaneiToAddToRubricaAsProtocontatti) {
+                final List<Email> emailList = contattoAsProtocontatto.getEmailList();
+                if (!emailList.isEmpty()) {
+                    for (Email email : emailList) {
+                        email.setIdContatto(contattoAsProtocontatto);
+                        email.getIdDettaglioContatto().setIdContatto(contattoAsProtocontatto);
+                    }
+                }
+                final List<Telefono> telefonoList = contattoAsProtocontatto.getTelefonoList();
+                if (!telefonoList.isEmpty()) {
+                    for (Telefono tel : telefonoList) {
+                        tel.setIdContatto(contattoAsProtocontatto);
+                        tel.getIdDettaglioContatto().setIdContatto(contattoAsProtocontatto);
+                    }
+                }
+                final List<Indirizzo> indirizziList = contattoAsProtocontatto.getIndirizziList();
+                if (!indirizziList.isEmpty()) {
+                    for (Indirizzo indirizzi : indirizziList) {
+                        indirizzi.setIdContatto(contattoAsProtocontatto);
+                        indirizzi.getIdDettaglioContatto().setIdContatto(contattoAsProtocontatto);
+                    }
+                }
+
+                contattoAsProtocontatto.setIdPersonaCreazione(getPersona);
+                contattoAsProtocontatto.setIdUtenteCreazione(getUtente);
+
+//                listContattiAsProtocontattiDaSalvare.add(contattoAsProtocontatto);
+                Contatto savedContatto = contattoRepository.save(contattoAsProtocontatto);
+
+                log.info("Contatto as protocontatto è stato salvato");
+                //      to do enum selectionMode, MITTENTE, DESTINATARI
+                //      set status INSERTED on contatti salvati
+                if (data.getMode().equals("MITTENTE")) {
+                    allSelectedContactsMITTENTE = getSelectedContactsListAndSetAsInsertedToRubrica(allSelectedContactsMITTENTE, savedContatto);
+
+                }
+                if (data.getMode().equals("DESTINATARI")) {
+                    if (data.getApp().equals("procton")) {
+                        allSelectedContactsA = getSelectedContactsListAndSetAsInsertedToRubrica(allSelectedContactsA, savedContatto);
+                        allSelectedContactsCC = getSelectedContactsListAndSetAsInsertedToRubrica(allSelectedContactsCC, savedContatto);
+                    } else {
+                        allSelectedContactsA = getSelectedContactsListAndSetAsInsertedToRubrica(allSelectedContactsA, savedContatto);
+                    }
+                }
+
+            }
+//            contattoRepository.saveAll(listContattiAsProtocontattiDaSalvare);
+            selectedContactsLists.setA(allSelectedContactsA);
+            selectedContactsLists.setCC(allSelectedContactsCC);
+            selectedContactsLists.setMITTENTE(allSelectedContactsMITTENTE);
+
+            String selectedContactsListsAsString = mapper.writeValueAsString(selectedContactsLists);
+//            log.info("selectedContactsListsAsString to send at inde: " + selectedContactsListsAsString);
+            data.setSelectedContactsLists(selectedContactsListsAsString);
+        }
+        log.info("set Estemporanei To AddToRubrica to null");
+        data.setEstemporaneiToAddToRubrica(null);
 
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"),
@@ -334,17 +405,52 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                 refreshDestinatari(persona, azienda, data.getGuid());
             } else {
                 log.info("Errore nella chiamata alla webapi indosa");
-                throw new IOException(String.format("molto malo: %s", response.message()));
+                throw new IOException(String.format("molto malo indemmerda: %s", response.message()));
             }
         }
 
         return new ResponseEntity(data, HttpStatus.OK);
     }
 
+    private List<SelectedContact> getSelectedContactsListAndSetAsInsertedToRubrica(List<SelectedContact> selectedContactsList, Contatto savedContatto) {
+        if (!selectedContactsList.isEmpty()) {
+            return setSelectedContactAsInsertedToRubrica(selectedContactsList, savedContatto);
+        } else {
+            return selectedContactsList;
+        }
+    }
+
+    private List<SelectedContact> setSelectedContactAsInsertedToRubrica(List<SelectedContact> selectedContactsList, Contatto savedContatto) {
+        for (SelectedContact selectedContactEstemporaneo : selectedContactsList) {
+            log.info("Loop Selected Contatti, update keys, Id, estemporaneo, addToRubrica, status");
+            Contatto selectedContact = objectMapper.convertValue(selectedContactEstemporaneo.getContact(), Contatto.class);
+            DettaglioContatto selectedAddress = objectMapper.convertValue(selectedContactEstemporaneo.getAddress(), DettaglioContatto.class);
+//            if (selectedContact.getDescrizione().equals(savedContatto.getDescrizione()) && ((!selectedContact.getEmailList().isEmpty() && selectedAddressDescrizione.equals(selectedContact.getEmailList().get(0)))
+//                    || (!selectedContact.getTelefonoList().isEmpty() && selectedAddressDescrizione.equals(selectedContact.getTelefonoList().get(0)))
+//                    || (!selectedContact.getIndirizziList().isEmpty() && selectedAddressDescrizione.equals(selectedContact.getIndirizziList().get(0))))) {
+
+            if (selectedContact.getDescrizione().equals(savedContatto.getDescrizione())
+                    && selectedContactEstemporaneo.getAddToRubrica() != null && selectedContactEstemporaneo.getAddToRubrica()
+                    && selectedContactEstemporaneo.getStatus() != null && selectedContactEstemporaneo.getStatus().equals(SelectedContactStatus.INITIAL)
+                    && selectedContactEstemporaneo.getEstemporaneo() != null && selectedContactEstemporaneo.getEstemporaneo()) {
+                selectedContact.setId(savedContatto.getId());
+                selectedAddress.setIdContatto(savedContatto);
+                log.info("Update selected contact DESCRIZIONE:" + savedContatto.getDescrizione() + " - INDIRIZZO: " + selectedAddress.getDescrizione());
+                selectedContactEstemporaneo.setAddToRubrica(Boolean.FALSE);
+                selectedContactEstemporaneo.setStatus(SelectedContactStatus.INSERTED);
+                selectedContactEstemporaneo.setEstemporaneo(Boolean.FALSE);
+                selectedContactEstemporaneo.setContact(selectedContact);
+                selectedContactEstemporaneo.setAddress(selectedAddress);
+            }
+        }
+        return selectedContactsList;
+    }
+
     private String buildGestisciDestinatariDaRubricaInternautarUrl(Azienda azienda, String idApplicazione) throws IOException {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
+        // url="http://localhost:8080/Procton/GestisciDestinatariDaRubricaInternauta";
         return url;
     }
 

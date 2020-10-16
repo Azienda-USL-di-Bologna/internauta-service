@@ -84,9 +84,9 @@ public class KrintService {
             if (idOggettoContenitore != null && idOggettoContenitore != "") {
                 krint.setIdOggettoContenitore(idOggettoContenitore);
                 krint.setTipoOggettoContenitore(tipoOggettoContenitore);
-                krint.setInformazioniOggettoContenitore(informazioniOggettocontenitore);
                 krint.setDescrizioneOggettoContenitore(descrizioneOggettoContenitore);
             }
+            krint.setInformazioniOggettoContenitore(informazioniOggettocontenitore);
             
             krint.setIdOperazioneVersionata(operazioneVersionataKrint);
 

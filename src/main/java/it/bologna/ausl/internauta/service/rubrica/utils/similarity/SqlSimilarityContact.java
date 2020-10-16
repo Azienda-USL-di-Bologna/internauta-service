@@ -21,6 +21,15 @@ public class SqlSimilarityContact {
     private String email;
     private String descrizione_indirizzo;
     private boolean riservato;
+    private Integer id_persona_creazione;
+
+    public Integer getId_persona_creazione() {
+        return id_persona_creazione;
+    }
+
+    public void setId_persona_creazione(Integer id_persona_creazione) {
+        this.id_persona_creazione = id_persona_creazione;
+    }
 
     public SqlSimilarityContact() {
     }
