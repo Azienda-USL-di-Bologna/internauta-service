@@ -454,24 +454,27 @@ public class UserInfoService {
             return refreshedUtente.getUtenteStrutturaList();
         }
     }
-    
+
     /**
-     * Torna per l'utente dell'utenteStruttura passato, la struttura sulla quale ha un afferenza Diretta, se non ne ha torna la Unificata, se non ne ha ne torna una a caso
+     * Torna per l'utente dell'utenteStruttura passato, la struttura sulla quale
+     * ha un afferenza Diretta, se non ne ha torna la Unificata, se non ne ha ne
+     * torna una a caso
+     *
      * @param utenteStruttura
-     * @return 
+     * @return
      */
 //    @Cacheable(value = "getUtenteStrutturaAfferenzaPrincipaleAttiva__ribaltorg__", key = "{#utenteStruttura.getId()}")
     public UtenteStrutturaWithIdAfferenzaStrutturaAndIdStruttura getUtenteStrutturaAfferenzaPrincipaleAttiva(UtenteStruttura utenteStruttura) {
         Iterable<UtenteStruttura> afferenze = utenteStrutturaRepository.findAll(QUtenteStruttura.utenteStruttura.idUtente.id.eq(utenteStruttura.getIdUtente().getId()));
         UtenteStruttura afferenzaPrincipale = null;
-        for (UtenteStruttura afferenza: afferenze) {
+        for (UtenteStruttura afferenza : afferenze) {
             if (afferenzaPrincipale == null) {
                 afferenzaPrincipale = afferenza;
             } else if (afferenzaPrincipale.getIdAfferenzaStruttura().getCodice() != AfferenzaStruttura.CodiciAfferenzaStruttura.DIRETTA) {
-                if ( afferenza.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.DIRETTA) {
+                if (afferenza.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.DIRETTA) {
                     afferenzaPrincipale = afferenza;
                 } else if (afferenzaPrincipale.getIdAfferenzaStruttura().getCodice() != AfferenzaStruttura.CodiciAfferenzaStruttura.UNIFICATA) {
-                    if ( afferenza.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.UNIFICATA) {
+                    if (afferenza.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.UNIFICATA) {
                         afferenzaPrincipale = afferenza;
                     }
                 }
