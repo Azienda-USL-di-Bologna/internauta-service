@@ -32,10 +32,8 @@ import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -152,6 +150,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Contatto contatto = (Contatto) entity;
+        
         if (KrintUtils.doIHaveToKrint(request)) {
             if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)) {
                 // TODO chiamare writeGroupCreation
@@ -172,10 +171,14 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             }
         }
         
-        try {
-            manageFlagDaVerificarePerCreate(contatto);
-        } catch (JsonProcessingException ex) {
-            throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
+        // Setto il flag da verificare a true se il contatto che sto creando ha dei simili. 
+        // Anche i simili li setto da verificare dato che lo sono diventati.
+        if (contatto.getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
+            try {
+                manageFlagDaVerificarePerCreate(contatto);
+            } catch (JsonProcessingException ex) {
+                throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
+            }
         }
         
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
@@ -205,12 +208,6 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             }
         }
         
-        try {
-            manageFlagDaVerificarePerUpdate(contatto, contattoOld);
-        } catch (JsonProcessingException ex) {
-            throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
-        }
-
         return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -239,46 +236,31 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Contatto contatto = (Contatto) entity;
-        try {
-            AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
-            String contattoString = objectMapper.writeValueAsString(contatto);
-            List<Azienda> aziendePersona = userInfoService.getAziendePersona(authenticatedUserProperties.getPerson());
-            List<Integer> collect = aziendePersona.stream().map(p -> p.getId()).collect(Collectors.toList());
-            String idAziendeStr = UtilityFunctions.getArrayString(objectMapper, collect);
-            
-
-            List<ParametroAziende> parameters = parametriAziende.getParameters("protocontatti", new Integer[]{authenticatedUserProperties.getUser().getIdAzienda().getId()}, new String[]{Applicazione.Applicazioni.rubrica.toString()});
-            contatto.setProtocontatto(false);
-            if (parameters != null && !parameters.isEmpty() && parametriAziende.getValue(parameters.get(0), Boolean.class) == true) {
-                contatto.setProtocontatto(true);
-            } else {
-//                String res = contattoRepository.getSimilarContacts(contattoString, idAziendeStr);
-//                SqlSimilarityResults similarityResults = objectMapper.readValue(res, SqlSimilarityResults.class);
-//                LOGGER.info("faccio la get similarities");
-//                similarityResults.filterByPermission(authenticatedUserProperties.getPerson(), permissionManager);
-//                if (similarityResults.similaritiesNumber() > 0) {
-//                    LOGGER.info("è simile");
-//                    contatto.setDaVerificare(true);
-//                } else {
-//                    LOGGER.info("non c'è niente di simile");
-//                }
-            }
-            if (contatto.getIdUtenteCreazione() == null) {
-                Utente one = utenteRepository.getOne(authenticatedUserProperties.getUser().getId());
-                contatto.setIdUtenteCreazione(one);
-            }
-            if (contatto.getIdPersonaCreazione() == null) {
-                Persona one = personaRepository.getOne(authenticatedUserProperties.getPerson().getId());
-                contatto.setIdPersonaCreazione(one);
-            }
-            Integer[] idAziende = userInfoService.getAziendePersona(authenticatedUserProperties.getPerson()).stream().map(a -> a.getId()).toArray(Integer[]::new);
-            if (contatto.getIdAziende() == null) {
-                contatto.setIdAziende(idAziende);
-            }
-        } catch (Exception ex) {
-            throw new AbortSaveInterceptorException("fallito controllo similarità", ex);
-        }
         
+        AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
+//      String contattoString = objectMapper.writeValueAsString(contatto);
+        List<Azienda> aziendePersona = userInfoService.getAziendePersona(authenticatedUserProperties.getPerson());
+        List<Integer> collect = aziendePersona.stream().map(p -> p.getId()).collect(Collectors.toList());
+//      String idAziendeStr = UtilityFunctions.getArrayString(objectMapper, collect);
+
+        List<ParametroAziende> parameters = parametriAziende.getParameters("protocontatti", new Integer[]{authenticatedUserProperties.getUser().getIdAzienda().getId()}, new String[]{Applicazione.Applicazioni.rubrica.toString()});
+        contatto.setProtocontatto(false);
+        if (parameters != null && !parameters.isEmpty() && parametriAziende.getValue(parameters.get(0), Boolean.class) == true) {
+            contatto.setProtocontatto(true);
+        }
+        if (contatto.getIdUtenteCreazione() == null) {
+            Utente one = utenteRepository.getOne(authenticatedUserProperties.getUser().getId());
+            contatto.setIdUtenteCreazione(one);
+        }
+        if (contatto.getIdPersonaCreazione() == null) {
+            Persona one = personaRepository.getOne(authenticatedUserProperties.getPerson().getId());
+            contatto.setIdPersonaCreazione(one);
+        }
+        Integer[] idAziende = userInfoService.getAziendePersona(authenticatedUserProperties.getPerson()).stream().map(a -> a.getId()).toArray(Integer[]::new);
+        if (contatto.getIdAziende() == null) {
+            contatto.setIdAziende(idAziende);
+        }
+      
         // Se la descrizione è nulla provo a riempirla con un euristica.
         if (contatto.getDescrizione() == null || contatto.getDescrizione().equals("")) {
             if (contatto.getTipo().toString().equals(Contatto.TipoContatto.PERSONA_FISICA)) {
@@ -297,15 +279,14 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         Contatto contatto = (Contatto) entity;
         Contatto oldContatto = (Contatto) beforeUpdateEntity;
         
-//        try {
-//            manageFlagDaVerificare(contatto, oldContatto);
-//        } catch (JsonProcessingException ex) {
-//            throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
-//        }
+        try {
+            manageFlagDaVerificarePerUpdate(contatto, oldContatto);
+        } catch (JsonProcessingException ex) {
+            throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
+        }
         
         return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
-    
     
     public void manageFlagDaVerificarePerUpdate(Contatto contatto, Contatto oldContatto) throws JsonProcessingException {
         /*  
@@ -352,15 +333,16 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             String cSimileBeforeString = objectMapper.writeValueAsString(cSimileBefore);
             res = contattoRepository.getSimilarContacts(cSimileBeforeString, idAziendeStr);
             SqlSimilarityResults similiTrovati = objectMapper.readValue(res, SqlSimilarityResults.class);
-            similiTrovati.removeSimileById(contatto.getId());
-            Integer similaritiesNumber = similiTrovati.similaritiesNumber();
-
+            
             /* Qui c'è un problema. Per qualche motivo sembra che la getSimilarContacts non trovi la roba della transazione.
                 Per questo motivo se il contatto su cui sto lavorando non è più simile al contatto viene comunque trovato come simile.
                 Cioè se contattiSimiliNow.isEmpty() == true lo stesso la getSimilarContacts su contattiSimiliBefore troverà il contatto come simile.
                 Dato che da contattiSimiliBefore ho tolto tutti gli eventuali contattiSimiliNow, mi aspetto che non venga trovata come somigliazna il mio contatto.
                 Per il bug detto invece viene trovata e allora gliela tolgo a mano.
             */
+            
+            similiTrovati.removeSimileById(contatto.getId());
+            Integer similaritiesNumber = similiTrovati.similaritiesNumber();
             
             if (similaritiesNumber.equals(0) && cSimileBefore.getDaVerificare()) {
                 cSimileBefore.setDaVerificare(Boolean.FALSE);
@@ -377,6 +359,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             Se ce ne sono, li ciclo e se non sono settati da verificare true li setto.
         */
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
+
         String contattoString = objectMapper.writeValueAsString(contatto);
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(authenticatedUserProperties.getPerson());
         List<Integer> collect = aziendePersona.stream().map(p -> p.getId()).collect(Collectors.toList());
