@@ -39,6 +39,9 @@ public interface MdrStrutturaRepository extends
     @Query(value = "with arrays as (select id_casella, array_agg( json_build_object('datain',cast(datain as date), 'datafi', cast(datafi as date))) FROM gru.mdr_struttura WHERE id_azienda= ?1 group by id_casella) select cast(json_object_agg(id_casella, array_agg) as Json) from arrays ;", nativeQuery = true)
     public  JSONObject selectStruttureeeeeByIdAzienda(Integer idAzienda);
     
+    @Query(value = "select count(id_azienda) FROM gru.mdr_struttura where id_azienda = ?1", nativeQuery = true)
+    public Integer countRow(Integer idAzienda);
+    
     @Query(value = "SELECT datain, datafi FROM gru.mdr_struttura WHERE id_azienda= ?1 order by id_casella", nativeQuery = true)
     public  List<Map<String,Object>> selectDateStruttureByIdAzienda(Integer idAzienda);
     
