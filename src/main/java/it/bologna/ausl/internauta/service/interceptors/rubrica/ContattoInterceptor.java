@@ -82,25 +82,31 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        // AGGIUNGO I FILTRI DI SICUREZZA PER GARANTIRE CHE L'UTENTE NON VEDA CONTATTI CHE NON PUO' VEDERE
+        initialPredicate = addFilterVisibilita(initialPredicate, QContatto.contatto);
+
+        
+        // CONTOLLIAMO EVENTUALI ADDITIONAL DATA.
+        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                switch (operationRequested) {
+                    // QUESTO E' IL FILTRO CHE RIGUARDA I PROTOCONTATTI E I CONTATTI DA VERIFICARE
+                    // Serve a mettere in OR i due booleani (cosa che dal front-end non si può fare))
+                    case FilterContattiDaVerificareOProtocontatti:
+                            BooleanExpression protocontattoFilter;
+                            protocontattoFilter = QContatto.contatto.daVerificare.eq(true).or(QContatto.contatto.protocontatto.eq(true));
+                            initialPredicate = protocontattoFilter.and(initialPredicate);
+                        break;
+                }
+            }
+        } 
+        return initialPredicate;
+    }
+    
+    
+    public List<Integer> getIdContattiRiservatiVisbili() throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        Utente loggedUser = authenticatedSessionData.getUser();
-        List<Azienda> aziendePersona = userInfoService.getAziendePersona(loggedUser.getIdPersona());
-        BooleanExpression protocontattoFilter;
-
-        
-        // QUESTO E' IL FILTRO PER FAR SI CHE UNO VEDA SOLO I CONTATTI DELLE SUE AZIENDE
-        BooleanExpression permessoAziendaleFilter = QContatto.contatto.idAziende.isNull().or(
-                Expressions.booleanTemplate("tools.array_overlap({0}, tools.string_to_integer_array({1}, ','))=true",
-                        QContatto.contatto.idAziende, org.apache.commons.lang3.StringUtils.join(aziendePersona.stream().map(a -> a.getId()).collect(Collectors.toList()), ",")
-                ).or(
-                        Expressions.booleanTemplate("cardinality({0}) = 0",
-                                QContatto.contatto.idAziende
-                        )
-                ));
-        initialPredicate = permessoAziendaleFilter.and(initialPredicate);
-
-        
-        // QUESTO E' IL FILTRO PER FAR SI CHE UNO VEDA SOLO I CONTATTI RISERVATI SU CUI HA UN PERMESSO UTENTE
         List<PermessoEntitaStoredProcedure> contattiWithStandardPermissions;
         try {
             contattiWithStandardPermissions = permissionManager.getPermissionsOfSubjectActualFromDate(
@@ -113,39 +119,47 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             LOGGER.error("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
             throw new AbortLoadInterceptorException("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
         }
-        BooleanExpression contactFilter = QContatto.contatto.id.in(
-                contattiWithStandardPermissions
-                        .stream()
-                        .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList()))
-                .or(QContatto.contatto.idPersonaCreazione.id.eq(loggedUser.getIdPersona().getId())
-                .or(QContatto.contatto.riservato.eq(false)));
+        
+        return contattiWithStandardPermissions
+                .stream()
+                .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList());
+    }
+    
+    public Predicate addFilterVisibilita(Predicate initialPredicate, QContatto contatto) throws AbortLoadInterceptorException {
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        Utente loggedUser = authenticatedSessionData.getUser();
+        List<Azienda> aziendePersona = userInfoService.getAziendePersona(loggedUser.getIdPersona());
+        
+        // QUESTO E' IL FILTRO PER FAR SI CHE UNO VEDA SOLO I CONTATTI DELLE SUE AZIENDE
+        BooleanExpression permessoAziendaleFilter = contatto.idAziende.isNull().or(
+                Expressions.booleanTemplate("tools.array_overlap({0}, tools.string_to_integer_array({1}, ','))=true",
+                        contatto.idAziende, org.apache.commons.lang3.StringUtils.join(aziendePersona.stream().map(a -> a.getId()).collect(Collectors.toList()), ",")
+                ).or(
+                        Expressions.booleanTemplate("cardinality({0}) = 0",
+                                contatto.idAziende
+                        )
+                ));
+        initialPredicate = permessoAziendaleFilter.and(initialPredicate);
+
+        
+        // QUESTO E' IL FILTRO PER FAR SI CHE UNO VEDA SOLO I CONTATTI RISERVATI SU CUI HA UN PERMESSO UTENTE
+        List<Integer> idContattiRiservatiVisbili = getIdContattiRiservatiVisbili();
+        BooleanExpression contactFilter = contatto.id.in(idContattiRiservatiVisbili)
+                .or(contatto.idPersonaCreazione.id.eq(loggedUser.getIdPersona().getId())
+                .or(contatto.riservato.eq(false)));
         initialPredicate = contactFilter.and(initialPredicate);
         
         
         // QUESTO E' IL FILTRO PER I PROTOCONTATTI. Un protocontatto lo può vedeere solo un CA/CI o il creatore del contatto
         BooleanExpression sonoCAoCI = (userInfoService.isCI(loggedUser) || userInfoService.isCA(loggedUser)) ? Expressions.TRUE : Expressions.FALSE;
-        BooleanExpression protocontattoFilters = QContatto.contatto.protocontatto.eq(false)
-                .or(QContatto.contatto.idUtenteCreazione.id.eq(loggedUser.getId())
+        BooleanExpression protocontattoFilters = contatto.protocontatto.eq(false)
+                .or(contatto.idUtenteCreazione.id.eq(loggedUser.getId())
                 .or(sonoCAoCI.isTrue()));
         initialPredicate = protocontattoFilters.and(initialPredicate);
-
         
-        // CONTOLLIAMO EVENTUALI ADDITIONAL DATA.
-        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
-        if (operationsRequested != null && !operationsRequested.isEmpty()) {
-            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
-                switch (operationRequested) {
-                    // QUESTO E' IL FILTRO CHE RIGUARDA I PROTOCONTATTI E I CONTATTI DA VERIFICARE
-                    // Serve a mettere in OR i due booleani (cosa che dal front-end non si può fare))
-                    case FilterContattiDaVerificareOProtocontatti:
-                            protocontattoFilter = QContatto.contatto.daVerificare.eq(true).or(QContatto.contatto.protocontatto.eq(true));
-                            initialPredicate = protocontattoFilter.and(initialPredicate);
-                        break;
-                }
-            }
-        } 
         return initialPredicate;
     }
+    
 
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
