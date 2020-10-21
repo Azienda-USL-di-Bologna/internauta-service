@@ -33,6 +33,9 @@ public interface MdrResponsabiliRepository extends
     @Query(value = "SELECT codice_ente, codice_matricola, id_casella, datain, datafi, tipo, id_azienda FROM gru.mdr_responsabili WHERE id_azienda = ?1", nativeQuery = true)
     public  List<Map<String,Object>> selectResponsabiliByIdAzienda(Integer idAzienda);
     
+    @Query(value = "select count(id_azienda) FROM gru.mdr_responsabili where id_azienda = ?1", nativeQuery = true)
+    public Integer countRow(Integer idAzienda);
+    
     @Procedure("gru.count_multidefinictions_respo_byidazienda")
     public Integer countMultiReponsabilePerStruttura(
             @Param("codice_ente_par") Integer codiceEnte,
