@@ -277,9 +277,9 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
       
         // Se la descrizione è nulla provo a riempirla con un euristica.
         if (contatto.getDescrizione() == null || contatto.getDescrizione().equals("")) {
-            if (contatto.getTipo().toString().equals(Contatto.TipoContatto.PERSONA_FISICA)) {
+            if (contatto.getTipo().toString().equals(Contatto.TipoContatto.PERSONA_FISICA.toString())) {
                 contatto.setDescrizione((contatto.getCognome() + " " + contatto.getNome()).trim());
-            } else if (contatto.getTipo().toString().equals(Contatto.TipoContatto.AZIENDA)) {
+            } else if (contatto.getTipo().toString().equals(Contatto.TipoContatto.AZIENDA.toString())) {
                 contatto.setDescrizione((contatto.getRagioneSociale()).trim());
             }
         }
