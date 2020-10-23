@@ -171,8 +171,11 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 this.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.ContattoGruppoAppenaCreato, contatto);
                 krintRubricaService.writeGroupCreation(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_CREATION);
             } else if (contatto.getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
-                String mergeStr = additionalData.get(InternautaConstants.AdditionalData.Keys.Merge.toString());
-                if(mergeStr!=null){
+                String mergeStr="";
+                if (additionalData != null && !additionalData.isEmpty()){
+                    mergeStr = additionalData.get(InternautaConstants.AdditionalData.Keys.Merge.toString());
+                }
+                if(!"".equals(mergeStr)){
 //                    try {
 //                        Map<String,Contatto> mergeMap = objectMapper.readValue(mergeStr,HashMap.class);
 //                    } catch (JsonProcessingException ex) {
