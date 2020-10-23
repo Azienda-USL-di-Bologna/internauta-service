@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.interceptors.rubrica;
 
+import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintRubricaService;
@@ -8,7 +9,9 @@ import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepositor
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
+import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.Map;
@@ -36,10 +39,27 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor{
     @Autowired
     KrintRubricaService krintRubricaService;
     
+    @Autowired
+    ContattoInterceptor contattoInterceptor;
+    
     @Override
     public Class getTargetEntityClass() {
         return DettaglioContatto.class;
     }
+
+    @Override
+    public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        if (mainEntity) {
+            // Se la chiamata viene fatta direttamente sui dettagli contatti mi assicuro che siano dettagli di contatti che l'utente può vedere.
+            
+            // AGGIUNGO I FILTRI DI SICUREZZA PER GARANTIRE CHE L'UTENTE NON VEDA CONTATTI CHE NON PUO' VEDERE
+            initialPredicate = contattoInterceptor.addFilterVisibilita(initialPredicate, QDettaglioContatto.dettaglioContatto.idContatto);
+        }
+        
+        return initialPredicate;
+    }
+    
+    
     
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
@@ -90,8 +110,6 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor{
         
         super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
-    
-    
 }
     
 

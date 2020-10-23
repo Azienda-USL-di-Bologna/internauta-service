@@ -450,7 +450,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
-        // url="http://localhost:8080/Procton/GestisciDestinatariDaRubricaInternauta";
+        //url="http://localhost:8080/Procton/GestisciDestinatariDaRubricaInternauta";
         return url;
     }
 
