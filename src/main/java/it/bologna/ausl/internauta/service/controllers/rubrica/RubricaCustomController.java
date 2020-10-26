@@ -730,6 +730,10 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             Contatto contatto = contattoRepository.findById(idContatto).get();
             if (contatto != null) {
                 if (daiPermessiAllaMiaStrutturaDiretta) {
+                    if (!contatto.getRiservato()) {
+                        contatto.setRiservato(true);
+                        contatto = contattoRepository.save(contatto);
+                    }
                     log.info("devo dare i permessi alla struttura di appartenenza diretta di " + cfUtenteRichiedente);
                     Azienda azienda = aziendaRepository.findByCodice(codiceAzienda);
                     Persona persona = personaRepository.findByCodiceFiscale(cfUtenteRichiedente);
