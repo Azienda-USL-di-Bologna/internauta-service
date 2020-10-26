@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.repositories.EntitaRepository;
+import it.bologna.ausl.blackbox.repositories.TipoEntitaRepository;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -14,11 +16,16 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.configuration.utils.RubricaRestClientConnectionManager;
+import it.bologna.ausl.internauta.service.controllers.permessi.PermessiCustomController;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
@@ -27,8 +34,12 @@ import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.permessi.Entita;
+import it.bologna.ausl.model.entities.permessi.TipoEntita;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
@@ -40,11 +51,16 @@ import it.bologna.ausl.rubrica.maven.client.RestClientException;
 import it.bologna.ausl.rubrica.maven.resources.EmailResource;
 import it.bologna.ausl.rubrica.maven.resources.FullContactResource;
 import it.nextsw.common.utils.CommonUtils;
+import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,11 +68,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.persistence.Entity;
+import javax.persistence.Table;
 import javax.servlet.http.HttpServletRequest;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -109,6 +129,15 @@ public class RubricaCustomController implements ControllerHandledExceptions {
     UtenteRepository utenteRepository;
 
     @Autowired
+    AziendaRepository aziendaRepository;
+
+    @Autowired
+    StrutturaRepository strutturaRepository;
+
+    @Autowired
+    UtenteStrutturaRepository utenteStrutturaRepository;
+
+    @Autowired
     RubricaRestClientConnectionManager rubricaRestClientConnectionManager;
 
     @Autowired
@@ -119,6 +148,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private PermessiCustomController permessiCustomController;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
@@ -681,4 +712,96 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 //
 //        //contattoRepository.saveAll(cs);
 //    }
+    @RequestMapping(value = "salvaPermessiSuContattoEsportatoDaRubricaVecchia",
+            method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> salvaPermessiSuContattoEsportatoDaRubricaVecchia(
+            @RequestBody String requestData
+    ) throws NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, JsonProcessingException, BlackBoxPermissionException, Http409ResponseException {
+        log.info("Entrato in salvaPermessiSuContattoEsportatoDaRubricaVecchia");
+        log.info("requestData " + requestData);
+        JSONObject data = new JSONObject(requestData);
+        String cfUtenteRichiedente = data.getString("cfUtentePermesso");
+        String codiceAzienda = data.getString("codiceAzienda");
+        log.info("codiceAzienda " + codiceAzienda);
+        Integer idContatto = data.getInt("idContatto");
+        boolean daiPermessiAllaMiaStrutturaDiretta = data.getBoolean("daiPermessiAllaMiaStrutturaDiretta");
+        Contatto contatto = contattoRepository.findById(idContatto).get();
+        if (contatto != null) {
+            if (daiPermessiAllaMiaStrutturaDiretta) {
+                log.info("devo dare i permessi alla struttura di appartenenza diretta di " + cfUtenteRichiedente);
+                Azienda azienda = aziendaRepository.findByCodice(codiceAzienda);
+                Persona persona = personaRepository.findByCodiceFiscale(cfUtenteRichiedente);
+                Utente utente = utenteRepository.findByIdAziendaAndIdPersona(azienda, persona);
+                Integer idStrutturaAfferenzaDirettaAttiva = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utente.getId());
+                if (idStrutturaAfferenzaDirettaAttiva != null) {
+                    Struttura struttura = strutturaRepository.findById(idStrutturaAfferenzaDirettaAttiva).get();
+                    JSONObject soggettoPermesso = getJsonEntitaPermessoByObject(struttura);
+                    JSONObject oggettoPermesso = getJsonEntitaPermessoByObject(contatto);
+                    JSONObject oggettone = new JSONObject();
+                    oggettone.put("permessiEntita", getJsonPermessiEntita(soggettoPermesso, oggettoPermesso));
+                    oggettone.put("permessiAggiunti", new JSONArray());
+                    JSONArray ambitiInteressati = new JSONArray();
+                    ambitiInteressati.put("RUBRICA");
+                    JSONArray tipiInteressati = new JSONArray();
+                    tipiInteressati.put("CONTATTO");
+                    //oggettone.put("dataDiLavoro", "");
+                    oggettone.put("ambitiInteressati", ambitiInteressati);
+                    oggettone.put("tipiInteressati", tipiInteressati);
+                    Map<String, Object> params
+                            = new ObjectMapper().readValue(oggettone.toString(), HashMap.class);
+                    permessiCustomController.managePermissionsAdvanced(params, null);
+                }
+            }
+
+        }
+        return null;
+    }
+
+    private JSONObject getJsonEntitaPermessoByObject(Object object) throws NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        Table[] tableAnnotations = object.getClass().getAnnotationsByType(javax.persistence.Table.class);
+        Table table = tableAnnotations[0];
+        JSONObject obj = new JSONObject();
+        obj.put("schema", table.schema());
+        obj.put("table", table.name());
+        Integer id = (Integer) EntityReflectionUtils.getPrimaryKeyGetMethod(object).invoke(object);
+        obj.put("id_provenienza", id);
+        return obj;
+    }
+
+    private JSONArray getJSONArrayPermessi() {
+        JSONObject obj = new JSONObject();
+        obj.put("predicato", "ACCESSO");
+        obj.put("propaga_soggetto", false);
+        obj.put("propaga_oggetto", false);
+        obj.put("origine_permesso", "rubrica");
+        //obj.put("id_permesso_bloccato", "");
+        obj.put("virtuale", false);
+        obj.put("attivo_dal", java.time.LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).format(DateTimeFormatter.ISO_DATE_TIME));
+        //obj.put("attivo_al", "");
+
+        JSONArray categorieJSONArray = new JSONArray();
+        categorieJSONArray.put(obj);
+        return categorieJSONArray;
+    }
+
+    private JSONArray getJSONArrayCategorie() {
+        JSONObject obj = new JSONObject();
+        obj.put("ambito", "RUBRICA");
+        obj.put("tipo", "CONTATTO");
+        obj.put("permessi", getJSONArrayPermessi());
+
+        JSONArray categorieJSONArray = new JSONArray();
+        categorieJSONArray.put(obj);
+        return categorieJSONArray;
+    }
+
+    private JSONArray getJsonPermessiEntita(JSONObject soggetto, JSONObject oggetto) {
+        JSONArray permessiEntitaJSONArray = new JSONArray();
+        JSONObject obj = new JSONObject();
+        obj.put("soggetto", soggetto);
+        obj.put("oggetto", oggetto);
+        obj.put("categorie", getJSONArrayCategorie());
+        permessiEntitaJSONArray.put(obj);
+        return permessiEntitaJSONArray;
+    }
 }
