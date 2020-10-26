@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.repositories.EntitaRepository;
+import it.bologna.ausl.blackbox.repositories.TipoEntitaRepository;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -29,6 +31,8 @@ import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.permessi.Entita;
+import it.bologna.ausl.model.entities.permessi.TipoEntita;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
@@ -57,6 +61,7 @@ import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,6 +112,12 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     UtenteRepository utenteRepository;
+
+    @Autowired
+    EntitaRepository entitaRepository;
+
+    @Autowired
+    TipoEntitaRepository tipoEntitaRepository;
 
     @Autowired
     RubricaRestClientConnectionManager rubricaRestClientConnectionManager;
@@ -681,4 +692,19 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 //
 //        //contattoRepository.saveAll(cs);
 //    }
+    @RequestMapping(value = "salvaPermessiSuContattoEsportatoDaRubricaVecchia",
+            method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> salvaPermessiSuContattoEsportatoDaRubricaVecchia(
+            @RequestBody String requestData
+    ) {
+        log.info("Entrato in salvaPermessiSuContattoEsportatoDaRubricaVecchia");
+        log.info("requestData", requestData);
+        JSONObject data = new JSONObject(requestData);
+        Contatto contatto = contattoRepository.getOne(data.getInt("idContatto"));
+        if (contatto != null) {
+            TipoEntita tipoEntitaOggettoContatto = tipoEntitaRepository.findBytargetSchemaAndTargetTable("rubrica", "contatti");
+            Entita entitaOggettoContatto = entitaRepository.findByIdProvenienzaAndIdTipoEntita(contatto.getId(), tipoEntitaOggettoContatto.getId());
+        }
+        return null;
+    }
 }
