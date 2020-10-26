@@ -716,8 +716,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> salvaPermessiSuContattoEsportatoDaRubricaVecchia(
             @RequestBody String requestData
-    ) throws NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, JsonProcessingException, BlackBoxPermissionException, Http409ResponseException {
+    ) throws Throwable {
         log.info("Entrato in salvaPermessiSuContattoEsportatoDaRubricaVecchia");
+        String responseMessage = "";
         log.info("requestData " + requestData);
         JSONObject data = new JSONObject(requestData);
         String cfUtenteRichiedente = data.getString("cfUtentePermesso");
@@ -725,36 +726,44 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         log.info("codiceAzienda " + codiceAzienda);
         Integer idContatto = data.getInt("idContatto");
         boolean daiPermessiAllaMiaStrutturaDiretta = data.getBoolean("daiPermessiAllaMiaStrutturaDiretta");
-        Contatto contatto = contattoRepository.findById(idContatto).get();
-        if (contatto != null) {
-            if (daiPermessiAllaMiaStrutturaDiretta) {
-                log.info("devo dare i permessi alla struttura di appartenenza diretta di " + cfUtenteRichiedente);
-                Azienda azienda = aziendaRepository.findByCodice(codiceAzienda);
-                Persona persona = personaRepository.findByCodiceFiscale(cfUtenteRichiedente);
-                Utente utente = utenteRepository.findByIdAziendaAndIdPersona(azienda, persona);
-                Integer idStrutturaAfferenzaDirettaAttiva = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utente.getId());
-                if (idStrutturaAfferenzaDirettaAttiva != null) {
-                    Struttura struttura = strutturaRepository.findById(idStrutturaAfferenzaDirettaAttiva).get();
-                    JSONObject soggettoPermesso = getJsonEntitaPermessoByObject(struttura);
-                    JSONObject oggettoPermesso = getJsonEntitaPermessoByObject(contatto);
-                    JSONObject oggettone = new JSONObject();
-                    oggettone.put("permessiEntita", getJsonPermessiEntita(soggettoPermesso, oggettoPermesso));
-                    oggettone.put("permessiAggiunti", new JSONArray());
-                    JSONArray ambitiInteressati = new JSONArray();
-                    ambitiInteressati.put("RUBRICA");
-                    JSONArray tipiInteressati = new JSONArray();
-                    tipiInteressati.put("CONTATTO");
-                    //oggettone.put("dataDiLavoro", "");
-                    oggettone.put("ambitiInteressati", ambitiInteressati);
-                    oggettone.put("tipiInteressati", tipiInteressati);
-                    Map<String, Object> params
-                            = new ObjectMapper().readValue(oggettone.toString(), HashMap.class);
-                    permessiCustomController.managePermissionsAdvanced(params, null);
+        try {
+            Contatto contatto = contattoRepository.findById(idContatto).get();
+            if (contatto != null) {
+                if (daiPermessiAllaMiaStrutturaDiretta) {
+                    log.info("devo dare i permessi alla struttura di appartenenza diretta di " + cfUtenteRichiedente);
+                    Azienda azienda = aziendaRepository.findByCodice(codiceAzienda);
+                    Persona persona = personaRepository.findByCodiceFiscale(cfUtenteRichiedente);
+                    Utente utente = utenteRepository.findByIdAziendaAndIdPersona(azienda, persona);
+                    Integer idStrutturaAfferenzaDirettaAttiva = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utente.getId());
+                    if (idStrutturaAfferenzaDirettaAttiva != null) {
+                        Struttura struttura = strutturaRepository.findById(idStrutturaAfferenzaDirettaAttiva).get();
+                        JSONObject soggettoPermesso = getJsonEntitaPermessoByObject(struttura);
+                        JSONObject oggettoPermesso = getJsonEntitaPermessoByObject(contatto);
+                        JSONObject oggettone = new JSONObject();
+                        oggettone.put("permessiEntita", getJsonPermessiEntita(soggettoPermesso, oggettoPermesso));
+                        oggettone.put("permessiAggiunti", new JSONArray());
+                        JSONArray ambitiInteressati = new JSONArray();
+                        ambitiInteressati.put("RUBRICA");
+                        JSONArray tipiInteressati = new JSONArray();
+                        tipiInteressati.put("CONTATTO");
+                        //oggettone.put("dataDiLavoro", "");
+                        oggettone.put("ambitiInteressati", ambitiInteressati);
+                        oggettone.put("tipiInteressati", tipiInteressati);
+                        Map<String, Object> params
+                                = new ObjectMapper().readValue(oggettone.toString(), HashMap.class);
+                        permessiCustomController.managePermissionsAdvanced(params, null);
+                        responseMessage = "Aggiunto permesso a struttura " + struttura.getNome()
+                                + " su contatto " + contatto.getDescrizione()
+                                + " (id " + contatto.getId() + ")";
+                    }
                 }
-            }
 
+            }
+        } catch (Throwable t) {
+            log.error("Errore! ", t);
+            throw t;
         }
-        return null;
+        return new ResponseEntity(responseMessage, HttpStatus.OK);
     }
 
     private JSONObject getJsonEntitaPermessoByObject(Object object) throws NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
