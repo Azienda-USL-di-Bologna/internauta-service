@@ -6,13 +6,13 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.BooleanTemplate;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ParametroAziendeRepository;
+import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
 import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.configuration.QParametroAziende;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -25,26 +25,25 @@ public class ParametriAziende {
 
     @Autowired
     ParametroAziendeRepository parametroAziendeRepository;
-    
+
     @Autowired
     ObjectMapper objectMapper;
-    
 
     public ParametriAziende() {
     }
-    
+
     public List<ParametroAziende> getParameters(String nome) {
         return getParameters(nome, null, null);
     }
-    
+
     public List<ParametroAziende> getParameters(InternautaConstants.Configurazione.ParametriAzienda nome) {
         return getParameters(nome.toString(), null, null);
     }
-    
+
     public List<ParametroAziende> getParameters(String nome, Integer[] idAziende) {
         return getParameters(nome, idAziende, null);
     }
-    
+
     public List<ParametroAziende> getParameters(String nome, String[] idApplicazioni) {
         return getParameters(nome, null, idApplicazioni);
     }
@@ -66,13 +65,44 @@ public class ParametriAziende {
         return res;
     }
 
+    public Map<String, Object> getAllAziendaApplicazioneParameters(Applicazioni app, Integer idAzienda) {
+
+        BooleanTemplate filterAzienda = Expressions.booleanTemplate(
+                "tools.array_overlap({0}, tools.string_to_integer_array({1}, ','))=true",
+                QParametroAziende.parametroAziende.idAziende, idAzienda.toString());
+
+        BooleanTemplate applicazioniEmptyArray = Expressions.booleanTemplate("cardinality({0}) = 0", QParametroAziende.parametroAziende.idApplicazioni);
+
+        BooleanTemplate applicazioniOverlap = Expressions.booleanTemplate(
+                "tools.array_overlap({0}, string_to_array({1}, ','))=true",
+                QParametroAziende.parametroAziende.idApplicazioni, app.toString());
+
+        BooleanExpression applicazioniIsNull = QParametroAziende.parametroAziende.idApplicazioni.isNull();
+
+        BooleanExpression filter = filterAzienda.and(applicazioniOverlap
+                .or(applicazioniEmptyArray)
+                .or(applicazioniIsNull));
+
+        Iterable<ParametroAziende> parametriFound = parametroAziendeRepository.findAll(filter);
+        Map<String, Object> hashMapParams = new HashMap();
+
+        if (parametriFound != null) {
+            for (ParametroAziende parametroAziende : parametriFound) {
+                hashMapParams.put(parametroAziende.getNome(), parametroAziende.getValore());
+            }
+        }
+
+        return hashMapParams;
+    }
+
     /**
      * Estrae il valore del parametro e lo converte nel tipo passato
+     *
      * @param <T>
-     * @param parametroAziende 
+     * @param parametroAziende
      * @param valueType
-     * @return 
-     */    
+     * @return
+     */
     public <T extends Object> T getValue(ParametroAziende parametroAziende, Class<T> valueType) {
         try {
             return objectMapper.readValue(parametroAziende.getValore(), valueType);
