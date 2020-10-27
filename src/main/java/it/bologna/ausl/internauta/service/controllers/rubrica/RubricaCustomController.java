@@ -31,6 +31,7 @@ import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContatto
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
+import it.bologna.ausl.internauta.service.utils.rubrica.CreatoreJsonPermessiContatto;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -741,21 +742,14 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                     Integer idStrutturaAfferenzaDirettaAttiva = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utente.getId());
                     if (idStrutturaAfferenzaDirettaAttiva != null) {
                         Struttura struttura = strutturaRepository.findById(idStrutturaAfferenzaDirettaAttiva).get();
-                        JSONObject soggettoPermesso = getJsonEntitaPermessoByObject(struttura);
-                        JSONObject oggettoPermesso = getJsonEntitaPermessoByObject(contatto);
-                        JSONObject oggettone = new JSONObject();
-                        oggettone.put("permessiEntita", getJsonPermessiEntita(soggettoPermesso, oggettoPermesso));
-                        oggettone.put("permessiAggiunti", new JSONArray());
-                        JSONArray ambitiInteressati = new JSONArray();
-                        ambitiInteressati.put("RUBRICA");
-                        JSONArray tipiInteressati = new JSONArray();
-                        tipiInteressati.put("CONTATTO");
-                        //oggettone.put("dataDiLavoro", "");
-                        oggettone.put("ambitiInteressati", ambitiInteressati);
-                        oggettone.put("tipiInteressati", tipiInteressati);
+
+                        JSONObject oggettone = CreatoreJsonPermessiContatto.generaJSONObjectPerAggiuntaPermessiSuOggettoContatto(struttura, contatto);
+                        log.info("Oggettone per aggiunta permessi da mappare:\n" + oggettone.toString(4));
                         Map<String, Object> params
                                 = new ObjectMapper().readValue(oggettone.toString(), HashMap.class);
+                        log.info("Chiamo managerPermissionAdvanced...");
                         permessiCustomController.managePermissionsAdvanced(params, null);
+                        log.info("Permesso inserito, creo il messaggio di ritorno");
                         responseMessage = "Aggiunto permesso a struttura " + struttura.getNome()
                                 + " su contatto " + contatto.getDescrizione()
                                 + " (id " + contatto.getId() + ")";
@@ -767,54 +761,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             log.error("Errore! ", t);
             throw t;
         }
+        log.info("Fatto, torno il messaggio: " + responseMessage);
         return new ResponseEntity(responseMessage, HttpStatus.OK);
     }
 
-    private JSONObject getJsonEntitaPermessoByObject(Object object) throws NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        Table[] tableAnnotations = object.getClass().getAnnotationsByType(javax.persistence.Table.class);
-        Table table = tableAnnotations[0];
-        JSONObject obj = new JSONObject();
-        obj.put("schema", table.schema());
-        obj.put("table", table.name());
-        Integer id = (Integer) EntityReflectionUtils.getPrimaryKeyGetMethod(object).invoke(object);
-        obj.put("id_provenienza", id);
-        return obj;
-    }
-
-    private JSONArray getJSONArrayPermessi() {
-        JSONObject obj = new JSONObject();
-        obj.put("predicato", "ACCESSO");
-        obj.put("propaga_soggetto", false);
-        obj.put("propaga_oggetto", false);
-        obj.put("origine_permesso", "rubrica");
-        //obj.put("id_permesso_bloccato", "");
-        obj.put("virtuale", false);
-        obj.put("attivo_dal", java.time.LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).format(DateTimeFormatter.ISO_DATE_TIME));
-        //obj.put("attivo_al", "");
-
-        JSONArray categorieJSONArray = new JSONArray();
-        categorieJSONArray.put(obj);
-        return categorieJSONArray;
-    }
-
-    private JSONArray getJSONArrayCategorie() {
-        JSONObject obj = new JSONObject();
-        obj.put("ambito", "RUBRICA");
-        obj.put("tipo", "CONTATTO");
-        obj.put("permessi", getJSONArrayPermessi());
-
-        JSONArray categorieJSONArray = new JSONArray();
-        categorieJSONArray.put(obj);
-        return categorieJSONArray;
-    }
-
-    private JSONArray getJsonPermessiEntita(JSONObject soggetto, JSONObject oggetto) {
-        JSONArray permessiEntitaJSONArray = new JSONArray();
-        JSONObject obj = new JSONObject();
-        obj.put("soggetto", soggetto);
-        obj.put("oggetto", oggetto);
-        obj.put("categorie", getJSONArrayCategorie());
-        permessiEntitaJSONArray.put(obj);
-        return permessiEntitaJSONArray;
-    }
 }
