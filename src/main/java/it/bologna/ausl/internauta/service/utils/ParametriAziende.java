@@ -9,13 +9,10 @@ import it.bologna.ausl.internauta.service.repositories.configurazione.ParametroA
 import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
 import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.configuration.QParametroAziende;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -72,18 +69,19 @@ public class ParametriAziende {
 
         BooleanTemplate filterAzienda = Expressions.booleanTemplate(
                 "tools.array_overlap({0}, tools.string_to_integer_array({1}, ','))=true",
-                QParametroAziende.parametroAziende.idAziende,
-                idAzienda.toString());
-
-        BooleanTemplate filterAzienda2 = Expressions.booleanTemplate(
-                "tools.array_overlap({0}, tools.string_to_integer_array({1}, ','))=true",
                 QParametroAziende.parametroAziende.idAziende, idAzienda.toString());
 
-        BooleanTemplate filterApplicazione = Expressions.booleanTemplate(
+        BooleanTemplate applicazioniEmptyArray = Expressions.booleanTemplate("cardinality({0}) = 0", QParametroAziende.parametroAziende.idApplicazioni);
+
+        BooleanTemplate applicazioniOverlap = Expressions.booleanTemplate(
                 "tools.array_overlap({0}, string_to_array({1}, ','))=true",
                 QParametroAziende.parametroAziende.idApplicazioni, app.toString());
 
-        BooleanExpression filter = filterAzienda2.and(filterApplicazione);
+        BooleanExpression applicazioniIsNull = QParametroAziende.parametroAziende.idApplicazioni.isNull();
+
+        BooleanExpression filter = filterAzienda.and(applicazioniOverlap
+                .or(applicazioniEmptyArray)
+                .or(applicazioniIsNull));
 
         Iterable<ParametroAziende> parametriFound = parametroAziendeRepository.findAll(filter);
         Map<String, Object> hashMapParams = new HashMap();
