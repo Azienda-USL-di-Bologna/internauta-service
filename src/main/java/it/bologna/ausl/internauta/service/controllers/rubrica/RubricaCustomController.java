@@ -432,12 +432,13 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         log.info("Chiamo l'applicazione inde per salvare i contatti selezionati");
         Call call = client.newCall(request);
         try (Response response = call.execute();) {
+            int responseCode = response.code();
             if (response.isSuccessful()) {
                 log.info("Chiamata a webapi inde effettuata con successo");
                 refreshDestinatari(persona, azienda, data.getGuid());
             } else {
-                log.info("Errore nella chiamata alla webapi indosa");
-                throw new IOException(String.format("molto malo indemmerda: %s", response.message()));
+                log.info("Errore nella chiamata alla webapi InDe: " + responseCode + " " + response.message());
+                throw new IOException(String.format("Errore nella chiamata alla WepApi InDe: %s", response.message()));
             }
         }
 
@@ -482,7 +483,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
-        //url="http://localhost:8080/Procton/GestisciDestinatariDaRubricaInternauta";
+        //url = "http://localhost:8080/Deli/GestisciDestinatariDaRubricaInternauta";
+        log.info("Url da chiamare: " + url);
         return url;
     }
 
