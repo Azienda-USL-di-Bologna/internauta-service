@@ -21,15 +21,15 @@ public class InternautaConstants {
     public static class Permessi {
 
         public enum Predicati {
-            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA
+            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO
         }
 
         public enum Ambiti {
-            PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO
+            PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA
         }
 
         public enum Tipi {
-            DELEGA, FASCICOLO, PEC, FLUSSO, TEST, INCARICO
+            DELEGA, FASCICOLO, PEC, FLUSSO, TEST, INCARICO, CONTATTO
         }
     }
 
@@ -41,9 +41,9 @@ public class InternautaConstants {
     }
 
     public static class AdditionalData {
-
+        
         public enum Keys {
-            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto, dataRiferimento
+            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto, dataRiferimento, ruoli, Merge
         }
 
         public enum OperationsRequested {
@@ -61,7 +61,9 @@ public class InternautaConstants {
             GetAmministrazioneMessaggiStorico,
             FilterMassimarioPerAzienda,
             GetContattiFromInde,
-            CaricaSottoResponsabili
+            CaricaSottoResponsabili,
+            RootLoading,
+            FilterContattiDaVerificareOProtocontatti,
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {

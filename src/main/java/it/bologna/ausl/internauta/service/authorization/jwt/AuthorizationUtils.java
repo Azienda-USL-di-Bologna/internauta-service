@@ -249,6 +249,8 @@ public class AuthorizationUtils {
         userInfoService.loadUtenteRemoveCache(user.getId());
         userInfoService.getUtentiPersonaByUtenteRemoveCache(user);
         userInfoService.getUtentiPersonaRemoveCache(user.getIdPersona());
+        userInfoService.getUtenteStrutturaListRemoveCache(user, true);
+        userInfoService.getUtenteStrutturaListRemoveCache(user, false);
         userInfoService.getRuoliRemoveCache(user);
         // TODO: rimuovere permessi cache
         userInfoService.getPermessiDiFlussoRemoveCache(user);
@@ -288,6 +290,8 @@ public class AuthorizationUtils {
             userInfoService.loadUtenteRemoveCache(impersonatedUser.getId());
             userInfoService.getUtentiPersonaByUtenteRemoveCache(impersonatedUser);
             userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());
+            userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, true);
+            userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, false);
             userInfoService.getRuoliRemoveCache(impersonatedUser);
 
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);

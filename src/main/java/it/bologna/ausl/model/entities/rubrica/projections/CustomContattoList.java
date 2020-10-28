@@ -1,6 +1,6 @@
 package it.bologna.ausl.model.entities.rubrica.projections;
 
-import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithIdAzienda;
+import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithAttributiStrutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithDettaglioContattoListAndIdPersonaCreazioneAndIdStruttura;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithUtenteStruttura;
@@ -18,8 +18,11 @@ public interface CustomContattoList extends ContattoWithDettaglioContattoListAnd
     @Value("#{@projectionBeans.getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda(target)}")
     @Override
     public List<CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda> getDettaglioContattoList();
- 
+
     @Value("#{@projectionBeans.getStrutturaWithIdAzienda(target)}")
     @Override
-    public StrutturaWithIdAzienda getIdStruttura();
+    public StrutturaWithAttributiStrutturaAndIdAzienda getIdStruttura();
+
+    @Value("#{@projectionBeans.getEntita(target)}")
+    public Object getEntita();
 }

@@ -24,19 +24,15 @@ public interface KrintRepository extends
         NextSdrQueryDslRepository<Krint, Integer, QKrint>,
         JpaRepository<Krint, Integer> {
     
-    
-    // TODO: Non funziona. La sote procedure torna una table() Bisogna o trovare
-    // il modo di farla funzionare oppure la funzione deve tornare qualcos'altro
-    // ad es un json
     @Procedure("logs.get_logs")
-    public List<KrintLogDescription> getLogs(
-        @Param("codici_operazioni") String[] codiciOperazioni,
+    public String getLogs(
+        @Param("codici_operazioni") String codiciOperazioni,
         @Param("p_id_oggetto") String idOggetto,
         @Param("p_tipo_oggetto") String tipoOggetto,
         @Param("p_id_utente") Integer idUtente,
         @Param("id_oggetto_contenitore") String idOggettoContenitore,
         @Param("tipo_oggetto_contenitore") String tipoOggettoContenitore,
-        @Param("data_da") Date dataDa,
-        @Param("data_a") Date dataA
+        @Param("data_da") String dataDa,
+        @Param("data_a") String dataA
     );
 }

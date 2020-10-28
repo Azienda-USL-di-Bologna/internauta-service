@@ -3,7 +3,6 @@ package it.bologna.ausl.model.entities.baborg.projections;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StoricoRelazioneWithIdStrutturaFiglia;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
-import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithStruttureFiglieList;
 
 import org.springframework.beans.factory.annotation.Value;
 

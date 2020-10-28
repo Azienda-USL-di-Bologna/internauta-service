@@ -20,6 +20,16 @@ public class SqlSimilarityContact {
     private String codice_fiscale;
     private String email;
     private String descrizione_indirizzo;
+    private boolean riservato;
+    private Integer id_persona_creazione;
+
+    public Integer getId_persona_creazione() {
+        return id_persona_creazione;
+    }
+
+    public void setId_persona_creazione(Integer id_persona_creazione) {
+        this.id_persona_creazione = id_persona_creazione;
+    }
 
     public SqlSimilarityContact() {
     }
@@ -90,6 +100,14 @@ public class SqlSimilarityContact {
 
     public String getDescrizione_indirizzo() {
         return descrizione_indirizzo;
+    }
+
+    public boolean isRiservato() {
+        return riservato;
+    }
+
+    public void setRiservato(boolean riservato) {
+        this.riservato = riservato;
     }
 
     public void setDescrizione_indirizzo(String descrizione_indirizzo) {

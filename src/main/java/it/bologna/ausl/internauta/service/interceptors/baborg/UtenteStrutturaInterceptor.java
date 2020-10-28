@@ -9,28 +9,21 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
-import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
-import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdUtente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
-import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
@@ -74,7 +67,7 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
         }
         String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
         if (additionalData != null && additionalData.containsKey(key)) {
-            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime();
+            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime().truncatedTo(ChronoUnit.DAYS);
         }
 
         if (filterComboValue != null) {
@@ -86,8 +79,10 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
         }
         if (dataRiferimento != null && !dataRiferimento.toLocalDate().isEqual(LocalDate.now())) {
             QUtenteStruttura qUtenteStruttura = QUtenteStruttura.utenteStruttura;
-            BooleanExpression filter = qUtenteStruttura.attivoDal.loe(dataRiferimento.atZone(ZoneId.systemDefault()))
-                    .and((qUtenteStruttura.attivoAl.isNull()).or(qUtenteStruttura.attivoAl.goe(dataRiferimento.atZone(ZoneId.systemDefault()))));
+            BooleanExpression filter = qUtenteStruttura.attivoDal.loe(dataRiferimento)
+                    .and((qUtenteStruttura.attivoAl.isNull()).or(qUtenteStruttura.attivoAl.goe(dataRiferimento)));
+            filter = filter.and(qUtenteStruttura.idStruttura.dataAttivazione.loe(dataRiferimento)
+                    .and((qUtenteStruttura.idStruttura.dataCessazione.isNull()).or(qUtenteStruttura.idStruttura.dataCessazione.goe(dataRiferimento))));
             initialPredicate = filter.and(initialPredicate);
         } else {
             /* vogliamo che per default, se non si passa una data di riferimento, oppure si passa come data di riferimento la data odierna,
@@ -95,6 +90,7 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
             * NB: il front-end a volte lo mette già nei filtri dell'initialPredicate
             */
             BooleanExpression customFilterUtenteStrutturaAttivo = QUtenteStruttura.utenteStruttura.attivo.eq(true);
+            customFilterUtenteStrutturaAttivo = customFilterUtenteStrutturaAttivo.and(QUtenteStruttura.utenteStruttura.idStruttura.attiva.eq(true));
             initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
         }
 
