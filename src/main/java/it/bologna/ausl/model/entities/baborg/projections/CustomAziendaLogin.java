@@ -12,21 +12,24 @@ import org.springframework.data.rest.core.config.Projection;
 
 @Projection(name = "CustomAziendaLogin", types = Azienda.class)
 public interface CustomAziendaLogin {
-    
+
     public Integer getId();
-    
+
     public String getCodice();
-        
+
     public String getNome();
-    
+
     public String getDescrizione();
-    
+
     @Value("#{@projectionBeans.getParametriAziendaFrontEnd()}")
     public Map<String, String> getParametri();
-     
+
     @Value("#{@projectionBeans.getUrlCommands(target)}")
-    public Map<String, String> getUrlCommands();     
-    
+    public Map<String, String> getUrlCommands();
+
     @Value("#{@projectionBeans.getBaseUrl(target)}")
     public String getBaseUrl();
+
+    @Value("#{@projectionBeans.getParametriAzienda(target)}")
+    public Map<String, Object> getParametriAzienda();
 }
