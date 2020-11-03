@@ -21,7 +21,7 @@ public class InternautaConstants {
     public static class Permessi {
 
         public enum Predicati {
-            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO
+            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO, SEGR
         }
 
         public enum Ambiti {
@@ -41,7 +41,7 @@ public class InternautaConstants {
     }
 
     public static class AdditionalData {
-        
+
         public enum Keys {
             OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto, dataRiferimento, ruoli, Merge
         }

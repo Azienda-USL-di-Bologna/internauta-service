@@ -7,6 +7,7 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -29,5 +30,12 @@ public interface PersonaRepository extends
     public void updateSeenMessage(Integer id, String messaggiVisti, String nome);
 
     public Persona findByCodiceFiscale(String codiceFiscale);
+
+    @Query(value = "select p.* from baborg.persone p "
+            + "join baborg.utenti u on u.id_persona = p.id "
+            + "join baborg.utenti_strutture us on us.id_utente = u.id "
+            + "where us.id_struttura in (?1) "
+            + "and us.attivo = true", nativeQuery = true)
+    public List<Persona> getPersonaListInStrutture(List<Integer> idStrutture);
 
 }

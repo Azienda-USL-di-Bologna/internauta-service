@@ -32,8 +32,10 @@ import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -96,7 +98,23 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                         BooleanExpression protocontattoFilter;
                         protocontattoFilter = QContatto.contatto.daVerificare.eq(true).or(QContatto.contatto.protocontatto.eq(true));
                         initialPredicate = protocontattoFilter.and(initialPredicate);
+                        try {
+                            // devo prendere anche i contatti creati dagli utenti
+                            // di strutture di cui sono segretario e/o responsabile
+                            List<Persona> personaListInStrutture
+                                    = userInfoService.getPersoneDiStruttureDiCuiPersonaIsSegretario(getAuthenticatedUserProperties().getPerson());
+                            BooleanExpression protocontattiDiAltrePersona
+                                    = QContatto.contatto.protocontatto.eq(true)
+                                            .and(QContatto.contatto.idPersonaCreazione.in(personaListInStrutture));
+                            initialPredicate = protocontattiDiAltrePersona.or(initialPredicate);
+
+                            System.out.println("Beccati questo");
+                        } catch (BlackBoxPermissionException ex) {
+                            LOGGER.error(ex.toString());
+                        }
+
                         break;
+
                 }
             }
         }
@@ -166,11 +184,11 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 this.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.ContattoGruppoAppenaCreato, contatto);
                 krintRubricaService.writeGroupCreation(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_CREATION);
             } else if (contatto.getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
-                String mergeStr="";
-                if (additionalData != null && !additionalData.isEmpty()){
+                String mergeStr = "";
+                if (additionalData != null && !additionalData.isEmpty()) {
                     mergeStr = additionalData.get(InternautaConstants.AdditionalData.Keys.Merge.toString());
                 }
-                if(!"".equals(mergeStr)){
+                if (!"".equals(mergeStr)) {
 //                    try {
 //                        Map<String,Contatto> mergeMap = objectMapper.readValue(mergeStr,HashMap.class);
 //                    } catch (JsonProcessingException ex) {

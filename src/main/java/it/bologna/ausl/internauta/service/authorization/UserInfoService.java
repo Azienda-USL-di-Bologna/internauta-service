@@ -660,6 +660,25 @@ public class UserInfoService {
         return map;
     }
 
+    @Cacheable(value = "getPermessiDiFlussoByPersona__ribaltorg__", key = "{#persona.getId()}")
+    public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByPersona(Persona persona) throws BlackBoxPermissionException {
+        Map<String, List<PermessoEntitaStoredProcedure>> map = new HashMap<>();
+
+        List<Utente> utentiPersona = utenteRepository.findByIdPersonaAndAttivo(persona, true);
+
+        for (int i = 0; i < utentiPersona.size(); i++) {
+            map.put(utentiPersona.get(i).getIdAzienda().getCodice(),
+                    permissionManager.getPermissionsOfSubjectActualFromDate(utentiPersona.get(i), null, null,
+                            Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PICO.toString(),
+                        InternautaConstants.Permessi.Ambiti.DETE.toString(),
+                        InternautaConstants.Permessi.Ambiti.DELI.toString()}),
+                            Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
+                            false, null)
+            );
+        }
+        return map;
+    }
+
     // NB: non è by CODICEAZIENDA, ma è ByPersona da cui prendo codice azienda
     @Cacheable(value = "getPredicatiDiFlussoByCodiceAzienda__ribaltorg__", key = "{#persona.getId()}")
     public Map<String, List<String>> getPredicatiDiFlussoByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
@@ -884,6 +903,75 @@ public class UserInfoService {
             throw new Http404ResponseException("1", "Problemi con il recupero dell'id_utente di procton");
         }
         return utenteProcton;
+    }
+
+    public List<Integer> getIdStruttureConPermessoSegreteriaByPersona(Persona persona) throws BlackBoxPermissionException {
+        List<Integer> idStruttureConPermessoSegreteria = new ArrayList<>();
+        Map<String, List<PermessoEntitaStoredProcedure>> permessiDiFlussoByPersona = getPermessiDiFlussoByPersona(persona);
+        for (Map.Entry<String, List<PermessoEntitaStoredProcedure>> entry : permessiDiFlussoByPersona.entrySet()) {
+            String key = entry.getKey();
+            System.out.println(key);
+            List<PermessoEntitaStoredProcedure> permessoEntitaStoredProcedureList = entry.getValue();
+            for (PermessoEntitaStoredProcedure permessoEntitaStoredProcedure : permessoEntitaStoredProcedureList) {
+                List<CategoriaPermessiStoredProcedure> categorie = permessoEntitaStoredProcedure.getCategorie();
+                for (CategoriaPermessiStoredProcedure categoria : categorie) {
+                    List<PermessoStoredProcedure> permessi = categoria.getPermessi();
+                    for (PermessoStoredProcedure permessoStoredProcedure : permessi) {
+                        if (permessoStoredProcedure.getPredicato()
+                                .equals(InternautaConstants.Permessi.Predicati.SEGR.toString())) {
+                            Integer idStruttura = permessoEntitaStoredProcedure.getOggetto().getIdProvenienza();
+                            if (!idStruttureConPermessoSegreteria.contains(idStruttura)) {
+                                idStruttureConPermessoSegreteria.add(idStruttura);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return idStruttureConPermessoSegreteria;
+    }
+
+    public List<Integer> getIdStruttureDiResponsabilitaOfPersona(Persona persona) throws BlackBoxPermissionException {
+        List<Integer> idStruttureDiCuiPersonaIsResponsabile = new ArrayList<>();
+        List<Utente> utenteList = utenteRepository.findByIdPersonaAndAttivo(persona, true);
+        for (Utente utente : utenteList) {
+            List<Integer> idStruttureDiUtenteByCodiceRuolo = strutturaRepository.getIdStruttureDiUtenteByCodiceRuolo(utente, Ruolo.CodiciRuolo.R.toString());
+            if (idStruttureDiUtenteByCodiceRuolo != null) {
+                idStruttureDiUtenteByCodiceRuolo.stream().filter((idStruttura) -> (!idStruttureDiCuiPersonaIsResponsabile.contains(idStruttura))).forEachOrdered((idStruttura) -> {
+                    idStruttureDiCuiPersonaIsResponsabile.add(idStruttura);
+                });
+            }
+        }
+        return idStruttureDiCuiPersonaIsResponsabile;
+    }
+
+    public List<Persona> getPersoneDiStruttureDiCuiPersonaIsSegretario(Persona persona) throws BlackBoxPermissionException {
+        List<Integer> idStruttureConPermessoSegreteriaByPersona = getIdStruttureConPermessoSegreteriaByPersona(persona);
+        return personaRepository.getPersonaListInStrutture(idStruttureConPermessoSegreteriaByPersona);
+    }
+
+    public List<Persona> getPersoneDiStruttureDiCuiPersonaIsResponsabile(Persona persona) throws BlackBoxPermissionException {
+        List<Integer> idStruttureDiResponsabilitaOfPersona = getIdStruttureDiResponsabilitaOfPersona(persona);
+        return personaRepository.getPersonaListInStrutture(idStruttureDiResponsabilitaOfPersona);
+    }
+
+    public List<Persona> addPersoneIfNotPresenti(List<Persona> listaOriginale, List<Persona> elementiDaAggiungereList) {
+        if (elementiDaAggiungereList != null) {
+            elementiDaAggiungereList.stream().filter((persona) -> (!listaOriginale.contains(persona))).forEachOrdered((object) -> {
+                listaOriginale.add(object);
+            });
+        }
+        return listaOriginale;
+    }
+
+    public List<Persona> getPersoneDiStruttureDiCuiPersonaIsResponsabileOrSegretario(Persona persona) throws BlackBoxPermissionException {
+        List<Persona> listToReturn = new ArrayList<>();
+        List<Persona> personeDiStruttureDiCuiPersonaIsSegretario = getPersoneDiStruttureDiCuiPersonaIsSegretario(persona);
+        List<Persona> personeDiStruttureDiCuiSonoResponsabile = getPersoneDiStruttureDiCuiPersonaIsResponsabile(persona);
+        listToReturn = addPersoneIfNotPresenti(listToReturn, personeDiStruttureDiCuiPersonaIsSegretario);
+        listToReturn = addPersoneIfNotPresenti(listToReturn, personeDiStruttureDiCuiSonoResponsabile);
+        return listToReturn;
     }
 
 }
