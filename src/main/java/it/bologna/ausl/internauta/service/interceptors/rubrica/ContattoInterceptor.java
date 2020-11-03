@@ -99,16 +99,26 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                         protocontattoFilter = QContatto.contatto.daVerificare.eq(true).or(QContatto.contatto.protocontatto.eq(true));
                         initialPredicate = protocontattoFilter.and(initialPredicate);
                         try {
-                            // devo prendere anche i contatti creati dagli utenti
-                            // di strutture di cui sono segretario e/o responsabile
-                            List<Persona> personaListInStrutture
-                                    = userInfoService.getPersoneDiStruttureDiCuiPersonaIsSegretario(getAuthenticatedUserProperties().getPerson());
-                            BooleanExpression protocontattiDiAltrePersona
-                                    = QContatto.contatto.protocontatto.eq(true)
-                                            .and(QContatto.contatto.idPersonaCreazione.in(personaListInStrutture));
-                            initialPredicate = protocontattiDiAltrePersona.or(initialPredicate);
-
-                            System.out.println("Beccati questo");
+                            LOGGER.info("Devo cercare i PROTOCONTATTI "
+                                    + "creati dalle persone che fanno parte "
+                                    + "delle strutture di cui AuthenticatedUser e' responsabile...");
+                            List<Persona> personaListInStrutture = userInfoService
+                                    .getPersoneDiStruttureDiCuiPersonaIsSegretario(getAuthenticatedUserProperties().getPerson());
+                            if (personaListInStrutture != null && personaListInStrutture.size() > 0) {
+                                LOGGER.info("Trovate "
+                                        + personaListInStrutture.size()
+                                        + " persone: aggiungo una OR condition "
+                                        + "all' initialPredicate...");
+                                BooleanExpression protocontattiDiAltrePersona
+                                        = QContatto.contatto.protocontatto.eq(true)
+                                                .and(QContatto.contatto.idPersonaCreazione
+                                                        .in(personaListInStrutture));
+                                initialPredicate = protocontattiDiAltrePersona.or(initialPredicate);
+                            } else {
+                                LOGGER.info("AuthenticatedUser non e' segretario "
+                                        + "oppure non ci sono persone nelle "
+                                        + "strutture di cui lui e' segretario");
+                            }
                         } catch (BlackBoxPermissionException ex) {
                             LOGGER.error(ex.toString());
                         }
