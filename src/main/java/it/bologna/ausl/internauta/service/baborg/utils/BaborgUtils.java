@@ -854,7 +854,7 @@ public class BaborgUtils {
                                 datainString) > 0) {
                             nRigheAnomale++;
                             anomalia = true;
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " la struttura di questo responsabile è già  assegnata ad un altro respondabile,");
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " la struttura di questo responsabile è già assegnata ad un altro respondabile,");
                         }
 //                      DATAFI non bloccante
                         if (responsabiliMap.get("datafi") == null || responsabiliMap.get("datafi").toString().trim().equals("") || responsabiliMap.get("datafi") == "") {
@@ -931,6 +931,7 @@ public class BaborgUtils {
                             mapError.put("datain", "");
                             mS.setDatain(null);
                             bloccante = true;
+                            log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " Errore bloccante su data inizio vuota");
                         } else {
                             mapError.put("datain", strutturaMap.get("datain"));
                             mS.setDatain(datain);
@@ -957,6 +958,7 @@ public class BaborgUtils {
                         if (strutturaMap.get("id_casella") == null || strutturaMap.get("id_casella").toString().trim().equals("")) {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella assente,");
                             bloccante = true;
+                            log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " idCasella vuota");
                             id_casella = "";
                             mapError.put("id_casella", "");
                             mS.setIdCasella(null);
@@ -967,6 +969,7 @@ public class BaborgUtils {
                             //struttura definita piu volte nello stesso arco temporale
                             if (mdrStrutturaRepository.selectMultiDefinictionsStructureByIdAzienda(idAzienda, Integer.parseInt(id_casella), datafiString, datainString) > 0) {
                                 bloccante = true;
+                                log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " idCasella definita piu volte");
                                 mapError.put("ERRORE", mapError.get("ERRORE") + " struttura definita piu volte nello stesso arco temporale,");
                             }
                         }
@@ -984,6 +987,7 @@ public class BaborgUtils {
                             mapError.put("descrizione", "");
                             mS.setDescrizione(null);
                             bloccante = true;
+                            log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " descrizione vuota");
                         } else {
                             mapError.put("descrizione", strutturaMap.get("descrizione"));
                             mS.setDescrizione(strutturaMap.get("descrizione").toString());
@@ -1041,13 +1045,15 @@ public class BaborgUtils {
                                 //System.out.println("contatore" + (i++).toString());
                                 if (!listaStrutture.contains(Integer.parseInt(strutturaErrorMap.get("id_padre").toString()))) {
                                     bloccante = true;
+                                    log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " descrizione vuota");
                                     strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " padre non presente,");
                                 }
                                 List<Map<String, Object>> elementi = mdrStrutturaRepository.mieiPadri(idAzienda, Integer.parseInt(strutturaErrorMap.get("id_padre").toString()));
 
                                 if (!arcoBool(elementi, formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi")))) {
                                     bloccante = true;
-                                    strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") != null ? strutturaErrorMap.get("ERRORE") : "" + " non rispetta l'arco temporale del padre,");
+                                    log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " non rispetta l'arco temporale del padre");
+                                    strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " non rispetta l'arco temporale del padre,");
                                 }
                             }
 
@@ -1058,6 +1064,7 @@ public class BaborgUtils {
 //                        csvErrorFile2.deleteOnExit();
                     } catch (Exception ex) {
                         bloccante = true;
+                        log.error("Importa CSV -- error generic");
                         System.out.println("ex:" + ex);
                     }
 
@@ -1090,6 +1097,7 @@ public class BaborgUtils {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " progressivo_riga,");
                             mapError.put("progressivo_riga", "");
                             mT.setProgressivoRiga(null);
+                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " progressivo_riga assente");
                             bloccante = true;
                         } else {
                             mapError.put("progressivo_riga", trasformazioniMap.get("progressivo_riga"));
@@ -1101,6 +1109,7 @@ public class BaborgUtils {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " data_trasformazione assente,");
                             mapError.put("data_trasformazione", "");
                             bloccante = true;
+                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " data_trasformazione assente");
                             dataTrasformazione = false;
                             mT.setDataTrasformazione(null);
                         } else {
@@ -1116,6 +1125,7 @@ public class BaborgUtils {
                             mapError.put("datain_partenza", "");
                             mT.setDatainPartenza(null);
                             bloccante = true;
+                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " datain_partenza assente");
                             dataInPartenza = false;
                         } else {
                             mapError.put("datain_partenza", trasformazioniMap.get("datain_partenza"));
@@ -1130,6 +1140,7 @@ public class BaborgUtils {
                             mapError.put("id_casella_partenza", "");
                             mT.setIdCasellaPartenza(null);
                             bloccante = true;
+                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " id_casella_partenza assente");
                         } else {
                             mapError.put("id_casella_partenza", trasformazioniMap.get("id_casella_partenza"));
                             mT.setIdCasellaPartenza(Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()));
@@ -1138,6 +1149,7 @@ public class BaborgUtils {
                             if (dataInPartenza && dataTrasformazione) {
                                 Integer spentaAccesaBeneByIdAzienda = mdrTrasformazioniRepository.isSpentaAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), UtilityFunctions.getLocalDateString(formattattore(trasformazioniMap.get("data_trasformazione").toString()).toLocalDate()), UtilityFunctions.getLocalDateString(formattattore(trasformazioniMap.get("datain_partenza").toString()).toLocalDate()));
                                 if (spentaAccesaBeneByIdAzienda != 1) {
+                                    log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " periodi temporali della casella di partenza non sono validi");
                                     bloccante = true;
                                     tempi_ok = false;
                                     mapError.put("ERRORE", mapError.get("ERRORE") + " periodi temporali della casella di partenza non sono validi,");
@@ -1180,6 +1192,7 @@ public class BaborgUtils {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " MOTIVO,");
                             mapError.put("motivo", "");
                             mT.setMotivo(null);
+                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " id_casella_arrivo assente");
                             bloccante = true;
                             //non ci sta un motivo copio paripari id casella di arrivo non ho elementi per sapere se ci dovrebbe o meno essere qualcosa
                             mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
@@ -1196,7 +1209,7 @@ public class BaborgUtils {
                                         mapError.put("id_casella_arrivo", "");
                                         mT.setIdCasellaArrivo(null);
                                         bloccante = true;
-
+                                        log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " id_casella_arrivo assente");
                                     } else {
                                         mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
                                         mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
@@ -1206,9 +1219,11 @@ public class BaborgUtils {
                                             Integer accesaIntervalloByIdAzienda = mdrTrasformazioniRepository.isAccesaIntervalloByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
                                             if (accesaIntervalloByIdAzienda != 1) {
                                                 bloccante = true;
+                                                log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di arrivo non valida nella data di trasformazione");
                                                 mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non valida nella data di trasformazione,");
                                             }
                                         } else {
+                                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di arrivo e di partenza sono uguali");
                                             bloccante = true;
                                             mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo e di partenza sono uguali,");
                                         }
@@ -1225,11 +1240,13 @@ public class BaborgUtils {
                                     mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
                                     if (!trasformazioniMap.get("id_casella_partenza").equals(trasformazioniMap.get("id_casella_arrivo"))) {
                                         bloccante = true;
+                                        log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " id_casella_arrivo diversa da id_casella_partenza");
                                         mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella_arrivo diversa da id_casella_partenza,");
                                     } else {
                                         Integer accesaBeneByIdAzienda = mdrTrasformazioniRepository.isAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
                                         if (accesaBeneByIdAzienda != 1) {
                                             bloccante = true;
+                                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di partenza non valida nella data di trasformazione");
                                             mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non valida nella data di trasformazione,");
                                         }
 
