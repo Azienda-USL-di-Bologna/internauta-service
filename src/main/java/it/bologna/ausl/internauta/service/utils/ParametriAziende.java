@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.BooleanTemplate;
@@ -106,6 +107,22 @@ public class ParametriAziende {
     public <T extends Object> T getValue(ParametroAziende parametroAziende, Class<T> valueType) {
         try {
             return objectMapper.readValue(parametroAziende.getValore(), valueType);
+        } catch (JsonProcessingException ex) {
+            return null;
+        }
+    }
+    
+    /**
+     * Estrae il valore del parametro e lo converte nel tipo passato
+     *
+     * @param <T>
+     * @param parametroAziende
+     * @param typeReference
+     * @return
+     */
+    public <T extends Object> T getValue(ParametroAziende parametroAziende, TypeReference<T> typeReference) {
+        try {
+            return objectMapper.readValue(parametroAziende.getValore(), typeReference);
         } catch (JsonProcessingException ex) {
             return null;
         }
