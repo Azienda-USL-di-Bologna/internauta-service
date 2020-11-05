@@ -35,7 +35,8 @@ public interface PersonaRepository extends
             + "join baborg.utenti u on u.id_persona = p.id "
             + "join baborg.utenti_strutture us on us.id_utente = u.id "
             + "where us.id_struttura in (?1) "
-            + "and us.attivo = true", nativeQuery = true)
+            + "and us.attivo = true "
+            + "and u.attivo = true", nativeQuery = true)
     public List<Persona> getPersonaListInStrutture(List<Integer> idStrutture);
 
 }
