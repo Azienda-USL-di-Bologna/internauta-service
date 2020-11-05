@@ -81,6 +81,7 @@ import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndP
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithStruttureAndResponsabiliCustom;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithAttributiStrutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
+import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaContatto;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaDettaglioContatto;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaGruppoContatto;
@@ -102,6 +103,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import javax.persistence.Table;
 import org.json.JSONArray;
+import org.springframework.cache.annotation.Cacheable;
 
 /**
  *
@@ -171,6 +173,9 @@ public class ProjectionBeans {
 
     @Autowired
     AziendaInterceptor aziendaInterceptor;
+
+    @Autowired
+    ParametriAziende parametriAziende;
 
     @Autowired
     AdditionalDataParamsExtractor additionalDataParamsExtractor;
@@ -761,8 +766,8 @@ public class ProjectionBeans {
             for (PermessoEntitaStoredProcedure permessoEntitaStoredProcedure : subjectsWithPermissionsOnObject) {
                 if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.strutture.toString())) {
                     Struttura strutturaSoggetto = strutturaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
-                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(strutturaSoggetto.getNome() + 
-                            " [ " + strutturaSoggetto.getIdAzienda().getNome() + (strutturaSoggetto.getCodice() != null ? " - " + strutturaSoggetto.getCodice() : "") + " ]");
+                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(strutturaSoggetto.getNome()
+                            + " [ " + strutturaSoggetto.getIdAzienda().getNome() + (strutturaSoggetto.getCodice() != null ? " - " + strutturaSoggetto.getCodice() : "") + " ]");
                     permessoEntitaStoredProcedure.getSoggetto().setAdditionalData(
                             strutturaRepository.getCountUtentiStruttura(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza())
                     );
@@ -802,5 +807,15 @@ public class ProjectionBeans {
 
     public String getCountUtentiStruttura(Struttura struttura) {
         return strutturaRepository.getCountUtentiStruttura(struttura.getId());
+    }
+
+    @Cacheable(value = "getParametriAzienda", key = "{#azienda.getId()}")
+    public Map<String, Object> getParametriAzienda(Azienda azienda) throws BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Applicazione.Applicazioni applicazione = authenticatedSessionData.getApplicazione();
+
+        Map<String, Object> parametri = parametriAziende.getAllAziendaApplicazioneParameters(applicazione, azienda.getId());
+
+        return parametri;
     }
 }

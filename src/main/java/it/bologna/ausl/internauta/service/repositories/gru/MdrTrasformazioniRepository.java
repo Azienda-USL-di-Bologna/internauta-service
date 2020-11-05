@@ -34,6 +34,8 @@ public interface MdrTrasformazioniRepository extends
     @Query(value =  "SELECT progressivo_riga, id_casella_partenza, id_casella_arrivo, data_trasformazione, motivo, datain_partenza, dataora_oper, codice_ente, id_azienda FROM gru.mdr_trasformazioni WHERE id_azienda= ?1", nativeQuery = true)
     public  List<Map<String,Object>> selectTrasformazioniByIdAzienda(Integer idAzienda);
     
+    @Query(value = "select count(id_azienda) FROM gru.mdr_trasformazioni where id_azienda = ?1", nativeQuery = true)
+    public Integer countRow(Integer idAzienda);
     
     @Query(value = "select count(ms.id_casella) FROM gru.mdr_struttura ms where ms.id_azienda = ?1 and ms.id_casella=?2 and ms.datain <= ?3 and ms.datafi > ?3 ", nativeQuery = true)
     public Integer isTransformableByIdAzienda(Integer idAzienda, Integer id_casella, LocalDateTime data);
