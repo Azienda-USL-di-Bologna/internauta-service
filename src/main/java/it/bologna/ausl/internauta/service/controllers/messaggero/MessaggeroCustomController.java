@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.messaggero.Amministrazion
 import it.bologna.ausl.internauta.service.utils.IntimusUtils;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
 import it.bologna.ausl.model.entities.messaggero.QAmministrazioneMessaggio;
 import it.nextsw.common.controller.exceptions.NotFoundResourceException;
@@ -126,6 +127,8 @@ public class MessaggeroCustomController {
         LocalDateTime now = LocalDateTime.now();
         Persona person = getRealPerson();
         Utente user = getRealUser();
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Applicazione.Applicazioni applicazione = authenticatedUserProperties.getApplicazione();
         
         BooleanExpression startedNotExpiredFilter = 
                 (QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.goe(now).or(QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.isNull())).and
@@ -145,7 +148,9 @@ public class MessaggeroCustomController {
         
         BooleanExpression notSeenFilter = QAmministrazioneMessaggio.amministrazioneMessaggio.id.notIn(person.getMessaggiVisti());
         
-        Iterable<AmministrazioneMessaggio> activeMessages = amministrazioneMessaggioRepository.findAll(startedNotExpiredFilter.and(notSeenFilter).and(myMessageFilter));
+        BooleanExpression applicazioniFilter = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", QAmministrazioneMessaggio.amministrazioneMessaggio.idApplicazioni, applicazione.toString());
+        
+        Iterable<AmministrazioneMessaggio> activeMessages = amministrazioneMessaggioRepository.findAll(startedNotExpiredFilter.and(notSeenFilter).and(myMessageFilter).and(applicazioniFilter));
 
         
         List<IntimusUtils.ShowMessageParams> res = new ArrayList();
