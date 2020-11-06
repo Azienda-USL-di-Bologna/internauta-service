@@ -34,9 +34,10 @@ public interface PersonaRepository extends
     @Query(value = "select p.* from baborg.persone p "
             + "join baborg.utenti u on u.id_persona = p.id "
             + "join baborg.utenti_strutture us on us.id_utente = u.id "
+            + "join baborg.strutture s on s.id = us.id_struttura "
             + "where us.id_struttura in (?1) "
-            + "and us.attivo = true "
-            + "and u.attivo = true", nativeQuery = true)
-    public List<Persona> getPersonaListInStrutture(List<Integer> idStrutture);
+            + "and us.attivo = true and u.attivo = true "
+            + "and p.attiva = true and s.attiva = true", nativeQuery = true)
+    public List<Persona> getPersoneAttiveListInStruttureAttiveList(List<Integer> idStrutture);
 
 }

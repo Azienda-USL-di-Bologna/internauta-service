@@ -948,12 +948,12 @@ public class UserInfoService {
 
     public List<Persona> getPersoneDiStruttureDiCuiPersonaIsSegretario(Persona persona) throws BlackBoxPermissionException {
         List<Integer> idStruttureConPermessoSegreteriaByPersona = getIdStruttureConPermessoSegreteriaByPersona(persona);
-        return personaRepository.getPersonaListInStrutture(idStruttureConPermessoSegreteriaByPersona);
+        return personaRepository.getPersoneAttiveListInStruttureAttiveList(idStruttureConPermessoSegreteriaByPersona);
     }
 
     public List<Persona> getPersoneDiStruttureDiCuiPersonaIsResponsabile(Persona persona) throws BlackBoxPermissionException {
         List<Integer> idStruttureDiResponsabilitaOfPersona = getIdStruttureDiResponsabilitaOfPersona(persona);
-        return personaRepository.getPersonaListInStrutture(idStruttureDiResponsabilitaOfPersona);
+        return personaRepository.getPersoneAttiveListInStruttureAttiveList(idStruttureDiResponsabilitaOfPersona);
     }
 
     public List<Persona> addPersoneIfNotPresenti(List<Persona> listaOriginale, List<Persona> elementiDaAggiungereList) {
