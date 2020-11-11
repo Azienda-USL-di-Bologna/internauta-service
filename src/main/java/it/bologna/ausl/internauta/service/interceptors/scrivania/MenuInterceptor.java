@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import edu.emory.mathcs.backport.java.util.Arrays;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -13,25 +14,25 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
-import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.Menu;
 import it.bologna.ausl.model.entities.scrivania.QMenu;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -147,17 +148,21 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         
 //        ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
         
-        LOGGER.info("USER " + authenticatedSessionData.getUser().getId());
-        List<String> ruoliCACI = authenticatedSessionData.getUser().getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
-        LOGGER.info("ruoliCACI " + ruoliCACI);
+//        LOGGER.info("USER " + authenticatedSessionData.getUser().getId());
+//        List<String> ruoliCACI = authenticatedSessionData.getUser().getMappaRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
+//        LOGGER.info("ruoliCACI " + ruoliCACI);
         
-        BooleanExpression booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
-                QMenu.menu.ruoliSufficienti, String.join(",", ruoliCACI));
+//        BooleanExpression booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
+//                QMenu.menu.ruoliSufficienti, String.join(",", ruoliCACI));
         
+//        if (filterAziendaUtente == null)
+//            filterAziendaUtente = getFilterAziendaIn(aziendePersona).and(booleanTemplate);
+//        else
+//            filterAziendaUtente = filterAziendaUtente.or(getFilterAziendaIn(aziendePersona).and(booleanTemplate));
         if (filterAziendaUtente == null)
-            filterAziendaUtente = getFilterAziendaIn(aziendePersona).and(booleanTemplate);
+            filterAziendaUtente = getFilterAziendaIn(aziendePersona);
         else
-            filterAziendaUtente = filterAziendaUtente.or(getFilterAziendaIn(aziendePersona).and(booleanTemplate));
+            filterAziendaUtente = filterAziendaUtente.or(getFilterAziendaIn(aziendePersona));
   
         if (filterAziendaUtente != null)
             LOGGER.info("PREDICATO MENU INTERCEPTOR BEFORE SELECT: " + filterAziendaUtente.and(initialPredicate).toString());
@@ -191,6 +196,22 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Menu menu = (Menu) entity;
+        if (menu.getRuoliSufficienti() != null && menu.getRuoliSufficienti().length > 0) {
+            String modulo = menu.getModulo();
+            Ruolo.ModuliRuolo moduloRuolo = null;
+            if (modulo == null) {
+                moduloRuolo = Ruolo.ModuliRuolo.GENERALE;
+            } else {
+                moduloRuolo = Ruolo.ModuliRuolo.valueOf(modulo);
+            }
+            List<String> ruoliMenu = Arrays.asList(menu.getRuoliSufficienti());
+            List<String> ruoliUtente = authenticatedSessionData.getUser().getMappaRuoli().get(moduloRuolo.toString()).stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
+            Set<String> overlap = ruoliMenu.stream().distinct().filter(ruoliUtente::contains).collect(Collectors.toSet());
+            if (overlap == null || overlap.isEmpty()) {
+                return null;
+            }
+        }
+        
         AziendaParametriJson parametriAziendaOrigine = (AziendaParametriJson) this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda);
         if (parametriAziendaOrigine == null) {
             try {
@@ -330,12 +351,15 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
     @Override
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
 //        getAuthenticatedUserProperties();
+        List<Object> res = new ArrayList();
         for (Object entity : entities) {
-            LOGGER.info("ENTITY PRIMA " + entity.toString());
+//            LOGGER.info("ENTITY PRIMA " + entity.toString());
             entity = afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
-            LOGGER.info("ENTITY DOPO " + entity.toString());
+            if (entity != null) {
+                res.add(entity);
+            }
         }
-        return entities;
+        return res;
     }
     
 }

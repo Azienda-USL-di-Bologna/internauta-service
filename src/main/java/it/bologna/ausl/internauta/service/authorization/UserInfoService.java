@@ -319,39 +319,39 @@ public class UserInfoService {
      * @param interaziendali
      * @return la lista dei ruoli
      */
-    @Cacheable(value = "getRuoli_utente__ribaltorg__", key = "{#utente.getId()}")
-    public List<Ruolo> getRuoli(Utente utente, Boolean interaziendali) {
-        Set<Ruolo> res = new HashSet<>();
-        List<Ruolo> ruoliAll = ruoloRepository.findAll();
-        for (Ruolo ruolo : ruoliAll) {
-            if (interaziendali == null || interaziendali == true) {
-                res.addAll(getRuoliInteraziendali(utente.getIdPersona()));
-            }
-            if (interaziendali == null || interaziendali == false) {
-                if (ruolo.getSuperAziendale() == false) {
-                    if ((utente.getBitRuoli() & ruolo.getMascheraBit()) > 0) {
-                        res.add(ruolo);
-                    }
-                }
-            }
-        }
-        Persona persona = utente.getIdPersona();
-        Integer[] idAziende = getAziendePersona(persona).stream().map(a -> a.getId()).collect(Collectors.toList()).toArray(new Integer[0]);
-        List<ParametroAziende> filtraResponsabiliMatrintParams = parametriAziende.getParameters("AccessoMatrintFiltratoPerRuolo", idAziende);
-        if (filtraResponsabiliMatrintParams != null && !filtraResponsabiliMatrintParams.isEmpty() && filtraResponsabiliMatrintParams.stream().anyMatch(param -> parametriAziende.getValue(param, Boolean.class))) {
-            res.addAll(getRuoliStrutture(utente, Arrays.asList(Ruolo.CodiciRuolo.R)));
-        }
-        try {
-            List<Integer> idUtentiAvatar = getPermessiDelega(utente);
-            idUtentiAvatar.stream().map(idUtente -> utenteRepository.getOne(idUtente)).forEach(u -> {
-                res.addAll(getRuoli(u, interaziendali));
-            });
-        } catch (BlackBoxPermissionException ex) {
-            LOGGER.error("errore nel calcolo dei permessi avatar", ex);
-        }
-
-        return new ArrayList(res);
-    }
+//    @Cacheable(value = "getRuoli_utente__ribaltorg__", key = "{#utente.getId()}")
+//    public List<Ruolo> getRuoli(Utente utente, Boolean interaziendali) {
+//        Set<Ruolo> res = new HashSet<>();
+//        List<Ruolo> ruoliAll = ruoloRepository.findAll();
+//        for (Ruolo ruolo : ruoliAll) {
+//            if (interaziendali == null || interaziendali == true) {
+//                res.addAll(getRuoliInteraziendali(utente.getIdPersona()));
+//            }
+//            if (interaziendali == null || interaziendali == false) {
+//                if (ruolo.getSuperAziendale() == false) {
+//                    if ((utente.getBitRuoli() & ruolo.getMascheraBit()) > 0) {
+//                        res.add(ruolo);
+//                    }
+//                }
+//            }
+//        }
+//        Persona persona = utente.getIdPersona();
+//        Integer[] idAziende = getAziendePersona(persona).stream().map(a -> a.getId()).collect(Collectors.toList()).toArray(new Integer[0]);
+//        List<ParametroAziende> filtraResponsabiliMatrintParams = parametriAziende.getParameters("AccessoMatrintFiltratoPerRuolo", idAziende);
+//        if (filtraResponsabiliMatrintParams != null && !filtraResponsabiliMatrintParams.isEmpty() && filtraResponsabiliMatrintParams.stream().anyMatch(param -> parametriAziende.getValue(param, Boolean.class))) {
+//            res.addAll(getRuoliStrutture(utente, Arrays.asList(Ruolo.CodiciRuolo.R)));
+//        }
+//        try {
+//            List<Integer> idUtentiAvatar = getPermessiDelega(utente);
+//            idUtentiAvatar.stream().map(idUtente -> utenteRepository.getOne(idUtente)).forEach(u -> {
+//                res.addAll(getRuoli(u, interaziendali));
+//            });
+//        } catch (BlackBoxPermissionException ex) {
+//            LOGGER.error("errore nel calcolo dei permessi avatar", ex);
+//        }
+//
+//        return new ArrayList(res);
+//    }
 
     /**
      * Torna la lista dei ruoli intersecati con i ruoli passati in input
@@ -846,7 +846,7 @@ public class UserInfoService {
         List<Azienda> aziende = null;
 
         aziende = persona.getUtenteList().stream().filter(
-                utente -> getRuoli(utente, false).stream().anyMatch(ruolo -> ruolo.getNomeBreve() == Ruolo.CodiciRuolo.CA)
+                utente -> getRuoliPerModuli(utente, false).get(Ruolo.ModuliRuolo.GENERALE.toString()).stream().anyMatch(ruolo -> ruolo.getNomeBreve() == Ruolo.CodiciRuolo.CA)
         ).map(utente -> utente.getIdAzienda()).collect(Collectors.toList());
 
         return aziende;
@@ -864,28 +864,28 @@ public class UserInfoService {
 
     @Cacheable(value = "isCI__ribaltorg__", key = "{#user.getId()}")
     public boolean isCI(Utente user) {
-        List<Ruolo> ruoli = user.getRuoli();
+        List<Ruolo> ruoli = user.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString());
         Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
         return isCI;
     }
 
     @Cacheable(value = "isR__ribaltorg__", key = "{#user.getId()}")
     public boolean isR(Utente user) {
-        List<Ruolo> ruoli = user.getRuoli();
+        List<Ruolo> ruoli = user.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString());
         Boolean isR = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.R);
         return isR;
     }
 
     @Cacheable(value = "isCA__ribaltorg__", key = "{#user.getId()}")
     public boolean isCA(Utente user) {
-        List<Ruolo> ruoli = user.getRuoli();
+        List<Ruolo> ruoli = user.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString());
         Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
         return isCA;
     }
 
     @Cacheable(value = "isSD__ribaltorg__", key = "{#user.getId()}")
     public boolean isSD(Utente user) {
-        List<Ruolo> ruoli = user.getRuoli();
+        List<Ruolo> ruoli = user.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString());
         Boolean isSD = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.SD);
         return isSD;
     }

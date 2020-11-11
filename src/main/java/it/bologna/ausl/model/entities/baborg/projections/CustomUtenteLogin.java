@@ -29,11 +29,12 @@ public interface CustomUtenteLogin extends UtenteWithIdPersonaAndPermessiCustom 
     @Value("#{@userInfoService.getAllAziendeCustomLogin(target, true)}")
     public List<CustomAziendaLogin> getAziendeAttive();
 
-    @Value("#{@userInfoService.getRuoli(target, null)}")
-    @Override
-    public List<Ruolo> getRuoli();
+//    @Value("#{@userInfoService.getRuoli(target, null)}")
+//    @Override
+//    public List<Ruolo> getRuoli();
     
     @Value("#{@userInfoService.getRuoliPerModuli(target, null)}")
+    @Override
     public Map<String, List<Ruolo>> getMappaRuoli();
 
 //    @Value("#{@userInfoService.getAziendePersonaWithPlainField(target)}")

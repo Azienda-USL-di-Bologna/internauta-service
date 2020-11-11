@@ -124,10 +124,10 @@ public class AuthorizationUtils {
         Integer idSessionLog = Integer.parseInt((String) claims.get(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name()));
         Utente user = userInfoService.loadUtente(userId);
         logger.info("user: " + (user != null ? user.getId() : "null"));
-        user.setRuoli(userInfoService.getRuoli(user, null));
+        user.setMappaRuoli(userInfoService.getRuoliPerModuli(user, null));
         logger.info("ruoli user: ");
         try {
-            logger.info(objectMapper.writeValueAsString(user.getRuoli()));
+            logger.info(objectMapper.writeValueAsString(user.getMappaRuoli()));
         } catch (JsonProcessingException ex) {
             logger.warn("Errore nella stampa dei ruoli", ex);
         }
@@ -259,7 +259,7 @@ public class AuthorizationUtils {
         // prendi ID dell'utente reale
         String realUserSubject = String.valueOf(user.getId());
 
-        user.setRuoli(userInfoService.getRuoli(user, null));
+        user.setMappaRuoli(userInfoService.getRuoliPerModuli(user, null));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         userInfoService.getPermessiDelegaRemoveCache(user);
         logger.info("realUser: " + objectMapper.writeValueAsString(user));
@@ -275,7 +275,7 @@ public class AuthorizationUtils {
         // controlla se è stato passato il parametro di utente impersonato
         if (StringUtils.hasText(utenteImpersonatoStr)) {
             // solo se l'utente reale è super demiurgo allora può fare il cambia utente
-            List<Ruolo> ruoli = user.getRuoli();
+            List<Ruolo> ruoli = user.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString());
 
             for (Ruolo ruolo : ruoli) {
                 Ruolo.CodiciRuolo codiceRuolo = (Ruolo.CodiciRuolo) ruolo.getNomeBreve();
