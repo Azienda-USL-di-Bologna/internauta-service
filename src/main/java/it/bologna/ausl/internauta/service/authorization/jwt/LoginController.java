@@ -13,7 +13,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.SSOException;
 import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandException;
-import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
+import it.bologna.ausl.internauta.service.utils.CacheUtilities;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.logoutmanager.LogoutManagerWorker;
@@ -104,7 +104,7 @@ public class LoginController {
     private UtenteRepository utenteRepository;
 
     @Autowired
-    private PermessiUtilities permessiUtilities;
+    private CacheUtilities permessiUtilities;
 
     @Autowired
     private ProjectionBeans projectionBeans;
@@ -120,6 +120,9 @@ public class LoginController {
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    private CacheUtilities cacheUtilities;
 
     @RequestMapping(value = "${internauta.security.passtoken-path}", method = RequestMethod.GET)
     public ResponseEntity<String> passTokenGenerator() throws BlackBoxPermissionException {
@@ -244,7 +247,8 @@ public class LoginController {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
 
-        userInfoService.getRuoliRemoveCache(utente);
+        //userInfoService.getRuoliRemoveCache(utente);
+        cacheUtilities.cleanCacheRuoliUtente(utente.getId(), utente.getIdPersona().getId());
 
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente);
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, true);
@@ -264,7 +268,8 @@ public class LoginController {
             // TODO: controllare che l'utente possa fare il cambia utente
             userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname);
             Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname);
-            userInfoService.getRuoliRemoveCache(utenteReale);
+            //userInfoService.getRuoliRemoveCache(utenteReale);
+            cacheUtilities.cleanCacheRuoliUtente(utenteReale.getId(), utenteReale.getIdPersona().getId());
             // TODO: permessi
             userInfoService.getPermessiDiFlussoRemoveCache(utenteReale);
             userInfoService.loadUtenteRemoveCache(utenteReale.getId());

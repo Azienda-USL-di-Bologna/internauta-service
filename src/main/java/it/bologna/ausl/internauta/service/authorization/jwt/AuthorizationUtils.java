@@ -11,7 +11,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.SSOException;
-import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
+import it.bologna.ausl.internauta.service.utils.CacheUtilities;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.CounterRepository;
 import it.bologna.ausl.internauta.service.repositories.tools.UserAccessRepository;
@@ -94,7 +94,7 @@ public class AuthorizationUtils {
     HttpSessionData httpSessionData;
 
     @Autowired
-    PermessiUtilities permessiUtilities;
+    CacheUtilities cacheUtilities;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizationUtils.class);
 
@@ -131,7 +131,8 @@ public class AuthorizationUtils {
         } catch (JsonProcessingException ex) {
             logger.warn("Errore nella stampa dei ruoli", ex);
         }
-        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user, true));
+        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user.getIdPersona(), true));
+//        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user, true));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         user.setPermessiDiFlussoByCodiceAzienda(userInfoService.getPermessiDiFlussoByCodiceAzienda(user));
         boolean fromInternet = false;
@@ -251,7 +252,7 @@ public class AuthorizationUtils {
         userInfoService.getUtentiPersonaRemoveCache(user.getIdPersona());
         userInfoService.getUtenteStrutturaListRemoveCache(user, true);
         userInfoService.getUtenteStrutturaListRemoveCache(user, false);
-        userInfoService.getRuoliRemoveCache(user);
+        cacheUtilities.cleanCacheRuoliUtente(user.getId(), user.getIdPersona().getId());
         // TODO: rimuovere permessi cache
         userInfoService.getPermessiDiFlussoRemoveCache(user);
         userInfoService.getPermessiPecRemoveCache(user.getIdPersona());
@@ -292,12 +293,12 @@ public class AuthorizationUtils {
             userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());
             userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, true);
             userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, false);
-            userInfoService.getRuoliRemoveCache(impersonatedUser);
+            cacheUtilities.cleanCacheRuoliUtente(impersonatedUser.getId(), impersonatedUser.getIdPersona().getId());
 
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, false);
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, true);
-            permessiUtilities.cleanCachePermessiUtente(impersonatedUser.getId());
+            cacheUtilities.cleanCachePermessiUtente(impersonatedUser.getId());
 
             impersonatedUser.setUtenteReale(user);
 
