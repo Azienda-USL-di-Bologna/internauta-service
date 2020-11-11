@@ -342,12 +342,12 @@ public class UserInfoService {
             res.addAll(getRuoliStrutture(utente, Arrays.asList(Ruolo.CodiciRuolo.R)));
         }
         try {
-            List<Integer> idUtentiAvatar = getPermessiDelega(utente);
-            idUtentiAvatar.stream().map(idUtente -> utenteRepository.getOne(idUtente)).forEach(u -> {
+            List<Integer> idUtentiDelegati = getPermessiDelega(utente);
+            idUtentiDelegati.stream().map(idUtente -> utenteRepository.getOne(idUtente)).forEach(u -> {
                 res.addAll(getRuoli(u, interaziendali));
             });
         } catch (BlackBoxPermissionException ex) {
-            LOGGER.error("errore nel calcolo dei permessi avatar", ex);
+            LOGGER.error("errore nel calcolo dei permessi DELEGATI", ex);
         }
 
         return new ArrayList(res);
@@ -901,7 +901,7 @@ public class UserInfoService {
     public List<Integer> getPermessiDelega(Utente user) throws BlackBoxPermissionException {
         List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubjectActualFromDate(user, null,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.DELEGA.toString()}),
-                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.AVATAR.toString()}),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.DELEGATO.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.DELEGA.toString()}),
                 false, null);
 
