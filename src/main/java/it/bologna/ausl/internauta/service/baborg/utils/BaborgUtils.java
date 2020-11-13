@@ -1327,15 +1327,15 @@ public class BaborgUtils {
         }
 
     }
-    Integer rigeDaImportare = nRigheCSV - nRigheAnomale;
-    if (nRigheDB
-
-    
+        Integer rigeDaImportare = nRigheCSV - nRigheAnomale;
+        if (nRigheDB
+                > 0) {
+            if ((rigeDaImportare * 100 / nRigheDB) > tolleranza) {
         > 0) {
             if ((rigeDaImportare * 100 / nRigheDB) > tolleranza) {
-            throw new BaborgCSVBloccanteRigheException(uuid);
+                throw new BaborgCSVBloccanteRigheException(uuid);
+            }
         }
-    }
 //        csvErrorFile.delete();
 //        csvErrorFile2.delete();
     if (bloccante
@@ -1629,8 +1629,8 @@ LocalDateTime convertDateToLocaleDateTime(Date dateToConvert
         int idAziendaInt = Integer.parseInt(idAzienda);
         int idAziendaCodice = Integer.parseInt(codiceAzienda);
         ImportazioniOrganigramma res = null;
-        BaborgUtils bean = beanFactory.getBean(BaborgUtils
-
+        BaborgUtils bean = beanFactory.getBean(BaborgUtils.class
+        );
 .class  
 
 
