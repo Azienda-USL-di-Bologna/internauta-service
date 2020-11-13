@@ -498,9 +498,10 @@ public class BaborgUtils {
                             if (appartenentiMap.get("codice_ente") != null && !appartenentiMap.get("codice_ente").toString().trim().equals("") && appartenentiMap.get("codice_ente") != "") {
                                 boolean codiceEnteEndsWith = codiceEnte.endsWith("01");
                                 if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")) {
-                                    if (controlloZeroUno && codiceEnteEndsWith) {
+                                    Map<Integer, List<Map<String, Object>>> appDiretto = appartenentiDiretti.get(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
 
-                                        Map<Integer, List<Map<String, Object>>> appDiretto = appartenentiDiretti.get(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
+                                    if (codiceEnteEndsWith && controlloZeroUno) {
+
                                         if (appDiretto == null) {
                                             //non ho quella matricola nella mappa
                                             //creo tutti i contenuti della matricola nuova
@@ -533,12 +534,6 @@ public class BaborgUtils {
                                                             righeAnomaleDirette.add(rigaAnomala);
                                                         }
                                                     }
-
-                                                    //                                                mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
-                                                    //controllo lista di mappa3
-                                                    //                                                if (!codiciMatricoleConMultiafferenzaDiretta.contains(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()))) {
-                                                    //                                                    codiciMatricoleConMultiafferenzaDiretta.add(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
-                                                    //                                                }
                                                 }
                                             }
 
@@ -566,12 +561,44 @@ public class BaborgUtils {
                                                             righeAnomaleDirette.add(rigaAnomala);
                                                         }
                                                     }
-                                                    //mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze dirette per lo stesso periodo,");
-                                                    //controllo lista di mappa
-                                                    //                                                if (!codiciMatricoleConMultiafferenzaDiretta.contains(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()))) {
-                                                    //                                                    codiciMatricoleConMultiafferenzaDiretta.add(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
-                                                    //                                                }
                                                 }
+                                                Map<String, Object> periodoDaCasellare = new HashMap();
+                                                periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                                periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                                periodoDaCasellare.put("riga", mapReader.getLineNumber());
+                                                periodoCasellato.add(periodoDaCasellare);
+                                            }
+                                        }
+                                    }
+                                    //cazzo di Ferrarra di merda
+                                    if (!controlloZeroUno) {
+                                        if (appDiretto == null) {
+                                            //non ho quella matricola nella mappa
+                                            //creo tutti i contenuti della matricola nuova
+                                            appDiretto = new HashMap();
+                                            List<Map<String, Object>> periodoCasellato = new ArrayList<>();
+                                            Map<String, Object> periodoDaCasellare = new HashMap();
+                                            Integer idCasellaInt = Integer.parseInt(idCasella);
+                                            periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                            periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                            periodoDaCasellare.put("riga", mapReader.getLineNumber());
+                                            periodoCasellato.add(periodoDaCasellare);
+                                            appDiretto.put(idCasellaInt, periodoCasellato);
+                                            appartenentiDiretti.put(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), appDiretto);
+                                        } else {
+                                            Boolean afferenzaDiretta = false;
+
+                                            List<Map<String, Object>> periodoCasellato = appDiretto.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
+                                            if (periodoCasellato == null) {
+                                                periodoCasellato = new ArrayList<>();
+                                                Map<String, Object> periodoDaCasellare = new HashMap();
+                                                periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                                periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                                periodoDaCasellare.put("riga", mapReader.getLineNumber());
+                                                periodoCasellato.add(periodoDaCasellare);
+                                                appDiretto.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
+                                            } else {
+
                                                 Map<String, Object> periodoDaCasellare = new HashMap();
                                                 periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
                                                 periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
@@ -619,12 +646,7 @@ public class BaborgUtils {
                                                         righeAnomaleFunzionali.add(rigaAnomala);
                                                     }
                                                 }
-                                                //                                                mapError.put("ERRORE", mapError.get("ERRORE") + " utente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura,");
-                                                //controllo lista di mappa
 
-                                                //                                                if (!codiciMatricoleConMultiafferenzaFunzionale.contains(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()))) {
-                                                //                                                    codiciMatricoleConMultiafferenzaFunzionale.add(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
-                                                //                                                }
                                             }
                                             Map<String, Object> periodoDaCasellare = new HashMap();
                                             periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
@@ -693,10 +715,13 @@ public class BaborgUtils {
                             appMapWithErrorAndAnomalia.put("Anomalia", "true");
                         }
                         if (righeAnomaleDirette.contains(riga)) {
-                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze Dirette per lo stesso periodo,");
-                            nRigheAnomale++;
-                            anomalia = true;
-                            appMapWithErrorAndAnomalia.put("Anomalia", "true");
+                            boolean codiceEnteAndsWith = appMapWithErrorAndAnomalia.get("codice_ente").toString().endsWith("01");
+                            if (controlloZeroUno && codiceEnteAndsWith) {
+                                appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze Dirette per lo stesso periodo,");
+                                nRigheAnomale++;
+                                anomalia = true;
+                                appMapWithErrorAndAnomalia.put("Anomalia", "true");
+                            }
                         }
                         //DA CHIEDERE A GUS
                         if (righeAnomaleFunzionali.contains(riga)) {
@@ -1321,7 +1346,7 @@ public class BaborgUtils {
         }
         Integer rigeDaImportare = nRigheCSV - nRigheAnomale;
         if (nRigheDB > 0) {
-            if (100-(rigeDaImportare * 100 / nRigheDB) > tolleranza) {
+            if (100 - (rigeDaImportare * 100 / nRigheDB) > tolleranza) {
                 throw new BaborgCSVBloccanteRigheException(uuid);
             }
         }
