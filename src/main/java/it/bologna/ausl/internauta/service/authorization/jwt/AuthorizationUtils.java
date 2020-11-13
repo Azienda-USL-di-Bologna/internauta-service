@@ -252,22 +252,24 @@ public class AuthorizationUtils {
         userInfoService.getUtentiPersonaRemoveCache(user.getIdPersona());
         userInfoService.getUtenteStrutturaListRemoveCache(user, true);
         userInfoService.getUtenteStrutturaListRemoveCache(user, false);
+        cacheUtilities.cleanCachePermessiUtente(user.getId());
         cacheUtilities.cleanCacheRuoliUtente(user.getId(), user.getIdPersona().getId());
         // TODO: rimuovere permessi cache
-        userInfoService.getPermessiDiFlussoRemoveCache(user);
+//        userInfoService.getPermessiDiFlussoRemoveCache(user);
         userInfoService.getPermessiPecRemoveCache(user.getIdPersona());
         // prendi ID dell'utente reale
         String realUserSubject = String.valueOf(user.getId());
 
         user.setMappaRuoli(userInfoService.getRuoliPerModuli(user, null));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
-        userInfoService.getPermessiDelegaRemoveCache(user);
+//        userInfoService.getPermessiAvatarRemoveCache(user);
+        
         logger.info("realUser: " + objectMapper.writeValueAsString(user));
         logger.info("aziendaRealUserLoaded: " + (aziendaRealUser != null ? aziendaRealUser.getId().toString() : "null"));
         logger.info("impersonatedUser: " + utenteImpersonatoStr);
         logger.info("aziendaImpersonatedUserLoaded: " + (aziendaImpersonatedUser != null ? aziendaImpersonatedUser.getId().toString() : "null"));
-        List<Integer> permessiDelega = userInfoService.getPermessiDelega(user);
-        logger.info("permessiDelega: " + Arrays.toString(permessiDelega.toArray()));
+        List<Integer> permessiAvatar = userInfoService.getPermessiAvatar(user);
+        logger.info("permessiAvatar: " + Arrays.toString(permessiAvatar.toArray()));
 
         if (user == null) {
             throw new ObjectNotFoundException("User not found");
@@ -302,7 +304,7 @@ public class AuthorizationUtils {
 
             impersonatedUser.setUtenteReale(user);
 
-            boolean isDelegato = permessiDelega != null && !permessiDelega.isEmpty() && permessiDelega.contains(impersonatedUser.getId());
+            boolean isDelegato = permessiAvatar != null && !permessiAvatar.isEmpty() && permessiAvatar.contains(impersonatedUser.getId());
 
             logger.info("isSuperDemiurgo: " + isSuperDemiurgo);
             logger.info("isDelegato: " + isDelegato);
