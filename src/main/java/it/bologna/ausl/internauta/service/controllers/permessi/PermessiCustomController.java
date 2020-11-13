@@ -1,7 +1,7 @@
 package it.bologna.ausl.internauta.service.controllers.permessi;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
+import it.bologna.ausl.internauta.service.utils.CacheUtilities;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
@@ -94,7 +94,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
     PermissionManager permissionManager;
 
     @Autowired
-    PermessiUtilities permessiUtilities;
+    CacheUtilities permessiUtilities;
 
     @Autowired
     UserInfoService userInfoService;

@@ -11,7 +11,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.SSOException;
-import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
+import it.bologna.ausl.internauta.service.utils.CacheUtilities;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.CounterRepository;
 import it.bologna.ausl.internauta.service.repositories.tools.UserAccessRepository;
@@ -94,7 +94,7 @@ public class AuthorizationUtils {
     HttpSessionData httpSessionData;
 
     @Autowired
-    PermessiUtilities permessiUtilities;
+    CacheUtilities cacheUtilities;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizationUtils.class);
 
@@ -124,14 +124,15 @@ public class AuthorizationUtils {
         Integer idSessionLog = Integer.parseInt((String) claims.get(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name()));
         Utente user = userInfoService.loadUtente(userId);
         logger.info("user: " + (user != null ? user.getId() : "null"));
-        user.setRuoli(userInfoService.getRuoli(user, null));
+        user.setMappaRuoli(userInfoService.getRuoliPerModuli(user, null));
         logger.info("ruoli user: ");
         try {
-            logger.info(objectMapper.writeValueAsString(user.getRuoli()));
+            logger.info(objectMapper.writeValueAsString(user.getMappaRuoli()));
         } catch (JsonProcessingException ex) {
             logger.warn("Errore nella stampa dei ruoli", ex);
         }
-        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user, true));
+        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user.getIdPersona(), true));
+//        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user, true));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         user.setPermessiDiFlussoByCodiceAzienda(userInfoService.getPermessiDiFlussoByCodiceAzienda(user));
         boolean fromInternet = false;
@@ -251,22 +252,24 @@ public class AuthorizationUtils {
         userInfoService.getUtentiPersonaRemoveCache(user.getIdPersona());
         userInfoService.getUtenteStrutturaListRemoveCache(user, true);
         userInfoService.getUtenteStrutturaListRemoveCache(user, false);
-        userInfoService.getRuoliRemoveCache(user);
+        cacheUtilities.cleanCachePermessiUtente(user.getId());
+        cacheUtilities.cleanCacheRuoliUtente(user.getId(), user.getIdPersona().getId());
         // TODO: rimuovere permessi cache
-        userInfoService.getPermessiDiFlussoRemoveCache(user);
+//        userInfoService.getPermessiDiFlussoRemoveCache(user);
         userInfoService.getPermessiPecRemoveCache(user.getIdPersona());
         // prendi ID dell'utente reale
         String realUserSubject = String.valueOf(user.getId());
 
-        user.setRuoli(userInfoService.getRuoli(user, null));
+        user.setMappaRuoli(userInfoService.getRuoliPerModuli(user, null));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
-        userInfoService.getPermessiDelegaRemoveCache(user);
+//        userInfoService.getPermessiAvatarRemoveCache(user);
+        
         logger.info("realUser: " + objectMapper.writeValueAsString(user));
         logger.info("aziendaRealUserLoaded: " + (aziendaRealUser != null ? aziendaRealUser.getId().toString() : "null"));
         logger.info("impersonatedUser: " + utenteImpersonatoStr);
         logger.info("aziendaImpersonatedUserLoaded: " + (aziendaImpersonatedUser != null ? aziendaImpersonatedUser.getId().toString() : "null"));
-        List<Integer> permessiDelega = userInfoService.getPermessiDelega(user);
-        logger.info("permessiDelega: " + Arrays.toString(permessiDelega.toArray()));
+        List<Integer> permessiAvatar = userInfoService.getPermessiAvatar(user);
+        logger.info("permessiAvatar: " + Arrays.toString(permessiAvatar.toArray()));
 
         if (user == null) {
             throw new ObjectNotFoundException("User not found");
@@ -274,7 +277,7 @@ public class AuthorizationUtils {
         // controlla se è stato passato il parametro di utente impersonato
         if (StringUtils.hasText(utenteImpersonatoStr)) {
             // solo se l'utente reale è super demiurgo allora può fare il cambia utente
-            List<Ruolo> ruoli = user.getRuoli();
+            List<Ruolo> ruoli = user.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString());
 
             for (Ruolo ruolo : ruoli) {
                 Ruolo.CodiciRuolo codiceRuolo = (Ruolo.CodiciRuolo) ruolo.getNomeBreve();
@@ -292,16 +295,16 @@ public class AuthorizationUtils {
             userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());
             userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, true);
             userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, false);
-            userInfoService.getRuoliRemoveCache(impersonatedUser);
+            cacheUtilities.cleanCacheRuoliUtente(impersonatedUser.getId(), impersonatedUser.getIdPersona().getId());
 
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, false);
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, true);
-            permessiUtilities.cleanCachePermessiUtente(impersonatedUser.getId());
+            cacheUtilities.cleanCachePermessiUtente(impersonatedUser.getId());
 
             impersonatedUser.setUtenteReale(user);
 
-            boolean isDelegato = permessiDelega != null && !permessiDelega.isEmpty() && permessiDelega.contains(impersonatedUser.getId());
+            boolean isDelegato = permessiAvatar != null && !permessiAvatar.isEmpty() && permessiAvatar.contains(impersonatedUser.getId());
 
             logger.info("isSuperDemiurgo: " + isSuperDemiurgo);
             logger.info("isDelegato: " + isDelegato);

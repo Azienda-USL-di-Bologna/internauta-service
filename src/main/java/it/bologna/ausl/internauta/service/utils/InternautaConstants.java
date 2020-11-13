@@ -21,11 +21,11 @@ public class InternautaConstants {
     public static class Permessi {
 
         public enum Predicati {
-            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO
+            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO, SEGR
         }
 
         public enum Ambiti {
-            PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA
+            PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA, DELEGATO
         }
 
         public enum Tipi {
@@ -36,14 +36,14 @@ public class InternautaConstants {
     public static class Configurazione {
 
         public enum ParametriAzienda {
-            crossUrlTemplate, // è nel json di baborg.aziende (colonna parametri) TODO: andrebberso spostati tutti in configurazione.parametri_aziende
+            minIOConfig,
         }
     }
 
     public static class AdditionalData {
-        
+
         public enum Keys {
-            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto, dataRiferimento, ruoli, Merge
+            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto, dataRiferimento, ruoli, Merge, CercaAncheInContatto
         }
 
         public enum OperationsRequested {
@@ -64,6 +64,7 @@ public class InternautaConstants {
             CaricaSottoResponsabili,
             RootLoading,
             FilterContattiDaVerificareOProtocontatti,
+            CercaAncheInContatto,
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {

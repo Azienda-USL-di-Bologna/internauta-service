@@ -25,4 +25,11 @@ public interface UtenteStrutturaRepository extends
             + "and id_afferenza_struttura = (select id from baborg.afferenza_struttura where codice = 'DIRETTA')", nativeQuery = true)
     public Integer getIdStrutturaAfferenzaDirettaAttivaByIdUtente(Integer idUtente);
 
+    @Query(value = "select p.id from baborg.persone p "
+            + "join baborg.utenti u on u.id_persona = p.id "
+            + "join baborg.utenti_strutture us on us.id_utente = u.id "
+            + "where us.id_struttura in (?1) "
+            + "and us.attivo = true", nativeQuery = true)
+    public List<Integer> getIdPersonaListInStrutture(List<Integer> idStrutture);
+
 }
