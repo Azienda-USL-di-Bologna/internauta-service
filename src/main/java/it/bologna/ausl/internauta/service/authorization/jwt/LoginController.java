@@ -104,7 +104,7 @@ public class LoginController {
     private UtenteRepository utenteRepository;
 
     @Autowired
-    private CacheUtilities permessiUtilities;
+    private CacheUtilities cacheUtilities;
 
     @Autowired
     private ProjectionBeans projectionBeans;
@@ -121,9 +121,6 @@ public class LoginController {
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
     
-    @Autowired
-    private CacheUtilities cacheUtilities;
-
     @RequestMapping(value = "${internauta.security.passtoken-path}", method = RequestMethod.GET)
     public ResponseEntity<String> passTokenGenerator() throws BlackBoxPermissionException {
 
@@ -254,7 +251,7 @@ public class LoginController {
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, true);
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, false);
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente);
-        permessiUtilities.cleanCachePermessiUtente(utente.getId());
+        cacheUtilities.cleanCachePermessiUtente(utente.getId());
 
         userInfoService.loadUtenteRemoveCache(utente.getId());
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);
@@ -270,6 +267,7 @@ public class LoginController {
             Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname);
             //userInfoService.getRuoliRemoveCache(utenteReale);
             cacheUtilities.cleanCacheRuoliUtente(utenteReale.getId(), utenteReale.getIdPersona().getId());
+            cacheUtilities.cleanCachePermessiUtente(utenteReale.getId());
             // TODO: permessi
             userInfoService.getPermessiDiFlussoRemoveCache(utenteReale);
             userInfoService.loadUtenteRemoveCache(utenteReale.getId());
@@ -277,12 +275,12 @@ public class LoginController {
             userInfoService.getUtentiPersonaRemoveCache(utenteReale.getIdPersona());
             userInfoService.getUtenteStrutturaListRemoveCache(utenteReale, true);
             userInfoService.getUtenteStrutturaListRemoveCache(utenteReale, false);
-            userInfoService.getPermessiDelegaRemoveCache(utenteReale);
-            List<Integer> permessiDelega = userInfoService.getPermessiDelega(utenteReale);
+//            userInfoService.getPermessiDelegaRemoveCache(utenteReale);
+            List<Integer> permessiAvatar = userInfoService.getPermessiAvatar(utenteReale);
             boolean isSuperDemiurgo = userInfoService.isSD(utenteReale);
-            boolean isDelegato = permessiDelega != null && !permessiDelega.isEmpty() && permessiDelega.contains(utente.getId());
+            boolean isAvatarato = permessiAvatar != null && !permessiAvatar.isEmpty() && permessiAvatar.contains(utente.getId());
 
-            if (!isSuperDemiurgo && !isDelegato) {
+            if (!isSuperDemiurgo && !isAvatarato) {
                 return new ResponseEntity("Non puoi cambiare utente!", HttpStatus.UNAUTHORIZED);
             }
 

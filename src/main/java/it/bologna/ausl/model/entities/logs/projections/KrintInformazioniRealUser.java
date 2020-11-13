@@ -15,6 +15,6 @@ public interface KrintInformazioniRealUser{
     @Value("#{@userInfoService.getRuoli(target, false)}")
     Map<String,List<String>> getRuoli();
     
-    @Value("#{@userInfoService.getPermessiDelega(target)}")
-    Map<String, Object> getPermessiDelega();
+    @Value("#{@userInfoService.getPermessiAvatar(target)}")
+    Map<String, Object> getPermessiAvatar();
 }

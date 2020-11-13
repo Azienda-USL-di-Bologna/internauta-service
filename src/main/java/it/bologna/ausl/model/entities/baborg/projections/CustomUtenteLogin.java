@@ -54,7 +54,7 @@ public interface CustomUtenteLogin extends UtenteWithIdPersonaAndPermessiCustom 
     @Override
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda();
 
-    @Value("#{@userInfoService.getPermessiDelega(target).size() > 0}")
-    public Boolean getHasPermessoDelega();
+    @Value("#{@userInfoService.getPermessiAvatar(target).size() > 0}")
+    public Boolean getHasPermessoAvatar();
 
 }

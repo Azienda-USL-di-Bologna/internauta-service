@@ -263,7 +263,7 @@ public class UserInfoService {
                 res.addAll(getRuoliMatrint(u, interaziendali, idAziende));
             });
         } catch (BlackBoxPermissionException ex) {
-            LOGGER.error("errore nel calcolo dei permessi avatar", ex);
+            LOGGER.error("errore nel calcolo dei permessi Delegato", ex);
         }
         return res;
     }
@@ -281,7 +281,7 @@ public class UserInfoService {
                 res.addAll(getRuoliGenerali(u, interaziendali));
             });
         } catch (BlackBoxPermissionException ex) {
-            LOGGER.error("errore nel calcolo dei permessi avatar", ex);
+            LOGGER.error("errore nel calcolo dei permessi delegato", ex);
         }
         return res;
     }
@@ -911,6 +911,23 @@ public class UserInfoService {
 
     @CacheEvict(value = "getPermessiDelega__ribaltorg__", key = "{#user.getId()}")
     public void getPermessiDelegaRemoveCache(Utente user) {
+    }
+    
+    
+    @Cacheable(value = "getPermessiAvatar__ribaltorg__", key = "{#user.getId()}")
+    public List<Integer> getPermessiAvatar(Utente user) throws BlackBoxPermissionException {
+        List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubjectActualFromDate(user, null,
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.DELEGA.toString()}),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.AVATAR.toString()}),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.DELEGA.toString()}),
+                false, null);
+
+        List<Integer> utentiAvataranti = permissionsOfSubject.stream().map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList());
+        return utentiAvataranti;
+    }
+
+    @CacheEvict(value = "getPermessiAvatar__ribaltorg__", key = "{#user.getId()}")
+    public void getPermessiAvatarRemoveCache(Utente user) {
     }
 
     public CustomAziendaLogin getAziendaCustomLogin(Utente user) {
