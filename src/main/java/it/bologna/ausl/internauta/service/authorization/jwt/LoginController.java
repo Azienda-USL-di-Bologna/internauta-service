@@ -245,6 +245,8 @@ public class LoginController {
         }
 
         userInfoService.getRuoliRemoveCache(utente);
+        userInfoService.getRuoliUtentiPersonaRemoveCache(utente, true);
+        userInfoService.getRuoliUtentiPersonaRemoveCache(utente, false);
 
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente);
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, true);
@@ -265,6 +267,8 @@ public class LoginController {
             userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname);
             Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname);
             userInfoService.getRuoliRemoveCache(utenteReale);
+            userInfoService.getRuoliUtentiPersonaRemoveCache(utenteReale, true);
+            userInfoService.getRuoliUtentiPersonaRemoveCache(utenteReale, false);
             // TODO: permessi
             userInfoService.getPermessiDiFlussoRemoveCache(utenteReale);
             userInfoService.loadUtenteRemoveCache(utenteReale.getId());

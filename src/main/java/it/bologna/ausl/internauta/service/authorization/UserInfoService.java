@@ -384,7 +384,13 @@ public class UserInfoService {
 
     }
 
+    @Cacheable(value = "getRuoliUtentiPersona__ribaltorg__", key = "{#utente.getId(), #ancheByRuolo.booleanValue()}")
     public Map<String, List<String>> getRuoliUtentiPersona(Utente utente, Boolean ancheByRuolo) {
+        return getRuoli(utente.getIdPersona(), ancheByRuolo);
+    }
+    
+    @CacheEvict(value = "getRuoliUtentiPersona__ribaltorg__", key = "{#utente.getId(), #ancheByRuolo.booleanValue()}")
+    public Map<String, List<String>> getRuoliUtentiPersonaRemoveCache(Utente utente, Boolean ancheByRuolo) {
         return getRuoli(utente.getIdPersona(), ancheByRuolo);
     }
 
