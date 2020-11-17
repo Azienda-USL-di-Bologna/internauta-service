@@ -420,6 +420,7 @@ public class UserInfoService {
      * true o null alla mappa viene aggiunt una mappa in cui la chiave è il
      * codice ruolo e il valore è una lista di codici azienda
      */
+    @Cacheable(value = "getRuoliUtentiPersona_persona__ribaltorg__", key = "{#persona.getId(), #ancheByRuolo.booleanValue()}")
     public Map<String, Map<String, List<String>>> getRuoliUtentiPersona(Persona persona, Boolean ancheByRuolo) {
 
         if (ancheByRuolo == null) {
@@ -481,6 +482,7 @@ public class UserInfoService {
         return finalMap;
     }
 
+    @Cacheable(value = "getRuoliUtentiPersona_utente__ribaltorg__", key = "{#utente.getId(), #ancheByRuolo.booleanValue()}")
     public Map<String, Map<String, List<String>>> getRuoliUtentiPersona(Utente utente, Boolean ancheByRuolo) {
         return getRuoliUtentiPersona(utente.getIdPersona(), ancheByRuolo);
     }
@@ -864,30 +866,37 @@ public class UserInfoService {
 
     @Cacheable(value = "isCI__ribaltorg__", key = "{#user.getId()}")
     public boolean isCI(Utente user) {
-        List<Ruolo> ruoli = user.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString());
-        Boolean isCI = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CI);
-        return isCI;
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
+        return ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.CI.toString());
     }
 
-    @Cacheable(value = "isR__ribaltorg__", key = "{#user.getId()}")
-    public boolean isR(Utente user) {
-        List<Ruolo> ruoli = user.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString());
-        Boolean isR = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.R);
-        return isR;
+//    @Cacheable(value = "isR__ribaltorg__", key = "{#user.getId()}")
+//    public boolean isR(Utente user) {
+//       return isR(user, null);
+//    }
+    
+    @Cacheable(value = "isR__ribaltorg__", key = "{#user.getId(), #modulo.toString()}")
+    public boolean isR(Utente user, Ruolo.ModuliRuolo modulo) {
+//       if (modulo == null) {
+//           modulo = Ruolo.ModuliRuolo.GENERALE;
+//       }
+       Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
+        return ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.R.toString()) && 
+            ruoliUtentiPersona.get(Ruolo.CodiciRuolo.R.toString()).containsKey(modulo.toString()) &&
+            ruoliUtentiPersona.get(Ruolo.CodiciRuolo.R.toString()).get(modulo.toString()).contains(user.getIdAzienda().getCodice());
     }
 
     @Cacheable(value = "isCA__ribaltorg__", key = "{#user.getId()}")
     public boolean isCA(Utente user) {
-        List<Ruolo> ruoli = user.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString());
-        Boolean isCA = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.CA);
-        return isCA;
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
+        return ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.CA.toString()) && 
+            ruoliUtentiPersona.get(Ruolo.CodiciRuolo.CA.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString()).contains(user.getIdAzienda().getCodice());
     }
 
     @Cacheable(value = "isSD__ribaltorg__", key = "{#user.getId()}")
     public boolean isSD(Utente user) {
-        List<Ruolo> ruoli = user.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString());
-        Boolean isSD = ruoli.stream().anyMatch(p -> p.getNomeBreve() == Ruolo.CodiciRuolo.SD);
-        return isSD;
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
+        return ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.SD.toString());
     }
 
     /**
