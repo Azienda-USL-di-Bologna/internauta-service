@@ -581,7 +581,7 @@ public class BaborgUtils {
                                         }
                                     }
                                     //cazzo di Ferrarra di merda
-                                    if (!controlloZeroUno) {
+                                    if (!controlloZeroUno || !codiceEnteEndsWith) {
                                         if (appDiretto == null) {
                                             //non ho quella matricola nella mappa
                                             //creo tutti i contenuti della matricola nuova
