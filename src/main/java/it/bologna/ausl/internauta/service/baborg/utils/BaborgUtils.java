@@ -1773,11 +1773,11 @@ public class BaborgUtils {
     }
 
     private String getConsonanti(String string) {
-        return string.replaceAll("[aeiouyjòèéàùì]", "");
+        return string.replaceAll("['aeiouòèéàùìEUIOA ]", "");
     }
 
     private String getVocali(String string) {
-        return string.replaceAll("[qwrtpsdfghklzxcvbnm]", "");
+        return string.replaceAll("['qwrtpsdfghklzxcvbnmQWRTYPSDFGHJKLZXCVBNM ]", "");
     }
 
     private String codiceCognome(String cognome) {
@@ -1841,7 +1841,7 @@ public class BaborgUtils {
     }
 
     private String partialCF(String nome, String cognome) {
-        return codiceCognome(cognome).concat(codiceNome(nome));
+        return codiceCognome(cognome.trim()).concat(codiceNome(nome.trim()));
     }
 
     /**
