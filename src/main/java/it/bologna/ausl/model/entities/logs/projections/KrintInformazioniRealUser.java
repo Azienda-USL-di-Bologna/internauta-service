@@ -12,7 +12,7 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "KrintInformazioniRealUser", types = Utente.class)
 public interface KrintInformazioniRealUser{
       
-    @Value("#{@userInfoService.getRuoli(target, false)}")
+    @Value("#{@userInfoService.getRuoliGenerali(target, true)}")
     Map<String,List<String>> getRuoli();
     
     @Value("#{@userInfoService.getPermessiAvatar(target)}")

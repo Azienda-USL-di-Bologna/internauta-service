@@ -229,6 +229,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         Contatto contatto = (Contatto) entity;
         Contatto contattoOld = (Contatto) beforeUpdateEntity;
         boolean isEliminato = (contatto.getEliminato() && (contattoOld.getEliminato() == false));
+        boolean isRipristinato = ((contatto.getEliminato()==false) && contattoOld.getEliminato());
         boolean isModificato = isContactModified(contatto, contattoOld);
         if (KrintUtils.doIHaveToKrint(request)) {
             if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)) {
@@ -238,12 +239,18 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 if (isEliminato) {
                     krintRubricaService.writeGroupDelete(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_DELETE);
                 }
+                if (isRipristinato) {
+                    krintRubricaService.writeGroupRestore(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_RESTORE);
+                }
             } else if (contatto.getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
                 if (isModificato) {
                     krintRubricaService.writeContactUpdate(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_UPDATE);
                 }
                 if (isEliminato) {
                     krintRubricaService.writeContactDelete(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DELETE);
+                }
+                if (isRipristinato) {
+                    krintRubricaService.writeContactRestore(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_RESTORE);
                 }
             }
         }
