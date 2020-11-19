@@ -136,150 +136,71 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         permissionRepositoryAccess.managePermissions(permessiEntita, null);
     }
 
-    @RequestMapping(value = "getPermissionsAdvanced", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List> getPermissionsAdvanced(
-            @RequestParam("predicati") List<String> predicati,
-            @RequestParam("tipi") List<String> tipi,
-            @RequestParam("aziende") List<String> aziende,
-            @RequestParam("ambiti") List<String> ambiti)
-            throws JsonProcessingException, IOException, BlackBoxPermissionException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InvocationTargetException, InvocationTargetException, InvocationTargetException {
+    /**
+     * Questa funzione si occupa di recuperare i delegati visibili al CI/CA
+     * @return
+     * @throws BlackBoxPermissionException 
+     */
+    @RequestMapping(value = "getDelegatiMatrint", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List> getDelegatiMatrint() 
+            throws BlackBoxPermissionException {
 
-//        String permessoString = objectMapper.writeValueAsString(permesso);
-//        // prendo utente connesso
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
         Persona persona = utente.getIdPersona();
 
-        List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
-        List<String> idAziende = aziendePersona.stream().map(p -> p.getId().toString()).collect(Collectors.toList());
-        List<PermessoEntitaStoredProcedure> res = permissionManager.getPermissionsAdvanced(predicati, ambiti, tipi, aziende, null, null, null);
+//        List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
+//        List<String> idAziende = aziendePersona.stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        
+        authenticatedUserProperties.get
+        userInfoService.getAziendeWherePersonaIsCa(persona)
+        
+        List<PermessoEntitaStoredProcedure> res = permissionManager.getPermissionsByPredicate(predicati, ambiti, tipi, aziende, null);
 
-        Set<Class<?>> entityClasses = new Reflections("it.bologna.ausl.model.entities").getTypesAnnotatedWith(Entity.class);
-
-        Class<?> utenteClass = Utente.class;
-        HashMap<String, Class> hashMapSchemaTable = new HashMap<String, Class>();
-
-        for (Class entityClass : entityClasses) {
-            LOGGER.info("classe trovata: " + entityClass.getName());
-            Table annotation = (Table) entityClass.getAnnotation(Table.class);
-            String schema = annotation.schema();
-            String name = annotation.name();
-            hashMapSchemaTable.put(schema + "--" + name, entityClass);
-        }
-
-        //EntityInterface find = (EntityInterface) eM.find(utenteClass, 34);
-        //find.getEntityDescription();
-        for (PermessoEntitaStoredProcedure permesso : res) {
-            EntitaStoredProcedure soggetto = permesso.getSoggetto();
-            String schemaSoggetto = soggetto.getSchema();
-            String tableSoggetto = soggetto.getTable();
-            EntitaStoredProcedure oggetto = permesso.getOggetto();
-            String schemaOggetto = oggetto.getSchema();
-            String tableOggetto = oggetto.getTable();
-
-            EntityInterface findSoggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaSoggetto + "--" + tableSoggetto), soggetto.getIdProvenienza());
-            EntityInterface findOggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaOggetto + "--" + tableOggetto), oggetto.getIdProvenienza());
-
-            soggetto.setDescrizione(findSoggetto.getEntityDescription());
-            oggetto.setDescrizione(findOggetto.getEntityDescription());
-        }
-//        objectMapper.readValue(res, new TypeReference<List<PermessoEntitaStoredProcedure>>(){});
-//        similarityResults.filterByPermission(persona, permissionManager);
+//        Set<Class<?>> entityClasses = new Reflections("it.bologna.ausl.model.entities").getTypesAnnotatedWith(Entity.class);
+//
+//        Class<?> utenteClass = Utente.class;
+//        HashMap<String, Class> hashMapSchemaTable = new HashMap<String, Class>();
+//
+//        for (Class entityClass : entityClasses) {
+//            LOGGER.info("classe trovata: " + entityClass.getName());
+//            Table annotation = (Table) entityClass.getAnnotation(Table.class);
+//            String schema = annotation.schema();
+//            String name = annotation.name();
+//            hashMapSchemaTable.put(schema + "--" + name, entityClass);
+//        }
+//
+//        for (PermessoEntitaStoredProcedure permesso : res) {
+//            EntitaStoredProcedure soggetto = permesso.getSoggetto();
+//            String schemaSoggetto = soggetto.getSchema();
+//            String tableSoggetto = soggetto.getTable();
+//            EntitaStoredProcedure oggetto = permesso.getOggetto();
+//            String schemaOggetto = oggetto.getSchema();
+//            String tableOggetto = oggetto.getTable();
+//
+//            EntityInterface findSoggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaSoggetto + "--" + tableSoggetto), soggetto.getIdProvenienza());
+//            EntityInterface findOggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaOggetto + "--" + tableOggetto), oggetto.getIdProvenienza());
+//
+//            soggetto.setDescrizione(findSoggetto.getEntityDescription());
+//            oggetto.setDescrizione(findOggetto.getEntityDescription());
+//        }
+        
         return new ResponseEntity(res, HttpStatus.OK);
     }
+    
+    public List<PermessoEntitaStoredProcedure> getPermissionsByPredicate(
+            List<String> predicati,
+            List<String> ambiti,
+            List<String> tipi,
+            List<Object> entitiesGruppiSoggetto,
+            List<Object> entitiesGruppiOggetto)
+            throws JsonProcessingException, IOException, BlackBoxPermissionException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InvocationTargetException, InvocationTargetException, InvocationTargetException {
 
-    // VECCHIA VERSIONE CHE NON GESTIVA LE LISTE
-//
-//    @Transactional
-//    @RequestMapping(value = "managePermissionsGestoriPec", method = RequestMethod.POST)
-//    public void managePermissionsGestoriPec(@RequestBody Map<String, Object> json, HttpServletRequest request) throws BlackBoxPermissionException, HttpInternautaResponseException {
-//        Persona persona;
-//        Pec pec;
-//        PermessoStoredProcedure permesso;
-//
-//        // Controllo che i dati nella richiesta rispettino gli standard richiesti
-//        try {
-//            persona = mapper.convertValue(json.get("persona"), Persona.class);
-//        } catch (IllegalArgumentException ex) {
-//            LOGGER.error("Errore nel casting della persona.", ex);
-//            throw new Http400ResponseException("1", "Errore nel casting della persona.");
-//        }
-//
-//        try {
-//            pec = mapper.convertValue(json.get("pec"), Pec.class);
-//        } catch (IllegalArgumentException ex) {
-//            LOGGER.error("Errore nel casting della pec.", ex);
-//            throw new Http400ResponseException("2", "Errore nel casting della pec.");
-//        }
-//
-//        try {
-//            permesso = mapper.convertValue(json.get("permesso"), PermessoStoredProcedure.class);
-//        } catch (IllegalArgumentException ex) {
-//            LOGGER.error("Errore nel casting del permesso.", ex);
-//            throw new Http400ResponseException("3", "Errore nel casting del permesso.");
-//        }
-//
-////        if (permesso.getPredicato() == null) {
-////            throw new Http400ResponseException("4", "Il permesso passato è sprovvisto del predicato.");
-////        }
-////        
-////        if (permesso.getOriginePermesso()== null) {
-////            throw new Http400ResponseException("5", "Il permesso passato è sprovvisto dell'origine_permesso.");
-////        }
-//        if (pec.getPecAziendaList() == null) {
-//            throw new Http400ResponseException("6", "La pec passata non ha il campo pecAziendaList espanso.");
-//        }
-//
-//        if (!pec.getPecAziendaList().isEmpty()) {
-//            for (PecAzienda pa : pec.getPecAziendaList()) {
-//                if (pa.getIdAzienda() == null) {
-//                    throw new Http400ResponseException("7", "Le entità della pecAziendaList non hanno l'idAzienda espanso.");
-//                }
-//            }
-//        } else {
-//            throw new Http403ResponseException("1", "Non è possibile associare un permesso su una pec non collegata ad alcuna azienda.");
-//        }
-//
-//        List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
-//        List<Integer> idAziendePersona = userInfoService.getAziendePersona(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());
-//
-//        if (Collections.disjoint(idAziendePec, idAziendePersona)) {
-//            throw new Http403ResponseException("2", "Pec e Persona passati non hanno aziende in comune.");
-//        }
-//
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//        Utente loggedUser = (Utente) authentication.getPrincipal();
-//
-//        if (!userInfoService.isCI(loggedUser)) {
-//            Persona personaLogged = personaRepository.getOne(loggedUser.getIdPersona().getId());
-//            List<Integer> idAziendeCA = userInfoService.getAziendeWherePersonaIsCa(personaLogged).stream().map(azienda -> azienda.getId()).collect(Collectors.toList());
-//
-//            if (idAziendeCA == null || idAziendeCA.isEmpty()) {
-//                // Non sono ne CA ne CI fermo tutto.
-//                throw new Http403ResponseException("3", "L'utente loggato non è ne CI ne CA.");
-//            } else {
-//
-//                if (Collections.disjoint(idAziendeCA, idAziendePec)) {
-//                    // Nessuna azienda associata alla pec è un azienda del CA, fermo tutto.
-//                    throw new Http403ResponseException("4", "L'utente loggato non è CA di almeno un'azienda della pec.");
-//                }
-//
-//                if (Collections.disjoint(idAziendeCA, idAziendePersona)) {
-//                    // Nessuna utente della persona appartiene ad un azienda del CA, fermo tutto.
-//                    throw new Http403ResponseException("5", "L'utente loggato non è CA di almeno un'azienda degli utenti della persona.");
-//                }
-//            }
-//        }
-//
-//        List<PermessoStoredProcedure> permessi;
-//        if (permesso != null) {
-//            permessi = Arrays.asList(new PermessoStoredProcedure[]{permesso});
-//        } else {
-//            permessi = new ArrayList<>();
-//        }
-//
-//        permissionManager.managePermissions(persona, pec, PECG.toString(), PEC.toString(), permessi);
-//    }
+        return permissionManager.getPermissionsByPredicate(predicati, ambiti, tipi, entitiesGruppiSoggetto, entitiesGruppiOggetto);
+
+    }
+
+
     /**
      * E' il controller che gestisce i permessi per i Gestori PEC. Prima della
      * chiamata alla Black Box viene controllato che l'utente loggato sia
