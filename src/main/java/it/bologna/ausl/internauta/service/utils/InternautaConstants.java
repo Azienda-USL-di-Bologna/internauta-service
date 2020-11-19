@@ -25,7 +25,7 @@ public class InternautaConstants {
         }
 
         public enum Ambiti {
-            PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA, MATRINT
+            PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA, DELEGATO, MATRINT
         }
 
         public enum Tipi {

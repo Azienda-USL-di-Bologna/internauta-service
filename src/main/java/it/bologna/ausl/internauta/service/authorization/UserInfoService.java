@@ -910,7 +910,7 @@ public class UserInfoService {
     public List<Integer> getPermessiDelega(Utente user) throws BlackBoxPermissionException {
         List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubjectActualFromDate(user, null,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.DELEGA.toString()}),
-                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.DELEGATO.toString()}),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.MATRINT.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.DELEGA.toString()}),
                 false, null);
 
