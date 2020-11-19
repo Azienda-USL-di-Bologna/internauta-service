@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.exceptions.AuthorizationException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
@@ -20,6 +21,7 @@ import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseExcepti
 import it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException;
 import it.bologna.ausl.internauta.service.permessi.PermessoError;
 import it.bologna.ausl.internauta.service.repositories.baborg.AfferenzaStrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
@@ -27,9 +29,10 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRep
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Ambiti.PECG;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi.PEC;
+import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Ambiti.MATRINT;
+import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi.DELEGA;
+import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Predicati;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.EntitaStoredProcedure;
-import it.bologna.ausl.model.entities.EntityInterface;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
@@ -44,18 +47,14 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.persistence.Entity;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.persistence.Table;
 import javax.servlet.http.HttpServletRequest;
-import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,6 +100,9 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    AziendaRepository aziendaRepository;
 
     @Autowired
     UtenteRepository utenteRepository;
@@ -138,69 +140,81 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
     /**
      * Questa funzione si occupa di recuperare i delegati visibili al CI/CA
+     * @param aziendaSelezionata
      * @return
      * @throws BlackBoxPermissionException 
+     * @throws it.bologna.ausl.internauta.service.exceptions.AuthorizationException 
      */
     @RequestMapping(value = "getDelegatiMatrint", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List> getDelegatiMatrint() 
-            throws BlackBoxPermissionException {
+    public ResponseEntity<List> getDelegatiMatrint(
+        @RequestParam("azienda") Integer aziendaSelezionata
+    ) throws BlackBoxPermissionException, AuthorizationException {
 
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
         Persona persona = utente.getIdPersona();
 
-//        List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
-//        List<String> idAziende = aziendePersona.stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        if (!userInfoService.isCI(utente) && !userInfoService.isCA(utente)) {
+            throw new AuthorizationException("Utente non CA/CI non può caricare delegati");
+        }
         
-        authenticatedUserProperties.get
-        userInfoService.getAziendeWherePersonaIsCa(persona)
+        if (!userInfoService.isCI(utente)) {
+            // Dunque è un CA
+            List<Azienda> aziendeWherePersonaIsCa = userInfoService.getAziendeWherePersonaIsCa(persona);
+            if (!aziendeWherePersonaIsCa.stream().anyMatch(o -> o.getId().equals(aziendaSelezionata))) {
+                throw new AuthorizationException("Utente CA ma non dell'azienda richiesta");
+            }
+        }
         
-        List<PermessoEntitaStoredProcedure> res = permissionManager.getPermissionsByPredicate(predicati, ambiti, tipi, aziende, null);
-
-//        Set<Class<?>> entityClasses = new Reflections("it.bologna.ausl.model.entities").getTypesAnnotatedWith(Entity.class);
-//
-//        Class<?> utenteClass = Utente.class;
-//        HashMap<String, Class> hashMapSchemaTable = new HashMap<String, Class>();
-//
-//        for (Class entityClass : entityClasses) {
-//            LOGGER.info("classe trovata: " + entityClass.getName());
-//            Table annotation = (Table) entityClass.getAnnotation(Table.class);
-//            String schema = annotation.schema();
-//            String name = annotation.name();
-//            hashMapSchemaTable.put(schema + "--" + name, entityClass);
-//        }
-//
-//        for (PermessoEntitaStoredProcedure permesso : res) {
-//            EntitaStoredProcedure soggetto = permesso.getSoggetto();
-//            String schemaSoggetto = soggetto.getSchema();
-//            String tableSoggetto = soggetto.getTable();
-//            EntitaStoredProcedure oggetto = permesso.getOggetto();
-//            String schemaOggetto = oggetto.getSchema();
-//            String tableOggetto = oggetto.getTable();
-//
-//            EntityInterface findSoggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaSoggetto + "--" + tableSoggetto), soggetto.getIdProvenienza());
-//            EntityInterface findOggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaOggetto + "--" + tableOggetto), oggetto.getIdProvenienza());
-//
-//            soggetto.setDescrizione(findSoggetto.getEntityDescription());
-//            oggetto.setDescrizione(findOggetto.getEntityDescription());
-//        }
+        Azienda azienda = aziendaRepository.getOne(aziendaSelezionata);
         
+        List<PermessoEntitaStoredProcedure> res = permissionManager.getPermissionsByPredicate(Predicati.DELEGA.toString(), MATRINT.toString(), DELEGA.toString(), azienda, azienda);
         return new ResponseEntity(res, HttpStatus.OK);
     }
     
-    public List<PermessoEntitaStoredProcedure> getPermissionsByPredicate(
-            List<String> predicati,
-            List<String> ambiti,
-            List<String> tipi,
-            List<Object> entitiesGruppiSoggetto,
-            List<Object> entitiesGruppiOggetto)
-            throws JsonProcessingException, IOException, BlackBoxPermissionException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InvocationTargetException, InvocationTargetException, InvocationTargetException {
+    
+//    public List<PermessoEntitaStoredProcedure> getPermissionsByPredicate(
+//            List<String> predicati,
+//            List<String> ambiti,
+//            List<String> tipi,
+//            List<Object> entitiesGruppiSoggetto,
+//            List<Object> entitiesGruppiOggetto)
+//            throws JsonProcessingException, IOException, BlackBoxPermissionException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InvocationTargetException, InvocationTargetException, InvocationTargetException {
+//
+//        return permissionManager.getPermissionsByPredicate(predicati, ambiti, tipi, entitiesGruppiSoggetto, entitiesGruppiOggetto);
+//
+//    }
+    
+    /** Questo codice sembra poter tornare utile in futuro! non cancellare!
+        Set<Class<?>> entityClasses = new Reflections("it.bologna.ausl.model.entities").getTypesAnnotatedWith(Entity.class);
 
-        return permissionManager.getPermissionsByPredicate(predicati, ambiti, tipi, entitiesGruppiSoggetto, entitiesGruppiOggetto);
+        Class<?> utenteClass = Utente.class;
+        HashMap<String, Class> hashMapSchemaTable = new HashMap<String, Class>();
 
-    }
+        for (Class entityClass : entityClasses) {
+            LOGGER.info("classe trovata: " + entityClass.getName());
+            Table annotation = (Table) entityClass.getAnnotation(Table.class);
+            String schema = annotation.schema();
+            String name = annotation.name();
+            hashMapSchemaTable.put(schema + "--" + name, entityClass);
+        }
 
+        for (PermessoEntitaStoredProcedure permesso : res) {
+            EntitaStoredProcedure soggetto = permesso.getSoggetto();
+            String schemaSoggetto = soggetto.getSchema();
+            String tableSoggetto = soggetto.getTable();
+            EntitaStoredProcedure oggetto = permesso.getOggetto();
+            String schemaOggetto = oggetto.getSchema();
+            String tableOggetto = oggetto.getTable();
 
+            EntityInterface findSoggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaSoggetto + "--" + tableSoggetto), soggetto.getIdProvenienza());
+            EntityInterface findOggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaOggetto + "--" + tableOggetto), oggetto.getIdProvenienza());
+
+            soggetto.setDescrizione(findSoggetto.getEntityDescription());
+            oggetto.setDescrizione(findOggetto.getEntityDescription());
+        }
+        */
+        
     /**
      * E' il controller che gestisce i permessi per i Gestori PEC. Prima della
      * chiamata alla Black Box viene controllato che l'utente loggato sia
