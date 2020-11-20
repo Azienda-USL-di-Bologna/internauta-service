@@ -367,7 +367,17 @@ public class BaborgUtils {
                             mapError.put("codice_fiscale", "");
 //                            mA.setCodiceFiscale(null);
                         } else {
-                            mapError.put("codice_fiscale", appartenentiMap.get("codice_fiscale"));
+                            if (appartenentiMap.get("nome") != null && appartenentiMap.get("cognome") != null) {
+                                if (appartenentiMap.get("codice_fiscale").toString().startsWith(partialCF(appartenentiMap.get("nome").toString(), appartenentiMap.get("cognome").toString()))) {
+                                    mapError.put("codice_fiscale", appartenentiMap.get("codice_fiscale"));
+                                } else {
+                                    mapError.put("ERRORE", mapError.get("ERRORE") + " CODICE FISCALE errato,");
+                                    anomalia = true;
+                                    mapError.put("Anomalia", "true");
+                                    mapError.put("codice_fiscale", appartenentiMap.get("codice_fiscale"));
+                                }
+
+                            }
 //                            mA.setCodiceFiscale(appartenentiMap.get("codice_fiscale").toString());
                         }
                         String idCasella = null;
@@ -1760,6 +1770,78 @@ public class BaborgUtils {
         maxmin.put("max", max);
         maxmin.put("min", min);
         return maxmin;
+    }
+
+    private String getConsonanti(String string) {
+        return string.replaceAll("['aeiouòèéàùìEUIOA ]", "");
+    }
+
+    private String getVocali(String string) {
+        return string.replaceAll("['qwrtpsdfghklzxcvbnmQWRTYPSDFGHJKLZXCVBNM ]", "");
+    }
+
+    private String codiceCognome(String cognome) {
+        String vocali_COGNOME = getVocali(cognome).concat("XXX");
+        String consonanti_COGNOME = getConsonanti(cognome);
+        String s = "";
+        if (consonanti_COGNOME.length() >= 3) {
+            for (int i = 0; i < 3; i++) {
+                s = s + consonanti_COGNOME.charAt(i);
+            }
+            return s;
+        }
+        if (consonanti_COGNOME.length() == 2) {
+            if (vocali_COGNOME.length() > 0) {
+                s = s + consonanti_COGNOME.charAt(0) + consonanti_COGNOME.charAt(1) + vocali_COGNOME.charAt(0);
+            }
+            return s;
+        }
+        if (consonanti_COGNOME.length() == 1) {
+            if (vocali_COGNOME.length() >= 2) {
+                s = s + consonanti_COGNOME.charAt(0) + vocali_COGNOME.charAt(0) + vocali_COGNOME.charAt(1);
+            }
+            return s;
+        } else {
+            for (int i = 0; i < 3; i++) {
+                s = s + vocali_COGNOME.charAt(i);
+            }
+
+            return s;
+        }
+    }
+
+    private String codiceNome(String nome) {
+        String vocali_NOME = getVocali(nome).concat("XXX");
+        String consonanti_NOME = getConsonanti(nome);
+
+        String s = "";
+        if (consonanti_NOME.length() > 3) {
+            s = s + consonanti_NOME.charAt(0) + consonanti_NOME.charAt(2) + consonanti_NOME.charAt(3);
+            return s;
+        }
+        if (consonanti_NOME.length() == 3) {
+            for (int i = 0; i < 3; i++) {
+                s = s + consonanti_NOME.charAt(i);
+            }
+            return s;
+        }
+        if (consonanti_NOME.length() == 2) {
+            s = s + consonanti_NOME.charAt(0) + consonanti_NOME.charAt(1) + vocali_NOME.charAt(0);
+            return s;
+        }
+        if (consonanti_NOME.length() == 1) {
+            s = s + consonanti_NOME.charAt(0) + vocali_NOME.charAt(0) + vocali_NOME.charAt(1);
+            return s;
+        } else {
+            for (int i = 0; i < 3; i++) {
+                s = s + vocali_NOME.charAt(i);
+            }
+            return s;
+        }
+    }
+
+    private String partialCF(String nome, String cognome) {
+        return codiceCognome(cognome.trim()).concat(codiceNome(nome.trim()));
     }
 
     /**
