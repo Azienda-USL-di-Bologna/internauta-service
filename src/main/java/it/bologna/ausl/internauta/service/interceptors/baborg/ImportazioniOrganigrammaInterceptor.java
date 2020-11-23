@@ -11,6 +11,7 @@ import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QImportazioniOrganigramma;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
@@ -63,9 +64,9 @@ public class ImportazioniOrganigrammaInterceptor extends InternautaBaseIntercept
         }
         
         if (!userInfoService.isSD(utente) && !userInfoService.isCI(utente)) {
-            Map<String, List<String>> ruoliUtentiPersona = userInfoService.getRuoliUtentiPersona(utente, true);
+            Map<String, Map<String, List<String>>> ruoliUtentiPersona = utente.getRuoliUtentiPersona();
             if (ruoliUtentiPersona.containsKey("CA")) {
-                List<String> codiciAziendaDiCuiSonoCA = ruoliUtentiPersona.get("CA");
+                List<String> codiciAziendaDiCuiSonoCA = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.CA.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString());
                 List<Integer> idAziendaDiCuiSonoCA = codiciAziendaDiCuiSonoCA.stream().map(codiceAzienda -> cachedEntities.getAziendaFromCodice(codiceAzienda).getId()).collect(Collectors.toList());
                 initialPredicate = QImportazioniOrganigramma.importazioniOrganigramma.idAzienda.id.in(idAziendaDiCuiSonoCA).and(initialPredicate);
             } else {

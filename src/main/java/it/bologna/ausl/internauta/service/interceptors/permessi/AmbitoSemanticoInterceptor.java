@@ -8,6 +8,7 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.permessi.AmbitoSemantico;
 import it.bologna.ausl.model.entities.permessi.QAmbitoSemantico;
@@ -54,8 +55,8 @@ public class AmbitoSemanticoInterceptor extends InternautaBaseInterceptor{
         Utente utente = authenticatedUserProperties.getUser();
         boolean isCA = userInfoService.isCA(utente);
         boolean isCI = userInfoService.isCI(utente);
-        boolean isR  = userInfoService.isR(utente);
-        List<String> ruoli = utente.getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
+        
+        List<String> ruoli = utente.getMappaRuoli().get(Ruolo.ModuliRuolo.MATRINT.toString()).stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
 
         if (!isCA && !isCI) {
             BooleanTemplate booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", QAmbitoSemantico.ambitoSemantico.ruoliGestori, String.join(",", ruoli));

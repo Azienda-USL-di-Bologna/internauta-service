@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.ribaltoneutils.RibaltoneD
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.QTipologiaStruttura;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.TipologiaStruttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.permessi.QAmbitoSemantico;
@@ -59,8 +60,8 @@ public class TipologiaStrutturaInterceptor extends InternautaBaseInterceptor{
             Utente utente = authenticatedUserProperties.getUser();
             boolean isCA = userInfoService.isCA(utente);
             boolean isCI = userInfoService.isCI(utente);
-            boolean isR  = userInfoService.isR(utente);
-            List<String> ruoli = utente.getRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
+            // TODO: bisognerebbe mettere il modulo adeguato e non generale
+            List<String> ruoli = utente.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString()).stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
 
             if (!isCA && !isCI) {
                 BooleanTemplate booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", QTipologiaStruttura.tipologiaStruttura.ruoli, String.join(",", ruoli));

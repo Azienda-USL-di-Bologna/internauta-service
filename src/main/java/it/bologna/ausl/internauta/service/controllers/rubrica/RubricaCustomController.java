@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.repositories.EntitaRepository;
+import it.bologna.ausl.blackbox.repositories.TipoEntitaRepository;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -14,21 +16,31 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.configuration.utils.RubricaRestClientConnectionManager;
+import it.bologna.ausl.internauta.service.controllers.permessi.PermessiCustomController;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
+import it.bologna.ausl.internauta.service.utils.rubrica.CreatoreJsonPermessiContatto;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.permessi.Entita;
+import it.bologna.ausl.model.entities.permessi.TipoEntita;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
@@ -40,11 +52,16 @@ import it.bologna.ausl.rubrica.maven.client.RestClientException;
 import it.bologna.ausl.rubrica.maven.resources.EmailResource;
 import it.bologna.ausl.rubrica.maven.resources.FullContactResource;
 import it.nextsw.common.utils.CommonUtils;
+import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,11 +69,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.persistence.Entity;
+import javax.persistence.Table;
 import javax.servlet.http.HttpServletRequest;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -109,6 +130,15 @@ public class RubricaCustomController implements ControllerHandledExceptions {
     UtenteRepository utenteRepository;
 
     @Autowired
+    AziendaRepository aziendaRepository;
+
+    @Autowired
+    StrutturaRepository strutturaRepository;
+
+    @Autowired
+    UtenteStrutturaRepository utenteStrutturaRepository;
+
+    @Autowired
     RubricaRestClientConnectionManager rubricaRestClientConnectionManager;
 
     @Autowired
@@ -119,6 +149,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private PermessiCustomController permessiCustomController;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
@@ -400,12 +432,13 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         log.info("Chiamo l'applicazione inde per salvare i contatti selezionati");
         Call call = client.newCall(request);
         try (Response response = call.execute();) {
+            int responseCode = response.code();
             if (response.isSuccessful()) {
                 log.info("Chiamata a webapi inde effettuata con successo");
                 refreshDestinatari(persona, azienda, data.getGuid());
             } else {
-                log.info("Errore nella chiamata alla webapi indosa");
-                throw new IOException(String.format("molto malo indemmerda: %s", response.message()));
+                log.info("Errore nella chiamata alla webapi InDe: " + responseCode + " " + response.message());
+                throw new IOException(String.format("Errore nella chiamata alla WepApi InDe: %s", response.message()));
             }
         }
 
@@ -450,7 +483,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
-        //url="http://localhost:8080/Procton/GestisciDestinatariDaRubricaInternauta";
+        //url = "http://localhost:8080/Deli/GestisciDestinatariDaRubricaInternauta";
+        log.info("Url da chiamare: " + url);
         return url;
     }
 
@@ -681,4 +715,56 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 //
 //        //contattoRepository.saveAll(cs);
 //    }
+    @RequestMapping(value = "salvaPermessiSuContattoEsportatoDaRubricaVecchia",
+            method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> salvaPermessiSuContattoEsportatoDaRubricaVecchia(
+            @RequestBody String requestData
+    ) throws Throwable {
+        log.info("Entrato in salvaPermessiSuContattoEsportatoDaRubricaVecchia");
+        String responseMessage = "";
+        log.info("requestData " + requestData);
+        JSONObject data = new JSONObject(requestData);
+        String cfUtenteRichiedente = data.getString("cfUtentePermesso");
+        String codiceAzienda = data.getString("codiceAzienda");
+        log.info("codiceAzienda " + codiceAzienda);
+        Integer idContatto = data.getInt("idContatto");
+        boolean daiPermessiAllaMiaStrutturaDiretta = data.getBoolean("daiPermessiAllaMiaStrutturaDiretta");
+        try {
+            Contatto contatto = contattoRepository.findById(idContatto).get();
+            if (contatto != null) {
+                if (!contatto.getRiservato()) {
+                    contatto.setRiservato(true);
+                    contatto = contattoRepository.save(contatto);
+                }
+                if (daiPermessiAllaMiaStrutturaDiretta) {
+                    log.info("devo dare i permessi alla struttura di appartenenza diretta di " + cfUtenteRichiedente);
+                    Azienda azienda = aziendaRepository.findByCodice(codiceAzienda);
+                    Persona persona = personaRepository.findByCodiceFiscale(cfUtenteRichiedente);
+                    Utente utente = utenteRepository.findByIdAziendaAndIdPersona(azienda, persona);
+                    Integer idStrutturaAfferenzaDirettaAttiva = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utente.getId());
+                    if (idStrutturaAfferenzaDirettaAttiva != null) {
+                        Struttura struttura = strutturaRepository.findById(idStrutturaAfferenzaDirettaAttiva).get();
+
+                        JSONObject oggettone = CreatoreJsonPermessiContatto.generaJSONObjectPerAggiuntaPermessiSuOggettoContatto(struttura, contatto);
+                        log.info("Oggettone per aggiunta permessi da mappare:\n" + oggettone.toString(4));
+                        Map<String, Object> params
+                                = new ObjectMapper().readValue(oggettone.toString(), HashMap.class);
+                        log.info("Chiamo managerPermissionAdvanced...");
+                        permessiCustomController.managePermissionsAdvanced(params, null);
+                        log.info("Permesso inserito, creo il messaggio di ritorno");
+                        responseMessage = "Aggiunto permesso a struttura " + struttura.getNome()
+                                + " su contatto " + contatto.getDescrizione()
+                                + " (id " + contatto.getId() + ")";
+                    }
+                }
+
+            }
+        } catch (Throwable t) {
+            log.error("Errore! ", t);
+            throw t;
+        }
+        log.info("Fatto, torno il messaggio: " + responseMessage);
+        return new ResponseEntity(responseMessage, HttpStatus.OK);
+    }
+
 }

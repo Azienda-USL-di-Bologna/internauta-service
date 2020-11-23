@@ -1,7 +1,9 @@
 package it.bologna.ausl.internauta.service.repositories.baborg;
 
 import it.bologna.ausl.model.entities.baborg.QStruttura;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
@@ -42,12 +44,17 @@ public interface StrutturaRepository extends
 
     @Query(value = "select * from baborg.get_utenti_struttura_sottoresponsabili_filtered(?1)", nativeQuery = true)
     public List<Map<String, Object>> getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(Integer idStruttura);
-    
+
     @Procedure("baborg.get_count_utenti_struttura")
     public String getCountUtentiStruttura(Integer p_id_struttura);
 //    @Query(value = "select * from baborg.get_utenti_struttura_sottoresponsabili_filtered_at_date(?1, ?2)", nativeQuery = true)
 ////    @Procedure("baborg.get_utenti_struttura_sottoresponsabili_filtered_at_date")
 //    public List<Map<String, Object>> getIdUtentiStruttureWithSottoResponsabiliByIdStruttura1(Integer idStruttura, LocalDateTime dataRiferimento);
- 
-    
+
+    @Query(value = "select id_struttura from baborg.utenti_strutture "
+            + "where id_utente = ?1 and attivo = true "
+            + "and bit_ruoli >= (select maschera_bit from baborg.ruoli where nome_breve = ?2)",
+            nativeQuery = true)
+    public List<Integer> getIdStruttureDiUtenteByCodiceRuolo(Utente utente, String codiceRuolo);
+
 }
