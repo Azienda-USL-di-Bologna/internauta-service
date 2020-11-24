@@ -245,32 +245,6 @@ public class KrintRubricaService {
        }
     }
     
-    public void writeGroupRestore(Contatto contatto, OperazioneKrint.CodiceOperazione codiceOperazione){
-       try{
-           KrintRubricaGruppo krintRubricaGruppo = factory.createProjection(KrintRubricaGruppo.class, contatto);
-           String jsonKrintGruppo = objectMapper.writeValueAsString(krintRubricaGruppo);
-
-           krintService.writeKrintRow(
-               contatto.getId().toString(),
-               Krint.TipoOggettoKrint.RUBRICA_GRUPPO,
-               contatto.getDescrizione(),
-               jsonKrintGruppo,
-               null,
-               null,
-               null,
-               null,
-               codiceOperazione);
-
-       } catch (Exception ex){
-           Integer idOggetto = null;
-           try {
-               ex.printStackTrace();
-               idOggetto = contatto.getId();
-           } catch (Exception exa) {}
-           krintService.writeKrintError(idOggetto, "writeGroupRestore", codiceOperazione);
-       }
-    }
-    
     public void writeGroupUpdate(Contatto contatto, OperazioneKrint.CodiceOperazione codiceOperazione){
        try{
            KrintRubricaGruppo krintRubricaGruppo = factory.createProjection(KrintRubricaGruppo.class, contatto);
@@ -319,31 +293,6 @@ public class KrintRubricaService {
                idOggetto = contatto.getId();
            } catch (Exception exa) {}
            krintService.writeKrintError(idOggetto, "writeContactDelete", codiceOperazione);
-       }
-    }
-    
-    public void writeContactRestore(Contatto contatto, OperazioneKrint.CodiceOperazione codiceOperazione){
-       try{
-           KrintRubricaContatto krintRubricaContatto = factory.createProjection(KrintRubricaContatto.class, contatto);
-           String jsonKrintContact = objectMapper.writeValueAsString(krintRubricaContatto);
-
-           krintService.writeKrintRow(contatto.getId().toString(),
-               Krint.TipoOggettoKrint.RUBRICA_CONTATTO,
-               contatto.getId().toString(),
-               jsonKrintContact,
-               null,
-               null,
-               null,
-               null,
-               codiceOperazione);
-
-       } catch (Exception ex){
-           Integer idOggetto = null;
-           try {
-               ex.printStackTrace();
-               idOggetto = contatto.getId();
-           } catch (Exception exa) {}
-           krintService.writeKrintError(idOggetto, "writeContactRestore", codiceOperazione);
        }
     }
     
