@@ -148,21 +148,21 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
         
 //        ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
         
-//        LOGGER.info("USER " + authenticatedSessionData.getUser().getId());
-//        List<String> ruoliCACI = authenticatedSessionData.getUser().getMappaRuoli().stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
-//        LOGGER.info("ruoliCACI " + ruoliCACI);
+        LOGGER.info("USER " + authenticatedSessionData.getUser().getId());
+        List<String> ruoliCACI = authenticatedSessionData.getUser().getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString()).stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
+        LOGGER.info("ruoliCACI " + ruoliCACI);
         
-//        BooleanExpression booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
-//                QMenu.menu.ruoliSufficienti, String.join(",", ruoliCACI));
+        BooleanExpression booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
+                QMenu.menu.ruoliSufficienti, String.join(",", ruoliCACI));
         
 //        if (filterAziendaUtente == null)
 //            filterAziendaUtente = getFilterAziendaIn(aziendePersona).and(booleanTemplate);
 //        else
 //            filterAziendaUtente = filterAziendaUtente.or(getFilterAziendaIn(aziendePersona).and(booleanTemplate));
         if (filterAziendaUtente == null)
-            filterAziendaUtente = getFilterAziendaIn(aziendePersona);
+            filterAziendaUtente = getFilterAziendaIn(aziendePersona).and(booleanTemplate);
         else
-            filterAziendaUtente = filterAziendaUtente.or(getFilterAziendaIn(aziendePersona));
+            filterAziendaUtente = filterAziendaUtente.or(getFilterAziendaIn(aziendePersona).and(booleanTemplate));
   
         if (filterAziendaUtente != null)
             LOGGER.info("PREDICATO MENU INTERCEPTOR BEFORE SELECT: " + filterAziendaUtente.and(initialPredicate).toString());
