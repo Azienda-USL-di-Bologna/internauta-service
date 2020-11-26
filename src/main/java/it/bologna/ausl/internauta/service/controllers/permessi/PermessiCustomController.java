@@ -33,10 +33,12 @@ import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Perme
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi.DELEGA;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Predicati;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
+import it.bologna.ausl.internauta.utils.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import java.io.IOException;
@@ -147,28 +149,47 @@ public class PermessiCustomController implements ControllerHandledExceptions {
      */
     @RequestMapping(value = "getDelegatiMatrint", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List> getDelegatiMatrint(
-        @RequestParam("azienda") Integer aziendaSelezionata
+        @RequestParam("idAziendaSelezionata") Integer idAziendaSelezionata
     ) throws BlackBoxPermissionException, AuthorizationException {
 
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
         Persona persona = utente.getIdPersona();
 
-        if (!userInfoService.isCI(utente) && !userInfoService.isCA(utente)) {
-            throw new AuthorizationException("Utente non CA/CI non può caricare delegati");
+        if (!userInfoService.isCI(utente) && !userInfoService.isCA(utente) && !userInfoService.isR(utente, Ruolo.ModuliRuolo.GENERALE)) {
+            throw new AuthorizationException("Utente non CA/CI/R non può caricare delegati");
         }
         
-        if (!userInfoService.isCI(utente)) {
-            // Dunque è un CA
+        if (!userInfoService.isCI(utente) && userInfoService.isCA(utente)) {
+            // Dunque è un CA, ma lo è dell'azienda giusta?
             List<Azienda> aziendeWherePersonaIsCa = userInfoService.getAziendeWherePersonaIsCa(persona);
-            if (!aziendeWherePersonaIsCa.stream().anyMatch(o -> o.getId().equals(aziendaSelezionata))) {
+            if (!aziendeWherePersonaIsCa.stream().anyMatch(o -> o.getId().equals(idAziendaSelezionata))) {
                 throw new AuthorizationException("Utente CA ma non dell'azienda richiesta");
+            }
+        } else if (!userInfoService.isCI(utente) && !userInfoService.isCA(utente)) {
+            // Dunque è un R, ma lo è dell'azienda giusta?
+            List<Azienda> aziendeWherePersonaIsR = userInfoService.getAziendeWherePersonaIsR(persona);
+            if (!aziendeWherePersonaIsR.stream().anyMatch(o -> o.getId().equals(idAziendaSelezionata))) {
+                throw new AuthorizationException("Utente R ma non dell'azienda richiesta");
             }
         }
         
-        Azienda azienda = aziendaRepository.getOne(aziendaSelezionata);
+        Azienda azienda = aziendaRepository.getOne(idAziendaSelezionata);
         
         List<PermessoEntitaStoredProcedure> res = permissionManager.getPermissionsByPredicate(Predicati.DELEGA.toString(), MATRINT.toString(), DELEGA.toString(), azienda, azienda);
+        
+        if (res != null) {
+            for (PermessoEntitaStoredProcedure permesso : res) {
+                EntitaStoredProcedure soggetto = permesso.getSoggetto();
+                EntitaStoredProcedure oggetto = permesso.getOggetto();
+                String descrizioneSoggetto = utenteRepository.getOne(soggetto.getIdProvenienza()).getIdPersona().getDescrizione();
+                String descrizioneOggetto = utenteRepository.getOne(oggetto.getIdProvenienza()).getIdPersona().getDescrizione();
+                soggetto.setDescrizione(descrizioneSoggetto);
+                oggetto.setDescrizione(descrizioneOggetto);
+
+            }
+        }
+        
         return new ResponseEntity(res, HttpStatus.OK);
     }
     
