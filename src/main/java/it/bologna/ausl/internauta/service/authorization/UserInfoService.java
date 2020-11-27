@@ -746,12 +746,13 @@ public class UserInfoService {
     }
 
     // NB: non è by CODICEAZIENDA, ma è ByUtente da cui prendo Persona da cui prendo codice azienda
+    @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda_utente__ribaltorg__", key = "{#utente.getId()}")
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Utente utente) throws BlackBoxPermissionException {
         return getPermessiDiFlussoByCodiceAzienda(utente.getIdPersona());
     }
 
     // NB: non è by CODICEAZIENDA, ma è ByPersona da cui prendo codice azienda
-    @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda__ribaltorg__", key = "{#persona.getId()}")
+    @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda_persona__ribaltorg__", key = "{#persona.getId()}")
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
         Map<String, List<PermessoEntitaStoredProcedure>> map = new HashMap<>();
 
