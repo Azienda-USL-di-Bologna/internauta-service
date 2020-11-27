@@ -102,7 +102,7 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
                                             storicoRelazioneRepository.getStruttureRuolo(mascheraBit, utente.getId(), dataRiferimento).get("result"),
                                             new TypeReference<Map<String, Integer>>() {
                                     });
-                                    //aggiungo le strutture su cui sono responsabilmente avatar/delegato
+                                    // aggiungo le strutture su cui sono responsabilmente delegato
                                     List<Integer> idUtentiDelegati = userInfoService.getPermessiDelega(utente);
                                     if (struttureConStoricoRelazione == null) {
                                         struttureConStoricoRelazione = new HashMap();
