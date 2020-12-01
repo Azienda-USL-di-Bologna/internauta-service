@@ -284,7 +284,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 //      String idAziendeStr = UtilityFunctions.getArrayString(objectMapper, collect);
 
         List<ParametroAziende> parameters = parametriAziende.getParameters("protocontatti", new Integer[]{authenticatedUserProperties.getUser().getIdAzienda().getId()}, new String[]{Applicazione.Applicazioni.rubrica.toString()});
-        contatto.setProtocontatto(false);
+//        contatto.setProtocontatto(false); // malo, sembra sbagliato
         if (parameters != null && !parameters.isEmpty() && parametriAziende.getValue(parameters.get(0), Boolean.class) == true) {
             contatto.setProtocontatto(true);
         }
