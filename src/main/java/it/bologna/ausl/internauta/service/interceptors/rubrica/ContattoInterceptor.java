@@ -7,6 +7,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -153,12 +154,13 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         List<PermessoEntitaStoredProcedure> contattiWithStandardPermissions;
         try {
-            contattiWithStandardPermissions = permissionManager.getPermissionsOfSubjectActualFromDate(
+            List<Object> struttureUtente = userInfoService.getUtenteStrutturaList(authenticatedSessionData.getUser(), true).stream().map(us -> us.getIdStruttura()).collect(Collectors.toList());           
+            contattiWithStandardPermissions = permissionManager.getPermissionsOfSubjectAdvanced(
                     authenticatedSessionData.getPerson(),
                     null,
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ACCESSO.toString()}),
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.RUBRICA.toString()}),
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.CONTATTO.toString()}), false, null);
+                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.CONTATTO.toString()}), false, null, null, struttureUtente, BlackBoxConstants.Direzione.PRESENTE);
         } catch (BlackBoxPermissionException ex) {
             LOGGER.error("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
             throw new AbortLoadInterceptorException("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
