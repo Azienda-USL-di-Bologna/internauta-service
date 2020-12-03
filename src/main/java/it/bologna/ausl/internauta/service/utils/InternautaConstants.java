@@ -43,7 +43,7 @@ public class InternautaConstants {
     public static class AdditionalData {
 
         public enum Keys {
-            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto, dataRiferimento, ruoli, Merge, CercaAncheInContatto
+            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto, dataRiferimento, ruoli, Merge, CercaAncheInContatto, cercaAncheGruppi
         }
 
         public enum OperationsRequested {
@@ -64,6 +64,7 @@ public class InternautaConstants {
             CaricaSottoResponsabili,
             RootLoading,
             FilterContattiDaVerificareOProtocontatti,
+            CercaContattiCustomFilterPico,
             CercaAncheInContatto,
         }
 

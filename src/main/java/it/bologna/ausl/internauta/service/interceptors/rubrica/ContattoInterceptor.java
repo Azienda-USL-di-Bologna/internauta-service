@@ -124,7 +124,25 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                         }
 
                         break;
-
+                    case CercaContattiCustomFilterPico:
+                        String cercaAncheGruppiString = additionalData.get(InternautaConstants.AdditionalData.Keys.cercaAncheGruppi.toString());
+                        boolean cercaAncheGruppi = false;
+                        if (cercaAncheGruppiString != null) {
+                            cercaAncheGruppi = Boolean.parseBoolean(cercaAncheGruppiString);
+                        }
+                        BooleanExpression picoCustomFilter = 
+                            QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.ESTERNO.toString()).or
+                            (
+                                    (QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.PERSONA.toString()).and(
+                                            QContatto.contatto.tipo.eq(Contatto.TipoContatto.ORGANIGRAMMA.toString())
+                                    ))
+                            );
+                        if (cercaAncheGruppi) {
+                            picoCustomFilter = picoCustomFilter.or(QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.GRUPPO.toString()));
+//                            picoCustomFilter = (QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.GRUPPO.toString()));
+                        }
+                        initialPredicate = (picoCustomFilter).and(initialPredicate);
+                        break;
                 }
             }
         }
