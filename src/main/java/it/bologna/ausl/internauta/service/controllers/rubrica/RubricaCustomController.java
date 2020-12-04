@@ -57,6 +57,8 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -767,4 +769,100 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         return new ResponseEntity(responseMessage, HttpStatus.OK);
     }
 
+    @RequestMapping(value = "findContattiUtentiByCodiciFiscaliForGruppoImport",
+            method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> findContattiUtentiByCodiciFiscaliForGruppoImport(@RequestBody String requestData) {
+        JSONArray jArrayDiRisposta = new JSONArray();
+        log.info("Entrato in findContattiUtentiByCodiciFiscaliForGruppoImport");
+        JSONArray requestDataJsonArray = new JSONArray(requestData);
+        log.info(requestDataJsonArray.toString(4));
+        for (int i = 0; i < requestDataJsonArray.length(); i++) {
+            JSONObject objectRequested = (JSONObject) requestDataJsonArray.get(i);
+            JSONObject contattoTrovato = new JSONObject();
+
+            String cfUtente = objectRequested.getString("cfUtente");
+            Persona persona = personaRepository.findByCodiceFiscale(cfUtente);
+            log.info("Persona trovata ", persona.getId());
+            Contatto contatto = contattoRepository.getOne(persona.getIdContatto().getId());
+            if (contatto != null) {
+                JSONObject contattoJSON = new JSONObject();
+                contattoJSON.put("id", contatto.getId());
+                contattoJSON.put("categoria", contatto.getCategoria().toString());
+                contattoJSON.put("descrizione", contatto.getDescrizione());
+                ZonedDateTime contattoVersionCorrected = contatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
+                contattoJSON.put("version", contattoVersionCorrected);
+
+                JSONObject dettaglioContattoJSON = new JSONObject();
+                Integer idStrutturaIternauta = objectRequested.getInt("idStrutturaIternauta");
+                DettaglioContatto dettaglioContatto = dettaglioContattoRepository.
+                        findByIdContattoAndIdContattoEsterno(contatto, idStrutturaIternauta);
+                if (dettaglioContatto != null) {
+                    dettaglioContattoJSON.put("id", dettaglioContatto.getId());
+                    dettaglioContattoJSON.put("tipo", dettaglioContatto.getTipo().toString());
+                    dettaglioContattoJSON.put("descrizione", dettaglioContatto.getDescrizione());
+                    dettaglioContattoJSON.put("principale", dettaglioContatto.getPrincipale());
+                    dettaglioContattoJSON.put("version", dettaglioContatto.getVersion());
+                    ZonedDateTime dettaglioContattoVersionCorrected = dettaglioContatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
+                    dettaglioContattoJSON.put("version", dettaglioContattoVersionCorrected);
+                }
+
+                if (dettaglioContattoJSON != null && contattoJSON != null) {
+                    contattoTrovato.put("idContatto", contattoJSON);
+                    contattoTrovato.put("idDettaglioContatto", dettaglioContattoJSON);
+                }
+            }
+            objectRequested.put("contattoTrovato", contattoTrovato);
+            log.info(objectRequested.toString(4));
+            jArrayDiRisposta.put(objectRequested);
+        }
+        return new ResponseEntity(jArrayDiRisposta.toString(4), HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "findContattiStruttureForGruppoImport",
+            method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> findContattiStruttureForGruppoImport(@RequestBody String requestData) {
+        JSONArray jArrayDiRisposta = new JSONArray();
+        log.info("Entrato in findContattiStruttureForGruppoImport");
+        JSONArray requestDataJsonArray = new JSONArray(requestData);
+        log.info(requestDataJsonArray.toString(4));
+        for (int i = 0; i < requestDataJsonArray.length(); i++) {
+            JSONObject objectRequested = (JSONObject) requestDataJsonArray.get(i);
+            JSONObject contattoTrovato = new JSONObject();
+            Integer idStrutturaIternauta = objectRequested.getInt("idStrutturaIternauta");
+            if (idStrutturaIternauta != null && idStrutturaIternauta != 0) {
+                List<Contatto> listaContatti = contattoRepository.findByIdEsternoAndCategoria(idStrutturaIternauta.toString(), "STRUTTURA");
+                if (listaContatti.size() == 1) {
+                    Contatto contatto = listaContatti.get(0);
+                    if (contatto != null) {
+                        JSONObject contattoJSON = new JSONObject();
+                        contattoJSON.put("id", contatto.getId());
+                        contattoJSON.put("categoria", contatto.getCategoria().toString());
+                        contattoJSON.put("descrizione", contatto.getDescrizione());
+                        ZonedDateTime contattoVersionCorrected = contatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
+                        contattoJSON.put("version", contattoVersionCorrected);
+                        JSONObject dettaglioContattoJSON = new JSONObject();
+                        DettaglioContatto dettaglioContatto = dettaglioContattoRepository.findByIdContattoAndTipo(contatto, "STRUTTURA");
+                        if (dettaglioContatto != null) {
+                            dettaglioContattoJSON.put("id", dettaglioContatto.getId());
+                            dettaglioContattoJSON.put("tipo", dettaglioContatto.getTipo().toString());
+                            dettaglioContattoJSON.put("descrizione", dettaglioContatto.getDescrizione());
+                            dettaglioContattoJSON.put("principale", dettaglioContatto.getPrincipale());
+                            ZonedDateTime dettaglioContattoVersionCorrected = dettaglioContatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
+                            dettaglioContattoJSON.put("version", dettaglioContattoVersionCorrected);
+                        }
+                        if (dettaglioContattoJSON != null && contattoJSON != null) {
+                            contattoTrovato.put("idContatto", contattoJSON);
+                            contattoTrovato.put("idDettaglioContatto", dettaglioContattoJSON);
+                        }
+                    }
+                }
+
+            }
+
+            objectRequested.put("contattoTrovato", contattoTrovato);
+            log.info(objectRequested.toString(4));
+            jArrayDiRisposta.put(objectRequested);
+        }
+        return new ResponseEntity(jArrayDiRisposta.toString(4), HttpStatus.OK);
+    }
 }

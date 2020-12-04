@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.repositories.rubrica;
 
+import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithPlainFields;
@@ -24,4 +25,8 @@ public interface DettaglioContattoRepository extends
     public String getSimilarContacts(
             @Param("contact") String contact
     );
+
+    public DettaglioContatto findByIdContattoAndIdContattoEsterno(Contatto idContatto, Integer idContattoEsterno);
+
+    public DettaglioContatto findByIdContattoAndTipo(Contatto idContatto, String tipo);
 }
