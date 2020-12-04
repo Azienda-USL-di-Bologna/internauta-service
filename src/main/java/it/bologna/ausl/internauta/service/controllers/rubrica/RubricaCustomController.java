@@ -791,25 +791,28 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                 contattoJSON.put("descrizione", contatto.getDescrizione());
                 ZonedDateTime contattoVersionCorrected = contatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
                 contattoJSON.put("version", contattoVersionCorrected);
-
-                JSONObject dettaglioContattoJSON = new JSONObject();
                 Integer idStrutturaIternauta = objectRequested.getInt("idStrutturaIternauta");
-                DettaglioContatto dettaglioContatto = dettaglioContattoRepository.
-                        findByIdContattoAndIdContattoEsterno(contatto, idStrutturaIternauta);
-                if (dettaglioContatto != null) {
-                    dettaglioContattoJSON.put("id", dettaglioContatto.getId());
-                    dettaglioContattoJSON.put("tipo", dettaglioContatto.getTipo().toString());
-                    dettaglioContattoJSON.put("descrizione", dettaglioContatto.getDescrizione());
-                    dettaglioContattoJSON.put("principale", dettaglioContatto.getPrincipale());
-                    dettaglioContattoJSON.put("version", dettaglioContatto.getVersion());
-                    ZonedDateTime dettaglioContattoVersionCorrected = dettaglioContatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
-                    dettaglioContattoJSON.put("version", dettaglioContattoVersionCorrected);
+                List<Contatto> listaContatti = contattoRepository.findByIdEsternoAndCategoria(idStrutturaIternauta.toString(), "STRUTTURA");
+                if (listaContatti.size() == 1) {
+                    Contatto contattoStruttura = listaContatti.get(0);
+                    JSONObject dettaglioContattoJSON = new JSONObject();
+                    DettaglioContatto dettaglioContatto = dettaglioContattoRepository.
+                            findByIdContattoAndIdContattoEsterno(contatto, contattoStruttura.getId());
+                    if (dettaglioContatto != null) {
+                        dettaglioContattoJSON.put("id", dettaglioContatto.getId());
+                        dettaglioContattoJSON.put("tipo", dettaglioContatto.getTipo().toString());
+                        dettaglioContattoJSON.put("descrizione", dettaglioContatto.getDescrizione());
+                        dettaglioContattoJSON.put("principale", dettaglioContatto.getPrincipale());
+                        dettaglioContattoJSON.put("version", dettaglioContatto.getVersion());
+                        ZonedDateTime dettaglioContattoVersionCorrected = dettaglioContatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
+                        dettaglioContattoJSON.put("version", dettaglioContattoVersionCorrected);
+                    }
+                    if (dettaglioContattoJSON != null && contattoJSON != null) {
+                        contattoTrovato.put("idContatto", contattoJSON);
+                        contattoTrovato.put("idDettaglioContatto", dettaglioContattoJSON);
+                    }
                 }
 
-                if (dettaglioContattoJSON != null && contattoJSON != null) {
-                    contattoTrovato.put("idContatto", contattoJSON);
-                    contattoTrovato.put("idDettaglioContatto", dettaglioContattoJSON);
-                }
             }
             objectRequested.put("contattoTrovato", contattoTrovato);
             log.info(objectRequested.toString(4));
@@ -830,7 +833,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             JSONObject contattoTrovato = new JSONObject();
             Integer idStrutturaIternauta = objectRequested.getInt("idStrutturaIternauta");
             if (idStrutturaIternauta != null && idStrutturaIternauta != 0) {
-                List<Contatto> listaContatti = contattoRepository.findByIdEsternoAndCategoria(idStrutturaIternauta.toString(), "STRUTTURA");
+                List<Contatto> listaContatti = contattoRepository
+                        .findByIdEsternoAndCategoria(idStrutturaIternauta.toString(), "STRUTTURA");
                 if (listaContatti.size() == 1) {
                     Contatto contatto = listaContatti.get(0);
                     if (contatto != null) {
@@ -841,7 +845,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                         ZonedDateTime contattoVersionCorrected = contatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
                         contattoJSON.put("version", contattoVersionCorrected);
                         JSONObject dettaglioContattoJSON = new JSONObject();
-                        DettaglioContatto dettaglioContatto = dettaglioContattoRepository.findByIdContattoAndTipo(contatto, "STRUTTURA");
+                        DettaglioContatto dettaglioContatto = dettaglioContattoRepository.
+                                findByIdContattoAndTipo(contatto, "STRUTTURA");
                         if (dettaglioContatto != null) {
                             dettaglioContattoJSON.put("id", dettaglioContatto.getId());
                             dettaglioContattoJSON.put("tipo", dettaglioContatto.getTipo().toString());
