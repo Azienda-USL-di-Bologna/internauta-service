@@ -775,14 +775,17 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         JSONArray jArrayDiRisposta = new JSONArray();
         log.info("Entrato in findContattiUtentiByCodiciFiscaliForGruppoImport");
         JSONArray requestDataJsonArray = new JSONArray(requestData);
-        log.info(requestDataJsonArray.toString(4));
+        log.info("requestData\n" + requestDataJsonArray.toString(4));
+        log.info("Ciclo gli oggetti...");
         for (int i = 0; i < requestDataJsonArray.length(); i++) {
             JSONObject objectRequested = (JSONObject) requestDataJsonArray.get(i);
+            log.info("Object Requested:\n" + objectRequested.toString(4));
             JSONObject contattoTrovato = new JSONObject();
-
+            log.info("Carico la persona by cf");
             String cfUtente = objectRequested.getString("cfUtente");
             Persona persona = personaRepository.findByCodiceFiscale(cfUtente);
             log.info("Persona trovata ", persona.getId());
+            log.info("Carico il contatto della persona...");
             Contatto contatto = contattoRepository.getOne(persona.getIdContatto().getId());
             if (contatto != null) {
                 JSONObject contattoJSON = new JSONObject();
@@ -791,14 +794,19 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                 contattoJSON.put("descrizione", contatto.getDescrizione());
                 ZonedDateTime contattoVersionCorrected = contatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
                 contattoJSON.put("version", contattoVersionCorrected);
-                Integer idStrutturaIternauta = objectRequested.getInt("idStrutturaIternauta");
-                List<Contatto> listaContatti = contattoRepository.findByIdEsternoAndCategoria(idStrutturaIternauta.toString(), "STRUTTURA");
+                Integer idStrutturaInternauta = objectRequested.getInt("idStrutturaInternauta");
+                log.info("Cerco il contatto della struttura internatua: " + idStrutturaInternauta);
+                List<Contatto> listaContatti = contattoRepository.findByIdEsternoAndCategoria(idStrutturaInternauta.toString(), "STRUTTURA");
+                log.info("Trovati " + listaContatti.size());
                 if (listaContatti.size() == 1) {
                     Contatto contattoStruttura = listaContatti.get(0);
+                    log.info("contattoStruttura: " + contattoStruttura.getId());
                     JSONObject dettaglioContattoJSON = new JSONObject();
+                    log.info("Cerco il dettaglio contatto per IdContattoAndIdContattoEsterno...");
                     DettaglioContatto dettaglioContatto = dettaglioContattoRepository.
                             findByIdContattoAndIdContattoEsterno(contatto, contattoStruttura.getId());
                     if (dettaglioContatto != null) {
+                        log.info("dettaglioContatto: " + dettaglioContatto.getId());
                         dettaglioContattoJSON.put("id", dettaglioContatto.getId());
                         dettaglioContattoJSON.put("tipo", dettaglioContatto.getTipo().toString());
                         dettaglioContattoJSON.put("descrizione", dettaglioContatto.getDescrizione());
@@ -806,6 +814,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                         dettaglioContattoJSON.put("version", dettaglioContatto.getVersion());
                         ZonedDateTime dettaglioContattoVersionCorrected = dettaglioContatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
                         dettaglioContattoJSON.put("version", dettaglioContattoVersionCorrected);
+                    } else {
+                        log.info("Dettaglio contatto non trovato!");
                     }
                     if (dettaglioContattoJSON != null && contattoJSON != null) {
                         contattoTrovato.put("idContatto", contattoJSON);
@@ -813,11 +823,15 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                     }
                 }
 
+            } else {
+                log.info("contatt NON TROVATO");
             }
             objectRequested.put("contattoTrovato", contattoTrovato);
-            log.info(objectRequested.toString(4));
+            log.info("Inserisco l'oggetto nella risposta\t" + objectRequested.toString(4));
             jArrayDiRisposta.put(objectRequested);
+            log.info("...");
         }
+        log.info("RIRTONO LA RISPOSTA\n" + jArrayDiRisposta.toString(4));
         return new ResponseEntity(jArrayDiRisposta.toString(4), HttpStatus.OK);
     }
 
@@ -827,17 +841,23 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         JSONArray jArrayDiRisposta = new JSONArray();
         log.info("Entrato in findContattiStruttureForGruppoImport");
         JSONArray requestDataJsonArray = new JSONArray(requestData);
-        log.info(requestDataJsonArray.toString(4));
+        log.info("RequestData\n" + requestDataJsonArray.toString(4));
+        log.info("Ciclo gli oggetti");
         for (int i = 0; i < requestDataJsonArray.length(); i++) {
             JSONObject objectRequested = (JSONObject) requestDataJsonArray.get(i);
+            log.info("objectRequested:\n" + objectRequested);
             JSONObject contattoTrovato = new JSONObject();
-            Integer idStrutturaIternauta = objectRequested.getInt("idStrutturaIternauta");
-            if (idStrutturaIternauta != null && idStrutturaIternauta != 0) {
+            Integer idStrutturaInternauta = objectRequested.getInt("idStrutturaInternauta");
+            log.info("idStrutturaInternauta: " + idStrutturaInternauta);
+            if (idStrutturaInternauta != null && idStrutturaInternauta != 0) {
+                log.info("Cerco il contatto della struttura ByIdEsternoAndCategoria...");
                 List<Contatto> listaContatti = contattoRepository
-                        .findByIdEsternoAndCategoria(idStrutturaIternauta.toString(), "STRUTTURA");
+                        .findByIdEsternoAndCategoria(idStrutturaInternauta.toString(), "STRUTTURA");
+                log.info("Trovati: " + listaContatti.size());
                 if (listaContatti.size() == 1) {
                     Contatto contatto = listaContatti.get(0);
                     if (contatto != null) {
+                        log.info("contatto: " + contatto.getId());
                         JSONObject contattoJSON = new JSONObject();
                         contattoJSON.put("id", contatto.getId());
                         contattoJSON.put("categoria", contatto.getCategoria().toString());
@@ -845,6 +865,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                         ZonedDateTime contattoVersionCorrected = contatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
                         contattoJSON.put("version", contattoVersionCorrected);
                         JSONObject dettaglioContattoJSON = new JSONObject();
+                        log.info("cerco il DettaglioContatto findByIdContattoAndTipo...");
                         DettaglioContatto dettaglioContatto = dettaglioContattoRepository.
                                 findByIdContattoAndTipo(contatto, "STRUTTURA");
                         if (dettaglioContatto != null) {
@@ -854,20 +875,26 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                             dettaglioContattoJSON.put("principale", dettaglioContatto.getPrincipale());
                             ZonedDateTime dettaglioContattoVersionCorrected = dettaglioContatto.getVersion().withZoneSameInstant(ZoneId.of("Europe/Rome"));
                             dettaglioContattoJSON.put("version", dettaglioContattoVersionCorrected);
+                        } else {
+                            log.info("DettaglioContatto non trovato!");
                         }
                         if (dettaglioContattoJSON != null && contattoJSON != null) {
                             contattoTrovato.put("idContatto", contattoJSON);
                             contattoTrovato.put("idDettaglioContatto", dettaglioContattoJSON);
                         }
+                    } else {
+                        log.info("Contatto non trovato!");
                     }
                 }
 
             }
 
             objectRequested.put("contattoTrovato", contattoTrovato);
-            log.info(objectRequested.toString(4));
+            log.info("Inserisco l'oggetto nella risposta\t" + objectRequested.toString(4));
             jArrayDiRisposta.put(objectRequested);
+            log.info("...");
         }
+        log.info("RIRTONO LA RISPOSTA\n" + jArrayDiRisposta.toString(4));
         return new ResponseEntity(jArrayDiRisposta.toString(4), HttpStatus.OK);
     }
 }
