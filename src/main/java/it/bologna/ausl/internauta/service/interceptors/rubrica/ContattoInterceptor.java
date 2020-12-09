@@ -7,6 +7,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -124,7 +125,25 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                         }
 
                         break;
-
+                    case CercaContattiCustomFilterPico:
+                        String cercaAncheGruppiString = additionalData.get(InternautaConstants.AdditionalData.Keys.cercaAncheGruppi.toString());
+                        boolean cercaAncheGruppi = false;
+                        if (cercaAncheGruppiString != null) {
+                            cercaAncheGruppi = Boolean.parseBoolean(cercaAncheGruppiString);
+                        }
+                        BooleanExpression picoCustomFilter = 
+                            QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.ESTERNO.toString()).or
+                            (
+                                    (QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.PERSONA.toString()).and(
+                                            QContatto.contatto.tipo.eq(Contatto.TipoContatto.ORGANIGRAMMA.toString())
+                                    ))
+                            );
+                        if (cercaAncheGruppi) {
+                            picoCustomFilter = picoCustomFilter.or(QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.GRUPPO.toString()));
+//                            picoCustomFilter = (QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.GRUPPO.toString()));
+                        }
+                        initialPredicate = (picoCustomFilter).and(initialPredicate);
+                        break;
                 }
             }
         }
@@ -135,12 +154,13 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         List<PermessoEntitaStoredProcedure> contattiWithStandardPermissions;
         try {
-            contattiWithStandardPermissions = permissionManager.getPermissionsOfSubjectActualFromDate(
+            List<Object> struttureUtente = userInfoService.getUtenteStrutturaList(authenticatedSessionData.getUser(), true).stream().map(us -> us.getIdStruttura()).collect(Collectors.toList());           
+            contattiWithStandardPermissions = permissionManager.getPermissionsOfSubjectAdvanced(
                     authenticatedSessionData.getPerson(),
                     null,
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ACCESSO.toString()}),
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.RUBRICA.toString()}),
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.CONTATTO.toString()}), false, null);
+                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.CONTATTO.toString()}), false, null, null, struttureUtente, BlackBoxConstants.Direzione.PRESENTE);
         } catch (BlackBoxPermissionException ex) {
             LOGGER.error("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
             throw new AbortLoadInterceptorException("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
@@ -284,7 +304,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 //      String idAziendeStr = UtilityFunctions.getArrayString(objectMapper, collect);
 
         List<ParametroAziende> parameters = parametriAziende.getParameters("protocontatti", new Integer[]{authenticatedUserProperties.getUser().getIdAzienda().getId()}, new String[]{Applicazione.Applicazioni.rubrica.toString()});
-        contatto.setProtocontatto(false);
+//        contatto.setProtocontatto(false); // malo, sembra sbagliato
         if (parameters != null && !parameters.isEmpty() && parametriAziende.getValue(parameters.get(0), Boolean.class) == true) {
             contatto.setProtocontatto(true);
         }

@@ -1090,7 +1090,11 @@ public class BaborgUtils {
                                 if (!arcoBool(elementi, formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi")))) {
                                     bloccante = true;
                                     log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " non rispetta l'arco temporale del padre");
-                                    strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " non rispetta l'arco temporale del padre,");
+                                    if (strutturaErrorMap.get("ERRORE")!=null){
+                                        strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " non rispetta l'arco temporale del padre,");
+                                    }else {
+                                        strutturaErrorMapWrite.put("ERRORE", " non rispetta l'arco temporale del padre,");
+                                    }
                                 }
                             }
 
@@ -1738,7 +1742,7 @@ public class BaborgUtils {
         if (dataFineB == null) {
             dataFineB = LocalDateTime.MAX;
         }
-        return (dataInizioA.compareTo(dataFineB) <= 0 && dataFineA.compareTo(dataInizioB) >= 0);
+        return (dataInizioA.compareTo(dataFineB) <= 0 && dataFineA.compareTo(dataInizioB) >= 0) && dataInizioA.compareTo(dataInizioB) <= 0;
     }
 
     private Map<String, LocalDateTime> maxMin(List<Map<String, Object>> elementi) {

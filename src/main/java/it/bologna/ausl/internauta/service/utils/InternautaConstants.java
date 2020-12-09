@@ -25,7 +25,7 @@ public class InternautaConstants {
         }
 
         public enum Ambiti {
-            PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA, DELEGATO
+            PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA, DELEGATO, MATRINT
         }
 
         public enum Tipi {
@@ -43,7 +43,7 @@ public class InternautaConstants {
     public static class AdditionalData {
 
         public enum Keys {
-            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto, dataRiferimento, ruoli, Merge, CercaAncheInContatto
+            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto, dataRiferimento, ruoli, Merge, CercaAncheInContatto, cercaAncheGruppi
         }
 
         public enum OperationsRequested {
@@ -64,6 +64,7 @@ public class InternautaConstants {
             CaricaSottoResponsabili,
             RootLoading,
             FilterContattiDaVerificareOProtocontatti,
+            CercaContattiCustomFilterPico,
             CercaAncheInContatto,
         }
 

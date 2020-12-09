@@ -242,7 +242,7 @@ public class UserInfoService {
         Set<Ruolo> ruoliModuloGenerale = getRuoliGenerali(utente, interaziendali);
         
         // modulo Matrint
-        Set<Ruolo> ruoliModuloMatrint = getRuoliMatrint(utente, interaziendali, idAziende);
+        Set<Ruolo> ruoliModuloMatrint = getRuoliMatrint(utente, interaziendali, idAziende, true);
         
         mappaRuoli.put(Ruolo.ModuliRuolo.GENERALE.toString(), new ArrayList<>(ruoliModuloGenerale));
         mappaRuoli.put(Ruolo.ModuliRuolo.MATRINT.toString(), new ArrayList<>(ruoliModuloMatrint));
@@ -251,8 +251,13 @@ public class UserInfoService {
     }
     
     @Cacheable(value = "getRuoliGenerali_utente__ribaltorg__", key = "{#utente.getId()}")
-    public Set<Ruolo> getRuoliMatrint(Utente utente, Boolean interaziendali, Integer[] idAziende) {
-        Set<Ruolo> res = getRuoliStandard(utente, interaziendali);
+    public Set<Ruolo> getRuoliMatrint(Utente utente, Boolean interaziendali, Integer[] idAziende, Boolean calcolaRuoliStandard) {
+        Set<Ruolo> res = new HashSet();
+        
+        if (calcolaRuoliStandard) {
+            res.addAll(getRuoliStandard(utente, interaziendali));
+        }
+        
         List<ParametroAziende> filtraResponsabiliMatrintParams = parametriAziende.getParameters("AccessoMatrintFiltratoPerRuolo", idAziende);
         if (filtraResponsabiliMatrintParams != null && !filtraResponsabiliMatrintParams.isEmpty() && filtraResponsabiliMatrintParams.stream().anyMatch(param -> parametriAziende.getValue(param, Boolean.class))) {
             res.addAll(getRuoliStrutture(utente, Arrays.asList(Ruolo.CodiciRuolo.R)));
@@ -260,7 +265,7 @@ public class UserInfoService {
         try {
             List<Integer> idUtentiDelegati = getPermessiDelega(utente);
             idUtentiDelegati.stream().map(idUtente -> utenteRepository.getOne(idUtente)).forEach(u -> {
-                res.addAll(getRuoliMatrint(u, interaziendali, idAziende));
+                res.addAll(getRuoliMatrint(u, interaziendali, idAziende, false));
             });
         } catch (BlackBoxPermissionException ex) {
             LOGGER.error("errore nel calcolo dei permessi Delegato", ex);
@@ -275,14 +280,14 @@ public class UserInfoService {
     public Set<Ruolo> getRuoliGenerali(Utente utente, Boolean interaziendali) {
         Set<Ruolo> res = getRuoliStandard(utente, interaziendali);
         res.addAll(getRuoliStrutture(utente, Stream.of(Ruolo.CodiciRuolo.values()).collect(Collectors.toList())));
-        try {
-            List<Integer> idUtentiDelegati = getPermessiDelega(utente);
-            idUtentiDelegati.stream().map(idUtente -> utenteRepository.getOne(idUtente)).forEach(u -> {
-                res.addAll(getRuoliGenerali(u, interaziendali));
-            });
-        } catch (BlackBoxPermissionException ex) {
-            LOGGER.error("errore nel calcolo dei permessi delegato", ex);
-        }
+//        try {
+//            List<Integer> idUtentiDelegati = getPermessiDelega(utente);
+//            idUtentiDelegati.stream().map(idUtente -> utenteRepository.getOne(idUtente)).forEach(u -> {
+//                res.addAll(getRuoliGenerali(u, interaziendali));
+//            });
+//        } catch (BlackBoxPermissionException ex) {
+//            LOGGER.error("errore nel calcolo dei permessi delegato", ex);
+//        }
         return res;
     }
     
@@ -710,8 +715,14 @@ public class UserInfoService {
     @Cacheable(value = "getPermessiFilteredByAdditionalDataByIdUtente__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toLocalDate().toEpochDay(): 'null', #modalita, "
             + "#idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null', #ambitiPermesso != null? #ambitiPermesso.toString(): 'null', "
             + "#tipiPermesso != null? #tipiPermesso.toString(): 'null'}")
-    public List<Permesso> getPermessiFilteredByAdditionalDataByIdUtente(Utente utente, LocalDateTime dataPermesso,
-            String modalita, Integer idProvenienzaOggetto, List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
+    public List<Permesso> getPermessiFilteredByAdditionalDataByIdUtente(
+            Utente utente, 
+            LocalDateTime dataPermesso,
+            String modalita, 
+            Integer idProvenienzaOggetto, 
+            List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, 
+            List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
+        
         List<PermessoEntitaStoredProcedure> permessiFilteredByAdditionalData = getPermessiFilteredByAdditionalData(utente, dataPermesso, modalita, idProvenienzaOggetto, ambitiPermesso, tipiPermesso);
         // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend
         List<Permesso> permessiUtente = new ArrayList<>();
@@ -735,12 +746,13 @@ public class UserInfoService {
     }
 
     // NB: non è by CODICEAZIENDA, ma è ByUtente da cui prendo Persona da cui prendo codice azienda
+    @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda_utente__ribaltorg__", key = "{#utente.getId()}")
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Utente utente) throws BlackBoxPermissionException {
         return getPermessiDiFlussoByCodiceAzienda(utente.getIdPersona());
     }
 
     // NB: non è by CODICEAZIENDA, ma è ByPersona da cui prendo codice azienda
-    @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda__ribaltorg__", key = "{#persona.getId()}")
+    @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda_persona__ribaltorg__", key = "{#persona.getId()}")
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
         Map<String, List<PermessoEntitaStoredProcedure>> map = new HashMap<>();
 
@@ -853,6 +865,17 @@ public class UserInfoService {
 
         return aziende;
     }
+    
+    @Cacheable(value = "getAziendeWherePersonaIsR__ribaltorg__", key = "{#persona.getId()}")
+    public List<Azienda> getAziendeWherePersonaIsR(Persona persona) {
+        List<Azienda> aziende = null;
+
+        aziende = persona.getUtenteList().stream().filter(
+                utente -> getRuoliPerModuli(utente, false).get(Ruolo.ModuliRuolo.GENERALE.toString()).stream().anyMatch(ruolo -> ruolo.getNomeBreve() == Ruolo.CodiciRuolo.R)
+        ).map(utente -> utente.getIdAzienda()).collect(Collectors.toList());
+
+        return aziende;
+    }
 
     @Cacheable(value = "aziendaFromIdUtente__ribaltorg__", key = "{#idUtente}")
     public Azienda getAziendaFromIdUtente(Integer idUtente) {
@@ -877,20 +900,29 @@ public class UserInfoService {
     
     @Cacheable(value = "isR__ribaltorg__", key = "{#user.getId(), #modulo.toString()}")
     public boolean isR(Utente user, Ruolo.ModuliRuolo modulo) {
-//       if (modulo == null) {
-//           modulo = Ruolo.ModuliRuolo.GENERALE;
-//       }
+
        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
-        return ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.R.toString()) && 
-            ruoliUtentiPersona.get(Ruolo.CodiciRuolo.R.toString()).containsKey(modulo.toString()) &&
-            ruoliUtentiPersona.get(Ruolo.CodiciRuolo.R.toString()).get(modulo.toString()).contains(user.getIdAzienda().getCodice());
+       boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.R.toString());
+        if (containsKey) {
+            List<String> get = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.R.toString()).get(modulo.toString());
+            if (get != null) {
+                return get.contains(user.getIdAzienda().getCodice());
+            }
+        }
+        return false;
     }
 
     @Cacheable(value = "isCA__ribaltorg__", key = "{#user.getId()}")
     public boolean isCA(Utente user) {
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
-        return ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.CA.toString()) && 
-            ruoliUtentiPersona.get(Ruolo.CodiciRuolo.CA.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString()).contains(user.getIdAzienda().getCodice());
+        boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.CA.toString());
+        if (containsKey) {
+            List<String> get = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.CA.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString());
+            if (get != null) {
+                return get.contains(user.getIdAzienda().getCodice());
+            }
+        }
+        return false;
     }
 
     @Cacheable(value = "isSD__ribaltorg__", key = "{#user.getId()}")
@@ -910,7 +942,7 @@ public class UserInfoService {
     public List<Integer> getPermessiDelega(Utente user) throws BlackBoxPermissionException {
         List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubjectActualFromDate(user, null,
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.DELEGA.toString()}),
-                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.DELEGATO.toString()}),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.MATRINT.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.DELEGA.toString()}),
                 false, null);
 

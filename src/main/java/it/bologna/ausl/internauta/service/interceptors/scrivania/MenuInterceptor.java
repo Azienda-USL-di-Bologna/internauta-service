@@ -23,6 +23,7 @@ import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -149,11 +150,14 @@ public class MenuInterceptor extends InternautaBaseInterceptor {
 //        ambitiPecG.add(InternautaConstants.Permessi.Ambiti.PECG.toString());
         
         LOGGER.info("USER " + authenticatedSessionData.getUser().getId());
-        List<String> ruoliCACI = authenticatedSessionData.getUser().getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString()).stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
-        LOGGER.info("ruoliCACI " + ruoliCACI);
+        Set<String> ruoliTutti = new HashSet();
+//        List<String> ruoliCACI = authenticatedSessionData.getUser().getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString()).stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
+        Map<String, List<Ruolo>> mappaRuoli = authenticatedSessionData.getUser().getMappaRuoli();
+        mappaRuoli.keySet().forEach(k -> mappaRuoli.get(k).stream().forEach(ruolo -> ruoliTutti.add(ruolo.getNomeBreve().toString())));
+        LOGGER.info("ruoliCACI " + ruoliTutti);
         
         BooleanExpression booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true",
-                QMenu.menu.ruoliSufficienti, String.join(",", ruoliCACI));
+                QMenu.menu.ruoliSufficienti, String.join(",", ruoliTutti));
         
 //        if (filterAziendaUtente == null)
 //            filterAziendaUtente = getFilterAziendaIn(aziendePersona).and(booleanTemplate);
