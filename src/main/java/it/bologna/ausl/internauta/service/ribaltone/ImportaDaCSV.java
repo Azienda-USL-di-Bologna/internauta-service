@@ -438,11 +438,13 @@ public class ImportaDaCSV {
     }
 
     private String getConsonanti(String string) {
-        return string.replaceAll("['aeiouòèéàùìEUIOA ]", "");
+
+        return string.replaceAll("['aeiouòèéàùìEUIOA-. ]", "");
     }
 
     private String getVocali(String string) {
-        return string.replaceAll("['qwrtpsdfghklzxcvbnmQWRTYPSDFGHJKLZXCVBNM ]", "");
+        return string.replaceAll("['qwrtpsdfghklzxcvbnmQWRTYPSDFGHJKLZXCVBNM-. ]", "");
+
     }
 
     private String codiceCognome(String cognome) {
