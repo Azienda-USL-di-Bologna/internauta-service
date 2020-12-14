@@ -98,7 +98,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                     case FilterContattiDaVerificareOProtocontatti:
                         BooleanExpression protocontattoFilter;
                         protocontattoFilter = QContatto.contatto.daVerificare.eq(true).or(QContatto.contatto.protocontatto.eq(true));
-                        initialPredicate = protocontattoFilter.and(initialPredicate);
+                        initialPredicate = (protocontattoFilter).and(initialPredicate);
                         try {
                             LOGGER.info("Devo cercare i PROTOCONTATTI "
                                     + "creati dalle persone che fanno parte "
@@ -114,7 +114,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                                         = QContatto.contatto.protocontatto.eq(true)
                                                 .and(QContatto.contatto.idPersonaCreazione
                                                         .in(personaListInStrutture));
-                                initialPredicate = protocontattiDiAltrePersona.or(initialPredicate);
+                                initialPredicate = (protocontattiDiAltrePersona).and(initialPredicate);
                             } else {
                                 LOGGER.info("AuthenticatedUser non e' segretario "
                                         + "oppure non ci sono persone nelle "
@@ -131,13 +131,12 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                         if (cercaAncheGruppiString != null) {
                             cercaAncheGruppi = Boolean.parseBoolean(cercaAncheGruppiString);
                         }
-                        BooleanExpression picoCustomFilter = 
-                            QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.ESTERNO.toString()).or
-                            (
-                                    (QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.PERSONA.toString()).and(
-                                            QContatto.contatto.tipo.eq(Contatto.TipoContatto.ORGANIGRAMMA.toString())
-                                    ))
-                            );
+                        BooleanExpression picoCustomFilter
+                                = QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.ESTERNO.toString()).or(
+                                        (QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.PERSONA.toString()).and(
+                                                QContatto.contatto.tipo.eq(Contatto.TipoContatto.ORGANIGRAMMA.toString())
+                                        ))
+                                );
                         if (cercaAncheGruppi) {
                             picoCustomFilter = picoCustomFilter.or(QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.GRUPPO.toString()));
 //                            picoCustomFilter = (QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.GRUPPO.toString()));
@@ -147,6 +146,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
+        LOGGER.info("query: " + initialPredicate.toString());
         return initialPredicate;
     }
 
@@ -154,7 +154,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         List<PermessoEntitaStoredProcedure> contattiWithStandardPermissions;
         try {
-            List<Object> struttureUtente = userInfoService.getUtenteStrutturaList(authenticatedSessionData.getUser(), true).stream().map(us -> us.getIdStruttura()).collect(Collectors.toList());           
+            List<Object> struttureUtente = userInfoService.getUtenteStrutturaList(authenticatedSessionData.getUser(), true).stream().map(us -> us.getIdStruttura()).collect(Collectors.toList());
             contattiWithStandardPermissions = permissionManager.getPermissionsOfSubjectAdvanced(
                     authenticatedSessionData.getPerson(),
                     null,
