@@ -3,9 +3,9 @@ package it.bologna.ausl.internauta.service.baborg.utils;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
-import it.bologna.ausl.internauta.service.exceptions.BaborgCSVAnomaliaException;
-import it.bologna.ausl.internauta.service.exceptions.BaborgCSVBloccanteException;
-import it.bologna.ausl.internauta.service.exceptions.BaborgCSVBloccanteRigheException;
+import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVAnomaliaException;
+import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteException;
+import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteRigheException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ImportazioniOrganigrammaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -1640,6 +1640,8 @@ public class BaborgUtils {
         int idAziendaCodice = Integer.parseInt(codiceAzienda);
         ImportazioniOrganigramma res = null;
         BaborgUtils bean = beanFactory.getBean(BaborgUtils.class);
+//        ImportaDaCSV beanSave = beanFactory.getBean(ImportaDaCSV.class);
+
 
         try {
 

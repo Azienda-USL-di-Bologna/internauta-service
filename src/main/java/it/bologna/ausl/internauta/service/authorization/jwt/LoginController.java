@@ -339,7 +339,7 @@ public class LoginController {
 
         //LOGIN SAML
         if (!samlEnabled) {
-            return new ResponseEntity("SAML authentication not enabled", HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity("SAML authentication not enabled", HttpStatus.UNPROCESSABLE_ENTITY);
         }
         logger.debug("SAML Authentication is enabled");
 
