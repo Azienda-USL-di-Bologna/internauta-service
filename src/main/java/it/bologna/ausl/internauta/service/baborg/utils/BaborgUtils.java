@@ -15,7 +15,6 @@ import it.bologna.ausl.internauta.service.repositories.gru.MdrResponsabiliReposi
 import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepositoryCustomImpl;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrTrasformazioniRepository;
-import it.bologna.ausl.internauta.service.ribaltone.ImportaDaCSV;
 import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
@@ -46,7 +45,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -227,9 +228,9 @@ public class BaborgUtils {
      * @return uuid documento di mongo
      *
      * @throws
-     * it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteException
+     * it.bologna.ausl.internauta.service.exceptions.BaborgCSVBloccanteException
      * @throws
-     * it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVAnomaliaException
+     * it.bologna.ausl.internauta.service.exceptions.BaborgCSVAnomaliaException
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = BaborgCSVAnomaliaException.class, propagation = Propagation.REQUIRES_NEW)
     public String csvTransactionalReadDeleteInsert(MultipartFile file, String tipo, Integer codiceAzienda, Integer idAzienda) throws BaborgCSVBloccanteException, BaborgCSVAnomaliaException, MongoWrapperException, BaborgCSVBloccanteRigheException {
@@ -289,7 +290,6 @@ public class BaborgUtils {
                     nRigheAnomale = 0;
 
                     List<Map<String, Object>> listAppartenentiMap = new ArrayList<>();
-                    
                     Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
                     //integer1 appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
                     Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti = new HashMap<>();
@@ -868,7 +868,6 @@ public class BaborgUtils {
                                 if (responsabiliMap.get("datain") != null && !responsabiliMap.get("datain").toString().trim().equals("") && responsabiliMap.get("datain") != "") {
                                     if (!arcoBool(mieiPadri, formattattore(responsabiliMap.get("datain")), formattattore(responsabiliMap.get("datafi")))) {
                                         mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella non valida per periodo temporale,");
-                                        mapError.put("Anomalia", "true");
                                         nRigheAnomale++;
                                         anomalia = true;
                                         anomaliaRiga = true;
@@ -1368,6 +1367,13 @@ public class BaborgUtils {
         return uuid;
     }
 
+    private static LocalDateTime convertDateToLocaleDateTime(Date dateToConvert) {
+        if (dateToConvert == null) {
+            return null;
+        }
+        return new java.sql.Timestamp(dateToConvert.getTime()).toLocalDateTime();
+    }
+
     /**
      * Sets up the processors used for APPARTENENTI, RESPONSABILI, STRUTTURA,
      * TRASFORMAZIONI. There are 4 tables. Empty columns are read as null (hence
@@ -1634,11 +1640,12 @@ public class BaborgUtils {
         int idAziendaCodice = Integer.parseInt(codiceAzienda);
         ImportazioniOrganigramma res = null;
         BaborgUtils bean = beanFactory.getBean(BaborgUtils.class);
-        ImportaDaCSV beanSave = beanFactory.getBean(ImportaDaCSV.class);
+//        ImportaDaCSV beanSave = beanFactory.getBean(ImportaDaCSV.class);
+
 
         try {
 
-            String csv_error_link = beanSave.csvTransactionalReadDeleteInsert(file, tipo, idAziendaCodice, idAziendaInt);
+            String csv_error_link = bean.csvTransactionalReadDeleteInsert(file, tipo, idAziendaCodice, idAziendaInt);
             // Update nello storico importazioni. esito: OK e Data Fine: Data.now
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Ok", csv_error_link);
         } catch (BaborgCSVBloccanteException e) {
@@ -1657,8 +1664,53 @@ public class BaborgUtils {
 
         return res;
     }
-    
-    
+
+    /**
+     * non usata ATTENZIONE gli elementi devono essere ordinati per datain ASC
+     *
+     * @param elementi lista di padri/elementi/strutture con datain e data fi
+     * @param dataInizio data di inizio del figlio
+     * @param dataFine data di fine del figlio
+     * @return true se il figlio rispetta l'arco temporale del o dei padri nel
+     * caso in cui il padre sia spezzato ma continuo
+     */
+    public Boolean arco_old(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
+        if (elementi.isEmpty()) {
+            return false;
+        }
+        Map<String, Object> elemento = elementi.get(0);
+        if (formattattore(elemento.get("datain")).equals(dataInizio) || formattattore(elemento.get("datain")).isBefore(dataInizio)) {
+            if (elemento.get("datafi") == null) {
+                return true;
+            } else if (dataFine != null) {
+                if (formattattore(elemento.get("datafi")).equals(dataFine) || formattattore(elemento.get("datafi")).isAfter(dataFine)) {
+                    return true;
+                } else {
+                    elementi.remove(0);
+                    return arcoBool(elementi, formattattore(elemento.get("datafi")).plusDays(1), dataFine);
+                }
+            } else {
+                elementi.remove(0);
+                return arcoBool(elementi, formattattore(elemento.get("datafi")).plusDays(1), dataFine);
+            }
+        } else {
+            elementi.remove(0);
+            return arcoBool(elementi, dataInizio, dataFine);
+        }
+    }
+
+    private List<Integer> arco(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
+        List<Integer> lista = new ArrayList<>();
+        if (!elementi.isEmpty()) {
+            for (Map<String, Object> elemento : elementi) {
+                if (overlap(formattattore(elemento.get("datain")), formattattore(elemento.get("datafi")), dataInizio, dataFine)) {
+                    lista.add(Integer.parseInt(elemento.get("riga").toString()));
+                }
+            }
+        }
+        return lista;
+    }
+
     /**
      *
      * @param elementi lista fi elementi da controllare se hanno un periodo in
@@ -1673,18 +1725,6 @@ public class BaborgUtils {
             return false;
         }
         return elementi.stream().anyMatch(elemento -> overlap(formattattore(elemento.get("datain")), formattattore(elemento.get("datafi")), dataInizio, dataFine));
-    }
-    
-    private List<Integer> arco(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
-        List<Integer> lista = new ArrayList<>();
-        if (!elementi.isEmpty()) {
-            for (Map<String, Object> elemento : elementi) {
-                if (overlap(formattattore(elemento.get("datain")), formattattore(elemento.get("datafi")), dataInizio, dataFine)) {
-                    lista.add(Integer.parseInt(elemento.get("riga").toString()));
-                }
-            }
-        }
-        return lista;
     }
 
     /**
