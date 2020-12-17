@@ -1,13 +1,10 @@
 package it.bologna.ausl.internauta.service.controllers.rubrica;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.MapperFeature;
+import java.util.concurrent.TimeUnit;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.blackbox.repositories.EntitaRepository;
-import it.bologna.ausl.blackbox.repositories.TipoEntitaRepository;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -19,7 +16,6 @@ import it.bologna.ausl.internauta.service.configuration.utils.RubricaRestClientC
 import it.bologna.ausl.internauta.service.controllers.permessi.PermessiCustomController;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -37,42 +33,30 @@ import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
-import it.bologna.ausl.model.entities.permessi.Entita;
-import it.bologna.ausl.model.entities.permessi.TipoEntita;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.Indirizzo;
-import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Telefono;
 import it.bologna.ausl.rubrica.maven.client.RestClient;
 import it.bologna.ausl.rubrica.maven.client.RestClientException;
 import it.bologna.ausl.rubrica.maven.resources.EmailResource;
 import it.bologna.ausl.rubrica.maven.resources.FullContactResource;
 import it.nextsw.common.utils.CommonUtils;
-import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.persistence.Entity;
-import javax.persistence.Table;
 import javax.servlet.http.HttpServletRequest;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -419,11 +403,12 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         }
         log.info("set Estemporanei To AddToRubrica to null");
         data.setEstemporaneiToAddToRubrica(null);
+        data.setGlogParams(null);
 
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"),
                 objectMapper.writeValueAsString(data));
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder().connectTimeout(2, TimeUnit.MINUTES).build();
 
         Request request = new Request.Builder()
                 .url(buildGestisciDestinatariDaRubricaInternautarUrl(azienda, data.getApp()))
