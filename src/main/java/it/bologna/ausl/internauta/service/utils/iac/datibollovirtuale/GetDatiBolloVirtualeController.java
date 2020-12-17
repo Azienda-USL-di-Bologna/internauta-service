@@ -6,6 +6,7 @@
 package it.bologna.ausl.internauta.service.utils.iac.datibollovirtuale;
 
 import it.bologna.ausl.internauta.service.utils.iac.rest.InternautaArgoCommunicatorRestCaller;
+import it.nextsw.common.utils.CommonUtils;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -28,10 +29,10 @@ public class GetDatiBolloVirtualeController {
 
     @Autowired
     InternautaArgoCommunicatorRestCaller internautaArgoCommunicatorRestCaller;
+
     //
     // SOLO PER TEST IN LOCALE SUL PC
     // private String localTestUrl = "http://localhost:8000";
-
     private String appUrl = "/get_dati_bollo_virtuale";
 
     @Value("${iac.localhost.url}")
@@ -46,6 +47,7 @@ public class GetDatiBolloVirtualeController {
         LOGGER.info("Aziende: " + list);
         Map<String, String> header = new HashMap<>();
         header.put("aziende", list);
+
         Response res = internautaArgoCommunicatorRestCaller.
                 doGetCallToInternautaArgoCommunicator(iacLocalhostUrl + appUrl, header);
         LOGGER.info(res.message());
