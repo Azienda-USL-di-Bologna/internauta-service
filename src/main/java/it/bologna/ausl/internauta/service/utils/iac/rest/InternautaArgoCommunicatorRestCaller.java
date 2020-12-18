@@ -5,6 +5,7 @@
  */
 package it.bologna.ausl.internauta.service.utils.iac.rest;
 
+import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -14,6 +15,8 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,11 +25,13 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class InternautaArgoCommunicatorRestCaller {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(InternautaArgoCommunicatorRestCaller.class);
-    
+
     public Response doGetCallToInternautaArgoCommunicator(String appUrl, Map<String, String> headers) throws IOException {
         LOGGER.info("doGetCallToInternautaArgoCommunicator: url " + appUrl);
+        TokenBasedAuthentication authentication = (TokenBasedAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        String token = authentication.getToken();
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(60, TimeUnit.SECONDS) // connection timeout
                 .writeTimeout(60, TimeUnit.SECONDS) // (probabilmente non serve, ma mettiamolo lo stesso)
@@ -35,7 +40,7 @@ public class InternautaArgoCommunicatorRestCaller {
         Request.Builder getBuilder = new Request.Builder()
                 .url(appUrl)
                 .get();
-        
+
         if (headers != null) {
             for (Map.Entry<String, String> header : headers.entrySet()) {
                 String key = header.getKey();
@@ -44,7 +49,8 @@ public class InternautaArgoCommunicatorRestCaller {
             }
         }
         getBuilder.addHeader("Content-Type", "application/json");
-        
+        getBuilder.addHeader("Authorization", "Bearer " + token);
+
         Request request = getBuilder.build();
         Response res = client.newCall(request).execute();
         if (res.isSuccessful()) {

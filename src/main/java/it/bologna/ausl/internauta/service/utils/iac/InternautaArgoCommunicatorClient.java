@@ -50,12 +50,24 @@ public class InternautaArgoCommunicatorClient {
     @RequestMapping(value = {"get_dati_bollo_virtuale"},
             method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getDatiBolloVirutale() throws IOException {
+        LOGGER.info("Intecettata chiamata get_dati_bollo_virtuale");
+        LOGGER.info("Recupero info autenticazioneUtente");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Utente loggedUser = (Utente) authentication.getPrincipal();
         Persona personaLogged = personaRepository.getOne(loggedUser.getIdPersona().getId());
-        List<String> codiciAziende = userInfoService.getAziendeWherePersonaIsCa(personaLogged).stream().map(azienda -> azienda.getCodice()).collect(Collectors.toList());
-        JSONArray datiBolloVirtualeAziende = getDatiBolloVirtualeController.getDatiBolloVirtualeAziende(codiciAziende);
+        LOGGER.info("Recuper aziende su cui è attivo");
+        List<String> codiciAziende = userInfoService
+                .getAziendeWherePersonaIsCa(personaLogged).stream()
+                .map(azienda -> azienda.getCodice()).collect(Collectors.toList());
+        JSONArray datiBolloVirtualeAziende = getDatiBolloVirtualeController
+                .getDatiBolloVirtualeAziende(codiciAziende);
         System.out.println(datiBolloVirtualeAziende.toString(4));
         return ResponseEntity.ok(datiBolloVirtualeAziende.toString(4));
+    }
+    
+    @RequestMapping(value = {"verify_me"}, method = RequestMethod.GET)
+    public ResponseEntity<String> verifyMe() {
+        LOGGER.info("VERIFICATO");
+        return ResponseEntity.ok("TUTTO OK");
     }
 }
