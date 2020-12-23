@@ -16,6 +16,7 @@ import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEn
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.configuration.utils.RubricaRestClientConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.permessi.PermessiCustomController;
+import it.bologna.ausl.internauta.service.exceptions.GruppiException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
@@ -856,7 +857,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = "salvaGruppo",
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> salvaGruppo(@RequestBody Contatto gruppo, HttpServletRequest request){
+    public void salvaGruppo(@RequestBody Contatto gruppo, HttpServletRequest request) throws GruppiException{
 //    public void salvaGruppo(@RequestBody Contatto gruppo, HttpServletRequest request) throws RestControllerEngineException, AbortSaveInterceptorException, BlackBoxPermissionException {
 
         log.info("salvaGruppo");
@@ -912,10 +913,10 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             gruppo.setContattiDelGruppoList(gruppiContattiList);
 
             em.persist(gruppo);
-            return new ResponseEntity("Tutto OK", HttpStatus.OK);
+            
         } catch (Exception e) {
             log.debug("entro qui");
-            return new ResponseEntity(e.toString(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new GruppiException("errore nel salvataggio del gruppo da csv", e);
         }
 //        Map<String, Object> gruppoSenzaIdContattoAncestor = rimuoviIdContattoAncestor(gruppo);
 //        ContattoWithContattiDelGruppoListAndDettaglioContattoListAndIdPersonaCreazione gruppoPrj = projectionFactory.createProjection(ContattoWithContattiDelGruppoListAndDettaglioContattoListAndIdPersonaCreazione.class, gruppo);
