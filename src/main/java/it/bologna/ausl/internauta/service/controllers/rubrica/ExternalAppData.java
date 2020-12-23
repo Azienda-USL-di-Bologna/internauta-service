@@ -22,9 +22,9 @@ public class ExternalAppData {
     private String codiceAzienda;
     private String selectedContactsLists;
     private String cfUtenteOperazione;
-    
+
     private List<Contatto> estemporaneiToAddToRubrica;
-    private String glogParams;
+    private String glogParams = "";
 //    private Map<String, List<SelectedContact>> selectedContactsLists;
 
     public String getMode() {
@@ -89,7 +89,7 @@ public class ExternalAppData {
     public void setCfUtenteOperazione(String cfUtenteOperazione) {
         this.cfUtenteOperazione = cfUtenteOperazione;
     }
-    
+
     public String getGlogParams() {
         return glogParams;
     }
