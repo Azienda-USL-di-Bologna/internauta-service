@@ -72,6 +72,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -329,6 +330,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         data.setCfUtenteOperazione(persona.getCodiceFiscale());
 
         List<Contatto> estemporaneiToAddToRubricaAsProtocontatti = data.getEstemporaneiToAddToRubrica();
+        String glogParams = data.getGlogParams();
 
         Persona getPersona = personaRepository.findById(persona.getId()).get();
         Utente getUtente = utenteRepository.findById(utente.getId()).get();
@@ -401,9 +403,13 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 //            log.info("selectedContactsListsAsString to send at inde: " + selectedContactsListsAsString);
             data.setSelectedContactsLists(selectedContactsListsAsString);
         }
-        log.info("set Estemporanei To AddToRubrica to null");
+        log.info("set estemporaneiToAddToRubrica to null");
         data.setEstemporaneiToAddToRubrica(null);
-        data.setGlogParams(null);
+
+        if (glogParams.isEmpty() || StringUtils.isEmpty(glogParams)) {
+            log.info("set Glog Params to null");
+            data.setGlogParams(null);
+        }
 
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"),
