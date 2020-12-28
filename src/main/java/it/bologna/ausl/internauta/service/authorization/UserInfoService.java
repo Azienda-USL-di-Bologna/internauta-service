@@ -296,7 +296,7 @@ public class UserInfoService {
     
     @Cacheable(value = "getRuoliStandard_utente__ribaltorg__", key = "{#utente.getId()}")
     public Set<Ruolo> getRuoliStandard(Utente utente, Boolean interaziendali) {
-         Set<Ruolo> res = new HashSet<>();
+        Set<Ruolo> res = new HashSet<>();
         List<Ruolo> ruoliAll = ruoloRepository.findAll();
         for (Ruolo ruolo : ruoliAll) {
             if (interaziendali == null || interaziendali == true) {
@@ -592,7 +592,7 @@ public class UserInfoService {
     }
 
     /**
-     * restituisce tutte le aziende degli utenti della persona passata
+     * restituisce tutte le aziende degli utenti attivi della persona passata
      *
      * @param persona
      * @return
