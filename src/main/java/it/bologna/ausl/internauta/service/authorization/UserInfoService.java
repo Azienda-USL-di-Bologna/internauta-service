@@ -532,7 +532,8 @@ public class UserInfoService {
     @Cacheable(value = "getUtentiPersona__ribaltorg__", key = "{#persona.getId()}")
     public List<Utente> getUtentiPersona(Persona persona) {
         Persona refreshedPersona = personaRepository.getOne(persona.getId());
-        return refreshedPersona.getUtenteList();
+        // Aggiungo questo stream.collect per ricreare la lista uguale a se stessa alrimenti mi da errore.
+        return refreshedPersona.getUtenteList().stream().collect(Collectors.toList());
     }
 
     @Cacheable(value = "getAziendaUtente__ribaltorg__", key = "{#utente.getId()}")

@@ -118,8 +118,8 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
     
-//    @Autowired
-//    private GestioneMenu gestioneMenu;
+    @Autowired
+    private GestioneMenu gestioneMenu;
     
     private final String CMD_APRI_FIRMONE = "?CMD=open_firmone_local";
     private final String CMD_APRI_PRENDONE = "?CMD=open_prendone_local";
@@ -306,13 +306,13 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     }
     
     
-//    @RequestMapping(value = {"getMenuScrivania"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-//    public ResponseEntity<List<ItemMenu>> getMenuScrivania(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException {
-//        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-//        Utente utente = authenticatedSessionData.getUser();
-//        Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
-//        
-//        List<ItemMenu> buildMenu = gestioneMenu.buildMenu(persona);
-//        return new ResponseEntity(buildMenu.toString(), HttpStatus.OK);
-//    }
+    @RequestMapping(value = {"getMenuScrivania"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<ItemMenu>> getMenuScrivania(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente utente = authenticatedSessionData.getUser();
+        Persona persona = utente.getIdPersona();
+        
+        List<ItemMenu> buildMenu = gestioneMenu.buildMenu(persona, utente);
+        return new ResponseEntity(buildMenu.toString(), HttpStatus.OK);
+    }
 }
