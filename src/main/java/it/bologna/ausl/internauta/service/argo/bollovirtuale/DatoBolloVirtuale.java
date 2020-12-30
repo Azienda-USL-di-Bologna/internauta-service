@@ -16,18 +16,10 @@ public class DatoBolloVirtuale {
 
     private String tipoOggettoBollo;
     private String codiceRegistroDoc;
-    private String guidOggettoOrigineDoc;
+//    private String guidOggettoOrigineDoc;
     private String numeroDoc;
     private Integer annoNumeroDoc;
     private Date dataNumeroDoc;
-
-    public Date getDataNumeroDoc() {
-        return dataNumeroDoc;
-    }
-
-    public void setDataNumeroDoc(Date dataNumeroDoc) {
-        this.dataNumeroDoc = dataNumeroDoc;
-    }
     private String oggettoDoc;
     private String redattoreDoc;
     private Integer noFacciateBollo;
@@ -63,14 +55,13 @@ public class DatoBolloVirtuale {
         this.codiceRegistroDoc = codiceRegistroDoc;
     }
 
-    public String getGuidOggettoOrigineDoc() {
-        return guidOggettoOrigineDoc;
-    }
-
-    public void setGuidOggettoOrigineDoc(String guidOggettoOrigineDoc) {
-        this.guidOggettoOrigineDoc = guidOggettoOrigineDoc;
-    }
-
+//    public String getGuidOggettoOrigineDoc() {
+//        return guidOggettoOrigineDoc;
+//    }
+//
+//    public void setGuidOggettoOrigineDoc(String guidOggettoOrigineDoc) {
+//        this.guidOggettoOrigineDoc = guidOggettoOrigineDoc;
+//    }
     public String getNumeroDoc() {
         return numeroDoc;
     }
@@ -87,13 +78,14 @@ public class DatoBolloVirtuale {
         this.annoNumeroDoc = annoNumeroDoc;
     }
 
-//    public LocalDateTime getDataNumeroDoc() {
-//        return dataNumeroDoc;
-//    }
-//
-//    public void setDataNumeroDoc(LocalDateTime dataNumeroDoc) {
-//        this.dataNumeroDoc = dataNumeroDoc;
-//    }
+    public Date getDataNumeroDoc() {
+        return dataNumeroDoc;
+    }
+
+    public void setDataNumeroDoc(Date dataNumeroDoc) {
+        this.dataNumeroDoc = dataNumeroDoc;
+    }
+
     public String getOggettoDoc() {
         return oggettoDoc;
     }

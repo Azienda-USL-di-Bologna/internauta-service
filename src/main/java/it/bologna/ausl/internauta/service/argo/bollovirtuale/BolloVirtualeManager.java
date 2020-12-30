@@ -18,7 +18,7 @@ public class BolloVirtualeManager {
         String query = "--- procton\n"
                 + "SELECT bv.tipo_oggetto as tipo_oggetto_bollo,\n"
                 + "pd.codice_registro as codice_registro_doc,\n"
-                + "bv.guid_oggetto_origine as guid_oggetto_origine_doc,\n"
+                + "--bv.guid_oggetto_origine as guid_oggetto_origine_doc,\n"
                 + "bv.numero_righe as no_righe_bollo,\n"
                 + "bv.numero_facciate as no_facciate_bollo,\n"
                 + "bv.numero_bolli as no_bolli_altri_importi,\n"
@@ -39,7 +39,7 @@ public class BolloVirtualeManager {
                 + "--- dete\n"
                 + "SELECT bv.tipo_oggetto as tipo_oggetto_bollo,\n"
                 + "dd.codice_registro as codice_registro_doc,\n"
-                + "bv.guid_oggetto_origine as guid_oggetto_origine_doc,\n"
+                + "--bv.guid_oggetto_origine as guid_oggetto_origine_doc,\n"
                 + "bv.numero_righe as no_righe_bollo,\n"
                 + "bv.numero_facciate as no_facciate_bollo,\n"
                 + "bv.numero_bolli as no_bolli_altri_importi,\n"
@@ -58,7 +58,7 @@ public class BolloVirtualeManager {
                 + "--- deli\n"
                 + "SELECT bv.tipo_oggetto as tipo_oggetto_bollo,\n"
                 + "dd.codice_registro as codice_registro_doc,\n"
-                + "bv.guid_oggetto_origine as guid_oggetto_origine_doc,\n"
+                + "--bv.guid_oggetto_origine as guid_oggetto_origine_doc,\n"
                 + "bv.numero_righe as no_righe_bollo,\n"
                 + "bv.numero_facciate as l,\n"
                 + "bv.numero_bolli as no_bolli_altri_importi,\n"
@@ -81,7 +81,7 @@ public class BolloVirtualeManager {
         Map<String, String> mappings = new HashMap<>();
         mappings.put("tipo_oggetto_bollo", "tipoOggettoBollo");
         mappings.put("codice_registro_doc", "codiceRegistroDoc");
-        mappings.put("guid_oggetto_origine_doc", "guidOggettoOrigineDoc");
+//        mappings.put("guid_oggetto_origine_doc", "guidOggettoOrigineDoc");
         mappings.put("no_righe_bollo", "noRigheBollo");
         mappings.put("no_facciate_bollo", "noFacciateBollo");
         mappings.put("no_bolli_altri_importi", "noBolliAltriImporti");
