@@ -60,6 +60,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
@@ -125,6 +128,9 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     @Autowired
     private PostgresConnectionManager postgresConnectionManager;
 
+    @Autowired
+    private GestioneMenu gestioneMenu;
+    
     private final String CMD_APRI_FIRMONE = "?CMD=open_firmone_local";
     private final String CMD_APRI_PRENDONE = "?CMD=open_prendone_local";
     private static final String FROM = "&from=INTERNAUTA";
@@ -326,5 +332,16 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
 
     public enum ScrivaniaCommonParameters {
         BABEL_APPLICATION
+    }
+    
+    
+    @RequestMapping(value = {"getMenuScrivania"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<ItemMenu>> getMenuScrivania(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente utente = authenticatedSessionData.getUser();
+        Persona persona = utente.getIdPersona();
+
+        List<ItemMenu> buildMenu = gestioneMenu.buildMenu(persona);
+        return new ResponseEntity(objectMapper.writeValueAsString(buildMenu), HttpStatus.OK);
     }
 }
