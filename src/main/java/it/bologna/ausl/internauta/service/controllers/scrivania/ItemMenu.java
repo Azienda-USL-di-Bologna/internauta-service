@@ -17,8 +17,9 @@ public class ItemMenu {
     private Bmenu.CommandType commandType;
     private Applicazione.UrlsGenerationStrategy urlGenerationStrategy;
     private Boolean scomponiPerAzienda;
+    private Boolean foglia;
 
-    public ItemMenu(Integer id, String descrizione, String openCommand, String icona, List<ItemMenu> children, Bmenu.CommandType commandType, Applicazione.UrlsGenerationStrategy urlGenerationStrategy, Boolean scomponiPerAzienda) {
+    public ItemMenu(Integer id, String descrizione, String openCommand, String icona, List<ItemMenu> children, Bmenu.CommandType commandType, Applicazione.UrlsGenerationStrategy urlGenerationStrategy, Boolean scomponiPerAzienda, Boolean foglia) {
         this.id = id;
         this.descrizione = descrizione;
         this.openCommand = openCommand;
@@ -27,6 +28,7 @@ public class ItemMenu {
         this.commandType = commandType;
         this.urlGenerationStrategy = urlGenerationStrategy;
         this.scomponiPerAzienda = scomponiPerAzienda;
+        this.foglia = foglia;
     }
 
     public Integer getId() {
@@ -91,6 +93,14 @@ public class ItemMenu {
 
     public void setScomponiPerAzienda(Boolean scomponiPerAzienda) {
         this.scomponiPerAzienda = scomponiPerAzienda;
+    }
+
+    public Boolean getFoglia() {
+        return foglia;
+    }
+
+    public void setFoglia(Boolean foglia) {
+        this.foglia = foglia;
     }
  
 }

@@ -187,12 +187,12 @@ public class GestioneMenu {
                 url = buildaUrl(null, bvoce);
                 urlGenerationStrategy = bvoce.getIdApplicazione().getUrlGenerationStrategy();
             }
-            voceBuildata = new ItemMenu(bvoce.getId(), bvoce.getDescrizione(), url, bvoce.getIcona(), null, bvoce.getCommandType(), urlGenerationStrategy, bvoce.getScomponiPerAzienda());
+            voceBuildata = new ItemMenu(bvoce.getId(), bvoce.getDescrizione(), url, bvoce.getIcona(), null, bvoce.getCommandType(), urlGenerationStrategy, bvoce.getScomponiPerAzienda(), bvoce.getFoglia());
             if (bvoce.getScomponiPerAzienda()) {
                 // Aggiungo una sottovoce che è il link verso l'azienda dell'utente
                 url = buildaUrl(utente.getIdAzienda(), bvoce);
                 voceBuildata.setChildren(new ArrayList(Arrays.asList(
-                    new ItemMenu(null, utente.getIdAzienda().getNome(), url, null, null, bvoce.getCommandType(), bvoce.getIdApplicazione().getUrlGenerationStrategy(), false)
+                    new ItemMenu(null, utente.getIdAzienda().getNome(), url, null, null, bvoce.getCommandType(), bvoce.getIdApplicazione().getUrlGenerationStrategy(), false, true)
                 )));
             }
             menu.add(voceBuildata);
@@ -201,7 +201,7 @@ public class GestioneMenu {
             if (bvoce.getScomponiPerAzienda()) { // Se è da scomporre è sicuramente anche foglia eh...
                 List<ItemMenu> children = voceBuildata.getChildren();
                 String url = buildaUrl(utente.getIdAzienda(), bvoce);
-                children.add(new ItemMenu(null, utente.getIdAzienda().getNome(), url, null, null, bvoce.getCommandType(), bvoce.getIdApplicazione().getUrlGenerationStrategy(), false));
+                children.add(new ItemMenu(null, utente.getIdAzienda().getNome(), url, null, null, bvoce.getCommandType(), bvoce.getIdApplicazione().getUrlGenerationStrategy(), false, true));
             }
         }
         return voceBuildata;
@@ -266,7 +266,23 @@ public class GestioneMenu {
         }
     }
     
-    private void eliminaScomposizioniUniche(List<ItemMenu> menu) {
+    /**
+     * Gli scopi della funzione sono due. 
+     * 1- Vengono eliminate le voci che dovrebbero avere dei figli e invece non ne hanno.
+     * 2- Nelle voci che si dividono per azienda, se l'azienda è solo una allora la voce viene elimnata e l'opencommand spostato sul padre.
+     * @param menu 
+     */
+    private void eliminaVociMorteAndScomposizioniUniche(List<ItemMenu> menu) {
+        menu.removeIf(item -> {
+           if (!item.getFoglia()) {
+               List<ItemMenu> children = item.getChildren();
+               if (children == null || children.isEmpty()) {
+                   // E' una non foglia che non ha ricevuto neanche un figlio. Va eliminata.
+                   return true;
+               }
+           }
+           return false;
+        });
         for (ItemMenu item : menu) {
             List<ItemMenu> children = item.getChildren();
             if (children != null && !children.isEmpty()) {
@@ -279,18 +295,10 @@ public class GestioneMenu {
                         item.setChildren(null);
                     }
                 } else {
-                    eliminaScomposizioniUniche(children);
+                    eliminaVociMorteAndScomposizioniUniche(children);
                 }
             }
         }
-//        vociMenuList.removeIf(voce -> {
-//            try {
-//                return !vocePermessa(voce, utente, permessiDiFlusso, ruoli);
-//            }
-//            catch (JsonProcessingException | BlackBoxPermissionException ex) {
-//                throw new LambdaUncheckedException("Errore nella rimozione voci delegate");
-//            }
-//        });
     }
     
     /**
@@ -330,7 +338,7 @@ public class GestioneMenu {
             cycleBuildAndDig(bmenu, 1, permessiDiFlusso, ruoli, menu, utente);
         }
         
-        eliminaScomposizioniUniche(menu);
+        eliminaVociMorteAndScomposizioniUniche(menu);
         
         LOGGER.info("Menu completato");
         return menu;
