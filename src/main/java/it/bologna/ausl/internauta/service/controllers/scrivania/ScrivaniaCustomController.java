@@ -311,8 +311,8 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedSessionData.getUser();
         Persona persona = utente.getIdPersona();
-        
-        List<ItemMenu> buildMenu = gestioneMenu.buildMenu(persona, utente);
-        return new ResponseEntity(buildMenu.toString(), HttpStatus.OK);
+
+        List<ItemMenu> buildMenu = gestioneMenu.buildMenu(persona);
+        return new ResponseEntity(objectMapper.writeValueAsString(buildMenu), HttpStatus.OK);
     }
 }

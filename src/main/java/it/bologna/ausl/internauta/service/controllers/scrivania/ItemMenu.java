@@ -1,5 +1,7 @@
 package it.bologna.ausl.internauta.service.controllers.scrivania;
 
+import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.scrivania.Bmenu;
 import java.util.List;
 
 /**
@@ -9,18 +11,24 @@ import java.util.List;
 public class ItemMenu {
     private Integer id;
     private String descrizione;
-    private String urlCommand;
+    private String openCommand;
     private String icona;
     private List<ItemMenu> children;
+    private Bmenu.CommandType commandType;
+    private Applicazione.UrlsGenerationStrategy urlGenerationStrategy;
+    private Boolean scomponiPerAzienda;
 
-    public ItemMenu(Integer id, String descrizione, String urlCommand, String icona, List<ItemMenu> children) {
+    public ItemMenu(Integer id, String descrizione, String openCommand, String icona, List<ItemMenu> children, Bmenu.CommandType commandType, Applicazione.UrlsGenerationStrategy urlGenerationStrategy, Boolean scomponiPerAzienda) {
         this.id = id;
         this.descrizione = descrizione;
-        this.urlCommand = urlCommand;
+        this.openCommand = openCommand;
         this.icona = icona;
         this.children = children;
+        this.commandType = commandType;
+        this.urlGenerationStrategy = urlGenerationStrategy;
+        this.scomponiPerAzienda = scomponiPerAzienda;
     }
-    
+
     public Integer getId() {
         return id;
     }
@@ -37,12 +45,12 @@ public class ItemMenu {
         this.descrizione = descrizione;
     }
 
-    public String getUrlCommand() {
-        return urlCommand;
+    public String getOpenCommand() {
+        return openCommand;
     }
 
-    public void setUrlCommand(String urlCommand) {
-        this.urlCommand = urlCommand;
+    public void setOpenCommand(String openCommand) {
+        this.openCommand = openCommand;
     }
 
     public String getIcona() {
@@ -60,6 +68,29 @@ public class ItemMenu {
     public void setChildren(List<ItemMenu> children) {
         this.children = children;
     }
-    
-    
+
+    public Bmenu.CommandType getCommandType() {
+        return commandType;
+    }
+
+    public void setCommandType(Bmenu.CommandType commandType) {
+        this.commandType = commandType;
+    }
+
+    public Applicazione.UrlsGenerationStrategy getUrlGenerationStrategy() {
+        return urlGenerationStrategy;
+    }
+
+    public void setUrlGenerationStrategy(Applicazione.UrlsGenerationStrategy urlGenerationStrategy) {
+        this.urlGenerationStrategy = urlGenerationStrategy;
+    }
+
+    public Boolean getScomponiPerAzienda() {
+        return scomponiPerAzienda;
+    }
+
+    public void setScomponiPerAzienda(Boolean scomponiPerAzienda) {
+        this.scomponiPerAzienda = scomponiPerAzienda;
+    }
+ 
 }
