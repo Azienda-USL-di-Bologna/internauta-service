@@ -157,7 +157,7 @@ public class GestioneMenu {
             return true;
         }
         Map<String, List<Ruolo>> ruoliPerModuli = userInfoService.getRuoliPerModuli(utente, Boolean.TRUE);
-        List<Ruolo> ruoliModulo = ruoliPerModuli.get(voce.getModulo());
+        List<String> ruoliModulo = ruoliPerModuli.get(voce.getModulo()).stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
         if (!ruoliModulo.isEmpty()) {
             return !Collections.disjoint(ruoliModulo, Arrays.asList(voce.getRuoliSufficienti()));
         }
