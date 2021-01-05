@@ -439,11 +439,20 @@ public class ImportaDaCSV {
 
     private String getConsonanti(String string) {
 
-        return string.replaceAll("['aeiouòèéàùìEUIOA-. ]", "");
+        return string.trim()
+                .replaceAll("YẙỲỴỶỸŶŸÝ", "Y")
+                .replaceAll("[^qQwWrRtTpPsSdDfFgGhHkKlLzZxXcCvVbBnNmMjJYy]", "");
     }
 
     private String getVocali(String string) {
-        return string.replaceAll("['qwrtpsdfghklzxcvbnmQWRTYPSDFGHJKLZXCVBNM-. ]", "");
+        return string.trim().toUpperCase()
+                .replaceAll("[ÀÁÂÃÄÅĀĂĄǺȀȂẠẢẤẦẨẪẬẮẰẲẴẶḀ]", "A")
+                .replaceAll("[ÆǼEȄȆḔḖḘḚḜẸẺẼẾỀỂỄỆĒĔĖĘĚÈÉÊË]", "E")
+                .replaceAll("[IȈȊḬḮỈỊĨĪĬĮİÌÍÎÏĲ]", "I")
+                .replaceAll("OŒØǾȌȎṌṎṐṒỌỎỐỒỔỖỘỚỜỞỠỢŌÒÓŎŐÔÕÖ", "O")
+                .replaceAll("[UŨŪŬŮŰŲÙÚÛÜȔȖṲṴṶṸṺỤỦỨỪỬỮỰ]", "U")
+                //.replaceAll("YẙỲỴỶỸŶŸÝ", "Y")
+                .replaceAll("[^aAeEiIoOuU]", "");
 
     }
 
@@ -596,6 +605,7 @@ public class ImportaDaCSV {
                     Integer riga;
                     List<Integer> righeAnomaleDirette = new ArrayList<>();
                     List<Integer> righeAnomaleFunzionali = new ArrayList<>();
+                    anomalia=false;
                     while ((appartenentiMap = mapReader.read(headers, processors)) != null) {
                         boolean anomali;
                         mapError = new HashMap<>();
@@ -764,6 +774,7 @@ public class ImportaDaCSV {
                     Map<String, Object> responsabiliMap = null;
                     Map<Integer, List<Map<String, Object>>> selectDateOnAppartenentiByIdAzienda = mdrAppartenentiRepository.selectDateOnAppartenentiByIdAzienda(idAzienda);
                     Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
+                    anomalia=false;
                     Boolean anomali = false;
                     Boolean anomaliaRiga = false;
                     while ((responsabiliMap = mapReader.read(headers, processors)) != null) {
@@ -787,7 +798,7 @@ public class ImportaDaCSV {
                         }
 
 //                      DATAIN bloccante
-                        anomali = checkDatainR(responsabiliMap, mapError);
+                        anomali = !checkDatainR(responsabiliMap, mapError);
                         anomalia = anomalia ? anomalia : anomali;
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
                         nRigheAnomale = anomali ? nRigheAnomale++ : nRigheAnomale;
@@ -833,6 +844,7 @@ public class ImportaDaCSV {
                             mapError.put("datafi", responsabiliMap.get("datafi"));
                             mR.setDatafi(formattattore(responsabiliMap.get("datafi")));
                         }
+                        
 //                      TIPO bloccante
                         String tipoR = checkTipoR(responsabiliMap, mapError);
                         anomalia = tipoR.equals("") ? true : anomalia;
@@ -863,6 +875,7 @@ public class ImportaDaCSV {
                         tolleranza = parametriAziende.getValue(parameters.get(0), Integer.class);
                     }
                     nRigheDB = mdrStrutturaRepository.countRow(idAzienda);
+                    anomalia=false;
                     bloccante = false;
                     // Delete delle righe da sostituire
                     predicateAzienda = QMdrStruttura.mdrStruttura.idAzienda.id.eq(idAzienda);
@@ -985,6 +998,7 @@ public class ImportaDaCSV {
 
                 case "TRASFORMAZIONI": {
                     nRigheDB = mdrTrasformazioniRepository.countRow(idAzienda);
+                    anomalia=false;
                     parameters = parametriAziende.getParameters("tolleranzaResponsabili", new Integer[]{idAzienda}, new String[]{Applicazione.Applicazioni.ribaltorg.toString()});
                     if (parameters != null && !parameters.isEmpty()) {
                         tolleranza = parametriAziende.getValue(parameters.get(0), Integer.class);
@@ -1595,7 +1609,8 @@ public class ImportaDaCSV {
                         throw new RibaltoneCSVCheckException("checkIdCasella", responsabiliMap.get("id_casella").toString(), " casella non valida per periodo temporale,");
 
                     } else {
-                        if (!controllaEstremi(formattattore(mieiPadri.get(0).get("datain")), formattattore(mieiPadri.get(mieiPadri.size() - 1).get("datafi")), formattattore(responsabiliMap.get("datain")), formattattore(responsabiliMap.get("datafi")))) {
+                        Map<String, LocalDateTime> maxMin = maxMin(mieiPadri);
+                        if (!controllaEstremi(maxMin.get("min"), maxMin.get("max"), formattattore(responsabiliMap.get("datain")), formattattore(responsabiliMap.get("datafi")))) {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " casella non rispetta l'arco temporale della struttura,");
                             mapError.put("Anomalia", "true");
                             throw new RibaltoneCSVCheckException("checkIdCasella", responsabiliMap.get("id_casella").toString(), " non rispetta l'arco temporale della struttura,");
@@ -1609,7 +1624,7 @@ public class ImportaDaCSV {
 
     private String checkTipoR(Map<String, Object> responsabiliMap, Map<String, Object> mapError) {
         if (responsabiliMap.get("tipo") == null || responsabiliMap.get("tipo").toString().trim().equals("") || responsabiliMap.get("tipo") == "") {
-            mapError.put("ERRORE", mapError.get("ERRORE") + " tipo,");
+            mapError.put("ERRORE", mapError.get("ERRORE") + " manca il tipo afferenza,");
             return "";
         } else {
             mapError.put("tipo", responsabiliMap.get("tipo"));

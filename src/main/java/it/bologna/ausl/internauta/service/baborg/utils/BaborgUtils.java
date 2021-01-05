@@ -15,6 +15,7 @@ import it.bologna.ausl.internauta.service.repositories.gru.MdrResponsabiliReposi
 import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepositoryCustomImpl;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrTrasformazioniRepository;
+import it.bologna.ausl.internauta.service.ribaltone.ImportaDaCSV;
 import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
@@ -1640,12 +1641,13 @@ public class BaborgUtils {
         int idAziendaCodice = Integer.parseInt(codiceAzienda);
         ImportazioniOrganigramma res = null;
         BaborgUtils bean = beanFactory.getBean(BaborgUtils.class);
-//        ImportaDaCSV beanSave = beanFactory.getBean(ImportaDaCSV.class);
+        ImportaDaCSV beanSave = beanFactory.getBean(ImportaDaCSV.class);
 
 
         try {
 
-            String csv_error_link = bean.csvTransactionalReadDeleteInsert(file, tipo, idAziendaCodice, idAziendaInt);
+//            String csv_error_link = bean.csvTransactionalReadDeleteInsert(file, tipo, idAziendaCodice, idAziendaInt);
+            String csv_error_link = beanSave.csvTransactionalReadDeleteInsert(file, tipo, idAziendaCodice, idAziendaInt);
             // Update nello storico importazioni. esito: OK e Data Fine: Data.now
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Ok", csv_error_link);
         } catch (BaborgCSVBloccanteException e) {
