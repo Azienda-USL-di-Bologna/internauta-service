@@ -823,6 +823,9 @@ public class ImportaDaCSV {
                         String id_casella;
                         try {
                             id_casella = checkIdCasellaR(responsabiliMap, mapError, selectDateOnStruttureByIdAzienda, idAzienda);
+                            if (!id_casella.equals("")){
+                                mR.setIdCasella(Integer.parseInt(id_casella));
+                            }
                         } catch (RibaltoneCSVCheckException e) {
                             id_casella = e.getDato().toString();
                             mapError.put("ERRORE", e.getMessage());
@@ -1360,7 +1363,7 @@ public class ImportaDaCSV {
             List<Integer> righeAnomaleDirette) {
 
         Boolean anomalia = false;
-        if (appartenentiMap.get("tipo_appartenenza") == null || appartenentiMap.get("tipo_appartenenza").toString().trim().equals("") || appartenentiMap.get("tipo_appartenenza") == "") {
+        if (appartenentiMap.get("tipo_appartenenza") == null || appartenentiMap.get("tipo_appartenenza").toString().trim().equals("") || appartenentiMap.get("tipo_appartenenza") == "" || idCasella.equals("")) {
             mapError.put("ERRORE", mapError.get("ERRORE") + " tipo_appartenenza,");
             mapError.put("tipo_appartenenza", "");
             mapError.put("Anomalia", "true");
