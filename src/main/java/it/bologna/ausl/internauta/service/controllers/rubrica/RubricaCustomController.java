@@ -1,25 +1,24 @@
 package it.bologna.ausl.internauta.service.controllers.rubrica;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.core.type.TypeReference;
+import java.util.concurrent.TimeUnit;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.blackbox.repositories.EntitaRepository;
-import it.bologna.ausl.blackbox.repositories.TipoEntitaRepository;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
+import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.configuration.utils.RubricaRestClientConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.permessi.PermessiCustomController;
+import it.bologna.ausl.internauta.service.exceptions.GruppiException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -37,42 +36,39 @@ import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
-import it.bologna.ausl.model.entities.permessi.Entita;
-import it.bologna.ausl.model.entities.permessi.TipoEntita;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
+import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.Indirizzo;
-import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Telefono;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithContattiDelGruppoListAndDettaglioContattoListAndIdPersonaCreazione;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithDettaglioContattoList;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithPlainFields;
 import it.bologna.ausl.rubrica.maven.client.RestClient;
 import it.bologna.ausl.rubrica.maven.client.RestClientException;
 import it.bologna.ausl.rubrica.maven.resources.EmailResource;
 import it.bologna.ausl.rubrica.maven.resources.FullContactResource;
+import it.nextsw.common.controller.exceptions.RestControllerEngineException;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.CommonUtils;
-import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -84,10 +80,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -96,6 +94,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.sql2o.Connection;
 import org.sql2o.Query;
 import org.sql2o.Sql2o;
+import sun.security.provider.certpath.ResponderId;
 
 /**
  *
@@ -109,6 +108,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     CommonUtils commonUtils;
+
+    @Autowired
+    RestControllerEngineImpl restControllerEngine;
 
     @Autowired
     MasterChefUtils masterChefUtils;
@@ -151,11 +153,21 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    ProjectionFactory projectionFactory;
+
     @Autowired
     private PermessiCustomController permessiCustomController;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+
+    @Autowired
+    private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+
+    @PersistenceContext
+    private EntityManager em;
 
     @Value("${babelsuite.webapi.managedestinatari.url}")
     private String manageDestinatariUrl;
@@ -345,6 +357,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         data.setCfUtenteOperazione(persona.getCodiceFiscale());
 
         List<Contatto> estemporaneiToAddToRubricaAsProtocontatti = data.getEstemporaneiToAddToRubrica();
+        String glogParams = data.getGlogParams();
 
         Persona getPersona = personaRepository.findById(persona.getId()).get();
         Utente getUtente = utenteRepository.findById(utente.getId()).get();
@@ -417,13 +430,18 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 //            log.info("selectedContactsListsAsString to send at inde: " + selectedContactsListsAsString);
             data.setSelectedContactsLists(selectedContactsListsAsString);
         }
-        log.info("set Estemporanei To AddToRubrica to null");
+        log.info("set estemporaneiToAddToRubrica to null");
         data.setEstemporaneiToAddToRubrica(null);
+
+        if (glogParams.isEmpty() || StringUtils.isEmpty(glogParams)) {
+            log.info("set Glog Params to null");
+            data.setGlogParams(null);
+        }
 
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"),
                 objectMapper.writeValueAsString(data));
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder().connectTimeout(2, TimeUnit.MINUTES).build();
 
         Request request = new Request.Builder()
                 .url(buildGestisciDestinatariDaRubricaInternautarUrl(azienda, data.getApp()))
@@ -833,6 +851,115 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         }
         log.info("RIRTONO LA RISPOSTA\n" + jArrayDiRisposta.toString(4));
         return new ResponseEntity(jArrayDiRisposta.toString(4), HttpStatus.OK);
+    }
+
+    @Transactional(rollbackFor = Throwable.class)
+    @RequestMapping(value = "salvaGruppo",
+            method = RequestMethod.POST,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public void salvaGruppo(@RequestBody Contatto gruppo, HttpServletRequest request) throws GruppiException{
+//    public void salvaGruppo(@RequestBody Contatto gruppo, HttpServletRequest request) throws RestControllerEngineException, AbortSaveInterceptorException, BlackBoxPermissionException {
+
+        log.info("salvaGruppo");
+        try {
+            projectionsInterceptorLauncher.setRequestParams(null, request);
+            AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+            Persona idPersonaCreazione = authenticatedUserProperties.getPerson();
+            Integer[] listaAziende = idPersonaCreazione.getUtenteList().stream().map(u -> u.getIdAzienda().getId()).collect(Collectors.toList()).toArray(new Integer[0]);
+            Utente idUtenteCreazione = authenticatedUserProperties.getUser();
+            idUtenteCreazione = em.find(Utente.class,idUtenteCreazione.getId());
+            idPersonaCreazione = em.find(Persona.class,idPersonaCreazione.getId());
+//            idUtenteCreazione = em.merge(idUtenteCreazione);
+//            idPersonaCreazione = em.merge(idPersonaCreazione);
+
+            gruppo.setIdPersonaCreazione(idPersonaCreazione);
+            gruppo.setIdUtenteCreazione(idUtenteCreazione);
+            gruppo.setIdAziende(listaAziende);
+
+            //passo 1 creo i contatti
+            String repositoryKey = request.getServletPath();
+
+            int slashPos = repositoryKey.lastIndexOf("/");
+            if (slashPos != -1) {
+                repositoryKey = repositoryKey.substring(0, slashPos);
+            }
+            repositoryKey += "/" + "contatto";
+
+            List<GruppiContatti> gruppiContattiList = new ArrayList<>();
+            for (Contatto contatto : gruppo.getContattiContenuti()) {
+                contatto.setIdUtenteCreazione(idUtenteCreazione);
+                contatto.setIdPersonaCreazione(idPersonaCreazione);
+                contatto.setIdAziende(listaAziende);
+                Map<String, Object> rimuoviIdContattoAncestor = rimuoviIdContattoAncestor(contatto);
+                //inserisco il contatto
+                ContattoWithDettaglioContattoList contattoInserito = (ContattoWithDettaglioContattoList) restControllerEngine.insert(
+                        rimuoviIdContattoAncestor,
+                        request,
+                        null,
+                        repositoryKey,
+                        false,
+                        ContattoWithDettaglioContattoList.class.getSimpleName());
+                GruppiContatti gruppoContatto = new GruppiContatti();
+
+//            Contatto contattoVero= em.find(Contatto.class,contattoInserito.getId());
+                DettaglioContatto dettaglioContattoVero = em.find(DettaglioContatto.class, (objectMapper.convertValue(contattoInserito.getDettaglioContattoList(), new TypeReference<List<DettaglioContatto>>() {
+                })).get(0).getId());
+
+                gruppoContatto.setIdContatto(dettaglioContattoVero.getIdContatto());
+                gruppoContatto.setIdDettaglioContatto(dettaglioContattoVero);
+                gruppoContatto.setIdGruppo(gruppo);
+                gruppiContattiList.add(gruppoContatto);
+            }
+            gruppo.setContattiDelGruppoList(gruppiContattiList);
+
+            em.persist(gruppo);
+            
+        } catch (Exception e) {
+            log.debug("entro qui");
+            throw new GruppiException("errore nel salvataggio del gruppo da csv", e);
+        }
+//        Map<String, Object> gruppoSenzaIdContattoAncestor = rimuoviIdContattoAncestor(gruppo);
+//        ContattoWithContattiDelGruppoListAndDettaglioContattoListAndIdPersonaCreazione gruppoPrj = projectionFactory.createProjection(ContattoWithContattiDelGruppoListAndDettaglioContattoListAndIdPersonaCreazione.class, gruppo);
+
+//    Map<String, Object> mappaGruppo = rimuoviIdContattoAncestor(gruppo);
+//        mappaGruppo.put("contattiDelGruppoList", gruppiContattiList);
+//        ContattoWithPlainFields gruppoInserito = (ContattoWithPlainFields) restControllerEngine.insert(
+//                mappaGruppo,
+//                request,
+//                null,
+//                repositoryKey,
+//                false,
+//                ContattoWithPlainFields.class.getSimpleName());
+//        contattoRepository.findById(contattoInserito.getId())
+        //passo 2 creo il gruppo
+        //passo 2.1 creo la relazione tra il gruppo e i contatti 
+//        Contatto gruoppo = new Contatto();
+//        List<gruppocontatto> gruppocontattolist = new arraylist();
+//        gruoppo.setContattidelgruppolist(list gruppi contatti);
+        //gruppo da visualizzare come risposta
+    }
+
+    private Map<String, Object> rimuoviIdContattoAncestor(Contatto contatto) {
+
+        Map<String, Object> mappaContatto = objectMapper.convertValue(contatto, new TypeReference<Map<String, Object>>() {
+        });
+
+        List<Map<String, Object>> emailList = (List<Map<String, Object>>) mappaContatto.get("emailList");
+        List<Map<String, Object>> indirizziList = (List<Map<String, Object>>) mappaContatto.get("indirizziList");
+        List<Map<String, Object>> telefonoList = (List<Map<String, Object>>) mappaContatto.get("telefonoList");
+        List<Map<String, Object>> contattiDelGruppoList = (List<Map<String, Object>>) mappaContatto.get("contattiDelGruppoList");
+        Arrays.asList(emailList, indirizziList, telefonoList, contattiDelGruppoList).stream().filter((mezzi) -> (mezzi != null)).forEach((mezzi) -> {
+            for (Map<String, Object> mezzo : mezzi) {
+                if (mezzo != null) {
+                    if (mezzo.get("idDettaglioContatto") != null) {
+                        Map<String, Object> dettaglioContatto = (Map<String, Object>) mezzo.get("idDettaglioContatto");
+                        dettaglioContatto.remove("idContatto");
+                    }
+                    mezzo.remove("idContatto");
+                }
+            }
+        });
+        return mappaContatto;
     }
 
     @RequestMapping(value = "findContattiStruttureForGruppoImport",

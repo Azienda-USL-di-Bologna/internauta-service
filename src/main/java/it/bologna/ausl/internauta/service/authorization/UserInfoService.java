@@ -296,7 +296,7 @@ public class UserInfoService {
     
     @Cacheable(value = "getRuoliStandard_utente__ribaltorg__", key = "{#utente.getId()}")
     public Set<Ruolo> getRuoliStandard(Utente utente, Boolean interaziendali) {
-         Set<Ruolo> res = new HashSet<>();
+        Set<Ruolo> res = new HashSet<>();
         List<Ruolo> ruoliAll = ruoloRepository.findAll();
         for (Ruolo ruolo : ruoliAll) {
             if (interaziendali == null || interaziendali == true) {
@@ -532,7 +532,8 @@ public class UserInfoService {
     @Cacheable(value = "getUtentiPersona__ribaltorg__", key = "{#persona.getId()}")
     public List<Utente> getUtentiPersona(Persona persona) {
         Persona refreshedPersona = personaRepository.getOne(persona.getId());
-        return refreshedPersona.getUtenteList();
+        // Aggiungo questo stream.collect per ricreare la lista uguale a se stessa alrimenti mi da errore.
+        return refreshedPersona.getUtenteList().stream().collect(Collectors.toList());
     }
 
     @Cacheable(value = "getAziendaUtente__ribaltorg__", key = "{#utente.getId()}")
@@ -592,7 +593,7 @@ public class UserInfoService {
     }
 
     /**
-     * restituisce tutte le aziende degli utenti della persona passata
+     * restituisce tutte le aziende degli utenti attivi della persona passata
      *
      * @param persona
      * @return
