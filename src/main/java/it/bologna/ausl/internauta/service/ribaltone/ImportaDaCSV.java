@@ -973,16 +973,17 @@ public class ImportaDaCSV {
                                     bloccante = true;
                                     log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + "  padre non presente");
                                     strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " padre non presente,");
-                                }
-                                List<Map<String, Object>> elementi = listaStrutture.get(Integer.parseInt(strutturaErrorMap.get("id_padre").toString()));
+                                } else {
+                                    List<Map<String, Object>> elementi = listaStrutture.get(Integer.parseInt(strutturaErrorMap.get("id_padre").toString()));
 
-                                if ((strutturaErrorMap.get("datain") !=null) && (!arcoBool(elementi, formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi"))))) {
-                                    bloccante = true;
-                                    log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " non rispetta l'arco temporale del padre");
-                                    if (strutturaErrorMap.get("ERRORE") != null) {
-                                        strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " non rispetta l'arco temporale del padre,");
-                                    } else {
-                                        strutturaErrorMapWrite.put("ERRORE", " non rispetta l'arco temporale del padre,");
+                                    if ((strutturaErrorMap.get("datain") != null) && (!arcoBool(elementi, formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi"))))) {
+                                        bloccante = true;
+                                        log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " non rispetta l'arco temporale del padre");
+                                        if (strutturaErrorMap.get("ERRORE") != null) {
+                                            strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " non rispetta l'arco temporale del padre,");
+                                        } else {
+                                            strutturaErrorMapWrite.put("ERRORE", " non rispetta l'arco temporale del padre,");
+                                        }
                                     }
                                 }
                             }
