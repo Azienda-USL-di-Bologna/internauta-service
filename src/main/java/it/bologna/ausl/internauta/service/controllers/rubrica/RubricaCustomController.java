@@ -865,7 +865,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             projectionsInterceptorLauncher.setRequestParams(null, request);
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
             Persona idPersonaCreazione = authenticatedUserProperties.getPerson();
-            Integer[] listaAziende = idPersonaCreazione.getUtenteList().stream().map(u -> u.getIdAzienda().getId()).collect(Collectors.toList()).toArray(new Integer[0]);
+            Integer[] listaAziende = 
+                    userInfoService.getAziendePersona(idPersonaCreazione).stream().map(a->a.getId()).collect(Collectors.toList()).toArray(new Integer[0]);
             Utente idUtenteCreazione = authenticatedUserProperties.getUser();
             idUtenteCreazione = em.find(Utente.class,idUtenteCreazione.getId());
             idPersonaCreazione = em.find(Persona.class,idPersonaCreazione.getId());
