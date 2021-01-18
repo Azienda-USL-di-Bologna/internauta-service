@@ -1304,28 +1304,30 @@ public class ImportaDaCSV {
             return "";
 
         } else {
+            mapError.put("id_casella", appartenentiMap.get("id_casella").toString());
             if (!selectDateOnStruttureByIdAzienda.containsKey(Integer.parseInt(appartenentiMap.get("id_casella").toString()))) {
                 mapError.put("ERRORE", " manca la struttura nella tabella struttura,");
                 mapError.put("Anomalia", "true");
+                
                 return "";
-
             } else {
                 if (!arcoBool(selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString())), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
                     mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l arco temporale della struttura,");
                     mapError.put("Anomalia", "true");
-                    return "";
 
+                    return "";
                 } else {
                     List<Map<String, Object>> elementi = selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
                     Map<String, LocalDateTime> maxMin = maxMin(elementi);
                     if (!controllaEstremi(maxMin.get("min"), maxMin.get("max"), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
                         mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura, ");
                         mapError.put("Anomalia", "true");
+
                         return "";
                     }
                 }
             }
-            mapError.put("id_casella", appartenentiMap.get("id_casella"));
+
             return appartenentiMap.get("id_casella").toString();
         }
     }
