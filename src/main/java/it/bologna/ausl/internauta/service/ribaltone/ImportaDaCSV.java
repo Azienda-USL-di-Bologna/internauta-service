@@ -635,6 +635,12 @@ public class ImportaDaCSV {
 
                         String idCasella = checkIdCasellaA(appartenentiMap, mapError, selectDateOnStruttureByIdAzienda);
                         anomalia = anomalia ? anomalia : idCasella.equals("");
+                        if (appartenentiMap.get("id_casella") != null && appartenentiMap.get("id_casella") != "") {
+                            if (!appartenentiMap.get("id_casella").toString().equals(idCasella)) {
+                                idCasella = appartenentiMap.get("id_casella").toString();
+                            }
+
+                        }
 //                      ID_CASELLA bloccante
 
 //                      DATAIN bloccante
@@ -830,7 +836,7 @@ public class ImportaDaCSV {
                             id_casella = e.getDato().toString();
                             mapError.put("ERRORE", e.getMessage());
                         }
-//
+//TODO si possono usare le mappe anche qui
                         if (mdrResponsabiliRepository.countMultiReponsabilePerStruttura(codiceAzienda,
                                 Integer.parseInt(id_casella),
                                 datafiString,
@@ -1369,7 +1375,7 @@ public class ImportaDaCSV {
 
         Boolean anomalia = false;
         if (appartenentiMap.get("tipo_appartenenza") == null || appartenentiMap.get("tipo_appartenenza").toString().trim().equals("") || appartenentiMap.get("tipo_appartenenza") == "" || idCasella.equals("")) {
-            mapError.put("ERRORE", mapError.get("ERRORE") + " tipo_appartenenza,");
+            mapError.put("ERRORE", mapError.get("ERRORE") + " tipo appartenenza assente,");
             mapError.put("tipo_appartenenza", "");
             mapError.put("Anomalia", "true");
             return true;
