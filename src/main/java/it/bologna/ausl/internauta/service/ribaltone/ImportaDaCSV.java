@@ -1178,10 +1178,10 @@ public class ImportaDaCSV {
 
         } catch (Exception e) {
             if (!tipo.equals("STRUTTURA")) {
-                log.error("ERRORE GENERICO STRUTTURE---", e);
+                log.error("ERRORE GENERICO---", e);
                 throw new BaborgCSVBloccanteException(csvErrorFile.getAbsolutePath(), e);
             } else {
-                log.error("ERRORE GENERICO---", e);
+                log.error("ERRORE GENERICO STRUTTURA---", e);
                 throw new BaborgCSVBloccanteException(csvErrorFile2.getAbsolutePath(), e);
 
             }
