@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RepositoryRestResource(collectionResourceRel = "mdrappartenenti", path = "mdrappartenenti", exported = false, excerptProjection = MdrAppartenentiWithPlainFields.class)
 public interface MdrAppartenentiRepository extends
         NextSdrQueryDslRepository<MdrAppartenenti, Integer, QMdrAppartenenti>,
-        JpaRepository<MdrAppartenenti, Integer> {
+        JpaRepository<MdrAppartenenti, Integer>, MdrAppartenentiRepositoryCustom {
 
     @Transactional
     @Modifying

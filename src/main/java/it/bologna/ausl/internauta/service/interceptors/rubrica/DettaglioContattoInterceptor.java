@@ -131,4 +131,8 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
 
         super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
+    
+    
 }
+  
+   
