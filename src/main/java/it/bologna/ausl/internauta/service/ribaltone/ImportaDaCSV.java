@@ -399,7 +399,13 @@ public class ImportaDaCSV {
         }
         return (dataInizioA.compareTo(dataFineB) <= 0 && dataFineA.compareTo(dataInizioB) >= 0) && dataInizioA.compareTo(dataInizioB) <= 0;
     }
-
+    /**
+     * 
+     * @param elementi
+     * @param dataInizio
+     * @param dataFine
+     * @return false se elementi è vuoto
+     */
     public Boolean arcoBool(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
         if (elementi.isEmpty()) {
             return false;
@@ -990,6 +996,12 @@ public class ImportaDaCSV {
                                         } else {
                                             strutturaErrorMapWrite.put("ERRORE", " non rispetta l'arco temporale del padre,");
                                         }
+                                    }
+                                    Map<String, LocalDateTime> maxMin = maxMin(elementi);
+                                    if (!controllaEstremi(maxMin.get("min"), maxMin.get("max"), formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi")))) {
+                                        strutturaErrorMapWrite.put("ERRORE", " non rispetta l'arco temporale del padre,");
+                                        log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " non rispetta l'arco temporale del padre");
+                                        bloccante = true;
                                     }
                                 }
                             }
