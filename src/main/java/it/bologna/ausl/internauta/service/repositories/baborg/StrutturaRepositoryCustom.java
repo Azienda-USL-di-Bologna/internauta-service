@@ -9,4 +9,5 @@ public interface StrutturaRepositoryCustom {
 
    
     public List<Map<String, Object>> getIdUtentiStruttureWithSottoResponsabiliByIdStruttura(Integer idStruttura, LocalDateTime dataRiferimento) throws SQLException;
+    public List<Integer> getStruttureRuoloEFiglie(Integer bitRuoli, Integer idUtente, LocalDateTime date) throws SQLException;
 }

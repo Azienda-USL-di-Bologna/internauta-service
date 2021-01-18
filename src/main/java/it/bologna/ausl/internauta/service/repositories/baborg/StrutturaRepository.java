@@ -57,4 +57,8 @@ public interface StrutturaRepository extends
             nativeQuery = true)
     public List<Integer> getIdStruttureDiUtenteByCodiceRuolo(Utente utente, String codiceRuolo);
 
+    //@Query(value = "select baborg.get_strutture_ruolo_e_figlie(?1, ?2, ?3);", nativeQuery = true)
+//    @Procedure(value = "baborg.get_strutture_ruolo_e_figlie")
+//    public List<Integer> getStruttureRuoloEFiglie(Integer bitRuoli, Integer idUtente, LocalDateTime date);
+
 }

@@ -10,6 +10,7 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
@@ -52,6 +53,9 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     StoricoRelazioneRepository storicoRelazioneRepository;
+    
+    @Autowired
+    InternautaUtils internautaUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -96,7 +100,7 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
                             try {
                                 List<ParametroAziende> filtraResponsabiliMatrintParams = parametriAziende.getParameters("AccessoMatrintFiltratoPerRuolo", new Integer[]{utente.getIdAzienda().getId()});
                                 if (filtraResponsabiliMatrintParams != null && !filtraResponsabiliMatrintParams.isEmpty() && parametriAziende.getValue(filtraResponsabiliMatrintParams.get(0), Boolean.class)) {
-                                    Integer mascheraBit = getSommaMascheraBit(ruoliNomeBreveString);
+                                    Integer mascheraBit = internautaUtils.getSommaMascheraBit(ruoliNomeBreveString);
                                     //strutture su cui l'utente è responsabilmente diretto
                                     Map<String, Integer> struttureConStoricoRelazione = objectMapper.convertValue(
                                             storicoRelazioneRepository.getStruttureRuolo(mascheraBit, utente.getId(), dataRiferimento).get("result"),
@@ -134,14 +138,5 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
         return initialPredicate;
     }
 
-    private Integer getSommaMascheraBit(String ruoliNomeBreveString) {
-        Integer res = 0;
-        String[] ruoliSplitted = ruoliNomeBreveString.split(";");
-        for (String ruoloNomeBreve : ruoliSplitted) {
-            Ruolo ruolo = cachedEntities.getRuoloByNomeBreve(Ruolo.CodiciRuolo.valueOf(ruoloNomeBreve.toUpperCase()));
-            Integer mascheraBit = ruolo.getMascheraBit();
-            res += mascheraBit;
-        }
-        return res;
-    }
+    
 }

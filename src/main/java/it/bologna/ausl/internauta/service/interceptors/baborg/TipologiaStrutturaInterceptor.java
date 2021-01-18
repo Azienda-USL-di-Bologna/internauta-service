@@ -60,10 +60,11 @@ public class TipologiaStrutturaInterceptor extends InternautaBaseInterceptor{
             Utente utente = authenticatedUserProperties.getUser();
             boolean isCA = userInfoService.isCA(utente);
             boolean isCI = userInfoService.isCI(utente);
+            boolean isSD = userInfoService.isSD(utente);
             // TODO: bisognerebbe mettere il modulo adeguato e non generale
-            List<String> ruoli = utente.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString()).stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
+            List<String> ruoli = utente.getMappaRuoli().get(Ruolo.ModuliRuolo.POOLS.toString()).stream().map(ruolo -> ruolo.getNomeBreve().toString()).collect(Collectors.toList());
 
-            if (!isCA && !isCI) {
+            if (!isCA && !isCI && ! isSD) {
                 BooleanTemplate booleanTemplate = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", QTipologiaStruttura.tipologiaStruttura.ruoli, String.join(",", ruoli));
                 initialPredicate=booleanTemplate.and(initialPredicate);
 

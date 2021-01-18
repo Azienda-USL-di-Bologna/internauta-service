@@ -4,22 +4,40 @@ import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
+import it.bologna.ausl.blackbox.PermissionRepositoryAccess;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants.*;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Ambiti;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Predicati;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi;
+import it.bologna.ausl.internauta.service.utils.InternautaUtils;
+import it.bologna.ausl.internauta.service.utils.ParametriAziende;
+import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.QStruttura;
 import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -27,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -41,6 +60,21 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
     @Autowired
     PermissionManager permissionManager;
     
+    @Autowired
+    PermissionRepositoryAccess permissionRepositoryAccess;
+    
+    @Autowired
+    StrutturaRepository strutturaRepository; 
+    
+    @Autowired
+    ParametriAziende parametriAziende;
+    
+    @Autowired
+    UserInfoService userInfoService;
+    
+    @Autowired
+    InternautaUtils internautaUtils;
+    
     @Override
     public Class getTargetEntityClass() {
         return Struttura.class;
@@ -48,12 +82,17 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-                
+        AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
+        Utente utente = authenticatedUserProperties.getUser();
+        boolean isCA = userInfoService.isCA(utente);
+        boolean isCI = userInfoService.isCI(utente);
+        boolean isSD = userInfoService.isSD(utente);
+        
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
-                    case GetPermessiStrutturePec: 
+                    case GetPermessiStrutturePec:
                         /* Nel caso di GetPermessiStrutturePec in Data avremo l'id della PEC della quale si chiedono i permessi */
                         String idPec = additionalData.get(AdditionalData.Keys.idPec.toString());
                         Pec pec = new Pec(Integer.parseInt(idPec));
@@ -78,6 +117,24 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                         } catch (BlackBoxPermissionException ex) {
                             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+                        }
+                    break;
+                    case FilterResponsabilePool:
+                        try {
+                            String ruoliNomeBreveString = additionalData.get(InternautaConstants.AdditionalData.Keys.ruoli.toString());
+                            if (!isCA && !isCI && !isSD && !StringUtils.isEmpty(ruoliNomeBreveString)) {
+                                List<ParametroAziende> filtraResponsabiliParams = parametriAziende.getParameters("AccessoPoolFiltratoPerRuolo", new Integer[]{utente.getIdAzienda().getId()});
+                                if (filtraResponsabiliParams != null && !filtraResponsabiliParams.isEmpty() && parametriAziende.getValue(filtraResponsabiliParams.get(0), Boolean.class)) {
+                                    Integer mascheraBit = internautaUtils.getSommaMascheraBit(ruoliNomeBreveString);
+                                    List<Integer> struttureRuoloEFiglie = strutturaRepository.getStruttureRuoloEFiglie(mascheraBit, utente.getId(), null);
+                                    BooleanExpression filterRuolo = QStruttura.struttura.idStrutturaPadre.id.in(struttureRuoloEFiglie);
+                                    initialPredicate = filterRuolo.and(initialPredicate);
+                                } else {
+                                    initialPredicate = Expressions.FALSE.eq(true);
+                                }
+                            }
+                        } catch (SQLException ex) {
+                            throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_ruolo_e_figlie", ex);
                         }
                     break;
                 }
@@ -124,5 +181,37 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             }
         }
         return entities;
+    }
+
+    @Override
+    public Object afterUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            if (operationsRequested.contains(AdditionalData.OperationsRequested.SvuotaStruttureConnesseUfficio)) {
+                try {
+                    Struttura struttura = (Struttura) entity;
+                    if (!struttura.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture()) {
+                        List<PermessoEntitaStoredProcedure> permessiAttuali = permissionManager.getSubjectsWithPermissionsOnObject(
+                                struttura,
+                                Arrays.asList(Predicati.CONNESSO.toString()),
+                                Arrays.asList(Ambiti.BABORG.toString()),
+                                Arrays.asList(Tipi.UFFICIO.toString()),
+                                false);
+                        if (permessiAttuali != null && !permessiAttuali.isEmpty()) {
+                            permessiAttuali.forEach(permessoEntitaStoredProcedure -> {
+                                permessoEntitaStoredProcedure.getCategorie().forEach(categoria -> {
+                                    categoria.setPermessi(new ArrayList<>());
+                                });
+                            });
+                            permissionRepositoryAccess.managePermissions(permessiAttuali, null);
+                        }
+                    }
+                } catch (BlackBoxPermissionException ex) {
+                    LOGGER.error("Errore salvataggio dei permessi", ex);
+                    throw new AbortSaveInterceptorException("Errore salvataggio dei permessi", ex);
+                }
+            }
+        }
+        return entity;
     }
 }

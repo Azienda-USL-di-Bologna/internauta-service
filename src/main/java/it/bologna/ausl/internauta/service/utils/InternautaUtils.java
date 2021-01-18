@@ -6,11 +6,10 @@ import it.bologna.ausl.internauta.utils.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -171,6 +170,18 @@ public class InternautaUtils {
 
         return null;
     }
+    
+    public Integer getSommaMascheraBit(String ruoliNomeBreveString) {
+        Integer res = 0;
+        String[] ruoliSplitted = ruoliNomeBreveString.split(";");
+        for (String ruoloNomeBreve : ruoliSplitted) {
+            Ruolo ruolo = cachedEntities.getRuoloByNomeBreve(Ruolo.CodiciRuolo.valueOf(ruoloNomeBreve.toUpperCase()));
+            Integer mascheraBit = ruolo.getMascheraBit();
+            res += mascheraBit;
+        }
+        return res;
+    }
+    
 //    
 //    public boolean isSameDay(LocalDateTime date1, LocalDateTime date2) {
 //        return this.isSameDay(date1.toLocalDate(), date2.toLocalDate());
