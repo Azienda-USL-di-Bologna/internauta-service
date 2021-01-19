@@ -46,6 +46,7 @@ import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -130,7 +131,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private GestioneMenu gestioneMenu;
-    
+
     private final String CMD_APRI_FIRMONE = "?CMD=open_firmone_local";
     private final String CMD_APRI_PRENDONE = "?CMD=open_prendone_local";
     private static final String FROM = "&from=INTERNAUTA";
@@ -312,15 +313,23 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     }
 
     @RequestMapping(value = {"getDatiBolloByAzienda"}, method = RequestMethod.GET)
-    public List<DatoBolloVirtuale> getDatiBolloByAzienda(@RequestParam("codiceAzienda") String codiceAzienda, HttpServletRequest request) throws Http500ResponseException, Http404ResponseException, RestClientException {
-        System.out.println("codiceAzienda: " + codiceAzienda);
+    public List<DatoBolloVirtuale> getDatiBolloByAzienda(@RequestParam("codiceAzienda") String codiceAzienda,
+            @RequestParam("from") String from,
+            @RequestParam("to") String to,
+            HttpServletRequest request) throws Http500ResponseException, Http404ResponseException, RestClientException {
+
         // Prendo la connessione dal connection manager
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
         dbConnection.setDefaultColumnMappings(BolloVirtualeManager.mapQueryGetDatiBolliVirtuali());
+
         List<DatoBolloVirtuale> datiBolloVirtuale;
 
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
         try (Connection conn = (Connection) dbConnection.open()) {
-            Query queryWithParams = conn.createQuery(BolloVirtualeManager.queryGetDatiBolliVirtuali());
+            Query queryWithParams = conn.createQuery(BolloVirtualeManager.queryGetDatiBolliVirtuali())
+                    .addParameter("from", dateFormat.parse(from))
+                    .addParameter("to", dateFormat.parse(to));
             LOGGER.info("esecuzione query getDatiBolloByAzienda: " + queryWithParams.toString());
             datiBolloVirtuale = (List<DatoBolloVirtuale>) queryWithParams.executeAndFetch(DatoBolloVirtuale.class);
         } catch (Exception e) {
@@ -333,8 +342,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     public enum ScrivaniaCommonParameters {
         BABEL_APPLICATION
     }
-    
-    
+
     @RequestMapping(value = {"getMenuScrivania"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<ItemMenu>> getMenuScrivania(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
