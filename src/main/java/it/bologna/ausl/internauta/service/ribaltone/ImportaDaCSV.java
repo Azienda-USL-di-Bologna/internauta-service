@@ -399,7 +399,13 @@ public class ImportaDaCSV {
         }
         return (dataInizioA.compareTo(dataFineB) <= 0 && dataFineA.compareTo(dataInizioB) >= 0) && dataInizioA.compareTo(dataInizioB) <= 0;
     }
-
+    /**
+     * 
+     * @param elementi
+     * @param dataInizio
+     * @param dataFine
+     * @return false se elementi è vuoto
+     */
     public Boolean arcoBool(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
         if (elementi.isEmpty()) {
             return false;
@@ -635,6 +641,12 @@ public class ImportaDaCSV {
 
                         String idCasella = checkIdCasellaA(appartenentiMap, mapError, selectDateOnStruttureByIdAzienda);
                         anomalia = anomalia ? anomalia : idCasella.equals("");
+                        if (appartenentiMap.get("id_casella") != null && appartenentiMap.get("id_casella") != "") {
+                            if (!appartenentiMap.get("id_casella").toString().equals(idCasella)) {
+                                idCasella = appartenentiMap.get("id_casella").toString();
+                            }
+
+                        }
 //                      ID_CASELLA bloccante
 
 //                      DATAIN bloccante
@@ -830,7 +842,7 @@ public class ImportaDaCSV {
                             id_casella = e.getDato().toString();
                             mapError.put("ERRORE", e.getMessage());
                         }
-//
+//TODO si possono usare le mappe anche qui
                         if (mdrResponsabiliRepository.countMultiReponsabilePerStruttura(codiceAzienda,
                                 Integer.parseInt(id_casella),
                                 datafiString,
@@ -984,6 +996,12 @@ public class ImportaDaCSV {
                                         } else {
                                             strutturaErrorMapWrite.put("ERRORE", " non rispetta l'arco temporale del padre,");
                                         }
+                                    }
+                                    Map<String, LocalDateTime> maxMin = maxMin(elementi);
+                                    if (!controllaEstremi(maxMin.get("min"), maxMin.get("max"), formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi")))) {
+                                        strutturaErrorMapWrite.put("ERRORE", " non rispetta l'arco temporale del padre,");
+                                        log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " non rispetta l'arco temporale del padre");
+                                        bloccante = true;
                                     }
                                 }
                             }
@@ -1172,8 +1190,10 @@ public class ImportaDaCSV {
 
         } catch (Exception e) {
             if (!tipo.equals("STRUTTURA")) {
+                log.error("ERRORE GENERICO---", e);
                 throw new BaborgCSVBloccanteException(csvErrorFile.getAbsolutePath(), e);
             } else {
+                log.error("ERRORE GENERICO STRUTTURA---", e);
                 throw new BaborgCSVBloccanteException(csvErrorFile2.getAbsolutePath(), e);
 
             }
@@ -1296,28 +1316,30 @@ public class ImportaDaCSV {
             return "";
 
         } else {
+            mapError.put("id_casella", appartenentiMap.get("id_casella").toString());
             if (!selectDateOnStruttureByIdAzienda.containsKey(Integer.parseInt(appartenentiMap.get("id_casella").toString()))) {
                 mapError.put("ERRORE", " manca la struttura nella tabella struttura,");
                 mapError.put("Anomalia", "true");
+                
                 return "";
-
             } else {
                 if (!arcoBool(selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString())), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
                     mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l arco temporale della struttura,");
                     mapError.put("Anomalia", "true");
-                    return "";
 
+                    return "";
                 } else {
                     List<Map<String, Object>> elementi = selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
                     Map<String, LocalDateTime> maxMin = maxMin(elementi);
                     if (!controllaEstremi(maxMin.get("min"), maxMin.get("max"), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
                         mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura, ");
                         mapError.put("Anomalia", "true");
+
                         return "";
                     }
                 }
             }
-            mapError.put("id_casella", appartenentiMap.get("id_casella"));
+
             return appartenentiMap.get("id_casella").toString();
         }
     }
@@ -1369,7 +1391,7 @@ public class ImportaDaCSV {
 
         Boolean anomalia = false;
         if (appartenentiMap.get("tipo_appartenenza") == null || appartenentiMap.get("tipo_appartenenza").toString().trim().equals("") || appartenentiMap.get("tipo_appartenenza") == "" || idCasella.equals("")) {
-            mapError.put("ERRORE", mapError.get("ERRORE") + " tipo_appartenenza,");
+            mapError.put("ERRORE", mapError.get("ERRORE") + " tipo appartenenza assente,");
             mapError.put("tipo_appartenenza", "");
             mapError.put("Anomalia", "true");
             return true;
