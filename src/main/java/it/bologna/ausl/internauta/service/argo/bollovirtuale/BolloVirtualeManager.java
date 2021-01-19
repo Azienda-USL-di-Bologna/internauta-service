@@ -35,6 +35,8 @@ public class BolloVirtualeManager {
                 + "LEFT JOIN bds_tools.attori a ON a.id_oggetto = pd.guid_documento AND id_step = 'REDAZIONE'\n"
                 + "LEFT JOIN procton.utenti ub ON ub.id_utente = a.id_utente\n"
                 + "WHERE pd.protocollo IS NOT null\n"
+                + "and pd.data_protocollo >= :from\n"
+                + "and pd.data_protocollo < :to\n"
                 + "UNION\n"
                 + "--- dete\n"
                 + "SELECT bv.tipo_oggetto as tipo_oggetto_bollo,\n"
@@ -54,6 +56,8 @@ public class BolloVirtualeManager {
                 + "LEFT JOIN dete.attori_determine da ON dd.id_determina = da.id_determina AND id_tasks = 'wl[2n7=K,//C5\\nEEf)T'\n"
                 + "LEFT JOIN procton.utenti pu ON da.id_utente = pu.id_utente\n"
                 + "WHERE dd.numero IS NOT null\n"
+                + "and dd.data_adozione >= :from\n"
+                + "and dd.data_adozione < :to\n"
                 + "UNION\n"
                 + "--- deli\n"
                 + "SELECT bv.tipo_oggetto as tipo_oggetto_bollo,\n"
@@ -72,8 +76,9 @@ public class BolloVirtualeManager {
                 + "JOIN deli.delibere dd ON bv.guid_oggetto_origine = dd.guid_delibera\n"
                 + "LEFT JOIN deli.attori_delibere da ON dd.id_delibera = da.id_delibera AND id_tasks = 'nn`B7KIYZ-ict?6k+D(k'\n"
                 + "LEFT JOIN procton.utenti pu ON da.id_utente = pu.id_utente\n"
-                + "WHERE dd.numero_delibera IS NOT null";
-//                + "limit 50";
+                + "WHERE dd.numero_delibera IS NOT null\n"
+                + "and dd.data_adozione >= :from\n"
+                + "and dd.data_adozione < :to";
         return query;
     }
 
