@@ -115,7 +115,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                                         = QContatto.contatto.protocontatto.eq(true)
                                                 .and(QContatto.contatto.idPersonaCreazione
                                                         .in(personaListInStrutture));
-                                initialPredicate = (protocontattiDiAltrePersona).and(initialPredicate);
+                                initialPredicate = (protocontattiDiAltrePersona).or(initialPredicate);
                             } else {
                                 LOGGER.info("AuthenticatedUser non e' segretario "
                                         + "oppure non ci sono persone nelle "
