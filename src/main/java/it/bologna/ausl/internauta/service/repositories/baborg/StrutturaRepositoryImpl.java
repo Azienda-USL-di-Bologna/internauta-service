@@ -41,15 +41,15 @@ public class StrutturaRepositoryImpl implements StrutturaRepositoryCustom {
         return res;
     }
     
-    @Transactional
-    @Override
-    public List<Integer> getStruttureRuoloEFiglie(Integer bitRuoli, Integer idUtente, LocalDateTime date) throws SQLException {
-        String queryString = "select baborg.get_strutture_ruolo_e_figlie(?, ?, ?);";
-        Query query = em.createNativeQuery(queryString);
-        query.setParameter(1, new TypedParameterValue(IntegerType.INSTANCE, bitRuoli));
-        query.setParameter(2, new TypedParameterValue(IntegerType.INSTANCE, idUtente));
-        query.setParameter(3, new TypedParameterValue(LocalDateTimeType.INSTANCE, date));
-        List<Integer> resultList = query.getResultList();
-        return resultList;
-    }
+//    @Transactional
+//    @Override
+//    public List<Integer> getStruttureRuoloEFiglie(Integer bitRuoli, Integer idUtente, LocalDateTime date) throws SQLException {
+//        String queryString = "select baborg.get_strutture_ruolo_e_figlie(?, ?, ?);";
+//        Query query = em.createNativeQuery(queryString);
+//        query.setParameter(1, new TypedParameterValue(IntegerType.INSTANCE, bitRuoli));
+//        query.setParameter(2, new TypedParameterValue(IntegerType.INSTANCE, idUtente));
+//        query.setParameter(3, new TypedParameterValue(LocalDateTimeType.INSTANCE, date));
+//        List<Integer> resultList = query.getResultList();
+//        return resultList;
+//    }
 }

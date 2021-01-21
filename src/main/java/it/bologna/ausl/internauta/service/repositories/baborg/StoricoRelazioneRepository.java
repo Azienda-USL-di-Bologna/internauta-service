@@ -26,6 +26,10 @@ public interface StoricoRelazioneRepository extends
     @Procedure("baborg.get_strutture_antenate_in_storico_relazione")
     public String getStruttureAntenateInStoricoRelazione(Integer idStruttura, String dataRiferimento);
     
+    @Query(value = "select baborg.get_strutture_ruolo_e_figlie(?1, ?2, ?3) as result", nativeQuery = true)
+//    @Procedure(procedureName = "select baborg.get_strutture_ruolo", outputParameterName = "get_strutture_ruolo" )
+    public Map getStruttureRuoloEFiglie(Integer mascheraBit, Integer idUtente, LocalDateTime dataRiferimento);
+    
     @Query(value = "select baborg.get_strutture_ruolo(?1, ?2, ?3) as result", nativeQuery = true)
 //    @Procedure(procedureName = "select baborg.get_strutture_ruolo", outputParameterName = "get_strutture_ruolo" )
     public Map getStruttureRuolo(Integer mascheraBit, Integer idUtente, LocalDateTime dataRiferimento);

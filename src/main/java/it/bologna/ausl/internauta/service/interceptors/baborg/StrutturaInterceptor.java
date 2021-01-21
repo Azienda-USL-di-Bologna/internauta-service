@@ -1,17 +1,18 @@
 package it.bologna.ausl.internauta.service.interceptors.baborg;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.PermissionRepositoryAccess;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.HttpSessionData;
@@ -20,8 +21,6 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Pre
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.internauta.service.utils.ParametriAziende;
-import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.QStruttura;
 import it.bologna.ausl.model.entities.baborg.Struttura;
@@ -37,7 +36,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -64,7 +62,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
     PermissionRepositoryAccess permissionRepositoryAccess;
     
     @Autowired
-    StrutturaRepository strutturaRepository; 
+    StoricoRelazioneRepository storicoRelazioneRepository; 
     
     @Autowired
     ParametriAziende parametriAziende;
@@ -74,6 +72,9 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     InternautaUtils internautaUtils;
+    
+    @Autowired
+    public ObjectMapper objectMapper;
     
     @Override
     public Class getTargetEntityClass() {
@@ -119,21 +120,30 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                         }
                     break;
-                    case FilterResponsabilePool:
+                    case FilterStrutturePoolsRuolo:
                         try {
                             String ruoliNomeBreveString = additionalData.get(InternautaConstants.AdditionalData.Keys.ruoli.toString());
                             if (!isCA && !isCI && !isSD && !StringUtils.isEmpty(ruoliNomeBreveString)) {
                                 List<ParametroAziende> filtraResponsabiliParams = parametriAziende.getParameters("AccessoPoolFiltratoPerRuolo", new Integer[]{utente.getIdAzienda().getId()});
                                 if (filtraResponsabiliParams != null && !filtraResponsabiliParams.isEmpty() && parametriAziende.getValue(filtraResponsabiliParams.get(0), Boolean.class)) {
                                     Integer mascheraBit = internautaUtils.getSommaMascheraBit(ruoliNomeBreveString);
-                                    List<Integer> struttureRuoloEFiglie = strutturaRepository.getStruttureRuoloEFiglie(mascheraBit, utente.getId(), null);
-                                    BooleanExpression filterRuolo = QStruttura.struttura.idStrutturaPadre.id.in(struttureRuoloEFiglie);
-                                    initialPredicate = filterRuolo.and(initialPredicate);
+
+                                    Map<String, Integer> struttureRuoloEFiglie = objectMapper.convertValue(
+                                        storicoRelazioneRepository.getStruttureRuoloEFiglie(mascheraBit, utente.getId(), LocalDateTime.now()).get("result"),
+                                        new TypeReference<Map<String, Integer>>(){}
+                                    );
+                                    if (struttureRuoloEFiglie != null && !struttureRuoloEFiglie.isEmpty()) {
+                                        List<Integer> struttureResposabilita = struttureRuoloEFiglie.keySet().stream().map(s -> Integer.valueOf(s)).collect(Collectors.toList());
+                                        BooleanExpression filterRuolo = QStruttura.struttura.idStrutturaPadre.id.in(struttureResposabilita);
+                                        initialPredicate = filterRuolo.and(initialPredicate);
+                                    } else {
+                                        initialPredicate = Expressions.FALSE.eq(true);
+                                    }
                                 } else {
                                     initialPredicate = Expressions.FALSE.eq(true);
                                 }
                             }
-                        } catch (SQLException ex) {
+                        } catch (Exception ex) {
                             throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_ruolo_e_figlie", ex);
                         }
                     break;

@@ -67,7 +67,8 @@ public class InternautaConstants {
             CercaContattiCustomFilterPico,
             CercaAncheInContatto,
             SvuotaStruttureConnesseUfficio,
-            FilterResponsabilePool
+            FilterStrutturePoolsRuolo,
+            FilterStruttureRuolo
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
