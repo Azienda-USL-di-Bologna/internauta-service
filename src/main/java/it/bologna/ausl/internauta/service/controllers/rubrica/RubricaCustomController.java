@@ -43,15 +43,11 @@ import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.Indirizzo;
 import it.bologna.ausl.model.entities.rubrica.Telefono;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithContattiDelGruppoListAndDettaglioContattoListAndIdPersonaCreazione;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithDettaglioContattoList;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithPlainFields;
 import it.bologna.ausl.rubrica.maven.client.RestClient;
 import it.bologna.ausl.rubrica.maven.client.RestClientException;
 import it.bologna.ausl.rubrica.maven.resources.EmailResource;
 import it.bologna.ausl.rubrica.maven.resources.FullContactResource;
-import it.nextsw.common.controller.exceptions.RestControllerEngineException;
-import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.CommonUtils;
 import java.io.IOException;
@@ -94,7 +90,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.sql2o.Connection;
 import org.sql2o.Query;
 import org.sql2o.Sql2o;
-import sun.security.provider.certpath.ResponderId;
 
 /**
  *

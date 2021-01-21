@@ -89,7 +89,7 @@ public class BabelDownloader {
                 else 
                     throw new IOException("il link tornato è nullo");
             } else
-                throw new IOException(String.format("errore nella richista del link: %s", response.message()));
+                throw new IOException(String.format("errore nella richiesta del link: %s", response.message()));
         }
     }
 
