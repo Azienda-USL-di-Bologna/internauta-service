@@ -169,6 +169,4 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
         }
         return initialPredicate;
     }
-
-    
 }
