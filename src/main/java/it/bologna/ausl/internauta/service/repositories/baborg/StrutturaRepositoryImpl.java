@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
@@ -39,4 +40,16 @@ public class StrutturaRepositoryImpl implements StrutturaRepositoryCustom {
 
         return res;
     }
+    
+//    @Transactional
+//    @Override
+//    public List<Integer> getStruttureRuoloEFiglie(Integer bitRuoli, Integer idUtente, LocalDateTime date) throws SQLException {
+//        String queryString = "select baborg.get_strutture_ruolo_e_figlie(?, ?, ?);";
+//        Query query = em.createNativeQuery(queryString);
+//        query.setParameter(1, new TypedParameterValue(IntegerType.INSTANCE, bitRuoli));
+//        query.setParameter(2, new TypedParameterValue(IntegerType.INSTANCE, idUtente));
+//        query.setParameter(3, new TypedParameterValue(LocalDateTimeType.INSTANCE, date));
+//        List<Integer> resultList = query.getResultList();
+//        return resultList;
+//    }
 }
