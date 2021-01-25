@@ -243,6 +243,11 @@
             <artifactId>json</artifactId>
             <version>20180813</version>
         </dependency>
+        <dependency>
+            <groupId>eu.bitwalker</groupId>
+            <artifactId>UserAgentUtils</artifactId>
+            <version>1.21</version>
+        </dependency>
         <!-- Librerie Super CSV -->
         <dependency>
             <groupId>net.sf.supercsv</groupId>
