@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.authorization.jwt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.bitwalker.useragentutils.UserAgent;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -181,11 +182,13 @@ public class AuthorizationUtils {
      * @param utenteImpersonatoStr
      * @param applicazione
      * @param fromInternetLogin
+     * @param writeUserAccess
      * @return
      * @throws IOException
      * @throws ClassNotFoundException
      * @throws ObjectNotFoundException
      * @throws BlackBoxPermissionException
+     * @throws it.bologna.ausl.internauta.service.exceptions.SSOException
      */
     public ResponseEntity generateResponseEntityFromSAML(String idAzienda, String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione, Boolean fromInternetLogin, Boolean writeUserAccess) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException, SSOException {
 
@@ -346,8 +349,13 @@ public class AuthorizationUtils {
                     HttpStatus.OK);
         }
         if (writeUserAccess) {
-//          write information to DB about real new LOG IN 
-            this.writeNewUserAccess(user, fromInternetLogin, applicazione, aziendaRealUser.getCodice());
+//          write information to DB about real new LOG IN
+            String userAgentString = request.getHeader("User-Agent");
+            UserAgent userAgent = null;
+            if (!StringUtils.isEmpty(userAgentString)) {
+                userAgent = UserAgent.parseUserAgentString(userAgentString);
+            }
+            this.writeNewUserAccess(user, fromInternetLogin, applicazione, aziendaRealUser.getCodice(), userAgent);
         }
         return res;
 
@@ -371,8 +379,36 @@ public class AuthorizationUtils {
     }
 
 //  funtion that calls the repository needed to write to DB info about real new LOG IN from Scrivania
-    private void writeNewUserAccess(Utente realUser, Boolean fromInternet, String applicazione, String codiceAzienda) {
-        UserAccess userAccess = new UserAccess(realUser.getId(), realUser.getIdPersona().getCodiceFiscale(), realUser.getIdPersona().getDescrizione(), fromInternet, applicazione, codiceAzienda);
+    private void writeNewUserAccess(Utente realUser, Boolean fromInternet, String applicazione, String codiceAzienda, UserAgent userAgent) {
+        String browserName = null;
+        try {
+            browserName = userAgent.getBrowser().getGroup().getName();
+        } catch (Exception ex) {
+            logger.error("errore nel calcolo del browserName", ex);
+        }
+        String browserVersion = null;
+        try {
+            browserVersion = userAgent.getBrowserVersion().getVersion();
+        } catch (Exception ex) {
+            logger.error("errore nel calcolo del browserVersion", ex);
+        }
+        String os = null;
+        try {
+            os = userAgent.getOperatingSystem().getName();
+        } catch (Exception ex) {
+            logger.error("errore nel calcolo del sistema operativo", ex);
+        }
+        
+        UserAccess userAccess = new UserAccess(
+                realUser.getId(), 
+                realUser.getIdPersona().getCodiceFiscale(), 
+                realUser.getIdPersona().getDescrizione(), 
+                fromInternet, 
+                applicazione, 
+                codiceAzienda,
+                browserName,
+                browserVersion,
+                os);
         userAccessRepository.save(userAccess);
     }
 
