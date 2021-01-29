@@ -1,13 +1,10 @@
 package it.bologna.ausl.model.entities.rubrica.projections;
 
-import it.bologna.ausl.internauta.service.permessi.Permesso;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithEmailListAndGruppiDelContattoListAndIdPersonaCreazioneAndIdUtenteCreazioneAndIndirizziListAndTelefonoList;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.EmailWithIdDettaglioContatto;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdContattoAndIdDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdDettaglioContattoAndIdGruppo;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdGruppo;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.IndirizzoWithIdDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.TelefonoWithIdDettaglioContatto;
 import java.util.List;
