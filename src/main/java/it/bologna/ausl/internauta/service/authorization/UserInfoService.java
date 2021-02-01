@@ -243,14 +243,17 @@ public class UserInfoService {
         
         // modulo Matrint
         Set<Ruolo> ruoliModuloMatrint = getRuoliMatrint(utente, interaziendali, idAziende, true);
+        // modulo Pool
+        Set<Ruolo> ruoliModuloPool = getRuoliPool(utente, interaziendali, idAziende, true);
         
         mappaRuoli.put(Ruolo.ModuliRuolo.GENERALE.toString(), new ArrayList<>(ruoliModuloGenerale));
         mappaRuoli.put(Ruolo.ModuliRuolo.MATRINT.toString(), new ArrayList<>(ruoliModuloMatrint));
+        mappaRuoli.put(Ruolo.ModuliRuolo.POOLS.toString(), new ArrayList<>(ruoliModuloPool));
 
         return mappaRuoli;
     }
     
-    @Cacheable(value = "getRuoliGenerali_utente__ribaltorg__", key = "{#utente.getId()}")
+    @Cacheable(value = "getRuoliMatrint_utente__ribaltorg__", key = "{#utente.getId()}")
     public Set<Ruolo> getRuoliMatrint(Utente utente, Boolean interaziendali, Integer[] idAziende, Boolean calcolaRuoliStandard) {
         Set<Ruolo> res = new HashSet();
         
@@ -275,6 +278,32 @@ public class UserInfoService {
     
     @CacheEvict(value = "getRuoliMatrint_utente__ribaltorg__", key = "{#utente.getId()}")
     public void getRuoliMatrintRemoveCache(Utente utente) {}
+    
+    @Cacheable(value = "getRuoliPool_utente__ribaltorg__", key = "{#utente.getId()}")
+    public Set<Ruolo> getRuoliPool(Utente utente, Boolean interaziendali, Integer[] idAziende, Boolean calcolaRuoliStandard) {
+        Set<Ruolo> res = new HashSet();
+        
+        if (calcolaRuoliStandard) {
+            res.addAll(getRuoliStandard(utente, interaziendali));
+        }
+        
+        List<ParametroAziende> filtraResponsabiliParams = parametriAziende.getParameters("AccessoPoolFiltratoPerRuolo", idAziende);
+        if (filtraResponsabiliParams != null && !filtraResponsabiliParams.isEmpty() && filtraResponsabiliParams.stream().anyMatch(param -> parametriAziende.getValue(param, Boolean.class))) {
+            res.addAll(getRuoliStrutture(utente, Arrays.asList(Ruolo.CodiciRuolo.R)));
+        }
+//        try {
+//            List<Integer> idUtentiDelegati = getPermessiDelega(utente);
+//            idUtentiDelegati.stream().map(idUtente -> utenteRepository.getOne(idUtente)).forEach(u -> {
+//                res.addAll(getRuoliPool(u, interaziendali, idAziende, false));
+//            });
+//        } catch (BlackBoxPermissionException ex) {
+//            LOGGER.error("errore nel calcolo dei permessi Delegato", ex);
+//        }
+        return res;
+    }
+    
+    @CacheEvict(value = "getRuoliPool_utente__ribaltorg__", key = "{#utente.getId()}")
+    public void getRuoliPoolRemoveCache(Utente utente) {}
     
     @Cacheable(value = "getRuoliGenerali_utente__ribaltorg__", key = "{#utente.getId()}")
     public Set<Ruolo> getRuoliGenerali(Utente utente, Boolean interaziendali) {

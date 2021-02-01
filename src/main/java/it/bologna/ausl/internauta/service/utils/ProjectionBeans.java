@@ -797,7 +797,8 @@ public class ProjectionBeans {
             for (PermessoEntitaStoredProcedure permessoEntitaStoredProcedure : subjectsWithPermissionsOnObject) {
                 if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.strutture.toString())) {
                     Struttura strutturaSoggetto = strutturaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
-                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(strutturaSoggetto.getNome() + " [" + strutturaSoggetto.getCodice() + "]");
+                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(
+                            strutturaSoggetto.getNome() + (strutturaSoggetto.getCodice() != null ? " [" + strutturaSoggetto.getCodice() + "]" : ""));
                 }
             }
         }
