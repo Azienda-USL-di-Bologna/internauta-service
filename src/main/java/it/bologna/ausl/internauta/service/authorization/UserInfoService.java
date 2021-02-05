@@ -115,7 +115,7 @@ public class UserInfoService {
     @Autowired
     ParametriAziende parametriAziende;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserInfoService.class);
 
     /**
      * carica l'utente a partire dall'id
@@ -852,7 +852,7 @@ public class UserInfoService {
 
     @Cacheable(value = "getPermessiPec__ribaltorg__", key = "{#persona.getId()}")
     public Map<Integer, List<String>> getPermessiPec(Persona persona) throws BlackBoxPermissionException {
-        LOGGER.info("reperimento permessi PEC");
+//        LOGGER.info("reperimento permessi PEC");
         List<PermessoEntitaStoredProcedure> pecWithStandardPermissions = null;
         try {
             pecWithStandardPermissions = permissionManager.getPermissionsOfSubjectActualFromDate(
