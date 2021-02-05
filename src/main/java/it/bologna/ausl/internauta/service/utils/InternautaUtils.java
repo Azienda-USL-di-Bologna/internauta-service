@@ -68,7 +68,7 @@ public class InternautaUtils {
         String targetLoginPath = parametriAziendaTarget.getLoginPath();
         String targetBasePath = parametriAziendaTarget.getBasePath();
         
-        log.info("getUrl authenticatedSessionData.isFromInternet(): " + authenticatedSessionData.isFromInternet());
+//        log.info("getUrl authenticatedSessionData.isFromInternet(): " + authenticatedSessionData.isFromInternet());
         if (authenticatedSessionData.isFromInternet()) {
             targetBasePath = parametriAziendaTarget.getInternetBasePath();
         }
