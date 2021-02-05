@@ -124,24 +124,24 @@ public class AuthorizationUtils {
         }
         Integer idSessionLog = Integer.parseInt((String) claims.get(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name()));
         Utente user = userInfoService.loadUtente(userId);
-        logger.info("user: " + (user != null ? user.getId() : "null"));
+//        logger.info("user: " + (user != null ? user.getId() : "null"));
         user.setMappaRuoli(userInfoService.getRuoliPerModuli(user, null));
-        logger.info("ruoli user: ");
-        try {
-            logger.info(objectMapper.writeValueAsString(user.getMappaRuoli()));
-        } catch (JsonProcessingException ex) {
-            logger.warn("Errore nella stampa dei ruoli", ex);
-        }
+//        logger.info("ruoli user: ");
+//        try {
+//            logger.info(objectMapper.writeValueAsString(user.getMappaRuoli()));
+//        } catch (JsonProcessingException ex) {
+//            logger.warn("Errore nella stampa dei ruoli", ex);
+//        }
         user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user.getIdPersona(), true));
 //        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user, true));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         user.setPermessiDiFlussoByCodiceAzienda(userInfoService.getPermessiDiFlussoByCodiceAzienda(user));
         boolean fromInternet = false;
         Object fromInternetObj = claims.get(AuthorizationUtils.TokenClaims.FROM_INTERNET.name());
-        logger.info("fromInternetObj: " + fromInternetObj);
+//        logger.info("fromInternetObj: " + fromInternetObj);
         if (fromInternetObj != null) {
             fromInternet = claims.get(AuthorizationUtils.TokenClaims.FROM_INTERNET.name(), Boolean.class);
-            logger.info("fromInternet boolean: " + fromInternet);
+//            logger.info("fromInternet boolean: " + fromInternet);
         }
         if (realUserId != null && !realUserId.equals(userId)) {
             Utente realUser = userInfoService.loadUtente(realUserId);
@@ -157,7 +157,7 @@ public class AuthorizationUtils {
     }
 
     public void insertInContext(Utente realUser, Utente user, Integer idSessionLog, String token, String idApplicazione, boolean fromInternet) {
-        logger.info("insertInContext fromInternet: " + fromInternet);
+//        logger.info("insertInContext fromInternet: " + fromInternet);
         TokenBasedAuthentication authentication;
         Applicazioni applicazione = Applicazioni.valueOf(idApplicazione);
         if (realUser != null) {
@@ -197,9 +197,9 @@ public class AuthorizationUtils {
         if (fromInternetLogin == null) {
             fromInternetLogin = fromInternet(request);
         }
-        logger.info("idAzienda: " + objectMapper.writeValueAsString(idAzienda));
-        logger.info("path: " + objectMapper.writeValueAsString(path));
-        logger.info("fromInternet: " + fromInternetLogin);
+//        logger.info("idAzienda: " + objectMapper.writeValueAsString(idAzienda));
+//        logger.info("path: " + objectMapper.writeValueAsString(path));
+//        logger.info("fromInternet: " + fromInternetLogin);
         Azienda aziendaRealUser = null;
         if (fromInternetLogin) {
             if (StringUtils.isEmpty(ssoFieldValue)) {
@@ -267,12 +267,12 @@ public class AuthorizationUtils {
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
 //        userInfoService.getPermessiAvatarRemoveCache(user);
         
-        logger.info("realUser: " + objectMapper.writeValueAsString(user));
-        logger.info("aziendaRealUserLoaded: " + (aziendaRealUser != null ? aziendaRealUser.getId().toString() : "null"));
-        logger.info("impersonatedUser: " + utenteImpersonatoStr);
-        logger.info("aziendaImpersonatedUserLoaded: " + (aziendaImpersonatedUser != null ? aziendaImpersonatedUser.getId().toString() : "null"));
+//        logger.info("realUser: " + objectMapper.writeValueAsString(user));
+//        logger.info("aziendaRealUserLoaded: " + (aziendaRealUser != null ? aziendaRealUser.getId().toString() : "null"));
+//        logger.info("impersonatedUser: " + utenteImpersonatoStr);
+//        logger.info("aziendaImpersonatedUserLoaded: " + (aziendaImpersonatedUser != null ? aziendaImpersonatedUser.getId().toString() : "null"));
         List<Integer> permessiAvatar = userInfoService.getPermessiAvatar(user);
-        logger.info("permessiAvatar: " + Arrays.toString(permessiAvatar.toArray()));
+//        logger.info("permessiAvatar: " + Arrays.toString(permessiAvatar.toArray()));
 
         if (user == null) {
             throw new ObjectNotFoundException("User not found");
@@ -292,7 +292,7 @@ public class AuthorizationUtils {
 
             userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser, false);
             impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser, false);
-            logger.info("loadedImpersonateUser: " + (impersonatedUser != null ? impersonatedUser.getId().toString() : "null"));
+//            logger.info("loadedImpersonateUser: " + (impersonatedUser != null ? impersonatedUser.getId().toString() : "null"));
             userInfoService.loadUtenteRemoveCache(impersonatedUser.getId());
             userInfoService.getUtentiPersonaByUtenteRemoveCache(impersonatedUser);
             userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());
@@ -309,8 +309,8 @@ public class AuthorizationUtils {
 
             boolean isDelegato = permessiAvatar != null && !permessiAvatar.isEmpty() && permessiAvatar.contains(impersonatedUser.getId());
 
-            logger.info("isSuperDemiurgo: " + isSuperDemiurgo);
-            logger.info("isDelegato: " + isDelegato);
+//            logger.info("isSuperDemiurgo: " + isSuperDemiurgo);
+//            logger.info("isDelegato: " + isDelegato);
             if (isSuperDemiurgo || isDelegato) {
                 logger.info(String.format("utente %s ha ruolo SD", realUserSubject));
 
@@ -415,10 +415,10 @@ public class AuthorizationUtils {
     private boolean fromInternet(HttpServletRequest request) {
         try {
             String internet = request.getAttribute("internet").toString();
-            logger.info("letto dalla sessione request.getAttribute(\"internet\"): " + request.getAttribute("internet"));
+//            logger.info("letto dalla sessione request.getAttribute(\"internet\"): " + request.getAttribute("internet"));
             return Boolean.parseBoolean(internet);
         } catch (Exception ex) {
-            logger.info("nel catch di fromInternet()");
+//            logger.info("nel catch di fromInternet()");
             return false;
         }
     }
@@ -439,7 +439,7 @@ public class AuthorizationUtils {
             boolean fromInternet) {
         DateTime currentDateTime = DateTime.now();
 
-        logger.info("generateLoginResponse fromInternet: " + fromInternet);
+//        logger.info("generateLoginResponse fromInternet: " + fromInternet);
         String realUserStr = null;
         String realUserCfStr = null;
         if (realUser != null) {
