@@ -61,6 +61,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
@@ -428,6 +430,25 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         log.info("set estemporaneiToAddToRubrica to null");
         data.setEstemporaneiToAddToRubrica(null);
 
+        log.info("Metto faccio una Lista di persone a cui aggiornare la videata");
+        //List<String> cfPersoneDiCuiAggiornareLaVideataList = Arrays.asList(getPersona.getCodiceFiscale());
+        List<String> cfPersoneDiCuiAggiornareLaVideataList = new ArrayList<>();
+        cfPersoneDiCuiAggiornareLaVideataList.add(persona.getCodiceFiscale());
+
+        log.info("Cerco il realUser");
+        Utente realUser = authenticatedUserProperties.getRealUser();
+        // Se i due utenti sono diversi, allora devo caricare la persona reale
+        if (!realUser.getId().equals(getUtente.getId())) {
+            log.info("L'utente è impersonato: carico realPersona");
+            try {
+                Persona realPersona = personaRepository.findById(realUser.getIdPersona().getId()).get();
+                String realPersonCf = realPersona.getCodiceFiscale();
+                cfPersoneDiCuiAggiornareLaVideataList.add(realPersonCf);
+            } catch (NoSuchElementException ex) {
+                log.error("Real persona non trovata...");
+            }
+        }
+
         if (glogParams.isEmpty() || StringUtils.isEmpty(glogParams)) {
             log.info("set Glog Params to null");
             data.setGlogParams(null);
@@ -450,7 +471,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             int responseCode = response.code();
             if (response.isSuccessful()) {
                 log.info("Chiamata a webapi inde effettuata con successo");
-                refreshDestinatari(persona, azienda, data.getGuid());
+                refreshDestinatari(cfPersoneDiCuiAggiornareLaVideataList, azienda, data.getGuid());
             } else {
                 log.info("Errore nella chiamata alla webapi InDe: " + responseCode + " " + response.message());
                 throw new IOException(String.format("Errore nella chiamata alla WepApi InDe: %s", response.message()));
@@ -503,18 +524,19 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         return url;
     }
 
-    private void refreshDestinatari(Persona persona, Azienda azienda, String guid) throws IOException {
-        log.info("Inserisco su redis il comando di refresh dei destinatari");
-        List<String> dests = Arrays.asList(persona.getCodiceFiscale());
+    private void refreshDestinatari(List<String> cfPersoneDiCuiAggiornareLaVideataList, Azienda azienda, String guid) throws IOException {
+        log.info("Inserisco su redis il comando di refresh dei destinatari:");
+        for (String cf : cfPersoneDiCuiAggiornareLaVideataList) {
+            log.info("CF: " + cf);
+        }
 
         Map<String, Object> primusCommandParams = new HashMap();
         primusCommandParams.put("refreshDestinatari", guid);
         AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         AziendaParametriJson.MasterChefParmas masterchefParams = aziendaParametriJson.getMasterchefParams();
         MasterChefUtils.MasterchefJobDescriptor masterchefJobDescriptor
-                = masterChefUtils.buildPrimusMasterchefJob(
-                        MasterChefUtils.PrimusCommands.refreshDestinatari,
-                        primusCommandParams, "1", "1", dests, "*"
+                = masterChefUtils.buildPrimusMasterchefJob(MasterChefUtils.PrimusCommands.refreshDestinatari,
+                        primusCommandParams, "1", "1", cfPersoneDiCuiAggiornareLaVideataList, "*"
                 );
         masterChefUtils.sendMasterChefJob(masterchefJobDescriptor, masterchefParams);
 
@@ -852,7 +874,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = "salvaGruppo",
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public void salvaGruppo(@RequestBody Contatto gruppo, HttpServletRequest request) throws GruppiException{
+    public void salvaGruppo(@RequestBody Contatto gruppo, HttpServletRequest request) throws GruppiException {
 //    public void salvaGruppo(@RequestBody Contatto gruppo, HttpServletRequest request) throws RestControllerEngineException, AbortSaveInterceptorException, BlackBoxPermissionException {
 
         log.info("salvaGruppo");
@@ -860,11 +882,11 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             projectionsInterceptorLauncher.setRequestParams(null, request);
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
             Persona idPersonaCreazione = authenticatedUserProperties.getPerson();
-            Integer[] listaAziende = 
-                    userInfoService.getAziendePersona(idPersonaCreazione).stream().map(a->a.getId()).collect(Collectors.toList()).toArray(new Integer[0]);
+            Integer[] listaAziende
+                    = userInfoService.getAziendePersona(idPersonaCreazione).stream().map(a -> a.getId()).collect(Collectors.toList()).toArray(new Integer[0]);
             Utente idUtenteCreazione = authenticatedUserProperties.getUser();
-            idUtenteCreazione = em.find(Utente.class,idUtenteCreazione.getId());
-            idPersonaCreazione = em.find(Persona.class,idPersonaCreazione.getId());
+            idUtenteCreazione = em.find(Utente.class, idUtenteCreazione.getId());
+            idPersonaCreazione = em.find(Persona.class, idPersonaCreazione.getId());
 //            idUtenteCreazione = em.merge(idUtenteCreazione);
 //            idPersonaCreazione = em.merge(idPersonaCreazione);
 
@@ -909,7 +931,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             gruppo.setContattiDelGruppoList(gruppiContattiList);
 
             em.persist(gruppo);
-            
+
         } catch (Exception e) {
             log.debug("entro qui");
             throw new GruppiException("errore nel salvataggio del gruppo da csv", e);
