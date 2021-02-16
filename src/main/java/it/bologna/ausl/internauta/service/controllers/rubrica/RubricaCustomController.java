@@ -430,7 +430,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         log.info("set estemporaneiToAddToRubrica to null");
         data.setEstemporaneiToAddToRubrica(null);
 
-        log.info("Metto faccio una Lista di persone a cui aggiornare la videata");
+        log.info("Faccio una Lista di persone a cui aggiornare la videata");
         //List<String> cfPersoneDiCuiAggiornareLaVideataList = Arrays.asList(getPersona.getCodiceFiscale());
         List<String> cfPersoneDiCuiAggiornareLaVideataList = new ArrayList<>();
         cfPersoneDiCuiAggiornareLaVideataList.add(persona.getCodiceFiscale());
@@ -438,7 +438,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         log.info("Cerco il realUser");
         Utente realUser = authenticatedUserProperties.getRealUser();
         // Se i due utenti sono diversi, allora devo caricare la persona reale
-        if (!realUser.getId().equals(getUtente.getId())) {
+        if (realUser != null && !realUser.getId().equals(utente.getId())) {
             log.info("L'utente è impersonato: carico realPersona");
             try {
                 Persona realPersona = personaRepository.findById(realUser.getIdPersona().getId()).get();
