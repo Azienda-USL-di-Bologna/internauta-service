@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.HttpSessionData;
@@ -23,17 +24,18 @@ import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.QStruttura;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -63,6 +65,9 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     StoricoRelazioneRepository storicoRelazioneRepository; 
+    
+    @Autowired
+    StrutturaRepository strutturaRepository; 
     
     @Autowired
     ParametriAziende parametriAziende;
@@ -224,4 +229,52 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         }
         return entity;
     }
+
+    @Override
+    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        Struttura struttura = (Struttura) entity;
+        AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
+        Utente utente = authenticatedUserProperties.getUser();
+        boolean isCA = userInfoService.isCA(utente);
+        boolean isCI = userInfoService.isCI(utente);
+        boolean isSD = userInfoService.isSD(utente);
+        
+        if (struttura.getUfficio() && struttura.getIdStrutturaPadre() == null) {
+            // In caso di creazione ufficio vogliamo arbitrariamente popolare la struttura padre
+            if (isCA || isCI || isSD) {
+                // In questo caso setto la radice dell'organigramma
+                BooleanExpression findRadice = 
+                        QStruttura.struttura.idStrutturaPadre.isNull()
+                        .and(QStruttura.struttura.idAzienda.id.eq(struttura.getIdAzienda().getId()))
+                        .and(QStruttura.struttura.attiva.eq(Boolean.TRUE));
+                Struttura strutturaRadice = strutturaRepository.findOne(findRadice).get();
+                struttura.setIdStrutturaPadre(strutturaRadice);
+            } else {
+                Integer mascheraBit = internautaUtils.getSommaMascheraBit(Ruolo.CodiciRuolo.R.toString());
+
+                Map<String, Integer> struttureResponsabile = objectMapper.convertValue(
+                    storicoRelazioneRepository.getStruttureRuolo(mascheraBit, utente.getId(), LocalDateTime.now()).get("result"),
+                    new TypeReference<Map<String, Integer>>(){}
+                );
+                
+                if (struttureResponsabile.size() == 0) {
+                    throw new AbortSaveInterceptorException("Utente non autorizzato alla creazione di uffici");
+                }
+                
+                Iterator<String> struttureRespIterator = struttureResponsabile.keySet().iterator();
+                Integer idStrutturaResp = null;
+                if(struttureRespIterator.hasNext()){
+                    idStrutturaResp = Integer.parseInt(struttureRespIterator.next());
+                }
+                
+                BooleanExpression findStrutturaResponsabile = 
+                        QStruttura.struttura.id.eq(idStrutturaResp);
+                Struttura strutturaResponsabile = strutturaRepository.findOne(findStrutturaResponsabile).get();
+                struttura.setIdStrutturaPadre(strutturaResponsabile);
+            }
+        }
+        return struttura;
+    }
+    
+    
 }
