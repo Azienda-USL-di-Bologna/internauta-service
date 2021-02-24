@@ -20,8 +20,10 @@ public class RestConfiguration {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(false); // you USUALLY want this
-        config.addAllowedOrigin("*");
+        config.setAllowCredentials(false); // you USUALLY want this (gdm: era true, ma ho dovuto mettere false altrimenti con la versione 2.4.2 di spring non partiva più)
+        config.addAllowedOrigin("http://localhost:4200");
+        config.addAllowedOrigin("*.internal.ausl.bologna.it");
+        config.addAllowedOrigin("*.avec.emr.it");
         config.addAllowedHeader("*");
         config.addAllowedMethod(HttpMethod.OPTIONS);
         config.addAllowedMethod(HttpMethod.GET);
