@@ -1,5 +1,7 @@
 package it.bologna.ausl.internauta.service.authorization.jwt;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.MalformedJwtException;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
@@ -11,7 +13,11 @@ import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import javax.servlet.ServletException;
+import org.apache.commons.codec.binary.Base64;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.MalformedClaimException;
 import org.jose4j.jwt.consumer.InvalidJwtException;
@@ -50,6 +56,9 @@ public class AuthenticationEndpoint {
 
     @Value("classpath:BABEL_PROD.crt")
     private Resource fileResourceProd;
+    
+    @Value("classpath:INTERNAUTA_ACCESS_TEST.crt")
+    private Resource internautaAccessTestPK;
 
     @Autowired
     UserInfoService userInfoService;
@@ -62,6 +71,9 @@ public class AuthenticationEndpoint {
 
     @Autowired
     CommonUtils commonUtils;
+    
+    @Autowired
+    ObjectMapper objectMapper;
 
     @RequestMapping(value = "${security.login.endpoint.path}", method = RequestMethod.POST)
     public ResponseEntity<LoginController.LoginResponse> loginInterApplication(@RequestBody final EndpointObject endpointObject, javax.servlet.http.HttpServletRequest request) throws ServletException, CertificateException, IOException, InvalidJwtException, MalformedClaimException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException, SSOException {
@@ -75,7 +87,22 @@ public class AuthenticationEndpoint {
         if (endpointObject.jws == null || endpointObject.applicazione == null) {
             throw new ServletException("Invalid jwt");
         }
-
+                
+//        String headerBase64 = endpointObject.jws.split("[.]")[0];
+//
+//        if ("".equals(headerBase64) || headerBase64 == null) {
+//            throw new MalformedJwtException("token malformato");
+//        }
+//
+//        Base64 decoder = new Base64(true);
+//        byte[] decodedBytes = decoder.decode(headerBase64);
+//
+//        String header = new String(decodedBytes);
+//
+//        Map<String, Object> headerMap = objectMapper.readValue(header, Map.class);
+//        if (headerMap.containsKey("kid") && headerMap.get("kid").equals("INTERNAUTA TEST")) {
+//        }
+//       
         CertificateFactory fact = CertificateFactory.getInstance("X.509");
 
         if (mode.equalsIgnoreCase("test")) {
