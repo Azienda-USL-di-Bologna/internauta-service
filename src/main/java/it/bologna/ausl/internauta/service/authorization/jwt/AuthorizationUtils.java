@@ -42,6 +42,7 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
 import it.bologna.ausl.model.entities.tools.UserAccess;
 import java.util.Arrays;
+import javax.servlet.http.Cookie;
 import org.springframework.util.StringUtils;
 
 /**
@@ -266,7 +267,7 @@ public class AuthorizationUtils {
         user.setMappaRuoli(userInfoService.getRuoliPerModuli(user, null));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
 //        userInfoService.getPermessiAvatarRemoveCache(user);
-        
+
 //        logger.info("realUser: " + objectMapper.writeValueAsString(user));
 //        logger.info("aziendaRealUserLoaded: " + (aziendaRealUser != null ? aziendaRealUser.getId().toString() : "null"));
 //        logger.info("impersonatedUser: " + utenteImpersonatoStr);
@@ -355,7 +356,9 @@ public class AuthorizationUtils {
             if (!StringUtils.isEmpty(userAgentString)) {
                 userAgent = UserAgent.parseUserAgentString(userAgentString);
             }
-            this.writeNewUserAccess(user, fromInternetLogin, applicazione, aziendaRealUser.getCodice(), userAgent);
+            Cookie[] cookies = request.getCookies();
+
+            this.writeNewUserAccess(user, fromInternetLogin, applicazione, aziendaRealUser.getCodice(), userAgent, cookies);
         }
         return res;
 
@@ -379,7 +382,7 @@ public class AuthorizationUtils {
     }
 
 //  funtion that calls the repository needed to write to DB info about real new LOG IN from Scrivania
-    private void writeNewUserAccess(Utente realUser, Boolean fromInternet, String applicazione, String codiceAzienda, UserAgent userAgent) {
+    private void writeNewUserAccess(Utente realUser, Boolean fromInternet, String applicazione, String codiceAzienda, UserAgent userAgent, Cookie[] cookies) {
         String browserName = null;
         try {
             browserName = userAgent.getBrowser().getGroup().getName();
@@ -398,17 +401,29 @@ public class AuthorizationUtils {
         } catch (Exception ex) {
             logger.error("errore nel calcolo del sistema operativo", ex);
         }
-        
+
+        String serverNumber = null;
+        try {
+            for (Cookie cookie : cookies) {
+                String cookiename = cookie.getName();
+                if (cookiename != null && !"".equals(cookiename) && "BABELINTERNAUTASERVICE".equals(cookiename)) {
+                    serverNumber = cookie.getValue();
+                }
+            }
+        } catch (Exception ex) {
+            logger.error("errore nel calcolo del server al quale sono connesso", ex);
+        }
         UserAccess userAccess = new UserAccess(
-                realUser.getId(), 
-                realUser.getIdPersona().getCodiceFiscale(), 
-                realUser.getIdPersona().getDescrizione(), 
-                fromInternet, 
-                applicazione, 
+                realUser.getId(),
+                realUser.getIdPersona().getCodiceFiscale(),
+                realUser.getIdPersona().getDescrizione(),
+                fromInternet,
+                applicazione,
                 codiceAzienda,
                 browserName,
                 browserVersion,
-                os);
+                os,
+                serverNumber);
         userAccessRepository.save(userAccess);
     }
 
