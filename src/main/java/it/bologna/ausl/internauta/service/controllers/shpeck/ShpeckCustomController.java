@@ -267,6 +267,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             try (FileInputStream is = new FileInputStream(downloadEml.getAbsolutePath());) {
                 StreamUtils.copy(is, response.getOutputStream());
                 response.flushBuffer();
+            } catch (Exception ex) {
+                LOG.error("errore nello scaricamento del file eml", ex);
             }
         } finally {
             if (downloadEml != null) {
