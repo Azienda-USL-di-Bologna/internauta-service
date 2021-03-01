@@ -42,6 +42,8 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
 import it.bologna.ausl.model.entities.tools.UserAccess;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import javax.servlet.http.Cookie;
 import org.springframework.util.StringUtils;
 
@@ -402,13 +404,10 @@ public class AuthorizationUtils {
             logger.error("errore nel calcolo del sistema operativo", ex);
         }
 
-        String serverNumber = null;
+        Map<String, String> cookieMap = new HashMap<>();
         try {
             for (Cookie cookie : cookies) {
-                String cookiename = cookie.getName();
-                if (cookiename != null && !"".equals(cookiename) && "BABELINTERNAUTASERVICE".equals(cookiename)) {
-                    serverNumber = cookie.getValue();
-                }
+                cookieMap.put(cookie.getName(), cookie.getValue());
             }
         } catch (Exception ex) {
             logger.error("errore nel calcolo del server al quale sono connesso", ex);
@@ -423,7 +422,7 @@ public class AuthorizationUtils {
                 browserName,
                 browserVersion,
                 os,
-                serverNumber);
+                cookieMap);
         userAccessRepository.save(userAccess);
     }
 
