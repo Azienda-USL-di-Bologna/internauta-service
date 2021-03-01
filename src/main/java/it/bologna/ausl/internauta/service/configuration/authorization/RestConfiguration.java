@@ -26,21 +26,31 @@ public class RestConfiguration {
     public CorsFilter corsFilter() {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true); // con la versione 2.4.2 di spring se settato a true vanno per forza settati anche gli allowed orgin a qualcosa diversa da *
+        CorsConfiguration configResources = new CorsConfiguration();
+        configResources.setAllowCredentials(true); // con la versione 2.4.2 di spring se settato a true vanno per forza settati anche gli allowed orgin a qualcosa diversa da *
 //        config.addAllowedOrigin("http://localhost:4200");
 //        config.addAllowedOrigin("*.internal.ausl.bologna.it");
         List<String> allowedOriginList = new ArrayList<>(Arrays.asList(allowedOriginsString.split(",")));
-        config.setAllowedOrigins(allowedOriginList);
-        config.addAllowedHeader("application");
-        config.addAllowedHeader("authorization");
-        config.addAllowedMethod(HttpMethod.OPTIONS);
-        config.addAllowedMethod(HttpMethod.GET);
-        config.addAllowedMethod(HttpMethod.PUT);
-        config.addAllowedMethod(HttpMethod.PATCH);
-        config.addAllowedMethod(HttpMethod.POST);
-        config.addAllowedMethod(HttpMethod.DELETE);
-        source.registerCorsConfiguration("/**", config);
+        configResources.setAllowedOrigins(allowedOriginList);
+        configResources.addAllowedHeader("application");
+        configResources.addAllowedHeader("authorization");
+        configResources.addAllowedMethod(HttpMethod.OPTIONS);
+        configResources.addAllowedMethod(HttpMethod.GET);
+        configResources.addAllowedMethod(HttpMethod.PUT);
+        configResources.addAllowedMethod(HttpMethod.PATCH);
+        configResources.addAllowedMethod(HttpMethod.POST);
+        configResources.addAllowedMethod(HttpMethod.DELETE);
+        
+        CorsConfiguration configAll = new CorsConfiguration();
+        configAll.setAllowCredentials(true);
+        configAll.setAllowedOrigins(allowedOriginList);
+        configAll.addAllowedHeader("*");
+        configAll.addAllowedMethod(HttpMethod.OPTIONS);
+        configAll.addAllowedMethod(HttpMethod.GET);
+        configAll.addAllowedMethod(HttpMethod.POST);
+        
+        source.registerCorsConfiguration("/**", configAll);
+        source.registerCorsConfiguration("/internauta-api/resources/**", configResources);
         return new CorsFilter(source);
     }
 }
