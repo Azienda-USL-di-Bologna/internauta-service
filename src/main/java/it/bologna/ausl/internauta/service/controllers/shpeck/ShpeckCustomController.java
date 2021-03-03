@@ -618,17 +618,17 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = {"saveDraftMessage", "sendMessage"}, method = RequestMethod.POST)
     public void saveDraftMessage(
             HttpServletRequest request,
-            @RequestParam("idDraftMessage") Integer idDraftMessage,
-            @RequestParam("idPec") Integer idPec,
-            @RequestParam("body") String body,
-            @RequestParam("hideRecipients") Boolean hideRecipients,
-            @RequestParam("subject") String subject,
-            @RequestParam("to") String[] to,
-            @RequestParam("cc") String[] cc,
-            @RequestParam("attachments") MultipartFile[] attachments,
-            @RequestParam("idMessageRelated") Integer idMessageRelated,
-            @RequestParam("messageRelatedType") MessageRelatedType messageRelatedType,
-            @RequestParam("idMessageRelatedAttachments") Integer[] idMessageRelatedAttachments,
+            @RequestParam(name = "idDraftMessage", required = false) Integer idDraftMessage,
+            @RequestParam(name = "idPec", required = false) Integer idPec,
+            @RequestParam(name = "body", required = false) String body,
+            @RequestParam(name = "hideRecipients", required = false) Boolean hideRecipients,
+            @RequestParam(name = "subject", required = false) String subject,
+            @RequestParam(name = "to", required = false) String[] to,
+            @RequestParam(name = "cc", required = false) String[] cc,
+            @RequestParam(name = "attachments", required = false) MultipartFile[] attachments,
+            @RequestParam(name = "idMessageRelated", required = false) Integer idMessageRelated,
+            @RequestParam(name = "messageRelatedType", required = false) MessageRelatedType messageRelatedType,
+            @RequestParam(name = "idMessageRelatedAttachments", required = false) Integer[] idMessageRelatedAttachments,
             @RequestParam(name = "idUtente", required = false) Integer idUtente
     ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException {
 
