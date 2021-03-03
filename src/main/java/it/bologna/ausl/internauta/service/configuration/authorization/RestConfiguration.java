@@ -32,8 +32,11 @@ public class RestConfiguration {
 //        config.addAllowedOrigin("*.internal.ausl.bologna.it");
         List<String> allowedOriginList = new ArrayList<>(Arrays.asList(allowedOriginsString.split(",")));
         configResources.setAllowedOrigins(allowedOriginList);
+//        configResources.addAllowedHeader("*");
         configResources.addAllowedHeader("application");
         configResources.addAllowedHeader("authorization");
+        configResources.addAllowedHeader("krint");
+        configResources.addAllowedHeader("content-type");
         configResources.addAllowedMethod(HttpMethod.OPTIONS);
         configResources.addAllowedMethod(HttpMethod.GET);
         configResources.addAllowedMethod(HttpMethod.PUT);
@@ -41,15 +44,17 @@ public class RestConfiguration {
         configResources.addAllowedMethod(HttpMethod.POST);
         configResources.addAllowedMethod(HttpMethod.DELETE);
         
-        CorsConfiguration configAll = new CorsConfiguration();
-        configAll.setAllowCredentials(true);
-        configAll.setAllowedOrigins(allowedOriginList);
-        configAll.addAllowedHeader("*");
-        configAll.addAllowedMethod(HttpMethod.OPTIONS);
-        configAll.addAllowedMethod(HttpMethod.GET);
-        configAll.addAllowedMethod(HttpMethod.POST);
+        CorsConfiguration configLogin = new CorsConfiguration();
+        configLogin.setAllowCredentials(true);
+        configLogin.setAllowedOrigins(allowedOriginList);
+        configLogin.addAllowedHeader("*");
+        configLogin.addAllowedMethod(HttpMethod.OPTIONS);
+        configLogin.addAllowedMethod(HttpMethod.GET);
+        configLogin.addAllowedMethod(HttpMethod.POST);
         
-        source.registerCorsConfiguration("/**", configAll);
+        source.registerCorsConfiguration("/internauta-api/login", configLogin);
+        source.registerCorsConfiguration("/internauta-api/logout", configLogin);
+        source.registerCorsConfiguration("/internauta-api/endpoint/login", configLogin);
         source.registerCorsConfiguration("/internauta-api/resources/**", configResources);
         return new CorsFilter(source);
     }
