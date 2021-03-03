@@ -42,6 +42,9 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
 import it.bologna.ausl.model.entities.tools.UserAccess;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import javax.servlet.http.Cookie;
 import org.springframework.util.StringUtils;
 
 /**
@@ -266,7 +269,7 @@ public class AuthorizationUtils {
         user.setMappaRuoli(userInfoService.getRuoliPerModuli(user, null));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
 //        userInfoService.getPermessiAvatarRemoveCache(user);
-        
+
 //        logger.info("realUser: " + objectMapper.writeValueAsString(user));
 //        logger.info("aziendaRealUserLoaded: " + (aziendaRealUser != null ? aziendaRealUser.getId().toString() : "null"));
 //        logger.info("impersonatedUser: " + utenteImpersonatoStr);
@@ -355,7 +358,9 @@ public class AuthorizationUtils {
             if (!StringUtils.isEmpty(userAgentString)) {
                 userAgent = UserAgent.parseUserAgentString(userAgentString);
             }
-            this.writeNewUserAccess(user, fromInternetLogin, applicazione, aziendaRealUser.getCodice(), userAgent);
+            Cookie[] cookies = request.getCookies();
+
+            this.writeNewUserAccess(user, fromInternetLogin, applicazione, aziendaRealUser.getCodice(), userAgent, cookies);
         }
         return res;
 
@@ -379,7 +384,7 @@ public class AuthorizationUtils {
     }
 
 //  funtion that calls the repository needed to write to DB info about real new LOG IN from Scrivania
-    private void writeNewUserAccess(Utente realUser, Boolean fromInternet, String applicazione, String codiceAzienda, UserAgent userAgent) {
+    private void writeNewUserAccess(Utente realUser, Boolean fromInternet, String applicazione, String codiceAzienda, UserAgent userAgent, Cookie[] cookies) {
         String browserName = null;
         try {
             browserName = userAgent.getBrowser().getGroup().getName();
@@ -398,17 +403,26 @@ public class AuthorizationUtils {
         } catch (Exception ex) {
             logger.error("errore nel calcolo del sistema operativo", ex);
         }
-        
+
+        Map<String, String> cookieMap = new HashMap<>();
+        try {
+            for (Cookie cookie : cookies) {
+                cookieMap.put(cookie.getName(), cookie.getValue());
+            }
+        } catch (Exception ex) {
+            logger.error("errore nel calcolo del server al quale sono connesso", ex);
+        }
         UserAccess userAccess = new UserAccess(
-                realUser.getId(), 
-                realUser.getIdPersona().getCodiceFiscale(), 
-                realUser.getIdPersona().getDescrizione(), 
-                fromInternet, 
-                applicazione, 
+                realUser.getId(),
+                realUser.getIdPersona().getCodiceFiscale(),
+                realUser.getIdPersona().getDescrizione(),
+                fromInternet,
+                applicazione,
                 codiceAzienda,
                 browserName,
                 browserVersion,
-                os);
+                os,
+                cookieMap);
         userAccessRepository.save(userAccess);
     }
 
