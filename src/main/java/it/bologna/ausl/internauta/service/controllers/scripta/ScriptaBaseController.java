@@ -1,17 +1,7 @@
-package it.bologna.ausl.internauta.service.controllers.configurazione;
+package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
-import it.bologna.ausl.model.entities.configuration.ConfigurazioneAmbiente;
-import it.bologna.ausl.model.entities.configuration.FirmePersona;
-import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
-import it.bologna.ausl.model.entities.configuration.QApplicazione;
-import it.bologna.ausl.model.entities.configuration.QConfigurazioneAmbiente;
-import it.bologna.ausl.model.entities.configuration.QFirmePersona;
-import it.bologna.ausl.model.entities.configuration.QImpostazioniApplicazioni;
-import it.bologna.ausl.model.entities.configuration.QParametroAziende;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
@@ -25,19 +15,28 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.Mezzo;
+import it.bologna.ausl.model.entities.scripta.QDoc;
+import it.bologna.ausl.model.entities.scripta.QMezzo;
+import it.bologna.ausl.model.entities.scripta.QRelated;
+import it.bologna.ausl.model.entities.scripta.QSmistamento;
+import it.bologna.ausl.model.entities.scripta.QSpedizione;
+import it.bologna.ausl.model.entities.scripta.Related;
+import it.bologna.ausl.model.entities.scripta.Smistamento;
+import it.bologna.ausl.model.entities.scripta.Spedizione;
 
 @RestController
-@RequestMapping(value = "${configurazione.mapping.url.root}")
-public class ConfigurazioneBaseController extends BaseCrudController {
+@RequestMapping(value = "${scripta.mapping.url.root}")
+public class ScriptaBaseController extends BaseCrudController {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurazioneBaseController.class);
-    
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScriptaBaseController.class);
+
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
 
@@ -45,78 +44,69 @@ public class ConfigurazioneBaseController extends BaseCrudController {
     public RestControllerEngine getRestControllerEngine() {
         return restControllerEngine;
     }
-    @RequestMapping(value = {"parametroaziende", "parametroaziende/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> parametroaziende(
-            @QuerydslPredicate(root = ParametroAziende.class) Predicate predicate,
+
+    @RequestMapping(value = {"doc", "doc/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> doc(
+            @QuerydslPredicate(root = Doc.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QParametroAziende.parametroAziende, ParametroAziende.class);
-        return ResponseEntity.ok(resource);
-    }
-
-    /*
-     *
-     * APPLICAZIONE
-     *
-     */
-    @RequestMapping(value = {"applicazione", "applicazione/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> applicazione(
-            @QuerydslPredicate(root = Applicazione.class) Predicate predicate,
-            Pageable pageable,
-            @RequestParam(required = false) String projection,
-            @PathVariable(required = false) String id,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
-
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QApplicazione.applicazione, Applicazione.class);
-        return ResponseEntity.ok(resource);
-    }
-
-    /*
-     *
-     * Configurazione Ambiente
-     *
-     */
-    @RequestMapping(value = {"configurazioneambiente", "configurazioneambiente/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> configurazioneambiente(
-            @QuerydslPredicate(root = ConfigurazioneAmbiente.class) Predicate predicate,
-            Pageable pageable,
-            @RequestParam(required = false) String projection,
-            @PathVariable(required = false) Integer id,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
-
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QConfigurazioneAmbiente.configurazioneAmbiente, ConfigurazioneAmbiente.class);
-        return ResponseEntity.ok(resource);
-    }
-
-    @RequestMapping(value = {"impostazioniapplicazioni", "impostazioniapplicazioni/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> impostazioniapplicazioni(
-            @QuerydslPredicate(root = ImpostazioniApplicazioni.class) Predicate predicate,
-            Pageable pageable,
-            @RequestParam(required = false) String projection,
-            @PathVariable(required = false) Integer id,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
-
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QImpostazioniApplicazioni.impostazioniApplicazioni, ImpostazioniApplicazioni.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDoc.doc, Doc.class);
         return ResponseEntity.ok(resource);
     }
     
-    @RequestMapping(value = {"firmepersona", "firmepersona/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> firmepersona(
-            @QuerydslPredicate(root = FirmePersona.class) Predicate predicate,
+    @RequestMapping(value = {"mezzo", "mezzo/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> mezzo(
+            @QuerydslPredicate(root = Mezzo.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QFirmePersona.firmePersona, FirmePersona.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMezzo.mezzo, Mezzo.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"related", "related/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> related(
+            @QuerydslPredicate(root = Related.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRelated.related, Related.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"smistamento", "smistamento/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> smistamento(
+            @QuerydslPredicate(root = Smistamento.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QSmistamento.smistamento, Smistamento.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"spedizione", "spedizione/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> spedizione(
+            @QuerydslPredicate(root = Spedizione.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QSpedizione.spedizione, Spedizione.class);
         return ResponseEntity.ok(resource);
     }
 }
