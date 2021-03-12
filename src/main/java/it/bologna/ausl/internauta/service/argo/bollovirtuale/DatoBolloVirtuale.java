@@ -22,6 +22,7 @@ public class DatoBolloVirtuale {
     private Date dataNumeroDoc;
     private String oggettoDoc;
     private String redattoreDoc;
+    private String nomeStruttura;
     private Integer noFacciateBollo;
     private Integer noRigheBollo;
     private Integer noBolliAltriImporti;
@@ -100,6 +101,14 @@ public class DatoBolloVirtuale {
 
     public void setRedattoreDoc(String redattoreDoc) {
         this.redattoreDoc = redattoreDoc;
+    }
+
+    public String getNomeStruttura() {
+        return nomeStruttura;
+    }
+
+    public void setNomStruttura(String nomeStruttura) {
+        this.nomeStruttura = nomeStruttura;
     }
 
     public Integer getNoFacciateBollo() {
