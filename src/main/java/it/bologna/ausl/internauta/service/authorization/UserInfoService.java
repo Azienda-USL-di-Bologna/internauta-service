@@ -643,6 +643,28 @@ public class UserInfoService {
         return res;
     }
 
+    /**
+     * restituisce tutte le aziende degli utenti attivi della persona passata
+     *
+     * @param persona
+     * @return
+     */
+    @Cacheable(value = "getAziendePersonaSpenta__ribaltorg__", key = "{#persona.getId()}")
+    public List<Azienda> getAziendePersonaSpenta(Persona persona) {
+        List<Azienda> res = new ArrayList();
+        List<Utente> utentiPersona = getUtentiPersona(persona);
+
+        if (utentiPersona != null && !utentiPersona.isEmpty()) {
+            utentiPersona.stream().forEach(u -> {
+                if (!u.getAttivo()) {
+                    res.add(getAziendaUtente(u));
+                }
+            });
+        }
+
+        return res;
+    }
+    
     @CacheEvict(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId()}")
     public void getPermessiDiFlussoRemoveCache(Utente utente) {
     }
