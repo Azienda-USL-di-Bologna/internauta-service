@@ -63,6 +63,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.mail.Message.RecipientType;
 import javax.servlet.http.HttpServletRequest;
 
@@ -424,7 +425,7 @@ public class ShpeckUtils {
 
         String fileName = String.format("%s_%d_%s.eml", emlSource.toString(), id, UUID.randomUUID().toString());
         File emlFile = new File(System.getProperty("java.io.tmpdir"), fileName);
-        System.out.println(emlFile.getAbsolutePath());
+//        System.out.println(emlFile.getAbsolutePath());
         switch (emlSource) {
             case DRAFT:
                 Optional<Draft> draftOp = draftRepository.findById(id);

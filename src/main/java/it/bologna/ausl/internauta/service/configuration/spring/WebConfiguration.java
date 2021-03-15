@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.configuration.spring;
 import it.bologna.ausl.internauta.service.interceptors.RequestInterceptor;
 import it.bologna.ausl.internauta.service.repositories.logs.KrintRepository;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
+import it.bologna.ausl.internauta.service.utils.MemoryAnalizerService;
 import it.nextsw.common.spring.resolver.DynamicOffsetLimitPageRequestOrPageRequestResolver;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
 
+    @Autowired
+    MemoryAnalizerService memoryAnalizerService;
+    
     @Autowired
     HttpSessionData httpSessionData;
     
@@ -47,6 +51,6 @@ public class WebConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new RequestInterceptor(httpSessionData, krintRepository));
+        registry.addInterceptor(new RequestInterceptor(httpSessionData, krintRepository, memoryAnalizerService));
     }
 }
