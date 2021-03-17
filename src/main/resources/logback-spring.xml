@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<configuration>
+    <property name="GENERAL_LOG_FILE_NAME" value="internauta-service" />
+    <property name="ANALYTICS_LOG_FILE_NAME" value="internauta-analytics" />
+    <property name="LOG_DIR" value="./logs" />
+    <property name="LOG_DIR_ARCHIVE" value="./logs/archive" />
+    <property name="PATTERN" value="%cyan(%d{yyyy-MM-dd HH:mm:ss}) %magenta([%thread]) %highlight(%-5level) %green(%logger{35}) - %msg%n" />
+    
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+<!--            <Pattern>
+                %black(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %blue(%C{1.}): %msg%n%throwable
+            </Pattern>-->
+            <Pattern>
+                ${PATTERN}
+            </Pattern>
+        </layout>
+    </appender>
+    
+    <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${GENERAL_LOG_FILE_NAME}.log</file>
+        <append>true</append>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>
+                ${PATTERN}
+            </Pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">                                         
+            <fileNamePattern>${LOG_DIR_ARCHIVE}/${GENERAL_LOG_FILE_NAME}_%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+        </rollingPolicy>
+    </appender>
+    <appender name="analytics_file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${ANALYTICS_LOG_FILE_NAME}.log</file>
+        <append>true</append>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>
+                ${PATTERN}
+            </Pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">                                         
+            <fileNamePattern>${LOG_DIR_ARCHIVE}/${ANALYTICS_LOG_FILE_NAME}_%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+        </rollingPolicy>
+    </appender>
+    <!-- additivity=false ensures analytics data only goes to the analytics log -->
+    <logger name="general" level="info" additivity="false">
+        <appender-ref ref="file"/>
+    </logger>
+    <logger name="analytics" level="info" additivity="false">
+        <appender-ref ref="analytics_file"/>
+    </logger>
+    
+    <springProfile name="dev">
+    <root level="info">
+        <appender-ref ref="console" />
+    </root>
+    </springProfile>
+    
+    <springProfile name="test">
+    <root level="info">
+        <appender-ref ref="file"/>
+    </root>
+    </springProfile>
+    
+    <springProfile name="stage">
+    <root level="info">
+        <appender-ref ref="file"/>
+    </root>
+    </springProfile>
+    
+    <springProfile name="prod">
+    <root level="info">
+        <appender-ref ref="file"/>
+    </root>
+    </springProfile>
+</configuration>

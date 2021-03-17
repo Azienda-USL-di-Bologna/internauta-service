@@ -4,6 +4,7 @@ import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.eml.handler.EmlHandlerResult;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
+import it.bologna.ausl.internauta.service.utils.MemoryAnalizerService;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -19,6 +20,9 @@ import org.springframework.stereotype.Component;
 public class ShpeckCacheableFunctions {
     
     @Autowired
+    private MemoryAnalizerService memoryAnalizerService;
+    
+    @Autowired
     private ShpeckUtils shpeckUtils;
     
     @Cacheable(value = "info_eml", key = "{#emlSource.toString(), #id}", cacheManager = "emlCacheManager", condition = "{#emlSource.toString() != 'DRAFT'}")
@@ -26,6 +30,7 @@ public class ShpeckCacheableFunctions {
         File downloadEml = null;
         try {
             downloadEml = shpeckUtils.downloadEml(emlSource, id);
+            this.memoryAnalizerService.handleIncrementMessage((int) downloadEml.length());
             return EmlHandler.handleEml(downloadEml.getAbsolutePath());
         } finally {
             if (downloadEml != null) {
