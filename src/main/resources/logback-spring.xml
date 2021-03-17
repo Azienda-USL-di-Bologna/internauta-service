@@ -4,6 +4,7 @@
     <property name="ANALYTICS_LOG_FILE_NAME" value="internauta-analytics" />
     <property name="LOG_DIR" value="./logs" />
     <property name="LOG_DIR_ARCHIVE" value="./logs/archive" />
+    <property name="PATTERN" value="%cyan(%d{yyyy-MM-dd HH:mm:ss}) %magenta([%thread]) %highlight(%-5level) %green(%logger{35}) - %msg%n" />
     
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <layout class="ch.qos.logback.classic.PatternLayout">
@@ -11,7 +12,7 @@
                 %black(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %blue(%C{1.}): %msg%n%throwable
             </Pattern>-->
             <Pattern>
-                %cyan(%d{yyyy-MM-dd HH:mm:ss}) %magenta([%thread]) %highlight(%-5level) %blue(%logger{35}) - %msg%n
+                ${PATTERN}
             </Pattern>
         </layout>
     </appender>
@@ -21,7 +22,7 @@
         <append>true</append>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <Pattern>
-                %cyan(%d{yyyy-MM-dd HH:mm:ss}) %magenta([%thread]) %highlight(%-5level) %blue(%logger{35}) - %msg%n
+                ${PATTERN}
             </Pattern>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">                                         
@@ -33,7 +34,7 @@
         <append>true</append>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <Pattern>
-                %cyan(%d{yyyy-MM-dd HH:mm:ss}) %magenta([%thread]) %highlight(%-5level) %blue(%logger{35}) - %msg%n
+                ${PATTERN}
             </Pattern>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">                                         
