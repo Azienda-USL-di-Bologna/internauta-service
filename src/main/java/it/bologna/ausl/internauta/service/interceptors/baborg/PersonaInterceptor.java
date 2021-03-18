@@ -5,8 +5,11 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.*;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Ambiti;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Predicati;
@@ -14,12 +17,14 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tip
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -41,6 +46,15 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     PermissionManager permissionManager;
+    
+    @Autowired
+    private UserInfoService userInfoService;
+    
+    @Autowired
+    private PersonaRepository personaRepository;
+    
+    @Autowired
+    private UtenteRepository utenteRepository;
     
     @Override
     public Class getTargetEntityClass() {
@@ -135,4 +149,15 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
         }
         return entities;
     }
+    
+    @Override
+    public Object afterUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) {
+        List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
+        Utente user = getAuthenticatedUserProperties().getUser();
+        
+        userInfoService.loadUtenteRemoveCache(user.getId());
+        
+        return entity;
+    }
+
 }
