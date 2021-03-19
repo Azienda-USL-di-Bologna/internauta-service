@@ -312,7 +312,13 @@ public class PermessiCustomController implements ControllerHandledExceptions {
             }
 
             List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
-            List<Integer> idAziendePersona = userInfoService.getAziendePersona(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());
+            List<Integer> idAziendePersona;
+            if(persona.getAttiva()){
+                idAziendePersona = userInfoService.getAziendePersona(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());
+            }else{
+                idAziendePersona = userInfoService.getAziendePersonaSpenta(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());                
+            }
+//            List<Integer> idAziendePersona = userInfoService.getAziendePersona(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());
 
             if (Collections.disjoint(idAziendePec, idAziendePersona)) {
                 throw new Http403ResponseException("2", "Pec e Persona passati non hanno aziende in comune.");

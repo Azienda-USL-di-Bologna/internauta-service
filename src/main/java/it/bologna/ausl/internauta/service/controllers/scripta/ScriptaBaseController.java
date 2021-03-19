@@ -30,6 +30,11 @@ import it.bologna.ausl.model.entities.scripta.QSpedizione;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Smistamento;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
+import java.util.ArrayList;
+import java.util.List;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import org.hibernate.Session;
 
 @RestController
 @RequestMapping(value = "${scripta.mapping.url.root}")
@@ -39,6 +44,10 @@ public class ScriptaBaseController extends BaseCrudController {
 
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
+    
 
     @Override
     public RestControllerEngine getRestControllerEngine() {
@@ -54,6 +63,11 @@ public class ScriptaBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
+//        Session session = entityManager.unwrap(Session.class);
+//        session.enableFilter("mittenti");
+//        session.enableFilter("destinatari");
+//        List<Related> a = new ArrayList();
+//        a.stream().filter(r -> r.getTipo() == Related.TipoRelated.MITTENTE);
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDoc.doc, Doc.class);
         return ResponseEntity.ok(resource);
     }

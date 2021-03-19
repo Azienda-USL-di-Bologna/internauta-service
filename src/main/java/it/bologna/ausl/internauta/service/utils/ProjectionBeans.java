@@ -97,6 +97,7 @@ import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomContattoWithIdStrutturaAndIdPersona;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomGruppiContattiWithIdContattoAndIdDettaglioContatto;
+import it.bologna.ausl.model.entities.scripta.Related;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
@@ -818,5 +819,9 @@ public class ProjectionBeans {
         Map<String, Object> parametri = parametriAziende.getAllAziendaApplicazioneParameters(applicazione, azienda.getId());
 
         return parametri;
+    }
+    
+    public List<Related> filterRelated(List<Related> related, String tipo) {
+        return related.stream().filter(r -> r.getTipo().toString().equals(tipo)).collect(Collectors.toList());
     }
 }

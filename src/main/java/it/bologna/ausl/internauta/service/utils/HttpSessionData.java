@@ -10,24 +10,36 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class HttpSessionData {
+
     private final ThreadLocal<Map<InternautaConstants.HttpSessionData.Keys, Object>> dataMap = new ThreadLocal<>();
-    
+
     public void putData(InternautaConstants.HttpSessionData.Keys key, Object data) {
         Map<InternautaConstants.HttpSessionData.Keys, Object> map = this.dataMap.get();
-        if (map == null)
+        if (map == null) {
             map = new HashMap<>();
+        }
         map.put(key, data);
         this.dataMap.set(map);
     }
-    
+
     public Object getData(InternautaConstants.HttpSessionData.Keys key) {
         Map<InternautaConstants.HttpSessionData.Keys, Object> map = this.dataMap.get();
-         if (map != null)
+        if (map != null) {
             return map.get(key);
-         else
-             return null;
+        } else {
+            return null;
+        }
     }
-    
+
+    public Object removeData(InternautaConstants.HttpSessionData.Keys key) {
+        Map<InternautaConstants.HttpSessionData.Keys, Object> map = this.dataMap.get();
+        if (map != null) {
+            return map.remove(key);
+        } else {
+            return null;
+        }
+    }
+
     public void resetDataMap() {
         dataMap.remove();
     }

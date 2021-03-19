@@ -93,7 +93,9 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageCompleteRep
 import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxLiteRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.MemoryAnalizerService;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
@@ -121,6 +123,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     private static final Logger LOG = LoggerFactory.getLogger(ShpeckCustomController.class);
 
+    @Autowired
+    private MemoryAnalizerService memoryAnalizerService;
+    
     @Autowired
     private ShpeckUtils shpeckUtils;
 
@@ -203,6 +208,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             HttpServletRequest request
     ) throws EmlHandlerException, UnsupportedEncodingException, Http500ResponseException {
         try {
+//            httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.test, "gdml");
             EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
             if (emlSource != EmlSource.DRAFT && emlSource != EmlSource.OUTBOX) {
                 int attNumber = (int) Arrays.stream(res.getAttachments())
