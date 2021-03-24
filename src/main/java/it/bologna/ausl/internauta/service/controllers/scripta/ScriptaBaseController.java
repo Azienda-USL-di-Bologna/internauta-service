@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
+import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
+import it.bologna.ausl.model.entities.scripta.QAllegato;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.QMezzo;
 import it.bologna.ausl.model.entities.scripta.QRelated;
@@ -44,10 +46,9 @@ public class ScriptaBaseController extends BaseCrudController {
 
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
-    
+
     @PersistenceContext
     private EntityManager entityManager;
-    
 
     @Override
     public RestControllerEngine getRestControllerEngine() {
@@ -71,7 +72,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDoc.doc, Doc.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"mezzo", "mezzo/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> mezzo(
             @QuerydslPredicate(root = Mezzo.class) Predicate predicate,
@@ -84,7 +85,20 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMezzo.mezzo, Mezzo.class);
         return ResponseEntity.ok(resource);
     }
-    
+
+    @RequestMapping(value = {"allegato", "allegato/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> allegato(
+            @QuerydslPredicate(root = Allegato.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAllegato.allegato, Allegato.class);
+        return ResponseEntity.ok(resource);
+    }
+
     @RequestMapping(value = {"related", "related/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> related(
             @QuerydslPredicate(root = Related.class) Predicate predicate,
@@ -97,7 +111,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRelated.related, Related.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"smistamento", "smistamento/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> smistamento(
             @QuerydslPredicate(root = Smistamento.class) Predicate predicate,
@@ -110,7 +124,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QSmistamento.smistamento, Smistamento.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"spedizione", "spedizione/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> spedizione(
             @QuerydslPredicate(root = Spedizione.class) Predicate predicate,
