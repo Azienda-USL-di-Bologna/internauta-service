@@ -599,7 +599,9 @@ public class UserInfoService {
      */
 //    @Cacheable(value = "getUtenteStrutturaAfferenzaPrincipaleAttiva__ribaltorg__", key = "{#utenteStruttura.getId()}")
     public UtenteStrutturaWithIdAfferenzaStrutturaAndIdStruttura getUtenteStrutturaAfferenzaPrincipaleAttiva(UtenteStruttura utenteStruttura) {
-        Iterable<UtenteStruttura> afferenze = utenteStrutturaRepository.findAll(QUtenteStruttura.utenteStruttura.idUtente.id.eq(utenteStruttura.getIdUtente().getId()));
+        Iterable<UtenteStruttura> afferenze = utenteStrutturaRepository.findAll(
+                QUtenteStruttura.utenteStruttura.idUtente.id.eq(utenteStruttura.getIdUtente().getId())
+                .and(QUtenteStruttura.utenteStruttura.attivo.eq(Boolean.TRUE)));
         UtenteStruttura afferenzaPrincipale = null;
         for (UtenteStruttura afferenza : afferenze) {
             if (afferenzaPrincipale == null) {
