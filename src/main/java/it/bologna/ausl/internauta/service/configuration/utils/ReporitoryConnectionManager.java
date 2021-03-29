@@ -7,7 +7,6 @@ import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.ParametriAziende;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
