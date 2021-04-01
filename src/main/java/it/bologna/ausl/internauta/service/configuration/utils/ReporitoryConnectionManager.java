@@ -38,6 +38,10 @@ public class ReporitoryConnectionManager {
     @Autowired
     ObjectMapper objectMapper;
 
+    private Map<String, Object> minIOConfig;
+
+    private Map<String, AziendaParametriJson> aziendeParametriJson;
+
     private final Map<Integer, MongoWrapper> connections = new HashMap<>();
     private MinIOWrapper minIOWrapper = null;
 
@@ -48,18 +52,28 @@ public class ReporitoryConnectionManager {
         if (parameters == null || parameters.isEmpty() || parameters.size() > 1) {
             throw new ObjectNotFoundException("il parametro " + InternautaConstants.Configurazione.ParametriAzienda.minIOConfig.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
         }
-        Map<String, Object> minIOConfig = parametriAziende.getValue(parameters.get(0), new TypeReference<Map<String, Object>>() {
+        minIOConfig = parametriAziende.getValue(parameters.get(0), new TypeReference<Map<String, Object>>() {
         });
 
+        initAziendeParametriJson();
         initMongo(minIOConfig);
         initMinIO(minIOConfig);
 
     }
 
+    private void initAziendeParametriJson() throws IOException {
+        List<Azienda> aziende = aziendaRepository.findAll();
+        aziendeParametriJson = new HashMap();
+        for (Azienda azienda : aziende) {
+            AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+            aziendeParametriJson.put(azienda.getCodice(), parametriAzienda);
+        }
+    }
+
     private void initMongo(Map<String, Object> minIOConfig) throws UnknownHostException, IOException, MongoException, MongoWrapperException, ObjectNotFoundException {
         List<Azienda> aziende = aziendaRepository.findAll();
         for (Azienda azienda : aziende) {
-            AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+            AziendaParametriJson parametriAzienda = aziendeParametriJson.get(azienda.getCodice());
             AziendaParametriJson.MongoParams mongoParams = parametriAzienda.getMongoParams();
             List<ParametroAziende> parameters = parametriAziende.getParameters(
                     InternautaConstants.Configurazione.ParametriAzienda.mongoAndMinIOActive.toString(),
@@ -92,5 +106,13 @@ public class ReporitoryConnectionManager {
 
     public MinIOWrapper getMinIOWrapper() {
         return this.minIOWrapper;
+    }
+
+    public Map<String, Object> getMinIOConfig() {
+        return minIOConfig;
+    }
+
+    public Map<String, AziendaParametriJson> getAziendeParametriJson() {
+        return aziendeParametriJson;
     }
 }
