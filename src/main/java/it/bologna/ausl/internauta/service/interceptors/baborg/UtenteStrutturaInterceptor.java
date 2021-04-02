@@ -129,7 +129,7 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
                             } catch (Exception ex) {
                                 throw new AbortLoadInterceptorException("errore nell'estrazione dei sotto resposabili", ex);
                             }
-                            System.out.println("aaaaaaaaaa");
+//                            System.out.println("aaaaaaaaaa");
                     try {
                         System.out.println(objectMapper.writeValueAsString(utentiStrutturaSottoResponsabili));
                     } catch (JsonProcessingException ex) {

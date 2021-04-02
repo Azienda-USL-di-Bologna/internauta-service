@@ -84,7 +84,7 @@ public class MessageSeenCleanerWorker implements Runnable {
                     } catch (InterruptedException ex) {
                         java.util.logging.Logger.getLogger(MessageSeenCleanerWorker.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                    log.error("aaaaaaaaaaaaaaaaaaaa", t);
+                    log.error("errore cleanSeenFromPersone", t);
                 }
             }
         }
