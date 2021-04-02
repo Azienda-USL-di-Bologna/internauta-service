@@ -8,7 +8,7 @@ package it.bologna.ausl.internauta.service.ribaltone;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
-import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVAnomaliaException;
 import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteException;
 import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteRigheException;
@@ -117,7 +117,7 @@ public class ImportaDaCSV {
     PersonaRepository personaRepository;
 
     @Autowired
-    MongoConnectionManager mongoConnectionManager;
+    ReporitoryConnectionManager mongoConnectionManager;
 
     @Autowired
     ParametriAziende parametriAziende;
@@ -1209,7 +1209,7 @@ public class ImportaDaCSV {
                 try {
                     mapWriter.close();
                     if (!tipo.equals("STRUTTURA")) {
-                        MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
+                        MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAzienda);
                         uuid = mongoWrapper.put(csvErrorFile, csvErrorFile.getName(), "/importazioniCSV/csv_error_GRU", true);
                     }
 
@@ -1220,7 +1220,7 @@ public class ImportaDaCSV {
             if (mapErrorWriter != null) {
                 try {
                     mapErrorWriter.close();
-                    MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
+                    MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAzienda);
                     uuid = mongoWrapper.put(csvErrorFile2, csvErrorFile2.getName(), "/importazioniCSV/csv_error_GRU", true);
 
                 } catch (IOException ex) {

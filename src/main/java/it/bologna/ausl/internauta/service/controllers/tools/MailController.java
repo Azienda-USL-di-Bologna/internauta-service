@@ -5,7 +5,7 @@
  */
 package it.bologna.ausl.internauta.service.controllers.tools;
 
-import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecAziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
@@ -62,7 +62,7 @@ public class MailController {
     ShpeckUtils shpeckUtils;
 
     @Autowired
-    MongoConnectionManager mongoConnectionManager;
+    ReporitoryConnectionManager mongoConnectionManager;
 
     @RequestMapping(value = "getPesoMail", method = RequestMethod.GET)
     public String getPesoMail(
@@ -124,7 +124,7 @@ public class MailController {
                         mongoWrapper = shpeckUtils.getMongoWrapperFromUuid(uuid);
 
                     } else {
-                        mongoWrapper = mongoConnectionManager.getConnection(idAziendaRepository.getId());
+                        mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAziendaRepository.getId());
 
                     }
                     if (mongoWrapper == null) {

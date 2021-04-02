@@ -5,7 +5,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomController;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
@@ -80,7 +80,7 @@ public class ShpeckUtils {
     private CommonUtils nextSdrCommonUtils;
 
     @Autowired
-    private MongoConnectionManager mongoConnectionManager;
+    private ReporitoryConnectionManager mongoConnectionManager;
 
     @Autowired
     ShpeckCacheableFunctions shpeckCacheableFunctions;
@@ -469,7 +469,7 @@ public class ShpeckUtils {
                             messageRepository.save(message);
                         }
                     }
-                    MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(this.getIdAziendaRepository(message));
+                    MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(this.getIdAziendaRepository(message));
                     InputStream is = null;
                     try (DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(emlFile))) {
                         try {
@@ -482,7 +482,7 @@ public class ShpeckUtils {
                             Integer idAziendaRepository = this.getIdAziendaRepository(message);
                             try {
                                 if (idAziendaRepository != null) {
-                                    mongoWrapper = mongoConnectionManager.getConnection(idAziendaRepository);
+                                    mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAziendaRepository);
                                     is = mongoWrapper.get(message.getUuidRepository());
                                     if (is == null) {
                                         throw new MongoException("File non trovato!!");
@@ -517,7 +517,7 @@ public class ShpeckUtils {
     public MongoWrapper getMongoWrapperFromUuid(String uuid) {
         List<Azienda> allAziende = aziendaRepository.findAll();
         for (Azienda azienda : allAziende) {
-            MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(azienda.getId());
+            MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(azienda.getId());
             try {
                 if (mongoWrapper.getFileName(uuid) != null) {
                     return mongoWrapper;
@@ -633,7 +633,7 @@ public class ShpeckUtils {
 
         boolean res = false;
 
-        MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
+        MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAzienda);
         InputStream is = null;
         try {
             is = mongoWrapper.get(uuidRepository);
