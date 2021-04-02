@@ -44,6 +44,7 @@ public class ReporitoryConnectionManager {
 
     private final Map<Integer, MongoWrapper> connections = new HashMap<>();
     private MinIOWrapper minIOWrapper = null;
+    private Boolean mongoAndMinIOActive = null;
 
     @PostConstruct
     public void init() throws UnknownHostException, IOException, MongoException, MongoWrapperException, ObjectNotFoundException {
@@ -81,7 +82,7 @@ public class ReporitoryConnectionManager {
             if (parameters == null || parameters.isEmpty() || parameters.size() > 1) {
                 throw new ObjectNotFoundException("il parametro " + InternautaConstants.Configurazione.ParametriAzienda.minIOConfig.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
             }
-            Boolean mongoAndMinIOActive = parametriAziende.getValue(parameters.get(0), Boolean.class);
+            this.mongoAndMinIOActive = parametriAziende.getValue(parameters.get(0), Boolean.class);
             String minIODBDriver = (String) minIOConfig.get("DBDriver");
             String minIODBUrl = (String) minIOConfig.get("DBUrl");
             String minIODBUsername = (String) minIOConfig.get("DBUsername");
@@ -115,4 +116,13 @@ public class ReporitoryConnectionManager {
     public Map<String, AziendaParametriJson> getAziendeParametriJson() {
         return aziendeParametriJson;
     }
+
+    public Boolean getMongoAndMinIOActive() {
+        return mongoAndMinIOActive;
+    }
+
+    public void setMongoAndMinIOActive(Boolean mongoAndMinIOActive) {
+        this.mongoAndMinIOActive = mongoAndMinIOActive;
+    }
+
 }
