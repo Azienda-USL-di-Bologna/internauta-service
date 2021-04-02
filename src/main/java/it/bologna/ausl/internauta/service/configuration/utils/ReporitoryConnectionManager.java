@@ -79,7 +79,7 @@ public class ReporitoryConnectionManager {
                     InternautaConstants.Configurazione.ParametriAzienda.mongoAndMinIOActive.toString(),
                     new Integer[]{azienda.getId()});
             if (parameters == null || parameters.isEmpty() || parameters.size() > 1) {
-                throw new ObjectNotFoundException("il parametro " + InternautaConstants.Configurazione.ParametriAzienda.minIOConfig.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
+                throw new ObjectNotFoundException("il parametro " + InternautaConstants.Configurazione.ParametriAzienda.mongoAndMinIOActive.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
             }
             Boolean mongoAndMinIOActive = parametriAziende.getValue(parameters.get(0), Boolean.class);
             String minIODBDriver = (String) minIOConfig.get("DBDriver");
