@@ -161,10 +161,10 @@ public class ScriptaCustomController {
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         Optional<Doc> docOp = docRepository.findById(idDoc);
         Doc doc;
-        if (docOp.isEmpty()) {
-            return null;
-        } else {
+        if (docOp.isPresent()) {
             doc = docOp.get();
+        } else {
+            return null;
         }
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente loggedUser = authenticatedUserProperties.getUser();
