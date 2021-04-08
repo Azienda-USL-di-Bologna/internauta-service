@@ -211,7 +211,7 @@ public class ScriptaCustomController {
                         if (i > 0) {
                             s = "_" + Integer.toString(i);
                         }
-                        zos.putNextEntry(new ZipEntry((String) allegato.getNome() + s + allegato.getEstensione()));
+                        zos.putNextEntry(new ZipEntry((String) allegato.getNome() + s + "." + allegato.getEstensione()));
                         in_error = false;
                     } catch (ZipException ex) {
                         i++;
