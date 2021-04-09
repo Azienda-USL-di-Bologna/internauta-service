@@ -36,8 +36,8 @@ public class RequestInterceptor implements AsyncHandlerInterceptor {
         
         Integer messageNumber = memoryAnalizerService.getMessageNumberCounter();
         Integer messageSize = memoryAnalizerService.getMessageSizeCounter();
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaa1 " + messageNumber);
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaa2 " + messageSize);
+//        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaa1 " + messageNumber);
+//        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaa2 " + messageSize);
 //        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaa2 " + messageInfo.get(MessageMemoryInfoMapKeys.SIZE));
         
         // Se è arrivato una eccezione non ho fatto niente e quindi non voglio loggare niente
