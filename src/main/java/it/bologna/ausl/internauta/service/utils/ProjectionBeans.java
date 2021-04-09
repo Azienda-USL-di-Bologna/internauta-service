@@ -824,22 +824,28 @@ public class ProjectionBeans {
 
         return parametri;
     }
-    
+
     public List<Related> filterRelated(List<Related> related, String tipo) {
-        return related.stream().filter(r -> r.getTipo().toString().equals(tipo)).collect(Collectors.toList());
+        if (related != null) {
+            return related.stream().filter(r -> r.getTipo().toString().equals(tipo)).collect(Collectors.toList());
+        } else {
+            return null;
+        }
     }
-    
+
     public List<CustomRelatedWithSpedizioneList> filterRelatedWithSpedizioneList(List<Related> related, String tipo) {
         List<CustomRelatedWithSpedizioneList> res = null;
-        List<Related> relatedList = related.stream().filter(r -> r.getTipo().toString().equals(tipo)).collect(Collectors.toList());
-        if (relatedList != null && !relatedList.isEmpty()) {
-            res = relatedList.stream().map(r -> {
-                return factory.createProjection(CustomRelatedWithSpedizioneList.class, r);
-            }).collect(Collectors.toList());
+        if (related != null) {
+            List<Related> relatedList = related.stream().filter(r -> r.getTipo().toString().equals(tipo)).collect(Collectors.toList());
+            if (relatedList != null && !relatedList.isEmpty()) {
+                res = relatedList.stream().map(r -> {
+                    return factory.createProjection(CustomRelatedWithSpedizioneList.class, r);
+                }).collect(Collectors.toList());
+            }
         }
         return res;
     }
-    
+
     public List<SpedizioneWithIdMezzo> getSpedizioneWithIdMezzo(List<Spedizione> spedizioneList) {
         List<SpedizioneWithIdMezzo> res = null;
         if (spedizioneList != null && !spedizioneList.isEmpty()) {
