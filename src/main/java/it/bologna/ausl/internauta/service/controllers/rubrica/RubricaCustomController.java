@@ -366,6 +366,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 //            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
 //            mapper.setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE);
             SelectedContactsLists selectedContactsLists = objectMapper.readValue(data.getSelectedContactsLists(), SelectedContactsLists.class);
+            
+//            String prova = objectMapper.writeValueAsString(selectedContactsLists);
+//            log.info("prova: " + prova);
 
 //            liste
             List<SelectedContact> allSelectedContactsMITTENTE = selectedContactsLists.getMITTENTE();
@@ -424,7 +427,8 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             selectedContactsLists.setMITTENTE(allSelectedContactsMITTENTE);
 
             String selectedContactsListsAsString = objectMapper.writeValueAsString(selectedContactsLists);
-//            log.info("selectedContactsListsAsString to send at inde: " + selectedContactsListsAsString);
+            
+            log.info("selectedContactsListsAsString to send at inde: " + selectedContactsListsAsString);
             data.setSelectedContactsLists(selectedContactsListsAsString);
         }
         log.info("set estemporaneiToAddToRubrica to null");
@@ -500,7 +504,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
             if (selectedContact.getDescrizione().equals(savedContatto.getDescrizione())
                     && selectedContactEstemporaneo.getAddToRubrica() != null && selectedContactEstemporaneo.getAddToRubrica()
-                    && selectedContactEstemporaneo.getStatus() != null && selectedContactEstemporaneo.getStatus().equals(SelectedContactStatus.INITIAL)
+//                    && selectedContactEstemporaneo.getStatus() != null && selectedContactEstemporaneo.getStatus().equals(SelectedContactStatus.INITIAL)
                     && selectedContactEstemporaneo.getEstemporaneo() != null && selectedContactEstemporaneo.getEstemporaneo()) {
                 selectedContact.setId(savedContatto.getId());
                 selectedAddress.setIdContatto(savedContatto);
