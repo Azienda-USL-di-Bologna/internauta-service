@@ -11,6 +11,7 @@ class SelectedContact {
     private Boolean estemporaneo;
     private Boolean addToRubrica;
     private SelectedContactStatus status;
+    private Boolean contieneErrori;
 
     public SelectedContact() {
     }
@@ -53,6 +54,14 @@ class SelectedContact {
 
     public void setStatus(SelectedContactStatus status) {
         this.status = status;
+    }
+
+    public Boolean getContieneErrori() {
+        return contieneErrori;
+    }
+
+    public void setContieneErrori(Boolean contieneErrori) {
+        this.contieneErrori = contieneErrori;
     }
 
 }

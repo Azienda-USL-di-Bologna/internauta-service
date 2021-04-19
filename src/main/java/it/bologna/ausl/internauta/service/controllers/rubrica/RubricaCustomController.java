@@ -360,12 +360,15 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Utente getUtente = utenteRepository.findById(utente.getId()).get();
 
         if (estemporaneiToAddToRubricaAsProtocontatti != null && !estemporaneiToAddToRubricaAsProtocontatti.isEmpty()) {
-            List<Contatto> listContattiAsProtocontattiDaSalvare = new ArrayList<Contatto>();
+            //List<Contatto> listContattiAsProtocontattiDaSalvare = new ArrayList<Contatto>();
 
-            ObjectMapper mapper = new ObjectMapper();
+            //ObjectMapper mapper = new ObjectMapper();
 //            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
 //            mapper.setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE);
-            SelectedContactsLists selectedContactsLists = mapper.readValue(data.getSelectedContactsLists(), SelectedContactsLists.class);
+            SelectedContactsLists selectedContactsLists = objectMapper.readValue(data.getSelectedContactsLists(), SelectedContactsLists.class);
+            
+//            String prova = objectMapper.writeValueAsString(selectedContactsLists);
+//            log.info("prova: " + prova);
 
 //            liste
             List<SelectedContact> allSelectedContactsMITTENTE = selectedContactsLists.getMITTENTE();
@@ -423,8 +426,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             selectedContactsLists.setCC(allSelectedContactsCC);
             selectedContactsLists.setMITTENTE(allSelectedContactsMITTENTE);
 
-            String selectedContactsListsAsString = mapper.writeValueAsString(selectedContactsLists);
-//            log.info("selectedContactsListsAsString to send at inde: " + selectedContactsListsAsString);
+            String selectedContactsListsAsString = objectMapper.writeValueAsString(selectedContactsLists);
+            
+            log.info("selectedContactsListsAsString to send at inde: " + selectedContactsListsAsString);
             data.setSelectedContactsLists(selectedContactsListsAsString);
         }
         log.info("set estemporaneiToAddToRubrica to null");
@@ -500,7 +504,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
             if (selectedContact.getDescrizione().equals(savedContatto.getDescrizione())
                     && selectedContactEstemporaneo.getAddToRubrica() != null && selectedContactEstemporaneo.getAddToRubrica()
-                    && selectedContactEstemporaneo.getStatus() != null && selectedContactEstemporaneo.getStatus().equals(SelectedContactStatus.INITIAL)
+//                    && selectedContactEstemporaneo.getStatus() != null && selectedContactEstemporaneo.getStatus().equals(SelectedContactStatus.INITIAL)
                     && selectedContactEstemporaneo.getEstemporaneo() != null && selectedContactEstemporaneo.getEstemporaneo()) {
                 selectedContact.setId(savedContatto.getId());
                 selectedAddress.setIdContatto(savedContatto);
@@ -785,7 +789,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                         JSONObject oggettone = CreatoreJsonPermessiContatto.generaJSONObjectPerAggiuntaPermessiSuOggettoContatto(struttura, contatto);
                         log.info("Oggettone per aggiunta permessi da mappare:\n" + oggettone.toString(4));
                         Map<String, Object> params
-                                = new ObjectMapper().readValue(oggettone.toString(), HashMap.class);
+                                = objectMapper.readValue(oggettone.toString(), HashMap.class);
                         log.info("Chiamo managerPermissionAdvanced...");
                         permessiCustomController.managePermissionsAdvanced(params, null);
                         log.info("Permesso inserito, creo il messaggio di ritorno");

@@ -27,5 +27,9 @@ public interface DocWithAll extends DocWithAllegatiAndCoinvoltiAndCompetentiAndI
     @Override
     @Value("#{@projectionBeans.filterRelated(target.getRelated(), 'CC')}")
     public List<Related> getCoinvolti();
+    
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getAllegati', @projectionsInterceptorLauncher.buildSort('asc', 'numeroAllegato'))}")
+    @Override
+    public Object getAllegati();
 
 }
