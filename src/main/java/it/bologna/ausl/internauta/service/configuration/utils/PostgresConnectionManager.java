@@ -38,6 +38,7 @@ public class PostgresConnectionManager {
             HikariConfig hikariConfig = new HikariConfig();
             hikariConfig.setDriverClassName(driverClass);
             hikariConfig.setJdbcUrl(aziendaConnParams.getJdbcUrl());
+            System.out.println(hikariConfig.getJdbcUrl());
             hikariConfig.setUsername(aziendaConnParams.getDbUsername());
             hikariConfig.setPassword(aziendaConnParams.getDbPassword());
             // hikariConfig.setLeakDetectionThreshold(20000);
