@@ -6,6 +6,7 @@ import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepositor
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.scripta.Allegato;
+import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
@@ -27,10 +28,10 @@ import org.springframework.stereotype.Component;
 public class AllegatoInterceptor extends InternautaBaseInterceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AllegatoInterceptor.class);
-    
+
     @Autowired
     ReporitoryConnectionManager aziendeConnectionManager;
-    
+
     @Autowired
     AllegatoRepository allegatoRepository;
 
@@ -46,28 +47,34 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
             - Se è un allegato contenitore devo cancellare i file correlati e anche in questo caso dal repository 
             - Devo cancellare il file dal repository
             - Un trigger si occupa di aggiustare la numerazione degli allegati
-        */
-        Allegato allegato = (Allegato)entity;
+         */
+        Allegato allegato = (Allegato) entity;
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        
+
         // Cancello gli eventuali allegati figli.
         List<Allegato> allegatiFigliList = allegato.getAllegatiFigliList();
         for (Allegato a : allegatiFigliList) {
             try {
-                minIOWrapper.deleteByFileId(a.getIdRepository());
+                List<DettaglioAllegato> dettagliAllegatiList = a.getDettagliAllegatiList();
+                for (DettaglioAllegato da : dettagliAllegatiList) {
+                    minIOWrapper.deleteByFileId(da.getIdRepository());
+                }
             } catch (MinIOWrapperException ex) {
                 java.util.logging.Logger.getLogger(AllegatoInterceptor.class.getName()).log(Level.SEVERE, null, ex);
             }
             allegatoRepository.delete(a);
         }
-        
+
         // Cancello dal repository l'allegato
         try {
-            minIOWrapper.deleteByFileId(allegato.getIdRepository());
+            List<DettaglioAllegato> dettagliAllegatiList = allegato.getDettagliAllegatiList();
+                for (DettaglioAllegato da : dettagliAllegatiList) {
+                    minIOWrapper.deleteByFileId(da.getIdRepository());
+                }
         } catch (MinIOWrapperException ex) {
             java.util.logging.Logger.getLogger(AllegatoInterceptor.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
         super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 }

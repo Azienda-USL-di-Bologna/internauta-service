@@ -59,6 +59,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
+import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
+import it.bologna.ausl.model.entities.scripta.DettaglioAllegato.TipoDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 
 /**
@@ -89,6 +92,9 @@ public class ScriptaCustomController {
 
     @Autowired
     AllegatoRepository allegatoRepository;
+    
+    @Autowired
+    DettaglioAllegatoRepository dettaglioAllegatoRepository;
 
     @Autowired
     ProjectionFactory projectionFactory;
@@ -137,17 +143,21 @@ public class ScriptaCustomController {
 
                 savedFileOnRepository = minIOWrapper.put(file.getInputStream(), doc.getIdAzienda().getCodice(), numeroProposta, file.getOriginalFilename(), null, true);
                 Allegato allegato = new Allegato();
-                allegato.setConvertibilePdf(false);
-                allegato.setEstensione(FilenameUtils.getExtension(file.getOriginalFilename()));
                 allegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
                 allegato.setIdDoc(doc);
                 allegato.setPrincipale(false);
                 allegato.setTipo(Allegato.TipoAllegato.ALLEGATO);
                 allegato.setDataInserimento(ZonedDateTime.now());
-                allegato.setNumeroAllegato(numeroOrdine);
-                allegato.setDimensioneByte(Math.toIntExact(file.getSize()));
-                allegato.setIdRepository(savedFileOnRepository.getFileId());
-                allegato.setMimeType(file.getContentType());
+                allegato.setOrdinale(numeroOrdine);
+                
+                DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
+                
+                //allegato.setConvertibilePdf(false);
+                
+                dettaglioAllegato.setEstensione(FilenameUtils.getExtension(file.getOriginalFilename()));
+                dettaglioAllegato.setDimensioneByte(Math.toIntExact(file.getSize()));
+                dettaglioAllegato.setIdRepository(savedFileOnRepository.getFileId());
+                dettaglioAllegato.setMimeType(file.getContentType());
 
                 savedFilesOnRepository.add(savedFileOnRepository);
                 savedFilesOnInternauta.add(saveFileOnInternauta(allegato));
@@ -176,18 +186,22 @@ public class ScriptaCustomController {
      * @param request
      * @throws IOException
      * @throws MinIOWrapperException
+     * 
      */
-    @RequestMapping(value = "downloadAttachment/{idAllegato}", method = RequestMethod.GET)
+    @RequestMapping(value = "dettaglioallegato/{idDettaglioAllegato}/download", method = RequestMethod.GET)
     public void downloadAttachment(
-            @PathVariable(required = true) Integer idAllegato,
+            @PathVariable(required = true) Integer idDettaglioAllegato,
             HttpServletResponse response,
             HttpServletRequest request
     ) throws IOException, MinIOWrapperException {
-        LOG.info("downloadAllegato", idAllegato);
-        Allegato allegato = allegatoRepository.getOne(idAllegato);
+        LOG.info("downloadAllegato", idDettaglioAllegato);
+        //TODO si deve instanziare il rest controller engine e poi devi prendere il dettaglio (aggiungere interceptor per vedere se l'utente puo scaricare il file)
+        DettaglioAllegato dettaglioAllegato = dettaglioAllegatoRepository.getOne(idDettaglioAllegato);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        StreamUtils.copy(minIOWrapper.getByFileId(allegato.getIdRepository()), response.getOutputStream());
-        response.flushBuffer();
+        if (dettaglioAllegato != null){
+            StreamUtils.copy(minIOWrapper.getByFileId(dettaglioAllegato.getIdRepository()), response.getOutputStream());
+        }
+        response.flushBuffer();        
     }
 
     /**
@@ -225,13 +239,13 @@ public class ScriptaCustomController {
                         if (i > 0) {
                             s = "_" + Integer.toString(i);
                         }
-                        zos.putNextEntry(new ZipEntry((String) allegato.getNome() + s + "." + allegato.getEstensione()));
+                        zos.putNextEntry(new ZipEntry((String) allegato.getNome() + s + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione()));
                         in_error = false;
                     } catch (ZipException ex) {
                         i++;
                     }
                 }
-                StreamUtils.copy((InputStream) minIOWrapper.getByFileId(allegato.getIdRepository()), zos);
+                StreamUtils.copy((InputStream) minIOWrapper.getByFileId(allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getIdRepository()), zos);
             }
             response.flushBuffer();
         } finally {
@@ -295,11 +309,14 @@ public class ScriptaCustomController {
                 //TODO:prendo il primo o l'ultimo e lo setto come principale
 
                 if (allegato.getPrincipale()) {
-                    InputStream allegatoPrincipaleIS = minIOWrapper.getByFileId(allegato.getIdRepository());
-                    multipartPrincipale = new MockMultipartFile(allegato.getNome() + "." + allegato.getEstensione(), allegato.getNome() + "." + allegato.getEstensione(), allegato.getMimeType(), allegatoPrincipaleIS);
+                    
+                    //devo prendere gli 'ORIGINALI' non figli
+                    InputStream allegatoPrincipaleIS = minIOWrapper.getByFileId(allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getIdRepository());
+                    multipartPrincipale = new MockMultipartFile(allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getMimeType(), allegatoPrincipaleIS);
                 } else {
-                    InputStream allegatoIS = minIOWrapper.getByFileId(allegato.getIdRepository());
-                    MultipartFile multipart = new MockMultipartFile(allegato.getNome() + "." + allegato.getEstensione(), allegato.getNome() + "." + allegato.getEstensione(), allegato.getMimeType(), allegatoIS);
+                    //devo prendere gli 'ORIGINALI' NON FIGLI
+                    InputStream allegatoIS = minIOWrapper.getByFileId(allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getIdRepository());
+                    MultipartFile multipart = new MockMultipartFile(allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getMimeType(), allegatoIS);
                     multipartList.add(multipart);
                 }
             }
