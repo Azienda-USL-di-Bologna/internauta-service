@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.controllers.scripta;
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.model.entities.scripta.Allegato;
+import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
@@ -98,17 +99,17 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAllegato.allegato, Allegato.class);
         return ResponseEntity.ok(resource);
     }
-
-    @RequestMapping(value = {"related", "related/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> related(
-            @QuerydslPredicate(root = Related.class) Predicate predicate,
+    
+    @RequestMapping(value = {"dettaglioAllegato", "dettaglioAllegato/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> dettaglioAllegato(
+            @QuerydslPredicate(root = DettaglioAllegato.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRelated.related, Related.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRelated.related, DettaglioAllegato.class);
         return ResponseEntity.ok(resource);
     }
 
