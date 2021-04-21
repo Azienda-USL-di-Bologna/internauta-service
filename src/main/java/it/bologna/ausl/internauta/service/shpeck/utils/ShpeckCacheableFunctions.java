@@ -38,6 +38,10 @@ public class ShpeckCacheableFunctions {
             }
         }
     }
+    
+//    @CacheEvict(value = "info_eml", key = "{#emlSource.toString(), #id}", cacheManager = "emlCacheManager")
+//    public void getInfoEmlRemoveCache(ShpeckUtils.EmlSource emlSource, Integer id) {
+//    }
 
 //    @Cacheable(value = "gdmgdm", key = "{#id}", cacheManager = "emlCacheManager", condition = "{#id != 1}")
 //    public String testCache(Integer id) {
