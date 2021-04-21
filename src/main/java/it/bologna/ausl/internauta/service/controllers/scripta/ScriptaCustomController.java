@@ -63,6 +63,11 @@ import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegato
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato.TipoDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
+import java.io.FileNotFoundException;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Formatter;
 
 /**
  *
@@ -92,7 +97,7 @@ public class ScriptaCustomController {
 
     @Autowired
     AllegatoRepository allegatoRepository;
-    
+
     @Autowired
     DettaglioAllegatoRepository dettaglioAllegatoRepository;
 
@@ -149,17 +154,24 @@ public class ScriptaCustomController {
                 allegato.setTipo(Allegato.TipoAllegato.ALLEGATO);
                 allegato.setDataInserimento(ZonedDateTime.now());
                 allegato.setOrdinale(numeroOrdine);
-                
+                allegato.setFirmato(false);
                 DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
-                
+
                 //allegato.setConvertibilePdf(false);
-                
+                dettaglioAllegato.setHashMd5(savedFileOnRepository.getMd5());
+
+                dettaglioAllegato.setHashSha256(getHashFromFile(file.getInputStream(),"SHA-256"));
+                dettaglioAllegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
+                dettaglioAllegato.setIdAllegato(allegato);
                 dettaglioAllegato.setEstensione(FilenameUtils.getExtension(file.getOriginalFilename()));
                 dettaglioAllegato.setDimensioneByte(Math.toIntExact(file.getSize()));
                 dettaglioAllegato.setIdRepository(savedFileOnRepository.getFileId());
+                dettaglioAllegato.setCaratteristica(TipoDettaglioAllegato.ORIGINALE);
                 dettaglioAllegato.setMimeType(file.getContentType());
-
+                List<DettaglioAllegato> dettagliAllegatiList = new ArrayList();
+                dettagliAllegatiList.add(dettaglioAllegato);
                 savedFilesOnRepository.add(savedFileOnRepository);
+                allegato.setDettagliAllegatiList(dettagliAllegatiList);
                 savedFilesOnInternauta.add(saveFileOnInternauta(allegato));
             }
             tuttiAllegati = allegatoRepository.findAll(QAllegato.allegato.idDoc.id.eq(idDoc));
@@ -186,7 +198,7 @@ public class ScriptaCustomController {
      * @param request
      * @throws IOException
      * @throws MinIOWrapperException
-     * 
+     *
      */
     @RequestMapping(value = "dettaglioallegato/{idDettaglioAllegato}/download", method = RequestMethod.GET)
     public void downloadAttachment(
@@ -198,10 +210,10 @@ public class ScriptaCustomController {
         //TODO si deve instanziare il rest controller engine e poi devi prendere il dettaglio (aggiungere interceptor per vedere se l'utente puo scaricare il file)
         DettaglioAllegato dettaglioAllegato = dettaglioAllegatoRepository.getOne(idDettaglioAllegato);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        if (dettaglioAllegato != null){
+        if (dettaglioAllegato != null) {
             StreamUtils.copy(minIOWrapper.getByFileId(dettaglioAllegato.getIdRepository()), response.getOutputStream());
         }
-        response.flushBuffer();        
+        response.flushBuffer();
     }
 
     /**
@@ -309,7 +321,7 @@ public class ScriptaCustomController {
                 //TODO:prendo il primo o l'ultimo e lo setto come principale
 
                 if (allegato.getPrincipale()) {
-                    
+
                     //devo prendere gli 'ORIGINALI' non figli
                     InputStream allegatoPrincipaleIS = minIOWrapper.getByFileId(allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getIdRepository());
                     multipartPrincipale = new MockMultipartFile(allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getMimeType(), allegatoPrincipaleIS);
@@ -379,5 +391,32 @@ public class ScriptaCustomController {
             destinarari.add(AoCC);
         }
         return destinarari;
+    }
+
+    public static String getHashFromFile(InputStream is, String algorithmName) throws FileNotFoundException, IOException, NoSuchAlgorithmException {
+        //    Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+
+        MessageDigest algorithm = MessageDigest.getInstance(algorithmName);
+        DigestInputStream dis = new DigestInputStream(is, algorithm);
+
+        byte[] buffer = new byte[8192];
+        while ((dis.read(buffer)) != -1) {
+        }
+        dis.close();
+        byte[] messageDigest = algorithm.digest();
+
+        Formatter fmt = new Formatter();
+        for (byte b : messageDigest) {
+            fmt.format("%02X", b);
+        }
+        String hashString = fmt.toString();
+
+//        BigInteger hashInt = new BigInteger(1, messageDigest);
+//        String hashString = hashInt.toString(16);
+//        int digestLength = algorithm.getDigestLength();
+//        while (hashString.length() < digestLength * 2) {
+//            hashString = "0" + hashString;
+//        }
+        return hashString;
     }
 }
