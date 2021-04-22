@@ -7,9 +7,6 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
-import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.internauta.service.utils.ProjectionBeans;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
@@ -19,9 +16,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Doc;
-import it.bologna.ausl.model.entities.scripta.QAllegato;
 import it.bologna.ausl.model.entities.scripta.Related;
-import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithPlainFields;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,11 +55,18 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato.TipoDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
+import it.bologna.ausl.model.entities.scripta.QAllegato;
+import it.bologna.ausl.model.entities.scripta.Spedizione;
+import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithPlainFields;
+import java.io.FileNotFoundException;
 import java.io.FileNotFoundException;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -87,6 +89,7 @@ public class ScriptaCustomController {
 
     @Autowired
     DocRepository docRepository;
+
     @Autowired
     ScriptaUtils scriptaUtils;
 
@@ -164,7 +167,7 @@ public class ScriptaCustomController {
                 //allegato.setConvertibilePdf(false);
                 dettaglioAllegato.setHashMd5(savedFileOnRepository.getMd5());
 
-                dettaglioAllegato.setHashSha256(getHashFromFile(file.getInputStream(),"SHA-256"));
+                dettaglioAllegato.setHashSha256(getHashFromFile(file.getInputStream(), "SHA-256"));
                 dettaglioAllegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
                 dettaglioAllegato.setIdAllegato(allegato);
                 dettaglioAllegato.setEstensione(FilenameUtils.getExtension(file.getOriginalFilename()));
@@ -272,34 +275,33 @@ public class ScriptaCustomController {
     private Map<String, Object> getParametersMap(Doc doc) throws JsonProcessingException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente loggedUser = authenticatedUserProperties.getUser();
-
         // TODO: oggetto dei parametri poi tradotto in string. trasformare i json parametri in mappa
         Map<String, Object> parametersMap = new HashMap();
         parametersMap.put("azienda", doc.getIdAzienda().getCodiceRegione() + doc.getIdAzienda().getCodice());
         parametersMap.put("applicazione_chiamante", authenticatedUserProperties.getApplicazione().toString());
-        //da cambiare quando ci saranno i campi sul db
-        //visto che il sistema interno i campi origine sono i dati del documento
         parametersMap.put("numero_documento_origine", doc.getId().toString());
         parametersMap.put("anno_documento_origine", doc.getDataCreazione().getYear());
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-mm-dd");
         String dateFormat = doc.getDataCreazione().format(formatter);
         parametersMap.put("data_registrazione_origine", dateFormat);
-//        parametersMap.put("fascicolo_origine", "scripta_1");
-
         parametersMap.put("oggetto", doc.getOggetto());
-        //da decommentare quando ci saranno i campi sul db e bisogna mettere la data in stringa
+        //TODO da decommentare quando ci saranno i campi sul db e bisogna mettere la data in stringa
         //parametersMap.put("data_arrivo_origine", doc.getMittenti().get(0).getSpedizioneList().get(0).getData());
         //da elimare quando ci saranno i campi sul db
         parametersMap.put("data_arrivo_origine", dateFormat);
         parametersMap.put("utente_protocollante", loggedUser.getIdPersona().getCodiceFiscale());
-        //da mettere quando avremo le fascicolazioni
+        //TODO da mettere quando avremo le fascicolazioni
         //da decommentare quando avremo le tabelle della fascicolazione
         //parametersMap.put("fascicoli_babel", "fascicolo_origine_1");
         parametersMap.put("riservato", "no");
         parametersMap.put("visibilita_limitata", "no");
         Related mittentePE = scriptaUtils.getMittentePE(doc);
         parametersMap.put("mittente", buildMittente(mittentePE));
+        List<Related> coinvolti = doc.getCoinvolti();
+        List<Related> competenti = doc.getCompetenti();
+
         List<Related> related = new ArrayList();
+
         related.addAll(projectionBeans.filterRelated(doc.getRelated(), "A"));
         related.addAll(projectionBeans.filterRelated(doc.getRelated(), "CC"));
 
