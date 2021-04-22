@@ -55,23 +55,27 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
+import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato.TipoDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithPlainFields;
+import it.bologna.ausl.model.entities.shpeck.Message;
 import java.io.FileNotFoundException;
 import java.io.FileNotFoundException;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Formatter;
+import org.json.JSONObject;
 
 /**
  *
@@ -89,6 +93,9 @@ public class ScriptaCustomController {
 
     @Autowired
     DocRepository docRepository;
+
+    @Autowired
+    PecRepository pecRepository;
 
     @Autowired
     ScriptaUtils scriptaUtils;
@@ -272,6 +279,33 @@ public class ScriptaCustomController {
         }
     }
 
+    private JSONObject getJSONObjectPecMessageDetail(Doc doc) {
+        JSONObject pecMessageDetail = new JSONObject();
+        Related mittente = scriptaUtils.getMittentePE(doc);
+        Message message = scriptaUtils.getPecMittenteMessage(doc);
+        pecMessageDetail.put("idSorgentePec", message.getId());
+        pecMessageDetail.put("subject", message.getSubject());
+        pecMessageDetail.put("mittente", mittente.getDescrizione());
+        pecMessageDetail.put("dataArrivo", message.getReceiveTime());
+        pecMessageDetail.put("messageID", message.getUuidMessage());
+        Pec pecDaCuiProtocollo = pecRepository.findById(message.getIdPec().getId()).get();
+        pecMessageDetail.put("indirizzoPecOrigine", pecDaCuiProtocollo.getIndirizzo());
+
+        return pecMessageDetail;
+    }
+
+    private List<Related> getRelatedDestinatari(Doc doc) {
+        List<Related> related = new ArrayList();
+
+        List<Related> competenti = doc.getCompetenti();
+        related.addAll(competenti);
+
+        List<Related> coinvolti = doc.getCoinvolti();
+        related.addAll(coinvolti);
+
+        return related;
+    }
+
     private Map<String, Object> getParametersMap(Doc doc) throws JsonProcessingException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente loggedUser = authenticatedUserProperties.getUser();
@@ -281,7 +315,7 @@ public class ScriptaCustomController {
         parametersMap.put("applicazione_chiamante", authenticatedUserProperties.getApplicazione().toString());
         parametersMap.put("numero_documento_origine", doc.getId().toString());
         parametersMap.put("anno_documento_origine", doc.getDataCreazione().getYear());
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-mm-dd");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         String dateFormat = doc.getDataCreazione().format(formatter);
         parametersMap.put("data_registrazione_origine", dateFormat);
         parametersMap.put("oggetto", doc.getOggetto());
@@ -297,15 +331,11 @@ public class ScriptaCustomController {
         parametersMap.put("visibilita_limitata", "no");
         Related mittentePE = scriptaUtils.getMittentePE(doc);
         parametersMap.put("mittente", buildMittente(mittentePE));
-        List<Related> coinvolti = doc.getCoinvolti();
-        List<Related> competenti = doc.getCompetenti();
 
-        List<Related> related = new ArrayList();
-
-        related.addAll(projectionBeans.filterRelated(doc.getRelated(), "A"));
-        related.addAll(projectionBeans.filterRelated(doc.getRelated(), "CC"));
+        List<Related> related = getRelatedDestinatari(doc);
 
         parametersMap.put("destinatari", buildDestinarari(related));
+        parametersMap.put("pecMessageDetail", getJSONObjectPecMessageDetail(doc).toString());
 
         return parametersMap;
     }
@@ -420,6 +450,7 @@ public class ScriptaCustomController {
         for (Related destinatario : destinarariDoc) {
             Map<String, Object> AoCC = new HashMap();
             AoCC.put("tipo", destinatario.getTipo().toString());
+            // TODO:
             //mettere gli assegnatari quando si avranno sul db 
             //dal contatto devo beccare la struttura
             //recuperare cf della persona dal contatto
