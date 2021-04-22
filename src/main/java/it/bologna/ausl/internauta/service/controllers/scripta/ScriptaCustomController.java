@@ -59,10 +59,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
+import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato.TipoDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
+import it.bologna.ausl.model.entities.scripta.Spedizione;
 
 /**
  *
@@ -80,6 +83,8 @@ public class ScriptaCustomController {
 
     @Autowired
     DocRepository docRepository;
+    @Autowired
+    ScriptaUtils scriptaUtils;
 
     @Autowired
     ReporitoryConnectionManager aziendeConnectionManager;
@@ -92,7 +97,7 @@ public class ScriptaCustomController {
 
     @Autowired
     AllegatoRepository allegatoRepository;
-    
+
     @Autowired
     DettaglioAllegatoRepository dettaglioAllegatoRepository;
 
@@ -149,11 +154,10 @@ public class ScriptaCustomController {
                 allegato.setTipo(Allegato.TipoAllegato.ALLEGATO);
                 allegato.setDataInserimento(ZonedDateTime.now());
                 allegato.setOrdinale(numeroOrdine);
-                
+
                 DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
-                
+
                 //allegato.setConvertibilePdf(false);
-                
                 dettaglioAllegato.setEstensione(FilenameUtils.getExtension(file.getOriginalFilename()));
                 dettaglioAllegato.setDimensioneByte(Math.toIntExact(file.getSize()));
                 dettaglioAllegato.setIdRepository(savedFileOnRepository.getFileId());
@@ -186,7 +190,7 @@ public class ScriptaCustomController {
      * @param request
      * @throws IOException
      * @throws MinIOWrapperException
-     * 
+     *
      */
     @RequestMapping(value = "dettaglioallegato/{idDettaglioAllegato}/download", method = RequestMethod.GET)
     public void downloadAttachment(
@@ -198,10 +202,10 @@ public class ScriptaCustomController {
         //TODO si deve instanziare il rest controller engine e poi devi prendere il dettaglio (aggiungere interceptor per vedere se l'utente puo scaricare il file)
         DettaglioAllegato dettaglioAllegato = dettaglioAllegatoRepository.getOne(idDettaglioAllegato);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        if (dettaglioAllegato != null){
+        if (dettaglioAllegato != null) {
             StreamUtils.copy(minIOWrapper.getByFileId(dettaglioAllegato.getIdRepository()), response.getOutputStream());
         }
-        response.flushBuffer();        
+        response.flushBuffer();
     }
 
     /**
@@ -253,18 +257,7 @@ public class ScriptaCustomController {
         }
     }
 
-    @RequestMapping(value = "createPE", method = RequestMethod.POST)
-    public String createPE(
-            @RequestParam("id_doc") Integer idDoc,
-            HttpServletRequest request) throws HttpInternautaResponseException, Throwable {
-        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        Optional<Doc> docOp = docRepository.findById(idDoc);
-        Doc doc;
-        if (docOp.isPresent()) {
-            doc = docOp.get();
-        } else {
-            return null;
-        }
+    private Map<String, Object> getParametersMap(Doc doc) throws JsonProcessingException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente loggedUser = authenticatedUserProperties.getUser();
 
@@ -274,7 +267,7 @@ public class ScriptaCustomController {
         parametersMap.put("applicazione_chiamante", authenticatedUserProperties.getApplicazione().toString());
         //da cambiare quando ci saranno i campi sul db
         //visto che il sistema interno i campi origine sono i dati del documento
-        parametersMap.put("numero_documento_origine", idDoc.toString());
+        parametersMap.put("numero_documento_origine", doc.getId().toString());
         parametersMap.put("anno_documento_origine", doc.getDataCreazione().getYear());
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-mm-dd");
         String dateFormat = doc.getDataCreazione().format(formatter);
@@ -292,37 +285,84 @@ public class ScriptaCustomController {
         //parametersMap.put("fascicoli_babel", "fascicolo_origine_1");
         parametersMap.put("riservato", "no");
         parametersMap.put("visibilita_limitata", "no");
-        parametersMap.put("mittente", buildMittente(projectionBeans.filterRelated(doc.getRelated(), "MITTENTE").get(0)));
+        Related mittentePE = scriptaUtils.getMittentePE(doc);
+        parametersMap.put("mittente", buildMittente(mittentePE));
         List<Related> related = new ArrayList();
         related.addAll(projectionBeans.filterRelated(doc.getRelated(), "A"));
         related.addAll(projectionBeans.filterRelated(doc.getRelated(), "CC"));
 
         parametersMap.put("destinatari", buildDestinarari(related));
 
+        return parametersMap;
+    }
+
+    private MultipartFile getMultiPartFromAllegato(Allegato allegato, TipoDettaglioAllegato tipoDettaglioAllegato) throws MinIOWrapperException, IOException {
+        MultipartFile multipartDaTornare = null;
+        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+        DettaglioAllegato dettaglioAllegatoRichiesto = allegato.getDettaglioByTipoDettaglioAllegato(tipoDettaglioAllegato);
+        InputStream allegatoIS = minIOWrapper.getByFileId(dettaglioAllegatoRichiesto.getIdRepository()
+        );
+        String nomeFileConEstensione = allegato.getNome()
+                + "." + dettaglioAllegatoRichiesto.getEstensione();
+
+        multipartDaTornare = new MockMultipartFile(
+                nomeFileConEstensione,
+                nomeFileConEstensione,
+                dettaglioAllegatoRichiesto.getMimeType(),
+                allegatoIS);
+        return multipartDaTornare;
+    }
+
+    private MultipartFile manageAndReturnAllegatoPrincipaleMultipart(Doc doc) throws MinIOWrapperException, IOException {
+        Allegato allegatoPrincipale = scriptaUtils.getAllegatoPrincipale(doc);
+        MultipartFile multipartPrincipale = null;
+        if (allegatoPrincipale != null) {
+            multipartPrincipale = getMultiPartFromAllegato(allegatoPrincipale, TipoDettaglioAllegato.ORIGINALE);
+        }
+        return multipartPrincipale;
+    }
+
+    private List<MultipartFile> manageAndReturnAllegatiNonPrincipaliMultiPartList(Doc doc) throws MinIOWrapperException, IOException {
+        List<MultipartFile> multipartList = new ArrayList();
+        List<Allegato> allegati = doc.getAllegati();
+        for (Allegato allegato : allegati) {
+            if (!allegato.getPrincipale()) {
+                //devo prendere gli 'ORIGINALI' NON FIGLI
+                MultipartFile multipart = getMultiPartFromAllegato(allegato,
+                        TipoDettaglioAllegato.ORIGINALE);
+                multipartList.add(multipart);
+            }
+        }
+        return multipartList;
+    }
+
+    @RequestMapping(value = "createPE", method = RequestMethod.POST)
+    public String createPE(
+            @RequestParam("id_doc") Integer idDoc,
+            HttpServletRequest request) throws HttpInternautaResponseException,
+            Throwable {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente loggedUser = authenticatedUserProperties.getUser();
+
+        Optional<Doc> docOp = docRepository.findById(idDoc);
+        Doc doc;
+        if (docOp.isPresent()) {
+            doc = docOp.get();
+        } else {
+            return null;
+        }
+
+        Map<String, Object> parametersMap = getParametersMap(doc);
         List<Allegato> allegati = doc.getAllegati();
 
-        MultipartFile multipartPrincipale = null;
-        List<MultipartFile> multipartList = new ArrayList();
-
-        if (allegati != null && !allegati.isEmpty()) {
-            for (Allegato allegato : allegati) {
-                //TODO:prendo il primo o l'ultimo e lo setto come principale
-
-                if (allegato.getPrincipale()) {
-                    
-                    //devo prendere gli 'ORIGINALI' non figli
-                    InputStream allegatoPrincipaleIS = minIOWrapper.getByFileId(allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getIdRepository());
-                    multipartPrincipale = new MockMultipartFile(allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getMimeType(), allegatoPrincipaleIS);
-                } else {
-                    //devo prendere gli 'ORIGINALI' NON FIGLI
-                    InputStream allegatoIS = minIOWrapper.getByFileId(allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getIdRepository());
-                    MultipartFile multipart = new MockMultipartFile(allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getMimeType(), allegatoIS);
-                    multipartList.add(multipart);
-                }
-            }
-        } else {
-            // TODO: dai errore
+        // Se non ho allegati lancio errore
+        if (!(allegati != null && !allegati.isEmpty())) {
+            throw new Throwable("Allegati non presenti");
         }
+
+        MultipartFile multipartPrincipale = manageAndReturnAllegatoPrincipaleMultipart(doc);
+        List<MultipartFile> multipartList = manageAndReturnAllegatiNonPrincipaliMultiPartList(doc);
+
         Boolean minIOActive = false;
         List<ParametroAziende> mongoAndMinIOActive = parametriAziende.getParameters("mongoAndMinIOActive");
         if (mongoAndMinIOActive != null && !mongoAndMinIOActive.isEmpty()) {
@@ -353,10 +393,10 @@ public class ScriptaCustomController {
     private Map<String, Object> buildMittente(Related mittenteDoc) throws JsonProcessingException {
         Map<String, Object> mittente = new HashMap();
         mittente.put("descrizione", mittenteDoc.getDescrizione());
-
-        mittente.put("indirizzo_spedizione", mittenteDoc.getSpedizioneList().get(0).getIndirizzo().toString());
-        Mezzo idMezzo = mittenteDoc.getSpedizioneList().get(0).getIdMezzo();
-        mittente.put("mezzo_spedizione", mittenteDoc.getSpedizioneList().get(0).getIdMezzo().ottieniCodiceArgo());
+        Spedizione spedizioneMittente = scriptaUtils.getSpedizioneMittente(mittenteDoc);
+        mittente.put("indirizzo_spedizione", spedizioneMittente.getIndirizzo().toString());
+        Mezzo mezzo = spedizioneMittente.getIdMezzo();
+        mittente.put("mezzo_spedizione", mezzo.ottieniCodiceArgo());
         return mittente;
     }
 
