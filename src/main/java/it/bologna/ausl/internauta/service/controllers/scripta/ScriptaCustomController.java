@@ -66,9 +66,11 @@ import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato.TipoDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
+import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithDettagliAllegatiListAndIdAllegatoPadre;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithPlainFields;
 import it.bologna.ausl.model.entities.shpeck.Message;
+import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import java.io.FileNotFoundException;
 import java.io.FileNotFoundException;
 import java.security.DigestInputStream;
@@ -129,6 +131,9 @@ public class ScriptaCustomController {
 
     @Autowired
     ObjectMapper objectMapper;
+    
+    @Autowired
+    private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
 
     @RequestMapping(value = "saveAllegato", method = RequestMethod.POST)
     public ResponseEntity<?> saveAllegato(
@@ -136,6 +141,7 @@ public class ScriptaCustomController {
             @RequestParam("idDoc") Integer idDoc,
             @RequestParam("numeroProposta") String numeroProposta,
             @RequestParam("files") List<MultipartFile> files) throws MinIOWrapperException {
+        projectionsInterceptorLauncher.setRequestParams(null, request);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         Iterable<Allegato> tuttiAllegati = null;
         try {
@@ -199,7 +205,7 @@ public class ScriptaCustomController {
         }
         if (tuttiAllegati != null) {
             Stream<Allegato> stream = StreamSupport.stream(tuttiAllegati.spliterator(), false);
-            return ResponseEntity.ok(stream.map(a -> projectionFactory.createProjection(AllegatoWithPlainFields.class, a)).collect(Collectors.toList()));
+            return ResponseEntity.ok(stream.map(a -> projectionFactory.createProjection(AllegatoWithDettagliAllegatiListAndIdAllegatoPadre.class, a)).collect(Collectors.toList()));
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
