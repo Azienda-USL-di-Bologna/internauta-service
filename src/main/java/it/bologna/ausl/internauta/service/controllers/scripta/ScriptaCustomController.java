@@ -84,52 +84,52 @@ import org.json.JSONObject;
 @RestController
 @RequestMapping(value = "${scripta.mapping.url.root}")
 public class ScriptaCustomController {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(ScriptaCustomController.class);
-    
+
     MinIOWrapperFileInfo savedFileOnRepository = null;
     List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
     List<Allegato> savedFilesOnInternauta = new ArrayList();
-    
+
     @Autowired
     DocRepository docRepository;
-    
+
     @Autowired
     PecRepository pecRepository;
-    
+
     @Autowired
     ScriptaUtils scriptaUtils;
-    
+
     @Autowired
     ReporitoryConnectionManager aziendeConnectionManager;
-    
+
     @Autowired
     ParametriAziende parametriAziende;
-    
+
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-    
+
     @Autowired
     AllegatoRepository allegatoRepository;
-    
+
     @Autowired
     DettaglioAllegatoRepository dettaglioAllegatoRepository;
-    
+
     @Autowired
     ProjectionFactory projectionFactory;
-    
+
     @Autowired
     ProjectionBeans projectionBeans;
-    
+
     @Autowired
     StrutturaRepository strutturaRepository;
-    
+
     @Autowired
     GeneratePE generatePE;
-    
+
     @Autowired
     ObjectMapper objectMapper;
-    
+
     @RequestMapping(value = "saveAllegato", method = RequestMethod.POST)
     public ResponseEntity<?> saveAllegato(
             HttpServletRequest request,
@@ -146,7 +146,7 @@ public class ScriptaCustomController {
             } else {
                 doc = optionalDoc.get();
             }
-            
+
             List<Allegato> allegati = doc.getAllegati();
             Integer numeroOrdine = null;
             if (allegati == null || allegati.isEmpty()) {
@@ -154,12 +154,12 @@ public class ScriptaCustomController {
             } else {
                 numeroOrdine = doc.getAllegati().size();
             }
-            
+
             for (MultipartFile file : files) {
                 numeroOrdine++;
                 DateTimeFormatter data = DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss.SSSSSS Z");
                 String format = ZonedDateTime.now().format(data);
-                
+
                 savedFileOnRepository = minIOWrapper.put(file.getInputStream(), doc.getIdAzienda().getCodice(), numeroProposta, file.getOriginalFilename(), null, true);
                 Allegato allegato = new Allegato();
                 allegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
@@ -173,7 +173,7 @@ public class ScriptaCustomController {
 
                 //allegato.setConvertibilePdf(false);
                 dettaglioAllegato.setHashMd5(savedFileOnRepository.getMd5());
-                
+
                 dettaglioAllegato.setHashSha256(getHashFromFile(file.getInputStream(), "SHA-256"));
                 dettaglioAllegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
                 dettaglioAllegato.setIdAllegato(allegato);
@@ -250,7 +250,7 @@ public class ScriptaCustomController {
         Doc doc = docRepository.getOne(idDoc);
         List<Allegato> allegati = doc.getAllegati();
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        
+
         ZipOutputStream zos = null;
         try {
             response.addHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=allegati.zip");
@@ -278,7 +278,7 @@ public class ScriptaCustomController {
             IOUtils.closeQuietly(zos);
         }
     }
-    
+
     private JSONObject getJSONObjectPecMessageDetail(Doc doc) {
         JSONObject pecMessageDetail = new JSONObject();
         Related mittente = scriptaUtils.getMittentePE(doc);
@@ -290,22 +290,22 @@ public class ScriptaCustomController {
         pecMessageDetail.put("messageID", message.getUuidMessage());
         Pec pecDaCuiProtocollo = pecRepository.findById(message.getIdPec().getId()).get();
         pecMessageDetail.put("indirizzoPecOrigine", pecDaCuiProtocollo.getIndirizzo());
-        
+
         return pecMessageDetail;
     }
-    
+
     private List<Related> getRelatedDestinatari(Doc doc) {
         List<Related> related = new ArrayList();
-        
+
         List<Related> competenti = doc.getCompetenti();
         related.addAll(competenti);
-        
+
         List<Related> coinvolti = doc.getCoinvolti();
         related.addAll(coinvolti);
-        
+
         return related;
     }
-    
+
     private Map<String, Object> getParametersMap(Doc doc) throws JsonProcessingException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente loggedUser = authenticatedUserProperties.getUser();
@@ -331,15 +331,15 @@ public class ScriptaCustomController {
         parametersMap.put("visibilita_limitata", "no");
         Related mittentePE = scriptaUtils.getMittentePE(doc);
         parametersMap.put("mittente", buildMittente(mittentePE));
-        
+
         List<Related> related = getRelatedDestinatari(doc);
-        
+
         parametersMap.put("destinatari", buildDestinarari(related));
         parametersMap.put("pecMessageDetail", getJSONObjectPecMessageDetail(doc).toString());
-        
+
         return parametersMap;
     }
-    
+
     private MultipartFile getMultiPartFromAllegato(Allegato allegato, TipoDettaglioAllegato tipoDettaglioAllegato) throws MinIOWrapperException, IOException {
         MultipartFile multipartDaTornare = null;
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
@@ -348,7 +348,7 @@ public class ScriptaCustomController {
         );
         String nomeFileConEstensione = allegato.getNome()
                 + "." + dettaglioAllegatoRichiesto.getEstensione();
-        
+
         multipartDaTornare = new MockMultipartFile(
                 nomeFileConEstensione,
                 nomeFileConEstensione,
@@ -356,7 +356,7 @@ public class ScriptaCustomController {
                 allegatoIS);
         return multipartDaTornare;
     }
-    
+
     private MultipartFile manageAndReturnAllegatoPrincipaleMultipart(Doc doc) throws MinIOWrapperException, IOException {
         Allegato allegatoPrincipale = scriptaUtils.getAllegatoPrincipale(doc);
         MultipartFile multipartPrincipale = null;
@@ -365,7 +365,7 @@ public class ScriptaCustomController {
         }
         return multipartPrincipale;
     }
-    
+
     private List<MultipartFile> manageAndReturnAllegatiNonPrincipaliMultiPartList(Doc doc) throws MinIOWrapperException, IOException {
         List<MultipartFile> multipartList = new ArrayList();
         List<Allegato> allegati = doc.getAllegati();
@@ -379,15 +379,15 @@ public class ScriptaCustomController {
         }
         return multipartList;
     }
-    
+
     @RequestMapping(value = "createPE", method = RequestMethod.POST)
-    public String createPE(
+    public ResponseEntity<?> createPE(
             @RequestParam("id_doc") Integer idDoc,
             HttpServletRequest request) throws HttpInternautaResponseException,
             Throwable {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente loggedUser = authenticatedUserProperties.getUser();
-        
+
         Optional<Doc> docOp = docRepository.findById(idDoc);
         Doc doc;
         if (docOp.isPresent()) {
@@ -395,7 +395,7 @@ public class ScriptaCustomController {
         } else {
             return null;
         }
-        
+
         Map<String, Object> parametersMap = getParametersMap(doc);
         List<Allegato> allegati = doc.getAllegati();
 
@@ -403,10 +403,10 @@ public class ScriptaCustomController {
         if (!(allegati != null && !allegati.isEmpty())) {
             throw new Throwable("Allegati non presenti");
         }
-        
+
         MultipartFile multipartPrincipale = manageAndReturnAllegatoPrincipaleMultipart(doc);
         List<MultipartFile> multipartList = manageAndReturnAllegatiNonPrincipaliMultiPartList(doc);
-        
+
         Boolean minIOActive = false;
         List<ParametroAziende> mongoAndMinIOActive = parametriAziende.getParameters("mongoAndMinIOActive");
         if (mongoAndMinIOActive != null && !mongoAndMinIOActive.isEmpty()) {
@@ -421,19 +421,25 @@ public class ScriptaCustomController {
                 minIOActive,
                 aziendeConnectionManager.getMinIOConfig()
         );
-        
+
         String record = generatePE.create(null);
-        LOG.info("CreatePE sta tornando " + record);
-        return record;
+        LOG.info("generatePE.create() ha tornato '" + record + "'");
+        if (!(record != null && record != "")) {
+            throw new Throwable("Errore nella protocollazione del PE");
+        }
+        Map<String, String> resMap = new HashMap();
+        resMap.put("protocollo", record);
+        ResponseEntity res = ResponseEntity.ok(resMap);
+        return res;
     }
-    
+
     @Transactional(rollbackFor = Throwable.class)
     private Allegato saveFileOnInternauta(Allegato allegato) {
         Allegato saved = allegatoRepository.save(allegato);
         return saved;
-        
+
     }
-    
+
     private Map<String, Object> buildMittente(Related mittenteDoc) throws JsonProcessingException {
         Map<String, Object> mittente = new HashMap();
         mittente.put("descrizione", mittenteDoc.getDescrizione());
@@ -443,10 +449,10 @@ public class ScriptaCustomController {
         mittente.put("mezzo_spedizione", mezzo.ottieniCodiceArgo());
         return mittente;
     }
-    
+
     private List<Map<String, Object>> buildDestinarari(List<Related> destinarariDoc) {
         List<Map<String, Object>> destinarari = new ArrayList();
-        
+
         for (Related destinatario : destinarariDoc) {
             Map<String, Object> AoCC = new HashMap();
             AoCC.put("tipo", destinatario.getTipo().toString());
@@ -465,19 +471,19 @@ public class ScriptaCustomController {
         }
         return destinarari;
     }
-    
+
     public static String getHashFromFile(InputStream is, String algorithmName) throws FileNotFoundException, IOException, NoSuchAlgorithmException {
         //    Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
         MessageDigest algorithm = MessageDigest.getInstance(algorithmName);
         DigestInputStream dis = new DigestInputStream(is, algorithm);
-        
+
         byte[] buffer = new byte[8192];
         while ((dis.read(buffer)) != -1) {
         }
         dis.close();
         byte[] messageDigest = algorithm.digest();
-        
+
         Formatter fmt = new Formatter();
         for (byte b : messageDigest) {
             fmt.format("%02X", b);
