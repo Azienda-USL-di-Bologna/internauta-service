@@ -8,6 +8,8 @@ import it.bologna.ausl.model.entities.scrivania.Menu;
 import it.bologna.ausl.model.entities.scrivania.QAttivita;
 import it.bologna.ausl.model.entities.scrivania.QAttivitaFatta;
 import it.bologna.ausl.model.entities.scrivania.QMenu;
+import it.bologna.ausl.model.entities.scrivania.QRichiestaSmartWorking;
+import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
@@ -76,6 +78,19 @@ public class ScrivaniaBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMenu.menu, Menu.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"richiestasmartworking", "richiestasmartworking/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> richiestasmartworking(
+            @QuerydslPredicate(root = RichiestaSmartWorking.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRichiestaSmartWorking.richiestaSmartWorking, RichiestaSmartWorking.class);
         return ResponseEntity.ok(resource);
     }
 }
