@@ -1182,5 +1182,39 @@ public class UserInfoService {
         listToReturn = addPersoneIfNotPresenti(listToReturn, personeDiStruttureDiCuiSonoResponsabile);
         return listToReturn;
     }
-
+    
+    /**
+     * Torna true se l'utente loggato passato come parametro ha il permeso passato sull'azienda passata
+     * @param predicato
+     * @param user al posto della Persona passare l'Utente loggato
+     * @param azienda
+     * @param ambito
+     * @param tipo
+     * @return 
+     */
+    public Boolean userHasPermissionOnAzienda(
+            InternautaConstants.Permessi.Predicati predicato, 
+            Utente user, 
+            Azienda azienda, 
+            InternautaConstants.Permessi.Ambiti ambito, 
+            InternautaConstants.Permessi.Tipi tipo) {
+        Map<String, List<PermessoEntitaStoredProcedure>> permessiDiFlussoByCodiceAzienda = user.getPermessiDiFlussoByCodiceAzienda();
+        if (!permessiDiFlussoByCodiceAzienda.containsKey(azienda.getCodice())) {
+            LOGGER.info("L'utente non ha permessi di flusso per l'azienda selezionata");
+            return false;
+        } else {
+            for (PermessoEntitaStoredProcedure permessoStoredProcedure : permessiDiFlussoByCodiceAzienda.get(azienda.getCodice())) {
+                for (CategoriaPermessiStoredProcedure categoria : permessoStoredProcedure.getCategorie()) {
+                    if (categoria.getAmbito().equals(ambito.toString()) && categoria.getTipo().equals(tipo.toString())) {
+                        for (PermessoStoredProcedure permesso : categoria.getPermessi()) {
+                            if (permesso.getPredicato().equals(predicato.toString())) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
 }
