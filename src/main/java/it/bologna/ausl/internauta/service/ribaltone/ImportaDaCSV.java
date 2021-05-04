@@ -1014,10 +1014,13 @@ public class ImportaDaCSV {
                             //struttura definita piu volte
                             if (multidefinizioneStruttura.get(Integer.parseInt(strutturaErrorMap.get("id_casella").toString())) != null
                                     && multidefinizioneStruttura.get(Integer.parseInt(strutturaErrorMap.get("id_casella").toString())).contains("struttura definita piu volte nello stesso arco temporale,")) {
-                                if (strutturaErrorMap.get("ERRORE") != null) {
+                                if (strutturaErrorMap.get("ERRORE") != null && strutturaErrorMap.get("ERRORE").toString().contains("struttura definita piu volte nello stesso arco temporale,")) {
                                     strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE"));
+                                } else if (strutturaErrorMap.get("ERRORE") != null && !strutturaErrorMap.get("ERRORE").toString().contains("struttura definita piu volte nello stesso arco temporale,")) {
+                                    strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + "struttura definita piu volte nello stesso arco temporale,");
                                 } else {
                                     strutturaErrorMapWrite.put("ERRORE", "struttura definita piu volte nello stesso arco temporale,");
+
                                 }
                             }
                             mapErrorWriter.write(strutturaErrorMapWrite, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
