@@ -30,14 +30,10 @@ import it.bologna.ausl.model.entities.scripta.QMezzo;
 import it.bologna.ausl.model.entities.scripta.QRelated;
 import it.bologna.ausl.model.entities.scripta.QSmistamento;
 import it.bologna.ausl.model.entities.scripta.QSpedizione;
-import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Smistamento;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
-import java.util.ArrayList;
-import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import org.hibernate.Session;
 
 @RestController
 @RequestMapping(value = "${scripta.mapping.url.root}")
