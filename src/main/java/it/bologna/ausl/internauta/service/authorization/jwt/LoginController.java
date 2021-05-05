@@ -279,6 +279,7 @@ public class LoginController {
 //            userInfoService.getPermessiDelegaRemoveCache(utenteReale);
             List<Integer> permessiAvatar = userInfoService.getPermessiAvatar(utenteReale);
             boolean isSD = userInfoService.isSD(utenteReale);
+            boolean isSDImpersonato = userInfoService.isSD(utente);
             boolean isCI = userInfoService.isCI(utenteReale);
             boolean isCA = userInfoService.isCA(utenteReale);
             boolean isAvatarato = permessiAvatar != null && !permessiAvatar.isEmpty() && permessiAvatar.contains(utente.getId());
@@ -286,6 +287,7 @@ public class LoginController {
             
             if (
                     !isSD && 
+                    ((isCI || isCA) && isSDImpersonato) &&
                     !isCI && 
                     // se sei CA puoi cambiare utente solo se l'utente è parte dei un'azienda di cui sei CA
                     (!isCA || !authorizationUtils.isCAOfAziendaUtenteImpersonato(utenteReale, utente)) && 
