@@ -3,6 +3,8 @@ package it.bologna.ausl.internauta.service.controllers.scrivania;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.argo.bollovirtuale.BolloVirtualeManager;
+import it.bologna.ausl.internauta.service.argo.bollovirtuale.DatoBolloVirtuale;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
@@ -10,6 +12,7 @@ import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
+import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
@@ -26,7 +29,6 @@ import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloaderRes
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -34,6 +36,7 @@ import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import it.bologna.ausl.model.entities.scrivania.Attivita.TipoAttivita;
 import it.bologna.ausl.model.entities.scrivania.QAttivita;
+import it.bologna.ausl.rubrica.maven.client.RestClientException;
 import it.nextsw.common.annotations.NextSdrRepository;
 import it.nextsw.common.controller.exceptions.NotFoundResourceException;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
@@ -43,7 +46,7 @@ import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -58,6 +61,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +73,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.sql2o.Connection;
+import org.sql2o.Query;
+import org.sql2o.Sql2o;
 
 /**
  *
@@ -75,62 +84,68 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(value = "${scrivania.mapping.url.root}")
 public class ScrivaniaCustomController implements ControllerHandledExceptions {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ScrivaniaCustomController.class);
-    
+
     @Autowired
     private BabelDownloader babelDownloader;
 
     @Autowired
     private AziendaRepository aziendaRepository;
-    
+
     @Autowired
     private StrutturaRepository strutturaRepository;
-    
+
     @Autowired
     ObjectMapper objectMapper;
-    
+
     @Autowired
     protected CachedEntities cachedEntities;
-    
+
     @Autowired
     UserInfoService userInfoService;
-    
+
     @Autowired
     ApplicazioneRepository applicazioneRepository;
-    
+
     @Autowired
     protected PersonaRepository personaRepository;
-    
+
     @Autowired
     protected AttivitaRepository attivitaRepository;
-    
+
     @Autowired
     private CommonUtils commonUtils;
-    
+
     @Autowired
     private InternautaUtils internautaUtils;
-    
+
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
-    
+
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-    
+
+    @Autowired
+    private PostgresConnectionManager postgresConnectionManager;
+
+    @Autowired
+    private GestioneMenu gestioneMenu;
+
     private final String CMD_APRI_FIRMONE = "?CMD=open_firmone_local";
     private final String CMD_APRI_PRENDONE = "?CMD=open_prendone_local";
     private static final String FROM = "&from=INTERNAUTA";
     private final String HTTPS = "https://";
-   
+
     @RequestMapping(value = {"getAnteprima"}, method = RequestMethod.GET)
     public void getAnteprima(
-        @RequestParam(required = true) String guid,
-        @RequestParam(required = true) String tipologia,
-        @RequestParam(required = true) Integer idAzienda,
-        @RequestParam(required = true) String idApplicazione,
-        @RequestParam(required = true) String fileName,
-        HttpServletRequest request,
-        HttpServletResponse response) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
+            @RequestParam(required = true) String guid,
+            @RequestParam(required = true) String tipologia,
+            @RequestParam(required = true) Integer idAzienda,
+            @RequestParam(required = true) String idApplicazione,
+            @RequestParam(required = true) String fileName,
+            HttpServletRequest request,
+            HttpServletResponse response) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException {
 
         BabelDownloaderResponseBody downloadUrlRsponseBody = babelDownloader.getDownloadUrl(babelDownloader.createRquestBody(guid, tipologia), idAzienda, idApplicazione);
         switch (downloadUrlRsponseBody.getStatus()) {
@@ -138,8 +153,8 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
                 if (!StringUtils.hasText(downloadUrlRsponseBody.getUrl())) {
                     throw new Http500ResponseException("8", downloadUrlRsponseBody.getMessage());
                 }
-                try(Response downloadStream = babelDownloader.getDownloadStream(downloadUrlRsponseBody.getUrl())) {
-                    try(OutputStream out = response.getOutputStream()) {
+                try (Response downloadStream = babelDownloader.getDownloadStream(downloadUrlRsponseBody.getUrl())) {
+                    try (OutputStream out = response.getOutputStream()) {
                         response.setHeader(guid, guid);
                         response.setHeader("Content-Type", "application/pdf");
                         response.setHeader("X-Frame-Options", "sameorigin");
@@ -163,42 +178,42 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
                 throw new Http500ResponseException("6", downloadUrlRsponseBody.getMessage());
         }
     }
-    
+
     @RequestMapping(value = {"getFirmoneUrls"}, method = RequestMethod.GET)
-    public void getFirmoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException{
+    public void getFirmoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedSessionData.getUser();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         List<Azienda> aziende = new ArrayList<>();
         for (Utente u : persona.getUtenteList()) {
             List<Azienda> aziendeUtente = getAziendePerCuiFirmo(u);
-            if(aziendeUtente.size() > 0){
+            if (aziendeUtente.size() > 0) {
                 aziende.addAll(aziendeUtente);
             }
         }
-        
+
         JSONObject objResponse = new JSONObject();
         JSONArray jsonArrayAziende = new JSONArray();
         Integer numeroAziende = 0;
-        if(aziende.size() > 0){
+        if (aziende.size() > 0) {
             for (Azienda azienda : aziende) {
                 Boolean alreadyAdded = false;
                 for (int i = 0; i < jsonArrayAziende.size(); i++) {
                     JSONObject j = (JSONObject) jsonArrayAziende.get(i);
-                    if(j.get("nome") == azienda.getNome()){
+                    if (j.get("nome") == azienda.getNome()) {
                         alreadyAdded = !alreadyAdded;
                         break;
                     }
                 }
-                if(!alreadyAdded){
+                if (!alreadyAdded) {
                     numeroAziende++;
-                    try{
+                    try {
                         jsonArrayAziende.add(buildAziendaUrl(azienda, CMD_APRI_FIRMONE));
-                    }catch(IOException e){
+                    } catch (IOException e) {
                         LOGGER.error("errore nella creazione del link", e);
                         throw new IOException("errore nella creazione del link", e);
                     }
-                } 
+                }
             }
         }
         objResponse.put("size", numeroAziende);
@@ -208,22 +223,22 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         out.print(objResponse.toJSONString());
         out.flush();
     }
-    
+
     @RequestMapping(value = {"getPrendoneUrls"}, method = RequestMethod.GET)
     public void getPrendoneUrls(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedSessionData.getUser();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
-        
+
         JSONObject objResponse = new JSONObject();
-        JSONArray jsonArrayAziende =  new JSONArray();
+        JSONArray jsonArrayAziende = new JSONArray();
         Integer numeroAziende = 0;
         for (Azienda azienda : aziendePersona) {
             numeroAziende++;
-            try{
+            try {
                 jsonArrayAziende.add(buildAziendaUrl(azienda, CMD_APRI_PRENDONE));
-            } catch(IOException | BlackBoxPermissionException e){
+            } catch (IOException | BlackBoxPermissionException e) {
                 LOGGER.error("errore nella creazione del link", e);
                 throw e;
             }
@@ -235,8 +250,8 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         out.print(objResponse.toJSONString());
         out.flush();
     }
-    
-    private JSONObject buildAziendaUrl(Azienda aziendaTarget, String command) throws UnsupportedEncodingException, IOException, BlackBoxPermissionException{       
+
+    private JSONObject buildAziendaUrl(Azienda aziendaTarget, String command) throws UnsupportedEncodingException, IOException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Applicazione applicazione = cachedEntities.getApplicazione(Applicazione.Applicazioni.babel.toString());
         String assembledURL = internautaUtils.getUrl(authenticatedSessionData, command, Applicazione.Applicazioni.babel.toString(), aziendaTarget);
@@ -246,11 +261,11 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         objAzienda.put("urlGenerationStrategy", applicazione.getUrlGenerationStrategy());
         return objAzienda;
     }
-    
-    private List<Azienda> getAziendePerCuiFirmo(Utente utente) throws BlackBoxPermissionException{
+
+    private List<Azienda> getAziendePerCuiFirmo(Utente utente) throws BlackBoxPermissionException {
         List<PermessoEntitaStoredProcedure> permessiDiFlusso = userInfoService.getPermessiDiFlusso(utente);
         List<Azienda> aziende = new ArrayList<>();
-        if(permessiDiFlusso != null && permessiDiFlusso.size() > 0){ 
+        if (permessiDiFlusso != null && permessiDiFlusso.size() > 0) {
             for (PermessoEntitaStoredProcedure permesso : permessiDiFlusso) {
                 List<CategoriaPermessiStoredProcedure> categorie = permesso.getCategorie();
                 if (categorie == null) {
@@ -274,30 +289,67 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         }
         return aziende;
     }
-    
+
     @RequestMapping(value = {"getScrivaniaCommonParameters"}, method = RequestMethod.GET)
     public Map<String, Object> getScrivaniaCommonParameters() {
         Map res = new HashMap();
         res.put(ScrivaniaCommonParameters.BABEL_APPLICATION.toString(), cachedEntities.getApplicazione("babel"));
         return res;
     }
-    
+
     @Transactional
     @RequestMapping(value = {"cancellaNotifiche"}, method = RequestMethod.GET)
-    public void cancellaNotifiche(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException, RestControllerEngineException, AbortSaveInterceptorException, NotFoundResourceException, ClassNotFoundException{
+    public void cancellaNotifiche(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException, RestControllerEngineException, AbortSaveInterceptorException, NotFoundResourceException, ClassNotFoundException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Utente utente = (Utente) authentication.getPrincipal();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
         BooleanExpression notifichePersona = QAttivita.attivita.idPersona.id.eq(persona.getId()).and(QAttivita.attivita.tipo.eq(TipoAttivita.NOTIFICA.toString()));
         Iterable<Attivita> notificheList = attivitaRepository.findAll(notifichePersona);
-        for(Attivita notifica : notificheList) {
+        for (Attivita notifica : notificheList) {
             String attivitaPath = commonUtils.resolvePlaceHolder(EntityReflectionUtils.getFirstAnnotationOverHierarchy(attivitaRepository.getClass(), NextSdrRepository.class).repositoryPath());
             restControllerEngine.delete(notifica.getId(), request, null, attivitaPath, false, null);
             //ttivitaRepository.delete(notifica);
         }
     }
-    
+
+    @RequestMapping(value = {"getDatiBolloByAzienda"}, method = RequestMethod.GET)
+    public List<DatoBolloVirtuale> getDatiBolloByAzienda(@RequestParam("codiceAzienda") String codiceAzienda,
+            @RequestParam("from") String from,
+            @RequestParam("to") String to,
+            HttpServletRequest request) throws Http500ResponseException, Http404ResponseException, RestClientException {
+
+        // Prendo la connessione dal connection manager
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        dbConnection.setDefaultColumnMappings(BolloVirtualeManager.mapQueryGetDatiBolliVirtuali());
+
+        List<DatoBolloVirtuale> datiBolloVirtuale;
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+        try (Connection conn = (Connection) dbConnection.open()) {
+            Query queryWithParams = conn.createQuery(BolloVirtualeManager.queryGetDatiBolliVirtuali())
+                    .addParameter("from", dateFormat.parse(from))
+                    .addParameter("to", dateFormat.parse(to));
+            LOGGER.info("esecuzione query getDatiBolloByAzienda: " + queryWithParams.toString());
+            datiBolloVirtuale = (List<DatoBolloVirtuale>) queryWithParams.executeAndFetch(DatoBolloVirtuale.class);
+        } catch (Exception e) {
+            LOGGER.error("errore nell'esecuzione della query getDatiBolloByAzienda", e);
+            throw new Http500ResponseException("1", "Errore nell'escuzione della query getDatiBolloByAzienda");
+        }
+        return datiBolloVirtuale;
+    }
+
     public enum ScrivaniaCommonParameters {
         BABEL_APPLICATION
+    }
+
+    @RequestMapping(value = {"getMenuScrivania"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<ItemMenu>> getMenuScrivania(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente utente = authenticatedSessionData.getUser();
+        Persona persona = utente.getIdPersona();
+
+        List<ItemMenu> buildMenu = gestioneMenu.buildMenu(persona);
+        return new ResponseEntity(objectMapper.writeValueAsString(buildMenu), HttpStatus.OK);
     }
 }

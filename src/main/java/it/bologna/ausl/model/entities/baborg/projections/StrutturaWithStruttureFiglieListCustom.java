@@ -4,11 +4,7 @@
 package it.bologna.ausl.model.entities.baborg.projections;
 
 import it.bologna.ausl.model.entities.baborg.Struttura;
-import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithStruttureFiglieList;
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Value;
 
 import org.springframework.data.rest.core.config.Projection;
 

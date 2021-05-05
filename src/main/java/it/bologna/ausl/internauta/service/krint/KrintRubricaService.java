@@ -62,6 +62,32 @@ public class KrintRubricaService {
         }
     }
     
+    public void writeContactMerge(Contatto contatto, OperazioneKrint.CodiceOperazione codiceOperazione, String mergeStr) {
+        try {
+            // Informazioni oggetto
+            KrintRubricaContatto krintRubricaContatto = factory.createProjection(KrintRubricaContatto.class, contatto);
+            String jsonKrintContatto = objectMapper.writeValueAsString(krintRubricaContatto);
+            
+            krintService.writeKrintRow(
+                contatto.getId().toString(),
+                Krint.TipoOggettoKrint.RUBRICA_CONTATTO,
+                contatto.getDescrizione(),
+                jsonKrintContatto,
+                null,
+                null,
+                null,
+                mergeStr,
+                codiceOperazione);
+        } catch (Exception ex) {
+            Integer idOggetto = null;
+            try {
+                ex.printStackTrace();
+                idOggetto = contatto.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeContactMerge", codiceOperazione);
+        }
+    }
+    
 
     public void writeContactDetailCreation(DettaglioContatto dettaglioContatto, OperazioneKrint.CodiceOperazione codiceOperazione) {
         try {

@@ -1,7 +1,10 @@
 package it.bologna.ausl.internauta.service.configuration.cache;
 
+import it.bologna.ausl.internauta.service.utils.MemoryAnalizerService;
 import java.util.Set;
 import javax.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +17,7 @@ import org.springframework.data.redis.core.RedisTemplate;
  */
 @Configuration
 public class CacheInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CacheInitializer.class);
     
     @Value("${internauta.cache.redis.prefix}")
     private String prefix;
@@ -30,9 +34,9 @@ public class CacheInitializer {
 //        redisTemplate.setDefaultSerializer(new StringRedisSerializer());
 //        redisTemplate.setKeySerializer(new StringRedisSerializer());
         Set<String> keys = redisTemplate.keys(prefix + "*");
-        System.out.println(String.format("cleaning redis cache with prefix: %s...", prefix));
+        LOGGER.info(String.format("cleaning redis cache with prefix: %s...", prefix));
         redisTemplate.delete(keys);
-        System.out.println("redis cache cleaned");
+        LOGGER.info("redis cache cleaned");
 //        Set<byte[]> keys = redisTemplate.getConnectionFactory().getConnection().keys("*".getBytes());
 //
 //        Iterator<byte[]> it = keys.iterator();

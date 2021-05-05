@@ -91,7 +91,7 @@ public class AziendaInterceptor extends InternautaBaseInterceptor{
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         Azienda azienda = (Azienda) entity;
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        LOGGER.info("authenticatedSessionData.isFromInternet(): " + authenticatedSessionData.isFromInternet());
+//        LOGGER.info("authenticatedSessionData.isFromInternet(): " + authenticatedSessionData.isFromInternet());
         if (authenticatedSessionData.isFromInternet()) {
             try {
                 AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
@@ -102,11 +102,11 @@ public class AziendaInterceptor extends InternautaBaseInterceptor{
                 LOGGER.error("errore nel reperimento di isFromInternet", ex);
             }
         }
-        try {
-            LOGGER.info(objectMapper.writeValueAsString(azienda));
-        } catch (JsonProcessingException ex) {
-            LOGGER.error("errore nella stampa dell'azienda", ex);
-        }
+//        try {
+//            LOGGER.info(objectMapper.writeValueAsString(azienda));
+//        } catch (JsonProcessingException ex) {
+//            LOGGER.error("errore nella stampa dell'azienda", ex);
+//        }
         return azienda;
     }
 

@@ -12,7 +12,8 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "StoricoAttivazioneWithIdUtenteCustom", types = StoricoAttivazione.class)
 public interface StoricoAttivazioneWithIdUtenteCustom extends StoricoAttivazioneWithIdUtente {
     
-    @Value("#{@projectionBeans.getUtenteConPersona(target.getIdUtente())}")
-    public UtenteWithIdPersona getIdUtente();
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getIdUtente', 'UtenteWithIdPersona')}")
+    @Override
+    public Object getIdUtente();
     
 }

@@ -33,8 +33,8 @@ public interface KrintBaborgStruttura {
     @Value("#{target.getIdAfferenzaStruttura().getCodice()}")
     String getAfferenza();
     
-    @Value("#{@userInfoService.getRuoliUtenteStruttura(target)}")
-    List<String> getRuoliUtenteStruttura();
+//    @Value("#{@userInfoService.getRuoliUtenteStruttura(target)}")
+//    List<String> getRuoliUtenteStruttura();
     // TODO: non so se mettere solo l'id o ancqhe qui usare questa stessa projection
     // getIdStrutturaPadre();
           

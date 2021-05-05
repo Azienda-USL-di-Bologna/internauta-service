@@ -1,22 +1,26 @@
 package it.bologna.ausl.internauta.service.controllers.rubrica;
 
-import it.bologna.ausl.model.entities.rubrica.Contatto;
-
 /**
  *
  * @author gusgus
  */
 class SelectedContact {
-    private Contatto contact;
-    private Object address; // Class: Email, Indirizzo, Telefono
-    private String status; // TODO fare Enum
-    private String contactInde;
 
-    public Contatto getContact() {
+    private Object contact;
+    private Object address;
+    private Boolean estemporaneo;
+    private Boolean addToRubrica;
+    private SelectedContactStatus status;
+    private Boolean contieneErrori;
+
+    public SelectedContact() {
+    }
+
+    public Object getContact() {
         return contact;
     }
 
-    public void setContact(Contatto contact) {
+    public void setContact(Object contact) {
         this.contact = contact;
     }
 
@@ -28,21 +32,42 @@ class SelectedContact {
         this.address = address;
     }
 
-    public String getStatus() {
+    public Boolean getEstemporaneo() {
+        return estemporaneo;
+    }
+
+    public void setEstemporaneo(Boolean estemporaneo) {
+        this.estemporaneo = estemporaneo;
+    }
+
+    public Boolean getAddToRubrica() {
+        return addToRubrica;
+    }
+
+    public void setAddToRubrica(Boolean addToRubrica) {
+        this.addToRubrica = addToRubrica;
+    }
+
+    public SelectedContactStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(SelectedContactStatus status) {
         this.status = status;
     }
 
-    public String getContactInde() {
-        return contactInde;
+    public Boolean getContieneErrori() {
+        return contieneErrori;
     }
 
-    public void setContactInde(String contactInde) {
-        this.contactInde = contactInde;
+    public void setContieneErrori(Boolean contieneErrori) {
+        this.contieneErrori = contieneErrori;
     }
-    
-    
+
+}
+
+enum SelectedContactStatus {
+    INITIAL,
+    INSERTED,
+    UPDATED
 }

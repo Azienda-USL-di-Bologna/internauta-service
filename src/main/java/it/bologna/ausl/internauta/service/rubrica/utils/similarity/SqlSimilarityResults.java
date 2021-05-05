@@ -84,7 +84,7 @@ public class SqlSimilarityResults {
 
     public void filterByPermission(Persona persona, PermissionManager permissionManager) throws BlackBoxPermissionException {
 
-        List<Object> contatti = getContatti(SqlSimilarityResults.ContactListInclude.RISERVATI);
+        List<Object> contatti = new ArrayList<Object>(getContatti(SqlSimilarityResults.ContactListInclude.RISERVATI));
 
         Map<Integer, PermessoStoredProcedure> mappa = null;
         try {
@@ -101,7 +101,7 @@ public class SqlSimilarityResults {
         if (emailList != null) {
             List<SqlSimilarityResult> res = new ArrayList();
             for (SqlSimilarityResult sqlSimilarityResult : emailList) {
-                if (!sqlSimilarityResult.getContact().isRiservato() || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
+                if (!sqlSimilarityResult.getContact().isRiservato() || (sqlSimilarityResult.getContact().isRiservato() && sqlSimilarityResult.getContact().getId_persona_creazione().equals(persona.getId())) || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
                     res.add(sqlSimilarityResult);
                 }
             }
@@ -110,7 +110,7 @@ public class SqlSimilarityResults {
         if (codiceFiscale != null) {
             List<SqlSimilarityResult> res = new ArrayList();
             for (SqlSimilarityResult sqlSimilarityResult : codiceFiscale) {
-                if (!sqlSimilarityResult.getContact().isRiservato() || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
+                if (!sqlSimilarityResult.getContact().isRiservato() || (sqlSimilarityResult.getContact().isRiservato() && sqlSimilarityResult.getContact().getId_persona_creazione().equals(persona.getId())) || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
                     res.add(sqlSimilarityResult);
                 }
             }
@@ -119,7 +119,7 @@ public class SqlSimilarityResults {
         if (cognomeAndNome != null) {
             List<SqlSimilarityResult> res = new ArrayList();
             for (SqlSimilarityResult sqlSimilarityResult : cognomeAndNome) {
-                if (!sqlSimilarityResult.getContact().isRiservato() || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
+                if (!sqlSimilarityResult.getContact().isRiservato() || (sqlSimilarityResult.getContact().isRiservato() && sqlSimilarityResult.getContact().getId_persona_creazione().equals(persona.getId())) || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
                     res.add(sqlSimilarityResult);
                 }
             }
@@ -128,7 +128,7 @@ public class SqlSimilarityResults {
         if (partitaIva != null) {
             List<SqlSimilarityResult> res = new ArrayList();
             for (SqlSimilarityResult sqlSimilarityResult : partitaIva) {
-                if (!sqlSimilarityResult.getContact().isRiservato() || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
+                if (!sqlSimilarityResult.getContact().isRiservato() || (sqlSimilarityResult.getContact().isRiservato() && sqlSimilarityResult.getContact().getId_persona_creazione().equals(persona.getId())) || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
                     res.add(sqlSimilarityResult);
                 }
             }
@@ -137,7 +137,7 @@ public class SqlSimilarityResults {
         if (ragioneSociale != null) {
             List<SqlSimilarityResult> res = new ArrayList();
             for (SqlSimilarityResult sqlSimilarityResult : ragioneSociale) {
-                if (!sqlSimilarityResult.getContact().isRiservato() || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
+                if (!sqlSimilarityResult.getContact().isRiservato() || (sqlSimilarityResult.getContact().isRiservato() && sqlSimilarityResult.getContact().getId_persona_creazione().equals(persona.getId())) || (mappa != null && mappa.containsKey(sqlSimilarityResult.getContact().getId()))) {
                     res.add(sqlSimilarityResult);
                 }
             }
@@ -146,8 +146,8 @@ public class SqlSimilarityResults {
 
     }
 
-    private List<Object> getContatti(ContactListInclude contactListInclude) {
-        List<Object> res = new ArrayList();
+    public List<Contatto> getContatti(ContactListInclude contactListInclude) {
+        List<Contatto> res = new ArrayList();
         if (emailList != null) {
             for (SqlSimilarityResult sqlSimilarityResult : emailList) {
                 if (contactListInclude == ContactListInclude.ALL
@@ -206,4 +206,42 @@ public class SqlSimilarityResults {
         return res;
     }
 
+    public Integer similaritiesNumber() {
+        Integer res = 0;
+        if (emailList != null) {
+            res += emailList.size();
+        }
+        if (codiceFiscale != null) {
+            res += codiceFiscale.size();
+        }
+        if (cognomeAndNome != null) {
+            res += cognomeAndNome.size();
+        }
+        if (partitaIva != null) {
+            res += partitaIva.size();
+        }
+        if (ragioneSociale != null) {
+            res += ragioneSociale.size();
+        }
+
+        return res;
+    }
+    
+    public void removeSimileById(Integer idSimileDaRimuovere) {
+        if (emailList != null) {
+            emailList.removeIf(e -> e.getIdContact().equals(idSimileDaRimuovere));
+        }
+        if (codiceFiscale != null) {
+            codiceFiscale.removeIf(e -> e.getIdContact().equals(idSimileDaRimuovere));
+        }
+        if (cognomeAndNome != null) {
+            cognomeAndNome.removeIf(e -> e.getIdContact().equals(idSimileDaRimuovere));
+        }
+        if (partitaIva != null) {
+            partitaIva.removeIf(e -> e.getIdContact().equals(idSimileDaRimuovere));
+        }
+        if (ragioneSociale != null) {
+            ragioneSociale.removeIf(e -> e.getIdContact().equals(idSimileDaRimuovere));
+        }
+    }
 }

@@ -8,6 +8,7 @@ import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithPla
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -22,4 +23,6 @@ public interface UtenteRepository extends
         JpaRepository<Utente, Integer> {
 
     public Utente findByIdAziendaAndIdPersona(Azienda azienda, Persona persona);
+
+    public List<Utente> findByIdPersonaAndAttivo(Persona persona, boolean attivo);
 }

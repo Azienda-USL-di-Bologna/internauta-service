@@ -6,11 +6,10 @@ import it.bologna.ausl.internauta.utils.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,17 +21,20 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class InternautaUtils {
+
     private static final Logger log = LoggerFactory.getLogger(InternautaUtils.class);
-    
+
     @Autowired
     ObjectMapper objectMapper;
-    
+
     @Autowired
     CachedEntities cachedEntities;
-    
+
     /**
-     * Ottiene URL dell'azienda passata come parametro.
-     * Questo perchè ci possono essere più url che si riferiscono alla stessa azienda, ma per il nostro scopo basta sapere il primo.
+     * Ottiene URL dell'azienda passata come parametro. Questo perchè ci possono
+     * essere più url che si riferiscono alla stessa azienda, ma per il nostro
+     * scopo basta sapere il primo.
+     *
      * @param azienda
      * @return il primo URL dell'azienda corrispondente
      */
@@ -45,10 +47,9 @@ public class InternautaUtils {
         }
         return res;
     }
-    
-    
+
     public String getUrl(AuthenticatedSessionData authenticatedSessionData, String urlToChange, String idApplicazione, Azienda aziendaTarget) throws IOException {
-    
+
         Integer idSessionLog = authenticatedSessionData.getIdSessionLog();
         Persona realPerson = null;
         if (authenticatedSessionData.getRealPerson() != null) {
@@ -56,11 +57,11 @@ public class InternautaUtils {
         }
         Persona person = authenticatedSessionData.getPerson();
         Azienda aziendaLogin = authenticatedSessionData.getUser().getIdAzienda();
-        
+
         String paramsWithoutContextInformation = urlToChange;
         String paramsWithContextInformation = buildContextInformations(urlToChange, realPerson, person, aziendaLogin, idSessionLog);
 
-        AziendaParametriJson parametriAziendaLogin = AziendaParametriJson.parse(objectMapper, aziendaLogin.getParametri());                
+        AziendaParametriJson parametriAziendaLogin = AziendaParametriJson.parse(objectMapper, aziendaLogin.getParametri());
         AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(objectMapper, aziendaTarget.getParametri());
         String crossLoginUrlTemplate = parametriAziendaTarget.getCrossLoginUrlTemplate();
         String simpleCrossLoginUrlTemplate = parametriAziendaTarget.getSimpleCrossLoginUrlTemplate();
@@ -68,8 +69,8 @@ public class InternautaUtils {
 
         String targetLoginPath = parametriAziendaTarget.getLoginPath();
         String targetBasePath = parametriAziendaTarget.getBasePath();
-        
-        log.info("getUrl authenticatedSessionData.isFromInternet(): " + authenticatedSessionData.isFromInternet());
+
+//        log.info("getUrl authenticatedSessionData.isFromInternet(): " + authenticatedSessionData.isFromInternet());
         if (authenticatedSessionData.isFromInternet()) {
             targetBasePath = parametriAziendaTarget.getInternetBasePath();
         }
@@ -81,7 +82,7 @@ public class InternautaUtils {
         String applicationURL = app.getBaseUrl();
         if (applicationURL != null) {
             String indexPage = app.getIndexPage();
-            if(indexPage != null && indexPage.length() > 0){
+            if (indexPage != null && indexPage.length() > 0) {
                 applicationURL += "/" + indexPage;
             }
         } else {
@@ -92,48 +93,47 @@ public class InternautaUtils {
         switch (app.getUrlGenerationStrategy()) {
             case TRUSTED_URL_WITH_CONTEXT_INFORMATION:
                 assembledURL = crossLoginUrlTemplate.
-                replace("[target-login-path]", targetLoginPath).
-                replace("[entity-id]", entityId).
-                replace("[app]", applicationURL).
-                replace("[encoded-params]", encodedParamsWithContextInformation);
-            break;
+                        replace("[target-login-path]", targetLoginPath).
+                        replace("[entity-id]", entityId).
+                        replace("[app]", applicationURL).
+                        replace("[encoded-params]", encodedParamsWithContextInformation);
+                break;
             case TRUSTED_URL_WITHOUT_CONTEXT_INFORMATION:
                 assembledURL = crossLoginUrlTemplate.
-                replace("[target-login-path]", targetLoginPath).
-                replace("[entity-id]", entityId).
-                replace("[app]", applicationURL).
-                replace("[encoded-params]", encodedParamsWithoutContextInformation);
-            break;
+                        replace("[target-login-path]", targetLoginPath).
+                        replace("[entity-id]", entityId).
+                        replace("[app]", applicationURL).
+                        replace("[encoded-params]", encodedParamsWithoutContextInformation);
+                break;
             case RELATIVE_WITH_CONTEXT_INFORMATION:
                 assembledURL = simpleCrossLoginUrlTemplate.
-                replace("[target-login-path]", targetBasePath).
-                replace("[app]", applicationURL).
-                replace("[params]", paramsWithContextInformation);
-            break;
+                        replace("[target-login-path]", targetBasePath).
+                        replace("[app]", applicationURL).
+                        replace("[params]", paramsWithContextInformation);
+                break;
             case RELATIVE_WITHOUT_CONTEXT_INFORMATION:
                 assembledURL = simpleCrossLoginUrlTemplate.
-                replace("[target-login-path]", targetBasePath).
-                replace("[app]", applicationURL).
-                replace("[params]", paramsWithoutContextInformation);
-            break;
+                        replace("[target-login-path]", targetBasePath).
+                        replace("[app]", applicationURL).
+                        replace("[params]", paramsWithoutContextInformation);
+                break;
             case ABSOLUTE_WITH_CONTEXT_INFORMATION:
                 assembledURL = applicationURL + paramsWithContextInformation;
-            break;
+                break;
             case ABSOLUTE_WITHOUT_CONTEXT_INFORMATION:
                 assembledURL = paramsWithoutContextInformation;
-            break;
+                break;
         }
         return assembledURL;
     }
-    
+
     private String buildContextInformations(String url, Persona realPerson, Persona person, Azienda aziendaUser, Integer idSessionLog) {
-        
-        
-        if(person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0){
+
+        if (person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0) {
             url += (url.length() > 0 && url.startsWith("?")) ? "&utente=" : "?utente=";
             url += person.getCodiceFiscale(); // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
         }
-        
+
         if (realPerson != null) {
             url += "&realUser=" + realPerson.getCodiceFiscale();
             url += "&impersonatedUser=" + person.getCodiceFiscale();
@@ -150,8 +150,7 @@ public class InternautaUtils {
 
         url += "&idAzienda=" + aziendaUser.getId();
         url += "&aziendaImpersonatedUser=" + aziendaUser.getId();
-        
-        
+
 //        String url = "";
 //        url += "&richiesta=[richiesta]";        
 //        url += "&utenteImpersonato=" + user.getIdPersona().getCodiceFiscale();
@@ -163,14 +162,25 @@ public class InternautaUtils {
 //        url += "&idSessionLog=" + idSessionLog;
 //        url += from;
 //        url += "&modalitaAmministrativa=0";
-        
         return url;
     }
-    
-    public Object getEntityFromEntitaStoredProcedure(EntitaStoredProcedure entitaStoredProcedure){
+
+    public Object getEntityFromEntitaStoredProcedure(EntitaStoredProcedure entitaStoredProcedure) {
 
         return null;
     }
+
+    public Integer getSommaMascheraBit(String ruoliNomeBreveString) {
+        Integer res = 0;
+        String[] ruoliSplitted = ruoliNomeBreveString.split(";");
+        for (String ruoloNomeBreve : ruoliSplitted) {
+            Ruolo ruolo = cachedEntities.getRuoloByNomeBreve(Ruolo.CodiciRuolo.valueOf(ruoloNomeBreve.toUpperCase()));
+            Integer mascheraBit = ruolo.getMascheraBit();
+            res += mascheraBit;
+        }
+        return res;
+    }
+
 //    
 //    public boolean isSameDay(LocalDateTime date1, LocalDateTime date2) {
 //        return this.isSameDay(date1.toLocalDate(), date2.toLocalDate());

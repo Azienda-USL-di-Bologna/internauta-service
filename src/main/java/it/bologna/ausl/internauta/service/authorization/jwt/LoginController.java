@@ -13,7 +13,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.SSOException;
 import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandException;
-import it.bologna.ausl.internauta.service.permessi.PermessiUtilities;
+import it.bologna.ausl.internauta.service.utils.CacheUtilities;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.logoutmanager.LogoutManagerWorker;
@@ -49,6 +49,7 @@ import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.Map;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -104,7 +105,7 @@ public class LoginController {
     private UtenteRepository utenteRepository;
 
     @Autowired
-    private PermessiUtilities permessiUtilities;
+    private CacheUtilities cacheUtilities;
 
     @Autowired
     private ProjectionBeans projectionBeans;
@@ -120,7 +121,7 @@ public class LoginController {
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-
+    
     @RequestMapping(value = "${internauta.security.passtoken-path}", method = RequestMethod.GET)
     public ResponseEntity<String> passTokenGenerator() throws BlackBoxPermissionException {
 
@@ -244,13 +245,14 @@ public class LoginController {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
 
-        userInfoService.getRuoliRemoveCache(utente);
+        //userInfoService.getRuoliRemoveCache(utente);
+        cacheUtilities.cleanCacheRuoliUtente(utente.getId(), utente.getIdPersona().getId());
 
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente);
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, true);
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente, null, false);
 //        userInfoService.getPermessiDiFlussoRemoveCache(utente);
-        permessiUtilities.cleanCachePermessiUtente(utente.getId());
+        cacheUtilities.cleanCachePermessiUtente(utente.getId());
 
         userInfoService.loadUtenteRemoveCache(utente.getId());
         userInfoService.getUtentiPersonaByUtenteRemoveCache(utente);
@@ -264,7 +266,9 @@ public class LoginController {
             // TODO: controllare che l'utente possa fare il cambia utente
             userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname);
             Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname);
-            userInfoService.getRuoliRemoveCache(utenteReale);
+            //userInfoService.getRuoliRemoveCache(utenteReale);
+            cacheUtilities.cleanCacheRuoliUtente(utenteReale.getId(), utenteReale.getIdPersona().getId());
+            cacheUtilities.cleanCachePermessiUtente(utenteReale.getId());
             // TODO: permessi
             userInfoService.getPermessiDiFlussoRemoveCache(utenteReale);
             userInfoService.loadUtenteRemoveCache(utenteReale.getId());
@@ -272,12 +276,22 @@ public class LoginController {
             userInfoService.getUtentiPersonaRemoveCache(utenteReale.getIdPersona());
             userInfoService.getUtenteStrutturaListRemoveCache(utenteReale, true);
             userInfoService.getUtenteStrutturaListRemoveCache(utenteReale, false);
-            userInfoService.getPermessiDelegaRemoveCache(utenteReale);
-            List<Integer> permessiDelega = userInfoService.getPermessiDelega(utenteReale);
-            boolean isSuperDemiurgo = userInfoService.isSD(utenteReale);
-            boolean isDelegato = permessiDelega != null && !permessiDelega.isEmpty() && permessiDelega.contains(utente.getId());
+//            userInfoService.getPermessiDelegaRemoveCache(utenteReale);
+            List<Integer> permessiAvatar = userInfoService.getPermessiAvatar(utenteReale);
+            boolean isSD = userInfoService.isSD(utenteReale);
+            boolean isSDImpersonato = userInfoService.isSD(utente);
+            boolean isCI = userInfoService.isCI(utenteReale);
+            boolean isCA = userInfoService.isCA(utenteReale);
+            boolean isAvatarato = permessiAvatar != null && !permessiAvatar.isEmpty() && permessiAvatar.contains(utente.getId());
 
-            if (!isSuperDemiurgo && !isDelegato) {
+            
+            if (
+                    !isSD && 
+                    ((isCI || isCA) && isSDImpersonato) &&
+                    !isCI && 
+                    // se sei CA puoi cambiare utente solo se l'utente è parte dei un'azienda di cui sei CA
+                    (!isCA || !authorizationUtils.isCAOfAziendaUtenteImpersonato(utenteReale, utente)) && 
+                    !isAvatarato) {
                 return new ResponseEntity("Non puoi cambiare utente!", HttpStatus.UNAUTHORIZED);
             }
 
@@ -336,7 +350,7 @@ public class LoginController {
 
         //LOGIN SAML
         if (!samlEnabled) {
-            return new ResponseEntity("SAML authentication not enabled", HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity("SAML authentication not enabled", HttpStatus.UNPROCESSABLE_ENTITY);
         }
         logger.debug("SAML Authentication is enabled");
 

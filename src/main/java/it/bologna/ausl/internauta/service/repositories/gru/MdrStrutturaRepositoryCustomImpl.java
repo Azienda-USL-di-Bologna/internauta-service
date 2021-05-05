@@ -11,7 +11,6 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import org.hibernate.jpa.TypedParameterValue;
 import org.hibernate.type.IntegerType;
-import org.hibernate.type.LocalDateTimeType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

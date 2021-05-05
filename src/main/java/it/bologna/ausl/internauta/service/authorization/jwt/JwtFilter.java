@@ -15,6 +15,12 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import okhttp3.Call;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.GenericFilterBean;
 
@@ -37,7 +43,7 @@ public class JwtFilter extends GenericFilterBean {
         final HttpServletRequest request = (HttpServletRequest) req;
 
         if (!request.getMethod().equalsIgnoreCase("OPTIONS")) {
-        
+
             final String authHeader = request.getHeader("Authorization");
             final String applicazione = request.getHeader("Application");
 
@@ -55,7 +61,7 @@ public class JwtFilter extends GenericFilterBean {
             } catch (ClassNotFoundException | BlackBoxPermissionException ex) {
                 throw new ServletException("Invalid token", ex);
             } catch (ExpiredJwtException ex) {
-                System.out.println("token scaduto");
+                logger.warn("token scaduto", ex);
                 setResponseError(req, res, HttpServletResponse.SC_UNAUTHORIZED, ex.getMessage());
                 return;
             }
@@ -63,11 +69,11 @@ public class JwtFilter extends GenericFilterBean {
 
         chain.doFilter(req, res);
     }
-    
+
     private void setResponseError(ServletRequest req, ServletResponse res, int status, String errorMessage) throws IOException {
-        HttpServletResponse response=(HttpServletResponse) res;
+        HttpServletResponse response = (HttpServletResponse) res;
         response.setStatus(status);
-        String headerOrigin = ((HttpServletRequest)req).getHeader("Origin");
+        String headerOrigin = ((HttpServletRequest) req).getHeader("Origin");
         if (StringUtils.hasText(headerOrigin)) {
             response.setHeader("Access-Control-Allow-Origin", headerOrigin);
         }

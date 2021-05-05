@@ -7,7 +7,7 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
-import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ImportazioniOrganigrammaRepository;
@@ -72,7 +72,7 @@ public class BaborgCustomController {
     MdrStrutturaRepository mdrStrutturaRepository;
 
     @Autowired
-    MongoConnectionManager mongoConnectionManager;
+    ReporitoryConnectionManager mongoConnectionManager;
 
     @Autowired
     StrutturaRepository strutturaRepository;
@@ -213,7 +213,7 @@ public class BaborgCustomController {
             HttpServletResponse response,
             HttpServletRequest request) throws FileNotFoundException {
 
-        MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
+        MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAzienda);
         InputStream is = null;
 //        String fileName = String.format("%s_%d_%s.csv", uuid, idAzienda, UUID.randomUUID().toString());
 //        File csvFile = new File(System.getProperty("java.io.tmpdir"), fileName);

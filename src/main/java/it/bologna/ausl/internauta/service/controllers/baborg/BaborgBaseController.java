@@ -2,7 +2,6 @@ package it.bologna.ausl.internauta.service.controllers.baborg;
 
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
-import it.bologna.ausl.internauta.service.repositories.baborg.Gdm1Repository;
 import it.bologna.ausl.model.entities.baborg.QAfferenzaStruttura;
 import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.bologna.ausl.model.entities.baborg.QIdpEntityId;
@@ -19,9 +18,8 @@ import it.bologna.ausl.model.entities.baborg.QTipoPermesso;
 import it.bologna.ausl.model.entities.baborg.QUtente;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;
+import it.bologna.ausl.model.entities.baborg.AttributiStruttura;
 import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.Gdm1;
-import it.bologna.ausl.model.entities.baborg.Gdm2;
 import it.bologna.ausl.model.entities.baborg.IdpEntityId;
 import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
 import it.bologna.ausl.model.entities.baborg.Massimario;
@@ -32,46 +30,36 @@ import it.bologna.ausl.model.entities.baborg.PecStruttura;
 import it.bologna.ausl.model.entities.baborg.PecUtente;
 import it.bologna.ausl.model.entities.baborg.PermessoBaborg;
 import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.QGdm1;
-import it.bologna.ausl.model.entities.baborg.QGdm2;
+import it.bologna.ausl.model.entities.baborg.QAttributiStruttura;
 import it.bologna.ausl.model.entities.baborg.QImportazioniOrganigramma;
 import it.bologna.ausl.model.entities.baborg.QMassimario;
 import it.bologna.ausl.model.entities.baborg.QPecAzienda;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
+import it.bologna.ausl.model.entities.baborg.QTipologiaStruttura;
 import it.bologna.ausl.model.entities.baborg.QTitolo;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.TipoPermesso;
+import it.bologna.ausl.model.entities.baborg.TipologiaStruttura;
 import it.bologna.ausl.model.entities.baborg.Titolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
-import it.nextsw.common.controller.exceptions.NotFoundResourceException;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
-import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
-import java.util.Map;
-import javax.persistence.EntityManager;
-import javax.persistence.LockModeType;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -183,7 +171,7 @@ public class BaborgBaseController extends BaseCrudController {
     }
 
     @RequestMapping(value = {"pec", "pec/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> Pec(
+    public ResponseEntity<?> pec(
             @QuerydslPredicate(root = Pec.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
@@ -298,6 +286,34 @@ public class BaborgBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QStruttura.struttura, Struttura.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"tipologiastruttura", "tipologiastruttura/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> tipologiastruttura(
+            @QuerydslPredicate(root = TipologiaStruttura.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QTipologiaStruttura.tipologiaStruttura, TipologiaStruttura.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"attributistruttura", "attributistruttura/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> attributistruttura(
+            @QuerydslPredicate(root = AttributiStruttura.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAttributiStruttura.attributiStruttura, AttributiStruttura.class);
         return ResponseEntity.ok(resource);
     }
 

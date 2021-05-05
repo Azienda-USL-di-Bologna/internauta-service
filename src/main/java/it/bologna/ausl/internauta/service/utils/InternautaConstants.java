@@ -21,29 +21,42 @@ public class InternautaConstants {
     public static class Permessi {
 
         public enum Predicati {
-            REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO
+            CONNESSO, REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO, SEGR
         }
 
         public enum Ambiti {
-            PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA
+            BABORG, PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA, DELEGATO, MATRINT
         }
 
         public enum Tipi {
-            DELEGA, FASCICOLO, PEC, FLUSSO, TEST, INCARICO, CONTATTO
+            DELEGA, FASCICOLO, PEC, FLUSSO, TEST, INCARICO, CONTATTO, UFFICIO
         }
     }
 
     public static class Configurazione {
 
         public enum ParametriAzienda {
-            crossUrlTemplate, // è nel json di baborg.aziende (colonna parametri) TODO: andrebberso spostati tutti in configurazione.parametri_aziende
+            minIOConfig,
+            mongoAndMinIOActive,
         }
     }
 
     public static class AdditionalData {
 
         public enum Keys {
-            OperationRequested, idPec, idAzienda, idStruttura, idPersona, idProvenienzaOggetto, dataRiferimento, ruoli
+            OperationRequested, 
+            idPec, 
+            idAzienda, 
+            idStruttura, 
+            idPersona, 
+            idProvenienzaOggetto, 
+            dataRiferimento, 
+            ruoli, 
+            Merge, 
+            CercaAncheInContatto, 
+            cercaAncheGruppi, 
+            idMessage, 
+            codiceAzienda
         }
 
         public enum OperationsRequested {
@@ -62,7 +75,14 @@ public class InternautaConstants {
             FilterMassimarioPerAzienda,
             GetContattiFromInde,
             CaricaSottoResponsabili,
-            RootLoading
+            RootLoading,
+            FilterContattiDaVerificareOProtocontatti,
+            CercaContattiCustomFilterPico,
+            CercaAncheInContatto,
+            SvuotaStruttureConnesseUfficio,
+            FilterStrutturePoolsRuolo,
+            FilterStruttureRuolo,
+            CreateDocPerMessageRegistration
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
@@ -88,7 +108,7 @@ public class InternautaConstants {
 
         public enum Keys {
             PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject, UtenteLogin, IdSessionLog,
-            KRINT_ROWS, KRINT_ERRORS, ContattoGruppoAppenaCreato
+            KRINT_ROWS, KRINT_ERRORS, ContattoGruppoAppenaCreato, MEMORY_DEBUGGER_MESSAGE_SIZE
         }
     }
 

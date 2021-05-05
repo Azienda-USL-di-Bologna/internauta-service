@@ -2,16 +2,17 @@ package it.bologna.ausl.internauta.service.shpeck.utils;
 
 import com.mongodb.MongoException;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.blackbox.PermissionManager;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
-import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomController;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxRepository;
@@ -25,7 +26,6 @@ import it.bologna.ausl.model.entities.shpeck.Outbox;
 import it.bologna.ausl.model.entities.shpeck.Tag;
 import it.bologna.ausl.model.entities.shpeck.Tag.SystemTagName;
 import it.bologna.ausl.mongowrapper.MongoWrapper;
-import it.nextsw.common.utils.CommonUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -38,11 +38,7 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
-import javax.mail.Address;
-import javax.mail.MessagingException;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+
 import javax.persistence.EntityNotFoundException;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
@@ -56,11 +52,20 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.RawMessageRepository;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.QRawMessage;
 import it.bologna.ausl.model.entities.shpeck.RawMessage;
+import javax.mail.Address;
+import javax.mail.MessagingException;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
+import java.util.Arrays;
 import java.util.List;
 import javax.mail.Message.RecipientType;
 import javax.servlet.http.HttpServletRequest;
@@ -75,10 +80,7 @@ public class ShpeckUtils {
     private static final Logger LOG = LoggerFactory.getLogger(ShpeckUtils.class);
 
     @Autowired
-    private CommonUtils nextSdrCommonUtils;
-
-    @Autowired
-    private MongoConnectionManager mongoConnectionManager;
+    private ReporitoryConnectionManager mongoConnectionManager;
 
     @Autowired
     ShpeckCacheableFunctions shpeckCacheableFunctions;
@@ -90,8 +92,8 @@ public class ShpeckUtils {
     private OutboxRepository outboxRepository;
 
     @Autowired
-    private PecRepository pecRepository;
-
+    PermissionManager permissionManager;
+    
     @Autowired
     private MessageRepository messageRepository;
 
@@ -423,7 +425,7 @@ public class ShpeckUtils {
 
         String fileName = String.format("%s_%d_%s.eml", emlSource.toString(), id, UUID.randomUUID().toString());
         File emlFile = new File(System.getProperty("java.io.tmpdir"), fileName);
-        System.out.println(emlFile.getAbsolutePath());
+//        System.out.println(emlFile.getAbsolutePath());
         switch (emlSource) {
             case DRAFT:
                 Optional<Draft> draftOp = draftRepository.findById(id);
@@ -467,7 +469,7 @@ public class ShpeckUtils {
                             messageRepository.save(message);
                         }
                     }
-                    MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(this.getIdAziendaRepository(message));
+                    MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(this.getIdAziendaRepository(message));
                     InputStream is = null;
                     try (DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(emlFile))) {
                         try {
@@ -480,7 +482,7 @@ public class ShpeckUtils {
                             Integer idAziendaRepository = this.getIdAziendaRepository(message);
                             try {
                                 if (idAziendaRepository != null) {
-                                    mongoWrapper = mongoConnectionManager.getConnection(idAziendaRepository);
+                                    mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAziendaRepository);
                                     is = mongoWrapper.get(message.getUuidRepository());
                                     if (is == null) {
                                         throw new MongoException("File non trovato!!");
@@ -515,7 +517,7 @@ public class ShpeckUtils {
     public MongoWrapper getMongoWrapperFromUuid(String uuid) {
         List<Azienda> allAziende = aziendaRepository.findAll();
         for (Azienda azienda : allAziende) {
-            MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(azienda.getId());
+            MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(azienda.getId());
             try {
                 if (mongoWrapper.getFileName(uuid) != null) {
                     return mongoWrapper;
@@ -631,7 +633,7 @@ public class ShpeckUtils {
 
         boolean res = false;
 
-        MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
+        MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAzienda);
         InputStream is = null;
         try {
             is = mongoWrapper.get(uuidRepository);
@@ -664,5 +666,28 @@ public class ShpeckUtils {
         Azienda a = aziendaRepository.getOne(idAziendaRepository);
         message.setIdAziendaRepository(a);
         messageRepository.save(message);
+    }
+    
+    /**
+     * Torna true se l'utente ha il permesso passsato sulla Pec passata
+     * @param pec
+     * @return 
+     */
+    public Boolean userHasPermissionOnThisPec(Pec pec, List<String> predicati, Persona persona) throws Exception {
+        List<PermessoEntitaStoredProcedure> pecWithStandardPermissions;
+        try {
+            pecWithStandardPermissions = permissionManager.getPermissionsOfSubjectActualFromDate(
+                    persona,
+                    Arrays.asList(new Pec[]{pec}),
+                    predicati,
+                    Arrays.asList(new String[]{Permessi.Ambiti.PECG.toString()}),
+                    Arrays.asList(new String[]{Permessi.Tipi.PEC.toString()}), 
+                    false, 
+                    null);
+        } catch (BlackBoxPermissionException ex) {
+            LOG.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+            throw new Exception("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+        }
+        return pecWithStandardPermissions.size() > 0;
     }
 }

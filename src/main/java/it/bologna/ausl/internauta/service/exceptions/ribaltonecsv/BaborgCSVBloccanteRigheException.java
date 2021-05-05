@@ -3,21 +3,19 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package it.bologna.ausl.internauta.service.exceptions;
+package it.bologna.ausl.internauta.service.exceptions.ribaltonecsv;
 
 /**
  *
  * @author mdonza
  */
-public class BaborgCSVBloccanteException extends Throwable{
-
-    public BaborgCSVBloccanteException(String message) {
+public class BaborgCSVBloccanteRigheException extends Throwable{
+    
+    public BaborgCSVBloccanteRigheException(String message) {
         super(message);
     }
 
-    public BaborgCSVBloccanteException(String message, Throwable cause) {
+    public BaborgCSVBloccanteRigheException(String message, Throwable cause) {
         super(message, cause);
     }
-    
-    
 }
