@@ -966,6 +966,11 @@ public class UserInfoService {
         return false;
     }
 
+    /**
+     * Torna "true" se l'utente è CA di almeno un'azienda
+     * @param user
+     * @return 
+     */
     @Cacheable(value = "isCA__ribaltorg__", key = "{#user.getId()}")
     public boolean isCA(Utente user) {
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();

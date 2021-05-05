@@ -49,6 +49,7 @@ import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.Map;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -277,10 +278,18 @@ public class LoginController {
             userInfoService.getUtenteStrutturaListRemoveCache(utenteReale, false);
 //            userInfoService.getPermessiDelegaRemoveCache(utenteReale);
             List<Integer> permessiAvatar = userInfoService.getPermessiAvatar(utenteReale);
-            boolean isSuperDemiurgo = userInfoService.isSD(utenteReale);
+            boolean isSD = userInfoService.isSD(utenteReale);
+            boolean isCI = userInfoService.isCI(utenteReale);
+            boolean isCA = userInfoService.isCA(utenteReale);
             boolean isAvatarato = permessiAvatar != null && !permessiAvatar.isEmpty() && permessiAvatar.contains(utente.getId());
 
-            if (!isSuperDemiurgo && !isAvatarato) {
+            
+            if (
+                    !isSD && 
+                    !isCI && 
+                    // se sei CA puoi cambiare utente solo se l'utente è parte dei un'azienda di cui sei CA
+                    (!isCA || !authorizationUtils.isCAOfAziendaUtenteImpersonato(utenteReale, utente)) && 
+                    !isAvatarato) {
                 return new ResponseEntity("Non puoi cambiare utente!", HttpStatus.UNAUTHORIZED);
             }
 
