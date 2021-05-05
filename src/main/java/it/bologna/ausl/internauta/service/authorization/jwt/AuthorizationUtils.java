@@ -305,6 +305,7 @@ public class AuthorizationUtils {
             userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());
             userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, true);
             userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, false);
+            
             cacheUtilities.cleanCacheRuoliUtente(impersonatedUser.getId(), impersonatedUser.getIdPersona().getId());
 
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
