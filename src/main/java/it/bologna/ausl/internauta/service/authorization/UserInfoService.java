@@ -941,8 +941,11 @@ public class UserInfoService {
         }
     }
 
-    @Cacheable(value = "isCI__ribaltorg__", key = "{#user.getId()}")
+    @Cacheable(value = "getRuoliIsCI__ribaltorg__", key = "{#user.getId()}")
     public boolean isCI(Utente user) {
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
         return ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.CI.toString());
     }
@@ -952,11 +955,13 @@ public class UserInfoService {
 //       return isR(user, null);
 //    }
     
-    @Cacheable(value = "isR__ribaltorg__", key = "{#user.getId(), #modulo.toString()}")
+    @Cacheable(value = "getRuoliIIsR__ribaltorg__", key = "{#user.getId(), #modulo.toString()}")
     public boolean isR(Utente user, Ruolo.ModuliRuolo modulo) {
-
-       Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
-       boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.R.toString());
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
+        boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.R.toString());
         if (containsKey) {
             List<String> get = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.R.toString()).get(modulo.toString());
             if (get != null) {
@@ -971,8 +976,11 @@ public class UserInfoService {
      * @param user
      * @return 
      */
-    @Cacheable(value = "isCA__ribaltorg__", key = "{#user.getId()}")
+    @Cacheable(value = "getRuoliIsCA__ribaltorg__", key = "{#user.getId()}")
     public boolean isCA(Utente user) {
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
         boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.CA.toString());
         if (containsKey) {
@@ -984,8 +992,11 @@ public class UserInfoService {
         return false;
     }
 
-    @Cacheable(value = "isSD__ribaltorg__", key = "{#user.getId()}")
+    @Cacheable(value = "getRuoliIsSD__ribaltorg__", key = "{#user.getId()}")
     public boolean isSD(Utente user) {
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
         return ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.SD.toString());
     }
