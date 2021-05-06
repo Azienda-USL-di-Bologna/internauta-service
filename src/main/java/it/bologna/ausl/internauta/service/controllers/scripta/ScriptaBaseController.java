@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
+import it.bologna.ausl.model.entities.scripta.QDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.QMezzo;
 import it.bologna.ausl.model.entities.scripta.QRelated;
@@ -33,11 +34,6 @@ import it.bologna.ausl.model.entities.scripta.QSpedizione;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Smistamento;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
-import java.util.ArrayList;
-import java.util.List;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import org.hibernate.Session;
 
 @RestController
 @RequestMapping(value = "${scripta.mapping.url.root}")
@@ -47,9 +43,6 @@ public class ScriptaBaseController extends BaseCrudController {
 
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
-
-    @PersistenceContext
-    private EntityManager entityManager;
 
     @Override
     public RestControllerEngine getRestControllerEngine() {
@@ -109,7 +102,20 @@ public class ScriptaBaseController extends BaseCrudController {
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRelated.related, DettaglioAllegato.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDettaglioAllegato.dettaglioAllegato, DettaglioAllegato.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"related", "related/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> related(
+            @QuerydslPredicate(root = Related.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRelated.related, Related.class);
         return ResponseEntity.ok(resource);
     }
 

@@ -399,14 +399,15 @@ public class ImportaDaCSV {
         }
         return (dataInizioA.compareTo(dataFineB) <= 0 && dataFineA.compareTo(dataInizioB) >= 0) && dataInizioA.compareTo(dataInizioB) <= 0;
     }
+
     /**
-     * 
+     *
      * @param elementi
      * @param dataInizio
      * @param dataFine
      * @return false se elementi è vuoto
      */
-    public Boolean arcoBool(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
+    public Boolean isPeriodiSovrapposti(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
         if (elementi.isEmpty()) {
             return false;
         }
@@ -898,6 +899,8 @@ public class ImportaDaCSV {
                     mdrStrutturaRepository.deleteByIdAzienda(idAzienda);
                     // Reading with CsvMapReader
                     Map<String, Object> strutturaMap = null;
+                    Map<Integer, List<Map<String, Object>>> strutturaCheckDateMap = new HashMap();
+                    Map<Integer, String> multidefinizioneStruttura = new HashMap();
                     while ((strutturaMap = mapReader.read(headers, processors)) != null) {
 //                      inizio a creare la mappa degli errori e
                         mapError.put("ERRORE", "");
@@ -923,7 +926,7 @@ public class ImportaDaCSV {
                         mS.setDatafi(datafi);
                         datafiString = datafi != null ? UtilityFunctions.getLocalDateTimeString(datafi) : null;
 
-                        String id_casella = checkIdCasellaS(strutturaMap, mapError, idAzienda, datainString, datafiString, mapReader.getLineNumber());
+                        String id_casella = checkIdCasellaS(strutturaMap, mapError, mapReader.getLineNumber(), strutturaCheckDateMap);
                         mS.setIdCasella(id_casella.equals("") ? null : Integer.parseInt(id_casella));
                         bloccante = id_casella.equals("") ? true : bloccante;
                         //per mettere il bloccante su strutture definite piu volte
@@ -956,6 +959,9 @@ public class ImportaDaCSV {
                         mS.setIdAzienda(azienda);
                         em.persist(mS);
                         //mdrStrutturaRepository.save(mS);
+                        if (bloccante || anomalia) {
+                            multidefinizioneStruttura.put(Integer.parseInt(id_casella), mapError.get("ERRORE").toString());
+                        }
                         mapWriter.write(mapError, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
                         nRigheCSV = mapReader.getRowNumber();
                     }
@@ -977,7 +983,7 @@ public class ImportaDaCSV {
                         Map<String, Object> strutturaErrorMap;
                         while ((strutturaErrorMap = mapErrorReader.read(headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda))) != null) {
                             Map<String, Object> strutturaErrorMapWrite = new HashMap();
-
+                            //struttura padre non trovata
                             strutturaErrorMapWrite.putAll(strutturaErrorMap);
                             if (strutturaErrorMap.get("id_padre") != null && strutturaErrorMap.get("id_padre") != "" && !strutturaErrorMap.get("id_padre").equals("0")) {
                                 //System.out.println("contatore" + (i++).toString());
@@ -988,7 +994,7 @@ public class ImportaDaCSV {
                                 } else {
                                     List<Map<String, Object>> elementi = listaStrutture.get(Integer.parseInt(strutturaErrorMap.get("id_padre").toString()));
 
-                                    if ((strutturaErrorMap.get("datain") != null) && (!arcoBool(elementi, formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi"))))) {
+                                    if ((strutturaErrorMap.get("datain") != null) && (!isPeriodiSovrapposti(elementi, formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi"))))) {
                                         bloccante = true;
                                         log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " non rispetta l'arco temporale del padre");
                                         if (strutturaErrorMap.get("ERRORE") != null) {
@@ -1005,7 +1011,18 @@ public class ImportaDaCSV {
                                     }
                                 }
                             }
+                            //struttura definita piu volte
+                            if (multidefinizioneStruttura.get(Integer.parseInt(strutturaErrorMap.get("id_casella").toString())) != null
+                                    && multidefinizioneStruttura.get(Integer.parseInt(strutturaErrorMap.get("id_casella").toString())).contains("struttura definita piu volte nello stesso arco temporale,")) {
+                                if (strutturaErrorMap.get("ERRORE") != null && strutturaErrorMap.get("ERRORE").toString().contains("struttura definita piu volte nello stesso arco temporale,")) {
+                                    strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE"));
+                                } else if (strutturaErrorMap.get("ERRORE") != null && !strutturaErrorMap.get("ERRORE").toString().contains("struttura definita piu volte nello stesso arco temporale,")) {
+                                    strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + "struttura definita piu volte nello stesso arco temporale,");
+                                } else {
+                                    strutturaErrorMapWrite.put("ERRORE", "struttura definita piu volte nello stesso arco temporale,");
 
+                                }
+                            }
                             mapErrorWriter.write(strutturaErrorMapWrite, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
 
                         }
@@ -1320,10 +1337,10 @@ public class ImportaDaCSV {
             if (!selectDateOnStruttureByIdAzienda.containsKey(Integer.parseInt(appartenentiMap.get("id_casella").toString()))) {
                 mapError.put("ERRORE", " manca la struttura nella tabella struttura,");
                 mapError.put("Anomalia", "true");
-                
+
                 return "";
             } else {
-                if (!arcoBool(selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString())), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
+                if (!isPeriodiSovrapposti(selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString())), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
                     mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l arco temporale della struttura,");
                     mapError.put("Anomalia", "true");
 
@@ -1425,7 +1442,7 @@ public class ImportaDaCSV {
 
                             for (Map.Entry<Integer, List<Map<String, Object>>> listaCasella : appDiretto.entrySet()) {
 
-                                if (!afferenzaDiretta && arcoBool(listaCasella.getValue(), datain, datafi)) {
+                                if (!afferenzaDiretta && isPeriodiSovrapposti(listaCasella.getValue(), datain, datafi)) {
                                     if (!righeAnomaleDirette.contains(mapReader.getLineNumber())) {
                                         righeAnomaleDirette.add(mapReader.getLineNumber());
                                     }
@@ -1453,7 +1470,7 @@ public class ImportaDaCSV {
                                 periodoCasellato.add(periodoDaCasellare);
                                 appDiretto.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
                             } else {
-                                if (!afferenzaDiretta && arcoBool(periodoCasellato, datain, datafi)) {
+                                if (!afferenzaDiretta && isPeriodiSovrapposti(periodoCasellato, datain, datafi)) {
                                     if (!righeAnomaleDirette.contains(mapReader.getLineNumber())) {
                                         righeAnomaleDirette.add(mapReader.getLineNumber());
                                     }
@@ -1537,7 +1554,7 @@ public class ImportaDaCSV {
                             appFunzionale.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
                         } else {
 
-                            if (arcoBool(periodoCasellato, datain, datafi)) {
+                            if (isPeriodiSovrapposti(periodoCasellato, datain, datafi)) {
                                 mapError.put("Anomalia", "true");
 
                                 if (!righeAnomaleFunzionali.contains(mapReader.getLineNumber())) {
@@ -1633,7 +1650,7 @@ public class ImportaDaCSV {
             } else {
                 List<Map<String, Object>> mieiPadri = selectStruttureUtentiByIdAzienda.get(Integer.parseInt(responsabiliMap.get("id_casella").toString()));
                 if (responsabiliMap.get("datain") != null && !responsabiliMap.get("datain").toString().trim().equals("") && responsabiliMap.get("datain") != "") {
-                    if (!arcoBool(mieiPadri, formattattore(responsabiliMap.get("datain")), formattattore(responsabiliMap.get("datafi")))) {
+                    if (!isPeriodiSovrapposti(mieiPadri, formattattore(responsabiliMap.get("datain")), formattattore(responsabiliMap.get("datafi")))) {
                         mapError.put("ERRORE", mapError.get("ERRORE") + " casella non valida per periodo temporale,");
                         mapError.put("Anomalia", "true");
                         throw new RibaltoneCSVCheckException("checkIdCasella", responsabiliMap.get("id_casella").toString(), " casella non valida per periodo temporale,");
@@ -1648,8 +1665,8 @@ public class ImportaDaCSV {
                     }
                 }
             }
+            return responsabiliMap.get("id_casella").toString();
         }
-        return responsabiliMap.get("id_casella").toString();
     }
 
     private String checkTipoR(Map<String, Object> responsabiliMap, Map<String, Object> mapError) {
@@ -1687,20 +1704,42 @@ public class ImportaDaCSV {
         }
     }
 
-    private String checkIdCasellaS(Map<String, Object> strutturaMap, Map<String, Object> mapError, Integer idAzienda, String datainString, String datafiString, Integer lineNumber) {
+    private String checkIdCasellaS(Map<String, Object> strutturaMap,
+            Map<String, Object> mapError,
+            Integer lineNumber,
+            Map<Integer, List<Map<String, Object>>> strutturaCheckDateMap) {
+
         if (strutturaMap.get("id_casella") == null || strutturaMap.get("id_casella").toString().trim().equals("")) {
             mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella assente,");
             log.error("Importa CSV --Struttura-- errore alla righa:" + lineNumber + " idCasella vuota");
             mapError.put("id_casella", "");
             return "";
         } else {
+            Integer idCasella = Integer.parseInt(strutturaMap.get("id_casella").toString());
             mapError.put("id_casella", strutturaMap.get("id_casella"));
-            //struttura definita piu volte nello stesso arco temporale
-            if (datainString != null) {
-                if (mdrStrutturaRepository.selectMultiDefinictionsStructureByIdAzienda(idAzienda, Integer.parseInt(strutturaMap.get("id_casella").toString()), datafiString, datainString) > 0) {
+
+            if (strutturaCheckDateMap.get(idCasella) == null) {
+                List<Map<String, Object>> listaMapDataInDataFi = new ArrayList();
+                Map<String, Object> mapDataInDataFi = new HashMap();
+                mapDataInDataFi.put("datain", strutturaMap.get("datain"));
+                mapDataInDataFi.put("datafi", strutturaMap.get("datafi"));
+                listaMapDataInDataFi.add(mapDataInDataFi);
+                strutturaCheckDateMap.put(idCasella, listaMapDataInDataFi);
+            } else {
+                //struttura definita piu volte nello stesso arco temporale
+                if ((strutturaMap.get("datain") != null) && (isPeriodiSovrapposti(strutturaCheckDateMap.get(idCasella), formattattore(strutturaMap.get("datain")), formattattore(strutturaMap.get("datafi"))))) {
                     log.error("Importa CSV --Struttura-- errore alla righa:" + lineNumber.toString() + " idCasella definita piu volte");
-                    mapError.put("ERRORE", mapError.get("ERRORE") + " struttura definita piu volte nello stesso arco temporale,");
+                    if (strutturaMap.get("ERRORE") != null) {
+                        mapError.put("ERRORE", mapError.get("ERRORE") + " struttura definita piu volte nello stesso arco temporale,");
+                    } else {
+                        mapError.put("ERRORE", " struttura definita piu volte nello stesso arco temporale,");
+                    }
                 }
+
+                Map<String, Object> mapDataInDataFi = new HashMap();
+                mapDataInDataFi.put("datain", strutturaMap.get("datain"));
+                mapDataInDataFi.put("datafi", strutturaMap.get("datafi"));
+                strutturaCheckDateMap.get(idCasella).add(mapDataInDataFi);
             }
             return strutturaMap.get("id_casella").toString();
         }

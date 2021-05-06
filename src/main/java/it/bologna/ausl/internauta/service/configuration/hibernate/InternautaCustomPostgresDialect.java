@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.configuration.hibernate;
 
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import com.vladmihalcea.hibernate.type.json.JsonNodeBinaryType;
 import it.bologna.ausl.internauta.utils.jpa.tools.GenericArrayUserType;
 import it.nextsw.common.dialect.CustomPostgresDialect;

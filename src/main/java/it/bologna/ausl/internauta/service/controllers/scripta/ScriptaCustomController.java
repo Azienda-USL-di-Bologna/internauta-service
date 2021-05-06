@@ -68,10 +68,8 @@ import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithDettagliAllegatiListAndIdAllegatoPadre;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
-import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithPlainFields;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
-import java.io.FileNotFoundException;
 import java.io.FileNotFoundException;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -176,7 +174,6 @@ public class ScriptaCustomController {
                 allegato.setOrdinale(numeroOrdine);
                 allegato.setFirmato(false);
                 DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
-
                 //allegato.setConvertibilePdf(false);
                 dettaglioAllegato.setHashMd5(savedFileOnRepository.getMd5());
 
