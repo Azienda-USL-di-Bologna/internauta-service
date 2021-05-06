@@ -174,7 +174,6 @@ public class ScriptaCustomController {
                 allegato.setOrdinale(numeroOrdine);
                 allegato.setFirmato(false);
                 DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
-
                 //allegato.setConvertibilePdf(false);
                 dettaglioAllegato.setHashMd5(savedFileOnRepository.getMd5());
 
