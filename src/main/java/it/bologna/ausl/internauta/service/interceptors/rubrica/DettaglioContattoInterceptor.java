@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.interceptors.rubrica;
 
 import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.PredicateOperation;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -56,15 +57,17 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         if (mainEntity) {
             List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+            String stringDaCercare;
             if (operationsRequested != null && !operationsRequested.isEmpty()) {
                 for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                     switch (operationRequested) {
                         case CercaAncheInContatto:
-                            String stringDaCercare = additionalData.get(InternautaConstants.AdditionalData.Keys.CercaAncheInContatto.toString());
+                            stringDaCercare = additionalData.get(InternautaConstants.AdditionalData.Keys.CercaAncheInContatto.toString());
                             BooleanExpression booleanTemplateDettaglioContatto = Expressions.booleanTemplate(
                                     String.format("FUNCTION('fts_match', italian, {0}, '%s')= true", stringDaCercare.replace("'", "''")),
                                     QDettaglioContatto.dettaglioContatto.tscol
                             );
+                            QDettaglioContatto.dettaglioContatto.descrizione.containsIgnoreCase(stringDaCercare);
 
                             BooleanExpression booleanTemplateContatto = Expressions.booleanTemplate(
                                     String.format("FUNCTION('fts_match', italian, {0}, '%s')= true", stringDaCercare.replace("'", "''")),
@@ -72,7 +75,27 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
                             );
 
                             initialPredicate = (booleanTemplateDettaglioContatto.or(booleanTemplateContatto)).and(initialPredicate);
+
+//                            initialPredicate = booleanTemplateContatto.and(QDettaglioContatto.dettaglioContatto.descrizione.containsIgnoreCase(stringDaCercare)).and(initialPredicate);
                             break;
+
+                        case CercaAncheInContattoNoTScol:
+
+                            stringDaCercare = additionalData.get(InternautaConstants.AdditionalData.Keys.CercaAncheInContattoNoTScol.toString());
+                            String stringheDaCercare[] = stringDaCercare.split(" ");
+                            BooleanExpression primoPredicate = QDettaglioContatto.dettaglioContatto.descrizione.containsIgnoreCase(stringheDaCercare[0]);
+                            BooleanExpression secondoPredicate = QDettaglioContatto.dettaglioContatto.idContatto.descrizione.containsIgnoreCase(stringheDaCercare[0]);
+                            
+                            for (String string : stringheDaCercare) {
+                                primoPredicate = QDettaglioContatto.dettaglioContatto.descrizione.containsIgnoreCase(string).and(primoPredicate);
+                            }
+                            for (String string : stringheDaCercare) {
+                                secondoPredicate = QDettaglioContatto.dettaglioContatto.idContatto.descrizione.containsIgnoreCase(string).and(secondoPredicate);
+                            }
+                            
+                            initialPredicate = ((primoPredicate).or((secondoPredicate))).and(initialPredicate);
+                            break;
+
                     }
                 }
             }
@@ -131,8 +154,5 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
 
         super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
-    
-    
+
 }
-  
-   
