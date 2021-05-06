@@ -150,13 +150,16 @@ public class ScriptaUtils {
                     dettaglioAllegato = dettaglioAllegatoRepository.save(dettaglioAllegato);
                     List<DettaglioAllegato> dettagliAllegatiList = new ArrayList();
                     dettagliAllegatiList.add(dettaglioAllegato);
+                    nuovoAllegato.setDettagliAllegatiList(dettagliAllegatiList);
 
-                    mappaHashAllegati.put(er.getHash(), nuovoAllegato);
                     if (er.getPadre() != null) {
                         Allegato padre = (Allegato) mappaHashAllegati.get(er.getPadre());
                         nuovoAllegato.setIdAllegatoPadre(padre);
                     }
                     nuovoAllegato = allegatoRepository.save(nuovoAllegato);
+
+                    mappaHashAllegati.put(er.getHash(), nuovoAllegato);
+
                     allegatiDaTornare.add(nuovoAllegato);
                 } catch (Throwable e) {
                     FileUtilities.svuotaCartella(folderToSave.getAbsolutePath());
