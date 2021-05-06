@@ -131,7 +131,7 @@ public class ScriptaCustomController {
 
     @Autowired
     ObjectMapper objectMapper;
-    
+
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
 
@@ -425,7 +425,8 @@ public class ScriptaCustomController {
                 Optional.of(multipartList),
                 aziendeConnectionManager.getAziendeParametriJson(),
                 minIOActive,
-                aziendeConnectionManager.getMinIOConfig()
+                aziendeConnectionManager.getMinIOConfig(),
+                true // dobbiamo evitare l'estrazione ricorsiva degli allegati
         );
 
         String record = generatePE.create(null);
