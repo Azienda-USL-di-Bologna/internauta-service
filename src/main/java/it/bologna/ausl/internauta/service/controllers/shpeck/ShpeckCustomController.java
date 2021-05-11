@@ -21,6 +21,7 @@ import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.FolderRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckCacheableFunctions;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils.EmlSource;
@@ -142,6 +143,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     @Autowired
     private MessageFolderRepository messageFolderRespository;
 
+    @Autowired
+    private FolderRepository folderRepository;
+    
     @Autowired
     private OutboxLiteRepository outboxLiteRepository;
 
@@ -693,20 +697,24 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     return draftRepository.count(filter);
 
                 default:
-                    filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
                     if (unSeen) {
-                        filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
+                        // Il campo unread messages continene i non letti e non delated
+                        return new Long(folderRepository.getOne(idFolder).getUnreadMessages());
+                    } else {
+                        filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
+                        return messageFolderRespository.count(filter);
                     }
-                    return messageFolderRespository.count(filter);
+                    
             }
-
         }
 
-        filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
         if (unSeen) {
-            filter = filter.and(QMessageFolder.messageFolder.idMessage.seen.eq(false));
+            // Il campo unread messages continene i non letti e non delated
+            return new Long(folderRepository.getOne(idFolder).getUnreadMessages());
+        } else {
+            filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
+            return messageFolderRespository.count(filter);
         }
-        return messageFolderRespository.count(filter);
     }
 //        BooleanExpression filter = QMessageComplete.messageComplete.idFolder.id.eq(idFolder);
 //        if (unSeen) {
