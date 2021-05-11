@@ -5,6 +5,8 @@
  */
 package it.bologna.ausl.internauta.service.argo.raccolta;
 
+import java.util.Objects;
+
 /**
  *
  * @author Matteo Next
@@ -19,6 +21,14 @@ public class Fascicolo {
 
     public void setNumerazioneGerarchica(String numerazioneGerarchica) {
         this.numerazioneGerarchica = numerazioneGerarchica;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Fascicolo) {
+            return (((Fascicolo) obj).getNumerazioneGerarchica() == null ? this.numerazioneGerarchica == null : ((Fascicolo) obj).getNumerazioneGerarchica().equals(this.numerazioneGerarchica));
+        }
+        return false;
     }
     
 }

@@ -5,27 +5,11 @@
  */
 package it.bologna.ausl.internauta.service.argo.raccolta;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import java.io.Serializable;
+
 import java.sql.Date;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import javax.persistence.Basic;
-import javax.persistence.Cacheable;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
-import javax.persistence.Version;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-import org.springframework.format.annotation.DateTimeFormat;
+
 
 /**
  *
@@ -36,7 +20,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 //@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 //@Cacheable(false)
 //@JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@id", scope = Raccolta.class)
-public class Raccolta implements Serializable {
+public class Raccolta  {
 
 //    @Id
 //    @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,6 +32,8 @@ public class Raccolta implements Serializable {
 //    @NotNull
 //    @Size(min = 1, max = 2147483647)
 //    @Column(name = "id_gddoc")
+    private String idGddocAssociato;
+    
     private String idGddoc;
     
 //    @Basic(optional = false)
@@ -82,7 +68,7 @@ public class Raccolta implements Serializable {
 //    @Basic(optional = false)
 //    @NotNull
 //    @Column(name = "id_struttura_responsabile_argo")
-    private Integer idStrutturaResponsabileArgo;
+    private String idStrutturaResponsabileArgo;
          
 //    @Basic(optional = false)
 //    @NotNull
@@ -110,9 +96,9 @@ public class Raccolta implements Serializable {
     
     private String documentoBabel;
     
-    private List<Coinvolto> coinvolti = new ArrayList<>();
+    private List<Coinvolto> coinvolti;
     
-    private List<Sottodocumento> sottodocumenti = new ArrayList<>();
+    private List<Sottodocumento> sottodocumenti;
 
     public List<Sottodocumento> getSottodocumenti() {
         return sottodocumenti;
@@ -127,6 +113,8 @@ public class Raccolta implements Serializable {
     }
     
     public void addSottodocumento(Sottodocumento s) {
+        if(this.sottodocumenti == null)
+            this.sottodocumenti = new ArrayList<>();
         this.sottodocumenti.add(s);
     }
 
@@ -139,6 +127,8 @@ public class Raccolta implements Serializable {
     }
     
     public void addCoinvolto(Coinvolto e) {
+        if(this.coinvolti == null)
+            this.coinvolti = new ArrayList<>();
         this.coinvolti.add(e);
     }
 
@@ -153,6 +143,16 @@ public class Raccolta implements Serializable {
     public void setDocumentoBabel(String documentoBabel) {
         this.documentoBabel = documentoBabel;
     }
+
+    public String getIdGddocAssociato() {
+        return idGddocAssociato;
+    }
+
+    public void setIdGddocAssociato(String idGddocAssociato) {
+        this.idGddocAssociato = idGddocAssociato;
+    }
+    
+    
     
 //    @Version()
 //    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX'['VV']'")
@@ -223,19 +223,19 @@ public class Raccolta implements Serializable {
         this.creatore = creatore;
     }
 
-    public int getIdStrutturaResponsabileInternauta() {
+    public Integer getIdStrutturaResponsabileInternauta() {
         return idStrutturaResponsabileInternauta;
     }
 
-    public void setIdStrutturaResponsabileInternauta(int idStrutturaResponsabileInternauta) {
+    public void setIdStrutturaResponsabileInternauta(Integer idStrutturaResponsabileInternauta) {
         this.idStrutturaResponsabileInternauta = idStrutturaResponsabileInternauta;
     }
 
-    public int getIdStrutturaResponsabileArgo() {
+    public String getIdStrutturaResponsabileArgo() {
         return idStrutturaResponsabileArgo;
     }
 
-    public void setIdStrutturaResponsabileArgo(int idStrutturaResponsabileArgo) {
+    public void setIdStrutturaResponsabileArgo(String idStrutturaResponsabileArgo) {
         this.idStrutturaResponsabileArgo = idStrutturaResponsabileArgo;
     }
     

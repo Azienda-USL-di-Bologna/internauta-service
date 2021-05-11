@@ -7,6 +7,7 @@ package it.bologna.ausl.internauta.service.argo.raccolta;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.json.JSONObject;
 
 /**
  *
@@ -15,8 +16,8 @@ import java.util.Map;
 public class RaccoltaManager {
     
     public static String queryRaccoltaSemplice() {
-        String query = "SELECT r.id "
-                + ", r.id_gddoc, r.codice \n "
+        String query = "SELECT r.id, r.id_gddoc "
+                + ", r.id_gddoc_associato, r.codice \n "
                 + ", r.applicazione_chiamante "
                 + ", r.additional_data \n "
                 + ", r.creatore, r.oggetto "
@@ -54,7 +55,7 @@ public class RaccoltaManager {
     }
     
     public static String queryCoinvolti(String id) {
-        String query = "SELECT c.nome, c.cognome, c.ragione_sociale, "
+        String query = "SELECT c.id, c.nome, c.cognome, c.ragione_sociale, "
                 + "c.descrizione, c.cf, c.partitaiva, c.tipologia, "
                 + "c.id_contatto_internauta, c.mail, c.telefono, "
                 + "c.via, c.civico, c.cap, c.comune, c.provincia, "
@@ -111,6 +112,26 @@ public class RaccoltaManager {
         return map;
     }
     
+    public static String queryGetStorico(String id) {
+        String query = "SELECT storico from "
+                + "gd.raccolte WHERE id = "+id+" ";
+        return query;
+    }
+    
+    public static String queryUpdateStorico(String storico, String id, String stato) {
+        String query = "UPDATE gd.raccolte "
+                + "SET storico = storico || '" + storico +"', "
+                + "stato = '" + stato +"' "
+                + "WHERE id = "+ id +" ";
+        return query;
+    }
+    
+    public static Map<String, String> mapQueryStorico() {
+        Map<String, String> map = new HashMap<>();
+        map.put("storico", "lista");
+        return map;
+    }
+    
     public static Map<String,String> mapQueryCodiceBabel() {
         Map<String, String> map = new HashMap<>();
         map.put("numero_registrazione", "numeroRegistro");
@@ -123,6 +144,7 @@ public class RaccoltaManager {
         Map<String, String> mappings = new HashMap<>();
         mappings.put("id", "id");
         mappings.put("id_gddoc", "idGddoc");
+        mappings.put("id_gddoc_associato", "idGddocAssociato");
         mappings.put("codice", "codice");
         mappings.put("applicazione_chiamante", "applicazioneChiamante");
         mappings.put("creatore", "creatore");

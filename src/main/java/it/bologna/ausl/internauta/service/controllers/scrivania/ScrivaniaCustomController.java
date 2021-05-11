@@ -345,8 +345,19 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         }
         return datiBolloVirtuale;
     }
+
+    public enum ScrivaniaCommonParameters {
+        BABEL_APPLICATION
+    }
     
-    @RequestMapping(value = {"getRaccoltaSemplice"}, method = RequestMethod.GET)
+    @RequestMapping(value = {"autocompleteNumerazione"}, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<String> autocompleteNumerazione(HttpServletRequest request, @RequestParam("codiceAzienda") String codiceAzienda) {
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryGetRaccoltaSemplice());
+        return null;
+    }
+    
+    @RequestMapping(value = {"getRaccoltaSemplice1"}, method = RequestMethod.GET)
     public List<Raccolta> getRaccoltaSemplice(@RequestParam("codiceAzienda") String codiceAzienda,
             @RequestParam("from") String from,
             @RequestParam("to") String to,
@@ -416,17 +427,6 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         LOGGER.info("Numerazione: " + returnRaccolta.get(0).getFascicoli());
         LOGGER.info("Nome sottodocumento: " + returnRaccolta.get(0).getSottodocumenti().get(0).getNome());
         return returnRaccolta;
-    }
-
-    public enum ScrivaniaCommonParameters {
-        BABEL_APPLICATION
-    }
-    
-    @RequestMapping(value = {"autocompleteNumerazione"}, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<String> autocompleteNumerazione(HttpServletRequest request, @RequestParam("codiceAzienda") String codiceAzienda) {
-        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
-        dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryGetRaccoltaSemplice());
-        return null;
     }
 
     @RequestMapping(value = {"getMenuScrivania"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
