@@ -97,6 +97,11 @@ import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomContattoWithIdStrutturaAndIdPersona;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomGruppiContattiWithIdContattoAndIdDettaglioContatto;
+import it.bologna.ausl.model.entities.scripta.Related;
+import it.bologna.ausl.model.entities.scripta.Spedizione;
+import it.bologna.ausl.model.entities.scripta.projections.CustomRelatedWithSpedizioneList;
+import it.bologna.ausl.model.entities.scripta.projections.generated.RelatedWithSpedizioneList;
+import it.bologna.ausl.model.entities.scripta.projections.generated.SpedizioneWithIdMezzo;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
@@ -818,5 +823,36 @@ public class ProjectionBeans {
         Map<String, Object> parametri = parametriAziende.getAllAziendaApplicazioneParameters(applicazione, azienda.getId());
 
         return parametri;
+    }
+
+    public List<Related> filterRelated(List<Related> related, String tipo) {
+        if (related != null) {
+            return related.stream().filter(r -> r.getTipo().toString().equals(tipo)).collect(Collectors.toList());
+        } else {
+            return null;
+        }
+    }
+
+    public List<CustomRelatedWithSpedizioneList> filterRelatedWithSpedizioneList(List<Related> related, String tipo) {
+        List<CustomRelatedWithSpedizioneList> res = null;
+        if (related != null) {
+            List<Related> relatedList = related.stream().filter(r -> r.getTipo().toString().equals(tipo)).collect(Collectors.toList());
+            if (relatedList != null && !relatedList.isEmpty()) {
+                res = relatedList.stream().map(r -> {
+                    return factory.createProjection(CustomRelatedWithSpedizioneList.class, r);
+                }).collect(Collectors.toList());
+            }
+        }
+        return res;
+    }
+
+    public List<SpedizioneWithIdMezzo> getSpedizioneWithIdMezzo(List<Spedizione> spedizioneList) {
+        List<SpedizioneWithIdMezzo> res = null;
+        if (spedizioneList != null && !spedizioneList.isEmpty()) {
+            res = spedizioneList.stream().map(spediz -> {
+                return factory.createProjection(SpedizioneWithIdMezzo.class, spediz);
+            }).collect(Collectors.toList());
+        }
+        return res;
     }
 }

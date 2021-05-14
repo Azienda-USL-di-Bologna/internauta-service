@@ -2,7 +2,7 @@ package it.bologna.ausl.internauta.service.baborg.utils;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
-import it.bologna.ausl.internauta.service.configuration.utils.MongoConnectionManager;
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVAnomaliaException;
 import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteException;
 import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteRigheException;
@@ -136,7 +136,7 @@ public class BaborgUtils {
     PersonaRepository personaRepository;
 
     @Autowired
-    MongoConnectionManager mongoConnectionManager;
+    ReporitoryConnectionManager mongoConnectionManager;
 
     @Autowired
     ParametriAziende parametriAziende;
@@ -1329,7 +1329,7 @@ public class BaborgUtils {
                 try {
                     mapWriter.close();
                     if (!tipo.equals("STRUTTURA")) {
-                        MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
+                        MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAzienda);
                         uuid = mongoWrapper.put(csvErrorFile, csvErrorFile.getName(), "/importazioniCSV/csv_error_GRU", true);
                     }
 
@@ -1340,7 +1340,7 @@ public class BaborgUtils {
             if (mapErrorWriter != null) {
                 try {
                     mapErrorWriter.close();
-                    MongoWrapper mongoWrapper = mongoConnectionManager.getConnection(idAzienda);
+                    MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAzienda);
                     uuid = mongoWrapper.put(csvErrorFile2, csvErrorFile2.getName(), "/importazioniCSV/csv_error_GRU", true);
 
                 } catch (IOException ex) {

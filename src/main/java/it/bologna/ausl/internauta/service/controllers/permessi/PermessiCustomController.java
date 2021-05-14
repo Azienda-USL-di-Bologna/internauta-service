@@ -312,7 +312,13 @@ public class PermessiCustomController implements ControllerHandledExceptions {
             }
 
             List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
-            List<Integer> idAziendePersona = userInfoService.getAziendePersona(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());
+            List<Integer> idAziendePersona;
+            if(persona.getAttiva()){
+                idAziendePersona = userInfoService.getAziendePersona(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());
+            }else{
+                idAziendePersona = userInfoService.getAziendePersonaSpenta(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());                
+            }
+//            List<Integer> idAziendePersona = userInfoService.getAziendePersona(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());
 
             if (Collections.disjoint(idAziendePec, idAziendePersona)) {
                 throw new Http403ResponseException("2", "Pec e Persona passati non hanno aziende in comune.");
@@ -377,23 +383,23 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         Struttura struttura;
         Pec pec;
         PermessoStoredProcedure permesso;
-        ObjectMapper mapper = new ObjectMapper();
+        //ObjectMapper mapper = new ObjectMapper();
 
         // Controllo che i dati nella richiesta rispettino gli standard richiesti
         try {
-            struttura = mapper.convertValue(json.get("struttura"), Struttura.class);
+            struttura = objectMapper.convertValue(json.get("struttura"), Struttura.class);
         } catch (IllegalArgumentException ex) {
             throw new Http400ResponseException("1", "Errore nel casting della struttura.");
         }
 
         try {
-            pec = mapper.convertValue(json.get("pec"), Pec.class);
+            pec = objectMapper.convertValue(json.get("pec"), Pec.class);
         } catch (IllegalArgumentException ex) {
             throw new Http400ResponseException("2", "Errore nel casting della pec.");
         }
 
         try {
-            permesso = mapper.convertValue(json.get("permesso"), PermessoStoredProcedure.class);
+            permesso = objectMapper.convertValue(json.get("permesso"), PermessoStoredProcedure.class);
         } catch (IllegalArgumentException ex) {
             throw new Http400ResponseException("3", "Errore nel casting del permesso.");
         }

@@ -599,7 +599,9 @@ public class UserInfoService {
      */
 //    @Cacheable(value = "getUtenteStrutturaAfferenzaPrincipaleAttiva__ribaltorg__", key = "{#utenteStruttura.getId()}")
     public UtenteStrutturaWithIdAfferenzaStrutturaAndIdStruttura getUtenteStrutturaAfferenzaPrincipaleAttiva(UtenteStruttura utenteStruttura) {
-        Iterable<UtenteStruttura> afferenze = utenteStrutturaRepository.findAll(QUtenteStruttura.utenteStruttura.idUtente.id.eq(utenteStruttura.getIdUtente().getId()));
+        Iterable<UtenteStruttura> afferenze = utenteStrutturaRepository.findAll(
+                QUtenteStruttura.utenteStruttura.idUtente.id.eq(utenteStruttura.getIdUtente().getId())
+                .and(QUtenteStruttura.utenteStruttura.attivo.eq(Boolean.TRUE)));
         UtenteStruttura afferenzaPrincipale = null;
         for (UtenteStruttura afferenza : afferenze) {
             if (afferenzaPrincipale == null) {
@@ -643,6 +645,28 @@ public class UserInfoService {
         return res;
     }
 
+    /**
+     * restituisce tutte le aziende degli utenti attivi della persona passata
+     *
+     * @param persona
+     * @return
+     */
+    @Cacheable(value = "getAziendePersonaSpenta__ribaltorg__", key = "{#persona.getId()}")
+    public List<Azienda> getAziendePersonaSpenta(Persona persona) {
+        List<Azienda> res = new ArrayList();
+        List<Utente> utentiPersona = getUtentiPersona(persona);
+
+        if (utentiPersona != null && !utentiPersona.isEmpty()) {
+            utentiPersona.stream().forEach(u -> {
+                if (!u.getAttivo()) {
+                    res.add(getAziendaUtente(u));
+                }
+            });
+        }
+
+        return res;
+    }
+    
     @CacheEvict(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId()}")
     public void getPermessiDiFlussoRemoveCache(Utente utente) {
     }
@@ -1158,5 +1182,39 @@ public class UserInfoService {
         listToReturn = addPersoneIfNotPresenti(listToReturn, personeDiStruttureDiCuiSonoResponsabile);
         return listToReturn;
     }
-
+    
+    /**
+     * Torna true se l'utente loggato passato come parametro ha il permeso passato sull'azienda passata
+     * @param predicato
+     * @param user al posto della Persona passare l'Utente loggato
+     * @param azienda
+     * @param ambito
+     * @param tipo
+     * @return 
+     */
+    public Boolean userHasPermissionOnAzienda(
+            InternautaConstants.Permessi.Predicati predicato, 
+            Utente user, 
+            Azienda azienda, 
+            InternautaConstants.Permessi.Ambiti ambito, 
+            InternautaConstants.Permessi.Tipi tipo) {
+        Map<String, List<PermessoEntitaStoredProcedure>> permessiDiFlussoByCodiceAzienda = user.getPermessiDiFlussoByCodiceAzienda();
+        if (!permessiDiFlussoByCodiceAzienda.containsKey(azienda.getCodice())) {
+            LOGGER.info("L'utente non ha permessi di flusso per l'azienda selezionata");
+            return false;
+        } else {
+            for (PermessoEntitaStoredProcedure permessoStoredProcedure : permessiDiFlussoByCodiceAzienda.get(azienda.getCodice())) {
+                for (CategoriaPermessiStoredProcedure categoria : permessoStoredProcedure.getCategorie()) {
+                    if (categoria.getAmbito().equals(ambito.toString()) && categoria.getTipo().equals(tipo.toString())) {
+                        for (PermessoStoredProcedure permesso : categoria.getPermessi()) {
+                            if (permesso.getPredicato().equals(predicato.toString())) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
 }

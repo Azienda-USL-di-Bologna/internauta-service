@@ -4,32 +4,41 @@ import it.bologna.ausl.internauta.service.krint.KrintError;
 import it.bologna.ausl.internauta.service.repositories.logs.KrintRepository;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.MemoryAnalizerService;
 import it.bologna.ausl.model.entities.logs.Krint;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
+import org.springframework.web.servlet.AsyncHandlerInterceptor;
 
 /**
  *
  * @author Giuseppe Russo <g.russo@nsi.it>
  */
-public class RequestInterceptor extends HandlerInterceptorAdapter{
+public class RequestInterceptor implements AsyncHandlerInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestInterceptor.class);
     
-    
+    private final MemoryAnalizerService memoryAnalizerService;
     private final HttpSessionData httpSessionData;
     private final KrintRepository krintRepository;
 
-    public RequestInterceptor(HttpSessionData httpSessionData, KrintRepository krintRepository) {
+    public RequestInterceptor(HttpSessionData httpSessionData, KrintRepository krintRepository, MemoryAnalizerService memoryAnalizerService) {
+        this.memoryAnalizerService = memoryAnalizerService;
         this.httpSessionData = httpSessionData;
         this.krintRepository = krintRepository;
     }
     
     @Override
     public void afterCompletion(HttpServletRequest hsr, HttpServletResponse hsr1, Object o, Exception excptn) throws Exception {
+        memoryAnalizerService.handleDecrementMessage();
+        
+        Integer messageNumber = memoryAnalizerService.getMessageNumberCounter();
+        Integer messageSize = memoryAnalizerService.getMessageSizeCounter();
+//        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaa1 " + messageNumber);
+//        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaa2 " + messageSize);
+//        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaa2 " + messageInfo.get(MessageMemoryInfoMapKeys.SIZE));
         
         // Se è arrivato una eccezione non ho fatto niente e quindi non voglio loggare niente
         if (excptn == null) {
@@ -69,6 +78,6 @@ public class RequestInterceptor extends HandlerInterceptorAdapter{
         // TODO: capire se il reset map va qui o dentro l'if
         httpSessionData.resetDataMap();
         
-        super.afterCompletion(hsr, hsr1, o, excptn);
+//        super.afterCompletion(hsr, hsr1, o, excptn);
     }
 }
