@@ -285,6 +285,12 @@
             <artifactId>spring-test</artifactId>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>1.6</version>
+            <type>jar</type>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

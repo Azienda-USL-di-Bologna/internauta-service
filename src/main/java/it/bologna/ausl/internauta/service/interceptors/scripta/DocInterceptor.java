@@ -11,8 +11,10 @@ import it.bologna.ausl.internauta.service.shpeck.utils.ManageMessageRegistration
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi;
+import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.Doc;
@@ -26,6 +28,7 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageAddress;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import java.security.NoSuchAlgorithmException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -54,31 +57,64 @@ public class DocInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private MezzoRepository mezzoRepository;
-    
+
     @Autowired
     private AziendaRepository aziendaRepository;
-    
+
     @Autowired
     ManageMessageRegistrationUtils manageMessageRegistrationUtils;
 
     @Autowired
     ShpeckUtils shpeckUtils;
-    
+
+    @Autowired
+    ScriptaUtils scriptaUtils;
+
     @Autowired
     UserInfoService userInfoService;
-    
+
     @Override
     public Class getTargetEntityClass() {
         return Doc.class;
     }
-    
+
+    private Message retrieveMessageFromAdditionalData(Map<String, String> additionalData) {
+        Message message = null;
+        Integer idMessage = Integer.parseInt(additionalData.get(AdditionalData.Keys.idMessage.toString()));
+        Optional<Message> messageOp = this.messageRepository.findById(idMessage);
+        if (messageOp.isPresent()) {
+            message = messageOp.get();
+        }
+        return message;
+    }
+
+    private List<AdditionalData.OperationsRequested> retriveRequestedOperations(Map<String, String> additionalData) {
+        return AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
+    }
+
+    private boolean additionalDatacointainThisOperation(
+            Map<String, String> additionalData,
+            AdditionalData.OperationsRequested requested
+    ) {
+        List<AdditionalData.OperationsRequested> operationsRequested = retriveRequestedOperations(additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            for (AdditionalData.OperationsRequested operation : operationsRequested) {
+                if (operation.equals(requested)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
-    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+
+    public Object beforeCreateEntityInterceptor(Object entity,
+            Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Doc doc = (Doc) entity;
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Utente user = authenticatedSessionData.getUser();
-        
-        
+
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
@@ -86,9 +122,9 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                     case CreateDocPerMessageRegistration:
                         // L'utente ha avviato la protocollazione da Pec. 
                         // In ingresso mi viene detta l'azienda e il messaggio che si vuole protocollare
-                        if (StringUtils.hasText(additionalData.get(AdditionalData.Keys.idMessage.toString())) &&
-                            StringUtils.hasText(additionalData.get(AdditionalData.Keys.codiceAzienda.toString()))) {
-                            
+                        if (StringUtils.hasText(additionalData.get(AdditionalData.Keys.idMessage.toString()))
+                                && StringUtils.hasText(additionalData.get(AdditionalData.Keys.codiceAzienda.toString()))) {
+
                             // Setto l'azienda
                             String codiceAzienda = additionalData.get(AdditionalData.Keys.codiceAzienda.toString());
                             Azienda azienda = aziendaRepository.findByCodice(codiceAzienda);
@@ -98,41 +134,41 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                             doc.setIdAzienda(azienda);
 
                             if (!userInfoService.userHasPermissionOnAzienda(
-                                    Permessi.Predicati.REDIGE, 
-                                    user, 
-                                    azienda, 
-                                    Permessi.Ambiti.PICO, 
+                                    Permessi.Predicati.REDIGE,
+                                    user,
+                                    azienda,
+                                    Permessi.Ambiti.PICO,
                                     Permessi.Tipi.FLUSSO)) {
                                 throw new AbortSaveInterceptorException("L'utente non ha il permesso di Redige sull'azienda");
                             }
-                            
-                            Integer idMessage = Integer.parseInt(additionalData.get(AdditionalData.Keys.idMessage.toString()));
-                            Optional<Message> messageOp = this.messageRepository.findById(idMessage);
-                            if (messageOp.isPresent()) {
-                                
-                                // Setto i dati del messaggio
-                                Message message = messageOp.get();
-                                
+
+                            // Setto i dati del messaggio
+                            Message message = retrieveMessageFromAdditionalData(additionalData);
+                            if (message != null) {
+
                                 // Controllo che l'utente abbia i permessi sull casella pec del messaggio
                                 try {
                                     if (!shpeckUtils.userHasPermissionOnThisPec(
-                                                message.getIdPec(),
-                                                Arrays.asList(new String[]{Permessi.Predicati.RISPONDE.toString(),
-                                                    Permessi.Predicati.ELIMINA.toString()}),
-                                                authenticatedSessionData.getPerson()
-                                        )
-                                    ) {
+                                            message.getIdPec(),
+                                            Arrays.asList(new String[]{Permessi.Predicati.RISPONDE.toString(),
+                                        Permessi.Predicati.ELIMINA.toString()}),
+                                            authenticatedSessionData.getPerson()
+                                    )) {
                                         throw new AbortSaveInterceptorException("Errore, l'utente non ha il permesso di protocollare i messaggi di questa casella pec");
                                     }
                                 } catch (Exception ex) {
                                     Logger.getLogger(DocInterceptor.class.getName()).log(Level.SEVERE, null, ex);
                                     throw new AbortSaveInterceptorException("Errore nel controllo permessi dell'utente");
                                 }
-                                
-                                
+
                                 doc.setOggetto(message.getSubject());
-                                Address addressMittente = message.getMessageAddressList().stream().filter(
-                                        messageAddress -> messageAddress.getAddressRole() == MessageAddress.AddressRoleType.FROM).findFirst().get().getIdAddress();
+                                Address addressMittente = message.getMessageAddressList()
+                                        .stream().filter(messageAddress
+                                                -> messageAddress
+                                                .getAddressRole() == MessageAddress.AddressRoleType.FROM)
+                                        .findFirst()
+                                        .get()
+                                        .getIdAddress();
                                 Related mittenteDoc = new Related();
                                 mittenteDoc.setDataInserimento(ZonedDateTime.now());
                                 if (StringUtils.hasText(addressMittente.getOriginalAddress())) {
@@ -157,7 +193,7 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                                 List<Related> relatedList = new ArrayList();
                                 relatedList.add(mittenteDoc);
                                 doc.setRelated(relatedList);
-                                
+
                                 // Setto il tag in registraion sul messaggio
                                 Map<String, Map<String, Object>> inRegistrationAdditionalData = new HashMap();
                                 Map<String, Object> idDocumento = new HashMap();
@@ -166,12 +202,12 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                                 idDocumento.put("codiceRegistro", "PEIS");
                                 idDocumento.put("dataProposta", ZonedDateTime.now().toString());
                                 inRegistrationAdditionalData.put("idDocumento", idDocumento);
-                                
+
                                 try {
                                     manageMessageRegistrationUtils.manageMessageRegistration(
                                             message.getUuidMessage(),
                                             InternautaConstants.Shpeck.MessageRegistrationOperation.ADD_IN_REGISTRATION,
-                                            idMessage,
+                                            message.getId(),
                                             inRegistrationAdditionalData,
                                             true,
                                             azienda
@@ -192,6 +228,25 @@ public class DocInterceptor extends InternautaBaseInterceptor {
         }
         doc.setDataCreazione(ZonedDateTime.now());
 
+        return doc;
+    }
+
+    @Override
+    public Object afterCreateEntityInterceptor(Object entity,
+            Map<String, String> additionalData,
+            HttpServletRequest request,
+            boolean mainEntity,
+            Class projectionClass) throws AbortSaveInterceptorException {
+        Doc doc = (Doc) entity;
+        try {
+            if (additionalDatacointainThisOperation(additionalData,
+                    AdditionalData.OperationsRequested.CreateDocPerMessageRegistration)) {
+                Message pecMittenteMessage = retrieveMessageFromAdditionalData(additionalData);
+                doc = scriptaUtils.protocollaMessaggio(doc, pecMittenteMessage);
+            }
+        } catch (Throwable ex) {
+            throw new AbortSaveInterceptorException("Errore nell'allegare la pec", ex);
+        }
         return doc;
     }
 }
