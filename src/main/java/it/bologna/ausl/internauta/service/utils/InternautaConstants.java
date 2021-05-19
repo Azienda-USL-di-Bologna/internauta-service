@@ -54,6 +54,7 @@ public class InternautaConstants {
             ruoli, 
             Merge, 
             CercaAncheInContatto, 
+            CercaAncheInContattoNoTScol,
             cercaAncheGruppi, 
             idMessage, 
             codiceAzienda
@@ -79,6 +80,7 @@ public class InternautaConstants {
             FilterContattiDaVerificareOProtocontatti,
             CercaContattiCustomFilterPico,
             CercaAncheInContatto,
+            CercaAncheInContattoNoTScol,
             SvuotaStruttureConnesseUfficio,
             FilterStrutturePoolsRuolo,
             FilterStruttureRuolo,

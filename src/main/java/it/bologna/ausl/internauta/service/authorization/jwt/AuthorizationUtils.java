@@ -322,12 +322,13 @@ public class AuthorizationUtils {
             isSD = userInfoService.isSD(user);
             boolean isSDImpersonato = userInfoService.isSD(impersonatedUser);
             boolean isCI = userInfoService.isCI(user);
+            boolean isCIImpersonato = userInfoService.isCI(impersonatedUser);
             boolean isCA = userInfoService.isCA(user);
             boolean isDelegato = permessiAvatar != null && !permessiAvatar.isEmpty() && permessiAvatar.contains(impersonatedUser.getId());
 
 //            logger.info("isSuperDemiurgo: " + isSuperDemiurgo);
 //            logger.info("isDelegato: " + isDelegato);
-            if (isSD || (isCI && !isSDImpersonato) || (isCA && !isSDImpersonato && isCAOfAziendaUtenteImpersonato(user, impersonatedUser)) || isDelegato) {
+            if (isSD || (isCI && !isSDImpersonato) || (isCA && !isSDImpersonato && !isCIImpersonato && isCAOfAziendaUtenteImpersonato(user, impersonatedUser)) || isDelegato) {
                 logger.info(String.format("utente %s ha ruolo SD", realUserSubject));
 
                 // mi metto in sessione l'utente loggato, mi servirà in altri punti nella procedura di login, in particolare in projection custom

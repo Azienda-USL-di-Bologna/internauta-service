@@ -129,7 +129,7 @@ public class ScriptaCustomController {
 
     @Autowired
     ObjectMapper objectMapper;
-    
+
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
 
@@ -174,7 +174,6 @@ public class ScriptaCustomController {
                 allegato.setOrdinale(numeroOrdine);
                 allegato.setFirmato(false);
                 DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
-
                 //allegato.setConvertibilePdf(false);
                 dettaglioAllegato.setHashMd5(savedFileOnRepository.getMd5());
 
@@ -423,7 +422,8 @@ public class ScriptaCustomController {
                 Optional.of(multipartList),
                 aziendeConnectionManager.getAziendeParametriJson(),
                 minIOActive,
-                aziendeConnectionManager.getMinIOConfig()
+                aziendeConnectionManager.getMinIOConfig(),
+                true // dobbiamo evitare l'estrazione ricorsiva degli allegati
         );
 
         String record = generatePE.create(null);

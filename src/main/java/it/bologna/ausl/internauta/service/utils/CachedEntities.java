@@ -184,7 +184,7 @@ public class CachedEntities {
 
     @Cacheable(value = "personaFromCodiceFiscale__ribaltorg__", key = "{#codiceFiscale}")
     public Persona getPersonaFromCodiceFiscale(String codiceFiscale) {
-        BooleanExpression filter = QPersona.persona.codiceFiscale.eq(codiceFiscale);
+        BooleanExpression filter = QPersona.persona.codiceFiscale.eq(codiceFiscale.toUpperCase());
         Optional<Persona> persona = personaRepository.findOne(filter);
         if (persona.isPresent()) {
 //            persona.get().setApplicazione(applicazione);
@@ -223,7 +223,6 @@ public class CachedEntities {
 //        PredicatoAmbito predicatoAmbito = this.predicatoAmbitoRepository.getOne(id);
 //        return predicatoAmbito;
 //    }
-
     public void getRuoloByNomeBreve(String ruoloNomeBreve) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }

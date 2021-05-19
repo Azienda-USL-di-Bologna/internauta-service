@@ -407,7 +407,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
             }
         }
 
-        //Se non ho diritti particolari su una pec metto la password a null
+        // Se non ho diritti particolari su una pec metto la password a null
         if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
             // se non sono CI
             Persona persona = personaRepository.getOne(authenticatedSessionData.getPerson().getId());
