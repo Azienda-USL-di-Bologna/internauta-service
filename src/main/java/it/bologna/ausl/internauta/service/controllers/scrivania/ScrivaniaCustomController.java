@@ -383,7 +383,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
                 dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryCodiceBabel());
                 Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddoc()));
                 List<DocumentoBabel> doc = (List<DocumentoBabel>) queryCodice.executeAndFetch(DocumentoBabel.class);
-                if(doc.get(0).getNumeroRegistro().isEmpty() ||  doc.get(0).getCodiceRegistro().isEmpty())
+                if(doc.get(0).getNumero().isEmpty() ||  doc.get(0).getCodiceRegistro().isEmpty())
                     r.setDocumentoBabel("Non associato");
                 else
                     r.setDocumentoBabel(doc.get(0).getCodiceBabel());

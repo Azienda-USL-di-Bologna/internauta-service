@@ -1,19 +1,25 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.controllers.raccolta;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.documentgenerator.exceptions.Http400ResponseException;
+import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
+import it.bologna.ausl.documentgenerator.exceptions.Sql2oSelectException;
+import it.bologna.ausl.documentgenerator.utils.AziendaParamsManager;
+import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedSignatureType;
 import it.bologna.ausl.internauta.service.argo.raccolta.CoinvoltiRaccolte;
 import it.bologna.ausl.internauta.service.argo.raccolta.Coinvolto;
 import it.bologna.ausl.internauta.service.argo.raccolta.DocumentoBabel;
 import it.bologna.ausl.internauta.service.argo.raccolta.Fascicolo;
+import it.bologna.ausl.internauta.service.argo.raccolta.PersonaRS;
 import it.bologna.ausl.internauta.service.argo.raccolta.Raccolta;
 import it.bologna.ausl.internauta.service.argo.raccolta.RaccoltaManager;
+import it.bologna.ausl.internauta.service.argo.raccolta.RaccoltaNew;
+import it.bologna.ausl.internauta.service.argo.raccolta.SottoDocumentoGdDoc;
 import it.bologna.ausl.internauta.service.argo.raccolta.Sottodocumento;
 import it.bologna.ausl.internauta.service.argo.raccolta.Storico;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.rubrica.maven.client.RestClientException;
@@ -22,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.jose4j.json.internal.json_simple.JSONArray;
@@ -30,17 +37,35 @@ import org.jose4j.json.internal.json_simple.parser.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.sql2o.Connection;
 import org.sql2o.Query;
 import org.sql2o.Sql2o;
-import ucar.nc2.units.DateFromString;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.minio.manager.MinIOWrapper;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.rubrica.Contatto;
+import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
+import it.bologna.ausl.mongowrapper.MongoWrapper;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import okhttp3.FormBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.sql2o.data.Row;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.model.entities.baborg.Persona;
 
 /**
  *
@@ -50,10 +75,28 @@ import ucar.nc2.units.DateFromString;
 @RequestMapping(value = "${scrivania.mapping.url.root}")
 public class RaccoltaSempliceCustomController {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RaccoltaSempliceCustomController.class);
+    private static final Logger log = LoggerFactory.getLogger(RaccoltaSempliceCustomController.class);
 
     @Autowired
     private PostgresConnectionManager postgresConnectionManager;
+
+    @Autowired
+    ReporitoryConnectionManager aziendeConnectionManager;
+
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+
+    @Autowired
+    ObjectMapper objectMapper;
+
+    @Autowired
+    ContattoRepository contattorepository;
+
+    @Autowired
+    UtenteRepository utenteRepository;
+
+    @Autowired
+    PersonaRepository personaRepository;
 
     @RequestMapping(value = {"getRaccoltaSemplice"}, method = RequestMethod.GET)
     public List<Raccolta> getRaccoltaSemplice(@RequestParam("codiceAzienda") String codiceAzienda,
@@ -73,14 +116,14 @@ public class RaccoltaSempliceCustomController {
             Query queryWithParams = conn.createQuery(RaccoltaManager.queryRaccoltaSemplice())
                     .addParameter("from", dateFormat.parse(from))
                     .addParameter("to", dateFormat.parse(to));
-            LOGGER.info("esecuzione query getRaccoltaSemplice: " + queryWithParams.toString());
+            log.info("esecuzione query getRaccoltaSemplice: " + queryWithParams.toString());
             datiRaccolta = (List<Raccolta>) queryWithParams.executeAndFetch(Raccolta.class);
             for (Raccolta r : datiRaccolta) {
                 dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryCodiceBabel());
                 Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddoc()));
                 List<DocumentoBabel> doc = (List<DocumentoBabel>) queryCodice.executeAndFetch(DocumentoBabel.class);
-                if ((doc == null || doc.isEmpty()) || doc.get(0).getNumeroRegistro() == null || doc.get(0).getCodiceRegistro() == null
-                        || doc.get(0).getAnnoRegistro() == null || doc.get(0).getNumeroRegistro().isEmpty()
+                if ((doc == null || doc.isEmpty()) || doc.get(0).getNumero() == null || doc.get(0).getCodiceRegistro() == null
+                        || doc.get(0).getAnno() == null || doc.get(0).getNumero().isEmpty()
                         || doc.get(0).getCodiceRegistro().isEmpty()) {
                     r.setDocumentoBabel("Non associato");
                 } else {
@@ -99,12 +142,12 @@ public class RaccoltaSempliceCustomController {
                 }
                 r.setFascicoli(numerazioneGerarchica);
                 dbConnection.setDefaultColumnMappings(RaccoltaManager.mapCoinvoltiRaccolta());
-                LOGGER.info("Query raccolta coinvolti: " + RaccoltaManager.queryCoinvoltiRaccolta(r.getId().toString()));
+                log.info("Query raccolta coinvolti: " + RaccoltaManager.queryCoinvoltiRaccolta(r.getId().toString()));
                 Query queryCoinvoltiRaccolta = conn.createQuery(RaccoltaManager.queryCoinvoltiRaccolta(r.getId().toString()));
                 List<CoinvoltiRaccolte> coinvoltiRaccolti = (List<CoinvoltiRaccolte>) queryCoinvoltiRaccolta.executeAndFetch(CoinvoltiRaccolte.class);
                 dbConnection.setDefaultColumnMappings(RaccoltaManager.mapCoinvolti());
                 for (CoinvoltiRaccolte cr : coinvoltiRaccolti) {
-                    LOGGER.info("Query coinvolti: " + RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
+                    log.info("Query coinvolti: " + RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
                     Query queryCoinvolti = conn.createQuery(RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
                     List<Coinvolto> coinvolts = (List<Coinvolto>) queryCoinvolti.executeAndFetch(Coinvolto.class);
                     for (Coinvolto c : coinvolts) {
@@ -126,19 +169,18 @@ public class RaccoltaSempliceCustomController {
                 returnRaccolta.add(r);
             }
         } catch (Exception e) {
-            LOGGER.error("errore nell'esecuzione della query getRaccoltaSemplice", e);
+            log.error("errore nell'esecuzione della query getRaccoltaSemplice", e);
             throw new Http500ResponseException("1", "Errore nell'escuzione della query getRaccoltaSemplice");
         }
-        LOGGER.info("Tutto ok");
-        LOGGER.info("Oggetto: " + returnRaccolta.get(0).getOggetto());
-        LOGGER.info("Codice : " + returnRaccolta.get(0).getDocumentoBabel());
-        LOGGER.info("Numerazione: " + returnRaccolta.get(0).getFascicoli());
-        LOGGER.info("Nome sottodocumento: " + returnRaccolta.get(0).getSottodocumenti().get(0).getNome());
+        log.info("Tutto ok");
+        log.info("Oggetto: " + returnRaccolta.get(0).getOggetto());
+        log.info("Codice : " + returnRaccolta.get(0).getDocumentoBabel());
+        log.info("Numerazione: " + returnRaccolta.get(0).getFascicoli());
+        log.info("Nome sottodocumento: " + returnRaccolta.get(0).getSottodocumenti().get(0).getNome());
         return returnRaccolta;
     }
 
     public String getNomeUtente(String id) {
-
         return "444";
     }
 
@@ -154,7 +196,7 @@ public class RaccoltaSempliceCustomController {
         dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryStorico());
         try ( Connection conn = (Connection) dbConnection.open()) {
             Query queryWithParams = conn.createQuery(RaccoltaManager.queryGetStorico(id_raccolta));
-            LOGGER.info("esecuzione query annullamento: " + queryWithParams.toString());
+            log.info("esecuzione query annullamento: " + queryWithParams.toString());
             String lista = (String) queryWithParams.executeAndFetchFirst(String.class);
             JSONObject jsonReq = (JSONObject) parser.parse(lista);
             JSONArray jArray = (JSONArray) jsonReq.get("storico");
@@ -166,14 +208,14 @@ public class RaccoltaSempliceCustomController {
                     String stato = ((JSONObject) json).get("utente").toString();
                     Storico s = new Storico(utente, motivo, stato, data);
                     returnList.add(s);
-                    LOGGER.info("Inserito annullamento del " + s.getData());
+                    log.info("Inserito annullamento del " + s.getData());
                 }
             }
 
             return returnList;
 
         } catch (Exception e) {
-            LOGGER.error("errore nell'esecuzione della query annullamenti", e);
+            log.error("errore nell'esecuzione della query annullamenti", e);
             throw new Http500ResponseException("1", "Errore nell'escuzione della query di storico degli annullamenti");
         }
     }
@@ -197,7 +239,7 @@ public class RaccoltaSempliceCustomController {
         dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryStorico());
         try ( Connection conn = (Connection) dbConnection.open()) {
             Query queryWithParams = conn.createQuery(RaccoltaManager.queryGetStorico(id_raccolta));
-            LOGGER.info("esecuzione query annullamento: " + queryWithParams.toString());
+            log.info("esecuzione query annullamento: " + queryWithParams.toString());
             String lista = (String) queryWithParams.executeAndFetchFirst(String.class);
             JSONObject jsonReq = (JSONObject) parser.parse(lista);
             JSONArray storico = (JSONArray) jsonReq.get("storico");
@@ -209,9 +251,752 @@ public class RaccoltaSempliceCustomController {
             queryAggiornamento.executeUpdate();
             return "OK";
         } catch (Exception e) {
-            LOGGER.error("errore nell'esecuzione della query annullamenti", e);
+            log.error("errore nell'esecuzione della query annullamenti", e);
             throw new Http500ResponseException("1", "Errore nell'escuzione della query di storico degli annullamenti");
         }
     }
 
+    @RequestMapping(value = {"getFascicoliArgo"}, method = RequestMethod.GET)
+    public List<Fascicolo> getFascicoliArgo(@RequestParam("azienda") String azienda,
+            @RequestParam("idusr") String idUtente,
+            @RequestParam("param") String param,
+            HttpServletRequest request) throws Http500ResponseException, Http404ResponseException, RestClientException {
+
+        // Prendo la connessione dal connection manager
+        String codiceAzienda = azienda.substring(3);
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryGetFascicoli());
+
+        List<Fascicolo> fascicoli;
+        List<Fascicolo> returnFascicoli = new ArrayList<Fascicolo>();
+
+        try ( Connection conn = (Connection) dbConnection.open()) {
+            Query queryWithParams = conn.createQuery(RaccoltaManager.queryGetFascicoli(idUtente, param));
+            log.info("esecuzione query getFascicoli: " + queryWithParams.toString());
+            fascicoli = (List<Fascicolo>) queryWithParams.executeAndFetch(Fascicolo.class);
+            for (Fascicolo fascicolo : fascicoli) {
+                returnFascicoli.add(fascicolo);
+            }
+        } catch (Exception e) {
+            log.error("errore nell'esecuzione della query getRaccoltaSemplice", e);
+            throw new Http500ResponseException("1", "Errore nell'escuzione della query getRaccoltaSemplice");
+        }
+        log.info("Tutto ok");
+
+        return returnFascicoli;
+    }
+
+    @RequestMapping(value = {"getDocumentiArgo"}, method = RequestMethod.GET)
+    public List<DocumentoBabel> getDocumentiArgo(@RequestParam("azienda") String azienda,
+            @RequestParam("idusr") String idUtente,
+            @RequestParam("reg") String codiceRegistro,
+            @RequestParam("param") String param,
+            HttpServletRequest request) throws Http500ResponseException, Http404ResponseException, RestClientException {
+
+        // Prendo la connessione dal connection manager
+        String codiceAzienda = azienda.substring(3);
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryGetDocumentiBabel());
+
+        List<DocumentoBabel> documentiBabel;
+        List<DocumentoBabel> returnDocumentiBabel = new ArrayList<DocumentoBabel>();
+
+        int index = param.indexOf('/');
+        Integer anno = null;
+        String oggetto = null;
+        String numero = null;
+        if (index != -1) {
+            numero = param.substring(0, param.indexOf('/'));
+            String right = param.substring(param.indexOf('/') + 1);
+            try {
+                String annoStr = right.substring(0, 4);
+                anno = Integer.valueOf(annoStr);
+                oggetto = right.substring(5, right.length() - 1).trim();
+            } catch (Exception e) {
+                // anno non valido
+            }
+        } else {
+            //ricerca solo numero; controllo se è un numero altrimenti sto cercando per oggetto
+            try {
+                Integer val = Integer.valueOf(param);
+                if (val != null) {
+                    numero = param;
+                }
+            } catch (Throwable e) {
+                oggetto = param;
+            }
+        }
+
+        try ( Connection conn = (Connection) dbConnection.open()) {
+            Query queryWithParams = conn.createQuery(RaccoltaManager.queryGetProtocolliBabel(idUtente, numero, anno, oggetto));
+            log.info("esecuzione query getProtocolli: " + queryWithParams.toString());
+            documentiBabel = (List<DocumentoBabel>) queryWithParams.executeAndFetch(DocumentoBabel.class);
+            for (DocumentoBabel d : documentiBabel) {
+                returnDocumentiBabel.add(d);
+            }
+        } catch (Exception e) {
+            log.error("errore nell'esecuzione della query getRaccoltaSemplice", e);
+            throw new Http500ResponseException("1", "Errore nell'escuzione della query getRaccoltaSemplice");
+        }
+        log.info("Tutto ok");
+
+        return returnDocumentiBabel;
+    }
+
+    @RequestMapping(value = "createRS", method = RequestMethod.POST)
+    public String createRS(
+            @RequestPart("applicazione_chiamante") String applicazioneChiamante,
+            @RequestPart("azienda") String azienda,
+            @RequestPart("oggetto") String oggetto,
+            @RequestPart("numero_documento_origine") Optional<String> numeroDocumentoOrigineOpt,
+            @RequestPart("anno_documento_origine") Optional<String> annoDocumentoOrigineStrOpt,
+            @RequestPart("codice_registro_origine") Optional<String> codiceRegistroOrigineOpt,
+            @RequestPart("fascicoli_babel") String fascicoliBabelStr,
+            @RequestPart("tipo_documento") String tipoDocumento,
+            @RequestPart("struttura_responsabile") String strutturaResponsabile,
+            @RequestPart("persone") String personeStr,
+            @RequestPart("allegati") Optional<List<MultipartFile>> allegati,
+            HttpServletRequest request) throws HttpInternautaResponseException, Throwable {
+
+        // restituiamo n_rs_generato/anno_rs_generato in babel
+        String result = "empty";
+
+        String numeroDocumentoOrigine = null;
+        String annoDocumentoOrigineStr = null;
+        String codiceRegistroOrigine = null;
+
+        if (numeroDocumentoOrigineOpt.isPresent() && !numeroDocumentoOrigineOpt.isEmpty()) {
+            numeroDocumentoOrigine = numeroDocumentoOrigineOpt.get();
+        }
+
+        if (annoDocumentoOrigineStrOpt.isPresent() && !annoDocumentoOrigineStrOpt.isEmpty()) {
+            annoDocumentoOrigineStr = annoDocumentoOrigineStrOpt.get();
+        }
+
+        if (codiceRegistroOrigineOpt.isPresent() && !codiceRegistroOrigineOpt.isEmpty()) {
+            codiceRegistroOrigine = codiceRegistroOrigineOpt.get();
+        }
+
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente loggedUser = authenticatedUserProperties.getUser();
+        String creatore = loggedUser.getUsername();
+
+        // controllo dati
+        if (azienda == null) {
+            throw new Http400ResponseException("400", "il parametro del body azienda è obbligatorio");
+        }
+
+        if (oggetto == null) {
+            throw new Http400ResponseException("400", "il parametro del body oggetto è obbligatorio");
+        }
+
+        if (tipoDocumento == null) {
+            throw new Http400ResponseException("400", "il parametro del body tipo_documento è obbligatorio");
+        }
+
+        if (strutturaResponsabile == null) {
+            throw new Http400ResponseException("400", "il parametro del body struttura_responsabile è obbligatorio");
+        }
+
+        Integer annoDocumentoOrigine = null;
+        if (numeroDocumentoOrigine != null && !numeroDocumentoOrigine.isEmpty()) {
+            try {
+                annoDocumentoOrigine = Integer.valueOf(annoDocumentoOrigineStr);
+
+            } catch (Exception ex) {
+                throw new Http400ResponseException("400", "il parametro del body anno_documento_origine non è un intero");
+            }
+        }
+        // se c'è un componente della tupla di riferimento di un doc Babel allora devono esserci tutti e tre i parametri      
+        boolean riferimentoDocumentoConsistente = riferimentoDocumentoConsistente(numeroDocumentoOrigine, annoDocumentoOrigine, codiceRegistroOrigine);
+        if (riferimentoDocumentoConsistente == false) {
+            throw new Http400ResponseException("400", "i parametri di riferimento a un documento in Babel non sono coerenti");
+        }
+
+        JSONParser parser = new JSONParser();
+        JSONArray fascicoliBabel = (JSONArray) parser.parse(fascicoliBabelStr);
+
+        // gestione persone
+        JSONArray personeArray = (JSONArray) parser.parse(personeStr);
+
+        List<PersonaRS> persone = PersonaRS.parse(objectMapper, personeArray.toJSONString());
+        if (persone.size() == 0) {
+            log.info(String.format("nessuna persona inserita nella richiesta"));
+        }
+        for (PersonaRS persona : persone) {
+            if (persona.isSalvaContatto()) {
+                log.info(String.format("salvataggio contatto in rubrica: %s", persona.getDescrizione()));
+                Optional<Persona> p = personaRepository.findById(1);
+                Optional<Utente> u = utenteRepository.findById(1);
+                Contatto toContact = PersonaRS.toContatto(10, persona, p.get(), u.get());
+                contattorepository.save(toContact);
+
+            } else {
+                log.info(String.format("contatto da non salvare in rubrica: %s", persona.getDescrizione()));
+            }
+
+            if (!persona.isValid()) {
+                log.info(String.format("persona %s passata non valida", persona.getDescrizione()));
+                throw new Http500ResponseException("500", String.format("persona %s passata non valida", persona.getDescrizione()));
+            }
+        }
+
+        String codiceAzienda = azienda.substring(3);
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        //MongoWrapper mongo = aziendaParamsManager.getStorageConnection(codiceAzienda);
+        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+
+        boolean rifDocumentoInBabel = riferimentoDocumentoInBabel(numeroDocumentoOrigine, annoDocumentoOrigine, codiceRegistroOrigine);
+        String idGddocContenuto = null;
+        if (rifDocumentoInBabel) {
+            idGddocContenuto = isValidRecordInBabel(codiceAzienda, numeroDocumentoOrigine, annoDocumentoOrigine, codiceRegistroOrigine);
+            if (idGddocContenuto == null || idGddocContenuto.isEmpty()) {
+                log.info(String.format("riferimento al record in Babel %s%s/%d non valido", codiceRegistroOrigine, numeroDocumentoOrigine, annoDocumentoOrigine));
+                throw new Http404ResponseException("404", "riferimento al record in Babel non valido");
+            }
+        }
+
+        // trasformo MultipartFile in InputStream
+        org.json.simple.JSONArray jsonAllegati = new org.json.simple.JSONArray();
+        List<MultipartFile> allegatiList = allegati.orElse(Collections.emptyList());
+        log.info("Allegati: " + allegatiList.size());
+
+        // se non ci sono allegati allora deve esserci un riferimento a un record su Babel valido; altrimenti non è consistente la RS
+        if (allegatiList.size() == 0 && !rifDocumentoInBabel) {
+            throw new Http404ResponseException("404", "richiesta inconsistente: non ci sono allegati e riferimento di un record di Babel incoerente");
+        }
+
+        // non ci deve essere il caso di un riferimento a un record su Babel e allegati associati
+        if (allegatiList.size() > 0 && rifDocumentoInBabel) {
+            throw new Http404ResponseException("404", "richiesta inconsistente: se si fa riferimento a un record di Babel non si possono inviare allegati");
+        }
+
+        // ottenimento id struttura in argo
+        Map<String, String> res = getStrutturaArgo(codiceAzienda, Integer.valueOf(strutturaResponsabile));
+
+        // creazione del documento di RS
+        try ( Connection conn = (Connection) dbConnection.beginTransaction()) {
+            conn.setRollbackOnException(true);
+
+            RaccoltaNew raccolta = null;
+            // creazione gddoc
+            raccolta = createGdDoc(conn, codiceAzienda, oggetto);
+
+            // creazione sottodocumenti con relativi allegati
+            insertSottoDocumenti(conn, jsonAllegati, raccolta);
+
+            // fascicolazione
+            List<String> idIndeList = new ArrayList<>();
+            if (fascicoliBabel != null && !fascicoliBabel.isEmpty()) {
+                for (int i = 0; i < fascicoliBabel.size(); i++) {
+                    idIndeList.add(getIdFascicoliFromNumerazioneGerarchica(codiceAzienda, (String) fascicoliBabel.get(i)));
+                }
+                insertFascicoliGddocs(conn, idIndeList, raccolta);
+            }
+
+            //controlla se raccolta != null e procedi
+            if (raccolta == null) {
+                throw new Http500ResponseException("500", "errore creazione gddoc della Raccolta Semplice");
+            }
+            raccolta.setApplicazioneChiamante(applicazioneChiamante);
+            raccolta.setCreatore(creatore);
+            raccolta.setTipoDocumento(tipoDocumento);
+            raccolta.setIdStrutturaResponsabileInternauta(Integer.valueOf(strutturaResponsabile));
+            raccolta.setIdStrutturaResponsabileArgo(res.get("ID_STRUTTURA"));
+            raccolta.setDescrizioneStruttura(res.get("NOME_STRUTTURA"));
+            if (rifDocumentoInBabel) {
+                raccolta.setIdGddocAssociato(idGddocContenuto);
+            }
+            // creazione raccolta su db
+            Integer idRaccolta = createRaccolta(conn, raccolta);
+            // crea coinvolti e aggiorna tabella di cross coinvolti_raccolte
+            for (PersonaRS persona : persone) {
+                boolean isInserted = createCoinvolto(conn, persona, idRaccolta);
+                if (!isInserted) {
+                    throw new Http500ResponseException("500", "errore nella creazione delle persone");
+                }
+//            }
+                conn.commit();
+                // ritorno il riferimento del gddoc riferito alla RS appena creata
+                result = String.format("%s/%d", raccolta.getNumeroRegistrazione(), raccolta.getAnnoRegistrazione());
+            }
+            return result;
+        }
+    }
+
+    /**
+     * *
+     * i riferimenti a un documento in Babel o ci sono tutti o nulla
+     *
+     * @param num - numero registrazione
+     * @param anno - anno registrazione
+     * @param codice - codice registro
+     * @return TRUE se i tre campi sono consistenti tra loro, FALSE altrimenti
+     */
+    private boolean riferimentoDocumentoConsistente(String num, Integer anno, String codice) {
+        boolean res = false;
+        if ((num != null && anno != null && codice != null) || (num == null && anno == null && codice == null)) {
+            res = true;
+        }
+        return res;
+    }
+
+    /**
+     * *
+     * controlla se ci si riferisce ad un documento in Babel oppure no
+     *
+     * @param num - numero registrazione
+     * @param anno - anno registrazione
+     * @param codice - codice registro
+     * @return TRUE se ci si riferisce ad un documento interno a Babel, FALSE
+     * altrimenti
+     */
+    private boolean riferimentoDocumentoInBabel(String num, Integer anno, String codice) {
+        boolean res = false;
+        if (num != null && anno != null && codice != null) {
+            res = true;
+        }
+        return res;
+    }
+
+    public String isValidRecordInBabel(String codiceAzienda, String numero, Integer anno, String codice) throws Http500ResponseException {
+
+        String res = null;
+
+        String sql = "SELECT id_gddoc "
+                + "FROM gd.gddocs "
+                + "WHERE numero_registrazione = :numero "
+                + "AND anno_registrazione = :anno "
+                + "AND codice_registro = :codice ";
+
+        List<Row> rows = null;
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        try ( Connection conn = (Connection) dbConnection.open()) {
+            Query q = conn.createQuery(sql)
+                    .addParameter("numero", numero)
+                    .addParameter("anno", anno)
+                    .addParameter("codice", codice);
+
+            rows = q.executeAndFetchTable().rows();
+            if (rows == null || rows.isEmpty()) {
+                throw new Sql2oSelectException(Sql2oSelectException.SelectException.NESSUN_RISULTATO);
+            } else if (rows.size() > 1) {
+                throw new Sql2oSelectException(Sql2oSelectException.SelectException.PIU_RISULTATI);
+            }
+
+            String idGdDoc = rows.get(0).getString("id_gddoc");
+            if (idGdDoc != null && !idGdDoc.isEmpty()) {
+                res = idGdDoc;
+            }
+        } catch (Throwable e) {
+            throw new Http500ResponseException("500", "errore reperimento record in Babel", e);
+        }
+        return res;
+    }
+
+    public Map<String, String> getStrutturaArgo(String codiceAzienda, Integer idStrutturaInternauta) throws Http500ResponseException {
+
+        Map<String, String> res = null;
+        List<Row> rows = null;
+        String sql = "SELECT id_struttura, nome_struttura "
+                + "FROM procton.strutture "
+                + "WHERE id_struttura_internauta = :id_struttura "
+                + "AND attiva != 0 "
+                + "ORDER BY data_attivazione DESC LIMIT 1";
+
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        try ( Connection conn = (Connection) dbConnection.open()) {
+            Query q = conn.createQuery(sql)
+                    .addParameter("id_struttura", idStrutturaInternauta);
+
+            log.info("query: " + q.toString());
+            rows = q.executeAndFetchTable().rows();
+            if (rows == null || rows.isEmpty()) {
+                throw new Sql2oSelectException(Sql2oSelectException.SelectException.NESSUN_RISULTATO);
+            } else if (rows.size() > 1) {
+                throw new Sql2oSelectException(Sql2oSelectException.SelectException.PIU_RISULTATI);
+            }
+            res = new HashMap<>();
+            res.put("ID_STRUTTURA", rows.get(0).getString("id_struttura"));
+            res.put("NOME_STRUTTURA", rows.get(0).getString("nome_struttura"));
+        } catch (Throwable e) {
+            log.error("errore creazione raccolta", e);
+            throw new Http500ResponseException("500", "errore creazione raccolta", e);
+        }
+        return res;
+    }
+
+    @SuppressWarnings("empty-statement")
+    private static boolean signatureFileAccepted(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 6; i++) {
+            sb.append(String.format("%02X ", bytes[i]));
+        }
+        System.out.println("QWERTY signatureFileAccepted " + sb.toString() + " con questa condizione " + SupportedSignatureType.contains(sb.toString()));
+        //verifico che sia tra gli enum accettati 7z msg
+
+        if (SupportedSignatureType.contains(sb.toString())) {
+            return true;
+
+        }
+        return false;
+    }
+
+    public RaccoltaNew createGdDoc(Connection conn, String codiceAzienda, String oggetto) throws IOException, UnsupportedEncodingException, Http500ResponseException, Sql2oSelectException {
+
+        RaccoltaNew res = null;
+        Map<String, String> indeIdAndGuid = getIndeIdAndGuid(codiceAzienda, 1).get(0);
+        int anno = Calendar.getInstance().get(Calendar.YEAR);
+
+        try {
+            String idOggettoOrigine = String.format("babel_suite_%s", indeIdAndGuid.get("document_guid"));
+            String codice = String.format("babel_%s", indeIdAndGuid.get("document_guid"));
+            String numeroRegistrazione = staccaNumero(conn, anno, "rs", codiceAzienda);
+            String nomeGddoc = String.format("RS%s/%s:%s", String.valueOf(numeroRegistrazione), String.valueOf(anno), oggetto);
+
+            // dalla query il nome del campo è gd_sequences_nextval
+            String sql = "INSERT INTO gd.gddocs "
+                    + "(id_gddoc, nome_gddoc, "
+                    + "tipo_gddoc, data_ultima_modifica, "
+                    + "stato_gd_doc, data_gddoc, guid_gddoc, codice_registro, "
+                    + "data_registrazione, numero_registrazione, "
+                    + "anno_registrazione, "
+                    + "tipo_oggetto_origine, id_oggetto_origine, oggetto, "
+                    + "codice, numerazione_automatica, "
+                    + "applicazione, id_utente_creazione, tipologia_documentale) "
+                    + "VALUES( "
+                    + ":id_gddoc, :nome_gddoc, "
+                    + "'r', now(), "
+                    + "1, now(), :guid_gddoc, 'RS', "
+                    + "now(), :numero_registrazione, "
+                    + ":anno_registrazione, "
+                    + "'DocumentoRS', :id_oggetto_origine, :oggetto, "
+                    + ":codice, 0, "
+                    + "'GEDI', 'internauta_bridge', 'RaccoltaSemplice') ";
+
+            Query q = conn.createQuery(sql)
+                    .addParameter("id_gddoc", indeIdAndGuid.get("document_id"))
+                    .addParameter("nome_gddoc", nomeGddoc)
+                    .addParameter("guid_gddoc", indeIdAndGuid.get("document_guid"))
+                    .addParameter("numero_registrazione", numeroRegistrazione)
+                    .addParameter("anno_registrazione", anno)
+                    .addParameter("id_oggetto_origine", idOggettoOrigine)
+                    .addParameter("oggetto", oggetto)
+                    .addParameter("codice", codice);
+
+            log.info("query: " + q.toString());
+            int result = q.executeUpdate().getResult();
+            log.info("Righe coinvolte: " + result);
+            if (result == 0) {
+                throw new Sql2oSelectException(Sql2oSelectException.SelectException.NESSUN_RISULTATO, "Errore: nessun gddoc creato");
+            }
+            // ritorna il guid del gddoc appena creato
+            res = new RaccoltaNew();
+            res.setIdGdDoc(indeIdAndGuid.get("document_id"));
+            res.setNumeroRegistrazione(String.valueOf(numeroRegistrazione));
+            res.setAnnoRegistrazione(anno);
+            res.setOggetto(oggetto);
+            res.setCodiceAzienda(codiceAzienda);
+
+        } catch (Throwable e) {
+            log.error("errore creazione documento gddoc RS", e);
+            throw new Http500ResponseException("500", "errore creazione documento gddoc RS", e);
+        }
+        return res;
+    }
+
+    public void insertSottoDocumenti(Connection conn, org.json.simple.JSONArray jsonAllegati, RaccoltaNew r) throws Http500ResponseException {
+//        MongoWrapper mongo = aziendaParamsManager.getStorageConnection(r.getCodiceAzienda());
+//        List<String> idSottoDocumenti = new ArrayList<>();
+//
+//        try {
+//
+//            for (int i = 0; i < jsonAllegati.size(); i++) {
+//                org.json.simple.JSONObject jsonAllegato = (org.json.simple.JSONObject) jsonAllegati.get(i);
+//
+//                String filename = (String) jsonAllegato.get("nome_file");
+//                String uuid = (String) jsonAllegato.get("uuid_file");
+//                String mimetype = (String) jsonAllegato.get("mime_type");
+//                Boolean daConvertire = (Boolean) jsonAllegato.get("da_convertire");
+//
+//                SottoDocumentoGdDoc sd = new SottoDocumentoGdDoc();
+//                Map<String, String> indeIdAndGuid = getIndeIdAndGuid(r.getCodiceAzienda(), 1).get(0);
+//
+//                sd.setId(indeIdAndGuid.get("document_id"));
+//                sd.setGuid(indeIdAndGuid.get("document_guid"));
+//                sd.setIdGdDoc(r.getIdGdDoc());
+//                sd.setNome(filename);
+//                sd.setUuidMongoOriginale(uuid);
+//                sd.setMimetypeFileOriginale(mimetype);
+//                sd.setDimensioneOriginale(mongo.getSizeByUuid(uuid));
+//
+//                sd.setConvertibilePdf(daConvertire ? -1 : 0);
+//                sd.setCodice("babel_suite_allegati_" + sd.getGuid());
+//                sd.setTipo("allegati");
+//
+//                mongo.move(uuid, "/RS/Documenti/" + r.getAnnoRegistrazione() + "/" + r.getNumeroRegistrazione() + "/" + sd.getNome());
+//
+//                String sql = "INSERT INTO gd.sotto_documenti "
+//                        + "(id_sottodocumento, id_gddoc, nome_sottodocumento, "
+//                        + "uuid_mongo_originale, data_ultima_modifica, "
+//                        + "guid_sottodocumento, dimensione_originale, "
+//                        + "convertibile_pdf, mimetype_file_originale, "
+//                        + "tipo_sottodocumento, codice_sottodocumento) "
+//                        + "VALUES(:id_sottodocumento, :id_gddoc, :nome_sottodocumento, "
+//                        + ":uuid_mongo_originale, now(), "
+//                        + ":guid_sottodocumento, :dimensione_originale, "
+//                        + ":convertibile_pdf, :mimetype_file_originale, "
+//                        + ":tipo_sottodocumento, :codice_sottodocumento) ";
+//
+//                Query q = conn.createQuery(sql)
+//                        .addParameter("id_sottodocumento", sd.getId())
+//                        .addParameter("id_gddoc", sd.getIdGdDoc())
+//                        .addParameter("nome_sottodocumento", sd.getNome())
+//                        .addParameter("uuid_mongo_originale", sd.getUuidMongoOriginale())
+//                        .addParameter("guid_sottodocumento", sd.getGuid())
+//                        .addParameter("dimensione_originale", sd.getDimensioneOriginale())
+//                        .addParameter("convertibile_pdf", sd.getConvertibilePdf())
+//                        .addParameter("mimetype_file_originale", sd.getMimetypeFileOriginale())
+//                        .addParameter("tipo_sottodocumento", sd.getTipo())
+//                        .addParameter("codice_sottodocumento", sd.getCodice());
+//
+//                log.info("query: " + q.toString());
+//                q.executeUpdate();
+//                idSottoDocumenti.add(sd.getId());
+//            }
+//
+//            log.info("tutti gli allegati sono stati spostati");
+//        } catch (Throwable e) {
+//            log.error("errore inserimenti sotto documenti Raccolta Semplice", e);
+//            throw new Http500ResponseException("500", "errore inserimenti sotto documenti Raccolta Semplice", e);
+//        }
+    }
+
+    /**
+     * creazione record di Raccolta Semplice
+     *
+     * @param conn
+     * @return
+     */
+    public Integer createRaccolta(Connection conn, RaccoltaNew raccolta) throws Http500ResponseException {
+
+        Integer res = null;
+        String codice = String.format("%s/%d", raccolta.getNumeroRegistrazione(), raccolta.getAnnoRegistrazione());
+        String sql = "INSERT INTO gd.raccolte "
+                + "(id_gddoc, codice, applicazione_chiamante, "
+                + "additional_data, creatore, "
+                + "id_struttura_responsabile_internauta, id_struttura_responsabile_argo, "
+                + "descrizione_struttura, stato, "
+                + "create_time, tipo_documento, oggetto, id_gddoc_associato) "
+                + "VALUES(:id_gddoc, :codice, :applicazione_chiamante, "
+                + "cast(:additional_data AS jsonb), :creatore, "
+                + ":id_struttura_responsabile_internauta, :id_struttura_responsabile_argo, "
+                + ":descrizione_struttura, 'ATTIVO', "
+                + "now(), :tipo_documento, :oggetto, :id_gddoc_associato) ";
+
+        try {
+            Query q = conn.createQuery(sql)
+                    .addParameter("id_gddoc", raccolta.getIdGdDoc())
+                    .addParameter("codice", codice)
+                    .addParameter("applicazione_chiamante", raccolta.getApplicazioneChiamante())
+                    .addParameter("additional_data", raccolta.getAdditionalData())
+                    .addParameter("creatore", raccolta.getCreatore())
+                    .addParameter("id_struttura_responsabile_internauta", raccolta.getIdStrutturaResponsabileInternauta())
+                    .addParameter("id_struttura_responsabile_argo", raccolta.getIdStrutturaResponsabileArgo())
+                    .addParameter("descrizione_struttura", raccolta.getDescrizioneStruttura())
+                    .addParameter("tipo_documento", raccolta.getTipoDocumento())
+                    .addParameter("oggetto", raccolta.getOggetto())
+                    .addParameter("id_gddoc_associato", raccolta.getIdGddocAssociato() != null ? raccolta.getIdGddocAssociato() : null);
+
+            log.info("query: " + q.toString());
+            res = (int) q.executeUpdate().getKey();
+        } catch (Throwable e) {
+            log.error("errore creazione raccolta", e);
+            throw new Http500ResponseException("500", "errore creazione raccolta", e);
+        }
+        return res;
+    }
+
+    public List<Map<String, String>> getIndeIdAndGuid(String codiceAzienda, Integer size) throws UnsupportedEncodingException, IOException, Http500ResponseException, Sql2oSelectException {
+
+        String urlChiamata = "";
+        //urlChiamata = "https://gdml.internal.ausl.bologna.it/Indeutilities/GetIndeId";
+
+        String queryIndeIdUrl = "SELECT val_parametro from bds_tools.parametri_pubblici "
+                + "WHERE nome_parametro = :nome_parametro";
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        try ( Connection conn = (Connection) dbConnection.open()) {
+            urlChiamata = conn.createQuery(queryIndeIdUrl)
+                    .addParameter("nome_parametro", "getIndeUrlServiceUri")
+                    .executeAndFetchFirst(String.class);
+        } catch (Exception e) {
+            throw new Sql2oSelectException("Errore nel reperimento dell'url di chiamata per generare gli ID del fascicolo", e);
+        }
+
+        if ("".equals(urlChiamata) || urlChiamata == null) {
+            throw new Sql2oSelectException(Sql2oSelectException.SelectException.NESSUN_RISULTATO);
+        }
+
+        FormBody.Builder formBuilder = new FormBody.Builder()
+                .add("generateidnumber", size.toString());
+
+        okhttp3.RequestBody formBody = formBuilder.build();
+
+        OkHttpClient client = new OkHttpClient.Builder()
+                .build();
+
+        Request requestg = new Request.Builder()
+                .url(urlChiamata)
+                .post(formBody)
+                .build();
+
+        Response responseg = client.newCall(requestg).execute();
+
+        if (!responseg.isSuccessful()) {
+            log.error("Errore nella chiamata alla Web-api");
+            throw new Http500ResponseException("500", "Errore nella chiamata alla Web-api");
+        }
+
+        List<Map<String, String>> idGuidList = new ArrayList<>();
+
+        idGuidList = objectMapper.readValue(responseg.body().string(), List.class);
+
+        return idGuidList;
+    }
+
+    public String staccaNumero(Connection conn, Integer anno, String sequence, String codiceAzienda) throws Sql2oSelectException {
+        String res = null;
+        String sqlReg = "select lpad(cast(gd_sequences_nextval as varchar), 7, '0') from gd_tools.gd_sequences_nextval('rs', :anno)";
+        try {
+            Query q = conn.createQuery(sqlReg);
+            if (anno != null) {
+                q = q.addParameter("anno", anno);
+            }
+            List<String> result = q.executeAndFetch(String.class);
+            if (result.size() == 0) {
+                throw new Sql2oSelectException(Sql2oSelectException.SelectException.NESSUN_RISULTATO, "Fascicolo non trovato!!");
+            } else if (result.size() > 1) {
+                throw new Sql2oSelectException(Sql2oSelectException.SelectException.PIU_RISULTATI, "Trovati più fascicoli!");
+            } else {
+                res = result.get(0);
+            }
+        } catch (Throwable e) {
+            throw new Sql2oSelectException("Errore nello staccamento del numero", e);
+        }
+        return res;
+    }
+
+    public void insertFascicoliGddocs(Connection conn, List<String> fascicoli, RaccoltaNew r) throws Http500ResponseException {
+
+        try {
+            for (String fascicolo : fascicoli) {
+
+                Map<String, String> indeIdAndGuid = getIndeIdAndGuid(r.getCodiceAzienda(), 1).get(0);
+
+                String sql = "INSERT INTO gd.fascicoli_gddocs "
+                        + "(id_fascicolo_gddoc, id_gddoc, id_fascicolo, data_assegnazione) "
+                        + "VALUES(:id_fascicolo_gddoc, :id_gddoc, :id_fascicolo, now()) ";
+
+                Query q = conn.createQuery(sql)
+                        .addParameter("id_fascicolo_gddoc", indeIdAndGuid.get("document_id"))
+                        .addParameter("id_gddoc", r.getIdGdDoc())
+                        .addParameter("id_fascicolo", fascicolo);
+
+                log.info("query: " + q.toString());
+                q.executeUpdate();
+            }
+            log.info("fascicolazione andata a buon fine");
+        } catch (Throwable e) {
+            log.error("errore fascicolazione di Raccolta Semplice", e);
+            throw new Http500ResponseException("500", "errore fascicolazione di Raccolta Semplice", e);
+        }
+    }
+
+    /**
+     * *
+     * restituisce Id del fascicolo su gd passando la numerazione gerarchica
+     *
+     * @param numGerarchica
+     * @return Id del fascicolo se presente, NULL altrimenti
+     */
+    public String getIdFascicoliFromNumerazioneGerarchica(String codiceAzienda, String numGerarchica) throws Sql2oSelectException {
+
+        String res = null;
+        String query = "select id_fascicolo from gd.fascicoligd where numerazione_gerarchica = :numerazione_gerarchica";
+
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+
+        try ( Connection conn = (Connection) dbConnection.open()) {
+            Query q = conn.createQuery(query);
+            if (numGerarchica != null) {
+                q = q.addParameter("numerazione_gerarchica", numGerarchica);
+            }
+            List<String> listaIdFascicoli = q.executeAndFetch(String.class);
+            if (listaIdFascicoli.size() == 0) {
+                throw new Sql2oSelectException(Sql2oSelectException.SelectException.NESSUN_RISULTATO, "Fascicolo non trovato!!");
+            } else if (listaIdFascicoli.size() > 1) {
+                throw new Sql2oSelectException(Sql2oSelectException.SelectException.PIU_RISULTATI, "Trovati più fascicoli!");
+            } else {
+                res = listaIdFascicoli.get(0);
+            }
+        } catch (Exception e) {
+            throw new Sql2oSelectException("Errore nel reperimento del fascicolo con numerazione gerarchica: " + numGerarchica, e);
+        }
+
+        return res;
+    }
+
+    public boolean createCoinvolto(Connection conn, PersonaRS p, Integer idRaccolta) throws Http500ResponseException {
+
+        Integer idCoinvolto = null;
+        Integer idCoinvoltoRaccolta = null;
+        String sql = "INSERT INTO gd.coinvolti "
+                + "(nome, cognome, ragione_sociale, descrizione, "
+                + "cf, partitaiva, tipologia, id_contatto_internauta, "
+                + "mail, telefono, via, civico, cap, comune, provincia, nazione) "
+                + "VALUES(:nome, :cognome, :ragione_sociale, :descrizione, "
+                + ":cf, :partitaiva, cast(:tipologia AS gd.tipo), :id_contatto_internauta, "
+                + " :mail, :telefono, :via, :civico, :cap, :comune, :provincia, :nazione)";
+
+        try {
+            Query q = conn.createQuery(sql, true)
+                    .addParameter("nome", p.getNome())
+                    .addParameter("cognome", p.getCognome())
+                    .addParameter("ragione_sociale", p.getRagione_sociale())
+                    .addParameter("descrizione", p.getDescrizione())
+                    .addParameter("cf", p.getCodice_fiscale())
+                    .addParameter("partitaiva", p.getP_iva())
+                    .addParameter("tipologia", p.getTipologia().name())
+                    .addParameter("id_contatto_internauta", 1)
+                    .addParameter("mail", p.getEmail())
+                    .addParameter("telefono", p.getTelefono())
+                    .addParameter("via", p.getVia())
+                    .addParameter("civico", p.getCivico())
+                    .addParameter("cap", p.getCap())
+                    .addParameter("comune", p.getComune())
+                    .addParameter("provincia", p.getProvincia())
+                    .addParameter("nazione", p.getNazione());
+
+            log.info("query: " + q.toString());
+            idCoinvolto = (int) q.executeUpdate().getKey();
+
+            if (idCoinvolto != null) {
+                String sqlCross = "INSERT INTO gd.coinvolti_raccolte "
+                        + "(id_coinvolto, id_raccolta) "
+                        + "VALUES(:id_coinvolto, :id_raccolta) ";
+
+                Query qCross = conn.createQuery(sqlCross, true)
+                        .addParameter("id_coinvolto", idCoinvolto)
+                        .addParameter("id_raccolta", idRaccolta);
+
+                log.info("queryCross: " + qCross.toString());
+                idCoinvoltoRaccolta = (int) qCross.executeUpdate().getKey();
+
+            }
+        } catch (Throwable e) {
+            log.error("errore nella creazione coinvolto", e);
+            throw new Http500ResponseException("500", "errore nella creazione coinvolto", e);
+        }
+        return (idCoinvolto != null && idCoinvoltoRaccolta != null);
+    }
 }

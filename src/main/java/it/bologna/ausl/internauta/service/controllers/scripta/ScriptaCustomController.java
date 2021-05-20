@@ -92,7 +92,7 @@ public class ScriptaCustomController {
 
     @Autowired
     AllegatoRepository allegatoRepository;
-    
+
     @Autowired
     DettaglioAllegatoRepository dettaglioAllegatoRepository;
 
@@ -149,11 +149,10 @@ public class ScriptaCustomController {
                 allegato.setTipo(Allegato.TipoAllegato.ALLEGATO);
                 allegato.setDataInserimento(ZonedDateTime.now());
                 allegato.setOrdinale(numeroOrdine);
-                
+
                 DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
-                
+
                 //allegato.setConvertibilePdf(false);
-                
                 dettaglioAllegato.setEstensione(FilenameUtils.getExtension(file.getOriginalFilename()));
                 dettaglioAllegato.setDimensioneByte(Math.toIntExact(file.getSize()));
                 dettaglioAllegato.setIdRepository(savedFileOnRepository.getFileId());
@@ -186,7 +185,7 @@ public class ScriptaCustomController {
      * @param request
      * @throws IOException
      * @throws MinIOWrapperException
-     * 
+     *
      */
     @RequestMapping(value = "dettaglioallegato/{idDettaglioAllegato}/download", method = RequestMethod.GET)
     public void downloadAttachment(
@@ -198,10 +197,10 @@ public class ScriptaCustomController {
         //TODO si deve instanziare il rest controller engine e poi devi prendere il dettaglio (aggiungere interceptor per vedere se l'utente puo scaricare il file)
         DettaglioAllegato dettaglioAllegato = dettaglioAllegatoRepository.getOne(idDettaglioAllegato);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        if (dettaglioAllegato != null){
+        if (dettaglioAllegato != null) {
             StreamUtils.copy(minIOWrapper.getByFileId(dettaglioAllegato.getIdRepository()), response.getOutputStream());
         }
-        response.flushBuffer();        
+        response.flushBuffer();
     }
 
     /**
@@ -309,7 +308,7 @@ public class ScriptaCustomController {
                 //TODO:prendo il primo o l'ultimo e lo setto come principale
 
                 if (allegato.getPrincipale()) {
-                    
+
                     //devo prendere gli 'ORIGINALI' non figli
                     InputStream allegatoPrincipaleIS = minIOWrapper.getByFileId(allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getIdRepository());
                     multipartPrincipale = new MockMultipartFile(allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getNome() + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione(), allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getMimeType(), allegatoPrincipaleIS);
@@ -328,15 +327,15 @@ public class ScriptaCustomController {
         if (mongoAndMinIOActive != null && !mongoAndMinIOActive.isEmpty()) {
             minIOActive = parametriAziende.getValue(mongoAndMinIOActive.get(0), Boolean.class);
         }
-        generatePE.init(
-                loggedUser.getIdPersona().getCodiceFiscale(),
-                parametersMap,
-                multipartPrincipale,
-                Optional.of(multipartList),
-                aziendeConnectionManager.getAziendeParametriJson(),
-                minIOActive,
-                aziendeConnectionManager.getMinIOConfig()
-        );
+//        generatePE.init(
+//                loggedUser.getIdPersona().getCodiceFiscale(),
+//                parametersMap,
+//                multipartPrincipale,
+//                Optional.of(multipartList),
+//                aziendeConnectionManager.getAziendeParametriJson(),
+//                minIOActive,
+//                aziendeConnectionManager.getMinIOConfig()
+//        );
 
         String record = generatePE.create(null);
 

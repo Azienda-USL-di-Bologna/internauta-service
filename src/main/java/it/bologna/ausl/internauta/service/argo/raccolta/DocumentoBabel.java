@@ -1,22 +1,46 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.argo.raccolta;
+
+import java.util.Date;
 
 /**
  *
  * @author Matteo Next
  */
 public class DocumentoBabel {
-    
+
+    private String guidGddoc;
+    private String guidDocumento;
     private String codiceRegistro;
-    
-    private String numeroRegistro;
-    
-    private Integer annoRegistro;
-    
+    private String numero;
+    private Integer anno;
+    private Date dataProtocollo;
+    private Date dataDocumento;
+    private String oggetto;
+
+    public String getOggetto() {
+        return oggetto;
+    }
+
+    public void setOggetto(String oggetto) {
+        this.oggetto = oggetto;
+    }
+
+    public String getGuidDocumento() {
+        return guidDocumento;
+    }
+
+    public void setGuidDocumento(String guidDocumento) {
+        this.guidDocumento = guidDocumento;
+    }
+
+    public String getGuidGddoc() {
+        return guidGddoc;
+    }
+
+    public void setGuidGddoc(String guidGddoc) {
+        this.guidGddoc = guidGddoc;
+    }
+
     public String getCodiceRegistro() {
         return codiceRegistro;
     }
@@ -25,24 +49,41 @@ public class DocumentoBabel {
         this.codiceRegistro = codiceRegistro;
     }
 
-    public String getNumeroRegistro() {
-        return numeroRegistro;
+    public String getNumero() {
+        return numero;
     }
 
-    public void setNumeroRegistro(String numeroRegistro) {
-        this.numeroRegistro = numeroRegistro;
+    public void setNumero(String numero) {
+        this.numero = numero;
     }
 
-    public Integer getAnnoRegistro() {
-        return annoRegistro;
+    public Integer getAnno() {
+        return anno;
     }
 
-    public void setAnnoRegistro(Integer annoRegistro) {
-        this.annoRegistro = annoRegistro;
+    public void setAnno(Integer anno) {
+        this.anno = anno;
     }
-    
+
     public String getCodiceBabel() {
-        
-        return codiceRegistro + numeroRegistro + "/" + annoRegistro.toString();
+
+        return codiceRegistro + numero + "/" + anno.toString();
     }
+
+    public Date getDataProtocollo() {
+        return dataProtocollo;
+    }
+
+    public void setDataProtocollo(Date dataProtocollo) {
+        this.dataProtocollo = dataProtocollo;
+    }
+
+    public Date getDataDocumento() {
+        return dataDocumento;
+    }
+
+    public void setDataDocumento(Date dataDocumento) {
+        this.dataDocumento = dataDocumento;
+    }
+
 }
