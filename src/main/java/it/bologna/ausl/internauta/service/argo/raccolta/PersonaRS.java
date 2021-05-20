@@ -234,7 +234,7 @@ public class PersonaRS {
         contatto.setModificabile(true);
         contatto.setDaVerificare(false);
         contatto.setEliminato(false);
-        contatto.setIdAziende(new Integer[]{1});
+        contatto.setIdAziende(new Integer[]{idAzienda});
         contatto.setDescrizione(p.getDescrizione());
         if (p.getP_iva() == null) {
             contatto.setTipo(Contatto.TipoContatto.PERSONA_FISICA);
