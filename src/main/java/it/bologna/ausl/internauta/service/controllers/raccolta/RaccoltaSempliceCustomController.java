@@ -428,7 +428,7 @@ public class RaccoltaSempliceCustomController {
                 log.info(String.format("salvataggio contatto in rubrica: %s", persona.getDescrizione()));
                 Optional<Persona> p = personaRepository.findById(1);
                 Optional<Utente> u = utenteRepository.findById(1);
-                Contatto toContact = PersonaRS.toContatto(10, persona, p.get(), u.get());
+                Contatto toContact = PersonaRS.toContatto(10, persona, p.get(), u.get(), Boolean.TRUE);
                 contattorepository.save(toContact);
 
             } else {

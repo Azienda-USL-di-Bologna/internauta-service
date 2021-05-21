@@ -223,7 +223,7 @@ public class PersonaRS {
         return objectMapper.writeValueAsString(p);
     }
 
-    public static Contatto toContatto(Integer idAzienda, PersonaRS p, Persona persona, Utente utente) {
+    public static Contatto toContatto(Integer idAzienda, PersonaRS p, Persona persona, Utente utente, Boolean isProtocontatto) {
 
         Contatto contatto = new Contatto();
         contatto.setCategoria(Contatto.CategoriaContatto.ESTERNO);
@@ -232,8 +232,9 @@ public class PersonaRS {
         contatto.setIdPersona(persona);
         contatto.setProvenienza("baborg");
         contatto.setModificabile(true);
-        contatto.setDaVerificare(false);
+        contatto.setDaVerificare(isProtocontatto ? true : false);
         contatto.setEliminato(false);
+        contatto.setProtocontatto(isProtocontatto);
         contatto.setIdAziende(new Integer[]{idAzienda});
         contatto.setDescrizione(p.getDescrizione());
         if (p.getP_iva() == null) {
