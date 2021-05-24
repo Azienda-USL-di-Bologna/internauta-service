@@ -441,14 +441,13 @@ public class ScriptaCustomController {
     private Allegato saveFileOnInternauta(Allegato allegato) {
         Allegato saved = allegatoRepository.save(allegato);
         return saved;
-
     }
 
     private Map<String, Object> buildMittente(Related mittenteDoc) throws JsonProcessingException {
         Map<String, Object> mittente = new HashMap();
         mittente.put("descrizione", mittenteDoc.getDescrizione());
         Spedizione spedizioneMittente = scriptaUtils.getSpedizioneMittente(mittenteDoc);
-        mittente.put("indirizzo_spedizione", spedizioneMittente.getIndirizzo().toString());
+        mittente.put("indirizzo_spedizione", spedizioneMittente.getIndirizzo().getCompleto());
         Mezzo mezzo = spedizioneMittente.getIdMezzo();
         mittente.put("mezzo_spedizione", mezzo.ottieniCodiceArgo());
         return mittente;
@@ -477,8 +476,7 @@ public class ScriptaCustomController {
     }
 
     public static String getHashFromFile(InputStream is, String algorithmName) throws FileNotFoundException, IOException, NoSuchAlgorithmException {
-        //    Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-
+        
         MessageDigest algorithm = MessageDigest.getInstance(algorithmName);
         DigestInputStream dis = new DigestInputStream(is, algorithm);
 
