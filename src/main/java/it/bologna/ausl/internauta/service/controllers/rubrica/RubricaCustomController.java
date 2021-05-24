@@ -31,6 +31,7 @@ import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarity
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
 import it.bologna.ausl.internauta.service.utils.rubrica.CreatoreJsonPermessiContatto;
+import it.bologna.ausl.internauta.service.utils.rubrica.SelectedContactsUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -105,6 +106,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     CommonUtils commonUtils;
+
+    @Autowired
+    SelectedContactsUtils selectedContactsUtils;
 
     @Autowired
     RestControllerEngineImpl restControllerEngine;
@@ -359,17 +363,17 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Persona getPersona = personaRepository.findById(persona.getId()).get();
         Utente getUtente = utenteRepository.findById(utente.getId()).get();
 
-        if (estemporaneiToAddToRubricaAsProtocontatti != null && !estemporaneiToAddToRubricaAsProtocontatti.isEmpty()) {
+        if (estemporaneiToAddToRubricaAsProtocontatti != null
+                && !estemporaneiToAddToRubricaAsProtocontatti.isEmpty()) {
             //List<Contatto> listContattiAsProtocontattiDaSalvare = new ArrayList<Contatto>();
 
             //ObjectMapper mapper = new ObjectMapper();
 //            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
 //            mapper.setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE);
             SelectedContactsLists selectedContactsLists = objectMapper.readValue(data.getSelectedContactsLists(), SelectedContactsLists.class);
-            
+
 //            String prova = objectMapper.writeValueAsString(selectedContactsLists);
 //            log.info("prova: " + prova);
-
 //            liste
             List<SelectedContact> allSelectedContactsMITTENTE = selectedContactsLists.getMITTENTE();
             List<SelectedContact> allSelectedContactsA = selectedContactsLists.getA();
@@ -427,12 +431,26 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             selectedContactsLists.setMITTENTE(allSelectedContactsMITTENTE);
 
             String selectedContactsListsAsString = objectMapper.writeValueAsString(selectedContactsLists);
-            
+
             log.info("selectedContactsListsAsString to send at inde: " + selectedContactsListsAsString);
             data.setSelectedContactsLists(selectedContactsListsAsString);
         }
         log.info("set estemporaneiToAddToRubrica to null");
         data.setEstemporaneiToAddToRubrica(null);
+
+        if (data.getMode().equals("DESTINATARI") && data.getApp().equals("procton")) {
+            log.info("Devo verificare i gruppi per escludere "
+                    + "contatti interni di un'altra azienda");
+            System.out.println("getSelectedContactsLists()\n" + data.getSelectedContactsLists());
+
+            String selectedContactsListsAsString = filtraTogliendoContattiInterniDiAltreAziende(
+                    data.getSelectedContactsLists(),
+                    azienda);
+            log.info("Selected filtrata:\n" + selectedContactsListsAsString);
+            data.setSelectedContactsLists(selectedContactsListsAsString);
+        }
+
+        System.out.println("Ora data.selectedCOntactsList =\n" + data.getSelectedContactsLists());
 
         log.info("Faccio una Lista di persone a cui aggiornare la videata");
         //List<String> cfPersoneDiCuiAggiornareLaVideataList = Arrays.asList(getPersona.getCodiceFiscale());
@@ -461,7 +479,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"),
                 objectMapper.writeValueAsString(data));
-        OkHttpClient client = new OkHttpClient.Builder().connectTimeout(2, TimeUnit.MINUTES).build();
+        OkHttpClient client = new OkHttpClient.Builder().connectTimeout(12, TimeUnit.MINUTES).build();
 
         Request request = new Request.Builder()
                 .url(buildGestisciDestinatariDaRubricaInternautarUrl(azienda, data.getApp()))
@@ -493,6 +511,25 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         }
     }
 
+    private String filtraTogliendoContattiInterniDiAltreAziende(
+            String selectedContactsLists,
+            Azienda azienda) throws JsonProcessingException {
+        JSONObject selectedCOntactsListJSON = new JSONObject(selectedContactsLists);
+        JSONArray jsonArrayA = selectedCOntactsListJSON.getJSONArray("A");
+        jsonArrayA = selectedContactsUtils.togliDaJSONArrayDestinatariContattiInterniDiAltreAziende(
+                jsonArrayA, azienda);
+        JSONArray jsonArrayCC = selectedCOntactsListJSON.getJSONArray("CC");
+        jsonArrayCC = selectedContactsUtils.togliDaJSONArrayDestinatariContattiInterniDiAltreAziende(
+                jsonArrayCC, azienda);
+
+        JSONObject oggettoneToReturn = new JSONObject();
+
+        oggettoneToReturn.put("A", jsonArrayA);
+        oggettoneToReturn.put("CC", jsonArrayCC);
+        selectedContactsLists = oggettoneToReturn.toString();
+        return selectedContactsLists;
+    }
+
     private List<SelectedContact> setSelectedContactAsInsertedToRubrica(List<SelectedContact> selectedContactsList, Contatto savedContatto) {
         for (SelectedContact selectedContactEstemporaneo : selectedContactsList) {
             log.info("Loop Selected Contatti, update keys, Id, estemporaneo, addToRubrica, status");
@@ -504,7 +541,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
             if (selectedContact.getDescrizione().equals(savedContatto.getDescrizione())
                     && selectedContactEstemporaneo.getAddToRubrica() != null && selectedContactEstemporaneo.getAddToRubrica()
-//                    && selectedContactEstemporaneo.getStatus() != null && selectedContactEstemporaneo.getStatus().equals(SelectedContactStatus.INITIAL)
+                    //                    && selectedContactEstemporaneo.getStatus() != null && selectedContactEstemporaneo.getStatus().equals(SelectedContactStatus.INITIAL)
                     && selectedContactEstemporaneo.getEstemporaneo() != null && selectedContactEstemporaneo.getEstemporaneo()) {
                 selectedContact.setId(savedContatto.getId());
                 selectedAddress.setIdContatto(savedContatto);
