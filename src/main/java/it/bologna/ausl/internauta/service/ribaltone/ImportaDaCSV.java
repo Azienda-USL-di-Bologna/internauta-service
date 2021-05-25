@@ -667,13 +667,20 @@ public class ImportaDaCSV {
                             datafi = formattattore(appartenentiMap.get("datafi"));
                             datafiString = UtilityFunctions.getLocalDateTimeString(datafi);
                         }
-
+                        
                         if (appartenentiMap.get("datafi") == null || appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") == "") {
                             mapError.put("datafi", "");
                         } else {
                             mapError.put("datafi", appartenentiMap.get("datafi"));
                         }
-
+                        
+                        if ((datain == null && datafi != null)||(datain != null && datafi != null && datain.isAfter(datafi))){
+                            if (mapError.get("ERRORE")!=null){
+                                mapError.put("ERRORE",mapError.get("ERRORE")+" datain maggiore di datafi,");
+                            }else{
+                                mapError.put("ERRORE","datain maggiore di datafi,");
+                            }
+                        }
                         //Codice Ente 
                         Integer codiceEnte = checkCodiceEnte(appartenentiMap, mapError, codiceAzienda);
                         anomalia = anomalia ? anomalia : codiceEnte.equals("");

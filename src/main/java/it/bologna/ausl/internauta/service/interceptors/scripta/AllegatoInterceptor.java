@@ -69,22 +69,22 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
 //
 //    }
 
-    @Override
-    public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+//    @Override
+//    public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
 //        /*
 //            Sto cancellando un allegato, dunque:
 //            - Se è un allegato contenitore devo cancellare i file correlati e anche in questo caso dal repository 
 //            - Devo cancellare il file dal repository
 //            - Un trigger si occupa di aggiustare la numerazione degli allegati
 //         */
-        Allegato allegato = (Allegato) entity;
-        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+//        Allegato allegato = (Allegato) entity;
+//        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
 
         // Cancello gli eventuali allegati figli.
-        List<Allegato> allegatiFigliList = allegato.getAllegatiFigliList();
-        for (Allegato a : allegatiFigliList) {
-            allegatoRepository.delete(a);
-        }
-        super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
-    }
+//        List<Allegato> allegatiFigliList = allegato.getAllegatiFigliList();
+//        for (Allegato a : allegatiFigliList) {
+//            allegatoRepository.delete(a);
+//        }
+//        super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+//    }
 }
