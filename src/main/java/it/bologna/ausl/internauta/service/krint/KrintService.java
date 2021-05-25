@@ -1,4 +1,3 @@
-
 package it.bologna.ausl.internauta.service.krint;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,6 +7,7 @@ import it.bologna.ausl.internauta.service.repositories.logs.OperazioneVersionata
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.NonCachedEntities;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.Krint;
@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -32,19 +33,22 @@ import org.springframework.stereotype.Service;
 public class KrintService {
     
     @Autowired
-    ProjectionFactory factory;
-    
-    @Autowired
-    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-    
-    @Autowired
     ObjectMapper objectMapper;
+    
+    @Autowired
+    ProjectionFactory factory;
     
     @Autowired
     protected CachedEntities cachedEntities;
     
     @Autowired
     protected HttpSessionData httpSessionData;
+    
+    @Autowired
+    protected NonCachedEntities nonCachedEntities;
+    
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
     
     @Autowired
     protected OperazioneVersionataKrinRepository operazioneVersionataKrinRepository;
@@ -64,7 +68,7 @@ public class KrintService {
             OperazioneKrint.CodiceOperazione codiceOperazione) throws Exception {
         
         try {
-            Utente utente = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser();
+            Utente utente = nonCachedEntities.getUtente(authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser().getId());
 
             Integer idSessione = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getIdSessionLog(); // TODO: mettere idSessione corretto
             KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
@@ -81,7 +85,7 @@ public class KrintService {
             krint.setTipoOggetto(tipoOggetto);
             krint.setInformazioniOggetto(informazioniOggetto);
             krint.setDescrizioneOggetto(descrizioneOggetto);
-            if (idOggettoContenitore != null && idOggettoContenitore != "") {
+            if (StringUtils.hasText(idOggettoContenitore)) {
                 krint.setIdOggettoContenitore(idOggettoContenitore);
                 krint.setTipoOggettoContenitore(tipoOggettoContenitore);
                 krint.setDescrizioneOggettoContenitore(descrizioneOggettoContenitore);
@@ -90,7 +94,9 @@ public class KrintService {
             
             krint.setIdOperazioneVersionata(operazioneVersionataKrint);
 
-            Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser().getUtenteReale();
+            Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getRealUser() != null ?
+                    nonCachedEntities.getUtente(authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getRealUser().getId()) :
+                    null;
             if(utenteReale != null){
                 krint.setIdRealUser(utenteReale.getId());
                 Persona personaReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getRealPerson();
@@ -115,6 +121,12 @@ public class KrintService {
         } 
     }
     
+    /**
+     * Magnigico commento
+     * @param idOggetto
+     * @param functionName
+     * @param codiceOperazione 
+     */
     public void writeKrintError(Integer idOggetto, String functionName, CodiceOperazione codiceOperazione) {
         List<KrintError> krintErrorList = (List<KrintError>)httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.KRINT_ERRORS);
         if (krintErrorList == null || krintErrorList.isEmpty()) {
@@ -127,7 +139,7 @@ public class KrintService {
             krintError.setIdUtente(utente.getId());
         } catch (Exception ex) {}
         try {
-            Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser().getUtenteReale();
+            Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getRealUser();
             krintError.setIdRealUser(utenteReale.getId());
         } catch (Exception ex) {}
         krintError.setIdOggetto(idOggetto);

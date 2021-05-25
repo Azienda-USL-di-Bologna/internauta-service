@@ -57,6 +57,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
@@ -64,6 +65,7 @@ import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.NonCachedEntities;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -107,6 +109,9 @@ public class ScriptaCustomController {
     CachedEntities cachedEntities;
     
     @Autowired
+    NonCachedEntities nonCachedEntities;
+    
+    @Autowired
     DocRepository docRepository;
     
     @Autowired
@@ -114,6 +119,9 @@ public class ScriptaCustomController {
 
     @Autowired
     PecRepository pecRepository;
+    
+    @Autowired
+    PersonaRepository personaRepository;
 
     @Autowired
     ScriptaUtils scriptaUtils;
@@ -407,8 +415,7 @@ public class ScriptaCustomController {
             HttpServletRequest request) throws HttpInternautaResponseException,
             Throwable {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Utente loggedUser = authenticatedUserProperties.getUser();
-        Persona loggedPersona = authenticatedUserProperties.getPerson();
+        Persona loggedPersona = nonCachedEntities.getPersona(authenticatedUserProperties.getPerson().getId());
 
         Optional<Doc> docOp = docRepository.findById(idDoc);
         Doc doc;
@@ -466,9 +473,9 @@ public class ScriptaCustomController {
         Integer annoProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[0]);
         Integer idStrutturaProtocollante = (Integer)resObj.get("idStrutturaProtocollante");
         
-        Struttura struttura = cachedEntities.getStruttura(idStrutturaProtocollante);
-        Registro registroPropostaPico = cachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PROP_PG);
-        Registro registroProtocolloPico = cachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PG);
+        Struttura struttura = nonCachedEntities.getStruttura(idStrutturaProtocollante);
+        Registro registroPropostaPico = nonCachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PROP_PG);
+        Registro registroProtocolloPico = nonCachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PG);
         
         String dataRegistrazioneString = (String)resObj.get("dataRegistrazione");
         LocalDateTime dataRegistrazioneLocal = LocalDateTime.parse(dataRegistrazioneString);
