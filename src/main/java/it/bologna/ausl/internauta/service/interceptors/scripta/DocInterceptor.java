@@ -193,6 +193,7 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                                 
                                 // Inserisco la relazione messaggio-doc nella tabella messagesDocs
                                 MessageDoc messageDoc = new MessageDoc();
+                                messageDoc.setIdDoc(doc);
                                 messageDoc.setIdMessage(message);
                                 messageDoc.setTipo(MessageDoc.TipoMessageDoc.IN);
                                 List<MessageDoc> messageDocList = new ArrayList();

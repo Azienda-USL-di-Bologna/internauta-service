@@ -68,7 +68,7 @@ public class KrintService {
 
             Integer idSessione = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getIdSessionLog(); // TODO: mettere idSessione corretto
             KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
-            String jsonKrintInformazioniUtente = objectMapper.writeValueAsString(krintInformazioniUtente);                
+            String jsonKrintInformazioniUtente = objectMapper.writeValueAsString(krintInformazioniUtente);
             
             Krint krint = new Krint(idSessione, authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getApplicazione(), utente.getId(), utente.getIdPersona().getDescrizione(), jsonKrintInformazioniUtente);
 
