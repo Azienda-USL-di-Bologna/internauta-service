@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import it.bologna.ausl.documentgenerator.GeneratePE;
 import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -60,12 +61,19 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.RegistroRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
 import it.bologna.ausl.model.entities.baborg.Pec;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato.TipoDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
+import it.bologna.ausl.model.entities.scripta.Registro;
+import it.bologna.ausl.model.entities.scripta.RegistroDoc;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithDettagliAllegatiListAndIdAllegatoPadre;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.shpeck.Message;
@@ -74,8 +82,12 @@ import java.io.FileNotFoundException;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.Formatter;
 import org.json.JSONObject;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -92,7 +104,13 @@ public class ScriptaCustomController {
     List<Allegato> savedFilesOnInternauta = new ArrayList();
 
     @Autowired
+    CachedEntities cachedEntities;
+    
+    @Autowired
     DocRepository docRepository;
+    
+    @Autowired
+    RegistroDocRepository registroDocRepository;
 
     @Autowired
     PecRepository pecRepository;
@@ -390,6 +408,7 @@ public class ScriptaCustomController {
             Throwable {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente loggedUser = authenticatedUserProperties.getUser();
+        Persona loggedPersona = authenticatedUserProperties.getPerson();
 
         Optional<Doc> docOp = docRepository.findById(idDoc);
         Doc doc;
@@ -416,7 +435,7 @@ public class ScriptaCustomController {
             minIOActive = parametriAziende.getValue(mongoAndMinIOActive.get(0), Boolean.class);
         }
         generatePE.init(
-                loggedUser.getIdPersona().getCodiceFiscale(),
+                loggedPersona.getCodiceFiscale(),
                 parametersMap,
                 multipartPrincipale,
                 Optional.of(multipartList),
@@ -426,15 +445,54 @@ public class ScriptaCustomController {
                 true // dobbiamo evitare l'estrazione ricorsiva degli allegati
         );
 
-        String record = generatePE.create(null);
-        LOG.info("generatePE.create() ha tornato '" + record + "'");
-        if (!(record != null && record != "")) {
+        String resultJson = generatePE.create(null);
+        LOG.info("generatePE.create() ha tornato '" + resultJson + "'");
+        if (!StringUtils.hasText(resultJson)) {
             throw new Throwable("Errore nella protocollazione del PE");
         }
-        Map<String, String> resMap = new HashMap();
-        resMap.put("protocollo", record);
-        ResponseEntity res = ResponseEntity.ok(resMap);
+        
+        Map<String, Object> resObj = objectMapper.readValue(resultJson, new TypeReference<Map<String, Object>>(){});
+        saveRegistriDoc(resObj, doc, loggedPersona);
+        
+        ResponseEntity res = ResponseEntity.ok(resObj);
         return res;
+    }
+    
+    private void saveRegistriDoc(Map<String, Object> resObj, Doc doc, Persona loggedPersona) throws JsonProcessingException {
+        Integer numeroProtocollo = Integer.parseInt((String)resObj.get("numeroProtocollo"));
+        Integer annoProtocollo = (Integer)resObj.get("annoProtocollo");
+        String numeroPropostaConAnno = (String)resObj.get("numeroProposta");
+        Integer numeroProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[1]);
+        Integer annoProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[0]);
+        Integer idStrutturaProtocollante = (Integer)resObj.get("idStrutturaProtocollante");
+        
+        Struttura struttura = cachedEntities.getStruttura(idStrutturaProtocollante);
+        Registro registroPropostaPico = cachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PROP_PG);
+        Registro registroProtocolloPico = cachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PG);
+        
+        String dataRegistrazioneString = (String)resObj.get("dataRegistrazione");
+        LocalDateTime dataRegistrazioneLocal = LocalDateTime.parse(dataRegistrazioneString);
+        
+        
+        RegistroDoc proposta = new RegistroDoc();
+        proposta.setAnno(annoProposta);
+        proposta.setDataRegistrazione(ZonedDateTime.of(dataRegistrazioneLocal, ZoneId.systemDefault()));
+        proposta.setIdDoc(doc);
+        proposta.setIdPersonaRegistrante(loggedPersona);
+        proposta.setIdStrutturaRegistrante(struttura);
+        proposta.setNumero(numeroProposta);
+        proposta.setIdRegistro(registroPropostaPico);
+        
+        RegistroDoc protocollo = new RegistroDoc();
+        protocollo.setAnno(annoProtocollo);
+        protocollo.setDataRegistrazione(ZonedDateTime.of(dataRegistrazioneLocal, ZoneId.systemDefault()));
+        protocollo.setIdDoc(doc);
+        protocollo.setIdPersonaRegistrante(loggedPersona);
+        protocollo.setIdStrutturaRegistrante(struttura);
+        protocollo.setNumero(numeroProtocollo);
+        protocollo.setIdRegistro(registroProtocolloPico);
+        
+        registroDocRepository.saveAll(Arrays.asList(proposta, protocollo));
     }
 
     @Transactional(rollbackFor = Throwable.class)

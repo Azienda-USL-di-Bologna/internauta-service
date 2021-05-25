@@ -12,6 +12,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.OperazioneKrinRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.RegistroRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QAzienda;
@@ -24,6 +25,8 @@ import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
 import it.bologna.ausl.model.entities.permessi.projections.PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded;
+import it.bologna.ausl.model.entities.scripta.QRegistro;
+import it.bologna.ausl.model.entities.scripta.Registro;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,6 +65,9 @@ public class CachedEntities {
 
     @Autowired
     private PersonaRepository personaRepository;
+    
+    @Autowired
+    private RegistroRepository registroRepository;
 
     @Autowired
     private OperazioneKrinRepository operazioneKrinRepository;
@@ -147,7 +153,7 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "struttura", key = "{#id}")
+    @Cacheable(value = "struttura__ribaltorg__", key = "{#id}")
     public Struttura getStruttura(Integer id) {
         Optional<Struttura> struttura = strutturaRepository.findById(id);
         if (struttura.isPresent()) {
@@ -225,5 +231,18 @@ public class CachedEntities {
 //    }
     public void getRuoloByNomeBreve(String ruoloNomeBreve) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+    
+    @Cacheable(value = "registroAzienda", key = "{#idAzienda, #codice.toString()}")
+    public Registro getRegistro(Integer idAzienda, Registro.CodiceRegistro codice) {
+        QRegistro qRegistro = QRegistro.registro;
+        BooleanExpression filtro = qRegistro.codice.eq(codice.toString())
+                .and(qRegistro.idAzienda.id.eq(idAzienda));
+        Optional<Registro> registro = registroRepository.findOne(filtro);
+        if (registro.isPresent()) {
+            return registro.get();
+        } else {
+            return null;
+        }
     }
 }
