@@ -342,16 +342,17 @@ public class ScriptaCustomController {
         Map<String, Object> parametersMap = new HashMap();
         parametersMap.put("azienda", doc.getIdAzienda().getCodiceRegione() + doc.getIdAzienda().getCodice());
         parametersMap.put("applicazione_chiamante", authenticatedUserProperties.getApplicazione().toString());
-        parametersMap.put("numero_documento_origine", doc.getId().toString());
-        parametersMap.put("anno_documento_origine", doc.getDataCreazione().getYear());
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        String dateFormat = doc.getDataCreazione().format(formatter);
-        parametersMap.put("data_registrazione_origine", dateFormat);
+//        parametersMap.put("numero_documento_origine", doc.getId().toString());
+        parametersMap.put("id_doc_esterno", doc.getId());
+//        parametersMap.put("anno_documento_origine", doc.getDataCreazione().getYear());
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//        String dateFormat = doc.getDataCreazione().format(formatter);
+//        parametersMap.put("data_registrazione_origine", dateFormat);
         parametersMap.put("oggetto", doc.getOggetto());
         //TODO da decommentare quando ci saranno i campi sul db e bisogna mettere la data in stringa
         //parametersMap.put("data_arrivo_origine", doc.getMittenti().get(0).getSpedizioneList().get(0).getData());
         //da elimare quando ci saranno i campi sul db
-        parametersMap.put("data_arrivo_origine", dateFormat);
+//        parametersMap.put("data_arrivo_origine", dateFormat);
         parametersMap.put("utente_protocollante", loggedUser.getIdPersona().getCodiceFiscale());
         //TODO da mettere quando avremo le fascicolazioni
         //da decommentare quando avremo le tabelle della fascicolazione
