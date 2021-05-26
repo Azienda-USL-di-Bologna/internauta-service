@@ -315,7 +315,10 @@ public class ScriptaCustomController {
         pecMessageDetail.put("idSorgentePec", message.getId());
         pecMessageDetail.put("subject", message.getSubject());
         pecMessageDetail.put("mittente", mittente.getDescrizione());
-        pecMessageDetail.put("dataArrivo", message.getReceiveTime());
+//        pecMessageDetail.put("dataArrivo", message.getReceiveTime());
+        Spedizione spedizioneMittente = scriptaUtils.getSpedizioneMittente(mittente);
+        ZonedDateTime data = spedizioneMittente.getData();
+        pecMessageDetail.put("dataArrivo", data.toLocalDateTime());
         pecMessageDetail.put("messageID", message.getUuidMessage());
         Pec pecDaCuiProtocollo = pecRepository.findById(message.getIdPec().getId()).get();
         pecMessageDetail.put("indirizzoPecOrigine", pecDaCuiProtocollo.getIndirizzo());
