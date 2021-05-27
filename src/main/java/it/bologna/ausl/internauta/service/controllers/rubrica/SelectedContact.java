@@ -4,7 +4,7 @@ package it.bologna.ausl.internauta.service.controllers.rubrica;
  *
  * @author gusgus
  */
-class SelectedContact {
+public class SelectedContact {
 
     private Object contact;
     private Object address;

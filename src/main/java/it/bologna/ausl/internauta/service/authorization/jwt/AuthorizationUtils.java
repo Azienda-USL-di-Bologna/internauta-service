@@ -172,6 +172,17 @@ public class AuthorizationUtils {
         authentication.setIdSessionLog(idSessionLog);
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
+    
+    /**
+     * Trona true se l'utente reale è CA dell'azienda dell'utente impersonato
+     * @param utenteReale
+     * @param utenteImpersonato
+     * @return 
+     */
+    public boolean isCAOfAziendaUtenteImpersonato(Utente utenteReale, Utente utenteImpersonato) {
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = utenteReale.getRuoliUtentiPersona();
+        return ruoliUtentiPersona.get(Ruolo.CodiciRuolo.CA.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString()).contains(utenteImpersonato.getIdAzienda().getCodice());
+    }
 
     /**
      *
@@ -224,7 +235,7 @@ public class AuthorizationUtils {
         }
 
         Utente impersonatedUser;
-        boolean isSuperDemiurgo = false;
+        boolean isSD = false;
         Azienda aziendaImpersonatedUser = (idAzienda == null || aziendaRealUser.getId() == Integer.parseInt(idAzienda)
                 ? aziendaRealUser
                 : cachedEntities.getAzienda(Integer.parseInt(idAzienda)));
@@ -267,6 +278,9 @@ public class AuthorizationUtils {
         String realUserSubject = String.valueOf(user.getId());
 
         user.setMappaRuoli(userInfoService.getRuoliPerModuli(user, null));
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user.getIdPersona(), true));
+        }
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
 //        userInfoService.getPermessiAvatarRemoveCache(user);
 
@@ -282,16 +296,6 @@ public class AuthorizationUtils {
         }
         // controlla se è stato passato il parametro di utente impersonato
         if (StringUtils.hasText(utenteImpersonatoStr)) {
-            // solo se l'utente reale è super demiurgo allora può fare il cambia utente
-            List<Ruolo> ruoli = user.getMappaRuoli().get(Ruolo.ModuliRuolo.GENERALE.toString());
-
-            for (Ruolo ruolo : ruoli) {
-                Ruolo.CodiciRuolo codiceRuolo = (Ruolo.CodiciRuolo) ruolo.getNomeBreve();
-                if (codiceRuolo == Ruolo.CodiciRuolo.SD) {
-                    isSuperDemiurgo = true;
-                    break;
-                }
-            }
 
             userInfoService.loadUtenteRemoveCache(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser, false);
             impersonatedUser = userInfoService.loadUtente(entityClass, field, utenteImpersonatoStr, aziendaImpersonatedUser, false);
@@ -301,6 +305,7 @@ public class AuthorizationUtils {
             userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());
             userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, true);
             userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, false);
+            
             cacheUtilities.cleanCacheRuoliUtente(impersonatedUser.getId(), impersonatedUser.getIdPersona().getId());
 
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
@@ -308,13 +313,22 @@ public class AuthorizationUtils {
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser, null, true);
             cacheUtilities.cleanCachePermessiUtente(impersonatedUser.getId());
 
+            impersonatedUser.setMappaRuoli(userInfoService.getRuoliPerModuli(impersonatedUser, null));
+            impersonatedUser.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(impersonatedUser.getIdPersona(), true));
+            impersonatedUser.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(impersonatedUser));
+            
             impersonatedUser.setUtenteReale(user);
 
+            isSD = userInfoService.isSD(user);
+            boolean isSDImpersonato = userInfoService.isSD(impersonatedUser);
+            boolean isCI = userInfoService.isCI(user);
+            boolean isCIImpersonato = userInfoService.isCI(impersonatedUser);
+            boolean isCA = userInfoService.isCA(user);
             boolean isDelegato = permessiAvatar != null && !permessiAvatar.isEmpty() && permessiAvatar.contains(impersonatedUser.getId());
 
 //            logger.info("isSuperDemiurgo: " + isSuperDemiurgo);
 //            logger.info("isDelegato: " + isDelegato);
-            if (isSuperDemiurgo || isDelegato) {
+            if (isSD || (isCI && !isSDImpersonato) || (isCA && !isSDImpersonato && !isCIImpersonato && isCAOfAziendaUtenteImpersonato(user, impersonatedUser)) || isDelegato) {
                 logger.info(String.format("utente %s ha ruolo SD", realUserSubject));
 
                 // mi metto in sessione l'utente loggato, mi servirà in altri punti nella procedura di login, in particolare in projection custom
@@ -338,7 +352,7 @@ public class AuthorizationUtils {
                 // mi metto in sessione l'utente loggato, mi servirà in altri punti nella procedura di login, in particolare in projection custm
                 httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.UtenteLogin, user);
                 // ritorna l'utente stesso perchè non ha i permessi per fare il cambia utente
-                logger.info(String.format("utente %s non ha ruolo SD, ritorna se stesso nel token", realUserSubject));
+                logger.info(String.format("utente %s non può impersonare, ritorna se stesso nel token", realUserSubject));
                 res = new ResponseEntity(
                         generateLoginResponse(user, null, aziendaRealUser, entityClass, field, ssoFieldValue, secretKey, applicazione, fromInternetLogin),
                         HttpStatus.OK);
@@ -355,7 +369,7 @@ public class AuthorizationUtils {
 //          write information to DB about real new LOG IN
             String userAgentString = request.getHeader("User-Agent");
             UserAgent userAgent = null;
-            if (!StringUtils.isEmpty(userAgentString)) {
+            if (StringUtils.hasText(userAgentString)) {
                 userAgent = UserAgent.parseUserAgentString(userAgentString);
             }
             Cookie[] cookies = request.getCookies();

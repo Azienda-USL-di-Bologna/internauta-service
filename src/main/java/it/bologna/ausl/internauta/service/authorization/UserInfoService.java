@@ -8,7 +8,6 @@ import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
-import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
@@ -48,7 +47,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdAfferenzaStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdAfferenzaStrutturaAndIdStruttura;
 import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import java.util.Arrays;
@@ -59,18 +57,10 @@ import org.sql2o.Sql2o;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
-import java.io.IOException;
-import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
-import java.util.logging.Level;
 import java.util.stream.Stream;
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * Service per la creazione dell'oggetto UserInfoOld TODO: descrivere la
@@ -941,8 +931,11 @@ public class UserInfoService {
         }
     }
 
-    @Cacheable(value = "isCI__ribaltorg__", key = "{#user.getId()}")
+    @Cacheable(value = "getRuoliIsCI__ribaltorg__", key = "{#user.getId()}")
     public boolean isCI(Utente user) {
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
         return ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.CI.toString());
     }
@@ -952,11 +945,13 @@ public class UserInfoService {
 //       return isR(user, null);
 //    }
     
-    @Cacheable(value = "isR__ribaltorg__", key = "{#user.getId(), #modulo.toString()}")
+    @Cacheable(value = "getRuoliIIsR__ribaltorg__", key = "{#user.getId(), #modulo.toString()}")
     public boolean isR(Utente user, Ruolo.ModuliRuolo modulo) {
-
-       Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
-       boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.R.toString());
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
+        boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.R.toString());
         if (containsKey) {
             List<String> get = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.R.toString()).get(modulo.toString());
             if (get != null) {
@@ -966,8 +961,16 @@ public class UserInfoService {
         return false;
     }
 
-    @Cacheable(value = "isCA__ribaltorg__", key = "{#user.getId()}")
+    /**
+     * Torna "true" se l'utente è CA di almeno un'azienda
+     * @param user
+     * @return 
+     */
+    @Cacheable(value = "getRuoliIsCA__ribaltorg__", key = "{#user.getId()}")
     public boolean isCA(Utente user) {
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
         boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.CA.toString());
         if (containsKey) {
@@ -979,8 +982,11 @@ public class UserInfoService {
         return false;
     }
 
-    @Cacheable(value = "isSD__ribaltorg__", key = "{#user.getId()}")
+    @Cacheable(value = "getRuoliIsSD__ribaltorg__", key = "{#user.getId()}")
     public boolean isSD(Utente user) {
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
         return ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.SD.toString());
     }

@@ -23,15 +23,11 @@ import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
-import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
-import it.bologna.ausl.model.entities.permessi.projections.PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded;
 import it.bologna.ausl.model.entities.scripta.QRegistro;
 import it.bologna.ausl.model.entities.scripta.Registro;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 
@@ -40,7 +36,7 @@ import org.springframework.stereotype.Component;
  * @author gdm
  */
 @Component
-public class CachedEntities {
+public class NonCachedEntities {
 
     @Value("${nextsdr.request.default.azienda-path}")
     String pathAziendaDefault;
@@ -84,7 +80,6 @@ public class CachedEntities {
     @Autowired
     private PredicatoAmbitoRepository predicatoAmbitoRepository;
 
-    @Cacheable(value = "azienda", key = "{#id}")
     public Azienda getAzienda(Integer id) {
         Optional<Azienda> azienda = aziendaRepository.findById(id);
         if (azienda.isPresent()) {
@@ -94,7 +89,6 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "aziendaFromCodice__ribaltorg__", key = "{#codice}")
     public Azienda getAziendaFromCodice(String codice) {
         BooleanExpression filter = QAzienda.azienda.codice.eq(codice);
         Optional<Azienda> azienda = aziendaRepository.findOne(filter);
@@ -111,7 +105,6 @@ public class CachedEntities {
      * @param path
      * @return
      */
-    @Cacheable(value = "aziendaFromPath__ribaltorg__", key = "{#path}")
     public Azienda getAziendaFromPath(String path) {
         BooleanExpression filter;
 
@@ -129,11 +122,6 @@ public class CachedEntities {
         }
     }
 
-    @CacheEvict(value = "aziendaFromPath__ribaltorg__", key = "{#path}")
-    public void getAziendaFromPathRemoveCache(String path) {
-    }
-
-    @Cacheable(value = "applicazione", key = "{#id}")
     public Applicazione getApplicazione(String id) {
         Optional<Applicazione> applicazione = applicazioneRepository.findById(id);
         if (applicazione.isPresent()) {
@@ -143,7 +131,6 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "ruolo", key = "{#nomeBreve.toString()}")
     public Ruolo getRuoloByNomeBreve(Ruolo.CodiciRuolo nomeBreve) {
         Optional<Ruolo> findOne = ruoloRepository.findOne(QRuolo.ruolo.nomeBreve.eq(nomeBreve.toString()));
         if (findOne.isPresent()) {
@@ -153,7 +140,6 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "struttura__ribaltorg__", key = "{#id}")
     public Struttura getStruttura(Integer id) {
         Optional<Struttura> struttura = strutturaRepository.findById(id);
         if (struttura.isPresent()) {
@@ -163,7 +149,6 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "personaFromUtente__ribaltorg__", key = "{#utente.getId()}")
     public Persona getPersonaFromUtente(Utente utente) throws BlackBoxPermissionException {
         Utente refreshedUtente = utenteRepository.getOne(utente.getId());
         Persona persona = getPersona(refreshedUtente.getIdPersona().getId());
@@ -177,7 +162,6 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "persona__ribaltorg__", key = "{#id}")
     public Persona getPersona(Integer id) {
         Optional<Persona> persona = personaRepository.findById(id);
         if (persona.isPresent()) {
@@ -188,7 +172,6 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "personaFromCodiceFiscale__ribaltorg__", key = "{#codiceFiscale}")
     public Persona getPersonaFromCodiceFiscale(String codiceFiscale) {
         BooleanExpression filter = QPersona.persona.codiceFiscale.eq(codiceFiscale.toUpperCase());
         Optional<Persona> persona = personaRepository.findOne(filter);
@@ -200,12 +183,10 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "personaFromIdUtente__ribaltorg__", key = "{#idUtente}")
     public Persona getPersonaFromIdUtente(Integer idUtente) throws BlackBoxPermissionException {
         return getPersonaFromUtente(getUtente(idUtente));
     }
 
-    @Cacheable(value = "utente__ribaltorg__", key = "{#id}")
     public Utente getUtente(Integer id) {
         Optional<Utente> utente = utenteRepository.findById(id);
         if (utente.isPresent()) {
@@ -215,7 +196,6 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "operazioneKrint__ribaltorg__", key = "{#codiceOperazione}")
     public OperazioneKrint getOperazioneKrint(OperazioneKrint.CodiceOperazione codiceOperazione) {
         return operazioneKrinRepository.findByCodice(codiceOperazione.toString()).orElse(null);
     }
@@ -223,17 +203,7 @@ public class CachedEntities {
     public OperazioneKrint getLastOperazioneVersionataKrint(OperazioneKrint.CodiceOperazione codiceOperazione) {
         return operazioneKrinRepository.findByCodice(codiceOperazione.toString()).orElse(null);
     }
-
-//    @Cacheable(value = "predicatoAmbito__ribaltorg__", key = "{#id}")
-//    public PredicatoAmbito getPredicatoAmbito(Integer id) {
-//        PredicatoAmbito predicatoAmbito = this.predicatoAmbitoRepository.getOne(id);
-//        return predicatoAmbito;
-//    }
-    public void getRuoloByNomeBreve(String ruoloNomeBreve) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
     
-    @Cacheable(value = "registroAzienda", key = "{#idAzienda, #codice.toString()}")
     public Registro getRegistro(Integer idAzienda, Registro.CodiceRegistro codice) {
         QRegistro qRegistro = QRegistro.registro;
         BooleanExpression filtro = qRegistro.codice.eq(codice.toString())

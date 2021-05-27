@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import it.bologna.ausl.documentgenerator.GeneratePE;
 import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -56,28 +57,39 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.RegistroRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.NonCachedEntities;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
 import it.bologna.ausl.model.entities.baborg.Pec;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato.TipoDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
+import it.bologna.ausl.model.entities.scripta.Registro;
+import it.bologna.ausl.model.entities.scripta.RegistroDoc;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithDettagliAllegatiListAndIdAllegatoPadre;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
-import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithPlainFields;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
-import java.io.FileNotFoundException;
 import java.io.FileNotFoundException;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.Formatter;
 import org.json.JSONObject;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -94,10 +106,22 @@ public class ScriptaCustomController {
     List<Allegato> savedFilesOnInternauta = new ArrayList();
 
     @Autowired
+    CachedEntities cachedEntities;
+    
+    @Autowired
+    NonCachedEntities nonCachedEntities;
+    
+    @Autowired
     DocRepository docRepository;
+    
+    @Autowired
+    RegistroDocRepository registroDocRepository;
 
     @Autowired
     PecRepository pecRepository;
+    
+    @Autowired
+    PersonaRepository personaRepository;
 
     @Autowired
     ScriptaUtils scriptaUtils;
@@ -131,7 +155,7 @@ public class ScriptaCustomController {
 
     @Autowired
     ObjectMapper objectMapper;
-    
+
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
 
@@ -176,7 +200,6 @@ public class ScriptaCustomController {
                 allegato.setOrdinale(numeroOrdine);
                 allegato.setFirmato(false);
                 DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
-
                 //allegato.setConvertibilePdf(false);
                 dettaglioAllegato.setHashMd5(savedFileOnRepository.getMd5());
 
@@ -292,7 +315,10 @@ public class ScriptaCustomController {
         pecMessageDetail.put("idSorgentePec", message.getId());
         pecMessageDetail.put("subject", message.getSubject());
         pecMessageDetail.put("mittente", mittente.getDescrizione());
-        pecMessageDetail.put("dataArrivo", message.getReceiveTime());
+//        pecMessageDetail.put("dataArrivo", message.getReceiveTime());
+        Spedizione spedizioneMittente = scriptaUtils.getSpedizioneMittente(mittente);
+        ZonedDateTime data = spedizioneMittente.getData();
+        pecMessageDetail.put("dataArrivo", data.toLocalDateTime());
         pecMessageDetail.put("messageID", message.getUuidMessage());
         Pec pecDaCuiProtocollo = pecRepository.findById(message.getIdPec().getId()).get();
         pecMessageDetail.put("indirizzoPecOrigine", pecDaCuiProtocollo.getIndirizzo());
@@ -319,16 +345,17 @@ public class ScriptaCustomController {
         Map<String, Object> parametersMap = new HashMap();
         parametersMap.put("azienda", doc.getIdAzienda().getCodiceRegione() + doc.getIdAzienda().getCodice());
         parametersMap.put("applicazione_chiamante", authenticatedUserProperties.getApplicazione().toString());
-        parametersMap.put("numero_documento_origine", doc.getId().toString());
-        parametersMap.put("anno_documento_origine", doc.getDataCreazione().getYear());
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        String dateFormat = doc.getDataCreazione().format(formatter);
-        parametersMap.put("data_registrazione_origine", dateFormat);
+//        parametersMap.put("numero_documento_origine", doc.getId().toString());
+        parametersMap.put("id_doc_esterno", doc.getId());
+//        parametersMap.put("anno_documento_origine", doc.getDataCreazione().getYear());
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//        String dateFormat = doc.getDataCreazione().format(formatter);
+//        parametersMap.put("data_registrazione_origine", dateFormat);
         parametersMap.put("oggetto", doc.getOggetto());
         //TODO da decommentare quando ci saranno i campi sul db e bisogna mettere la data in stringa
         //parametersMap.put("data_arrivo_origine", doc.getMittenti().get(0).getSpedizioneList().get(0).getData());
         //da elimare quando ci saranno i campi sul db
-        parametersMap.put("data_arrivo_origine", dateFormat);
+//        parametersMap.put("data_arrivo_origine", dateFormat);
         parametersMap.put("utente_protocollante", loggedUser.getIdPersona().getCodiceFiscale());
         //TODO da mettere quando avremo le fascicolazioni
         //da decommentare quando avremo le tabelle della fascicolazione
@@ -392,7 +419,7 @@ public class ScriptaCustomController {
             HttpServletRequest request) throws HttpInternautaResponseException,
             Throwable {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Utente loggedUser = authenticatedUserProperties.getUser();
+        Persona loggedPersona = nonCachedEntities.getPersona(authenticatedUserProperties.getPerson().getId());
 
         Optional<Doc> docOp = docRepository.findById(idDoc);
         Doc doc;
@@ -419,38 +446,77 @@ public class ScriptaCustomController {
             minIOActive = parametriAziende.getValue(mongoAndMinIOActive.get(0), Boolean.class);
         }
         generatePE.init(
-                loggedUser.getIdPersona().getCodiceFiscale(),
+                loggedPersona.getCodiceFiscale(),
                 parametersMap,
                 multipartPrincipale,
                 Optional.of(multipartList),
                 aziendeConnectionManager.getAziendeParametriJson(),
                 minIOActive,
-                aziendeConnectionManager.getMinIOConfig()
+                aziendeConnectionManager.getMinIOConfig(),
+                true // dobbiamo evitare l'estrazione ricorsiva degli allegati
         );
 
-        String record = generatePE.create(null);
-        LOG.info("generatePE.create() ha tornato '" + record + "'");
-        if (!(record != null && record != "")) {
+        String resultJson = generatePE.create(null);
+        LOG.info("generatePE.create() ha tornato '" + resultJson + "'");
+        if (!StringUtils.hasText(resultJson)) {
             throw new Throwable("Errore nella protocollazione del PE");
         }
-        Map<String, String> resMap = new HashMap();
-        resMap.put("protocollo", record);
-        ResponseEntity res = ResponseEntity.ok(resMap);
+        
+        Map<String, Object> resObj = objectMapper.readValue(resultJson, new TypeReference<Map<String, Object>>(){});
+        saveRegistriDoc(resObj, doc, loggedPersona);
+        
+        ResponseEntity res = ResponseEntity.ok(resObj);
         return res;
+    }
+    
+    private void saveRegistriDoc(Map<String, Object> resObj, Doc doc, Persona loggedPersona) throws JsonProcessingException {
+        Integer numeroProtocollo = Integer.parseInt((String)resObj.get("numeroProtocollo"));
+        Integer annoProtocollo = (Integer)resObj.get("annoProtocollo");
+        String numeroPropostaConAnno = (String)resObj.get("numeroProposta");
+        Integer numeroProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[1]);
+        Integer annoProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[0]);
+        Integer idStrutturaProtocollante = (Integer)resObj.get("idStrutturaProtocollante");
+        
+        Struttura struttura = nonCachedEntities.getStruttura(idStrutturaProtocollante);
+        Registro registroPropostaPico = nonCachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PROP_PG);
+        Registro registroProtocolloPico = nonCachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PG);
+        
+        String dataRegistrazioneString = (String)resObj.get("dataRegistrazione");
+        LocalDateTime dataRegistrazioneLocal = LocalDateTime.parse(dataRegistrazioneString);
+        
+        
+        RegistroDoc proposta = new RegistroDoc();
+        proposta.setAnno(annoProposta);
+        proposta.setDataRegistrazione(ZonedDateTime.of(dataRegistrazioneLocal, ZoneId.systemDefault()));
+        proposta.setIdDoc(doc);
+        proposta.setIdPersonaRegistrante(loggedPersona);
+        proposta.setIdStrutturaRegistrante(struttura);
+        proposta.setNumero(numeroProposta);
+        proposta.setIdRegistro(registroPropostaPico);
+        
+        RegistroDoc protocollo = new RegistroDoc();
+        protocollo.setAnno(annoProtocollo);
+        protocollo.setDataRegistrazione(ZonedDateTime.of(dataRegistrazioneLocal, ZoneId.systemDefault()));
+        protocollo.setIdDoc(doc);
+        protocollo.setIdPersonaRegistrante(loggedPersona);
+        protocollo.setIdStrutturaRegistrante(struttura);
+        protocollo.setNumero(numeroProtocollo);
+        protocollo.setIdRegistro(registroProtocolloPico);
+        
+        registroDocRepository.saveAll(Arrays.asList(proposta, protocollo));
     }
 
     @Transactional(rollbackFor = Throwable.class)
     private Allegato saveFileOnInternauta(Allegato allegato) {
         Allegato saved = allegatoRepository.save(allegato);
         return saved;
-
     }
 
     private Map<String, Object> buildMittente(Related mittenteDoc) throws JsonProcessingException {
         Map<String, Object> mittente = new HashMap();
         mittente.put("descrizione", mittenteDoc.getDescrizione());
         Spedizione spedizioneMittente = scriptaUtils.getSpedizioneMittente(mittenteDoc);
-        mittente.put("indirizzo_spedizione", spedizioneMittente.getIndirizzo().toString());
+        mittente.put("indirizzo_spedizione", spedizioneMittente.getIndirizzo().getCompleto());
         Mezzo mezzo = spedizioneMittente.getIdMezzo();
         mittente.put("mezzo_spedizione", mezzo.ottieniCodiceArgo());
         return mittente;
@@ -479,8 +545,7 @@ public class ScriptaCustomController {
     }
 
     public static String getHashFromFile(InputStream is, String algorithmName) throws FileNotFoundException, IOException, NoSuchAlgorithmException {
-        //    Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-
+        
         MessageDigest algorithm = MessageDigest.getInstance(algorithmName);
         DigestInputStream dis = new DigestInputStream(is, algorithm);
 
