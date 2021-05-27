@@ -31,25 +31,25 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class SelectedContactsUtils {
-
+    
     DettaglioContatto.TipoDettaglio TIPO_UTENTE_STRUTTURA = DettaglioContatto.TipoDettaglio.UTENTE_STRUTTURA;
     DettaglioContatto.TipoDettaglio TIPO_STRUTTURA = DettaglioContatto.TipoDettaglio.STRUTTURA;
-
+    
     @Autowired
     private ObjectMapper objectMapper;
-
+    
     @Autowired
     StrutturaRepository strutturaRepository;
-
+    
     @Autowired
     AziendaRepository aziendaRepository;
-
+    
     private JSONObject dammiOggettoDestinatarioGruppoSenzaContattiInterniDiAltraAzienda(
             JSONObject oggettoDestinatarioGruppo,
             Azienda azienda) {
         JSONObject oggettoDestinatarioDaTornare = null;
         JSONObject contact = oggettoDestinatarioGruppo.getJSONObject("contact");
-
+        
         JSONArray contattiDelGruppoList = (JSONArray) contact
                 .get("contattiDelGruppoList");
         if (contattiDelGruppoList != null) {
@@ -62,7 +62,7 @@ public class SelectedContactsUtils {
             contattiDelGruppoListTransient = pulisciListTransientDaInterniDiAltraAzienda(contattiDelGruppoListTransient, azienda);
             contact.put("contattiDelGruppoListTransient", contattiDelGruppoListTransient);
         }
-
+        
         if ((contattiDelGruppoListTransient != null || contattiDelGruppoList != null)
                 && contattiDelGruppoList.length() > 0 || contattiDelGruppoListTransient.length() > 0) {
             System.out.println("Il gruppo ha conservato almeno un destinatario");
@@ -71,7 +71,7 @@ public class SelectedContactsUtils {
         }
         return oggettoDestinatarioDaTornare;
     }
-
+    
     public JSONArray togliDaJSONArrayDestinatariContattiInterniDiAltreAziende(
             JSONArray jarrayContattiDestinatari,
             Azienda azienda) {
@@ -89,25 +89,27 @@ public class SelectedContactsUtils {
             } else {
                 jsonArrayToReturn.put(elementoContattoDestinatario);
             }
-
+            
         }
-
+        
         return jsonArrayToReturn;
     }
-
+    
     private JSONArray pulisciListTransientDaInterniDiAltraAzienda(
             JSONArray contattiDelGruppoListTransient,
             Azienda azienda) {
         System.out.println("Dentro togliDaContattiDelGruppoListTransientInterniDiAltraAzienda");
         JSONArray nuovoJsonArrayDaTornare = new JSONArray();
-
+        
         for (int i = 0; i < contattiDelGruppoListTransient.length(); i++) {
             JSONObject elementoContattoTransient = (JSONObject) contattiDelGruppoListTransient.get(i);
             System.out.println("Processo questo elemento\n" + elementoContattoTransient.toString());
-
+            
+            JSONObject address = elementoContattoTransient.getJSONObject("address");
             JSONObject contact = elementoContattoTransient.getJSONObject("contact");
-            if (contact.get("categoria").equals("PERSONA")) {
-                JSONObject address = elementoContattoTransient.getJSONObject("address");
+            if (contact.get("categoria").equals("PERSONA")
+                    && address.get("tipo").equals("UTENTE_STRUTTURA")) {
+                
                 JSONObject utenteStrutturaObject = address.getJSONObject("utenteStruttura");
                 JSONObject struttura = (JSONObject) utenteStrutturaObject.get("idStruttura");
                 Integer idStruttura = struttura.getInt("id");
@@ -115,23 +117,23 @@ public class SelectedContactsUtils {
                 if (!idStrutturaDiAltraAzienda) {
                     nuovoJsonArrayDaTornare.put(elementoContattoTransient);
                 }
-
+                
             } else if (contact.get("categoria").equals("STRUTTURA")) {
                 JSONObject strutturaObject = contact.getJSONObject("idStruttura");
                 Integer idStruttura = strutturaObject.getInt("id");
                 boolean idStrutturaDiAltraAzienda = isIdStrutturaDiAltraAzienda(idStruttura, azienda);
                 if (!idStrutturaDiAltraAzienda) {
                     nuovoJsonArrayDaTornare.put(elementoContattoTransient);
-
+                    
                 }
             } else {
                 nuovoJsonArrayDaTornare.put(elementoContattoTransient);
             }
         }
-
+        
         return nuovoJsonArrayDaTornare;
     }
-
+    
     private JSONArray pulisciListDaInterniDiAltraAzienda(
             JSONArray contattiDelGruppoList,
             Azienda azienda) {
@@ -139,7 +141,7 @@ public class SelectedContactsUtils {
         for (int i = 0; i < contattiDelGruppoList.length(); i++) {
             JSONObject elementoContatto = (JSONObject) contattiDelGruppoList.get(i);
             System.out.println("Processo questo elemento\n" + elementoContatto.toString());
-
+            
             JSONObject idContattoObject = elementoContatto
                     .getJSONObject("idContatto");
             if (idContattoObject.get("categoria").equals("STRUTTURA")
@@ -147,7 +149,7 @@ public class SelectedContactsUtils {
                 boolean isInternoDaAltraAzienda = isDaAltraAzienda(elementoContatto, azienda);
                 if (!isInternoDaAltraAzienda) {
                     nuovoContattiDelGruppoListDaTornare.put(elementoContatto);
-
+                    
                 } else {
                     System.out.println("Questo non va messo:\n" + elementoContatto.toString());
                 }
@@ -155,33 +157,34 @@ public class SelectedContactsUtils {
                 nuovoContattiDelGruppoListDaTornare.put(elementoContatto);
             }
         }
-
+        
         return nuovoContattiDelGruppoListDaTornare;
     }
-
+    
     private boolean isDaAltraAzienda(JSONObject elementoContatto,
             Azienda azienda) {
         boolean isDaAltraAzienda = false;
+        JSONObject idDettaglioContattoObject = elementoContatto.getJSONObject("idDettaglioContatto");
         JSONObject idContattoObject = elementoContatto.getJSONObject("idContatto");
         if (idContattoObject.get("categoria").equals("STRUTTURA")) {
             JSONObject idStrutturaJson = idContattoObject.getJSONObject("idStruttura");
             Integer idStruttura = idStrutturaJson.getInt("id");
             isDaAltraAzienda = isIdStrutturaDiAltraAzienda(idStruttura, azienda);
-
-        } else if (idContattoObject.get("categoria").equals("PERSONA")) {
-            JSONObject idDettaglioContattoObject = elementoContatto.getJSONObject("idDettaglioContatto");
+            
+        } else if (idContattoObject.get("categoria").equals("PERSONA")
+                && idDettaglioContattoObject.get("tipo").equals("UTENTE_STRUTTURA")) {
             JSONObject utenteStruttura = (JSONObject) idDettaglioContattoObject.get("utenteStruttura");
             JSONObject idStrutturaObject = utenteStruttura.getJSONObject("idStruttura");
             Integer idStruttura = idStrutturaObject.getInt("id");
             isDaAltraAzienda = isIdStrutturaDiAltraAzienda(idStruttura, azienda);
-
+            
         } else {
             System.out.println("Qua non bisogna entrare: "
                     + "spero di non vederlo mai stampato...");
         }
         return isDaAltraAzienda;
     }
-
+    
     public boolean isIdStrutturaDiAltraAzienda(Integer idStruttura, Azienda azienda) {
         boolean isStrutturaDiAltraAzienda = false;
         Struttura struttura = strutturaRepository.getOne(idStruttura);
@@ -191,5 +194,5 @@ public class SelectedContactsUtils {
         }
         return isStrutturaDiAltraAzienda;
     }
-
+    
 }
