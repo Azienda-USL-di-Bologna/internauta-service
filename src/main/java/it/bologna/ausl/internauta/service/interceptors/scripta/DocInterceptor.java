@@ -12,12 +12,10 @@ import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
-import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
-import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QMezzo;
 import it.bologna.ausl.model.entities.scripta.Related;
@@ -28,7 +26,6 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageAddress;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
-import java.security.NoSuchAlgorithmException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -193,7 +190,16 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                                 List<Related> relatedList = new ArrayList();
                                 relatedList.add(mittenteDoc);
                                 doc.setRelated(relatedList);
-
+                                
+                                // Inserisco la relazione messaggio-doc nella tabella messagesDocs
+                                MessageDoc messageDoc = new MessageDoc();
+                                messageDoc.setIdDoc(doc);
+                                messageDoc.setIdMessage(message);
+                                messageDoc.setTipo(MessageDoc.TipoMessageDoc.IN);
+                                List<MessageDoc> messageDocList = new ArrayList();
+                                messageDocList.add(messageDoc);
+                                doc.setMessageDocList(messageDocList);
+                                
                                 // Setto il tag in registraion sul messaggio
                                 Map<String, Map<String, Object>> inRegistrationAdditionalData = new HashMap();
                                 Map<String, Object> idDocumento = new HashMap();

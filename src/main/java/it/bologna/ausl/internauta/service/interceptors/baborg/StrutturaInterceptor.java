@@ -55,32 +55,33 @@ import org.springframework.util.StringUtils;
 @NextSdrInterceptor(name = "struttura-interceptor")
 @Order(1)
 public class StrutturaInterceptor extends InternautaBaseInterceptor {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(StrutturaInterceptor.class);
-    
+
     @Autowired
     PermissionManager permissionManager;
-    
+
     @Autowired
     PermissionRepositoryAccess permissionRepositoryAccess;
-    
+
     @Autowired
-    StoricoRelazioneRepository storicoRelazioneRepository; 
-    
+    StoricoRelazioneRepository storicoRelazioneRepository;
+
     @Autowired
-    StrutturaRepository strutturaRepository; 
-    
+    StrutturaRepository strutturaRepository;
+
     @Autowired
     ParametriAziende parametriAziende;
-    
+
     @Autowired
     UserInfoService userInfoService;
-    
+
     @Autowired
     InternautaUtils internautaUtils;
-    
+
     @Autowired
     public ObjectMapper objectMapper;
-    
+
     @Override
     public Class getTargetEntityClass() {
         return Struttura.class;
@@ -93,7 +94,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         boolean isCA = userInfoService.isCA(utente);
         boolean isCI = userInfoService.isCI(utente);
         boolean isSD = userInfoService.isSD(utente);
-        
+
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
@@ -104,18 +105,17 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                         Pec pec = new Pec(Integer.parseInt(idPec));
                         try {
                             List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(
-                                Arrays.asList(new Pec[]{pec}),
-                                Arrays.asList(new String[]{Predicati.SPEDISCE.toString(), Predicati.SPEDISCE_PRINCIPALE.toString()}),
-                                Arrays.asList(new String[]{Ambiti.PECG.toString()}),
-                                Arrays.asList(new String[]{Tipi.PEC.toString()}), false);
-                            if (subjectsWithPermissionsOnObject == null){
+                                    Arrays.asList(new Pec[]{pec}),
+                                    Arrays.asList(new String[]{Predicati.SPEDISCE.toString(), Predicati.SPEDISCE_PRINCIPALE.toString()}),
+                                    Arrays.asList(new String[]{Ambiti.PECG.toString()}),
+                                    Arrays.asList(new String[]{Tipi.PEC.toString()}), false);
+                            if (subjectsWithPermissionsOnObject == null) {
                                 initialPredicate = Expressions.FALSE.eq(true);
-                            }
-                            else {
+                            } else {
                                 BooleanExpression permessoFilter = QStruttura.struttura.id.in(
-                                    subjectsWithPermissionsOnObject
-                                        .stream()
-                                        .map(p -> p.getSoggetto().getIdProvenienza()).collect(Collectors.toList()));
+                                        subjectsWithPermissionsOnObject
+                                                .stream()
+                                                .map(p -> p.getSoggetto().getIdProvenienza()).collect(Collectors.toList()));
                                 initialPredicate = permessoFilter.and(initialPredicate);
                             }
                             /* Conserviamo i dati estratti dalla BlackBox */
@@ -124,67 +124,68 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                         }
-                    break;
+                        break;
                     case FilterStrutturePoolsRuolo:
                         try {
-                            String ruoliNomeBreveString = additionalData.get(InternautaConstants.AdditionalData.Keys.ruoli.toString());
-                            if (!isCA && !isCI && !isSD && !StringUtils.isEmpty(ruoliNomeBreveString)) {
-                                List<ParametroAziende> filtraResponsabiliParams = parametriAziende.getParameters("AccessoPoolFiltratoPerRuolo", new Integer[]{utente.getIdAzienda().getId()});
-                                if (filtraResponsabiliParams != null && !filtraResponsabiliParams.isEmpty() && parametriAziende.getValue(filtraResponsabiliParams.get(0), Boolean.class)) {
-                                    Integer mascheraBit = internautaUtils.getSommaMascheraBit(ruoliNomeBreveString);
+                        String ruoliNomeBreveString = additionalData.get(InternautaConstants.AdditionalData.Keys.ruoli.toString());
+                        if (!isCA && !isCI && !isSD && !StringUtils.isEmpty(ruoliNomeBreveString)) {
+                            List<ParametroAziende> filtraResponsabiliParams = parametriAziende.getParameters("AccessoPoolFiltratoPerRuolo", new Integer[]{utente.getIdAzienda().getId()});
+                            if (filtraResponsabiliParams != null && !filtraResponsabiliParams.isEmpty() && parametriAziende.getValue(filtraResponsabiliParams.get(0), Boolean.class)) {
+                                Integer mascheraBit = internautaUtils.getSommaMascheraBit(ruoliNomeBreveString);
 
-                                    Map<String, Integer> struttureRuoloEFiglie = objectMapper.convertValue(
+                                Map<String, Integer> struttureRuoloEFiglie = objectMapper.convertValue(
                                         storicoRelazioneRepository.getStruttureRuoloEFiglie(mascheraBit, utente.getId(), LocalDateTime.now()).get("result"),
-                                        new TypeReference<Map<String, Integer>>(){}
-                                    );
-                                    if (struttureRuoloEFiglie != null && !struttureRuoloEFiglie.isEmpty()) {
-                                        List<Integer> struttureResposabilita = struttureRuoloEFiglie.keySet().stream().map(s -> Integer.valueOf(s)).collect(Collectors.toList());
-                                        BooleanExpression filterRuolo = QStruttura.struttura.idStrutturaPadre.id.in(struttureResposabilita);
-                                        initialPredicate = filterRuolo.and(initialPredicate);
-                                    } else {
-                                        initialPredicate = Expressions.FALSE.eq(true);
-                                    }
+                                        new TypeReference<Map<String, Integer>>() {
+                                }
+                                );
+                                if (struttureRuoloEFiglie != null && !struttureRuoloEFiglie.isEmpty()) {
+                                    List<Integer> struttureResposabilita = struttureRuoloEFiglie.keySet().stream().map(s -> Integer.valueOf(s)).collect(Collectors.toList());
+                                    BooleanExpression filterRuolo = QStruttura.struttura.idStrutturaPadre.id.in(struttureResposabilita);
+                                    initialPredicate = filterRuolo.and(initialPredicate);
                                 } else {
                                     initialPredicate = Expressions.FALSE.eq(true);
                                 }
+                            } else {
+                                initialPredicate = Expressions.FALSE.eq(true);
                             }
-                        } catch (Exception ex) {
-                            throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_ruolo_e_figlie", ex);
                         }
+                    } catch (Exception ex) {
+                        throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_ruolo_e_figlie", ex);
+                    }
                     break;
                 }
             }
         }
         return initialPredicate;
     }
-   
+
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-        Struttura struttura = (Struttura) entity;        
+        Struttura struttura = (Struttura) entity;
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
                     case GetPermessiStrutturePec:
-                        List<PermessoEntitaStoredProcedure> struttureConPermesso = 
-                                (List<PermessoEntitaStoredProcedure>) this.httpSessionData.getData(HttpSessionData.Keys.StruttureWithPecPermissions);
+                        List<PermessoEntitaStoredProcedure> struttureConPermesso
+                                = (List<PermessoEntitaStoredProcedure>) this.httpSessionData.getData(HttpSessionData.Keys.StruttureWithPecPermissions);
                         if (struttureConPermesso != null && !struttureConPermesso.isEmpty()) {
-                            List<PermessoEntitaStoredProcedure> permessiStruttura = 
-                                    struttureConPermesso.stream().filter(p -> 
-                                            p.getSoggetto().getIdProvenienza()
+                            List<PermessoEntitaStoredProcedure> permessiStruttura
+                                    = struttureConPermesso.stream().filter(p
+                                            -> p.getSoggetto().getIdProvenienza()
                                             .equals(struttura.getId()))
                                             .collect(Collectors.toList());
                             struttura.setPermessi(permessiStruttura);
                         }
-                    break;
+                        break;
                 }
-            }  
-        }          
+            }
+        }
         return struttura;
     }
 
     @Override
-    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {    
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             if (operationsRequested.contains(AdditionalData.OperationsRequested.GetPermessiStrutturePec)) {
@@ -238,43 +239,44 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         boolean isCA = userInfoService.isCA(utente);
         boolean isCI = userInfoService.isCI(utente);
         boolean isSD = userInfoService.isSD(utente);
-        
+
         if (struttura.getUfficio() && struttura.getIdStrutturaPadre() == null) {
             // In caso di creazione ufficio vogliamo arbitrariamente popolare la struttura padre
             if (isCA || isCI || isSD) {
                 // In questo caso setto la radice dell'organigramma
-                BooleanExpression findRadice = 
-                        QStruttura.struttura.idStrutturaPadre.isNull()
-                        .and(QStruttura.struttura.idAzienda.id.eq(struttura.getIdAzienda().getId()))
-                        .and(QStruttura.struttura.attiva.eq(Boolean.TRUE));
-                Struttura strutturaRadice = strutturaRepository.findOne(findRadice).get();
-                struttura.setIdStrutturaPadre(strutturaRadice);
+                //Non vogliamo più settare la radice dell'organigramma, ma vogliamo che sia selezionata dall'utente.
+//                BooleanExpression findRadice = 
+//                        QStruttura.struttura.idStrutturaPadre.isNull()
+//                        .and(QStruttura.struttura.idAzienda.id.eq(struttura.getIdAzienda().getId()))
+//                        .and(QStruttura.struttura.attiva.eq(Boolean.TRUE));
+//                Struttura strutturaRadice = strutturaRepository.findOne(findRadice).get();
+//                struttura.setIdStrutturaPadre(strutturaRadice);
             } else {
                 Integer mascheraBit = internautaUtils.getSommaMascheraBit(Ruolo.CodiciRuolo.R.toString());
 
                 Map<String, Integer> struttureResponsabile = objectMapper.convertValue(
-                    storicoRelazioneRepository.getStruttureRuolo(mascheraBit, utente.getId(), LocalDateTime.now()).get("result"),
-                    new TypeReference<Map<String, Integer>>(){}
+                        storicoRelazioneRepository.getStruttureRuolo(mascheraBit, utente.getId(), LocalDateTime.now()).get("result"),
+                        new TypeReference<Map<String, Integer>>() {
+                }
                 );
-                
+
                 if (struttureResponsabile.size() == 0) {
                     throw new AbortSaveInterceptorException("Utente non autorizzato alla creazione di uffici");
                 }
-                
+
                 Iterator<String> struttureRespIterator = struttureResponsabile.keySet().iterator();
                 Integer idStrutturaResp = null;
-                if(struttureRespIterator.hasNext()){
+                if (struttureRespIterator.hasNext()) {
                     idStrutturaResp = Integer.parseInt(struttureRespIterator.next());
                 }
-                
-                BooleanExpression findStrutturaResponsabile = 
-                        QStruttura.struttura.id.eq(idStrutturaResp);
+
+                BooleanExpression findStrutturaResponsabile
+                        = QStruttura.struttura.id.eq(idStrutturaResp);
                 Struttura strutturaResponsabile = strutturaRepository.findOne(findStrutturaResponsabile).get();
                 struttura.setIdStrutturaPadre(strutturaResponsabile);
             }
         }
         return struttura;
     }
-    
-    
+
 }
