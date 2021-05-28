@@ -31,9 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
-import org.jose4j.json.internal.json_simple.JSONArray;
-import org.jose4j.json.internal.json_simple.JSONObject;
-import org.jose4j.json.internal.json_simple.parser.JSONParser;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +63,13 @@ import okhttp3.Response;
 import org.sql2o.data.Row;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.rubrica.QContatto;
+import java.util.stream.StreamSupport;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 /**
  *
@@ -90,7 +94,7 @@ public class RaccoltaSempliceCustomController {
     ObjectMapper objectMapper;
 
     @Autowired
-    ContattoRepository contattorepository;
+    ContattoRepository contattoRepository;
 
     @Autowired
     UtenteRepository utenteRepository;
@@ -385,6 +389,7 @@ public class RaccoltaSempliceCustomController {
         if (azienda == null) {
             throw new Http400ResponseException("400", "il parametro del body azienda è obbligatorio");
         }
+        String codiceAzienda = azienda.substring(3);
 
         if (oggetto == null) {
             throw new Http400ResponseException("400", "il parametro del body oggetto è obbligatorio");
@@ -414,6 +419,7 @@ public class RaccoltaSempliceCustomController {
         }
 
         JSONParser parser = new JSONParser();
+
         JSONArray fascicoliBabel = (JSONArray) parser.parse(fascicoliBabelStr);
 
         // gestione persone
@@ -425,11 +431,15 @@ public class RaccoltaSempliceCustomController {
         }
         for (PersonaRS persona : persone) {
             if (persona.isSalvaContatto()) {
+
                 log.info(String.format("salvataggio contatto in rubrica: %s", persona.getDescrizione()));
                 Optional<Persona> p = personaRepository.findById(1);
                 Optional<Utente> u = utenteRepository.findById(1);
-                Contatto toContact = PersonaRS.toContatto(10, persona, p.get(), u.get(), Boolean.TRUE);
-                contattorepository.save(toContact);
+                Integer idAzienda = postgresConnectionManager.getIdAzienda(codiceAzienda);
+                Contatto toContact = PersonaRS.toContatto(idAzienda, persona, p.get(), u.get(), Boolean.TRUE);
+                String res = contattoRepository.getSimilarContacts(persona.dumpToString(objectMapper, persona), idAzienda.toString());
+                SqlSimilarityResults similarityResults = objectMapper.readValue(res, SqlSimilarityResults.class);
+                contattoRepository.save(toContact);
 
             } else {
                 log.info(String.format("contatto da non salvare in rubrica: %s", persona.getDescrizione()));
@@ -441,7 +451,6 @@ public class RaccoltaSempliceCustomController {
             }
         }
 
-        String codiceAzienda = azienda.substring(3);
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
         //MongoWrapper mongo = aziendaParamsManager.getStorageConnection(codiceAzienda);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
@@ -999,4 +1008,5 @@ public class RaccoltaSempliceCustomController {
         }
         return (idCoinvolto != null && idCoinvoltoRaccolta != null);
     }
+
 }
