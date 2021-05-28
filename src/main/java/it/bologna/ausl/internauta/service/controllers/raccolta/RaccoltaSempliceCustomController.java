@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.documentgenerator.exceptions.Http400ResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.Sql2oSelectException;
-import it.bologna.ausl.documentgenerator.utils.AziendaParamsManager;
 import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedSignatureType;
 import it.bologna.ausl.internauta.service.argo.raccolta.CoinvoltiRaccolte;
 import it.bologna.ausl.internauta.service.argo.raccolta.Coinvolto;
@@ -14,7 +13,6 @@ import it.bologna.ausl.internauta.service.argo.raccolta.PersonaRS;
 import it.bologna.ausl.internauta.service.argo.raccolta.Raccolta;
 import it.bologna.ausl.internauta.service.argo.raccolta.RaccoltaManager;
 import it.bologna.ausl.internauta.service.argo.raccolta.RaccoltaNew;
-import it.bologna.ausl.internauta.service.argo.raccolta.SottoDocumentoGdDoc;
 import it.bologna.ausl.internauta.service.argo.raccolta.Sottodocumento;
 import it.bologna.ausl.internauta.service.argo.raccolta.Storico;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
@@ -50,7 +48,6 @@ import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
-import it.bologna.ausl.mongowrapper.MongoWrapper;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Collections;
@@ -65,8 +62,6 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.rubrica.QContatto;
-import java.util.stream.StreamSupport;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -258,6 +253,197 @@ public class RaccoltaSempliceCustomController {
             log.error("errore nell'esecuzione della query annullamenti", e);
             throw new Http500ResponseException("1", "Errore nell'escuzione della query di storico degli annullamenti");
         }
+    }
+
+    @RequestMapping(value = "ricerca", method = RequestMethod.GET)
+    public List<Raccolta> ricerca(
+            @RequestParam(required = false, value = "numero") String numero,
+            @RequestParam(required = false, value = "applicazioneChiamante") String applicazione,
+            @RequestParam(required = false, value = "tipoDocumento") String tipoDocumento,
+            @RequestParam(required = false, value = "oggetto") String oggetto,
+            @RequestParam(required = false, value = "fascicoli") String fascicolo,
+            @RequestParam(required = false, value = "documentoBabel") String documentoBabel,
+            @RequestParam(required = false, value = "creatore") String creatore,
+            @RequestParam(required = false, value = "struttura") String struttura,
+            HttpServletRequest request) throws Http500ResponseException,
+            Http404ResponseException, RestClientException {
+
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection("999");
+        List<Raccolta> returnRaccolta = new ArrayList<Raccolta>();
+
+        try ( Connection conn = (Connection) dbConnection.open()) {
+
+            dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryGetRaccoltaSemplice());
+            String query = "";
+
+            if (numero != null) {
+                if (query == "") {
+                    query = "SELECT * from gd.raccolte r WHERE codice ilike '%" + numero + "%' ";
+                } else {
+                    query = query + " and r.codice ilike '%" + numero + "%' ";
+                }
+                log.info("Query: " + query);
+            }
+
+            if (applicazione != null) {
+                if (query == "") {
+                    query = "SELECT * from gd.raccolte r WHERE applicazione_chiamante ilike '%" + applicazione + "%' ";
+                } else {
+                    query = query + " and r.applicazione_chiamante ilike '%" + numero + "%' ";
+                }
+                log.info("Query: " + query);
+            }
+
+            if (tipoDocumento != null) {
+                if (query == "") {
+                    query = "SELECT * from gd.raccolte r WHERE r.tipo_documento ilike '%" + tipoDocumento + "%' ";
+                } else {
+                    query = query + " and r.tipo_documento ilike '%" + tipoDocumento + "%' ";
+                }
+                log.info("Query: " + query);
+            }
+
+            if (oggetto != null) {
+                if (query == "") {
+                    query = "SELECT * from gd.raccolte r WHERE oggetto ilike '%" + oggetto + "%' ";
+                } else {
+                    query = query + " and r.oggetto ilike '%" + oggetto + "%' ";
+                }
+                log.info("Query: " + query);
+            }
+
+            if (struttura != null) {
+                if (query == "") {
+                    query = "SELECT * from gd.raccolte r WHERE descrizione_struttura ilike '%" + struttura + "%' ";
+                } else {
+                    query = query + " and r.descrizione_struttura ilike '%" + struttura + "%' ";
+                }
+                log.info("Query: " + query);
+            }
+
+            if (creatore != null) {
+                if (query == "") {
+                    query = "SELECT * from gd.raccolte r WHERE creatore ilike '%" + creatore + "%' ";
+                } else {
+                    query = query + " and r.creatore ilike '%" + creatore + "%' ";
+                }
+                log.info("Query: " + query);
+            }
+
+            if (fascicolo != null) {
+                String queryFascicoli = "SELECT id_fascicolo from gd.fascicoligd f WHERE numerazione_gerarchica ilike '%" + fascicolo + "%' ";
+                Query queryForFascicoli = conn.createQuery(queryFascicoli);
+                List<String> datiFascicoli = (List<String>) queryForFascicoli.executeAndFetch(String.class);
+                List<String> listId = new ArrayList();
+                for (String f : datiFascicoli) {
+
+                    Query queryIdGddocs = conn.createQuery("SELECT id_gddoc from gd.fascicoli_gddocs WHERE id_fascicolo = '" + f + "' ");
+                    List<String> datiGddoc = (List<String>) queryIdGddocs.executeAndFetch(String.class);
+                    listId.addAll(datiGddoc);
+                }
+                int countId = 0;
+                Boolean firstTime = true;
+                for (String idG : listId) {
+                    if (query == "") {
+                        query = "SELECT * from gd.raccolte r WHERE  (id_gddoc_associato = '" + idG + "' ";
+                        countId++;
+                        firstTime = false;
+                    } else {
+                        if (firstTime) {
+                            query = query + " and id_gddoc_associato = '" + idG + "' ";
+                            countId++;
+                            firstTime = false;
+                        }
+                        if (countId == listId.size() - 1) {
+                            log.info("Sono all'ultimo");
+                            query = query + " or id_gddoc_associato = '" + idG + "') ";
+                            countId++;
+                        } else {
+                            log.info(("Non sono all'ultimo"));
+                            query = query + " or id_gddoc_associato = '" + idG + "' ";
+                            countId++;
+                        }
+                    }
+                }
+            }
+
+            log.info("Query: " + query);
+            Query queryWithParams = conn.createQuery(query);
+            List<Raccolta> datiRaccolta = (List<Raccolta>) queryWithParams.executeAndFetch(Raccolta.class);
+            for (Raccolta r : datiRaccolta) {
+                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryCodiceBabel());
+                Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddoc()));
+                List<DocumentoBabel> doc = (List<DocumentoBabel>) queryCodice.executeAndFetch(DocumentoBabel.class);
+                if ((doc == null || doc.isEmpty()) || doc.get(0).getNumero() == null || doc.get(0).getCodiceRegistro() == null
+                        || doc.get(0).getAnno() == null || doc.get(0).getNumero().isEmpty()
+                        || doc.get(0).getCodiceRegistro().isEmpty()) {
+                    r.setDocumentoBabel("Non associato");
+                } else {
+                    r.setDocumentoBabel(doc.get(0).getCodiceBabel());
+                }
+                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapNumerazioneGerarchica());
+                Query queryFascicolo = conn.createQuery(RaccoltaManager.queryNumerazioneGerarchica(r.getIdGddoc()));
+                Query queryFascicoloAssociato = conn.createQuery(RaccoltaManager.queryNumerazioneGerarchica(r.getIdGddocAssociato()));
+                List<Fascicolo> fascicoli = (List<Fascicolo>) queryFascicolo.executeAndFetch(Fascicolo.class);
+                List<Fascicolo> fascicoliAssociati = (List<Fascicolo>) queryFascicoloAssociato.executeAndFetch(Fascicolo.class);
+                fascicoli.addAll(fascicoliAssociati);
+                List<Fascicolo> fascicoliCorretti = fascicoli.stream().distinct().collect(Collectors.toList());
+                String numerazioneGerarchica = "";
+                for (Fascicolo f : fascicoliCorretti) {
+                    numerazioneGerarchica = numerazioneGerarchica + f.getNumerazioneGerarchica() + " ";
+                }
+                r.setFascicoli(numerazioneGerarchica);
+                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapCoinvoltiRaccolta());
+                log.info("Query raccolta coinvolti: " + RaccoltaManager.queryCoinvoltiRaccolta(r.getId().toString()));
+                Query queryCoinvoltiRaccolta = conn.createQuery(RaccoltaManager.queryCoinvoltiRaccolta(r.getId().toString()));
+                List<CoinvoltiRaccolte> coinvoltiRaccolti = (List<CoinvoltiRaccolte>) queryCoinvoltiRaccolta.executeAndFetch(CoinvoltiRaccolte.class);
+                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapCoinvolti());
+                for (CoinvoltiRaccolte cr : coinvoltiRaccolti) {
+                    log.info("Query coinvolti: " + RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
+                    Query queryCoinvolti = conn.createQuery(RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
+                    List<Coinvolto> coinvolts = (List<Coinvolto>) queryCoinvolti.executeAndFetch(Coinvolto.class);
+                    for (Coinvolto c : coinvolts) {
+                        if (c.getCap() == null) {
+                            c.setCap("");
+                        }
+                        if (c.getCivico() == null) {
+                            c.setCivico("");
+                        }
+                        if (c.getComune() == null) {
+                            c.setComune("");
+                        }
+                        if (c.getNazione() == null) {
+                            c.setNazione("");
+                        }
+                        if (c.getProvincia() == null) {
+                            c.setProvincia("");
+                        }
+                        if (c.getVia() == null) {
+                            c.setVia("");
+                        }
+                        r.addCoinvolto(c);
+                    }
+
+                }
+                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapSottoDocumenti());
+                Query querySottodocumenti = conn.createQuery(RaccoltaManager.querySottoDocumenti(r.getIdGddoc()));
+                Query querySottodocumentiAssociati = conn.createQuery(RaccoltaManager.querySottoDocumenti(r.getIdGddocAssociato()));
+                List<Sottodocumento> documenti = (List<Sottodocumento>) querySottodocumenti.executeAndFetch(Sottodocumento.class);
+                List<Sottodocumento> documentiAssociati = (List<Sottodocumento>) querySottodocumentiAssociati.executeAndFetch(Sottodocumento.class);
+                documenti.addAll(documentiAssociati);
+                Integer i = 1;
+                for (Sottodocumento d : documenti) {
+                    d.setNome(r.getDocumentoBabel() + "_Allegato" + i.toString());
+                    i++;
+                    r.addSottodocumento(d);
+                }
+                returnRaccolta.add(r);
+            }
+        } catch (Exception e) {
+            log.error("Errore nell'esecuzione della query di ricerca raccolta: ", e);
+        }
+        log.info("TUTTO OK");
+        return returnRaccolta;
     }
 
     @RequestMapping(value = {"getFascicoliArgo"}, method = RequestMethod.GET)

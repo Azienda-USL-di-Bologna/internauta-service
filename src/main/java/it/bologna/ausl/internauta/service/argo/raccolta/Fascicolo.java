@@ -1,7 +1,5 @@
 package it.bologna.ausl.internauta.service.argo.raccolta;
 
-import java.util.Objects;
-
 /**
  *
  * @author Matteo Next
