@@ -613,15 +613,6 @@ public class ProjectionBeans {
         return res;
     }
 
-    public UtenteWithIdPersonaAndPermessiCustom getUtenteWithIdPersonaAndPermessiCustom(UtenteStruttura utenteStruttura) {
-        UtenteWithIdPersonaAndPermessiCustom res = null;
-        Utente idUtente = utenteStruttura.getIdUtente();
-        if (idUtente != null) {
-            res = factory.createProjection(UtenteWithIdPersonaAndPermessiCustom.class, idUtente);
-        }
-        return res;
-    }
-
     public PersonaWithUtentiAndStruttureAndAfferenzeCustom getPersonaWithUtentiAndStruttureAndAfferenzeCustom(Contatto contatto) {
         PersonaWithUtentiAndStruttureAndAfferenzeCustom res = null;
         Persona idPersona = contatto.getIdPersona();
