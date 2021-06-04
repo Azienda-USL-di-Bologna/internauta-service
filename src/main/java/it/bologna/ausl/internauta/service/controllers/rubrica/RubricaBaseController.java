@@ -5,10 +5,12 @@ import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEn
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
+import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.Indirizzo;
 import it.bologna.ausl.model.entities.rubrica.QContatto;
 import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.QEmail;
+import it.bologna.ausl.model.entities.rubrica.QGruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.QIndirizzo;
 import it.bologna.ausl.model.entities.rubrica.QTelefono;
 import it.bologna.ausl.model.entities.rubrica.Telefono;
@@ -106,6 +108,19 @@ public class RubricaBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QTelefono.telefono, Telefono.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"gruppicontatti", "gruppicontatti/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> gruppicontatti(
+            @QuerydslPredicate(root = GruppiContatti.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QGruppiContatti.gruppiContatti, GruppiContatti.class);
         return ResponseEntity.ok(resource);
     }
 }
