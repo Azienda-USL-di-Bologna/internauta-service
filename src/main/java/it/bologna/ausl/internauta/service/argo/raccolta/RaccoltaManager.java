@@ -65,8 +65,8 @@ public class RaccoltaManager {
     }
 
     public static String querySottoDocumenti(String id) {
-        String query = "SELECT nome_sottodocumento, "
-                + "mimetype_file_originale "
+        String query = "SELECT nome_sottodocumento, guid_sottodocumento, "
+                + "mimetype_file_originale, uuid_mongo_originale "
                 + "FROM gd.sotto_documenti "
                 + "WHERE id_gddoc = '" + id + "'";
         return query;
@@ -74,8 +74,13 @@ public class RaccoltaManager {
 
     public static Map<String, String> mapSottoDocumenti() {
         Map<String, String> map = new HashMap<>();
+        map.put("id_gddoc","idGddoc");
+        map.put("uuid_mongo_originale", "uuidMongo"); 
+        map.put("guid_sottodocumento","guidSottodocumento");
         map.put("nome_sottodocumento", "nomeOriginale");
         map.put("mimetype_file_originale", "mimeTypeOriginale");
+        map.put("estensione", "estensione");
+        
         return map;
     }
 
@@ -104,6 +109,14 @@ public class RaccoltaManager {
         map.put("provincia", "provincia");
         map.put("nazione", "nazione");
         return map;
+    }
+    
+    public static String queryInfoSottoDocumenti(String id) {
+        String query = "SELECT s.nome_sottodocumento, s.guid_sottodocumento, "
+                + "s.mimetype_file_originale, s.uuid_mongo_originale, s.id_gddoc, lower(f.estensione) as estensione "
+                + "FROM gd.sotto_documenti s join bds_tools.file_supportati f on s.mimetype_file_originale = f.mime_type "
+                + "WHERE s.guid_sottodocumento = '" + id + "'";
+        return query;
     }
 
     public static Map<String, String> mapNumerazioneGerarchica() {
@@ -134,9 +147,9 @@ public class RaccoltaManager {
 
     public static Map<String, String> mapQueryCodiceBabel() {
         Map<String, String> map = new HashMap<>();
-        map.put("numero_registrazione", "numeroRegistro");
+        map.put("numero_registrazione", "numero");
         map.put("codice_registro", "codiceRegistro");
-        map.put("anno_registrazione", "annoRegistro");
+        map.put("anno_registrazione", "anno");
         return map;
     }
 
@@ -157,6 +170,8 @@ public class RaccoltaManager {
         mappings.put("oggetto", "oggetto");
         mappings.put("storico", "storico");
         mappings.put("create_time", "createTime");
+        mappings.put("tscol", "tscol");
+        mappings.put("version", "version");
         return mappings;
     }
 

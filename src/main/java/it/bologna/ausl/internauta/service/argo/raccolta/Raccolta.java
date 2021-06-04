@@ -7,8 +7,10 @@ package it.bologna.ausl.internauta.service.argo.raccolta;
 
 
 import java.sql.Date;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import javax.persistence.Version;
 
 
 /**
@@ -90,6 +92,16 @@ public class Raccolta  {
     
     private String tipoDocumento;
     
+    private String tscol;
+
+    public String getTscol() {
+        return tscol;
+    }
+
+    public void setTscol(String tscol) {
+        this.tscol = tscol;
+    }
+    
     private String oggetto;
 
     private String fascicoli;
@@ -157,7 +169,7 @@ public class Raccolta  {
 //    @Version()
 //    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX'['VV']'")
 //    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX'['VV']'")
-//    private ZonedDateTime version;
+    private Date version;
     
 //    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX'['VV']'")
 //    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX'['VV']'")
@@ -264,13 +276,13 @@ public class Raccolta  {
         this.storico = storico;
     }
 
-//    public ZonedDateTime getVersion() {
-//        return version;
-//    }
+    public Date getVersion() {
+        return version;
+    }
 
-//    public void setVersion(ZonedDateTime version) {
-//        this.version = version;
-//    }
+    public void setVersion(Date version) {
+        this.version = version;
+    }
     
     
     public static enum Stato{ 

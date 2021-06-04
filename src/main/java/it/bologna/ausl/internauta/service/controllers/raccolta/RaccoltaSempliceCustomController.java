@@ -1,10 +1,15 @@
 package it.bologna.ausl.internauta.service.controllers.raccolta;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.MongoException;
+import com.mongodb.MongoWaitQueueFullException;
 import it.bologna.ausl.documentgenerator.exceptions.Http400ResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.Sql2oSelectException;
 import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedSignatureType;
+import it.bologna.ausl.eml.handler.EmlHandler;
+import it.bologna.ausl.eml.handler.EmlHandlerException;
+import it.bologna.ausl.eml.handler.EmlHandlerUtils;
 import it.bologna.ausl.internauta.service.argo.raccolta.CoinvoltiRaccolte;
 import it.bologna.ausl.internauta.service.argo.raccolta.Coinvolto;
 import it.bologna.ausl.internauta.service.argo.raccolta.DocumentoBabel;
@@ -44,6 +49,7 @@ import org.sql2o.Connection;
 import org.sql2o.Query;
 import org.sql2o.Sql2o;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
@@ -61,10 +67,28 @@ import org.sql2o.data.Row;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
+import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.mongowrapper.MongoWrapper;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.Part;
+import javax.mail.internet.MimeMessage;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.springframework.util.StreamUtils;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PathVariable;
 
 /**
  *
@@ -86,7 +110,7 @@ public class RaccoltaSempliceCustomController {
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     @Autowired
-    ObjectMapper objectMapper;
+    ObjectMapper objectMapper;    
 
     @Autowired
     ContattoRepository contattoRepository;
@@ -150,6 +174,18 @@ public class RaccoltaSempliceCustomController {
                     Query queryCoinvolti = conn.createQuery(RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
                     List<Coinvolto> coinvolts = (List<Coinvolto>) queryCoinvolti.executeAndFetch(Coinvolto.class);
                     for (Coinvolto c : coinvolts) {
+                       if(c.getCap() == null)
+                            c.setCap("");
+                       if(c.getVia()== null)
+                            c.setVia("");
+                       if(c.getCivico() == null)
+                            c.setCivico("");
+                       if(c.getNazione()== null)
+                            c.setNazione("");
+                       if(c.getProvincia()== null)
+                            c.setProvincia("");
+                       if(c.getComune()== null)
+                            c.setComune("");
                         r.addCoinvolto(c);
                     }
                 }
@@ -1194,5 +1230,55 @@ public class RaccoltaSempliceCustomController {
         }
         return (idCoinvolto != null && idCoinvoltoRaccolta != null);
     }
+    
 
+    @RequestMapping(value = "downloadAllegato", method = RequestMethod.GET)
+    public void downloadAttached(
+            @RequestParam(value = "azienda", required = true) String codiceAzienda,
+            @RequestParam(value= "id", required = true) String id,
+            HttpServletResponse response,
+            HttpServletRequest request
+    ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException, UnsupportedEncodingException, BadParamsException {
+        
+        InputStream is;
+        try {
+            is = download(id, codiceAzienda);
+                StreamUtils.copy(is, response.getOutputStream());
+                response.flushBuffer();
+            } catch( Exception e) {
+                log.error("Eccezione: ", e);
+            }
+        }
+    
+    
+    
+    
+    public InputStream download(String id, String codiceAzienda) throws BadParamsException, FileNotFoundException, IOException {
+        
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        dbConnection.setDefaultColumnMappings(RaccoltaManager.mapSottoDocumenti());
+        List<Sottodocumento> documento = new ArrayList<Sottodocumento>();
+
+        try ( Connection conn = (Connection) dbConnection.open()) {
+            
+            Query query = conn.createQuery(RaccoltaManager.queryInfoSottoDocumenti(id));
+            documento = (List<Sottodocumento>) query.executeAndFetch(Sottodocumento.class);
+            String extension = documento.get(0).getEstensione();
+            String fileName = documento.get(0).getNomeOriginale() + "." + extension;
+            File file = new File(System.getProperty("java.io.tmpdir"), fileName); 
+            Integer idAzienda = postgresConnectionManager.getIdAzienda(codiceAzienda);
+            MongoWrapper mongoWrapper = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
+            InputStream is = null;
+            DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(file));
+            is = mongoWrapper.get(documento.get(0).getUuidMongo());
+            if( is == null) 
+                throw new MongoException("File non trovato");
+            //StreamUtils.copy(is, dataOs);
+            return is;
+        } catch (Exception e) {
+            log.info("Errore nel reperimento del file: ", e);
+        }
+        return null;     
+    } 
+    
 }
