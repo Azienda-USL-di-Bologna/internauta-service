@@ -61,6 +61,7 @@ public class InternautaConstants {
         }
 
         public enum OperationsRequested {
+            FiltraSuTuttiFolderTranneTrash,
             GetPermessiGestoriPec,
             GetPermessiDiFlusso,
             GetPermessiStrutturePec,
