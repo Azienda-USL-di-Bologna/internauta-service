@@ -178,7 +178,7 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                                 mittenteDoc.setTipo(Related.TipoRelated.MITTENTE);
                                 mittenteDoc.setIdDoc(doc);
                                 Spedizione spedizione = new Spedizione();
-                                spedizione.setData(message.getReceiveTime().atZone(ZoneId.systemDefault()));
+                                spedizione.setData(message.getReceiveTime());
                                 spedizione.setIdMessage(message);
                                 Mezzo mezzo = mezzoRepository.findOne(QMezzo.mezzo.codice.eq(Mezzo.CodiciMezzo.MAIL.toString())).get();
                                 spedizione.setIdMezzo(mezzo);

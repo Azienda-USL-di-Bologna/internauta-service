@@ -48,6 +48,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -319,12 +320,13 @@ public class ImportaDaCSV {
         return cellProcessor;
     }
 
-    public LocalDateTime formattattore(Object o) {
+    public ZonedDateTime formattattore(Object o) {
+        LocalDateTime local = null;
         if (o != null) {
             try {
                 // String format = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
 //                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(o.toString()).toInstant();
-                return LocalDate.parse(o.toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy")).atStartOfDay();
+                local = LocalDate.parse(o.toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy")).atStartOfDay();
             } catch (Exception e) {
 
             }
@@ -332,19 +334,19 @@ public class ImportaDaCSV {
 
                 // String format = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                 Instant toInstant = new SimpleDateFormat("dd/MM/yy").parse(o.toString()).toInstant();
-                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+                local = LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non Ã¨ stato parsato
             }
             try {
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(o.toString()).toInstant();
-                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+                local = LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non Ã¨ stato parsato
             }
             try {
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(o.toString()).toInstant();
-                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+                local = LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non Ã¨ stato parsato
             }
@@ -352,33 +354,37 @@ public class ImportaDaCSV {
             try {
                 String time = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(time).toInstant();
-                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+                local = LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non Ã¨ stato parsato
             }
             try {
                 String time = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(time).toInstant();
-                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+                local= LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non Ã¨ stato parsato
             }
 
         }
-        return null;
+        if (local == null) {
+            return null;
+        } else {
+            return ZonedDateTime.of(local, ZoneId.systemDefault());
+        }
     }
 
-    private Map<String, LocalDateTime> maxMin(List<Map<String, Object>> elementi) {
-        HashMap<String, LocalDateTime> maxmin = new HashMap<>();
-        LocalDateTime min = LocalDateTime.MAX;
-        LocalDateTime max = LocalDateTime.MIN;
+    private Map<String, ZonedDateTime> maxMin(List<Map<String, Object>> elementi) {
+        HashMap<String, ZonedDateTime> maxmin = new HashMap<>();
+        ZonedDateTime min = ZonedDateTime.of(LocalDateTime.MAX,ZoneId.systemDefault());
+        ZonedDateTime max = ZonedDateTime.of(LocalDateTime.MIN,ZoneId.systemDefault());
 
         for (Map<String, Object> map1 : elementi) {
             if (min.compareTo(formattattore(map1.get("datain").toString())) > 0) {
                 min = formattattore(map1.get("datain").toString());
             }
             if (map1.get("datafi") == null) {
-                max = LocalDateTime.MAX;
+                max = ZonedDateTime.of(LocalDateTime.MAX,ZoneId.systemDefault());
             } else if (max.compareTo(formattattore(map1.get("datafi").toString())) < 0) {
                 max = formattattore(map1.get("datafi").toString());
             }
@@ -389,13 +395,13 @@ public class ImportaDaCSV {
         return maxmin;
     }
 
-    public Boolean overlap(LocalDateTime dataInizioA, LocalDateTime dataFineA, LocalDateTime dataInizioB, LocalDateTime dataFineB) {
+    public Boolean overlap(ZonedDateTime dataInizioA, ZonedDateTime dataFineA, ZonedDateTime dataInizioB, ZonedDateTime dataFineB) {
 
         if (dataFineA == null) {
-            dataFineA = LocalDateTime.MAX;
+            dataFineA = ZonedDateTime.of(LocalDateTime.MAX,ZoneId.systemDefault());
         }
         if (dataFineB == null) {
-            dataFineB = LocalDateTime.MAX;
+            dataFineB = ZonedDateTime.of(LocalDateTime.MAX,ZoneId.systemDefault());
         }
         return (dataInizioA.compareTo(dataFineB) <= 0 && dataFineA.compareTo(dataInizioB) >= 0) && dataInizioA.compareTo(dataInizioB) <= 0;
     }
@@ -407,14 +413,14 @@ public class ImportaDaCSV {
      * @param dataFine
      * @return false se elementi è vuoto
      */
-    public Boolean isPeriodiSovrapposti(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
+    public Boolean isPeriodiSovrapposti(List<Map<String, Object>> elementi, ZonedDateTime dataInizio, ZonedDateTime dataFine) {
         if (elementi.isEmpty()) {
             return false;
         }
         return elementi.stream().anyMatch(elemento -> overlap(formattattore(elemento.get("datain")), formattattore(elemento.get("datafi")), dataInizio, dataFine));
     }
 
-    private List<Integer> arco(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
+    private List<Integer> arco(List<Map<String, Object>> elementi, ZonedDateTime dataInizio, ZonedDateTime dataFine) {
         List<Integer> lista = new ArrayList<>();
         if (!elementi.isEmpty()) {
             for (Map<String, Object> elemento : elementi) {
@@ -426,12 +432,12 @@ public class ImportaDaCSV {
         return lista;
     }
 
-    private boolean controllaEstremi(LocalDateTime dataStrutturaInizio, LocalDateTime dataStrutturaFine, LocalDateTime dataAppartenenteInizio, LocalDateTime dataAppartenenteFine) {
+    private boolean controllaEstremi(ZonedDateTime dataStrutturaInizio, ZonedDateTime dataStrutturaFine, ZonedDateTime dataAppartenenteInizio, ZonedDateTime dataAppartenenteFine) {
         if (dataAppartenenteFine == null) {
-            dataAppartenenteFine = LocalDateTime.MAX;
+            dataAppartenenteFine = ZonedDateTime.of(LocalDateTime.MAX,ZoneId.systemDefault());
         }
         if (dataStrutturaFine == null) {
-            dataStrutturaFine = LocalDateTime.MAX;
+            dataStrutturaFine = ZonedDateTime.of(LocalDateTime.MAX,ZoneId.systemDefault());
         }
         if (dataStrutturaFine.compareTo(dataAppartenenteFine) < 0) {
             return false;
@@ -654,31 +660,31 @@ public class ImportaDaCSV {
                         anomali = checkDatainA(appartenentiMap, mapError);
                         anomalia = anomalia ? anomalia : anomali;
 
-                        LocalDateTime datafi = null;
-                        LocalDateTime datain = null;
+                        ZonedDateTime datafi = null;
+                        ZonedDateTime datain = null;
                         String datafiString = null;
                         String datainString = null;
                         //basta vedere anomali perche se ci sono problemi li ho gia controllati col checkDatainA
                         if (!anomali) {
                             datain = formattattore(appartenentiMap.get("datain"));
-                            datainString = UtilityFunctions.getLocalDateTimeString(datain);
+                            datainString = UtilityFunctions.getZonedDateTimeString(datain);
                         }
                         if (appartenentiMap.get("datafi") != null && (!appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") != "")) {
                             datafi = formattattore(appartenentiMap.get("datafi"));
-                            datafiString = UtilityFunctions.getLocalDateTimeString(datafi);
+                            datafiString = UtilityFunctions.getZonedDateTimeString(datafi);
                         }
-                        
+
                         if (appartenentiMap.get("datafi") == null || appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") == "") {
                             mapError.put("datafi", "");
                         } else {
                             mapError.put("datafi", appartenentiMap.get("datafi"));
                         }
-                        
-                        if ((datain == null && datafi != null)||(datain != null && datafi != null && datain.isAfter(datafi))){
-                            if (mapError.get("ERRORE")!=null){
-                                mapError.put("ERRORE",mapError.get("ERRORE")+" datain maggiore di datafi,");
-                            }else{
-                                mapError.put("ERRORE","datain maggiore di datafi,");
+
+                        if ((datain == null && datafi != null) || (datain != null && datafi != null && datain.isAfter(datafi))) {
+                            if (mapError.get("ERRORE") != null) {
+                                mapError.put("ERRORE", mapError.get("ERRORE") + " datain maggiore di datafi,");
+                            } else {
+                                mapError.put("ERRORE", "datain maggiore di datafi,");
                             }
                         }
                         //Codice Ente 
@@ -824,19 +830,19 @@ public class ImportaDaCSV {
                         nRigheAnomale = anomali ? nRigheAnomale++ : nRigheAnomale;
                         mR.setDatain(!anomali ? formattattore(responsabiliMap.get("datain")) : null);
 
-                        LocalDateTime datafi = null;
-                        LocalDateTime datain = null;
+                        ZonedDateTime datafi = null;
+                        ZonedDateTime datain = null;
                         String datafiString = null;
                         String datainString = null;
 
                         if (responsabiliMap.get("datafi") != null && (!responsabiliMap.get("datafi").toString().trim().equals("") || responsabiliMap.get("datafi") == "")) {
                             datafi = formattattore(responsabiliMap.get("datafi"));
-                            datafiString = UtilityFunctions.getLocalDateTimeString(datafi);
+                            datafiString = UtilityFunctions.getZonedDateTimeString(datafi);
                         }
 
                         if (!anomali) {
                             datain = mR.getDatain();
-                            datainString = UtilityFunctions.getLocalDateTimeString(datain);
+                            datainString = UtilityFunctions.getZonedDateTimeString(datain);
                         }
 
 //                      ID_CASELLA bloccante
@@ -913,15 +919,15 @@ public class ImportaDaCSV {
                         mapError.put("ERRORE", "");
                         // Inserisco la riga
                         MdrStruttura mS = new MdrStruttura();
-                        LocalDateTime datafi = null;
-                        LocalDateTime datain = null;
+                        ZonedDateTime datafi = null;
+                        ZonedDateTime datain = null;
                         String datafiString = null;
                         String datainString = null;
 
                         boolean anomali = checkDatainS(strutturaMap, mapError);
                         if (!anomali) {
                             datain = formattattore(strutturaMap.get("datain"));
-                            datainString = UtilityFunctions.getLocalDateTimeString(datain);
+                            datainString = UtilityFunctions.getZonedDateTimeString(datain);
                         }
                         bloccante = anomali ? anomali : bloccante;
                         mS.setDatain(anomali ? null : datain);
@@ -931,7 +937,7 @@ public class ImportaDaCSV {
 
                         datafi = checkDatafi(strutturaMap, mapError);
                         mS.setDatafi(datafi);
-                        datafiString = datafi != null ? UtilityFunctions.getLocalDateTimeString(datafi) : null;
+                        datafiString = datafi != null ? UtilityFunctions.getZonedDateTimeString(datafi) : null;
 
                         String id_casella = checkIdCasellaS(strutturaMap, mapError, mapReader.getLineNumber(), strutturaCheckDateMap);
                         mS.setIdCasella(id_casella.equals("") ? null : Integer.parseInt(id_casella));
@@ -1010,7 +1016,7 @@ public class ImportaDaCSV {
                                             strutturaErrorMapWrite.put("ERRORE", " non rispetta l'arco temporale del padre,");
                                         }
                                     }
-                                    Map<String, LocalDateTime> maxMin = maxMin(elementi);
+                                    Map<String, ZonedDateTime> maxMin = maxMin(elementi);
                                     if (!controllaEstremi(maxMin.get("min"), maxMin.get("max"), formattattore(strutturaErrorMap.get("datain")), formattattore(strutturaErrorMap.get("datafi")))) {
                                         strutturaErrorMapWrite.put("ERRORE", " non rispetta l'arco temporale del padre,");
                                         log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " non rispetta l'arco temporale del padre");
@@ -1072,14 +1078,14 @@ public class ImportaDaCSV {
                         bloccante = progressivoRiga == null ? true : bloccante;
 
 //                      DATA TRASFORMAZIONE DEVE ESISTERE SEMPRE
-                        LocalDateTime dataTrasformazioneT = checkDataTrasformazione(trasformazioniMap, mapError, mapReader);
+                        ZonedDateTime dataTrasformazioneT = checkDataTrasformazione(trasformazioniMap, mapError, mapReader);
                         bloccante = dataTrasformazioneT == null ? true : bloccante;
                         dataTrasformazione = dataTrasformazioneT == null ? false : dataTrasformazione;
                         mT.setDataTrasformazione(dataTrasformazioneT);
 //                       DATA IN PARTENZA DEVE ESISTERE SEMPRE
 //                       PER MOTIVO DI "X", "T","R" E "U" è LA DATA INIZIO DELLA CASELLA DI PARTENZA
 //                      AGGIUNGERE BOOLEANO TEMPI_CASELLA_OK
-                        LocalDateTime dataInPartenzaT = checkDataInPartenza(trasformazioniMap, mapError, mapReader);
+                        ZonedDateTime dataInPartenzaT = checkDataInPartenza(trasformazioniMap, mapError, mapReader);
                         bloccante = dataInPartenzaT == null ? true : bloccante;
                         dataInPartenza = dataInPartenzaT == null ? false : dataInPartenza;
                         mT.setDatainPartenza(dataInPartenzaT);
@@ -1099,7 +1105,7 @@ public class ImportaDaCSV {
                                 tempi_ok = false;
                                 mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non trovata,");
                             } else {
-                                boolean blocco = checkAccesaSpentaMale(listaStruttureConDate.get(idCasellaPartenza), formattattore(trasformazioniMap.get("data_trasformazione").toString()), formattattore(trasformazioniMap.get("datain_partenza").toString()));
+                                boolean blocco = checkAccesaSpentaMale(listaStruttureConDate.get(idCasellaPartenza), formattattore(trasformazioniMap.get("data_trasformazione").toString()), formattattore(trasformazioniMap.get("datain_partenza")));
                                 if (blocco) {
                                     log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " periodi temporali della casella di partenza non sono validi");
                                     bloccante = true;
@@ -1110,7 +1116,7 @@ public class ImportaDaCSV {
                         }
 
 //                      DATA ORA OPERAZIONE
-                        LocalDateTime dataOraOper = checkDataOraOper(trasformazioniMap, mapError);
+                        ZonedDateTime dataOraOper = checkDataOraOper(trasformazioniMap, mapError);
                         mT.setDataoraOper(dataOraOper);
                         boolean buono = trasformazioniMap.get("dataora_oper") == null || trasformazioniMap.get("dataora_oper").toString().trim().equals("");
                         anomalia = buono ? true : anomalia;
@@ -1186,7 +1192,7 @@ public class ImportaDaCSV {
                                         log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " id_casella_arrivo diversa da id_casella_partenza");
                                         mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella_arrivo diversa da id_casella_partenza,");
                                     } else {
-                                        Integer accesaBeneByIdAzienda = mdrTrasformazioniRepository.isAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), formattattore(trasformazioniMap.get("data_trasformazione")));
+                                        Integer accesaBeneByIdAzienda = mdrTrasformazioniRepository.isAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), formattattore(trasformazioniMap.get("data_trasformazione").toString()));
                                         if (accesaBeneByIdAzienda != 1) {
                                             bloccante = true;
                                             log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di partenza non valida nella data di trasformazione");
@@ -1354,7 +1360,7 @@ public class ImportaDaCSV {
                     return "";
                 } else {
                     List<Map<String, Object>> elementi = selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
-                    Map<String, LocalDateTime> maxMin = maxMin(elementi);
+                    Map<String, ZonedDateTime> maxMin = maxMin(elementi);
                     if (!controllaEstremi(maxMin.get("min"), maxMin.get("max"), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
                         mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura, ");
                         mapError.put("Anomalia", "true");
@@ -1403,8 +1409,8 @@ public class ImportaDaCSV {
             Map<String, Object> appartenentiMap,
             Map<String, Object> mapError,
             String idCasella,
-            LocalDateTime datain,
-            LocalDateTime datafi,
+            ZonedDateTime datain,
+            ZonedDateTime datafi,
             Boolean controlloZeroUno,
             Integer codiceEnte,
             Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti,
@@ -1663,7 +1669,7 @@ public class ImportaDaCSV {
                         throw new RibaltoneCSVCheckException("checkIdCasella", responsabiliMap.get("id_casella").toString(), " casella non valida per periodo temporale,");
 
                     } else {
-                        Map<String, LocalDateTime> maxMin = maxMin(mieiPadri);
+                        Map<String, ZonedDateTime> maxMin = maxMin(mieiPadri);
                         if (!controllaEstremi(maxMin.get("min"), maxMin.get("max"), formattattore(responsabiliMap.get("datain")), formattattore(responsabiliMap.get("datafi")))) {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " casella non rispetta l'arco temporale della struttura,");
                             mapError.put("Anomalia", "true");
@@ -1697,7 +1703,7 @@ public class ImportaDaCSV {
         }
     }
 
-    private LocalDateTime checkDatafi(Map<String, Object> strutturaMap, Map<String, Object> mapError) {
+    private ZonedDateTime checkDatafi(Map<String, Object> strutturaMap, Map<String, Object> mapError) {
         if (strutturaMap.get("datafi") == null
                 || strutturaMap.get("datafi").toString().trim().equals("")
                 || strutturaMap.get("datafi") == ""
@@ -1776,7 +1782,7 @@ public class ImportaDaCSV {
         }
     }
 
-    private LocalDateTime checkDataTrasformazione(Map<String, Object> trasformazioniMap, Map<String, Object> mapError, ICsvMapReader mapReader) {
+    private ZonedDateTime checkDataTrasformazione(Map<String, Object> trasformazioniMap, Map<String, Object> mapError, ICsvMapReader mapReader) {
         if (trasformazioniMap.get("data_trasformazione") == null || trasformazioniMap.get("data_trasformazione").toString().trim().equals("") || trasformazioniMap.get("data_trasformazione") == "") {
             mapError.put("ERRORE", mapError.get("ERRORE") + " data_trasformazione assente,");
             mapError.put("data_trasformazione", "");
@@ -1788,7 +1794,7 @@ public class ImportaDaCSV {
         }
     }
 
-    private LocalDateTime checkDataInPartenza(Map<String, Object> trasformazioniMap, Map<String, Object> mapError, ICsvMapReader mapReader) {
+    private ZonedDateTime checkDataInPartenza(Map<String, Object> trasformazioniMap, Map<String, Object> mapError, ICsvMapReader mapReader) {
         if (trasformazioniMap.get("datain_partenza") == null || trasformazioniMap.get("datain_partenza").toString().trim().equals("") || trasformazioniMap.get("datain_partenza") == "") {
             mapError.put("ERRORE", mapError.get("ERRORE") + " datain_partenza assente,");
             mapError.put("datain_partenza", "");
@@ -1812,10 +1818,10 @@ public class ImportaDaCSV {
         }
     }
 
-    private LocalDateTime checkDataOraOper(Map<String, Object> trasformazioniMap, Map<String, Object> mapError) {
+    private ZonedDateTime checkDataOraOper(Map<String, Object> trasformazioniMap, Map<String, Object> mapError) {
         if (trasformazioniMap.get("dataora_oper") == null || trasformazioniMap.get("dataora_oper").toString().trim().equals("")) {
             mapError.put("ERRORE", mapError.get("ERRORE") + " DATAORA_OPER inserito automaticamente,");
-            LocalDateTime now = LocalDateTime.now();
+            ZonedDateTime now = ZonedDateTime.now();
             mapError.put("dataora_oper", now.toString());
             return now;
         } else {
@@ -1824,7 +1830,7 @@ public class ImportaDaCSV {
         }
     }
 
-    private boolean checkAccesaSpentaMale(List<Map<String, Object>> date, LocalDateTime dataTrasformazione, LocalDateTime dataInPartenza) {
+    private boolean checkAccesaSpentaMale(List<Map<String, Object>> date, ZonedDateTime dataTrasformazione, ZonedDateTime dataInPartenza) {
         for (Map<String, Object> data : date) {
             if (formattattore(data.get("datain").toString()).equals(dataInPartenza) && formattattore(data.get("datafi")).equals(dataTrasformazione.minusDays(1))) {
                 return false;
