@@ -619,7 +619,7 @@ public class ImportaDaCSV {
                         boolean anomali;
                         mapError = new HashMap<>();
                         riga = mapReader.getLineNumber();
-                        log.info("getLineNumber: " + mapReader.getLineNumber());
+//                        log.info("getLineNumber: " + mapReader.getLineNumber());
                         // Inserisco la riga
                         MdrAppartenenti mA = new MdrAppartenenti();
 //                      preparo la mappa di errore
@@ -712,36 +712,41 @@ public class ImportaDaCSV {
                         
                         listAppartenentiMap.add(mapError);
                         nRigheCSV = mapReader.getRowNumber();
-                        log.info("numero righe csv" + nRigheCSV);
                     }
 
                     //se ho il caso in cui non ho appartenenti diretti per qualche appatenente funzionale
                     List<Integer> codiciMatricoleConAppFunzionaliENonDirette = codiciMatricoleConAppFunzionaliENonDirette(appartenentiFunzionali, appartenentiDiretti);
                     riga = 2;
-                    
+                    log.info("Inizio i controlli per le afferenze funzionali e dirette");
                     for (Map<String, Object> appMapWithErrorAndAnomalia : listAppartenentiMap) {
+//                        log.info("Entro nel primo if");
                         if (codiciMatricoleConAppFunzionaliENonDirette.contains(Integer.parseInt(appMapWithErrorAndAnomalia.get("codice_matricola").toString()))) {
+                            log.warn("appartenente con appartenenze funzionali ma senza appartenente dirette");
                             appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con appartenenze funzionali ma senza appartenente dirette");
                             nRigheAnomale++;
                             anomalia = true;
                             appMapWithErrorAndAnomalia.put("Anomalia", "true");
                         }
+//                        log.info("Entro nel secondo if");
                         if (righeAnomaleDirette.contains(riga)) {
                             boolean codiceEnteAndsWith = appMapWithErrorAndAnomalia.get("codice_ente").toString().endsWith("01");
                             if (controlloZeroUno && codiceEnteAndsWith) {
+                                log.warn("appartenente con piu afferenze Dirette per lo stesso periodo");
                                 appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze Dirette per lo stesso periodo,");
                                 nRigheAnomale++;
                                 anomalia = true;
                                 appMapWithErrorAndAnomalia.put("Anomalia", "true");
                             }
                         }
-                        
+//                        log.info("Entro nel terzo if");
                         if (righeAnomaleFunzionali.contains(riga)) {
+                            log.warn("appartenente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura");
                             appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura");
                             nRigheAnomale++;
                             anomalia = true;
                             appMapWithErrorAndAnomalia.put("Anomalia", "true");
                         }
+//                        log.info("Entro nel quarto if");
                         if (!appMapWithErrorAndAnomalia.get("Anomalia").toString().equalsIgnoreCase("true")) {
                             MdrAppartenenti mA = new MdrAppartenenti();
                             mA.setIdAzienda(azienda);
@@ -778,9 +783,10 @@ public class ImportaDaCSV {
                         }
                         appMapWithErrorAndAnomalia.remove("Anomalia");
                         mapWriter.write(appMapWithErrorAndAnomalia, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
+//                        log.info("riga: "+riga);
                         riga++;
                     }
-                    log.info("ora fine: " + LocalDateTime.now());
+                    log.info("ora fine: " + ZonedDateTime.now());
                 }
                 break;
                 
@@ -912,6 +918,7 @@ public class ImportaDaCSV {
                     Map<Integer, List<Map<String, Object>>> strutturaCheckDateMap = new HashMap();
                     Map<Integer, String> multidefinizioneStruttura = new HashMap();
                     while ((strutturaMap = mapReader.read(headers, processors)) != null) {
+//                        log.info("getLineNumber: " + mapReader.getLineNumber());
 //                      inizio a creare la mappa degli errori e
                         mapError.put("ERRORE", "");
                         // Inserisco la riga
@@ -992,6 +999,7 @@ public class ImportaDaCSV {
                         Integer i = 0;
                         Map<String, Object> strutturaErrorMap;
                         while ((strutturaErrorMap = mapErrorReader.read(headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda))) != null) {
+//                            log.info("getLineNumber: " + mapErrorReader.getLineNumber());
                             Map<String, Object> strutturaErrorMapWrite = new HashMap();
                             //struttura padre non trovata
                             strutturaErrorMapWrite.putAll(strutturaErrorMap);
@@ -1026,8 +1034,10 @@ public class ImportaDaCSV {
                                     && multidefinizioneStruttura.get(Integer.parseInt(strutturaErrorMap.get("id_casella").toString())).contains("struttura definita piu volte nello stesso arco temporale,")) {
                                 if (strutturaErrorMap.get("ERRORE") != null && strutturaErrorMap.get("ERRORE").toString().contains("struttura definita piu volte nello stesso arco temporale,")) {
                                     strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE"));
+                                    log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " struttura definita piu volte nello stesso arco temporale");
                                 } else if (strutturaErrorMap.get("ERRORE") != null && !strutturaErrorMap.get("ERRORE").toString().contains("struttura definita piu volte nello stesso arco temporale,")) {
                                     strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + "struttura definita piu volte nello stesso arco temporale,");
+                                    log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " struttura definita piu volte nello stesso arco temporale");
                                 } else {
                                     strutturaErrorMapWrite.put("ERRORE", "struttura definita piu volte nello stesso arco temporale,");
                                     
@@ -1036,6 +1046,7 @@ public class ImportaDaCSV {
                             mapErrorWriter.write(strutturaErrorMapWrite, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
                             
                         }
+//                        log.info("fine: akjhfaskhfkjsahkfjhalkjsflahfljkahslkdjsalkhiuw yvn potvqou" + bloccante);
 //                        csvErrorFile.deleteOnExit();
 //                        csvErrorFile2.deleteOnExit();
                     } catch (Exception ex) {
@@ -1062,7 +1073,7 @@ public class ImportaDaCSV {
                     //Reading with CsvMapReader
                     Map<String, Object> trasformazioniMap;
                     while ((trasformazioniMap = mapReader.read(headers, processors)) != null) {
-                        log.info("mapReader.getLineNumber()" + mapReader.getLineNumber());
+//                        log.info("mapReader.getLineNumber()" + mapReader.getLineNumber());
                         Boolean tempi_ok = true;
                         Boolean dataTrasformazione = true;
                         Boolean dataInPartenza = true;
