@@ -7,6 +7,7 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -49,9 +50,9 @@ public interface MdrTrasformazioniRepository extends
     );
     
     @Query(value = "select count(ms.id_casella) FROM gru.mdr_struttura ms where ms.id_azienda = ?1 and ms.id_casella=?2 and ms.datain=?3 ", nativeQuery = true)
-    public Integer isAccesaBeneByIdAzienda(Integer idAzienda, Integer id_casella, LocalDateTime data_trasformazione);
+    public Integer isAccesaBeneByIdAzienda(Integer idAzienda, Integer id_casella, ZonedDateTime data_trasformazione);
     
     @Query(value = "select count(ms.id_casella) FROM gru.mdr_struttura ms where ms.id_azienda = ?1 and ms.id_casella=?2 and ms.datain<=?3 and (ms.datafi is null or ms.datafi >= ?3)", nativeQuery = true)
-    public Integer isAccesaIntervalloByIdAzienda(Integer idAzienda, Integer id_casella, LocalDateTime data_trasformazione);
+    public Integer isAccesaIntervalloByIdAzienda(Integer idAzienda, Integer id_casella, ZonedDateTime data_trasformazione);
 }
 
