@@ -34,8 +34,9 @@ public class RestConfiguration {
         List<String> allowedOriginList = new ArrayList<>(Arrays.asList(allowedOriginsString.split(",")));
         configResources.setAllowedOrigins(allowedOriginList);
         //per disabilitare il controllo dei cors-origin
-//        configResources.addAllowedOrigin("*");
+//        configResources.addAllowedOriginPattern("*");
 //        configResources.addAllowedHeader("*");
+        //fino a qui era commentato
         configResources.addAllowedHeader("application");
         configResources.addAllowedHeader("authorization");
         configResources.addAllowedHeader("krint");
