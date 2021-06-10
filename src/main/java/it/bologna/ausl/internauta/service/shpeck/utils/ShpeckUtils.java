@@ -65,7 +65,6 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
-import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import javax.mail.Message.RecipientType;
@@ -203,7 +202,7 @@ public class ShpeckUtils {
             draftMessage.setCcAddresses(cc);
             draftMessage.setHiddenRecipients(hideRecipients);
 //            draftMessage.setCreateTime(LocalDateTime.now());
-            draftMessage.setUpdateTime(ZonedDateTime.now());
+            draftMessage.setUpdateTime(LocalDateTime.now());
             LOG.info("Write attachments as bytearrayOutputStream...");
             ArrayList<EmlHandlerAttachment> listTemp = new ArrayList<>(listAttachments);
             if (!emlAttachments.isEmpty()) {
@@ -293,7 +292,7 @@ public class ShpeckUtils {
             outboxMessage.setSubject(subject);
             outboxMessage.setIdRelated(idRelated);
             outboxMessage.setHiddenRecipients(hiddenRecipients);
-            outboxMessage.setUpdateTime(ZonedDateTime.now());
+            outboxMessage.setUpdateTime(LocalDateTime.now());
             ArrayList<EmlHandlerAttachment> listTemp = new ArrayList<>(listAttachments);
             if (!emlAttachments.isEmpty()) {
                 listTemp.addAll(emlAttachments);
@@ -400,7 +399,7 @@ public class ShpeckUtils {
             MessageTag messageTag = new MessageTag();
             messageTag.setIdMessage(messageRelated);
             messageTag.setIdTag(tag);
-            messageTag.setInserted(ZonedDateTime.now());
+            messageTag.setInserted(LocalDateTime.now());
             messageTagRepository.save(messageTag);
             if (KrintUtils.doIHaveToKrint(request)) {
                 krintShpeckService.writeReplyToMessage(messageRelated, operazione);

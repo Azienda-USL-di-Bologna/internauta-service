@@ -20,7 +20,6 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.mongowrapper.MongoWrapper;
 import it.bologna.ausl.mongowrapper.exceptions.MongoWrapperException;
 import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -138,7 +137,7 @@ public class MailController {
                     break;
                 }
                 Long sizeByUuid = mongoWrapper.getSizeByUuid(uuid);
-                ZonedDateTime receiveTime = message.getReceiveTime();
+                LocalDateTime receiveTime = message.getReceiveTime();
                 JSONObject jsonObjectMailDettagli = new JSONObject();
 
                 jsonObjectMailDettagli.put("data", receiveTime);
