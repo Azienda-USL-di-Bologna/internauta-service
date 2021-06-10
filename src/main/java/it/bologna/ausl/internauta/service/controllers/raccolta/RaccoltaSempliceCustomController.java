@@ -110,7 +110,7 @@ public class RaccoltaSempliceCustomController {
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     @Autowired
-    ObjectMapper objectMapper;    
+    ObjectMapper objectMapper;
 
     @Autowired
     ContattoRepository contattoRepository;
@@ -174,18 +174,24 @@ public class RaccoltaSempliceCustomController {
                     Query queryCoinvolti = conn.createQuery(RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
                     List<Coinvolto> coinvolts = (List<Coinvolto>) queryCoinvolti.executeAndFetch(Coinvolto.class);
                     for (Coinvolto c : coinvolts) {
-                       if(c.getCap() == null)
+                        if (c.getCap() == null) {
                             c.setCap("");
-                       if(c.getVia()== null)
+                        }
+                        if (c.getVia() == null) {
                             c.setVia("");
-                       if(c.getCivico() == null)
+                        }
+                        if (c.getCivico() == null) {
                             c.setCivico("");
-                       if(c.getNazione()== null)
+                        }
+                        if (c.getNazione() == null) {
                             c.setNazione("");
-                       if(c.getProvincia()== null)
+                        }
+                        if (c.getProvincia() == null) {
                             c.setProvincia("");
-                       if(c.getComune()== null)
+                        }
+                        if (c.getComune() == null) {
                             c.setComune("");
+                        }
                         r.addCoinvolto(c);
                     }
                 }
@@ -507,6 +513,7 @@ public class RaccoltaSempliceCustomController {
             log.error("errore nell'esecuzione della query getRaccoltaSemplice", e);
             throw new Http500ResponseException("1", "Errore nell'escuzione della query getRaccoltaSemplice");
         }
+
         log.info("Tutto ok");
 
         return returnFascicoli;
@@ -1230,55 +1237,52 @@ public class RaccoltaSempliceCustomController {
         }
         return (idCoinvolto != null && idCoinvoltoRaccolta != null);
     }
-    
 
     @RequestMapping(value = "downloadAllegato", method = RequestMethod.GET)
     public void downloadAttached(
             @RequestParam(value = "azienda", required = true) String codiceAzienda,
-            @RequestParam(value= "id", required = true) String id,
+            @RequestParam(value = "id", required = true) String id,
             HttpServletResponse response,
             HttpServletRequest request
     ) throws EmlHandlerException, FileNotFoundException, MalformedURLException, IOException, MessagingException, UnsupportedEncodingException, BadParamsException {
-        
+
         InputStream is;
         try {
             is = download(id, codiceAzienda);
-                StreamUtils.copy(is, response.getOutputStream());
-                response.flushBuffer();
-            } catch( Exception e) {
-                log.error("Eccezione: ", e);
-            }
+            StreamUtils.copy(is, response.getOutputStream());
+            response.flushBuffer();
+        } catch (Exception e) {
+            log.error("Eccezione: ", e);
         }
-    
-    
-    
-    
+    }
+
     public InputStream download(String id, String codiceAzienda) throws BadParamsException, FileNotFoundException, IOException {
-        
+
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
         dbConnection.setDefaultColumnMappings(RaccoltaManager.mapSottoDocumenti());
         List<Sottodocumento> documento = new ArrayList<Sottodocumento>();
 
         try ( Connection conn = (Connection) dbConnection.open()) {
-            
+
             Query query = conn.createQuery(RaccoltaManager.queryInfoSottoDocumenti(id));
             documento = (List<Sottodocumento>) query.executeAndFetch(Sottodocumento.class);
             String extension = documento.get(0).getEstensione();
             String fileName = documento.get(0).getNomeOriginale() + "." + extension;
-            File file = new File(System.getProperty("java.io.tmpdir"), fileName); 
+            File file = new File(System.getProperty("java.io.tmpdir"), fileName);
             Integer idAzienda = postgresConnectionManager.getIdAzienda(codiceAzienda);
             MongoWrapper mongoWrapper = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
             InputStream is = null;
             DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(file));
             is = mongoWrapper.get(documento.get(0).getUuidMongo());
-            if( is == null) 
+            if (is == null) {
                 throw new MongoException("File non trovato");
+            }
             //StreamUtils.copy(is, dataOs);
             return is;
         } catch (Exception e) {
             log.info("Errore nel reperimento del file: ", e);
         }
-        return null;     
-    } 
-    
+        return null;
+    }
+
 }
