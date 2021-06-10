@@ -1,3 +1,4 @@
+
 package it.bologna.ausl.internauta.service.configuration.utils;
 
 /**
@@ -5,22 +6,13 @@ package it.bologna.ausl.internauta.service.configuration.utils;
  * @author guido
  */
 public class AziendaParams {
-
+    
     private String codiceAzienda;
-    private Integer idAzienda;
     private String jdbcUrl;
     private String dbUsername;
     private String dbPassword;
 
     public AziendaParams() {
-    }
-
-    public Integer getIdAzienda() {
-        return idAzienda;
-    }
-
-    public void setIdAzienda(Integer idAzienda) {
-        this.idAzienda = idAzienda;
     }
 
     public String getCodiceAzienda() {
@@ -30,7 +22,7 @@ public class AziendaParams {
     public void setCodiceAzienda(String codiceAzienda) {
         this.codiceAzienda = codiceAzienda;
     }
-
+    
     public String getJdbcUrl() {
         return jdbcUrl;
     }
@@ -39,7 +31,7 @@ public class AziendaParams {
         this.jdbcUrl = jdbcUrl;
     }
 
-    public String getDbUsername() {
+        public String getDbUsername() {
         return dbUsername;
     }
 

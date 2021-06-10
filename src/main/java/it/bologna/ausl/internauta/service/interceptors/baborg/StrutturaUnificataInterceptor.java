@@ -15,7 +15,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -59,7 +58,7 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
         }
         
         if (getDataByStatoValue != null) {
-            ZonedDateTime today = ZonedDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+            LocalDateTime today = LocalDate.now().atTime(0, 0);
             QStrutturaUnificata strutturaUnificata = QStrutturaUnificata.strutturaUnificata;
 //            AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
 
@@ -95,7 +94,7 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
                     break;
                 case ByData:
                     String dataRiferimentoString = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
-                    ZonedDateTime dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(dataRiferimentoString))).atZone(ZoneId.systemDefault());
+                    LocalDateTime dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(dataRiferimentoString))).atZone(ZoneId.systemDefault()).toLocalDateTime();
                     customFilter = (strutturaUnificata.dataDisattivazione.isNull()
                             .or(strutturaUnificata.dataDisattivazione.gt(dataRiferimento)))
                             .and(strutturaUnificata.dataAttivazione.isNotNull()

@@ -16,7 +16,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
@@ -62,13 +61,13 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
         System.out.println("in: beforeSelectQueryInterceptor di UtenteStruttura");
 
         String filterComboValue = null;
-        ZonedDateTime dataRiferimento = null;
+        LocalDateTime dataRiferimento = null;
         if (additionalData != null && additionalData.containsKey(FILTER_COMBO)) {
             filterComboValue = additionalData.get(FILTER_COMBO);
         }
         String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
         if (additionalData != null && additionalData.containsKey(key)) {
-            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS);
+            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime().truncatedTo(ChronoUnit.DAYS);
         }
 
         if (filterComboValue != null) {

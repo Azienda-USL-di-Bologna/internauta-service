@@ -15,7 +15,6 @@ import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
 import it.bologna.ausl.model.entities.messaggero.QAmministrazioneMessaggio;
 import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -59,7 +58,7 @@ public class MessageSenderManager {
 //        return messageThreadsMap;
 //    }
 
-    public void scheduleMessageSenderAtBoot(ZonedDateTime now) {
+    public void scheduleMessageSenderAtBoot(LocalDateTime now) {
         
         BooleanExpression onlyPopup = QAmministrazioneMessaggio.amministrazioneMessaggio.invasivita.eq(AmministrazioneMessaggio.InvasivitaEnum.POPUP.toString());
         
@@ -77,7 +76,7 @@ public class MessageSenderManager {
         }
     }
     
-    public void scheduleSeenCleanerAtBoot(ZonedDateTime now) {
+    public void scheduleSeenCleanerAtBoot(LocalDateTime now) {
         
         BooleanExpression notCleand = JPAExpressions.selectFrom(QPersona.persona)
                 .where(Expressions.booleanTemplate("arraycontains({0}, tools.string_to_integer_array(cast({1} as text), ','))=true", QPersona.persona.messaggiVisti, QAmministrazioneMessaggio.amministrazioneMessaggio.id))
@@ -99,11 +98,11 @@ public class MessageSenderManager {
     }
     
 //    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public ScheduledFuture<?> scheduleMessageSender(AmministrazioneMessaggio message, ZonedDateTime now) {
+    public ScheduledFuture<?> scheduleMessageSender(AmministrazioneMessaggio message, LocalDateTime now) {
         if (message.getDataScadenza() == null || message.getDataScadenza().isAfter(now)) {
             MessageSenderWorker messageSenderWorker = beanFactory.getBean(MessageSenderWorker.class);
             messageSenderWorker.setMessaggio(message);
-            ZonedDateTime dataPubblicazione = message.getDataPubblicazione();
+            LocalDateTime dataPubblicazione = message.getDataPubblicazione();
             long initialDelayMillis = 1000;
             long perdiodMillis = 0;
             if (dataPubblicazione.isAfter(now)) {
@@ -126,7 +125,7 @@ public class MessageSenderManager {
         }
     }
     
-    public ScheduledFuture<?> scheduleSeenCleaner(AmministrazioneMessaggio message, ZonedDateTime now) {
+    public ScheduledFuture<?> scheduleSeenCleaner(AmministrazioneMessaggio message, LocalDateTime now) {
         ScheduledFuture<?> schedule = null;
         if (message.getDataScadenza() != null) {
             MessageSeenCleanerWorker messageSeenCleanerWorker = beanFactory.getBean(MessageSeenCleanerWorker.class);

@@ -5,13 +5,6 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.argo.bollovirtuale.BolloVirtualeManager;
 import it.bologna.ausl.internauta.service.argo.bollovirtuale.DatoBolloVirtuale;
-import it.bologna.ausl.internauta.service.argo.raccolta.CoinvoltiRaccolte;
-import it.bologna.ausl.internauta.service.argo.raccolta.Coinvolto;
-import it.bologna.ausl.internauta.service.argo.raccolta.DocumentoBabel;
-import it.bologna.ausl.internauta.service.argo.raccolta.Fascicolo;
-import it.bologna.ausl.internauta.service.argo.raccolta.Raccolta;
-import it.bologna.ausl.internauta.service.argo.raccolta.RaccoltaManager;
-import it.bologna.ausl.internauta.service.argo.raccolta.Sottodocumento;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
@@ -348,85 +341,6 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
 
     public enum ScrivaniaCommonParameters {
         BABEL_APPLICATION
-    }
-    
-    @RequestMapping(value = {"autocompleteNumerazione"}, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<String> autocompleteNumerazione(HttpServletRequest request, @RequestParam("codiceAzienda") String codiceAzienda) {
-        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
-        dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryGetRaccoltaSemplice());
-        return null;
-    }
-    
-    @RequestMapping(value = {"getRaccoltaSemplice1"}, method = RequestMethod.GET)
-    public List<Raccolta> getRaccoltaSemplice(@RequestParam("codiceAzienda") String codiceAzienda,
-            @RequestParam("from") String from,
-            @RequestParam("to") String to,
-            HttpServletRequest request) throws Http500ResponseException, Http404ResponseException, RestClientException {
-
-        
-        
-        // Prendo la connessione dal connection manager
-        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
-        dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryGetRaccoltaSemplice());
-
-        List<Raccolta> datiRaccolta;
-        List<Raccolta> returnRaccolta = new ArrayList<Raccolta>();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-
-        try (Connection conn = (Connection) dbConnection.open()) {
-            Query queryWithParams = conn.createQuery(RaccoltaManager.queryRaccoltaSemplice())
-                    .addParameter("from", dateFormat.parse(from))
-                    .addParameter("to", dateFormat.parse(to));
-            LOGGER.info("esecuzione query getRaccoltaSemplice: " + queryWithParams.toString());
-            datiRaccolta = (List<Raccolta>) queryWithParams.executeAndFetch(Raccolta.class);
-            for(Raccolta r : datiRaccolta) {
-                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryCodiceBabel());
-                Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddoc()));
-                List<DocumentoBabel> doc = (List<DocumentoBabel>) queryCodice.executeAndFetch(DocumentoBabel.class);
-                if(doc.get(0).getNumero().isEmpty() ||  doc.get(0).getCodiceRegistro().isEmpty())
-                    r.setDocumentoBabel("Non associato");
-                else
-                    r.setDocumentoBabel(doc.get(0).getCodiceBabel());
-                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapNumerazioneGerarchica());
-                Query queryFascicolo = conn.createQuery(RaccoltaManager.queryNumerazioneGerarchica(r.getIdGddoc()));
-                List<Fascicolo> fascicoli = (List<Fascicolo>) queryFascicolo.executeAndFetch(Fascicolo.class);
-                String numerazioneGerarchica = "";
-                for(Fascicolo f: fascicoli) 
-                    numerazioneGerarchica = numerazioneGerarchica + f.getNumerazioneGerarchica() + " ";
-                r.setFascicoli(numerazioneGerarchica);
-                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapCoinvoltiRaccolta());
-                LOGGER.info("Query raccolta coinvolti: " + RaccoltaManager.queryCoinvoltiRaccolta(r.getId().toString()));
-                Query queryCoinvoltiRaccolta = conn.createQuery(RaccoltaManager.queryCoinvoltiRaccolta(r.getId().toString()));
-                List<CoinvoltiRaccolte> coinvoltiRaccolti = (List<CoinvoltiRaccolte>) queryCoinvoltiRaccolta.executeAndFetch(CoinvoltiRaccolte.class);
-                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapCoinvolti());
-                for(CoinvoltiRaccolte cr : coinvoltiRaccolti) {
-                    LOGGER.info("Query coinvolti: " + RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
-                    Query queryCoinvolti = conn.createQuery(RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
-                    List<Coinvolto> coinvolti = (List<Coinvolto>) queryCoinvolti.executeAndFetch(Coinvolto.class);
-                    for(Coinvolto c : coinvolti) 
-                        r.addCoinvolto(c);
-                }
-                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapSottoDocumenti());
-                Query querySottodocumenti = conn.createQuery(RaccoltaManager.querySottoDocumenti(r.getIdGddoc()));
-                List<Sottodocumento> documenti = (List<Sottodocumento>) querySottodocumenti.executeAndFetch(Sottodocumento.class);
-                Integer i = 1;
-                for(Sottodocumento d : documenti) {
-                    d.setNome(r.getDocumentoBabel()+"_Allegato" + i.toString());
-                    i++;
-                    r.addSottodocumento(d);
-                }
-                returnRaccolta.add(r);  
-            }
-        } catch (Exception e) { 
-            LOGGER.error("errore nell'esecuzione della query getRaccoltaSemplice", e);
-            throw new Http500ResponseException("1", "Errore nell'escuzione della query getRaccoltaSemplice");
-        }
-        LOGGER.info("Tutto ok");
-        LOGGER.info("Oggetto: " + returnRaccolta.get(0).getOggetto());
-        LOGGER.info("Codice : " + returnRaccolta.get(0).getDocumentoBabel());
-        LOGGER.info("Numerazione: " + returnRaccolta.get(0).getFascicoli());
-        LOGGER.info("Nome sottodocumento: " + returnRaccolta.get(0).getSottodocumenti().get(0).getNome());
-        return returnRaccolta;
     }
 
     @RequestMapping(value = {"getMenuScrivania"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
