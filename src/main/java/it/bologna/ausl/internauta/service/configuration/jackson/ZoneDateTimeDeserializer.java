@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.configuration.jackson;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -16,10 +11,9 @@ import java.time.format.DateTimeFormatter;
 
 /**
  *
- * @author utente
+ * @author gdm
  */
 public class ZoneDateTimeDeserializer extends StdDeserializer<ZonedDateTime> {
-//
 
     public ZoneDateTimeDeserializer(Class<ZonedDateTime> vc) {
         super(vc);
@@ -39,4 +33,6 @@ public class ZoneDateTimeDeserializer extends StdDeserializer<ZonedDateTime> {
         ZonedDateTime dateTime = ZonedDateTime.parse(dateString, DateTimeFormatter.ISO_ZONED_DATE_TIME);
         return dateTime;
     }
+
+   
 }
