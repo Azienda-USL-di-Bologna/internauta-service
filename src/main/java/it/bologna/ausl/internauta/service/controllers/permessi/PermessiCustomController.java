@@ -1,15 +1,9 @@
 package it.bologna.ausl.internauta.service.controllers.permessi;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import it.bologna.ausl.internauta.service.utils.CacheUtilities;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Lists;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.PermissionRepositoryAccess;
@@ -19,7 +13,6 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
-import it.bologna.ausl.internauta.service.configuration.jackson.ZoneDateTimeDeserializer;
 import it.bologna.ausl.internauta.service.exceptions.AuthorizationException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
@@ -53,7 +46,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -110,7 +102,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
     @Autowired
     PersonaRepository personaRepository;
-
+    
     @Autowired
     AziendaRepository aziendaRepository;
 
@@ -150,16 +142,14 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
     /**
      * Questa funzione si occupa di recuperare i delegati visibili al CI/CA
-     *
      * @param aziendaSelezionata
      * @return
-     * @throws BlackBoxPermissionException
-     * @throws
-     * it.bologna.ausl.internauta.service.exceptions.AuthorizationException
+     * @throws BlackBoxPermissionException 
+     * @throws it.bologna.ausl.internauta.service.exceptions.AuthorizationException 
      */
     @RequestMapping(value = "getDelegatiMatrint", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List> getDelegatiMatrint(
-            @RequestParam("idAziendaSelezionata") Integer idAziendaSelezionata
+        @RequestParam("idAziendaSelezionata") Integer idAziendaSelezionata
     ) throws BlackBoxPermissionException, AuthorizationException {
 
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -169,7 +159,7 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         if (!userInfoService.isCI(utente) && !userInfoService.isCA(utente) && !userInfoService.isR(utente, Ruolo.ModuliRuolo.GENERALE)) {
             throw new AuthorizationException("Utente non CA/CI/R non può caricare delegati");
         }
-
+        
         if (!userInfoService.isCI(utente) && userInfoService.isCA(utente)) {
             // Dunque è un CA, ma lo è dell'azienda giusta?
             List<Azienda> aziendeWherePersonaIsCa = userInfoService.getAziendeWherePersonaIsCa(persona);
@@ -183,11 +173,11 @@ public class PermessiCustomController implements ControllerHandledExceptions {
                 throw new AuthorizationException("Utente R ma non dell'azienda richiesta");
             }
         }
-
+        
         Azienda azienda = aziendaRepository.getOne(idAziendaSelezionata);
-
+        
         List<PermessoEntitaStoredProcedure> res = permissionManager.getPermissionsByPredicate(Predicati.DELEGA.toString(), MATRINT.toString(), DELEGA.toString(), azienda, azienda);
-
+        
         if (res != null) {
             for (PermessoEntitaStoredProcedure permesso : res) {
                 EntitaStoredProcedure soggetto = permesso.getSoggetto();
@@ -199,10 +189,11 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
             }
         }
-
+        
         return new ResponseEntity(res, HttpStatus.OK);
     }
-
+    
+    
 //    public List<PermessoEntitaStoredProcedure> getPermissionsByPredicate(
 //            List<String> predicati,
 //            List<String> ambiti,
@@ -214,36 +205,37 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 //        return permissionManager.getPermissionsByPredicate(predicati, ambiti, tipi, entitiesGruppiSoggetto, entitiesGruppiOggetto);
 //
 //    }
-    /**
-     * Questo codice sembra poter tornare utile in futuro! non cancellare!
-     * Set<Class<?>> entityClasses = new
-     * Reflections("it.bologna.ausl.model.entities").getTypesAnnotatedWith(Entity.class);
-     *
-     * Class<?> utenteClass = Utente.class; HashMap<String, Class>
-     * hashMapSchemaTable = new HashMap<String, Class>();
-     *
-     * for (Class entityClass : entityClasses) { LOGGER.info("classe trovata: "
-     * + entityClass.getName()); Table annotation = (Table)
-     * entityClass.getAnnotation(Table.class); String schema =
-     * annotation.schema(); String name = annotation.name();
-     * hashMapSchemaTable.put(schema + "--" + name, entityClass); }
-     *
-     * for (PermessoEntitaStoredProcedure permesso : res) {
-     * EntitaStoredProcedure soggetto = permesso.getSoggetto(); String
-     * schemaSoggetto = soggetto.getSchema(); String tableSoggetto =
-     * soggetto.getTable(); EntitaStoredProcedure oggetto =
-     * permesso.getOggetto(); String schemaOggetto = oggetto.getSchema(); String
-     * tableOggetto = oggetto.getTable();
-     *
-     * EntityInterface findSoggetto = (EntityInterface)
-     * eM.find(hashMapSchemaTable.get(schemaSoggetto + "--" + tableSoggetto),
-     * soggetto.getIdProvenienza()); EntityInterface findOggetto =
-     * (EntityInterface) eM.find(hashMapSchemaTable.get(schemaOggetto + "--" +
-     * tableOggetto), oggetto.getIdProvenienza());
-     *
-     * soggetto.setDescrizione(findSoggetto.getEntityDescription());
-     * oggetto.setDescrizione(findOggetto.getEntityDescription()); }
-     */
+    
+    /** Questo codice sembra poter tornare utile in futuro! non cancellare!
+        Set<Class<?>> entityClasses = new Reflections("it.bologna.ausl.model.entities").getTypesAnnotatedWith(Entity.class);
+
+        Class<?> utenteClass = Utente.class;
+        HashMap<String, Class> hashMapSchemaTable = new HashMap<String, Class>();
+
+        for (Class entityClass : entityClasses) {
+            LOGGER.info("classe trovata: " + entityClass.getName());
+            Table annotation = (Table) entityClass.getAnnotation(Table.class);
+            String schema = annotation.schema();
+            String name = annotation.name();
+            hashMapSchemaTable.put(schema + "--" + name, entityClass);
+        }
+
+        for (PermessoEntitaStoredProcedure permesso : res) {
+            EntitaStoredProcedure soggetto = permesso.getSoggetto();
+            String schemaSoggetto = soggetto.getSchema();
+            String tableSoggetto = soggetto.getTable();
+            EntitaStoredProcedure oggetto = permesso.getOggetto();
+            String schemaOggetto = oggetto.getSchema();
+            String tableOggetto = oggetto.getTable();
+
+            EntityInterface findSoggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaSoggetto + "--" + tableSoggetto), soggetto.getIdProvenienza());
+            EntityInterface findOggetto = (EntityInterface) eM.find(hashMapSchemaTable.get(schemaOggetto + "--" + tableOggetto), oggetto.getIdProvenienza());
+
+            soggetto.setDescrizione(findSoggetto.getEntityDescription());
+            oggetto.setDescrizione(findOggetto.getEntityDescription());
+        }
+        */
+        
     /**
      * E' il controller che gestisce i permessi per i Gestori PEC. Prima della
      * chiamata alla Black Box viene controllato che l'utente loggato sia
@@ -292,15 +284,6 @@ public class PermessiCustomController implements ControllerHandledExceptions {
             }
 
             try {
-//                SimpleModule s = new SimpleModule();
-//                s.addDeserializer(ZonedDateTime.class, new ZoneDateTimeDeserializer(ZonedDateTime.class));
-//                ObjectMapper m = new ObjectMapper();
-//
-//                m.registerModule(s);
-//                m.setSerializationInclusion(Include.NON_NULL);
-//                m.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-//                m.configure(SerializationFeature.WRITE_BIGDECIMAL_AS_PLAIN, true);
-//                m.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
                 pec = objectMapper.convertValue(element.get("pec"), Pec.class);
             } catch (IllegalArgumentException ex) {
                 LOGGER.error("Errore nel casting della pec.", ex);
@@ -330,10 +313,10 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
             List<Integer> idAziendePec = pec.getPecAziendaList().stream().map(pecAzienda -> pecAzienda.getIdAzienda().getId()).collect(Collectors.toList());
             List<Integer> idAziendePersona;
-            if (persona.getAttiva()) {
+            if(persona.getAttiva()){
                 idAziendePersona = userInfoService.getAziendePersona(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());
-            } else {
-                idAziendePersona = userInfoService.getAziendePersonaSpenta(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());
+            }else{
+                idAziendePersona = userInfoService.getAziendePersonaSpenta(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());                
             }
 //            List<Integer> idAziendePersona = userInfoService.getAziendePersona(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());
 
