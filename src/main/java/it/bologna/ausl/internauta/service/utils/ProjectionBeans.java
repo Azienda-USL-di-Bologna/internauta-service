@@ -107,6 +107,7 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.SpedizioneWi
 import it.nextsw.common.utils.EntityReflectionUtils;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import javax.persistence.Table;
 import org.json.JSONArray;
@@ -665,9 +666,9 @@ public class ProjectionBeans {
         if (idStrutturaFiglia != null) {
             
             // Devo capire se questa struttura è una foglia.
-            LocalDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimento().truncatedTo(ChronoUnit.DAYS);
+            ZonedDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimento().truncatedTo(ChronoUnit.DAYS);
             if (dataRiferimento == null) {
-                dataRiferimento = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
+                dataRiferimento = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS);
             }
             QStoricoRelazione qStoricoRelazione = QStoricoRelazione.storicoRelazione;
             BooleanExpression filter = qStoricoRelazione.idStrutturaPadre.id.eq(idStrutturaFiglia.getId()).and(qStoricoRelazione.attivaDal.loe(dataRiferimento)
@@ -692,9 +693,9 @@ public class ProjectionBeans {
      * @return 
      */
     public List<StrutturaUnificataCustom> getFusioni(Struttura struttura) {
-        LocalDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimento().truncatedTo(ChronoUnit.DAYS);
+        ZonedDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimento().truncatedTo(ChronoUnit.DAYS);
         if (dataRiferimento == null) {
-            dataRiferimento = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
+            dataRiferimento = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS);
         }
         QStrutturaUnificata qStrutturaUnificata = QStrutturaUnificata.strutturaUnificata;
         BooleanExpression filtraFusioni = 

@@ -100,6 +100,7 @@ import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.function.Predicate;
 import org.json.JSONArray;
@@ -597,7 +598,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 QTag.tag.name.eq(Tag.SystemTagName.readdressed_in.toString())
                         .and(QTag.tag.idPec.id.eq(pecDestination.getId())));
         messageTag.setIdTag(tagOp.get());
-        messageTag.setInserted(LocalDateTime.now());
+        messageTag.setInserted(ZonedDateTime.now());
         messageTag.setIdUtente(utente);
         JsonObject idPecSource = new JsonObject();
         idPecSource.addProperty("id", messageSource.getIdPec().getId());
@@ -637,7 +638,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 QTag.tag.name.eq(Tag.SystemTagName.readdressed_out.toString())
                         .and(QTag.tag.idPec.id.eq(messageSource.getIdPec().getId())));
         messageTagSource.setIdTag(tagOpSource.get());
-        messageTagSource.setInserted(LocalDateTime.now());
+        messageTagSource.setInserted(ZonedDateTime.now());
         messageTagSource.setIdUtente(utente);
         JsonObject idPecDestinationJson = new JsonObject();
         idPecDestinationJson.addProperty("id", pecDestination.getId());

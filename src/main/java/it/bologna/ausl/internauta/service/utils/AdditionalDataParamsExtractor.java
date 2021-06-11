@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +24,12 @@ public class AdditionalDataParamsExtractor {
     @Autowired
     AdditionalDataUtils additionalDataUtils;
     
-    public LocalDateTime getDataRiferimento() {
+    public ZonedDateTime getDataRiferimento() {
         Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
         if (additionalData != null) {
             String dataRiferimento = additionalData.get("dataRiferimento");
             if (StringUtils.hasText(dataRiferimento)) {
-                return Instant.ofEpochMilli(Long.parseLong(dataRiferimento)).atZone(ZoneId.systemDefault()).toLocalDateTime(); // java <= 8
+                return Instant.ofEpochMilli(Long.parseLong(dataRiferimento)).atZone(ZoneId.systemDefault()); // java <= 8
 //                return LocalDate.ofInstant(Instant.ofEpochMilli(Long.parseLong(dataPermesso)), ZoneId.systemDefault()); // java > 8
             }
         }
