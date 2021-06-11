@@ -9,7 +9,6 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
 import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -63,7 +62,7 @@ public class MessageSeenCleanerWorker implements Runnable {
 
     private Boolean isActive() {
         Optional<AmministrazioneMessaggio> messageOp = amministrazioneMessaggioRepository.findById(message.getId());
-        return messageOp.isPresent() && messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)) && messageOp.get().getDataScadenza() != null && messageOp.get().getDataScadenza().isBefore(ZonedDateTime.now());
+        return messageOp.isPresent() && messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)) && messageOp.get().getDataScadenza() != null && messageOp.get().getDataScadenza().isBefore(LocalDateTime.now());
     }
 
     public static void cleanSeenFromPersone(Integer messageId, PersonaRepository personaRepository) {

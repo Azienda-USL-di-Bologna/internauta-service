@@ -32,7 +32,6 @@ import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -135,7 +134,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                                 Integer mascheraBit = internautaUtils.getSommaMascheraBit(ruoliNomeBreveString);
 
                                 Map<String, Integer> struttureRuoloEFiglie = objectMapper.convertValue(
-                                        storicoRelazioneRepository.getStruttureRuoloEFiglie(mascheraBit, utente.getId(), ZonedDateTime.now()).get("result"),
+                                        storicoRelazioneRepository.getStruttureRuoloEFiglie(mascheraBit, utente.getId(), LocalDateTime.now()).get("result"),
                                         new TypeReference<Map<String, Integer>>() {
                                 }
                                 );
@@ -256,7 +255,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                 Integer mascheraBit = internautaUtils.getSommaMascheraBit(Ruolo.CodiciRuolo.R.toString());
 
                 Map<String, Integer> struttureResponsabile = objectMapper.convertValue(
-                        storicoRelazioneRepository.getStruttureRuolo(mascheraBit, utente.getId(), ZonedDateTime.now()).get("result"),
+                        storicoRelazioneRepository.getStruttureRuolo(mascheraBit, utente.getId(), LocalDateTime.now()).get("result"),
                         new TypeReference<Map<String, Integer>>() {
                 }
                 );
