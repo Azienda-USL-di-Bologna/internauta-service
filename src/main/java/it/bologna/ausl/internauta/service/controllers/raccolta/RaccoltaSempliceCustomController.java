@@ -587,15 +587,15 @@ public class RaccoltaSempliceCustomController {
         String annoDocumentoOrigineStr = null;
         String codiceRegistroOrigine = null;
 
-        if (numeroDocumentoOrigineOpt.isPresent() && !numeroDocumentoOrigineOpt.isEmpty()) {
+        if (numeroDocumentoOrigineOpt.isPresent()) {
             numeroDocumentoOrigine = numeroDocumentoOrigineOpt.get();
         }
 
-        if (annoDocumentoOrigineStrOpt.isPresent() && !annoDocumentoOrigineStrOpt.isEmpty()) {
+        if (annoDocumentoOrigineStrOpt.isPresent()) {
             annoDocumentoOrigineStr = annoDocumentoOrigineStrOpt.get();
         }
 
-        if (codiceRegistroOrigineOpt.isPresent() && !codiceRegistroOrigineOpt.isEmpty()) {
+        if (codiceRegistroOrigineOpt.isPresent()) {
             codiceRegistroOrigine = codiceRegistroOrigineOpt.get();
         }
 
