@@ -296,6 +296,7 @@ public class RaccoltaSempliceCustomController {
             @RequestParam(required = false, value = "documentoBabel") String documentoBabel,
             @RequestParam(required = false, value = "creatore") String creatore,
             @RequestParam(required = false, value = "struttura") String struttura,
+            @RequestParam(required = false, value = "createTime") String data,
             HttpServletRequest request) throws Http500ResponseException,
             Http404ResponseException, RestClientException {
 
@@ -359,6 +360,22 @@ public class RaccoltaSempliceCustomController {
                     query = query + " and r.creatore ilike '%" + creatore + "%' ";
                 }
                 log.info("Query: " + query);
+            }
+            
+            if (data != null) {
+                
+                Date date1 = new SimpleDateFormat("dd/MM/yyyy").parse(data);
+                
+                SimpleDateFormat sdfSQL =new SimpleDateFormat("yyyy-MM-dd");  
+                   
+                data = sdfSQL.format(date1);
+                
+                if (query == "") {
+                    query = "SELECT * from gd.raccolte r WHERE create_time::date = '" + data + "'::date ";
+                } else {
+                    query = query + " and r.create_time::date = '" + data + "'::date ";
+                }
+                log.info("Query: " + query); 
             }
 
             if (fascicolo != null) {
@@ -1243,6 +1260,26 @@ public class RaccoltaSempliceCustomController {
         } catch (Exception e) {
             log.error("Eccezione: ", e);
         }
+    }
+    @RequestMapping(value = "getTipologia", method = RequestMethod.GET)
+    public List<String> getTipologia( @RequestParam(value = "azienda", required = true) String codiceAzienda,
+            HttpServletResponse response,
+            HttpServletRequest request) {
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        List<String> tipologie = new ArrayList<>();
+        try ( Connection conn = (Connection) dbConnection.open()) {
+            Query query = conn.createQuery("SELECT tipo from gd.tipologia_rs where data_disattivazione is null");
+            tipologie = query.executeAndFetch(String.class);
+            if(tipologie.isEmpty()) {
+                log.error("Tipologie non trovate");
+                throw new Exception();
+            }            
+        } catch (Exception e) {
+            log.error("Causa errore: ", e);
+            return null;
+        }
+        log.info("Tipologie ritornate correttamente");
+        return tipologie;
     }
 
     public InputStream download(String id, String codiceAzienda) throws BadParamsException, FileNotFoundException, IOException {
