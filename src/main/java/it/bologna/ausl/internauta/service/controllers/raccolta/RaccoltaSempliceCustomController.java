@@ -2,14 +2,11 @@ package it.bologna.ausl.internauta.service.controllers.raccolta;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoException;
-import com.mongodb.MongoWaitQueueFullException;
 import it.bologna.ausl.documentgenerator.exceptions.Http400ResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.Sql2oSelectException;
 import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedSignatureType;
-import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.eml.handler.EmlHandlerUtils;
 import it.bologna.ausl.internauta.service.argo.raccolta.CoinvoltiRaccolte;
 import it.bologna.ausl.internauta.service.argo.raccolta.Coinvolto;
 import it.bologna.ausl.internauta.service.argo.raccolta.DocumentoBabel;
@@ -67,28 +64,20 @@ import org.sql2o.data.Row;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
-import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.mongowrapper.MongoWrapper;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.Part;
-import javax.mail.internet.MimeMessage;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.util.StreamUtils;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PathVariable;
 
 /**
  *
