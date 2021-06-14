@@ -880,7 +880,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                     JSONObject dettaglioContattoJSON = new JSONObject();
                     log.info("Cerco il dettaglio contatto per IdContattoAndIdContattoEsterno...");
                     DettaglioContatto dettaglioContatto = dettaglioContattoRepository.
-                            findByIdContattoAndIdContattoEsterno(contatto, contattoStruttura.getId());
+                            findByIdContattoAndIdContattoEsterno(contatto, contattoStruttura);
                     if (dettaglioContatto != null) {
                         log.info("dettaglioContatto: " + dettaglioContatto.getId());
                         dettaglioContattoJSON.put("id", dettaglioContatto.getId());

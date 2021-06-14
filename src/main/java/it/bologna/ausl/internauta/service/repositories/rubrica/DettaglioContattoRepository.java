@@ -26,7 +26,7 @@ public interface DettaglioContattoRepository extends
             @Param("contact") String contact
     );
 
-    public DettaglioContatto findByIdContattoAndIdContattoEsterno(Contatto idContatto, Integer idContattoEsterno);
+    public DettaglioContatto findByIdContattoAndIdContattoEsterno(Contatto idContatto, Contatto idContattoEsterno);
 
     public DettaglioContatto findByIdContattoAndTipo(Contatto idContatto, String tipo);
 }
