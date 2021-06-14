@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.schedulers.workers.messagesender.MessageSeenCleanerWorker;
 import it.bologna.ausl.internauta.service.schedulers.workers.messagesender.MessageThreadEvent;
+import java.time.ZonedDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -55,10 +56,10 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
                 switch (operationRequested) {
                     case GetAmministrazioneMessaggiAttivi:
                         filtroAmministrazioneMessaggi = QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.isNull()
-                                .or( QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.gt(LocalDateTime.now()));
+                                .or( QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.gt(ZonedDateTime.now()));
                         break;
                     case GetAmministrazioneMessaggiStorico:
-                        filtroAmministrazioneMessaggi = QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.loe(LocalDateTime.now());
+                        filtroAmministrazioneMessaggi = QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.loe(ZonedDateTime.now());
                         break;
                }
            }

@@ -18,6 +18,7 @@ import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
 import it.bologna.ausl.model.entities.messaggero.QAmministrazioneMessaggio;
 import it.nextsw.common.controller.exceptions.NotFoundResourceException;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -124,7 +125,7 @@ public class MessaggeroCustomController {
     @RequestMapping(value = "getMessaggiDaMostrare", method = RequestMethod.GET)
     @Transactional(rollbackFor = {Throwable.class})
     public ResponseEntity<List<IntimusUtils.ShowMessageParams>> getMessaggiDaMostrare() throws NotFoundResourceException, BlackBoxPermissionException {
-        LocalDateTime now = LocalDateTime.now();
+        ZonedDateTime now = ZonedDateTime.now();
         Persona person = getRealPerson();
         Utente user = getRealUser();
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();

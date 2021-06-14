@@ -45,6 +45,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -396,7 +397,7 @@ public class BaborgUtils {
 
                                 } else {
                                     List<Map<String, Object>> elementi = selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
-                                    Map<String, LocalDateTime> maxMin = maxMin(elementi);
+                                    Map<String, ZonedDateTime> maxMin = maxMin(elementi);
                                     if (!controllaEstremi(maxMin.get("min"), maxMin.get("max"), formattattore(appartenentiMap.get("datain")), formattattore(appartenentiMap.get("datafi")))) {
 
                                         mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura, ");
@@ -445,19 +446,19 @@ public class BaborgUtils {
                             mapError.put("datain", appartenentiMap.get("datain"));
 //                            mA.setDatain(formattattore(appartenentiMap.get("datain")));
                         }
-                        LocalDateTime datafi = null;
-                        LocalDateTime datain = null;
+                        ZonedDateTime datafi = null;
+                        ZonedDateTime datain = null;
                         String datafiString = null;
                         String datainString = null;
 
                         if (appartenentiMap.get("datafi") != null && (!appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") != "")) {
                             datafi = formattattore(appartenentiMap.get("datafi"));
-                            datafiString = UtilityFunctions.getLocalDateTimeString(datafi);
+                            datafiString = UtilityFunctions.getZonedDateTimeString(datafi);
                         }
 
                         if (appartenentiMap.get("datain") != null && (!appartenentiMap.get("datain").toString().trim().equals("") || appartenentiMap.get("datain") != "")) {
                             datain = formattattore(appartenentiMap.get("datain"));
-                            datainString = UtilityFunctions.getLocalDateTimeString(datain);
+                            datainString = UtilityFunctions.getZonedDateTimeString(datain);
                         }
                         if (appartenentiMap.get("datafi") == null || appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") == "") {
                             mapError.put("datafi", "");
@@ -830,18 +831,18 @@ public class BaborgUtils {
                             mapError.put("datain", responsabiliMap.get("datain"));
                             mR.setDatain(formattattore(responsabiliMap.get("datain")));
                         }
-                        LocalDateTime datafi = null;
-                        LocalDateTime datain = null;
+                        ZonedDateTime datafi = null;
+                        ZonedDateTime datain = null;
                         String datafiString = null;
                         String datainString = null;
                         if (responsabiliMap.get("datafi") != null && (!responsabiliMap.get("datafi").toString().trim().equals("") || responsabiliMap.get("datafi") == "")) {
                             datafi = formattattore(responsabiliMap.get("datafi"));
-                            datafiString = UtilityFunctions.getLocalDateTimeString(datafi);
+                            datafiString = UtilityFunctions.getZonedDateTimeString(datafi);
                         }
 
                         if (responsabiliMap.get("datain") != null && (!responsabiliMap.get("datain").toString().trim().equals("") || responsabiliMap.get("datain") == "")) {
                             datain = formattattore(responsabiliMap.get("datain"));
-                            datainString = UtilityFunctions.getLocalDateTimeString(datain);
+                            datainString = UtilityFunctions.getZonedDateTimeString(datain);
                         }
 
 //                      ID_CASELLA bloccante
@@ -954,14 +955,14 @@ public class BaborgUtils {
                         mapError.put("ERRORE", "");
                         // Inserisco la riga
                         MdrStruttura mS = new MdrStruttura();
-                        LocalDateTime datafi = null;
-                        LocalDateTime datain = null;
+                        ZonedDateTime datafi = null;
+                        ZonedDateTime datain = null;
                         String datafiString = null;
                         String datainString = null;
 
                         if (strutturaMap.get("datain") != null && (!strutturaMap.get("datain").toString().trim().equals("") || strutturaMap.get("datain") != "")) {
                             datain = formattattore(strutturaMap.get("datain"));
-                            datainString = UtilityFunctions.getLocalDateTimeString(datain);
+                            datainString = UtilityFunctions.getZonedDateTimeString(datain);
                         }
 
                         if (strutturaMap.get("datain") == null || strutturaMap.get("datain").toString().trim().equals("") || strutturaMap.get("datain") == "") {
@@ -977,7 +978,7 @@ public class BaborgUtils {
 
                         if (strutturaMap.get("datafi") != null && (!strutturaMap.get("datafi").toString().trim().equals("") || strutturaMap.get("datafi") != "")) {
                             datafi = formattattore(strutturaMap.get("datafi"));
-                            datafiString = UtilityFunctions.getLocalDateTimeString(datafi);
+                            datafiString = UtilityFunctions.getZonedDateTimeString(datafi);
                         }
 
                         if (strutturaMap.get("datafi") == null
@@ -1202,7 +1203,7 @@ public class BaborgUtils {
 //                      DATA ORA OPERAZIONE
                         if (trasformazioniMap.get("dataora_oper") == null || trasformazioniMap.get("dataora_oper").toString().trim().equals("")) {
                             mapError.put("ERRORE", mapError.get("ERRORE") + " DATAORA_OPER inserito automaticamente,");
-                            LocalDateTime now = LocalDateTime.now();
+                            ZonedDateTime now = ZonedDateTime.now();
                             mapError.put("dataora_oper", now.toString());
                             mT.setDataoraOper(now);
                             nRigheAnomale++;
@@ -1579,12 +1580,12 @@ public class BaborgUtils {
         return headers;
     }
 
-    private boolean controllaEstremi(LocalDateTime dataStrutturaInizio, LocalDateTime dataStrutturaFine, LocalDateTime dataAppartenenteInizio, LocalDateTime dataAppartenenteFine) {
+    private boolean controllaEstremi(ZonedDateTime dataStrutturaInizio, ZonedDateTime dataStrutturaFine, ZonedDateTime dataAppartenenteInizio, ZonedDateTime dataAppartenenteFine) {
         if (dataAppartenenteFine == null) {
-            dataAppartenenteFine = LocalDateTime.MAX;
+            dataAppartenenteFine = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
         }
         if (dataStrutturaFine == null) {
-            dataStrutturaFine = LocalDateTime.MAX;
+            dataStrutturaFine = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
         }
         if (dataStrutturaFine.compareTo(dataAppartenenteFine) < 0) {
             return false;
@@ -1619,7 +1620,7 @@ public class BaborgUtils {
         java.util.Optional<Azienda> azienda = aziendaRepository.findById(idAziendaInt);
         if (azienda.isPresent()) {
             ImportazioniOrganigramma newRowInCorso = new ImportazioniOrganigramma();
-            newRowInCorso.setDataInserimentoRiga(LocalDateTime.now());
+            newRowInCorso.setDataInserimentoRiga(ZonedDateTime.now());
             newRowInCorso.setNomeFile(fileName);
             newRowInCorso.setIdAzienda(azienda.get());
             newRowInCorso.setTipo(tipo);
@@ -1676,7 +1677,7 @@ public class BaborgUtils {
      * @return true se il figlio rispetta l'arco temporale del o dei padri nel
      * caso in cui il padre sia spezzato ma continuo
      */
-    public Boolean arco_old(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
+    public Boolean arco_old(List<Map<String, Object>> elementi, ZonedDateTime dataInizio, ZonedDateTime dataFine) {
         if (elementi.isEmpty()) {
             return false;
         }
@@ -1701,7 +1702,7 @@ public class BaborgUtils {
         }
     }
 
-    private List<Integer> arco(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
+    private List<Integer> arco(List<Map<String, Object>> elementi, ZonedDateTime dataInizio, ZonedDateTime dataFine) {
         List<Integer> lista = new ArrayList<>();
         if (!elementi.isEmpty()) {
             for (Map<String, Object> elemento : elementi) {
@@ -1722,7 +1723,7 @@ public class BaborgUtils {
      * @return true se gli intervalli si sovrappongono con l'intervallo passato
      * false se non si sovrappongo
      */
-    public Boolean arcoBool(List<Map<String, Object>> elementi, LocalDateTime dataInizio, LocalDateTime dataFine) {
+    public Boolean arcoBool(List<Map<String, Object>> elementi, ZonedDateTime dataInizio, ZonedDateTime dataFine) {
         if (elementi.isEmpty()) {
             return false;
         }
@@ -1738,28 +1739,28 @@ public class BaborgUtils {
      * @param dataFineB data di fine del periodo B che potrebbe coincidere con A
      * @return true se si sovrappongono false se non si sovrappongono
      */
-    public Boolean overlap(LocalDateTime dataInizioA, LocalDateTime dataFineA, LocalDateTime dataInizioB, LocalDateTime dataFineB) {
+    public Boolean overlap(ZonedDateTime dataInizioA, ZonedDateTime dataFineA, ZonedDateTime dataInizioB, ZonedDateTime dataFineB) {
 
         if (dataFineA == null) {
-            dataFineA = LocalDateTime.MAX;
+            dataFineA = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
         }
         if (dataFineB == null) {
-            dataFineB = LocalDateTime.MAX;
+            dataFineB = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
         }
         return (dataInizioA.compareTo(dataFineB) <= 0 && dataFineA.compareTo(dataInizioB) >= 0) && dataInizioA.compareTo(dataInizioB) <= 0;
     }
 
-    private Map<String, LocalDateTime> maxMin(List<Map<String, Object>> elementi) {
-        HashMap<String, LocalDateTime> maxmin = new HashMap<>();
-        LocalDateTime min = LocalDateTime.MAX;
-        LocalDateTime max = LocalDateTime.MIN;
+    private Map<String, ZonedDateTime> maxMin(List<Map<String, Object>> elementi) {
+        HashMap<String, ZonedDateTime> maxmin = new HashMap<>();
+        ZonedDateTime min = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
+        ZonedDateTime max = ZonedDateTime.of(LocalDateTime.MIN, ZoneId.systemDefault());
 
         for (Map<String, Object> map1 : elementi) {
             if (min.compareTo(formattattore(map1.get("datain").toString())) > 0) {
                 min = formattattore(map1.get("datain").toString());
             }
             if (map1.get("datafi") == null) {
-                max = LocalDateTime.MAX;
+                max = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
             } else if (max.compareTo(formattattore(map1.get("datafi").toString())) < 0) {
                 max = formattattore(map1.get("datafi").toString());
             }
@@ -1777,12 +1778,12 @@ public class BaborgUtils {
      * @return
      * @throws ParseException
      */
-    public LocalDateTime formattattore(Object o) {
+    public ZonedDateTime formattattore(Object o) {
         if (o != null) {
             try {
                 // String format = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
 //                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(o.toString()).toInstant();
-                return LocalDate.parse(o.toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy")).atStartOfDay();
+                return LocalDate.parse(o.toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy")).atStartOfDay(ZoneId.systemDefault());
             } catch (Exception e) {
 
             }
@@ -1790,19 +1791,19 @@ public class BaborgUtils {
 
                 // String format = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                 Instant toInstant = new SimpleDateFormat("dd/MM/yy").parse(o.toString()).toInstant();
-                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+                return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non Ã¨ stato parsato
             }
             try {
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(o.toString()).toInstant();
-                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+                return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non Ã¨ stato parsato
             }
             try {
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(o.toString()).toInstant();
-                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+                return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non Ã¨ stato parsato
             }
@@ -1810,14 +1811,14 @@ public class BaborgUtils {
             try {
                 String time = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(time).toInstant();
-                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+                return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non Ã¨ stato parsato
             }
             try {
                 String time = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(time).toInstant();
-                return LocalDateTime.ofInstant(toInstant, ZoneId.systemDefault());
+                return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
                 //non Ã¨ stato parsato
             }
