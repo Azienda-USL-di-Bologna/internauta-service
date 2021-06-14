@@ -136,9 +136,9 @@ public class RaccoltaManager {
 
     public static Map<String, String> mapQueryCodiceBabel() {
         Map<String, String> map = new HashMap<>();
-        map.put("numero_registrazione", "numeroRegistro");
+        map.put("numero_registrazione", "numero");
         map.put("codice_registro", "codiceRegistro");
-        map.put("anno_registrazione", "annoRegistro");
+        map.put("anno_registrazione", "anno");
         return map;
     }
 
@@ -159,6 +159,8 @@ public class RaccoltaManager {
         mappings.put("oggetto", "oggetto");
         mappings.put("storico", "storico");
         mappings.put("create_time", "createTime");
+        mappings.put("tscol", "tscol");
+        mappings.put("version", "version");
         return mappings;
     }
 
