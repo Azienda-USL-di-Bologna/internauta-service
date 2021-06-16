@@ -20,7 +20,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Formatter;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -45,10 +44,17 @@ public class FileUtilities {
         nomeFile = nomeFile.replace(daRimpiazzare, sostituto);
 
         ArrayList<ExtractorResult> extractAllResult = null;
+        //TODO: GENERARE CON LIBRERIA JAVA
         File tmp = new File(folderToSave.getAbsolutePath()
                 + separatoreDiSiStema + nomeFile);
+//        
+//        File tmp1 = File.createTempFile("tmp_allegato_", ".tmp", new File(System.getProperty("java.io.tmpdir")));
+        
         FileUtils.copyInputStreamToFile(fileInputStream, tmp);
+        fileInputStream.close();
+        
         ExtractorCreator ec = new ExtractorCreator(tmp);
+
         if (ec.isExtractable()) {
             extractAllResult = ec.extractAll(folderToSave);
         }
