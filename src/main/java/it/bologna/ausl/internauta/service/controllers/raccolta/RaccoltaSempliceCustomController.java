@@ -130,7 +130,8 @@ public class RaccoltaSempliceCustomController {
                     .addParameter("to", dateFormat.parse(to));
             log.info("esecuzione query getRaccoltaSemplice: " + queryWithParams.toString());
             datiRaccolta = (List<Raccolta>) queryWithParams.executeAndFetch(Raccolta.class);
-            for (Raccolta r : datiRaccolta) {
+            if(!datiRaccolta.isEmpty()) {
+                for (Raccolta r : datiRaccolta) {
                 dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryCodiceBabel());
                 Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddoc()));
                 List<DocumentoBabel> doc = (List<DocumentoBabel>) queryCodice.executeAndFetch(DocumentoBabel.class);
@@ -203,6 +204,7 @@ public class RaccoltaSempliceCustomController {
                     r.addSottodocumento(d);
                 }
                 returnRaccolta.add(r);
+                }
             }
         } catch (Exception e) {
             log.error("errore nell'esecuzione della query getRaccoltaSemplice", e);
