@@ -29,6 +29,24 @@ public class Raccolta {
     private List<Coinvolto> coinvolti;
     private List<Sottodocumento> sottodocumenti;
     private Date createTime;
+    private String tscol;
+    private Date version;
+
+    public Date getVersion() {
+        return version;
+    }
+
+    public void setVersion(Date version) {
+        this.version = version;
+    }
+
+    public String getTscol() {
+        return tscol;
+    }
+
+    public void setTscol(String tscol) {
+        this.tscol = tscol;
+    }
 
     public List<Sottodocumento> getSottodocumenti() {
         return sottodocumenti;
