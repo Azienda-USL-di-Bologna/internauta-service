@@ -134,6 +134,8 @@ public class RaccoltaSempliceCustomController {
                 dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryCodiceBabel());
                 Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddoc()));
                 List<DocumentoBabel> doc = (List<DocumentoBabel>) queryCodice.executeAndFetch(DocumentoBabel.class);
+                if((doc.isEmpty()))
+                    r.setDocumentoBabel("Non associato");             
                 if ((doc == null || doc.isEmpty()) || doc.get(0).getNumero() == null || doc.get(0).getCodiceRegistro() == null
                         || doc.get(0).getAnno() == null || doc.get(0).getNumero().isEmpty()
                         || doc.get(0).getCodiceRegistro().isEmpty()) {
@@ -149,6 +151,8 @@ public class RaccoltaSempliceCustomController {
                 fascicoli.addAll(fascicoliAssociati);
                 List<Fascicolo> fascicoliCorretti = fascicoli.stream().distinct().collect(Collectors.toList());
                 String numerazioneGerarchica = "";
+                if(fascicoliCorretti.isEmpty())
+                    numerazioneGerarchica = "Fascicolo annuale";
                 for (Fascicolo f : fascicoliCorretti) {
                     numerazioneGerarchica = numerazioneGerarchica + f.getNumerazioneGerarchica() + " ";
                 }
@@ -189,7 +193,9 @@ public class RaccoltaSempliceCustomController {
                 Query querySottodocumentiAssociati = conn.createQuery(RaccoltaManager.querySottoDocumenti(r.getIdGddocAssociato()));
                 List<Sottodocumento> documenti = (List<Sottodocumento>) querySottodocumenti.executeAndFetch(Sottodocumento.class);
                 List<Sottodocumento> documentiAssociati = (List<Sottodocumento>) querySottodocumentiAssociati.executeAndFetch(Sottodocumento.class);
-                documenti.addAll(documentiAssociati);
+                if(!documentiAssociati.isEmpty()) {
+                    documenti.addAll(documentiAssociati);
+                }
                 Integer i = 1;
                 for (Sottodocumento d : documenti) {
                     d.setNome(r.getDocumentoBabel() + "_Allegato" + i.toString());
@@ -203,10 +209,7 @@ public class RaccoltaSempliceCustomController {
             throw new Http500ResponseException("1", "Errore nell'escuzione della query getRaccoltaSemplice");
         }
         log.info("Tutto ok");
-        log.info("Oggetto: " + returnRaccolta.get(0).getOggetto());
-        log.info("Codice : " + returnRaccolta.get(0).getDocumentoBabel());
-        log.info("Numerazione: " + returnRaccolta.get(0).getFascicoli());
-        log.info("Nome sottodocumento: " + returnRaccolta.get(0).getSottodocumenti().get(0).getNome());
+        
         return returnRaccolta;
     }
 
@@ -228,6 +231,11 @@ public class RaccoltaSempliceCustomController {
             Query queryWithParams = conn.createQuery(RaccoltaManager.queryGetStorico(id_raccolta));
             log.info("esecuzione query annullamento: " + queryWithParams.toString());
             String lista = (String) queryWithParams.executeAndFetchFirst(String.class);
+            if(lista == null || lista.equals("{}")) {
+                Query addingStorico = conn.createQuery("UPDATE gd.raccolte set storico = '{\"storico\": []}' where id = "+ id_raccolta);
+                addingStorico.executeUpdate();
+                return null;
+            }
             JSONObject jsonReq = (JSONObject) parser.parse(lista);
             JSONArray jArray = (JSONArray) jsonReq.get("storico");
             for (Object json : jArray) {
@@ -582,6 +590,7 @@ public class RaccoltaSempliceCustomController {
         return returnDocumentiBabel;
     }
 
+    
     @RequestMapping(value = "createRS", method = RequestMethod.POST)
     public String createRS(
             @RequestPart("applicazione_chiamante") String applicazioneChiamante,

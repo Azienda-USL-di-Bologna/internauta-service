@@ -21,7 +21,7 @@ public class RaccoltaManager {
                 + ", r.create_time \n "
                 + " FROM gd.raccolte r \n"
                 + "WHERE r.create_time::date >= :from \n"
-                + "and r.create_time::date < :to \n";
+                + "and r.create_time::date <= :to \n";
         return query;
     }
 
