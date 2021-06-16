@@ -22,7 +22,6 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +35,6 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,7 +161,7 @@ public class ScriptaCustomController {
             HttpServletRequest request,
             @RequestParam("idDoc") Integer idDoc,
             @RequestParam("numeroProposta") String numeroProposta,
-            @RequestParam("files") List<MultipartFile> files) throws MinIOWrapperException {
+            @RequestParam("files") List<MultipartFile> files) throws MinIOWrapperException, NoSuchAlgorithmException, Throwable {
         projectionsInterceptorLauncher.setRequestParams(null, request);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         Iterable<Allegato> tuttiAllegati = null;
@@ -176,45 +174,42 @@ public class ScriptaCustomController {
                 doc = optionalDoc.get();
             }
 
-            List<Allegato> allegati = doc.getAllegati();
-            Integer numeroOrdine = null;
-            if (allegati == null || allegati.isEmpty()) {
-                numeroOrdine = 0;
-            } else {
-                numeroOrdine = doc.getAllegati().size();
-            }
+//            List<Allegato> allegati = doc.getAllegati();
+//            Integer numeroOrdine = null;
+//            if (allegati == null || allegati.isEmpty()) {
+//                numeroOrdine = 0;
+//            } else {
+//                numeroOrdine = doc.getAllegati().size();
+//            }
 
             for (MultipartFile file : files) {
-                numeroOrdine++;
-                DateTimeFormatter data = DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss.SSSSSS Z");
-                String format = ZonedDateTime.now().format(data);
-
-                savedFileOnRepository = minIOWrapper.put(file.getInputStream(), doc.getIdAzienda().getCodice(), numeroProposta, file.getOriginalFilename(), null, true);
-                Allegato allegato = new Allegato();
-                allegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
-                allegato.setIdDoc(doc);
-                allegato.setPrincipale(false);
-                allegato.setTipo(Allegato.TipoAllegato.ALLEGATO);
-                allegato.setDataInserimento(ZonedDateTime.now());
-                allegato.setOrdinale(numeroOrdine);
-                allegato.setFirmato(false);
-                DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
-                //allegato.setConvertibilePdf(false);
-                dettaglioAllegato.setHashMd5(savedFileOnRepository.getMd5());
-
-                dettaglioAllegato.setHashSha256(getHashFromFile(file.getInputStream(), "SHA-256"));
-                dettaglioAllegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
-                dettaglioAllegato.setIdAllegato(allegato);
-                dettaglioAllegato.setEstensione(FilenameUtils.getExtension(file.getOriginalFilename()));
-                dettaglioAllegato.setDimensioneByte(Math.toIntExact(file.getSize()));
-                dettaglioAllegato.setIdRepository(savedFileOnRepository.getFileId());
-                dettaglioAllegato.setCaratteristica(TipoDettaglioAllegato.ORIGINALE);
-                dettaglioAllegato.setMimeType(file.getContentType());
-                List<DettaglioAllegato> dettagliAllegatiList = new ArrayList();
-                dettagliAllegatiList.add(dettaglioAllegato);
-                savedFilesOnRepository.add(savedFileOnRepository);
-                allegato.setDettagliAllegatiList(dettagliAllegatiList);
-                savedFilesOnInternauta.add(saveFileOnInternauta(allegato));
+                scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename());
+//                numeroOrdine++;
+//                savedFileOnRepository = minIOWrapper.put(file.getInputStream(), doc.getIdAzienda().getCodice(), numeroProposta, file.getOriginalFilename(), null, true);
+//                Allegato allegato = new Allegato();
+//                allegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
+//                allegato.setIdDoc(doc);
+//                allegato.setPrincipale(false);
+//                allegato.setTipo(Allegato.TipoAllegato.ALLEGATO);
+//                allegato.setDataInserimento(ZonedDateTime.now());
+//                allegato.setOrdinale(numeroOrdine);
+//                allegato.setFirmato(false);
+//                DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
+//                dettaglioAllegato.setHashMd5(savedFileOnRepository.getMd5());
+//
+//                dettaglioAllegato.setHashSha256(getHashFromFile(file.getInputStream(), "SHA-256"));
+//                dettaglioAllegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
+//                dettaglioAllegato.setIdAllegato(allegato);
+//                dettaglioAllegato.setEstensione(FilenameUtils.getExtension(file.getOriginalFilename()));
+//                dettaglioAllegato.setDimensioneByte(Math.toIntExact(file.getSize()));
+//                dettaglioAllegato.setIdRepository(savedFileOnRepository.getFileId());
+//                dettaglioAllegato.setCaratteristica(TipoDettaglioAllegato.ORIGINALE);
+//                dettaglioAllegato.setMimeType(file.getContentType());
+//                List<DettaglioAllegato> dettagliAllegatiList = new ArrayList();
+//                dettagliAllegatiList.add(dettaglioAllegato);
+//                savedFilesOnRepository.add(savedFileOnRepository);
+//                allegato.setDettagliAllegatiList(dettagliAllegatiList);
+//                savedFilesOnInternauta.add(saveFileOnInternauta(allegato));
             }
             tuttiAllegati = allegatoRepository.findAll(QAllegato.allegato.idDoc.id.eq(idDoc));
         } catch (Exception e) {
