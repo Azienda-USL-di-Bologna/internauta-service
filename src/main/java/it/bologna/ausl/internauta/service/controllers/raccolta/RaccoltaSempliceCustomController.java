@@ -5,6 +5,7 @@ import com.mongodb.MongoException;
 import it.bologna.ausl.documentgenerator.exceptions.Http400ResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.Sql2oSelectException;
+import it.bologna.ausl.documentgenerator.utils.AziendaParamsManager;
 import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedSignatureType;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.argo.raccolta.CoinvoltiRaccolte;
@@ -15,6 +16,7 @@ import it.bologna.ausl.internauta.service.argo.raccolta.PersonaRS;
 import it.bologna.ausl.internauta.service.argo.raccolta.Raccolta;
 import it.bologna.ausl.internauta.service.argo.raccolta.RaccoltaManager;
 import it.bologna.ausl.internauta.service.argo.raccolta.RaccoltaNew;
+import it.bologna.ausl.internauta.service.argo.raccolta.SottoDocumentoGdDoc;
 import it.bologna.ausl.internauta.service.argo.raccolta.Sottodocumento;
 import it.bologna.ausl.internauta.service.argo.raccolta.Storico;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
@@ -130,80 +132,82 @@ public class RaccoltaSempliceCustomController {
                     .addParameter("to", dateFormat.parse(to));
             log.info("esecuzione query getRaccoltaSemplice: " + queryWithParams.toString());
             datiRaccolta = (List<Raccolta>) queryWithParams.executeAndFetch(Raccolta.class);
-            if(!datiRaccolta.isEmpty()) {
+            if (!datiRaccolta.isEmpty()) {
                 for (Raccolta r : datiRaccolta) {
-                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryCodiceBabel());
-                Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddoc()));
-                List<DocumentoBabel> doc = (List<DocumentoBabel>) queryCodice.executeAndFetch(DocumentoBabel.class);
-                if((doc.isEmpty()))
-                    r.setDocumentoBabel("Non associato");             
-                if ((doc == null || doc.isEmpty()) || doc.get(0).getNumero() == null || doc.get(0).getCodiceRegistro() == null
-                        || doc.get(0).getAnno() == null || doc.get(0).getNumero().isEmpty()
-                        || doc.get(0).getCodiceRegistro().isEmpty()) {
-                    r.setDocumentoBabel("Non associato");
-                } else {
-                    r.setDocumentoBabel(doc.get(0).getCodiceBabel());
-                }
-                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapNumerazioneGerarchica());
-                Query queryFascicolo = conn.createQuery(RaccoltaManager.queryNumerazioneGerarchica(r.getIdGddoc()));
-                Query queryFascicoloAssociato = conn.createQuery(RaccoltaManager.queryNumerazioneGerarchica(r.getIdGddocAssociato()));
-                List<Fascicolo> fascicoli = (List<Fascicolo>) queryFascicolo.executeAndFetch(Fascicolo.class);
-                List<Fascicolo> fascicoliAssociati = (List<Fascicolo>) queryFascicoloAssociato.executeAndFetch(Fascicolo.class);
-                fascicoli.addAll(fascicoliAssociati);
-                List<Fascicolo> fascicoliCorretti = fascicoli.stream().distinct().collect(Collectors.toList());
-                String numerazioneGerarchica = "";
-                if(fascicoliCorretti.isEmpty())
-                    numerazioneGerarchica = "Fascicolo annuale";
-                for (Fascicolo f : fascicoliCorretti) {
-                    numerazioneGerarchica = numerazioneGerarchica + f.getNumerazioneGerarchica() + " ";
-                }
-                r.setFascicoli(numerazioneGerarchica);
-                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapCoinvoltiRaccolta());
-                log.info("Query raccolta coinvolti: " + RaccoltaManager.queryCoinvoltiRaccolta(r.getId().toString()));
-                Query queryCoinvoltiRaccolta = conn.createQuery(RaccoltaManager.queryCoinvoltiRaccolta(r.getId().toString()));
-                List<CoinvoltiRaccolte> coinvoltiRaccolti = (List<CoinvoltiRaccolte>) queryCoinvoltiRaccolta.executeAndFetch(CoinvoltiRaccolte.class);
-                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapCoinvolti());
-                for (CoinvoltiRaccolte cr : coinvoltiRaccolti) {
-                    log.info("Query coinvolti: " + RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
-                    Query queryCoinvolti = conn.createQuery(RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
-                    List<Coinvolto> coinvolts = (List<Coinvolto>) queryCoinvolti.executeAndFetch(Coinvolto.class);
-                    for (Coinvolto c : coinvolts) {
-                        if (c.getCap() == null) {
-                            c.setCap("");
-                        }
-                        if (c.getVia() == null) {
-                            c.setVia("");
-                        }
-                        if (c.getCivico() == null) {
-                            c.setCivico("");
-                        }
-                        if (c.getNazione() == null) {
-                            c.setNazione("");
-                        }
-                        if (c.getProvincia() == null) {
-                            c.setProvincia("");
-                        }
-                        if (c.getComune() == null) {
-                            c.setComune("");
-                        }
-                        r.addCoinvolto(c);
+                    dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryCodiceBabel());
+                    Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddoc()));
+                    List<DocumentoBabel> doc = (List<DocumentoBabel>) queryCodice.executeAndFetch(DocumentoBabel.class);
+                    if ((doc.isEmpty())) {
+                        r.setDocumentoBabel("Non associato");
                     }
-                }
-                dbConnection.setDefaultColumnMappings(RaccoltaManager.mapSottoDocumenti());
-                Query querySottodocumenti = conn.createQuery(RaccoltaManager.querySottoDocumenti(r.getIdGddoc()));
-                Query querySottodocumentiAssociati = conn.createQuery(RaccoltaManager.querySottoDocumenti(r.getIdGddocAssociato()));
-                List<Sottodocumento> documenti = (List<Sottodocumento>) querySottodocumenti.executeAndFetch(Sottodocumento.class);
-                List<Sottodocumento> documentiAssociati = (List<Sottodocumento>) querySottodocumentiAssociati.executeAndFetch(Sottodocumento.class);
-                if(!documentiAssociati.isEmpty()) {
-                    documenti.addAll(documentiAssociati);
-                }
-                Integer i = 1;
-                for (Sottodocumento d : documenti) {
-                    d.setNome(r.getDocumentoBabel() + "_Allegato" + i.toString());
-                    i++;
-                    r.addSottodocumento(d);
-                }
-                returnRaccolta.add(r);
+                    if ((doc == null || doc.isEmpty()) || doc.get(0).getNumero() == null || doc.get(0).getCodiceRegistro() == null
+                            || doc.get(0).getAnno() == null || doc.get(0).getNumero().isEmpty()
+                            || doc.get(0).getCodiceRegistro().isEmpty()) {
+                        r.setDocumentoBabel("Non associato");
+                    } else {
+                        r.setDocumentoBabel(doc.get(0).getCodiceBabel());
+                    }
+                    dbConnection.setDefaultColumnMappings(RaccoltaManager.mapNumerazioneGerarchica());
+                    Query queryFascicolo = conn.createQuery(RaccoltaManager.queryNumerazioneGerarchica(r.getIdGddoc()));
+                    Query queryFascicoloAssociato = conn.createQuery(RaccoltaManager.queryNumerazioneGerarchica(r.getIdGddocAssociato()));
+                    List<Fascicolo> fascicoli = (List<Fascicolo>) queryFascicolo.executeAndFetch(Fascicolo.class);
+                    List<Fascicolo> fascicoliAssociati = (List<Fascicolo>) queryFascicoloAssociato.executeAndFetch(Fascicolo.class);
+                    fascicoli.addAll(fascicoliAssociati);
+                    List<Fascicolo> fascicoliCorretti = fascicoli.stream().distinct().collect(Collectors.toList());
+                    String numerazioneGerarchica = "";
+                    if (fascicoliCorretti.isEmpty()) {
+                        numerazioneGerarchica = "Fascicolo annuale";
+                    }
+                    for (Fascicolo f : fascicoliCorretti) {
+                        numerazioneGerarchica = numerazioneGerarchica + f.getNumerazioneGerarchica() + " ";
+                    }
+                    r.setFascicoli(numerazioneGerarchica);
+                    dbConnection.setDefaultColumnMappings(RaccoltaManager.mapCoinvoltiRaccolta());
+                    log.info("Query raccolta coinvolti: " + RaccoltaManager.queryCoinvoltiRaccolta(r.getId().toString()));
+                    Query queryCoinvoltiRaccolta = conn.createQuery(RaccoltaManager.queryCoinvoltiRaccolta(r.getId().toString()));
+                    List<CoinvoltiRaccolte> coinvoltiRaccolti = (List<CoinvoltiRaccolte>) queryCoinvoltiRaccolta.executeAndFetch(CoinvoltiRaccolte.class);
+                    dbConnection.setDefaultColumnMappings(RaccoltaManager.mapCoinvolti());
+                    for (CoinvoltiRaccolte cr : coinvoltiRaccolti) {
+                        log.info("Query coinvolti: " + RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
+                        Query queryCoinvolti = conn.createQuery(RaccoltaManager.queryCoinvolti(cr.getIdCoinvolto().toString()));
+                        List<Coinvolto> coinvolts = (List<Coinvolto>) queryCoinvolti.executeAndFetch(Coinvolto.class);
+                        for (Coinvolto c : coinvolts) {
+                            if (c.getCap() == null) {
+                                c.setCap("");
+                            }
+                            if (c.getVia() == null) {
+                                c.setVia("");
+                            }
+                            if (c.getCivico() == null) {
+                                c.setCivico("");
+                            }
+                            if (c.getNazione() == null) {
+                                c.setNazione("");
+                            }
+                            if (c.getProvincia() == null) {
+                                c.setProvincia("");
+                            }
+                            if (c.getComune() == null) {
+                                c.setComune("");
+                            }
+                            r.addCoinvolto(c);
+                        }
+                    }
+                    dbConnection.setDefaultColumnMappings(RaccoltaManager.mapSottoDocumenti());
+                    Query querySottodocumenti = conn.createQuery(RaccoltaManager.querySottoDocumenti(r.getIdGddoc()));
+                    Query querySottodocumentiAssociati = conn.createQuery(RaccoltaManager.querySottoDocumenti(r.getIdGddocAssociato()));
+                    List<Sottodocumento> documenti = (List<Sottodocumento>) querySottodocumenti.executeAndFetch(Sottodocumento.class);
+                    List<Sottodocumento> documentiAssociati = (List<Sottodocumento>) querySottodocumentiAssociati.executeAndFetch(Sottodocumento.class);
+                    if (!documentiAssociati.isEmpty()) {
+                        documenti.addAll(documentiAssociati);
+                    }
+                    Integer i = 1;
+                    for (Sottodocumento d : documenti) {
+                        d.setNome(r.getDocumentoBabel() + "_Allegato" + i.toString());
+                        i++;
+                        r.addSottodocumento(d);
+                    }
+                    returnRaccolta.add(r);
                 }
             }
         } catch (Exception e) {
@@ -211,7 +215,7 @@ public class RaccoltaSempliceCustomController {
             throw new Http500ResponseException("1", "Errore nell'escuzione della query getRaccoltaSemplice");
         }
         log.info("Tutto ok");
-        
+
         return returnRaccolta;
     }
 
@@ -233,8 +237,8 @@ public class RaccoltaSempliceCustomController {
             Query queryWithParams = conn.createQuery(RaccoltaManager.queryGetStorico(id_raccolta));
             log.info("esecuzione query annullamento: " + queryWithParams.toString());
             String lista = (String) queryWithParams.executeAndFetchFirst(String.class);
-            if(lista == null || lista.equals("{}")) {
-                Query addingStorico = conn.createQuery("UPDATE gd.raccolte set storico = '{\"storico\": []}' where id = "+ id_raccolta);
+            if (lista == null || lista.equals("{}")) {
+                Query addingStorico = conn.createQuery("UPDATE gd.raccolte set storico = '{\"storico\": []}' where id = " + id_raccolta);
                 addingStorico.executeUpdate();
                 return null;
             }
@@ -371,21 +375,21 @@ public class RaccoltaSempliceCustomController {
                 }
                 log.info("Query: " + query);
             }
-            
+
             if (data != null) {
-                
+
                 Date date1 = new SimpleDateFormat("dd/MM/yyyy").parse(data);
-                
-                SimpleDateFormat sdfSQL =new SimpleDateFormat("yyyy-MM-dd");  
-                   
+
+                SimpleDateFormat sdfSQL = new SimpleDateFormat("yyyy-MM-dd");
+
                 data = sdfSQL.format(date1);
-                
+
                 if (query == "") {
                     query = "SELECT * from gd.raccolte r WHERE create_time::date = '" + data + "'::date ";
                 } else {
                     query = query + " and r.create_time::date = '" + data + "'::date ";
                 }
-                log.info("Query: " + query); 
+                log.info("Query: " + query);
             }
 
             if (fascicolo != null) {
@@ -592,7 +596,6 @@ public class RaccoltaSempliceCustomController {
         return returnDocumentiBabel;
     }
 
-    
     @RequestMapping(value = "createRS", method = RequestMethod.POST)
     public String createRS(
             @RequestPart("applicazione_chiamante") String applicazioneChiamante,
@@ -961,70 +964,72 @@ public class RaccoltaSempliceCustomController {
     }
 
     public void insertSottoDocumenti(Connection conn, org.json.simple.JSONArray jsonAllegati, RaccoltaNew r) throws Http500ResponseException {
-//        MongoWrapper mongo = aziendaParamsManager.getStorageConnection(r.getCodiceAzienda());
-//        List<String> idSottoDocumenti = new ArrayList<>();
-//
-//        try {
-//
-//            for (int i = 0; i < jsonAllegati.size(); i++) {
-//                org.json.simple.JSONObject jsonAllegato = (org.json.simple.JSONObject) jsonAllegati.get(i);
-//
-//                String filename = (String) jsonAllegato.get("nome_file");
-//                String uuid = (String) jsonAllegato.get("uuid_file");
-//                String mimetype = (String) jsonAllegato.get("mime_type");
-//                Boolean daConvertire = (Boolean) jsonAllegato.get("da_convertire");
-//
-//                SottoDocumentoGdDoc sd = new SottoDocumentoGdDoc();
-//                Map<String, String> indeIdAndGuid = getIndeIdAndGuid(r.getCodiceAzienda(), 1).get(0);
-//
-//                sd.setId(indeIdAndGuid.get("document_id"));
-//                sd.setGuid(indeIdAndGuid.get("document_guid"));
-//                sd.setIdGdDoc(r.getIdGdDoc());
-//                sd.setNome(filename);
-//                sd.setUuidMongoOriginale(uuid);
-//                sd.setMimetypeFileOriginale(mimetype);
-//                sd.setDimensioneOriginale(mongo.getSizeByUuid(uuid));
-//
-//                sd.setConvertibilePdf(daConvertire ? -1 : 0);
-//                sd.setCodice("babel_suite_allegati_" + sd.getGuid());
-//                sd.setTipo("allegati");
-//
-//                mongo.move(uuid, "/RS/Documenti/" + r.getAnnoRegistrazione() + "/" + r.getNumeroRegistrazione() + "/" + sd.getNome());
-//
-//                String sql = "INSERT INTO gd.sotto_documenti "
-//                        + "(id_sottodocumento, id_gddoc, nome_sottodocumento, "
-//                        + "uuid_mongo_originale, data_ultima_modifica, "
-//                        + "guid_sottodocumento, dimensione_originale, "
-//                        + "convertibile_pdf, mimetype_file_originale, "
-//                        + "tipo_sottodocumento, codice_sottodocumento) "
-//                        + "VALUES(:id_sottodocumento, :id_gddoc, :nome_sottodocumento, "
-//                        + ":uuid_mongo_originale, now(), "
-//                        + ":guid_sottodocumento, :dimensione_originale, "
-//                        + ":convertibile_pdf, :mimetype_file_originale, "
-//                        + ":tipo_sottodocumento, :codice_sottodocumento) ";
-//
-//                Query q = conn.createQuery(sql)
-//                        .addParameter("id_sottodocumento", sd.getId())
-//                        .addParameter("id_gddoc", sd.getIdGdDoc())
-//                        .addParameter("nome_sottodocumento", sd.getNome())
-//                        .addParameter("uuid_mongo_originale", sd.getUuidMongoOriginale())
-//                        .addParameter("guid_sottodocumento", sd.getGuid())
-//                        .addParameter("dimensione_originale", sd.getDimensioneOriginale())
-//                        .addParameter("convertibile_pdf", sd.getConvertibilePdf())
-//                        .addParameter("mimetype_file_originale", sd.getMimetypeFileOriginale())
-//                        .addParameter("tipo_sottodocumento", sd.getTipo())
-//                        .addParameter("codice_sottodocumento", sd.getCodice());
-//
-//                log.info("query: " + q.toString());
-//                q.executeUpdate();
-//                idSottoDocumenti.add(sd.getId());
-//            }
-//
-//            log.info("tutti gli allegati sono stati spostati");
-//        } catch (Throwable e) {
-//            log.error("errore inserimenti sotto documenti Raccolta Semplice", e);
-//            throw new Http500ResponseException("500", "errore inserimenti sotto documenti Raccolta Semplice", e);
-//        }
+        Integer idAzienda = postgresConnectionManager.getIdAzienda(r.getCodiceAzienda());
+        MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
+
+        List<String> idSottoDocumenti = new ArrayList<>();
+
+        try {
+
+            for (int i = 0; i < jsonAllegati.size(); i++) {
+                org.json.simple.JSONObject jsonAllegato = (org.json.simple.JSONObject) jsonAllegati.get(i);
+
+                String filename = (String) jsonAllegato.get("nome_file");
+                String uuid = (String) jsonAllegato.get("uuid_file");
+                String mimetype = (String) jsonAllegato.get("mime_type");
+                Boolean daConvertire = (Boolean) jsonAllegato.get("da_convertire");
+
+                SottoDocumentoGdDoc sd = new SottoDocumentoGdDoc();
+                Map<String, String> indeIdAndGuid = getIndeIdAndGuid(r.getCodiceAzienda(), 1).get(0);
+
+                sd.setId(indeIdAndGuid.get("document_id"));
+                sd.setGuid(indeIdAndGuid.get("document_guid"));
+                sd.setIdGdDoc(r.getIdGdDoc());
+                sd.setNome(filename);
+                sd.setUuidMongoOriginale(uuid);
+                sd.setMimetypeFileOriginale(mimetype);
+                sd.setDimensioneOriginale(mongo.getSizeByUuid(uuid));
+
+                sd.setConvertibilePdf(daConvertire ? -1 : 0);
+                sd.setCodice("babel_suite_allegati_" + sd.getGuid());
+                sd.setTipo("allegati");
+
+                mongo.move(uuid, "/RS/Documenti/" + r.getAnnoRegistrazione() + "/" + r.getNumeroRegistrazione() + "/" + sd.getNome());
+
+                String sql = "INSERT INTO gd.sotto_documenti "
+                        + "(id_sottodocumento, id_gddoc, nome_sottodocumento, "
+                        + "uuid_mongo_originale, data_ultima_modifica, "
+                        + "guid_sottodocumento, dimensione_originale, "
+                        + "convertibile_pdf, mimetype_file_originale, "
+                        + "tipo_sottodocumento, codice_sottodocumento) "
+                        + "VALUES(:id_sottodocumento, :id_gddoc, :nome_sottodocumento, "
+                        + ":uuid_mongo_originale, now(), "
+                        + ":guid_sottodocumento, :dimensione_originale, "
+                        + ":convertibile_pdf, :mimetype_file_originale, "
+                        + ":tipo_sottodocumento, :codice_sottodocumento) ";
+
+                Query q = conn.createQuery(sql)
+                        .addParameter("id_sottodocumento", sd.getId())
+                        .addParameter("id_gddoc", sd.getIdGdDoc())
+                        .addParameter("nome_sottodocumento", sd.getNome())
+                        .addParameter("uuid_mongo_originale", sd.getUuidMongoOriginale())
+                        .addParameter("guid_sottodocumento", sd.getGuid())
+                        .addParameter("dimensione_originale", sd.getDimensioneOriginale())
+                        .addParameter("convertibile_pdf", sd.getConvertibilePdf())
+                        .addParameter("mimetype_file_originale", sd.getMimetypeFileOriginale())
+                        .addParameter("tipo_sottodocumento", sd.getTipo())
+                        .addParameter("codice_sottodocumento", sd.getCodice());
+
+                log.info("query: " + q.toString());
+                q.executeUpdate();
+                idSottoDocumenti.add(sd.getId());
+            }
+
+            log.info("tutti gli allegati sono stati spostati");
+        } catch (Throwable e) {
+            log.error("errore inserimenti sotto documenti Raccolta Semplice", e);
+            throw new Http500ResponseException("500", "errore inserimenti sotto documenti Raccolta Semplice", e);
+        }
     }
 
     /**
@@ -1272,8 +1277,9 @@ public class RaccoltaSempliceCustomController {
             log.error("Eccezione: ", e);
         }
     }
+
     @RequestMapping(value = "getTipologia", method = RequestMethod.GET)
-    public List<String> getTipologia( @RequestParam(value = "azienda", required = true) String codiceAzienda,
+    public List<String> getTipologia(@RequestParam(value = "azienda", required = true) String codiceAzienda,
             HttpServletResponse response,
             HttpServletRequest request) {
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
@@ -1281,10 +1287,10 @@ public class RaccoltaSempliceCustomController {
         try ( Connection conn = (Connection) dbConnection.open()) {
             Query query = conn.createQuery("SELECT tipo from gd.tipologia_rs where data_disattivazione is null");
             tipologie = query.executeAndFetch(String.class);
-            if(tipologie.isEmpty()) {
+            if (tipologie.isEmpty()) {
                 log.error("Tipologie non trovate");
                 throw new Exception();
-            }            
+            }
         } catch (Exception e) {
             log.error("Causa errore: ", e);
             return null;
