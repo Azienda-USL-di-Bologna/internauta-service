@@ -6,8 +6,12 @@ import it.bologna.ausl.documentgenerator.exceptions.Http400ResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.Sql2oSelectException;
 import it.bologna.ausl.documentgenerator.utils.AziendaParamsManager;
+import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedArchiveTypes;
+import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedMimeTypes;
 import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedSignatureType;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
+import it.bologna.ausl.estrattore.ExtractorCreator;
+import it.bologna.ausl.estrattore.ExtractorResult;
 import it.bologna.ausl.internauta.service.argo.raccolta.CoinvoltiRaccolte;
 import it.bologna.ausl.internauta.service.argo.raccolta.Coinvolto;
 import it.bologna.ausl.internauta.service.argo.raccolta.DocumentoBabel;
@@ -68,14 +72,18 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.mongowrapper.MongoWrapper;
+import java.io.BufferedInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.util.UUID;
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -741,7 +749,7 @@ public class RaccoltaSempliceCustomController {
             raccolta = createGdDoc(conn, codiceAzienda, oggetto);
 
             // creazione sottodocumenti con relativi allegati
-            insertSottoDocumenti(conn, jsonAllegati, raccolta);
+            insertSottoDocumenti(conn, allegatiList, raccolta);
 
             // fascicolazione
             List<String> idIndeList = new ArrayList<>();
@@ -963,9 +971,105 @@ public class RaccoltaSempliceCustomController {
         return res;
     }
 
-    public void insertSottoDocumenti(Connection conn, org.json.simple.JSONArray jsonAllegati, RaccoltaNew r) throws Http500ResponseException {
+    private void svuotaCartella(String dirDaSvuotareAbsolutePath) {
+        File directory = new File(dirDaSvuotareAbsolutePath);
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File f : files) {
+                f.delete();
+            }
+        }
+    }
+
+    public void insertSottoDocumenti(Connection conn, List<MultipartFile> allegatiList, RaccoltaNew r) throws Http500ResponseException, IOException, Exception {
+        org.json.simple.JSONArray jsonAllegati = new org.json.simple.JSONArray();
         Integer idAzienda = postgresConnectionManager.getIdAzienda(r.getCodiceAzienda());
         MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
+
+        File folderToSave = new File(System.getProperty("java.io.tmpdir") + "EstrazioneTemp" + System.getProperty("file.separator"));
+
+        for (MultipartFile allegato : allegatiList) {
+            System.out.println("Allegato = " + allegato.getName());
+
+            // in questo punto verifico se posso estrarre i file da dentro ad 
+            //alcuni tipo di file che ne possono contenenre altri; se il file singature 
+            //non è accettato allora errore altrimenti continuo e setto il minetype perche non voglio che ci siano altri errori più avanti
+            Boolean entra = false;
+            if (allegato.getContentType().equals("application/octet-stream")) {
+                byte[] bytes = allegato.getBytes();
+                if (signatureFileAccepted(bytes)) {
+                    entra = true;
+                }
+            }
+
+            if (ExtractorCreator.isSupportedMimyType(allegato.getContentType()) || entra) {
+                log.info("è estraibile: " + allegato.getName());
+                String nome = allegato.getOriginalFilename();
+                File tmp = new File(folderToSave.getAbsolutePath() + System.getProperty("file.separator") + nome);
+
+                log.info("nome path nuovo " + folderToSave.getAbsolutePath() + System.getProperty("file.separator"));
+                log.info("allegato.getOriginalFilename " + allegato.getOriginalFilename());
+
+                FileUtils.copyInputStreamToFile(allegato.getInputStream(), tmp);
+
+                ExtractorCreator ec = new ExtractorCreator(tmp);
+                if (ec.isExtractable()) {
+                    System.out.println("chiamo la extractAll su -->" + folderToSave.getAbsolutePath() + System.getProperty("file.separator") + allegato.getOriginalFilename());
+                    ArrayList<ExtractorResult> ecAll = ec.extractAll(folderToSave); // creo i file contenuti dagli archivi nella cartella temporanea del sistema new File(folderToSave+allegato.getOriginalFilename())
+
+                    for (ExtractorResult er : ecAll) {
+                        System.out.println(er.toString());
+                        try {
+                            File file = new File(er.getPath());
+                            InputStream fileDaPassare = new FileInputStream(file);
+
+                            log.info("E' DA CARICARE? " + (SupportedArchiveTypes.contains(er.getMimeType())
+                                    || SupportedMimeTypes.contains(er.getMimeType())));
+                            log.info("fileName: " + er.getFileName());
+                            log.info("getMimeType: " + er.getMimeType());
+
+                            //                          è di tipo accettato per il salvataggio sul db il contenuto del db?
+                            Boolean ispdf = er.getMimeType().equals(SupportedMimeTypes.PDF.toString());
+                            //file caricabili sul DB
+                            if (SupportedArchiveTypes.contains(er.getMimeType())) {
+                                jsonAllegati.add(uploadMongoISandJsonAllegato(mongo, fileDaPassare, er.getFileName(), false, er.getMimeType(), !ispdf));
+                            } else if (SupportedMimeTypes.contains(er.getMimeType())) {
+                                jsonAllegati.add(uploadMongoISandJsonAllegato(mongo, fileDaPassare, er.getFileName(), false, er.getMimeType(), !ispdf));
+                            } else if (!ExtractorCreator.isSupportedMimyType(er.getMimeType())) {
+                                System.out.println("SONO DENTRO");
+                                throw new Http400ResponseException("400", "Attenzione: il file '" + er.getAntenati() + "\\" + er.getFileName() + " non ha un minetype accettablie.");
+                            }
+                        } catch (Http400ResponseException q) {
+                            svuotaCartella(folderToSave.getAbsolutePath());
+                            log.error("Il file non è di tipo accettato: " + er.getFileName(), q);
+                            throw new Http400ResponseException("400", "Il file non è di tipo accettato: " + er.getFileName() + q);
+                        } catch (Exception e) {
+                            svuotaCartella(folderToSave.getAbsolutePath());
+                            log.error("Errore nel caricamento su mongo  del file " + er.getFileName(), e);
+                            throw new Http400ResponseException("400", "Attenzione: errore nel caricamento su mongo dell'allegato '" + er.getFileName() + ".");
+                        }
+                    }
+                }
+                // i file che ho estratto o i file che avevo sono tipi di file accettabili?
+                // in sostanza è un tipo di allegato accettabile?
+            } else if (!isAcceptedMimeType(allegato)) {
+                System.out.println("ERRORE NON E' NEANCHE SUPPORTATO: " + allegato.getName());
+                throw new Http400ResponseException("400", "Attenzione: l'allegato '" + allegato.getName()
+                        + "' ha un mime-type non supportato dal sistema");
+            } else {
+                // ci sono solo se il tipo di file non è estraibile ed è accettabile
+                log.info("E' DA CARICARE");
+                log.info("E' un normale file " + allegato.getContentType());
+                log.info(allegato.getName());
+                InputStream inputStreamAllegato = new BufferedInputStream(allegato.getInputStream());
+                String allegatoFileName = allegato.getOriginalFilename();
+                Boolean principale = false;
+                String allegatoContentType = allegato.getContentType();
+                // così creiamo il json da aggiungere alla lista degli allegati e carichiamo su mongo il file
+                jsonAllegati.add(uploadMongoISandJsonAllegato(mongo, inputStreamAllegato, allegatoFileName, principale, allegatoContentType, !isPdf(allegato)));
+            }
+            svuotaCartella(folderToSave.getAbsolutePath());
+        }
 
         List<String> idSottoDocumenti = new ArrayList<>();
 
@@ -1030,6 +1134,45 @@ public class RaccoltaSempliceCustomController {
             log.error("errore inserimenti sotto documenti Raccolta Semplice", e);
             throw new Http500ResponseException("500", "errore inserimenti sotto documenti Raccolta Semplice", e);
         }
+    }
+
+    public boolean isPdf(MultipartFile allegato) {
+        return allegato.getContentType().equals(SupportedMimeTypes.PDF.toString());
+    }
+
+    public boolean isAcceptedMimeType(MultipartFile allegato) {
+        boolean accepted = false;
+        log.info("verifico allegato " + allegato.getName() + " -> " + allegato.getContentType());
+        try {
+            accepted = SupportedMimeTypes.contains(allegato.getContentType());
+            log.info("E' supportato? " + accepted);
+        } catch (Exception e) {
+            log.error("Il tipo di allegato non è supportato");
+        }
+        return accepted;
+    }
+
+    public JSONObject uploadMongoISandJsonAllegato(MongoWrapper mongo, InputStream inputStreamAllegato, String allegatoFileName, Boolean principale, String allegatoContentType, Boolean isPDF) throws Exception {
+        JSONObject jsonAllegato = new JSONObject();
+        try {
+            log.info("sto per caricare su mongo il file --> " + allegatoFileName);
+
+            String uuidAllegato = mongo.put(inputStreamAllegato, allegatoFileName, "/temp/generazione_documenti_da_ext/" + UUID.randomUUID(), false);
+
+            log.info("ho caricato il file UIID ritornato --> " + uuidAllegato);
+
+            jsonAllegato.put("nome_file", allegatoFileName);
+            jsonAllegato.put("uuid_file", uuidAllegato);
+            jsonAllegato.put("principale", principale);
+            jsonAllegato.put("mime_type", allegatoContentType);
+            jsonAllegato.put("da_convertire", isPDF);
+        } catch (Exception ex) {
+            log.error("Errore nel caricamento su mongo", ex);
+            ex.printStackTrace();
+            throw new Exception("Errore caricamento su mongo");
+        }
+
+        return jsonAllegato;
     }
 
     /**
