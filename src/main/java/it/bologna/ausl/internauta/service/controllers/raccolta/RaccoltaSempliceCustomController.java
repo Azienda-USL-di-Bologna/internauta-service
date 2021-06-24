@@ -139,7 +139,7 @@ public class RaccoltaSempliceCustomController {
             if (!datiRaccolta.isEmpty()) {
                 for (Raccolta r : datiRaccolta) {
                     dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryCodiceBabel());
-                    Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddoc()));
+                    Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddocAssociato()));
                     List<DocumentoBabel> doc = (List<DocumentoBabel>) queryCodice.executeAndFetch(DocumentoBabel.class);
                     if ((doc.isEmpty())) {
                         r.setDocumentoBabel("Non associato");
@@ -315,6 +315,8 @@ public class RaccoltaSempliceCustomController {
             @RequestParam(required = false, value = "creatore") String creatore,
             @RequestParam(required = false, value = "struttura") String struttura,
             @RequestParam(required = false, value = "createTime") String data,
+            @RequestParam(required = true, value = "offset") Integer offset,
+            @RequestParam(required = true, value = "limit") Integer limit,
             HttpServletRequest request) throws Http500ResponseException,
             Http404ResponseException, RestClientException {
 
@@ -325,10 +327,11 @@ public class RaccoltaSempliceCustomController {
 
             dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryGetRaccoltaSemplice());
             String query = "";
+            
 
             if (numero != null) {
                 if (query == "") {
-                    query = "SELECT * from gd.raccolte r WHERE codice ilike '%" + numero + "%' ";
+                    query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE codice ilike '%" + numero + "%' ";
                 } else {
                     query = query + " and r.codice ilike '%" + numero + "%' ";
                 }
@@ -337,7 +340,7 @@ public class RaccoltaSempliceCustomController {
 
             if (applicazione != null) {
                 if (query == "") {
-                    query = "SELECT * from gd.raccolte r WHERE applicazione_chiamante ilike '%" + applicazione + "%' ";
+                    query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE applicazione_chiamante ilike '%" + applicazione + "%' ";
                 } else {
                     query = query + " and r.applicazione_chiamante ilike '%" + numero + "%' ";
                 }
@@ -346,7 +349,7 @@ public class RaccoltaSempliceCustomController {
 
             if (tipoDocumento != null) {
                 if (query == "") {
-                    query = "SELECT * from gd.raccolte r WHERE r.tipo_documento ilike '%" + tipoDocumento + "%' ";
+                    query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE r.tipo_documento ilike '%" + tipoDocumento + "%' ";
                 } else {
                     query = query + " and r.tipo_documento ilike '%" + tipoDocumento + "%' ";
                 }
@@ -355,7 +358,7 @@ public class RaccoltaSempliceCustomController {
 
             if (oggetto != null) {
                 if (query == "") {
-                    query = "SELECT * from gd.raccolte r WHERE oggetto ilike '%" + oggetto + "%' ";
+                    query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE oggetto ilike '%" + oggetto + "%' ";
                 } else {
                     query = query + " and r.oggetto ilike '%" + oggetto + "%' ";
                 }
@@ -364,7 +367,7 @@ public class RaccoltaSempliceCustomController {
 
             if (struttura != null) {
                 if (query == "") {
-                    query = "SELECT * from gd.raccolte r WHERE descrizione_struttura ilike '%" + struttura + "%' ";
+                    query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE descrizione_struttura ilike '%" + struttura + "%' ";
                 } else {
                     query = query + " and r.descrizione_struttura ilike '%" + struttura + "%' ";
                 }
@@ -373,7 +376,7 @@ public class RaccoltaSempliceCustomController {
 
             if (creatore != null) {
                 if (query == "") {
-                    query = "SELECT * from gd.raccolte r WHERE creatore ilike '%" + creatore + "%' ";
+                    query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE creatore ilike '%" + creatore + "%' ";
                 } else {
                     query = query + " and r.creatore ilike '%" + creatore + "%' ";
                 }
@@ -389,7 +392,7 @@ public class RaccoltaSempliceCustomController {
                 data = sdfSQL.format(date1);
 
                 if (query == "") {
-                    query = "SELECT * from gd.raccolte r WHERE create_time::date = '" + data + "'::date ";
+                    query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE create_time::date = '" + data + "'::date ";
                 } else {
                     query = query + " and r.create_time::date = '" + data + "'::date ";
                 }
@@ -411,7 +414,7 @@ public class RaccoltaSempliceCustomController {
                 Boolean firstTime = true;
                 for (String idG : listId) {
                     if (query == "") {
-                        query = "SELECT * from gd.raccolte r WHERE  (id_gddoc_associato = '" + idG + "' ";
+                        query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE  (id_gddoc_associato = '" + idG + "' ";
                         countId++;
                         firstTime = false;
                     } else {
@@ -433,12 +436,13 @@ public class RaccoltaSempliceCustomController {
                 }
             }
 
+            query = query + " order by create_time desc LIMIT " + limit + " OFFSET " + offset + " " ;
             log.info("Query: " + query);
             Query queryWithParams = conn.createQuery(query);
             List<Raccolta> datiRaccolta = (List<Raccolta>) queryWithParams.executeAndFetch(Raccolta.class);
             for (Raccolta r : datiRaccolta) {
                 dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryCodiceBabel());
-                Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddoc()));
+                Query queryCodice = conn.createQuery(RaccoltaManager.queryCodiceBabel(r.getIdGddocAssociato()));
                 List<DocumentoBabel> doc = (List<DocumentoBabel>) queryCodice.executeAndFetch(DocumentoBabel.class);
                 if ((doc == null || doc.isEmpty()) || doc.get(0).getNumero() == null || doc.get(0).getCodiceRegistro() == null
                         || doc.get(0).getAnno() == null || doc.get(0).getNumero().isEmpty()

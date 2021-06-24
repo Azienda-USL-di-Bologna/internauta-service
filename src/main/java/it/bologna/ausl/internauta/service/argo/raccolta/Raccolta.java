@@ -10,6 +10,15 @@ import java.util.List;
  */
 public class Raccolta {
 
+    private Long rows;
+
+    public Long getRows() {
+        return rows;
+    }
+
+    public void setRows(Long rows) {
+        this.rows = rows;
+    }
     private Long id;
     private String idGddocAssociato;
     private String idGddoc;
