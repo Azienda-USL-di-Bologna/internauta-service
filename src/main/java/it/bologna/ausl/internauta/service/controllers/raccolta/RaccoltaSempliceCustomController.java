@@ -92,7 +92,7 @@ public class RaccoltaSempliceCustomController {
     private static final Logger log = LoggerFactory.getLogger(RaccoltaSempliceCustomController.class);
 
     private List<Raccolta> datiDocumenti = new ArrayList<Raccolta>();
-    
+
     @Autowired
     private PostgresConnectionManager postgresConnectionManager;
 
@@ -118,6 +118,8 @@ public class RaccoltaSempliceCustomController {
     public List<Raccolta> getRaccoltaSemplice(@RequestParam("codiceAzienda") String codiceAzienda,
             @RequestParam("from") String from,
             @RequestParam("to") String to,
+            @RequestParam("limit") Integer limit,
+            @RequestParam("offeset") Integer offeset,
             HttpServletRequest request) throws Http500ResponseException, Http404ResponseException, RestClientException {
 
         // Prendo la connessione dal connection manager
@@ -129,7 +131,7 @@ public class RaccoltaSempliceCustomController {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
         try ( Connection conn = (Connection) dbConnection.open()) {
-            Query queryWithParams = conn.createQuery(RaccoltaManager.queryRaccoltaSemplice())
+            Query queryWithParams = conn.createQuery(RaccoltaManager.queryRaccoltaSemplice(limit, offeset))
                     .addParameter("from", dateFormat.parse(from))
                     .addParameter("to", dateFormat.parse(to));
             log.info("esecuzione query getRaccoltaSemplice: " + queryWithParams.toString());
@@ -224,7 +226,7 @@ public class RaccoltaSempliceCustomController {
     public String getNomeUtente(String id) {
         return "444";
     }
-    
+
     @RequestMapping(value = {"storico"}, method = RequestMethod.GET)
     public List<Storico> dettaglioStorico(@RequestParam(value = "id") String id_raccolta,
             @RequestParam(value = "azienda") String azienda,
@@ -678,7 +680,7 @@ public class RaccoltaSempliceCustomController {
 
         List<PersonaRS> personeNoDescrizione = PersonaRS.parse(objectMapper, personeArray.toJSONString());
         List<PersonaRS> persone = new ArrayList<PersonaRS>();
-        for(PersonaRS p: personeNoDescrizione) {
+        for (PersonaRS p : personeNoDescrizione) {
             p.createDescrizione();
             persone.add(p);
         }

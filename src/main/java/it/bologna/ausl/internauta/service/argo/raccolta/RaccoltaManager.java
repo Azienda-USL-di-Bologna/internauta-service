@@ -9,19 +9,20 @@ import java.util.Map;
  */
 public class RaccoltaManager {
 
-    public static String queryRaccoltaSemplice() {
+    public static String queryRaccoltaSemplice(int pageRows, int pageNumber) {
         String query = "SELECT r.id, r.id_gddoc "
                 + ", r.id_gddoc_associato, r.codice "
                 + ", r.applicazione_chiamante "
                 + ", r.additional_data "
                 + ", r.creatore, r.oggetto "
                 + ", r.id_struttura_responsabile_internauta "
-                + ", r.id_struttura_responsabile_argo, r.descrizione_struttura \n "
+                + ", r.id_struttura_responsabile_argo, r.descrizione_struttura "
                 + ", r.stato, r.storico, r.tipo_documento "
                 + ", r.create_time "
                 + " FROM gd.raccolte r "
                 + "WHERE r.create_time::date >= :from "
-                + "and r.create_time::date <= :to ";
+                + "and r.create_time::date <= :to "
+                + "LIMIT " + pageRows + " OFFSET " + pageNumber + " ";
         return query;
     }
 
