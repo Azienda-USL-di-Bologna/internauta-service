@@ -119,7 +119,7 @@ public class RaccoltaSempliceCustomController {
             @RequestParam("from") String from,
             @RequestParam("to") String to,
             @RequestParam("limit") Integer limit,
-            @RequestParam("offeset") Integer offeset,
+            @RequestParam("offset") Integer offeset,
             HttpServletRequest request) throws Http500ResponseException, Http404ResponseException, RestClientException {
 
         // Prendo la connessione dal connection manager
