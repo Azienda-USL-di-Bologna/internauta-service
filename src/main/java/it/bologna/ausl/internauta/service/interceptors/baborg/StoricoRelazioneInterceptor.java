@@ -22,6 +22,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.HashMap;
@@ -76,11 +77,11 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
         boolean isSD = userInfoService.isSD(utente);
 
         String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
-        LocalDateTime dataRiferimento;
+        ZonedDateTime dataRiferimento;
         if (additionalData != null && additionalData.containsKey(key)) {
-            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime().truncatedTo(ChronoUnit.DAYS);
+            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS);
         } else {
-            dataRiferimento = LocalDateTime.now();
+            dataRiferimento = ZonedDateTime.now();
         }
         BooleanExpression filter = qStoricoRelazione.attivaDal.loe(dataRiferimento)
                 .and((qStoricoRelazione.attivaAl.isNull()).or(qStoricoRelazione.attivaAl.goe(dataRiferimento)));

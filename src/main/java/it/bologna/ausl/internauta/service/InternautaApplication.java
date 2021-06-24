@@ -2,9 +2,8 @@ package it.bologna.ausl.internauta.service;
 
 import it.bologna.ausl.internauta.service.schedulers.LogoutManager;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
-import it.bologna.ausl.internauta.service.schedulers.workers.logoutmanager.LogoutManagerWorker;
 import it.bologna.ausl.internauta.service.schedulers.workers.ShutdownThread;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +46,7 @@ public class InternautaApplication {
 
         return (String... args) -> {
             if (poolExecutorActive) {
-                LocalDateTime now = LocalDateTime.now();
+                ZonedDateTime now = ZonedDateTime.now();
                 log.info("schedulo i threads messageSender...");
                 try {
                     messageSenderManager.scheduleMessageSenderAtBoot(now);

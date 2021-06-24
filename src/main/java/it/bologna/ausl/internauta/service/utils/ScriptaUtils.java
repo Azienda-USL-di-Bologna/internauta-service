@@ -143,9 +143,12 @@ public class ScriptaUtils {
                     nuovoAllegato = allegatoRepository.save(nuovoAllegato);
 
                     DettaglioAllegato dettaglioAllegato = buildNewDettaglioAllegato(
-                            nuovoAllegato, fileDaPassare,
-                            nuovoAllegato.getNome(), er.getMimeType(),
-                            intSize, putFileOnMongo);
+                            nuovoAllegato, 
+                            fileDaPassare,
+                            er.getFileName(), 
+                            er.getMimeType(),
+                            intSize, 
+                            putFileOnMongo);
 
                     dettaglioAllegato = dettaglioAllegatoRepository.save(dettaglioAllegato);
                     List<DettaglioAllegato> dettagliAllegatiList = new ArrayList();
@@ -176,13 +179,14 @@ public class ScriptaUtils {
                 ? allegati.size() : 0;
         numeroOrdine++;
         Allegato allegato = new Allegato();
-        allegato.setNome(originalFileName);
+        allegato.setNome(FilenameUtils.getBaseName(originalFileName));
         allegato.setIdDoc(doc);
         allegato.setPrincipale(false);
         allegato.setTipo(Allegato.TipoAllegato.ALLEGATO);
         allegato.setDataInserimento(ZonedDateTime.now());
         allegato.setOrdinale(numeroOrdine);
         allegato.setFirmato(false);
+        
         return allegato;
     }
 

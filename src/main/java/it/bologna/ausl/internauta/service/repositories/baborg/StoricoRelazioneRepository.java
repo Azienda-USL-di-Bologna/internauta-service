@@ -7,6 +7,7 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -27,11 +28,11 @@ public interface StoricoRelazioneRepository extends
     
     @Query(value = "select baborg.get_strutture_ruolo_e_figlie(?1, ?2, ?3) as result", nativeQuery = true)
 //    @Procedure(procedureName = "select baborg.get_strutture_ruolo", outputParameterName = "get_strutture_ruolo" )
-    public Map getStruttureRuoloEFiglie(Integer mascheraBit, Integer idUtente, LocalDateTime dataRiferimento);
+    public Map getStruttureRuoloEFiglie(Integer mascheraBit, Integer idUtente, ZonedDateTime dataRiferimento);
     
     @Query(value = "select baborg.get_strutture_ruolo(?1, ?2, ?3) as result", nativeQuery = true)
 //    @Procedure(procedureName = "select baborg.get_strutture_ruolo", outputParameterName = "get_strutture_ruolo" )
-    public Map getStruttureRuolo(Integer mascheraBit, Integer idUtente, LocalDateTime dataRiferimento);
+    public Map getStruttureRuolo(Integer mascheraBit, Integer idUtente, ZonedDateTime dataRiferimento);
     
     @Query(value = "select baborg.get_strutture_ruolo(?1, ?2) as result", nativeQuery = true)
 //    @Procedure(procedureName = "select baborg.get_strutture_ruolo", outputParameterName = "get_strutture_ruolo" )

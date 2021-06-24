@@ -34,10 +34,8 @@ import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -134,7 +132,10 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                         }
                         BooleanExpression picoCustomFilter
                                 = QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.ESTERNO.toString()).or(
-                                        (QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.PERSONA.toString()).and(
+                                        ((QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.PERSONA.toString())
+                                                .or(QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.STRUTTURA.toString()))
+                                                )
+                                                .and(
                                                 QContatto.contatto.tipo.eq(Contatto.TipoContatto.ORGANIGRAMMA.toString())
                                         ))
                                 );

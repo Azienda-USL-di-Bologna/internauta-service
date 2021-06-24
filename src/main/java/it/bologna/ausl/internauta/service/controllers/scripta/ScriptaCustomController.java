@@ -63,7 +63,6 @@ import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepositor
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.RegistroRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.NonCachedEntities;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
@@ -107,19 +106,19 @@ public class ScriptaCustomController {
 
     @Autowired
     CachedEntities cachedEntities;
-    
+
     @Autowired
     NonCachedEntities nonCachedEntities;
-    
+
     @Autowired
     DocRepository docRepository;
-    
+
     @Autowired
     RegistroDocRepository registroDocRepository;
 
     @Autowired
     PecRepository pecRepository;
-    
+
     @Autowired
     PersonaRepository personaRepository;
 
@@ -461,30 +460,30 @@ public class ScriptaCustomController {
         if (!StringUtils.hasText(resultJson)) {
             throw new Throwable("Errore nella protocollazione del PE");
         }
-        
-        Map<String, Object> resObj = objectMapper.readValue(resultJson, new TypeReference<Map<String, Object>>(){});
+
+        Map<String, Object> resObj = objectMapper.readValue(resultJson, new TypeReference<Map<String, Object>>() {
+        });
         saveRegistriDoc(resObj, doc, loggedPersona);
-        
+
         ResponseEntity res = ResponseEntity.ok(resObj);
         return res;
     }
-    
+
     private void saveRegistriDoc(Map<String, Object> resObj, Doc doc, Persona loggedPersona) throws JsonProcessingException {
-        Integer numeroProtocollo = Integer.parseInt((String)resObj.get("numeroProtocollo"));
-        Integer annoProtocollo = (Integer)resObj.get("annoProtocollo");
-        String numeroPropostaConAnno = (String)resObj.get("numeroProposta");
+        Integer numeroProtocollo = Integer.parseInt((String) resObj.get("numeroProtocollo"));
+        Integer annoProtocollo = (Integer) resObj.get("annoProtocollo");
+        String numeroPropostaConAnno = (String) resObj.get("numeroProposta");
         Integer numeroProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[1]);
         Integer annoProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[0]);
-        Integer idStrutturaProtocollante = (Integer)resObj.get("idStrutturaProtocollante");
-        
+        Integer idStrutturaProtocollante = (Integer) resObj.get("idStrutturaProtocollante");
+
         Struttura struttura = nonCachedEntities.getStruttura(idStrutturaProtocollante);
         Registro registroPropostaPico = nonCachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PROP_PG);
         Registro registroProtocolloPico = nonCachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PG);
-        
-        String dataRegistrazioneString = (String)resObj.get("dataRegistrazione");
+
+        String dataRegistrazioneString = (String) resObj.get("dataRegistrazione");
         LocalDateTime dataRegistrazioneLocal = LocalDateTime.parse(dataRegistrazioneString);
-        
-        
+
         RegistroDoc proposta = new RegistroDoc();
         proposta.setAnno(annoProposta);
         proposta.setDataRegistrazione(ZonedDateTime.of(dataRegistrazioneLocal, ZoneId.systemDefault()));
@@ -493,7 +492,7 @@ public class ScriptaCustomController {
         proposta.setIdStrutturaRegistrante(struttura);
         proposta.setNumero(numeroProposta);
         proposta.setIdRegistro(registroPropostaPico);
-        
+
         RegistroDoc protocollo = new RegistroDoc();
         protocollo.setAnno(annoProtocollo);
         protocollo.setDataRegistrazione(ZonedDateTime.of(dataRegistrazioneLocal, ZoneId.systemDefault()));
@@ -502,7 +501,7 @@ public class ScriptaCustomController {
         protocollo.setIdStrutturaRegistrante(struttura);
         protocollo.setNumero(numeroProtocollo);
         protocollo.setIdRegistro(registroProtocolloPico);
-        
+
         registroDocRepository.saveAll(Arrays.asList(proposta, protocollo));
     }
 
@@ -545,7 +544,7 @@ public class ScriptaCustomController {
     }
 
     public static String getHashFromFile(InputStream is, String algorithmName) throws FileNotFoundException, IOException, NoSuchAlgorithmException {
-        
+
         MessageDigest algorithm = MessageDigest.getInstance(algorithmName);
         DigestInputStream dis = new DigestInputStream(is, algorithm);
 

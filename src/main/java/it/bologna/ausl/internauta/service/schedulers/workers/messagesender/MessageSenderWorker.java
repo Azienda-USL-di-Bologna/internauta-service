@@ -10,6 +10,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -77,7 +78,7 @@ public class MessageSenderWorker implements Runnable {
     @Transactional
     public void run() {
         log.info(" in run di " + getClass().getSimpleName() + "con message: " + message.toString());
-        LocalDateTime now = LocalDateTime.now();
+        ZonedDateTime now = ZonedDateTime.now();
         if (isActive(now)) {
             sendSendMessageIntimusCommand();
         } else {
@@ -86,7 +87,7 @@ public class MessageSenderWorker implements Runnable {
         }
     }
 
-    private Boolean isActive(LocalDateTime now) {
+    private Boolean isActive(ZonedDateTime now) {
         Optional<AmministrazioneMessaggio> messageOp = amministrazioneMessaggioRepository.findById(message.getId());
         log.info("messageOp.isPresent(): " + messageOp.isPresent());
         log.info("messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)): " + messageOp.get().getVersion().truncatedTo(ChronoUnit.MILLIS).equals(message.getVersion().truncatedTo(ChronoUnit.MILLIS)));

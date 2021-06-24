@@ -1,7 +1,9 @@
 package it.bologna.ausl.model.entities.rubrica.projections;
 
+import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithIdAzienda;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithIdPersonaAndIdPersonaCreazioneAndIdStruttura;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
 /**
@@ -15,7 +17,8 @@ public interface CustomContattoWithIdStrutturaAndIdPersona extends ContattoWithI
 //    @Override
 //    public PersonaWithUtentiAndStruttureAndAfferenzeCustom getIdPersona();
  
-//    @Value("#{@projectionBeans.getStrutturaWithIdAzienda(target)}")
-//    @Override
-//    public StrutturaWithIdAzienda getIdStruttura();
+    //@Value("#{@projectionBeans.getStrutturaWithIdAzienda(target)}")
+    @Override
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getIdStruttura', 'StrutturaWithIdAzienda')}")
+    public StrutturaWithIdAzienda getIdStruttura();
 }
