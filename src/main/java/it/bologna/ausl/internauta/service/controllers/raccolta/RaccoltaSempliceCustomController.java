@@ -118,6 +118,8 @@ public class RaccoltaSempliceCustomController {
     public List<Raccolta> getRaccoltaSemplice(@RequestParam("codiceAzienda") String codiceAzienda,
             @RequestParam("from") String from,
             @RequestParam("to") String to,
+            @RequestParam("cf") String cf,
+            @RequestParam("piva") String pIva,
             @RequestParam("limit") Integer limit,
             @RequestParam("offset") Integer offeset,
             HttpServletRequest request) throws Http500ResponseException, Http404ResponseException, RestClientException {
@@ -129,15 +131,36 @@ public class RaccoltaSempliceCustomController {
         List<Raccolta> datiRaccolta;
         List<Raccolta> returnRaccolta = new ArrayList<Raccolta>();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        
+
+        boolean isCF = cf != null && !cf.trim().equals("null") && !cf.trim().equals("");
+        boolean isPiva = pIva != null && !pIva.trim().equals("null") && !pIva.trim().equals("");
+
+        if ((from.equals("null") || to.equals("null")) && !isCF && !isPiva) {
+            return returnRaccolta;
+        }
+
+        Query queryWithParams = null;
         try ( Connection conn = (Connection) dbConnection.open()) {
-            if(from.equals("null") || to.equals("null")) {
-                return returnRaccolta;
+            if (isCF || isPiva) {
+                String cfCondition = String.format("%s ", (isCF ? "AND lower(cf)=lower('" + cf + "') " : "AND (1=1) "));
+                String pivaCondition = String.format("%s ", (isPiva ? "AND lower(partitaiva)=lower('" + pIva + "') " : "AND (1=1) "));
+                String fromStr = "AND (1=1) ";
+
+                if (!from.equals("null")) {
+                    String pattern = "yyyy-MM-dd";
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+                    String date = simpleDateFormat.format(dateFormat.parse(from));
+                    fromStr = String.format("AND r.create_time::date >= '%s' ", date);
+                }
+
+                queryWithParams = conn.createQuery(RaccoltaManager.queryRaccoltaSempliceFromCFPiva(cfCondition, pivaCondition, fromStr, limit, offeset))
+                        .addParameter("to", dateFormat.parse(to));
+            } else {
+                queryWithParams = conn.createQuery(RaccoltaManager.queryRaccoltaSemplice(limit, offeset))
+                        .addParameter("from", dateFormat.parse(from))
+                        .addParameter("to", dateFormat.parse(to));
             }
-            
-            Query queryWithParams = conn.createQuery(RaccoltaManager.queryRaccoltaSemplice(limit, offeset))
-                    .addParameter("from", dateFormat.parse(from))
-                    .addParameter("to", dateFormat.parse(to));
+
             log.info("esecuzione query getRaccoltaSemplice: " + queryWithParams.toString());
             datiRaccolta = (List<Raccolta>) queryWithParams.executeAndFetch(Raccolta.class);
             if (!datiRaccolta.isEmpty()) {
@@ -222,6 +245,7 @@ public class RaccoltaSempliceCustomController {
             log.error("errore nell'esecuzione della query getRaccoltaSemplice", e);
             throw new Http500ResponseException("1", "Errore nell'escuzione della query getRaccoltaSemplice");
         }
+
         log.info("Tutto ok");
 
         return returnRaccolta;
@@ -331,7 +355,6 @@ public class RaccoltaSempliceCustomController {
 
             dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryGetRaccoltaSemplice());
             String query = "";
-            
 
             if (numero != null) {
                 if (query == "") {
@@ -386,8 +409,6 @@ public class RaccoltaSempliceCustomController {
                 }
                 log.info("Query: " + query);
             }
-            
-            
 
             if (data != null) {
 
@@ -404,8 +425,6 @@ public class RaccoltaSempliceCustomController {
                 }
                 log.info("Query: " + query);
             }
-            
-            
 
             if (fascicolo != null) {
                 String queryFascicoli = "SELECT id_fascicolo from gd.fascicoligd f WHERE numerazione_gerarchica ilike '%" + fascicolo + "%' ";
@@ -425,7 +444,7 @@ public class RaccoltaSempliceCustomController {
                         query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE  (id_gddoc_associato = '" + idG + "' ";
                         countId++;
                         firstTime = false;
-                        if(listId.size() == 1) {
+                        if (listId.size() == 1) {
                             query = query + ") ";
                             break;
                         }
@@ -447,21 +466,21 @@ public class RaccoltaSempliceCustomController {
                     }
                 }
             }
-            
-            if(documentoBabel != null) {
+
+            if (documentoBabel != null) {
                 Query queryGddocs = conn.createQuery(RaccoltaManager.queryNomeGddoc(documentoBabel));
-                
+
                 List<String> listGddocs = queryGddocs.executeAndFetch(String.class);
-                
+
                 int countId = 0;
                 Boolean firstTime = true;
-                
-                for(String idG : listGddocs) {
-                  if (query == "") {
+
+                for (String idG : listGddocs) {
+                    if (query == "") {
                         query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE  (id_gddoc_associato = '" + idG + "' ";
                         countId++;
                         firstTime = false;
-                        if(listGddocs.size() == 1) {
+                        if (listGddocs.size() == 1) {
                             query = query + ") ";
                             break;
                         }
@@ -479,12 +498,12 @@ public class RaccoltaSempliceCustomController {
                             log.info(("Non sono all'ultimo"));
                             query = query + " or id_gddoc_associato = '" + idG + "' ";
                             countId++;
-                            }  
                         }
+                    }
                 }
             }
 
-            query = query + " order by create_time desc LIMIT " + limit + " OFFSET " + offset + " " ;
+            query = query + " order by create_time desc LIMIT " + limit + " OFFSET " + offset + " ";
             log.info("Query: " + query);
             Query queryWithParams = conn.createQuery(query);
             List<Raccolta> datiRaccolta = (List<Raccolta>) queryWithParams.executeAndFetch(Raccolta.class);
@@ -685,13 +704,13 @@ public class RaccoltaSempliceCustomController {
         if (codiceRegistroOrigineOpt.isPresent()) {
             codiceRegistroOrigine = codiceRegistroOrigineOpt.get();
         }
-                
+
         // controllo dati
         if (azienda == null) {
             throw new Http400ResponseException("400", "il parametro del body azienda è obbligatorio");
         }
         String codiceAzienda = azienda.substring(3);
-        
+
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente loggedUser = authenticatedUserProperties.getUser();
         String creatore = loggedUser.getIdPersona().getDescrizione();
@@ -769,7 +788,6 @@ public class RaccoltaSempliceCustomController {
             }
         }
 
-        
         //MongoWrapper mongo = aziendaParamsManager.getStorageConnection(codiceAzienda);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
 
