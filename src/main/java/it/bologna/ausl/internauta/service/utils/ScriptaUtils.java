@@ -5,7 +5,7 @@
  */
 package it.bologna.ausl.internauta.service.utils;
 
-import it.bologna.ausl.estrattore.ExtractorCreator;
+import it.bologna.ausl.estrattore.Extractor;
 import it.bologna.ausl.estrattore.ExtractorResult;
 import it.bologna.ausl.estrattoremaven.exception.ExtractorException;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
@@ -31,19 +31,16 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import org.springframework.mock.web.MockMultipartFile;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.io.FileUtils;
+import java.util.UUID;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  *
@@ -68,25 +65,29 @@ public class ScriptaUtils {
     ReporitoryConnectionManager aziendeConnectionManager;
 
     public Doc protocollaMessaggio(Doc doc, Message message) throws MinIOWrapperException, IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
-        List<Allegato> allegatiCreatiDalMessaggio = creaAndAllegaAllegatiByMessaggio(doc, message);
-        doc.setAllegati(allegatiCreatiDalMessaggio);
-        // qui ci va il codice per aggiungere DocMessage 
-        // (tabella di cross che non esiste ancora)
-
-        return doc;
-    }
-
-    public List<Allegato> creaAndAllegaAllegatiByMessaggio(Doc doc, Message message) throws MinIOWrapperException, IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
-        List<Allegato> allegatiDaTornare = new ArrayList<Allegato>();
         MinIOWrapper minIOWrapper = aziendeConnectionManager.
                 getMinIOWrapper();
         InputStream file = minIOWrapper.getByUuid(message.getUuidRepository());
         if (file != null) {
+            List<Allegato> allegatiCreatiDalMessaggio = creaAndAllegaAllegati(doc, file, message.getName());
+            doc.setAllegati(allegatiCreatiDalMessaggio);
+
+        } else {
+            throw new FileNotFoundException("File non trovato sul repository " + message.getUuidRepository());
+        }
+        // qui ci va il codice per aggiungere DocMessage 
+        // (tabella di cross che non esiste ancora)
+        return doc;
+    }
+
+    public List<Allegato> creaAndAllegaAllegati(Doc doc, InputStream file, String fileName) throws MinIOWrapperException, IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
+        List<Allegato> allegatiDaTornare = new ArrayList<Allegato>();
+        if (file != null) {
             File folderToSave = FileUtilities.getCartellaTemporanea(
-                    "EstrazioneTemp" + doc.getId().toString());
+                    "EstrazioneTemp" + doc.getId().toString()+ "_" + UUID.randomUUID().toString());
             try {
                 allegatiDaTornare = estraiRicorsivamenteSalvaAndFaiUploadAllegatiDaInputStream(
-                        file, message.getName(),
+                        file, fileName,
                         doc, folderToSave);
                 FileUtilities.svuotaCartella(folderToSave.getAbsolutePath());
 
@@ -96,7 +97,7 @@ public class ScriptaUtils {
             }
 
         } else {
-            throw new FileNotFoundException("File non trovato sul repository " + message.getUuidRepository());
+            throw new FileNotFoundException("Passato file null ");
         }
         return allegatiDaTornare;
     }
@@ -120,10 +121,12 @@ public class ScriptaUtils {
             Doc doc,
             File folderToSave) throws ExtractorException, IOException, Throwable {
         List<Allegato> allegatiDaTornare = new ArrayList<Allegato>();
+        
         ArrayList<ExtractorResult> extractionResultAll = FileUtilities.estraiTuttoDalFile(
                 folderToSave,
                 allegatoInputStream,
                 nomeDelFile);
+        
         if (extractionResultAll != null) {
             HashMap<String, Object> mappaHashAllegati = new HashMap();
             int numeroAllegato
@@ -143,11 +146,11 @@ public class ScriptaUtils {
                     nuovoAllegato = allegatoRepository.save(nuovoAllegato);
 
                     DettaglioAllegato dettaglioAllegato = buildNewDettaglioAllegato(
-                            nuovoAllegato, 
+                            nuovoAllegato,
                             fileDaPassare,
-                            er.getFileName(), 
+                            er.getFileName(),
                             er.getMimeType(),
-                            intSize, 
+                            intSize,
                             putFileOnMongo);
 
                     dettaglioAllegato = dettaglioAllegatoRepository.save(dettaglioAllegato);
@@ -186,7 +189,7 @@ public class ScriptaUtils {
         allegato.setDataInserimento(ZonedDateTime.now());
         allegato.setOrdinale(numeroOrdine);
         allegato.setFirmato(false);
-        
+
         return allegato;
     }
 
