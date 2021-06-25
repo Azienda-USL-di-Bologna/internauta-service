@@ -19,12 +19,12 @@ public class RaccoltaManager {
                 + ", r.id_struttura_responsabile_argo, r.descrizione_struttura "
                 + ", r.stato, r.storico, r.tipo_documento "
                 + ", r.create_time "
-                + " FROM gd.raccolte r, tot "
+                + " FROM gd.raccolte r "
                 + "WHERE r.create_time::date >= :from "
                 + "and r.create_time::date <= :to "
                 + "order by r.create_time desc "
                 + "LIMIT " + pageRows + " OFFSET " + pageNumber + " ";
-                
+
         return query;
     }
 
