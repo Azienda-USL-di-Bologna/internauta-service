@@ -8,6 +8,13 @@ import java.util.Map;
  * @author Matteo Next
  */
 public class RaccoltaManager {
+    
+    public static String queryNomeGddoc(String nome) {
+        String query = "SELECT id_gddoc from gd.gddocs "
+                + " WHERE nome_gddoc ilike '%" + nome 
+                + "%' ";
+        return query;
+    }
 
     public static String queryRaccoltaSemplice(int pageRows, int pageNumber) {
         String query = "SELECT count(r.id) OVER() as rows, r.id, r.id_gddoc "
