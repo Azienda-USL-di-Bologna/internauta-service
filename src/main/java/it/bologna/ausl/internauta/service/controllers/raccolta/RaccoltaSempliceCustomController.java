@@ -129,8 +129,12 @@ public class RaccoltaSempliceCustomController {
         List<Raccolta> datiRaccolta;
         List<Raccolta> returnRaccolta = new ArrayList<Raccolta>();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-
+        
         try ( Connection conn = (Connection) dbConnection.open()) {
+            if(from.equals("null") || to.equals("null")) {
+                return returnRaccolta;
+            }
+            
             Query queryWithParams = conn.createQuery(RaccoltaManager.queryRaccoltaSemplice(limit, offeset))
                     .addParameter("from", dateFormat.parse(from))
                     .addParameter("to", dateFormat.parse(to));
@@ -382,6 +386,8 @@ public class RaccoltaSempliceCustomController {
                 }
                 log.info("Query: " + query);
             }
+            
+            
 
             if (data != null) {
 
@@ -398,6 +404,8 @@ public class RaccoltaSempliceCustomController {
                 }
                 log.info("Query: " + query);
             }
+            
+            
 
             if (fascicolo != null) {
                 String queryFascicoli = "SELECT id_fascicolo from gd.fascicoligd f WHERE numerazione_gerarchica ilike '%" + fascicolo + "%' ";
@@ -637,16 +645,24 @@ public class RaccoltaSempliceCustomController {
         if (codiceRegistroOrigineOpt.isPresent()) {
             codiceRegistroOrigine = codiceRegistroOrigineOpt.get();
         }
-
-        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Utente loggedUser = authenticatedUserProperties.getUser();
-        String creatore = loggedUser.getUsername();
-
+                
         // controllo dati
         if (azienda == null) {
             throw new Http400ResponseException("400", "il parametro del body azienda è obbligatorio");
         }
         String codiceAzienda = azienda.substring(3);
+        
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente loggedUser = authenticatedUserProperties.getUser();
+        String creatore = loggedUser.getIdPersona().getDescrizione();
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+//        try ( Connection conn = (Connection) dbConnection.open()) { 
+//            Query queryName = conn.createQuery(RaccoltaManager.queryCreatoreName(idPersona));
+//            creatore = queryName.executeAndFetchFirst(String.class);
+//            
+//        } catch(Exception e) {
+//            throw new Http400ResponseException("400", "Errore nel reperimento delle info del creatore");
+//        }
 
         if (oggetto == null) {
             throw new Http400ResponseException("400", "il parametro del body oggetto è obbligatorio");
@@ -713,7 +729,7 @@ public class RaccoltaSempliceCustomController {
             }
         }
 
-        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+        
         //MongoWrapper mongo = aziendaParamsManager.getStorageConnection(codiceAzienda);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
 
