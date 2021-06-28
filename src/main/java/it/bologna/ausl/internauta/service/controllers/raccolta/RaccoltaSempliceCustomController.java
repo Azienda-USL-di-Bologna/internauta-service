@@ -782,10 +782,8 @@ public class RaccoltaSempliceCustomController {
                 log.info(String.format("contatto da non salvare in rubrica: %s", persona.getDescrizione()));
             }
 
-            if (!persona.isValid()) {
-                log.info(String.format("persona %s passata non valida", persona.getDescrizione()));
-                throw new Http500ResponseException("500", String.format("persona %s passata non valida", persona.getDescrizione()));
-            }
+            // se tipologia non è settata impostala di default a FISICA
+            persona.checkTipologia();
         }
 
         //MongoWrapper mongo = aziendaParamsManager.getStorageConnection(codiceAzienda);
