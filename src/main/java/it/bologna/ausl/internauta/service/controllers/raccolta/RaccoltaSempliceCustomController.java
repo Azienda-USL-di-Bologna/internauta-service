@@ -343,6 +343,8 @@ public class RaccoltaSempliceCustomController {
             @RequestParam(required = false, value = "creatore") String creatore,
             @RequestParam(required = false, value = "struttura") String struttura,
             @RequestParam(required = false, value = "createTime") String data,
+            @RequestParam(required = false, value = "piva") String piva,
+            @RequestParam(required = false, value = "cf") String cf,
             @RequestParam(required = true, value = "offset") Integer offset,
             @RequestParam(required = true, value = "limit") Integer limit,
             HttpServletRequest request) throws Http500ResponseException,
@@ -466,6 +468,107 @@ public class RaccoltaSempliceCustomController {
                     }
                 }
             }
+            
+            if (!piva.isBlank()) {
+              
+                Query queryPiva = conn.createQuery("SELECT id FROM gd.coinvolti WHERE partitaiva = '"+ piva + "' ");
+                List<Integer> listCoinvolti = queryPiva.executeAndFetch(Integer.class);
+                
+                String stringQuery = "SELECT id_raccolta from gd.coinvolti_raccolte WHERE id = ";
+                
+                for(int i = 0; i < listCoinvolti.size(); i++) {
+                    if(listCoinvolti.size() == 1) {
+                        stringQuery = stringQuery + listCoinvolti.get(i).toString();
+                    }
+                    else{
+                        if(i == 0) {
+                            stringQuery = stringQuery + listCoinvolti.get(i).toString();
+                        }
+                        else {
+                            stringQuery = stringQuery + " OR id = "+ listCoinvolti.get(i).toString();
+                        }    
+                    }
+                    Query queryCoinvolti = conn.createQuery(stringQuery);
+                    
+                    List<Integer> listRaccolte = queryCoinvolti.executeAndFetch(Integer.class);
+                    
+                    for(int j = 0; j < listRaccolte.size(); j++) {
+                        if(listRaccolte.size() == 1) {
+                            if(query == "") {
+                                query = "SELECT * from gd.raccolte WHERE id = " + listRaccolte.get(j);
+                            }
+                            else {
+                                query = query + " AND id = " + listRaccolte.get(j);
+                            }
+                        }
+                        else {
+                            if(query == "") {
+                                query = "SELECT * from gd.raccolte WHERE (id = " + listRaccolte.get(j);
+                                }
+                            else {
+                                if(j == listRaccolte.size() - 1) {
+                                    query = query + " OR id = " + listRaccolte.get(j) + " ) ";
+                                }
+                                else {
+                                    query = query + "OR id = " + listRaccolte.get(j) + " ";
+                                }
+                            }   
+                        }
+                    }
+                }
+            }
+            
+            if (!cf.isBlank()) {
+                Query queryPiva = conn.createQuery("SELECT id FROM gd.coinvolti WHERE cf = '"+ cf +"' ");
+                List<Integer> listCoinvolti = queryPiva.executeAndFetch(Integer.class);
+                
+                String stringQuery = "SELECT id_raccolta from gd.coinvolti_raccolte WHERE id = ";
+                
+                for(int i = 0; i < listCoinvolti.size(); i++) {
+                    if(listCoinvolti.size() == 1) {
+                        stringQuery = stringQuery + listCoinvolti.get(i).toString();
+                        i = listCoinvolti.size() + 3;
+                    }
+                    else{
+                        if(i == 0) {
+                           stringQuery = stringQuery + listCoinvolti.get(i).toString();
+                            }
+                            else {
+                                stringQuery = stringQuery + " OR id = "+ listCoinvolti.get(i).toString();
+                        }
+                    }
+                    
+                    Query queryCoinvolti = conn.createQuery(stringQuery);
+                    
+                    List<Integer> listRaccolte = queryCoinvolti.executeAndFetch(Integer.class);
+                    
+                    for(int j = 0; j < listRaccolte.size(); j++) {
+                        if(listRaccolte.size() == 1) {
+                            if(query == "") {
+                                query = "SELECT * from gd.raccolte WHERE id = " + listRaccolte.get(j);
+                            }
+                            else {
+                                query = query + " AND id = " + listRaccolte.get(j);
+                            }
+                        }
+                        else {
+                            if(query == "") {
+                                query = "SELECT * from gd.raccolte WHERE (id = " + listRaccolte.get(j);
+                                }
+                            else {
+                                if(j == listRaccolte.size() - 1) {
+                                    query = query + " OR id = " + listRaccolte.get(j) + " ) ";
+                                }
+                                else {
+                                    query = query + "OR id = " + listRaccolte.get(j) + " ";
+                                }
+                            }   
+                        }
+                    }
+                }
+            }
+            
+            
 
             if (documentoBabel != null) {
                 Query queryGddocs = conn.createQuery(RaccoltaManager.queryNomeGddoc(documentoBabel));
