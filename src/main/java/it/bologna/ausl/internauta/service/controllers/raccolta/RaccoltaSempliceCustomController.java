@@ -468,107 +468,93 @@ public class RaccoltaSempliceCustomController {
                     }
                 }
             }
-            
-            if (!piva.isBlank()) {
-              
-                Query queryPiva = conn.createQuery("SELECT id FROM gd.coinvolti WHERE partitaiva = '"+ piva + "' ");
+
+            if (piva != null && !piva.isBlank()) {
+
+                Query queryPiva = conn.createQuery("SELECT id FROM gd.coinvolti WHERE partitaiva = '" + piva + "' ");
                 List<Integer> listCoinvolti = queryPiva.executeAndFetch(Integer.class);
-                
+
                 String stringQuery = "SELECT id_raccolta from gd.coinvolti_raccolte WHERE id = ";
-                
-                for(int i = 0; i < listCoinvolti.size(); i++) {
-                    if(listCoinvolti.size() == 1) {
+
+                for (int i = 0; i < listCoinvolti.size(); i++) {
+                    if (listCoinvolti.size() == 1) {
                         stringQuery = stringQuery + listCoinvolti.get(i).toString();
-                    }
-                    else{
-                        if(i == 0) {
+                    } else {
+                        if (i == 0) {
                             stringQuery = stringQuery + listCoinvolti.get(i).toString();
+                        } else {
+                            stringQuery = stringQuery + " OR id = " + listCoinvolti.get(i).toString();
                         }
-                        else {
-                            stringQuery = stringQuery + " OR id = "+ listCoinvolti.get(i).toString();
-                        }    
                     }
                     Query queryCoinvolti = conn.createQuery(stringQuery);
-                    
+
                     List<Integer> listRaccolte = queryCoinvolti.executeAndFetch(Integer.class);
-                    
-                    for(int j = 0; j < listRaccolte.size(); j++) {
-                        if(listRaccolte.size() == 1) {
-                            if(query == "") {
+
+                    for (int j = 0; j < listRaccolte.size(); j++) {
+                        if (listRaccolte.size() == 1) {
+                            if (query == "") {
                                 query = "SELECT * from gd.raccolte WHERE id = " + listRaccolte.get(j);
-                            }
-                            else {
+                            } else {
                                 query = query + " AND id = " + listRaccolte.get(j);
                             }
-                        }
-                        else {
-                            if(query == "") {
+                        } else {
+                            if (query == "") {
                                 query = "SELECT * from gd.raccolte WHERE (id = " + listRaccolte.get(j);
-                                }
-                            else {
-                                if(j == listRaccolte.size() - 1) {
+                            } else {
+                                if (j == listRaccolte.size() - 1) {
                                     query = query + " OR id = " + listRaccolte.get(j) + " ) ";
-                                }
-                                else {
+                                } else {
                                     query = query + "OR id = " + listRaccolte.get(j) + " ";
                                 }
-                            }   
+                            }
                         }
                     }
                 }
             }
-            
-            if (!cf.isBlank()) {
-                Query queryPiva = conn.createQuery("SELECT id FROM gd.coinvolti WHERE cf = '"+ cf +"' ");
+
+            if (cf != null && !cf.isBlank()) {
+                Query queryPiva = conn.createQuery("SELECT id FROM gd.coinvolti WHERE cf = '" + cf + "' ");
                 List<Integer> listCoinvolti = queryPiva.executeAndFetch(Integer.class);
-                
+
                 String stringQuery = "SELECT id_raccolta from gd.coinvolti_raccolte WHERE id = ";
-                
-                for(int i = 0; i < listCoinvolti.size(); i++) {
-                    if(listCoinvolti.size() == 1) {
+
+                for (int i = 0; i < listCoinvolti.size(); i++) {
+                    if (listCoinvolti.size() == 1) {
                         stringQuery = stringQuery + listCoinvolti.get(i).toString();
                         i = listCoinvolti.size() + 3;
-                    }
-                    else{
-                        if(i == 0) {
-                           stringQuery = stringQuery + listCoinvolti.get(i).toString();
-                            }
-                            else {
-                                stringQuery = stringQuery + " OR id = "+ listCoinvolti.get(i).toString();
+                    } else {
+                        if (i == 0) {
+                            stringQuery = stringQuery + listCoinvolti.get(i).toString();
+                        } else {
+                            stringQuery = stringQuery + " OR id = " + listCoinvolti.get(i).toString();
                         }
                     }
-                    
+
                     Query queryCoinvolti = conn.createQuery(stringQuery);
-                    
+
                     List<Integer> listRaccolte = queryCoinvolti.executeAndFetch(Integer.class);
-                    
-                    for(int j = 0; j < listRaccolte.size(); j++) {
-                        if(listRaccolte.size() == 1) {
-                            if(query == "") {
+
+                    for (int j = 0; j < listRaccolte.size(); j++) {
+                        if (listRaccolte.size() == 1) {
+                            if (query == "") {
                                 query = "SELECT * from gd.raccolte WHERE id = " + listRaccolte.get(j);
-                            }
-                            else {
+                            } else {
                                 query = query + " AND id = " + listRaccolte.get(j);
                             }
-                        }
-                        else {
-                            if(query == "") {
+                        } else {
+                            if (query == "") {
                                 query = "SELECT * from gd.raccolte WHERE (id = " + listRaccolte.get(j);
-                                }
-                            else {
-                                if(j == listRaccolte.size() - 1) {
+                            } else {
+                                if (j == listRaccolte.size() - 1) {
                                     query = query + " OR id = " + listRaccolte.get(j) + " ) ";
-                                }
-                                else {
+                                } else {
                                     query = query + "OR id = " + listRaccolte.get(j) + " ";
                                 }
-                            }   
+                            }
                         }
                     }
                 }
             }
-            
-            
 
             if (documentoBabel != null) {
                 Query queryGddocs = conn.createQuery(RaccoltaManager.queryNomeGddoc(documentoBabel));
