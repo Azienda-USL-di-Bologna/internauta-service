@@ -591,6 +591,8 @@ public class RaccoltaSempliceCustomController {
                     }
                 }
             }
+            if(query.equals(""))
+                return null;
 
             query = query + " order by create_time desc LIMIT " + limit + " OFFSET " + offset + " ";
             log.info("Query: " + query);
