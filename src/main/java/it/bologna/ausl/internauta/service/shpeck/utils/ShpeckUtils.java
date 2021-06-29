@@ -672,9 +672,11 @@ public class ShpeckUtils {
     /**
      * Torna true se l'utente ha il permesso passsato sulla Pec passata
      * @param pec
+     * @param predicati
+     * @param persona
      * @return 
      */
-    public Boolean userHasPermissionOnThisPec(Pec pec, List<String> predicati, Persona persona) throws Exception {
+    public Boolean userHasPermissionOnThisPec(Pec pec, List<String> predicati, Persona persona) throws BlackBoxPermissionException {
         List<PermessoEntitaStoredProcedure> pecWithStandardPermissions;
         try {
             pecWithStandardPermissions = permissionManager.getPermissionsOfSubjectActualFromDate(
@@ -687,7 +689,7 @@ public class ShpeckUtils {
                     null);
         } catch (BlackBoxPermissionException ex) {
             LOG.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
-            throw new Exception("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+            throw new BlackBoxPermissionException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
         }
         return pecWithStandardPermissions.size() > 0;
     }

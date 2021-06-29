@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
+import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.shpeck.MessageTagInterceptor;
@@ -101,6 +102,7 @@ import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.logging.Level;
 import org.json.JSONArray;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -452,11 +454,29 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "messageRelatedType", required = false) MessageRelatedType messageRelatedType,
             @RequestParam(name = "idMessageRelatedAttachments", required = false) Integer[] idMessageRelatedAttachments,
             @RequestParam(name = "idUtente", required = false) Integer idUtente
-    ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException {
+    ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException, Http403ResponseException, BlackBoxPermissionException {
 
         LOG.info("Shpeck controller -> Message received from PEC with id: " + idPec);
         String hostname = nextSdrCommonUtils.getHostname(request);
 
+        LOG.info("Getting PEC from repository...");
+        Pec pec = pecRepository.getOne(idPec);
+
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona personaConnessa = authenticatedUserProperties.getPerson();
+       
+        List<String> permessiSufficienti = new ArrayList();
+        permessiSufficienti.add(InternautaConstants.Permessi.Predicati.ELIMINA.toString());
+        permessiSufficienti.add(InternautaConstants.Permessi.Predicati.RISPONDE.toString());
+        try {
+            Boolean userHasPermissionOnThisPec = shpeckUtils.userHasPermissionOnThisPec(pec, permessiSufficienti, personaConnessa);
+            if (!userHasPermissionOnThisPec) {
+                throw new BlackBoxPermissionException("nessun permesso trovato");
+            }
+        } catch (BlackBoxPermissionException ex) {
+            throw new Http403ResponseException("008", "Non hai il permesso sulla casella", ex);
+        }
+        
         ArrayList<EmlHandlerAttachment> listAttachments = shpeckUtils.convertAttachments(attachments);
 
         ArrayList<MimeMessage> mimeMessagesList = new ArrayList<>();
@@ -469,8 +489,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             draftMessage.setIdUtente(utente);
         }
 
-        LOG.info("Getting PEC from repository...");
-        Pec pec = pecRepository.getOne(idPec);
+
         String from = pec.getIndirizzo();
         LOG.info("Start building mime message...");
         // Prende gli allegati dall'eml della draft o dal messaggio che si sta inoltrando
