@@ -945,13 +945,14 @@ public class RaccoltaSempliceCustomController {
             for (PersonaRS persona : persone) {
                 boolean isInserted = createCoinvolto(conn, persona, idRaccolta);
                 if (!isInserted) {
+                    conn.rollback();
                     throw new Http500ResponseException("500", "errore nella creazione delle persone");
                 }
-//            }
-                conn.commit();
-                // ritorno il riferimento del gddoc riferito alla RS appena creata
-                result = String.format("%s/%d", raccolta.getNumeroRegistrazione(), raccolta.getAnnoRegistrazione());
             }
+            conn.commit();
+            // ritorno il riferimento del gddoc riferito alla RS appena creata
+            result = String.format("%s/%d", raccolta.getNumeroRegistrazione(), raccolta.getAnnoRegistrazione());
+
             return result;
         }
     }

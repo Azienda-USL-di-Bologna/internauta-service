@@ -138,8 +138,17 @@ public class PersonaRS {
         return tipologia;
     }
 
-    public void setTipologia(Tipologia tipologia) {
-        this.tipologia = tipologia;
+//    public void setTipologia(Tipologia tipologia) {
+//        this.tipologia = tipologia;
+//    }
+    public void setTipologia(String tipologia) {
+        if (tipologia != null) {
+            try {
+                this.tipologia = Tipologia.valueOf(tipologia.toUpperCase());
+            } catch (Throwable e) {
+                this.tipologia = Tipologia.FISICA;
+            }
+        }
     }
 
     public boolean isSalvaContatto() {
