@@ -4,22 +4,17 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
-import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.logs.OperazioneKrint;
-import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.Outbox;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -51,7 +46,7 @@ public class OutboxInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Class getTargetEntityClass() {
-        return Draft.class;
+        return Outbox.class;
     }
 
     @Override

@@ -272,7 +272,7 @@ public class ShpeckUtils {
      * @throws MessagingException
      * @throws IOException
      */
-    public void sendMessage(Pec pec,
+    public Outbox sendMessage(Pec pec,
             String subject,
             Integer idRelated,
             Boolean hiddenRecipients, String body,
@@ -330,6 +330,7 @@ public class ShpeckUtils {
             throw new IOException("Error while sending message...");
         }
         LOG.info("Message enqueued to outbox : ", outboxMessage);
+        return outboxMessage;
     }
 
     static Specification<Tag> hasAuthor(Integer idPec) {

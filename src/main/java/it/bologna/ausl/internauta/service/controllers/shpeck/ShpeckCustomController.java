@@ -95,6 +95,7 @@ import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.shpeck.Outbox;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
@@ -440,7 +441,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"saveDraftMessage", "sendMessage"}, method = RequestMethod.POST)
-    public void saveDraftMessage(
+    public Integer saveDraftMessage(
             HttpServletRequest request,
             @RequestParam(name = "idDraftMessage", required = false) Integer idDraftMessage,
             @RequestParam(name = "idPec", required = false) Integer idPec,
@@ -456,6 +457,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "idUtente", required = false) Integer idUtente
     ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException, Http403ResponseException, BlackBoxPermissionException {
 
+        Integer res = null;
         LOG.info("Shpeck controller -> Message received from PEC with id: " + idPec);
         String hostname = nextSdrCommonUtils.getHostname(request);
 
@@ -520,7 +522,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             LOG.info("Preparing the message for sending...");
             try {
                 for (MimeMessage mime : mimeMessagesList) {
-                    shpeckUtils.sendMessage(pec, subject, idMessageRelated, hideRecipients, body, listAttachments, emlAttachments, mime, request);
+                    Outbox outbox = shpeckUtils.sendMessage(pec, subject, idMessageRelated, hideRecipients, body, listAttachments, emlAttachments, mime, request);
+                    res = outbox.getId();
                 }
 
                 if (idMessageRelated != null) {
@@ -537,6 +540,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 throw new Http500ResponseException("007", "Errore durante l'invio. La mail è stata salvata nelle bozze.", ex);
             }
         }
+        return res;
     }
 
     /**
