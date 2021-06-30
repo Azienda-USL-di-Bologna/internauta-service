@@ -11,17 +11,17 @@ public class RaccoltaManager {
 
     public static String queryRaccoltaSemplice() {
         String query = "SELECT r.id, r.id_gddoc "
-                + ", r.id_gddoc_associato, r.codice \n "
+                + ", r.id_gddoc_associato, r.codice "
                 + ", r.applicazione_chiamante "
-                + ", r.additional_data \n "
+                + ", r.additional_data "
                 + ", r.creatore, r.oggetto "
-                + ", r.id_struttura_responsabile_internauta \n "
+                + ", r.id_struttura_responsabile_internauta "
                 + ", r.id_struttura_responsabile_argo, r.descrizione_struttura \n "
                 + ", r.stato, r.storico, r.tipo_documento "
-                + ", r.create_time \n "
-                + " FROM gd.raccolte r \n"
-                + "WHERE r.create_time::date >= :from \n"
-                + "and r.create_time::date < :to \n";
+                + ", r.create_time "
+                + " FROM gd.raccolte r "
+                + "WHERE r.create_time::date >= :from "
+                + "and r.create_time::date <= :to ";
         return query;
     }
 
@@ -59,8 +59,8 @@ public class RaccoltaManager {
     }
 
     public static String querySottoDocumenti(String id) {
-        String query = "SELECT nome_sottodocumento, "
-                + "mimetype_file_originale "
+        String query = "SELECT nome_sottodocumento, guid_sottodocumento, "
+                + "mimetype_file_originale, uuid_mongo_originale "
                 + "FROM gd.sotto_documenti "
                 + "WHERE id_gddoc = '" + id + "'";
         return query;
@@ -68,8 +68,12 @@ public class RaccoltaManager {
 
     public static Map<String, String> mapSottoDocumenti() {
         Map<String, String> map = new HashMap<>();
+        map.put("id_gddoc", "idGddoc");
+        map.put("uuid_mongo_originale", "uuidMongo");
+        map.put("guid_sottodocumento", "guidSottodocumento");
         map.put("nome_sottodocumento", "nomeOriginale");
         map.put("mimetype_file_originale", "mimeTypeOriginale");
+        map.put("estensione", "estensione");
         return map;
     }
 
@@ -136,9 +140,9 @@ public class RaccoltaManager {
 
     public static Map<String, String> mapQueryCodiceBabel() {
         Map<String, String> map = new HashMap<>();
-        map.put("numero_registrazione", "numeroRegistro");
+        map.put("numero_registrazione", "numero");
         map.put("codice_registro", "codiceRegistro");
-        map.put("anno_registrazione", "annoRegistro");
+        map.put("anno_registrazione", "anno");
         return map;
     }
 
@@ -159,6 +163,8 @@ public class RaccoltaManager {
         mappings.put("oggetto", "oggetto");
         mappings.put("storico", "storico");
         mappings.put("create_time", "createTime");
+        mappings.put("tscol", "tscol");
+        mappings.put("version", "version");
         return mappings;
     }
 

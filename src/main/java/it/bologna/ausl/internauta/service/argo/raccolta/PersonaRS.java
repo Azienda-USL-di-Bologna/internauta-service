@@ -38,12 +38,12 @@ public class PersonaRS {
     private String descrizione;
     private String nome;
     private String cognome;
-    private String codice_fiscale;
-    private String p_iva;
-    private String email;
+    private String cf;
+    private String partitaIva;
+    private String mail;
     private Tipologia tipologia;
     private boolean salvaContatto;
-    private String ragione_sociale;
+    private String ragioneSociale;
     private String cap;
     private String comune;
     private String via;
@@ -63,12 +63,12 @@ public class PersonaRS {
         this.descrizione = descrizione;
         this.nome = nome;
         this.cognome = cognome;
-        this.codice_fiscale = codice_fiscale;
-        this.p_iva = p_iva;
-        this.email = email;
+        this.cf = codice_fiscale;
+        this.partitaIva = p_iva;
+        this.mail = email;
         this.tipologia = tipologia;
         this.salvaContatto = salvaContatto;
-        this.ragione_sociale = ragione_sociale;
+        this.ragioneSociale = ragione_sociale;
         this.cap = cap;
         this.comune = comune;
         this.via = via;
@@ -76,6 +76,37 @@ public class PersonaRS {
         this.telefono = telefono;
         this.provincia = provincia;
         this.nazione = nazione;
+    }
+
+    public void createDescrizione() {
+        if(tipologia.equals(Tipologia.GIURIDICA))
+            this.descrizione = this.ragioneSociale;
+        else
+            this.descrizione = this.nome + " " + this.cognome;
+    }
+    
+    public String getCf() {
+        return cf;
+    }
+
+    public void setCf(String cf) {
+        this.cf = cf;
+    }
+
+    public String getPartitaIva() {
+        return partitaIva;
+    }
+
+    public void setPartitaIva(String partitaIva) {
+        this.partitaIva = partitaIva;
+    }
+
+    public String getMail() {
+        return mail;
+    }
+
+    public void setMail(String mail) {
+        this.mail = mail;
     }
 
     public String getDescrizione() {
@@ -102,30 +133,6 @@ public class PersonaRS {
         this.cognome = cognome;
     }
 
-    public String getCodice_fiscale() {
-        return codice_fiscale;
-    }
-
-    public void setCodice_fiscale(String codice_fiscale) {
-        this.codice_fiscale = codice_fiscale;
-    }
-
-    public String getP_iva() {
-        return p_iva;
-    }
-
-    public void setP_iva(String p_iva) {
-        this.p_iva = p_iva;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
     public Tipologia getTipologia() {
         return tipologia;
     }
@@ -142,12 +149,12 @@ public class PersonaRS {
         this.salvaContatto = salvaContatto;
     }
 
-    public String getRagione_sociale() {
-        return ragione_sociale;
+    public String getRagioneSociale() {
+        return ragioneSociale;
     }
 
-    public void setRagione_sociale(String ragione_sociale) {
-        this.ragione_sociale = ragione_sociale;
+    public void setRagioneSociale(String ragione_sociale) {
+        this.ragioneSociale = ragione_sociale;
     }
 
     public String getCap() {
@@ -237,24 +244,24 @@ public class PersonaRS {
         contatto.setProtocontatto(isProtocontatto);
         contatto.setIdAziende(new Integer[]{idAzienda});
         contatto.setDescrizione(p.getDescrizione());
-        if (p.getP_iva() == null) {
+        if (p.getPartitaIva()== null) {
             contatto.setTipo(Contatto.TipoContatto.PERSONA_FISICA);
         } else {
-            contatto.setPartitaIva(p.getP_iva());
-            contatto.setRagioneSociale(p.getRagione_sociale());
+            contatto.setPartitaIva(p.getPartitaIva());
+            contatto.setRagioneSociale(p.getRagioneSociale());
             contatto.setTipo(Contatto.TipoContatto.AZIENDA);
         }
 
         contatto.setRiservato(false);
         contatto.setNome(p.getNome());
         contatto.setCognome(p.getCognome());
-        contatto.setCodiceFiscale(p.getCodice_fiscale());
-        contatto.setRagioneSociale(p.getRagione_sociale());
+        contatto.setCodiceFiscale(p.getCf());
+        contatto.setRagioneSociale(p.getRagioneSociale());
 
         // mail
-        if (p.getEmail() != null && !p.getEmail().isEmpty()) {
+        if (p.getMail()!= null && !p.getMail().isEmpty()) {
             DettaglioContatto dettaglioContatto = new DettaglioContatto();
-            dettaglioContatto.setDescrizione(p.getEmail());
+            dettaglioContatto.setDescrizione(p.getMail());
             dettaglioContatto.setEliminato(false);
             dettaglioContatto.setPrincipale(false);
             dettaglioContatto.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
@@ -262,7 +269,7 @@ public class PersonaRS {
 
             List<Email> emailList1 = new ArrayList<>();
             Email email1 = new Email();
-            email1.setEmail(p.getEmail());
+            email1.setEmail(p.getMail());
             email1.setIdDettaglioContatto(dettaglioContatto);
             email1.setIdContatto(contatto);
             email1.setPec(false);
