@@ -183,33 +183,9 @@ public class ScriptaCustomController {
 //            }
 
             for (MultipartFile file : files) {
+                
                 scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename());
-//                numeroOrdine++;
-//                savedFileOnRepository = minIOWrapper.put(file.getInputStream(), doc.getIdAzienda().getCodice(), numeroProposta, file.getOriginalFilename(), null, true);
-//                Allegato allegato = new Allegato();
-//                allegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
-//                allegato.setIdDoc(doc);
-//                allegato.setPrincipale(false);
-//                allegato.setTipo(Allegato.TipoAllegato.ALLEGATO);
-//                allegato.setDataInserimento(ZonedDateTime.now());
-//                allegato.setOrdinale(numeroOrdine);
-//                allegato.setFirmato(false);
-//                DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
-//                dettaglioAllegato.setHashMd5(savedFileOnRepository.getMd5());
-//
-//                dettaglioAllegato.setHashSha256(getHashFromFile(file.getInputStream(), "SHA-256"));
-//                dettaglioAllegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
-//                dettaglioAllegato.setIdAllegato(allegato);
-//                dettaglioAllegato.setEstensione(FilenameUtils.getExtension(file.getOriginalFilename()));
-//                dettaglioAllegato.setDimensioneByte(Math.toIntExact(file.getSize()));
-//                dettaglioAllegato.setIdRepository(savedFileOnRepository.getFileId());
-//                dettaglioAllegato.setCaratteristica(TipoDettaglioAllegato.ORIGINALE);
-//                dettaglioAllegato.setMimeType(file.getContentType());
-//                List<DettaglioAllegato> dettagliAllegatiList = new ArrayList();
-//                dettagliAllegatiList.add(dettaglioAllegato);
-//                savedFilesOnRepository.add(savedFileOnRepository);
-//                allegato.setDettagliAllegatiList(dettagliAllegatiList);
-//                savedFilesOnInternauta.add(saveFileOnInternauta(allegato));
+
             }
             tuttiAllegati = allegatoRepository.findAll(QAllegato.allegato.idDoc.id.eq(idDoc));
         } catch (Exception e) {
