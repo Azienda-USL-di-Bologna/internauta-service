@@ -19,7 +19,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Formatter;
-import org.apache.commons.io.FileUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,28 +35,16 @@ public class FileUtilities {
     }
 
     public static ArrayList<ExtractorResult> estraiTuttoDalFile(File folderToSave,
-            InputStream fileInputStream,
+            File tmp,
             String nomeFile) throws ExtractorException, IOException {
-        String separatoreDiSiStema = System.getProperty("file.separator");
-        CharSequence daRimpiazzare = separatoreDiSiStema;
-        CharSequence sostituto = "\\" + separatoreDiSiStema;
-        nomeFile = nomeFile.replace(daRimpiazzare, sostituto);
 
         ArrayList<ExtractorResult> extractAllResult = null;
-        //TODO: GENERARE CON LIBRERIA JAVA
-        File tmp = new File(folderToSave.getAbsolutePath()
-                + separatoreDiSiStema + nomeFile);
-//        
-//        File tmp1 = File.createTempFile("tmp_allegato_", ".tmp", new File(System.getProperty("java.io.tmpdir")));
-        
-        FileUtils.copyInputStreamToFile(fileInputStream, tmp);
-        fileInputStream.close();
-        
         ExtractorCreator ec = new ExtractorCreator(tmp);
 
         if (ec.isExtractable()) {
             extractAllResult = ec.extractAll(folderToSave);
         }
+
         return extractAllResult;
     }
 
@@ -102,6 +89,11 @@ public class FileUtilities {
 
     public static String getMimeTypeFromMultipart(MultipartFile multipart) throws IOException, UnsupportedEncodingException, MimeTypeException {
         return getMimeTypeFromInputStream(multipart.getInputStream());
+    }
+
+    public static String getMimeTypeFromPath(String path) throws IOException, UnsupportedEncodingException, MimeTypeException {
+        Detector detector = new Detector();
+        return detector.getMimeType(path);
     }
 
     public static String getMimeTypeFromInputStream(InputStream is) throws IOException, UnsupportedEncodingException, MimeTypeException {

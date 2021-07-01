@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.configuration.spring;
 
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.interceptors.RequestInterceptor;
 import it.bologna.ausl.internauta.service.repositories.logs.KrintRepository;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
@@ -23,13 +24,16 @@ public class WebConfiguration implements WebMvcConfigurer {
 
     @Autowired
     MemoryAnalizerService memoryAnalizerService;
-    
+
     @Autowired
     HttpSessionData httpSessionData;
-    
+
     @Autowired
     KrintRepository krintRepository;
-    
+
+    @Autowired
+    ReporitoryConnectionManager reporitoryConnectionManager;
+
     static final Pageable DEFAULT_PAGE_REQUEST = PageRequest.of(0, 20);
 
 //    @Override
@@ -39,7 +43,6 @@ public class WebConfiguration implements WebMvcConfigurer {
 //        argumentResolvers.add(resolver);
 //        //super.addArgumentResolvers(argumentResolvers);
 //    }
-    
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
         DynamicOffsetLimitPageRequestOrPageRequestResolver resolver = new DynamicOffsetLimitPageRequestOrPageRequestResolver();
@@ -51,6 +54,6 @@ public class WebConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new RequestInterceptor(httpSessionData, krintRepository, memoryAnalizerService));
+        registry.addInterceptor(new RequestInterceptor(httpSessionData, krintRepository, memoryAnalizerService, reporitoryConnectionManager));
     }
 }
