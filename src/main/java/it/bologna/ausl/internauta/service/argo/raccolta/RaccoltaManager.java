@@ -282,13 +282,12 @@ public class RaccoltaManager {
                 + "FROM procton.documenti d, gd.gddocs g "
                 + "WHERE g.id_oggetto_origine = 'babel_suite_' || d.guid_documento "
                 + "AND protocollo is not null "
-                + "AND  '[{\"u\":\"" + idUtente + "\"}]'::jsonb<@d.utenti_vedenti_json "
                 + (numero != null ? "AND d.protocollo = lpad('" + numero + "', 7, '0') " : "")
                 + (anno != null ? "AND d.anno_protocollo = " + anno + " " : "")
                 + "AND d.annullato = 0 "
                 + (oggetto != null ? "AND d.oggetto ilike '%" + oggetto + "%'" : "")
                 + "ORDER BY d.data_protocollo desc nulls last, d.data_documento desc limit 300";
-
+// + "AND  '[{\"u\":\"" + idUtente + "\"}]'::jsonb<@d.utenti_vedenti_json "
         return query;
     }
 }
