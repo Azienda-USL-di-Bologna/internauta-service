@@ -23,10 +23,12 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.DocList;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
 import it.bologna.ausl.model.entities.scripta.QDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.QDoc;
+import it.bologna.ausl.model.entities.scripta.QDocList;
 import it.bologna.ausl.model.entities.scripta.QMezzo;
 import it.bologna.ausl.model.entities.scripta.QRelated;
 import it.bologna.ausl.model.entities.scripta.QSmistamento;
@@ -142,6 +144,19 @@ public class ScriptaBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QSpedizione.spedizione, Spedizione.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"doclist", "doclist/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> doclist(
+            @QuerydslPredicate(root = DocList.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDocList.docList, DocList.class);
         return ResponseEntity.ok(resource);
     }
 }
