@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
+import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.shpeck.MessageTagInterceptor;
@@ -94,6 +95,7 @@ import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.shpeck.Outbox;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
@@ -101,6 +103,7 @@ import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.logging.Level;
 import org.json.JSONArray;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -438,7 +441,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"saveDraftMessage", "sendMessage"}, method = RequestMethod.POST)
-    public void saveDraftMessage(
+    public Integer saveDraftMessage(
             HttpServletRequest request,
             @RequestParam(name = "idDraftMessage", required = false) Integer idDraftMessage,
             @RequestParam(name = "idPec", required = false) Integer idPec,
@@ -452,11 +455,30 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "messageRelatedType", required = false) MessageRelatedType messageRelatedType,
             @RequestParam(name = "idMessageRelatedAttachments", required = false) Integer[] idMessageRelatedAttachments,
             @RequestParam(name = "idUtente", required = false) Integer idUtente
-    ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException {
+    ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException, Http403ResponseException, BlackBoxPermissionException {
 
+        Integer res = null;
         LOG.info("Shpeck controller -> Message received from PEC with id: " + idPec);
         String hostname = nextSdrCommonUtils.getHostname(request);
 
+        LOG.info("Getting PEC from repository...");
+        Pec pec = pecRepository.getOne(idPec);
+
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona personaConnessa = authenticatedUserProperties.getPerson();
+       
+        List<String> permessiSufficienti = new ArrayList();
+        permessiSufficienti.add(InternautaConstants.Permessi.Predicati.ELIMINA.toString());
+        permessiSufficienti.add(InternautaConstants.Permessi.Predicati.RISPONDE.toString());
+        try {
+            Boolean userHasPermissionOnThisPec = shpeckUtils.userHasPermissionOnThisPec(pec, permessiSufficienti, personaConnessa);
+            if (!userHasPermissionOnThisPec) {
+                throw new BlackBoxPermissionException("nessun permesso trovato");
+            }
+        } catch (BlackBoxPermissionException ex) {
+            throw new Http403ResponseException("008", "Non hai il permesso sulla casella", ex);
+        }
+        
         ArrayList<EmlHandlerAttachment> listAttachments = shpeckUtils.convertAttachments(attachments);
 
         ArrayList<MimeMessage> mimeMessagesList = new ArrayList<>();
@@ -469,8 +491,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             draftMessage.setIdUtente(utente);
         }
 
-        LOG.info("Getting PEC from repository...");
-        Pec pec = pecRepository.getOne(idPec);
+
         String from = pec.getIndirizzo();
         LOG.info("Start building mime message...");
         // Prende gli allegati dall'eml della draft o dal messaggio che si sta inoltrando
@@ -501,7 +522,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             LOG.info("Preparing the message for sending...");
             try {
                 for (MimeMessage mime : mimeMessagesList) {
-                    shpeckUtils.sendMessage(pec, subject, idMessageRelated, hideRecipients, body, listAttachments, emlAttachments, mime, request);
+                    Outbox outbox = shpeckUtils.sendMessage(pec, subject, idMessageRelated, hideRecipients, body, listAttachments, emlAttachments, mime, request);
+                    res = outbox.getId();
                 }
 
                 if (idMessageRelated != null) {
@@ -518,6 +540,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                 throw new Http500ResponseException("007", "Errore durante l'invio. La mail è stata salvata nelle bozze.", ex);
             }
         }
+        return res;
     }
 
     /**

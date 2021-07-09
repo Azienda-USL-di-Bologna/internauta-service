@@ -663,18 +663,18 @@ public class ImportaDaCSV {
                             datafi = formattattore(appartenentiMap.get("datafi"));
                             datafiString = UtilityFunctions.getZonedDateTimeString(datafi);
                         }
-                        
+
                         if (appartenentiMap.get("datafi") == null || appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") == "") {
                             mapError.put("datafi", "");
                         } else {
                             mapError.put("datafi", appartenentiMap.get("datafi"));
                         }
-                        
-                        if ((datain == null && datafi != null)||(datain != null && datafi != null && datain.isAfter(datafi))){
-                            if (mapError.get("ERRORE")!=null){
-                                mapError.put("ERRORE",mapError.get("ERRORE")+" datain maggiore di datafi,");
-                            }else{
-                                mapError.put("ERRORE","datain maggiore di datafi,");
+
+                        if ((datain == null && datafi != null) || (datain != null && datafi != null && datain.isAfter(datafi))) {
+                            if (mapError.get("ERRORE") != null) {
+                                mapError.put("ERRORE", mapError.get("ERRORE") + " datain maggiore di datafi,");
+                            } else {
+                                mapError.put("ERRORE", "datain maggiore di datafi,");
                             }
                         }
                         //Codice Ente 
@@ -805,7 +805,7 @@ public class ImportaDaCSV {
                         String codice_matricola = checkCodiceMatricolaR(responsabiliMap, mapError, selectDateOnAppartenentiByIdAzienda);
                         if (codice_matricola.equals("")) {
                             mR.setCodiceMatricola(null);
-                            nRigheAnomale++;
+                            //nRigheAnomale++;
                             anomalia = true;
                             anomaliaRiga = true;
                         } else {
@@ -817,7 +817,7 @@ public class ImportaDaCSV {
                         anomali = !checkDatainR(responsabiliMap, mapError);
                         anomalia = anomalia ? anomalia : anomali;
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
-                        nRigheAnomale = anomali ? nRigheAnomale++ : nRigheAnomale;
+                        //nRigheAnomale = anomali ? nRigheAnomale++ : nRigheAnomale;
                         mR.setDatain(!anomali ? formattattore(responsabiliMap.get("datain")) : null);
 
                         ZonedDateTime datafi = null;
@@ -844,14 +844,16 @@ public class ImportaDaCSV {
                             }
                         } catch (RibaltoneCSVCheckException e) {
                             id_casella = e.getDato().toString();
+                            anomaliaRiga = true;
+                            anomalia = true;
                             mapError.put("ERRORE", e.getMessage());
                         }
-//TODO si possono usare le mappe anche qui
-                        if (mdrResponsabiliRepository.countMultiReponsabilePerStruttura(codiceAzienda,
+//TODO si possono usare le mappe anche qui   ------- ci sarebbe da fare il controllo sull'id casella che deve essere non null
+                        if (id_casella != null && mdrResponsabiliRepository.countMultiReponsabilePerStruttura(codiceAzienda,
                                 Integer.parseInt(id_casella),
                                 datafiString,
                                 datainString) > 0) {
-                            nRigheAnomale++;
+                            anomaliaRiga = true;
                             anomalia = true;
                             mapError.put("ERRORE", mapError.get("ERRORE") + " la struttura di questo responsabile è già assegnata ad un altro respondabile,");
                         }
@@ -869,18 +871,20 @@ public class ImportaDaCSV {
                         mR.setTipo(tipoR);
                         anomalia = tipoR == null ? true : anomalia;
                         anomaliaRiga = tipoR == null ? true : anomaliaRiga;
-                        nRigheAnomale = tipoR == null ? nRigheAnomale++ : nRigheAnomale;
+//                        nRigheAnomale = tipoR == null ? nRigheAnomale++ : nRigheAnomale;
 
 //                      CODICE ENTE
                         Integer CodiceEnte = checkCodiceEnte(responsabiliMap, mapError, codiceAzienda);
                         mR.setCodiceEnte(CodiceEnte);
                         anomalia = Objects.equals(CodiceEnte, codiceAzienda) ? true : anomalia;
                         anomaliaRiga = Objects.equals(CodiceEnte, codiceAzienda) ? true : anomaliaRiga;
-                        nRigheAnomale = Objects.equals(CodiceEnte, codiceAzienda) ? nRigheAnomale++ : nRigheAnomale;
+                        //nRigheAnomale = Objects.equals(CodiceEnte, codiceAzienda) ? nRigheAnomale++ : nRigheAnomale;
 
                         mR.setIdAzienda(azienda);
                         if (!anomaliaRiga) {
                             mdrResponsabiliRepository.save(mR);
+                        } else {
+                            nRigheAnomale++;
                         }
                         anomaliaRiga = false;
                         mapWriter.write(mapError, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
