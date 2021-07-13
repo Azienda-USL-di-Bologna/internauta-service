@@ -732,7 +732,7 @@ public class RaccoltaSempliceCustomController {
                 Boolean firstTime = true;
                 for (String idG : listId) {
                     if (query == "") {
-                        query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE  (id_gddoc_associato = '" + idG + "' ";
+                        query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE  (id_gddoc = '" + idG + "' ";
                         countId++;
                         firstTime = false;
                         if (listId.size() == 1) {
@@ -741,24 +741,28 @@ public class RaccoltaSempliceCustomController {
                         }
                     } else {
                         if (firstTime) {
-                            query = query + " and id_gddoc_associato = '" + idG + "' ";
-                            countId++;
-                            firstTime = false;
+                            if (listId.size() == 1) {
+                                query = query + " and id_gddoc = '" + idG + "' ";
+                            } else {
+                                query = query + " and ( id_gddoc = '" + idG + "' ";
+                            }
+
                         }
                         if (countId == listId.size() - 1) {
-                            log.info("Sono all'ultimo");
-                            query = query + " or id_gddoc_associato = '" + idG + "') ";
-                            countId++;
-                        } else {
-                            log.info(("Non sono all'ultimo"));
-                            query = query + " or id_gddoc_associato = '" + idG + "' ";
-                            countId++;
+                            //log.info("Sono all'ultimo");
+                            query = query + " or id_gddoc = '" + idG + "') ";
                         }
+                        if (!firstTime && countId < listId.size() - 1) {
+                            //log.info(("Non sono all'ultimo"));
+                            query = query + " or id_gddoc = '" + idG + "' ";
+                        }
+                        firstTime = false;
+                        countId++;
                     }
                 }
             }
 
-            if (piva != null && !piva.isBlank()) {
+            if (piva != null && !piva.trim().equals("")) {
 
                 Query queryPiva = conn.createQuery("SELECT id FROM gd.coinvolti WHERE partitaiva = '" + piva + "' ");
                 List<Integer> listCoinvolti = queryPiva.executeAndFetch(Integer.class);
@@ -801,7 +805,7 @@ public class RaccoltaSempliceCustomController {
                 }
             }
 
-            if (cf != null && !cf.isBlank()) {
+            if (cf != null && !cf.trim().equals("")) {
                 Query queryPiva = conn.createQuery("SELECT id FROM gd.coinvolti WHERE cf = '" + cf + "' ");
                 List<Integer> listCoinvolti = queryPiva.executeAndFetch(Integer.class);
 
@@ -864,19 +868,20 @@ public class RaccoltaSempliceCustomController {
                         }
                     } else {
                         if (firstTime) {
-                            query = query + " and id_gddoc_associato = '" + idG + "' ";
+                            query = query + " and ( id_gddoc_associato = '" + idG + "' ";
                             countId++;
-                            firstTime = false;
                         }
                         if (countId == listGddocs.size() - 1) {
-                            log.info("Sono all'ultimo");
-                            query = query + " or id_gddoc_associato = '" + idG + "') ";
+                            //log.info("Sono all'ultimo");
+                            query = query + " or id_gddoc_associato = '" + idG + "' ) ";
                             countId++;
-                        } else {
-                            log.info(("Non sono all'ultimo"));
+                        }
+                        if (!firstTime && countId < listGddocs.size() - 1) {
+                            //log.info(("Non sono all'ultimo"));
                             query = query + " or id_gddoc_associato = '" + idG + "' ";
                             countId++;
                         }
+                        firstTime = false;
                     }
                 }
             }
