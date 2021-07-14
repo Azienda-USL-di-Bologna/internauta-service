@@ -337,8 +337,14 @@ public class PermessiCustomController implements ControllerHandledExceptions {
             }
 //            List<Integer> idAziendePersona = userInfoService.getAziendePersona(persona).stream().map(azienda -> (azienda.getId())).collect(Collectors.toList());
 
-            if (Collections.disjoint(idAziendePec, idAziendePersona)) {
-                throw new Http403ResponseException("2", "Pec e Persona passati non hanno aziende in comune.");
+            if (permesso != null) {
+                LOGGER.info("Sto aggiungendo un pemesso, verifico che Pec e Persona abbiano aziende comuni...");
+                LOGGER.info("idAziendePec " + idAziendePec.toString() + ", idAziendePersona " + idAziendePersona.toString());
+                if (Collections.disjoint(idAziendePec, idAziendePersona)) {
+                    throw new Http403ResponseException("2", "Pec e Persona passati non hanno aziende in comune.");
+                }
+                LOGGER.info("Verificato, regolare.");
+
             }
 
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

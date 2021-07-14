@@ -9,25 +9,28 @@ import java.util.Map;
  */
 public class RaccoltaManager {
 
-    public static String queryRaccoltaSemplice() {
-        String query = "SELECT r.id, r.id_gddoc "
+    public static String queryRaccoltaSemplice(int pageRows, int pageNumber) {
+        String query = "SELECT count(r.id) OVER() as rows, r.id, r.id_gddoc "
                 + ", r.id_gddoc_associato, r.codice "
                 + ", r.applicazione_chiamante "
                 + ", r.additional_data "
                 + ", r.creatore, r.oggetto "
                 + ", r.id_struttura_responsabile_internauta "
-                + ", r.id_struttura_responsabile_argo, r.descrizione_struttura \n "
+                + ", r.id_struttura_responsabile_argo, r.descrizione_struttura "
                 + ", r.stato, r.storico, r.tipo_documento "
                 + ", r.create_time "
                 + " FROM gd.raccolte r "
                 + "WHERE r.create_time::date >= :from "
-                + "and r.create_time::date <= :to ";
+                + "and r.create_time::date <= :to "
+                + "order by r.create_time desc "
+                + "LIMIT " + pageRows + " OFFSET " + pageNumber + " ";
+
         return query;
     }
 
     public static String queryCoinvoltiRaccolta(String id) {
         String query = "SELECT cr.id_coinvolto from gd.coinvolti_raccolte cr"
-                + " WHERE cr.id_raccolta = '" + id + "'";
+                + " WHERE cr.id_raccolta = " + id + " ";
         return query;
     }
 
@@ -148,6 +151,7 @@ public class RaccoltaManager {
 
     public static Map<String, String> mapQueryGetRaccoltaSemplice() {
         Map<String, String> mappings = new HashMap<>();
+        mappings.put("rows", "rows");
         mappings.put("id", "id");
         mappings.put("id_gddoc", "idGddoc");
         mappings.put("id_gddoc_associato", "idGddocAssociato");

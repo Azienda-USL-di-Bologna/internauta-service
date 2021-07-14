@@ -272,7 +272,7 @@ public class ShpeckUtils {
      * @throws MessagingException
      * @throws IOException
      */
-    public void sendMessage(Pec pec,
+    public Outbox sendMessage(Pec pec,
             String subject,
             Integer idRelated,
             Boolean hiddenRecipients, String body,
@@ -330,6 +330,7 @@ public class ShpeckUtils {
             throw new IOException("Error while sending message...");
         }
         LOG.info("Message enqueued to outbox : ", outboxMessage);
+        return outboxMessage;
     }
 
     static Specification<Tag> hasAuthor(Integer idPec) {
@@ -672,9 +673,11 @@ public class ShpeckUtils {
     /**
      * Torna true se l'utente ha il permesso passsato sulla Pec passata
      * @param pec
+     * @param predicati
+     * @param persona
      * @return 
      */
-    public Boolean userHasPermissionOnThisPec(Pec pec, List<String> predicati, Persona persona) throws Exception {
+    public Boolean userHasPermissionOnThisPec(Pec pec, List<String> predicati, Persona persona) throws BlackBoxPermissionException {
         List<PermessoEntitaStoredProcedure> pecWithStandardPermissions;
         try {
             pecWithStandardPermissions = permissionManager.getPermissionsOfSubjectActualFromDate(
@@ -687,7 +690,7 @@ public class ShpeckUtils {
                     null);
         } catch (BlackBoxPermissionException ex) {
             LOG.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
-            throw new Exception("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
+            throw new BlackBoxPermissionException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
         }
         return pecWithStandardPermissions.size() > 0;
     }

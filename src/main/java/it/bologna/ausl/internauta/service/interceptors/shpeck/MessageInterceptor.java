@@ -8,12 +8,14 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -30,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +61,9 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
     UserInfoService userInfoService;
     
     @Autowired
+    ShpeckUtils shpeckUtils;
+    
+    @Autowired
     PersonaRepository personaRepository;
     
     @Autowired
@@ -74,6 +80,26 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
 
+        AuthenticatedSessionData authenticatedUserProperties = super.getAuthenticatedUserProperties();
+        Persona persona = authenticatedUserProperties.getPerson();
+        
+        BooleanExpression messageInPecWithPermission;
+        
+        try {
+            Map<Integer, List<String>> permessiPec = userInfoService.getPermessiPec(persona);
+            if (!permessiPec.isEmpty()) {
+                List<Integer> myPec = new ArrayList<Integer>();
+                myPec.addAll(permessiPec.keySet());
+                messageInPecWithPermission = QMessage.message.idPec.id.in(myPec);Expressions.FALSE.eq(true);
+            } else {
+                messageInPecWithPermission = Expressions.FALSE.eq(true);
+            }
+        } catch (BlackBoxPermissionException ex) {
+            throw new AbortLoadInterceptorException("errore nella lettura del permessi sulle caselle pec", ex);
+        }
+        
+        initialPredicate = messageInPecWithPermission.and(initialPredicate);
+        
 //        try {
 //            Template a = TemplateFactory.DEFAULT.create("to_tsquery('italian', '$${0}:*$$') {1} tscol");
 //            String value = "middleware";
