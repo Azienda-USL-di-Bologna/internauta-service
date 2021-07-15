@@ -276,7 +276,7 @@ public class RaccoltaSempliceCustomController {
             for (Object object : jsonArray) {
                 JSONObject jsonProperties = (JSONObject) object;
 
-                String descrizione, cognome, nome, cf, pIva, email, tipologia, ragioneSociale, cap, via, civico, telefono, nazione, provincia, comune;
+                String descrizione, cognome, nome, cf, pIva, email, tipologia, ragioneSociale, cap, via, civico, telefono, nazione, provincia, comune, indirizzoDettaglio;
 
                 descrizione = (String) jsonProperties.get("descrizione");
 
@@ -307,6 +307,8 @@ public class RaccoltaSempliceCustomController {
                 provincia = (String) jsonProperties.get("provincia");
 
                 telefono = (String) jsonProperties.get("telefono");
+
+                indirizzoDettaglio = (String) jsonProperties.get("indirizzo");
 
                 List<Contatto> listaContatto = new ArrayList();
 
@@ -359,8 +361,11 @@ public class RaccoltaSempliceCustomController {
                         mail.setPec(false);
                         mail.setIdContatto(contatto);
                         mail.setIdDettaglioContatto(dettaglio);
-                        mail.setPrincipale(true);
-                        List<Email> mails = contatto.getEmailList();
+                        mail.setPrincipale(false);
+                        List<Email> mails = new ArrayList<>();
+                        if (contatto.getEmailList() != null) {
+                            mails = contatto.getEmailList();
+                        }
                         mails.add(mail);
                         contatto.setEmailList(mails);
                         contatto = contattoRepository.save(contatto);
@@ -378,7 +383,10 @@ public class RaccoltaSempliceCustomController {
                         tel.setNumero(telefono);
                         tel.setIdContatto(contatto);
                         tel.setIdDettaglioContatto(dettaglio);
-                        List<Telefono> telefoni = contatto.getTelefonoList();
+                        List<Telefono> telefoni = new ArrayList<>();
+                        if (contatto.getTelefonoList() != null) {
+                            telefoni = contatto.getTelefonoList();
+                        }
                         telefoni.add(tel);
                         contatto.setTelefonoList(telefoni);
                         contatto = contattoRepository.save(contatto);
@@ -423,13 +431,24 @@ public class RaccoltaSempliceCustomController {
                         indirizzo.setComune(comune);
                         indirizzo.setIdContatto(contatto);
                         indirizzo.setIdDettaglioContatto(dettaglio);
-                        indirizzo.setPrincipale(true);
+                        indirizzo.setPrincipale(false);
                         indirizzo.setProvenienza("Raccolta Semplice");
                         indirizzo.setDescrizione(indirizzoCompleto);
-                        List<Indirizzo> indirizzi = contatto.getIndirizziList();
+                        List<Indirizzo> indirizzi = new ArrayList<>();
+                        if (contatto.getIndirizziList() != null) {
+                            indirizzi = contatto.getIndirizziList();
+                        }
                         indirizzi.add(indirizzo);
                         contatto.setIndirizziList(indirizzi);
                         contatto = contattoRepository.save(contatto);
+                    }
+
+                    if (indirizzoDettaglio != null) {
+                        DettaglioContatto dettaglio = new DettaglioContatto();
+                        dettaglio.setIdContatto(contatto);
+                        dettaglio.setDescrizione(indirizzoDettaglio);
+                        dettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+                        dettaglio = dettaglioRepository.save(dettaglio);
                     }
 
                 } else {
@@ -451,7 +470,10 @@ public class RaccoltaSempliceCustomController {
                             tel.setNumero(telefono);
                             tel.setIdContatto(contatto);
                             tel.setIdDettaglioContatto(dettaglio);
-                            List<Telefono> telefoni = contatto.getTelefonoList();
+                            List<Telefono> telefoni = new ArrayList<>();
+                            if (contatto.getTelefonoList() != null) {
+                                telefoni = contatto.getTelefonoList();
+                            }
                             telefoni.add(tel);
                             contatto.setTelefonoList(telefoni);
                             contatto = contattoRepository.save(contatto);
@@ -471,9 +493,12 @@ public class RaccoltaSempliceCustomController {
                             mail.setProvenienza("Raccolta Semplice");
                             mail.setPec(false);
                             mail.setIdContatto(contatto);
-                            mail.setPrincipale(true);
+                            mail.setPrincipale(false);
                             mail.setIdDettaglioContatto(dettaglio);
-                            List<Email> mails = contatto.getEmailList();
+                            List<Email> mails = new ArrayList<>();
+                            if (contatto.getEmailList() != null) {
+                                mails = contatto.getEmailList();
+                            }
                             mails.add(mail);
                             contatto.setEmailList(mails);
                             contatto = contattoRepository.save(contatto);
@@ -520,13 +545,26 @@ public class RaccoltaSempliceCustomController {
                             indirizzo.setComune(comune);
                             indirizzo.setIdContatto(contatto);
                             indirizzo.setIdDettaglioContatto(dettaglio);
-                            indirizzo.setPrincipale(true);
+                            indirizzo.setPrincipale(false);
                             indirizzo.setProvenienza("Raccolta Semplice");
                             indirizzo.setDescrizione(indirizzoCompleto);
-                            List<Indirizzo> indirizzi = contatto.getIndirizziList();
+                            List<Indirizzo> indirizzi = new ArrayList<>();
+                            if (contatto.getIndirizziList() != null) {
+                                indirizzi = contatto.getIndirizziList();
+                            }
                             indirizzi.add(indirizzo);
                             contatto.setIndirizziList(indirizzi);
                             contatto = contattoRepository.save(contatto);
+                        }
+
+                        if (indirizzoDettaglio != null) {
+                            if (!descrizioneDettagli.contains(indirizzoCompleto)) {
+                                DettaglioContatto dettaglio = new DettaglioContatto();
+                                dettaglio.setIdContatto(contatto);
+                                dettaglio.setDescrizione(indirizzoCompleto);
+                                dettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+                                dettaglio = dettaglioRepository.save(dettaglio);
+                            }
                         }
                     }
                 }
@@ -534,14 +572,6 @@ public class RaccoltaSempliceCustomController {
         } catch (Throwable e) {
             log.error("Errore nel salvataggio del contatto", e);
         }
-    }
-
-    public void updateDettaglioContatto(Contatto c, DettaglioContatto dc) {
-
-    }
-
-    public void savePersonaRS(Contatto c, DettaglioContatto dc) {
-
     }
 
     @RequestMapping(value = {"storico"}, method = RequestMethod.GET)
