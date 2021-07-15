@@ -597,10 +597,31 @@ public class RaccoltaSempliceCustomController {
             JSONArray jArray = (JSONArray) jsonReq.get("storico");
             for (Object json : jArray) {
                 if (json instanceof JSONObject) {
-                    String utente = ((JSONObject) json).get("utente").toString();
-                    String data = ((JSONObject) json).get("data").toString();
-                    String motivo = ((JSONObject) json).get("motivazione").toString();
-                    String stato = ((JSONObject) json).get("utente").toString();
+                    String utente, data, motivo, stato;
+
+                    if (((JSONObject) json).get("utente") == null) {
+                        utente = "Utente non inserito";
+                    } else {
+                        utente = ((JSONObject) json).get("utente").toString();
+                    }
+
+                    if (((JSONObject) json).get("data") == null) {
+                        data = "Data non inserita";
+                    } else {
+                        data = ((JSONObject) json).get("data").toString();
+                    }
+
+                    if (((JSONObject) json).get("motivazione") == null) {
+                        motivo = "Motivazione non inserita";
+                    } else {
+                        motivo = ((JSONObject) json).get("motivazione").toString();
+                    }
+
+                    if (((JSONObject) json).get("stato") == null) {
+                        stato = "ATTIVO";
+                    } else {
+                        stato = ((JSONObject) json).get("stato").toString();
+                    }
                     Storico s = new Storico(utente, motivo, stato, data);
                     returnList.add(s);
                     log.info("Inserito annullamento del " + s.getData());
