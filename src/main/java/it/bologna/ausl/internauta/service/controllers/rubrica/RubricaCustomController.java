@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.concurrent.TimeUnit;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.MongoException;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
@@ -12,8 +13,10 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
+import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.configuration.utils.RubricaRestClientConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.permessi.PermessiCustomController;
 import it.bologna.ausl.internauta.service.exceptions.GruppiException;
@@ -30,14 +33,17 @@ import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContatto
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
+import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.internauta.service.utils.rubrica.CreatoreJsonPermessiContatto;
 import it.bologna.ausl.internauta.service.utils.rubrica.SelectedContactsUtils;
+import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
@@ -45,13 +51,16 @@ import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.Indirizzo;
 import it.bologna.ausl.model.entities.rubrica.Telefono;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithDettaglioContattoList;
+import it.bologna.ausl.mongowrapper.MongoWrapper;
 import it.bologna.ausl.rubrica.maven.client.RestClient;
 import it.bologna.ausl.rubrica.maven.client.RestClientException;
 import it.bologna.ausl.rubrica.maven.resources.EmailResource;
 import it.bologna.ausl.rubrica.maven.resources.FullContactResource;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.CommonUtils;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.time.ZoneId;
@@ -65,25 +74,30 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -101,78 +115,84 @@ import org.sql2o.Sql2o;
 @RestController
 @RequestMapping(value = "${rubrica.mapping.url.root}")
 public class RubricaCustomController implements ControllerHandledExceptions {
-
+    
     private static final Logger log = LoggerFactory.getLogger(RubricaCustomController.class);
-
+    
     @Autowired
     CommonUtils commonUtils;
-
+    
     @Autowired
     SelectedContactsUtils selectedContactsUtils;
-
+    
     @Autowired
     RestControllerEngineImpl restControllerEngine;
-
+    
     @Autowired
     MasterChefUtils masterChefUtils;
-
+    
     @Autowired
     UserInfoService userInfoService;
-
+    
     @Autowired
     CachedEntities cachedEntities;
-
+    
     @Autowired
     PostgresConnectionManager postgresConnectionManager;
-
+    
     @Autowired
     PermissionManager permissionManager;
-
+    
     @Autowired
     PersonaRepository personaRepository;
-
+    
     @Autowired
     UtenteRepository utenteRepository;
-
+    
     @Autowired
     AziendaRepository aziendaRepository;
-
+    
+    @Autowired
+    ParametriAziende parametriAziende;
+    
     @Autowired
     StrutturaRepository strutturaRepository;
-
+    
     @Autowired
     UtenteStrutturaRepository utenteStrutturaRepository;
-
+    
     @Autowired
     RubricaRestClientConnectionManager rubricaRestClientConnectionManager;
-
+    
     @Autowired
     private ContattoRepository contattoRepository;
-
+    
     @Autowired
     private DettaglioContattoRepository dettaglioContattoRepository;
-
+    
     @Autowired
     private ObjectMapper objectMapper;
-
+    
     @Autowired
     ProjectionFactory projectionFactory;
-
+    
     @Autowired
     private PermessiCustomController permessiCustomController;
-
+    
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-
+    
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
-
+    
+    @Autowired
+    ReporitoryConnectionManager mongoConnectionManager;
+    
     @PersistenceContext
     private EntityManager em;
-
+    
     @Value("${babelsuite.webapi.managedestinatari.url}")
     private String manageDestinatariUrl;
-
+    
     @Value("${babelsuite.webapi.managedestinatari.method}")
     private String manageDestinatariMethod;
 
@@ -221,10 +241,10 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         // Faccio la chiamata alla rubrica
         RestClient restClient = rubricaRestClientConnectionManager.getConnection(azienda.getId());
         List<FullContactResource> searchContact = restClient.searchContact(toSearch, utenteProcton.getIdUtente(), utenteProcton.getIdStruttura(), false);
-
+        
         List<FullContactResource> contattiTrovati = new ArrayList();
         Set<Integer> idContatti = new HashSet();
-
+        
         searchContact.forEach((c) -> {
             List<EmailResource> emails = c.getEmails();
             if (emails != null && !emails.isEmpty()) {
@@ -310,7 +330,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         // Prendo la connessione dal connection manager
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
         List<Integer> contatti;
-
+        
         try (Connection conn = (Connection) dbConnection.open()) {
             Query addParameter = conn.createQuery(query)
                     .addParameter("idUtente", idUtente)
@@ -323,46 +343,46 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         }
         return contatti;
     }
-
+    
     @RequestMapping(value = "getSimilarities", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getSimilarities(@RequestBody Map contatto) throws JsonProcessingException, IOException, BlackBoxPermissionException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InvocationTargetException, InvocationTargetException, InvocationTargetException {
-
+        
         String contattoString = objectMapper.writeValueAsString(contatto);
 
         // prendo utente connesso
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
         Persona persona = utente.getIdPersona();
-
+        
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(persona);
         List<Integer> collect = aziendePersona.stream().map(p -> p.getId()).collect(Collectors.toList());
         String idAziendeStr = UtilityFunctions.getArrayString(objectMapper, collect);
         String res = contattoRepository.getSimilarContacts(contattoString, idAziendeStr);
-
+        
         SqlSimilarityResults similarityResults = objectMapper.readValue(res, SqlSimilarityResults.class);
         similarityResults.filterByPermission(persona, permissionManager);
         return new ResponseEntity(similarityResults, HttpStatus.OK);
     }
-
+    
     @Transactional(rollbackFor = Throwable.class)
     @RequestMapping(value = "sendSelectedContactsToExternalApp",
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> sendSelectedContactsToExternalApp(@RequestBody ExternalAppData data)
             throws JsonProcessingException, IOException, BlackBoxPermissionException {
-
+        
         Azienda azienda = cachedEntities.getAziendaFromCodice(data.getCodiceAzienda());
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
         Persona persona = utente.getIdPersona();
         data.setCfUtenteOperazione(persona.getCodiceFiscale());
-
+        
         List<Contatto> estemporaneiToAddToRubricaAsProtocontatti = data.getEstemporaneiToAddToRubrica();
         String glogParams = data.getGlogParams();
-
+        
         Persona getPersona = personaRepository.findById(persona.getId()).get();
         Utente getUtente = utenteRepository.findById(utente.getId()).get();
-
+        
         if (estemporaneiToAddToRubricaAsProtocontatti != null
                 && !estemporaneiToAddToRubricaAsProtocontatti.isEmpty()) {
             //List<Contatto> listContattiAsProtocontattiDaSalvare = new ArrayList<Contatto>();
@@ -378,7 +398,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             List<SelectedContact> allSelectedContactsMITTENTE = selectedContactsLists.getMITTENTE();
             List<SelectedContact> allSelectedContactsA = selectedContactsLists.getA();
             List<SelectedContact> allSelectedContactsCC = selectedContactsLists.getCC();
-
+            
             for (Contatto contattoAsProtocontatto : estemporaneiToAddToRubricaAsProtocontatti) {
                 final List<Email> emailList = contattoAsProtocontatto.getEmailList();
                 if (!emailList.isEmpty()) {
@@ -401,19 +421,19 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                         indirizzi.getIdDettaglioContatto().setIdContatto(contattoAsProtocontatto);
                     }
                 }
-
+                
                 contattoAsProtocontatto.setIdPersonaCreazione(getPersona);
                 contattoAsProtocontatto.setIdUtenteCreazione(getUtente);
 
 //                listContattiAsProtocontattiDaSalvare.add(contattoAsProtocontatto);
                 Contatto savedContatto = contattoRepository.save(contattoAsProtocontatto);
-
+                
                 log.info("Contatto as protocontatto è stato salvato");
                 //      to do enum selectionMode, MITTENTE, DESTINATARI
                 //      set status INSERTED on contatti salvati
                 if (data.getMode().equals("MITTENTE")) {
                     allSelectedContactsMITTENTE = getSelectedContactsListAndSetAsInsertedToRubrica(allSelectedContactsMITTENTE, savedContatto);
-
+                    
                 }
                 if (data.getMode().equals("DESTINATARI")) {
                     if (data.getApp().equals("procton")) {
@@ -423,40 +443,40 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                         allSelectedContactsA = getSelectedContactsListAndSetAsInsertedToRubrica(allSelectedContactsA, savedContatto);
                     }
                 }
-
+                
             }
 //            contattoRepository.saveAll(listContattiAsProtocontattiDaSalvare);
             selectedContactsLists.setA(allSelectedContactsA);
             selectedContactsLists.setCC(allSelectedContactsCC);
             selectedContactsLists.setMITTENTE(allSelectedContactsMITTENTE);
-
+            
             String selectedContactsListsAsString = objectMapper.writeValueAsString(selectedContactsLists);
-
+            
             log.info("selectedContactsListsAsString to send at inde: " + selectedContactsListsAsString);
             data.setSelectedContactsLists(selectedContactsListsAsString);
         }
         log.info("set estemporaneiToAddToRubrica to null");
         data.setEstemporaneiToAddToRubrica(null);
-
+        
         if (data.getMode().equals("DESTINATARI") && data.getApp().equals("procton")) {
             log.info("Devo verificare i gruppi per escludere "
                     + "contatti interni di un'altra azienda");
             System.out.println("getSelectedContactsLists()\n" + data.getSelectedContactsLists());
-
+            
             String selectedContactsListsAsString = filtraTogliendoContattiInterniDiAltreAziende(
                     data.getSelectedContactsLists(),
                     azienda);
             log.info("Selected filtrata:\n" + selectedContactsListsAsString);
             data.setSelectedContactsLists(selectedContactsListsAsString);
         }
-
+        
         System.out.println("Ora data.selectedCOntactsList =\n" + data.getSelectedContactsLists());
-
+        
         log.info("Faccio una Lista di persone a cui aggiornare la videata");
         //List<String> cfPersoneDiCuiAggiornareLaVideataList = Arrays.asList(getPersona.getCodiceFiscale());
         List<String> cfPersoneDiCuiAggiornareLaVideataList = new ArrayList<>();
         cfPersoneDiCuiAggiornareLaVideataList.add(persona.getCodiceFiscale());
-
+        
         log.info("Cerco il realUser");
         Utente realUser = authenticatedUserProperties.getRealUser();
         // Se i due utenti sono diversi, allora devo caricare la persona reale
@@ -470,23 +490,23 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                 log.error("Real persona non trovata...");
             }
         }
-
+        
         if (glogParams.isEmpty() || StringUtils.isEmpty(glogParams)) {
             log.info("set Glog Params to null");
             data.setGlogParams(null);
         }
-
+        
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"),
                 objectMapper.writeValueAsString(data));
         OkHttpClient client = new OkHttpClient.Builder().connectTimeout(12, TimeUnit.MINUTES).build();
-
+        
         Request request = new Request.Builder()
                 .url(buildGestisciDestinatariDaRubricaInternautarUrl(azienda, data.getApp()))
                 .post(requestBody)
                 .addHeader("X-HTTP-Method-Override", manageDestinatariMethod)
                 .build();
-
+        
         log.info("Chiamo l'applicazione inde per salvare i contatti selezionati");
         Call call = client.newCall(request);
         try (Response response = call.execute();) {
@@ -499,10 +519,10 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                 throw new IOException(String.format("Errore nella chiamata alla WepApi InDe: %s", response.message()));
             }
         }
-
+        
         return new ResponseEntity(data, HttpStatus.OK);
     }
-
+    
     private List<SelectedContact> getSelectedContactsListAndSetAsInsertedToRubrica(List<SelectedContact> selectedContactsList, Contatto savedContatto) {
         if (!selectedContactsList.isEmpty()) {
             return setSelectedContactAsInsertedToRubrica(selectedContactsList, savedContatto);
@@ -510,7 +530,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             return selectedContactsList;
         }
     }
-
+    
     private String filtraTogliendoContattiInterniDiAltreAziende(
             String selectedContactsLists,
             Azienda azienda) throws JsonProcessingException {
@@ -521,15 +541,15 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         JSONArray jsonArrayCC = selectedCOntactsListJSON.getJSONArray("CC");
         jsonArrayCC = selectedContactsUtils.togliDaJSONArrayDestinatariContattiInterniDiAltreAziende(
                 jsonArrayCC, azienda);
-
+        
         JSONObject oggettoneToReturn = new JSONObject();
-
+        
         oggettoneToReturn.put("A", jsonArrayA);
         oggettoneToReturn.put("CC", jsonArrayCC);
         selectedContactsLists = oggettoneToReturn.toString();
         return selectedContactsLists;
     }
-
+    
     private List<SelectedContact> setSelectedContactAsInsertedToRubrica(List<SelectedContact> selectedContactsList, Contatto savedContatto) {
         for (SelectedContact selectedContactEstemporaneo : selectedContactsList) {
             log.info("Loop Selected Contatti, update keys, Id, estemporaneo, addToRubrica, status");
@@ -555,7 +575,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         }
         return selectedContactsList;
     }
-
+    
     private String buildGestisciDestinatariDaRubricaInternautarUrl(Azienda azienda, String idApplicazione) throws IOException {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
         AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
@@ -564,13 +584,13 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         log.info("Url da chiamare: " + url);
         return url;
     }
-
+    
     private void refreshDestinatari(List<String> cfPersoneDiCuiAggiornareLaVideataList, Azienda azienda, String guid) throws IOException {
         log.info("Inserisco su redis il comando di refresh dei destinatari:");
         for (String cf : cfPersoneDiCuiAggiornareLaVideataList) {
             log.info("CF: " + cf);
         }
-
+        
         Map<String, Object> primusCommandParams = new HashMap();
         primusCommandParams.put("refreshDestinatari", guid);
         AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
@@ -580,7 +600,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                         primusCommandParams, "1", "1", cfPersoneDiCuiAggiornareLaVideataList, "*"
                 );
         masterChefUtils.sendMasterChefJob(masterchefJobDescriptor, masterchefParams);
-
+        
     }
 
 //    @Transactional(rollbackFor = Throwable.class)
@@ -822,7 +842,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                     Integer idStrutturaAfferenzaDirettaAttiva = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utente.getId());
                     if (idStrutturaAfferenzaDirettaAttiva != null) {
                         Struttura struttura = strutturaRepository.findById(idStrutturaAfferenzaDirettaAttiva).get();
-
+                        
                         JSONObject oggettone = CreatoreJsonPermessiContatto.generaJSONObjectPerAggiuntaPermessiSuOggettoContatto(struttura, contatto);
                         log.info("Oggettone per aggiunta permessi da mappare:\n" + oggettone.toString(4));
                         Map<String, Object> params
@@ -835,7 +855,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                                 + " (id " + contatto.getId() + ")";
                     }
                 }
-
+                
             }
         } catch (Throwable t) {
             log.error("Errore! ", t);
@@ -844,7 +864,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         log.info("Fatto, torno il messaggio: " + responseMessage);
         return new ResponseEntity(responseMessage, HttpStatus.OK);
     }
-
+    
     @RequestMapping(value = "findContattiUtentiByCodiciFiscaliForGruppoImport",
             method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> findContattiUtentiByCodiciFiscaliForGruppoImport(@RequestBody String requestData) {
@@ -898,7 +918,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                         contattoTrovato.put("idDettaglioContatto", dettaglioContattoJSON);
                     }
                 }
-
+                
             } else {
                 log.info("contatt NON TROVATO");
             }
@@ -910,7 +930,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         log.info("RIRTONO LA RISPOSTA\n" + jArrayDiRisposta.toString(4));
         return new ResponseEntity(jArrayDiRisposta.toString(4), HttpStatus.OK);
     }
-
+    
     @Transactional(rollbackFor = Throwable.class)
     @RequestMapping(value = "salvaGruppo",
             method = RequestMethod.POST,
@@ -937,13 +957,13 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
             //passo 1 creo i contatti
             String repositoryKey = request.getServletPath();
-
+            
             int slashPos = repositoryKey.lastIndexOf("/");
             if (slashPos != -1) {
                 repositoryKey = repositoryKey.substring(0, slashPos);
             }
             repositoryKey += "/" + "contatto";
-
+            
             List<GruppiContatti> gruppiContattiList = new ArrayList<>();
             for (Contatto contatto : gruppo.getContattiContenuti()) {
                 contatto.setIdUtenteCreazione(idUtenteCreazione);
@@ -963,16 +983,16 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 //            Contatto contattoVero= em.find(Contatto.class,contattoInserito.getId());
                 DettaglioContatto dettaglioContattoVero = em.find(DettaglioContatto.class, (objectMapper.convertValue(contattoInserito.getDettaglioContattoList(), new TypeReference<List<DettaglioContatto>>() {
                 })).get(0).getId());
-
+                
                 gruppoContatto.setIdContatto(dettaglioContattoVero.getIdContatto());
                 gruppoContatto.setIdDettaglioContatto(dettaglioContattoVero);
                 gruppoContatto.setIdGruppo(gruppo);
                 gruppiContattiList.add(gruppoContatto);
             }
             gruppo.setContattiDelGruppoList(gruppiContattiList);
-
+            
             em.persist(gruppo);
-
+            
         } catch (Exception e) {
             log.debug("entro qui");
             throw new GruppiException("errore nel salvataggio del gruppo da csv", e);
@@ -997,12 +1017,12 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 //        gruoppo.setContattidelgruppolist(list gruppi contatti);
         //gruppo da visualizzare come risposta
     }
-
+    
     private Map<String, Object> rimuoviIdContattoAncestor(Contatto contatto) {
-
+        
         Map<String, Object> mappaContatto = objectMapper.convertValue(contatto, new TypeReference<Map<String, Object>>() {
         });
-
+        
         List<Map<String, Object>> emailList = (List<Map<String, Object>>) mappaContatto.get("emailList");
         List<Map<String, Object>> indirizziList = (List<Map<String, Object>>) mappaContatto.get("indirizziList");
         List<Map<String, Object>> telefonoList = (List<Map<String, Object>>) mappaContatto.get("telefonoList");
@@ -1020,7 +1040,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         });
         return mappaContatto;
     }
-
+    
     @RequestMapping(value = "findContattiStruttureForGruppoImport",
             method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> findContattiStruttureForGruppoImport(@RequestBody String requestData) {
@@ -1072,9 +1092,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                         log.info("Contatto non trovato!");
                     }
                 }
-
+                
             }
-
+            
             objectRequested.put("contattoTrovato", contattoTrovato);
             log.info("Inserisco l'oggetto nella risposta\t" + objectRequested.toString(4));
             jArrayDiRisposta.put(objectRequested);
@@ -1082,5 +1102,38 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         }
         log.info("RIRTONO LA RISPOSTA\n" + jArrayDiRisposta.toString(4));
         return new ResponseEntity(jArrayDiRisposta.toString(4), HttpStatus.OK);
+    }
+    
+    @RequestMapping(value = "downloadCSVModelFromIdAzienda", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public void downloadCSVModelFromIdAzienda(@RequestParam(required = true) Integer idAzienda, HttpServletResponse response, HttpServletRequest request) throws FileNotFoundException {
+        
+        String modelloCSV = "";
+        List<ParametroAziende> parameters = parametriAziende.getParameters("modelloCSV", new Integer[]{idAzienda}, new String[]{Applicazione.Applicazioni.rubrica.toString()});
+        if (parameters != null && !parameters.isEmpty()) {
+            modelloCSV = parametriAziende.getValue(parameters.get(0), String.class);
+        } else {
+            log.error("manca il parametro pubblico");
+        }
+        
+        MinIOWrapper minIOWrapper = mongoConnectionManager.getMinIOWrapper();
+        InputStream is = null;
+        
+        try {
+            try {
+                is = minIOWrapper.getByFileId(modelloCSV);
+                
+                if (is == null) {
+                    throw new MongoException("File non trovato!!");
+                }
+            } catch (Exception e) {
+                throw new MongoException("qualcosa è andato storto in downloadCSVModelFromUUID", e);
+            }
+            StreamUtils.copy(is, response.getOutputStream());
+        } catch (IOException ex) {
+            java.util.logging.Logger.getLogger(BaborgUtils.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            IOUtils.closeQuietly(is);
+        }
+        
     }
 }
