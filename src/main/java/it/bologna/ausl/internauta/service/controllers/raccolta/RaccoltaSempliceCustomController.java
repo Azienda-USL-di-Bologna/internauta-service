@@ -276,7 +276,9 @@ public class RaccoltaSempliceCustomController {
             for (Object object : jsonArray) {
                 JSONObject jsonProperties = (JSONObject) object;
 
-                String descrizione, cognome, nome, cf, pIva, email, tipologia, ragioneSociale, cap, via, civico, telefono, nazione, provincia, comune, indirizzoDettaglio;
+                String descrizione, cognome, nome, cf, pIva, email, tipologia,
+                        ragioneSociale, cap, via, civico, telefono,
+                        nazione, provincia, comune, indirizzoDettaglio, provenienza;
 
                 descrizione = (String) jsonProperties.get("descrizione");
 
@@ -309,6 +311,8 @@ public class RaccoltaSempliceCustomController {
                 telefono = (String) jsonProperties.get("telefono");
 
                 indirizzoDettaglio = (String) jsonProperties.get("indirizzo");
+
+                provenienza = (String) jsonProperties.get("provenienza");
 
                 List<Contatto> listaContatto = new ArrayList();
 
@@ -344,7 +348,17 @@ public class RaccoltaSempliceCustomController {
                     contatto.setEliminato(false);
                     contatto.setDescrizione(descrizione);
                     contatto.setProtocontatto(true);
-                    contatto.setProvenienza("Raccolta Semplice");
+                    contatto.setDaVerificare(Boolean.TRUE);
+                    contatto.setRiservato(false);
+                    Optional<Persona> p = personaRepository.findById(1);
+                    Persona pp = p.get();
+                    Optional<Utente> u = utenteRepository.findById(1);
+                    Utente uu = u.get();
+                    contatto.setIdPersonaCreazione(pp);
+                    contatto.setIdUtenteCreazione(uu);
+                    Integer[] array = new Integer[]{10};
+                    contatto.setIdAziende(array);
+                    contatto.setProvenienza(provenienza);
                     contatto.setCategoria(Contatto.CategoriaContatto.ESTERNO);
                     contatto = contattoRepository.save(contatto);
 
@@ -357,7 +371,7 @@ public class RaccoltaSempliceCustomController {
                         Email mail = new Email();
                         mail.setDescrizione(email);
                         mail.setEmail(email);
-                        mail.setProvenienza("Raccolta Semplice");
+                        mail.setProvenienza(provenienza);
                         mail.setPec(false);
                         mail.setIdContatto(contatto);
                         mail.setIdDettaglioContatto(dettaglio);
@@ -432,7 +446,7 @@ public class RaccoltaSempliceCustomController {
                         indirizzo.setIdContatto(contatto);
                         indirizzo.setIdDettaglioContatto(dettaglio);
                         indirizzo.setPrincipale(false);
-                        indirizzo.setProvenienza("Raccolta Semplice");
+                        indirizzo.setProvenienza(provenienza);
                         indirizzo.setDescrizione(indirizzoCompleto);
                         List<Indirizzo> indirizzi = new ArrayList<>();
                         if (contatto.getIndirizziList() != null) {
@@ -490,7 +504,7 @@ public class RaccoltaSempliceCustomController {
                             Email mail = new Email();
                             mail.setDescrizione(email);
                             mail.setEmail(email);
-                            mail.setProvenienza("Raccolta Semplice");
+                            mail.setProvenienza(provenienza);
                             mail.setPec(false);
                             mail.setIdContatto(contatto);
                             mail.setPrincipale(false);
@@ -546,7 +560,7 @@ public class RaccoltaSempliceCustomController {
                             indirizzo.setIdContatto(contatto);
                             indirizzo.setIdDettaglioContatto(dettaglio);
                             indirizzo.setPrincipale(false);
-                            indirizzo.setProvenienza("Raccolta Semplice");
+                            indirizzo.setProvenienza(provenienza);
                             indirizzo.setDescrizione(indirizzoCompleto);
                             List<Indirizzo> indirizzi = new ArrayList<>();
                             if (contatto.getIndirizziList() != null) {
