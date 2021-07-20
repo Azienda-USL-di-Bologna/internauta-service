@@ -1,10 +1,7 @@
 package it.bologna.ausl.internauta.service.utils;
 
-import it.bologna.ausl.model.entities.baborg.Utente;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;

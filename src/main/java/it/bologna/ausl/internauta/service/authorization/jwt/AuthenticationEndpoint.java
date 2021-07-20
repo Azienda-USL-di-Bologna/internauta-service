@@ -1,7 +1,6 @@
 package it.bologna.ausl.internauta.service.authorization.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.MalformedJwtException;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
@@ -13,11 +12,7 @@ import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import javax.servlet.ServletException;
-import org.apache.commons.codec.binary.Base64;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.MalformedClaimException;
 import org.jose4j.jwt.consumer.InvalidJwtException;

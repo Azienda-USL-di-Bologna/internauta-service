@@ -6,7 +6,6 @@ import it.bologna.ausl.model.entities.baborg.projections.generated.PersonaWithPl
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
-import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -40,4 +39,9 @@ public interface PersonaRepository extends
             + "and p.attiva = true and s.attiva = true", nativeQuery = true)
     public List<Persona> getPersoneAttiveListInStruttureAttiveList(List<Integer> idStrutture);
 
+    
+    @Query(value = "select unnest(baborg.strutture_del_segretario(?1))", nativeQuery = true)
+    public Integer[] getStruttureDelSegretario(
+           Integer idPersona
+    );
 }

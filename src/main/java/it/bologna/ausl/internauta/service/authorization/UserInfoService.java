@@ -104,6 +104,15 @@ public class UserInfoService {
 
     @Autowired
     ParametriAziende parametriAziende;
+    
+    /**
+     * E' necessario mettere in autowired la stessa UserInfoService per
+     * poter usare le funzioni cacheable. Se una funzione cacheable non viene
+     * chiamata così: userInfoService.nomeFunzione() non verrà usata come 
+     * cacheable
+     */
+    @Autowired
+    UserInfoService userInfoService;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserInfoService.class);
 
@@ -513,6 +522,26 @@ public class UserInfoService {
 
     @CacheEvict(value = "getRuoli_utente__ribaltorg__", key = "{#utente.getId()}")
     public void getRuoliRemoveCache(Utente utente) {
+    }
+    
+    /**
+     * Il value comincia per getRuoli perché così la cache viene svuotata al login
+     * vedere CacheUtilities per crederci.
+     * @param persona
+     * @return 
+     */
+    @Cacheable(value = "getRuoliListaCodiciAziendaOsservatore_persona__ribaltorg__", key = "{#persona.getId()}")
+    public List<String> getListaCodiciAziendaOsservatore(Persona persona) {
+        // NB: E' necessario usare il bean userInfoService altrimenti non verrà usata la cache!
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = userInfoService.getRuoliUtentiPersona(persona, true);
+        Map<String, List<String>> listeOsservatore = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.OS.toString());
+        List<String> listaCodiciAziendaOsservatore;
+        if (listeOsservatore == null) {
+            listaCodiciAziendaOsservatore = new ArrayList();
+        } else {
+            listaCodiciAziendaOsservatore = listeOsservatore.get(Ruolo.ModuliRuolo.GENERALE.toString());
+        }
+        return listaCodiciAziendaOsservatore;
     }
 
     public List<AziendaWithPlainFields> getAziendePersonaWithPlainField(Utente utente) {
