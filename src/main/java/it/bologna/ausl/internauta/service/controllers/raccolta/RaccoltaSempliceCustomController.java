@@ -280,6 +280,20 @@ public class RaccoltaSempliceCustomController {
                         ragioneSociale, cap, via, civico, telefono,
                         nazione, provincia, comune, indirizzoDettaglio, provenienza;
 
+                Boolean pec, fax;
+
+                pec = (Boolean) jsonProperties.get("pec");
+
+                if (pec == null) {
+                    pec = false;
+                }
+
+                fax = (Boolean) jsonProperties.get("fax");
+
+                if (fax == null) {
+                    fax = false;
+                }
+
                 descrizione = (String) jsonProperties.get("descrizione");
 
                 cognome = (String) jsonProperties.get("cognome");
@@ -360,7 +374,6 @@ public class RaccoltaSempliceCustomController {
                     contatto.setIdAziende(array);
                     contatto.setProvenienza(provenienza);
                     contatto.setCategoria(Contatto.CategoriaContatto.ESTERNO);
-                    contatto = contattoRepository.save(contatto);
 
                     if (email != null) {
                         DettaglioContatto dettaglio = new DettaglioContatto();
@@ -372,7 +385,7 @@ public class RaccoltaSempliceCustomController {
                         mail.setDescrizione(email);
                         mail.setEmail(email);
                         mail.setProvenienza(provenienza);
-                        mail.setPec(false);
+                        mail.setPec(pec);
                         mail.setIdContatto(contatto);
                         mail.setIdDettaglioContatto(dettaglio);
                         mail.setPrincipale(false);
@@ -382,7 +395,6 @@ public class RaccoltaSempliceCustomController {
                         }
                         mails.add(mail);
                         contatto.setEmailList(mails);
-                        contatto = contattoRepository.save(contatto);
                     }
 
                     if (telefono != null) {
@@ -392,9 +404,10 @@ public class RaccoltaSempliceCustomController {
                         dettaglio.setTipo(DettaglioContatto.TipoDettaglio.TELEFONO);
                         dettaglio = dettaglioRepository.save(dettaglio);
                         Telefono tel = new Telefono();
-                        tel.setFax(false);
+                        tel.setFax(fax);
                         tel.setPrincipale(false);
                         tel.setNumero(telefono);
+                        tel.setProvenienza(provenienza);
                         tel.setIdContatto(contatto);
                         tel.setIdDettaglioContatto(dettaglio);
                         List<Telefono> telefoni = new ArrayList<>();
@@ -403,7 +416,6 @@ public class RaccoltaSempliceCustomController {
                         }
                         telefoni.add(tel);
                         contatto.setTelefonoList(telefoni);
-                        contatto = contattoRepository.save(contatto);
                     }
 
                     if (cap != null || comune != null
@@ -454,7 +466,6 @@ public class RaccoltaSempliceCustomController {
                         }
                         indirizzi.add(indirizzo);
                         contatto.setIndirizziList(indirizzi);
-                        contatto = contattoRepository.save(contatto);
                     }
 
                     if (indirizzoDettaglio != null) {
@@ -462,8 +473,9 @@ public class RaccoltaSempliceCustomController {
                         dettaglio.setIdContatto(contatto);
                         dettaglio.setDescrizione(indirizzoDettaglio);
                         dettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
-                        dettaglio = dettaglioRepository.save(dettaglio);
                     }
+
+                    contatto = contattoRepository.save(contatto);
 
                 } else {
                     dettagli = dettaglioRepository.findByIdContatto(contatto);
@@ -479,7 +491,8 @@ public class RaccoltaSempliceCustomController {
                             dettaglio.setTipo(DettaglioContatto.TipoDettaglio.TELEFONO);
                             dettaglio = dettaglioRepository.save(dettaglio);
                             Telefono tel = new Telefono();
-                            tel.setFax(false);
+                            tel.setFax(fax);
+                            tel.setProvenienza(provenienza);
                             tel.setPrincipale(false);
                             tel.setNumero(telefono);
                             tel.setIdContatto(contatto);
@@ -490,7 +503,7 @@ public class RaccoltaSempliceCustomController {
                             }
                             telefoni.add(tel);
                             contatto.setTelefonoList(telefoni);
-                            contatto = contattoRepository.save(contatto);
+
                         }
                     }
 
@@ -505,7 +518,7 @@ public class RaccoltaSempliceCustomController {
                             mail.setDescrizione(email);
                             mail.setEmail(email);
                             mail.setProvenienza(provenienza);
-                            mail.setPec(false);
+                            mail.setPec(pec);
                             mail.setIdContatto(contatto);
                             mail.setPrincipale(false);
                             mail.setIdDettaglioContatto(dettaglio);
@@ -515,7 +528,7 @@ public class RaccoltaSempliceCustomController {
                             }
                             mails.add(mail);
                             contatto.setEmailList(mails);
-                            contatto = contattoRepository.save(contatto);
+
                         }
                     }
 
@@ -568,7 +581,7 @@ public class RaccoltaSempliceCustomController {
                             }
                             indirizzi.add(indirizzo);
                             contatto.setIndirizziList(indirizzi);
-                            contatto = contattoRepository.save(contatto);
+
                         }
 
                         if (indirizzoDettaglio != null) {
@@ -581,6 +594,7 @@ public class RaccoltaSempliceCustomController {
                             }
                         }
                     }
+                    contatto = contattoRepository.save(contatto);
                 }
             }
         } catch (Throwable e) {
