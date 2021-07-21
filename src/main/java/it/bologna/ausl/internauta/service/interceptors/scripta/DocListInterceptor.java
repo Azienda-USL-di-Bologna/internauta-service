@@ -1,7 +1,5 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Path;
 import com.querydsl.core.types.Predicate;
@@ -73,15 +71,6 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
         List<Object> entities = new ArrayList();
         entities.add(entity);
         manageAfterCollection(entities);
-//        securityHiding(doc);
-//        if (doc.getAnnullato()) {
-//            if (org.springframework.util.StringUtils.hasText(doc.getOggetto())) {
-//                doc.setOggetto("ANNULLATO - " + doc.getOggetto());
-//            } else {
-//                doc.setOggetto("ANNULLATO");
-//            }
-//        }
-
         return entity;
     }
 
@@ -185,13 +174,6 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
      * @return
      */
     private Boolean pienaVisibilita(DocList doc, Persona persona) {
-//        List<JsonNode> personeVedenti = (List<JsonNode>) (Object) doc.getPersoneVedenti();
-//        for (JsonNode personaVedente : personeVedenti) {
-//            if (personaVedente.get("idPersona").equals(persona.getId())) {
-//                return personaVedente.get("pienaVisibilita") != null && personaVedente.get("pienaVisibilita").equals(true);
-//            }
-//        }
-//        List<DocList.PersonaVedente> personeVedenti = objectMapper.convertValue(doc.getPersoneVedenti(), new TypeReference<List<DocList.PersonaVedente>>(){});
         for (DocList.PersonaVedente personaVedente : doc.getPersoneVedenti()) {
             if (personaVedente.getIdPersona().equals(persona.getId())) {
                 if (personaVedente.getPienaVisibilita()) {
