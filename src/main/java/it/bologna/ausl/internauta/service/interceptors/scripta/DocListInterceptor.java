@@ -92,7 +92,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
 
         if (!userInfoService.isSD(user)) { // Filtro 1
             String[] visLimFields = {"firmatari"}; // Nella tscol non ci sono i firmatari quindi non serve che li aggiungo
-            String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice"};
+            String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "fascicolazioni", "fascicolazioniTscol"};
             List<String> listaCodiciAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getCodice()).collect(Collectors.toList());
             List<String> listaCodiciAziendaOsservatore = userInfoService.getListaCodiciAziendaOsservatore(persona);
             Integer[] idStruttureSegretario = personaRepository.getStruttureDelSegretario(persona.getId());
@@ -220,6 +220,8 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
                 doc.setOggettoTscol(null);
                 doc.setDestinatari(null);
                 doc.setDestinatariTscol(null);
+                doc.setFascicolazioni(null);
+                doc.setFascicolazioniTscol(null);
                 doc.setTscol(null);
                 doc.setFirmatari(null);
                 doc.setIdPersonaRedattrice(null);
