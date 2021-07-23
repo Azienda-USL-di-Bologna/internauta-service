@@ -463,7 +463,7 @@ public class UserInfoService {
             ancheByRuolo = true;
         }
 //        if(persona.getUtenteList() == null){
-        persona.setUtenteList(getUtentiPersona(persona));
+        persona.setUtenteList(userInfoService.getUtentiPersona(persona));
 //        }
 
         // popolo mappa azienda->listaRuoli
