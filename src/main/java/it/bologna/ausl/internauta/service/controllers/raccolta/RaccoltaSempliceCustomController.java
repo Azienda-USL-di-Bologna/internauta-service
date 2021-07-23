@@ -330,12 +330,14 @@ public class RaccoltaSempliceCustomController {
 
                 List<Contatto> listaContatto = new ArrayList();
 
-                if (tipologia.equals("FISICA")) {
+                if (tipologia.equals("FISICA") && cf != null) {
                     listaContatto = contattoRepository.findByCodiceFiscale(cf);
-                } else if (tipologia.equals("GIURIDICA")) {
+                }
+                if (tipologia.equals("GIURIDICA") && pIva != null) {
                     listaContatto = contattoRepository.findByPartitaIva(pIva);
-                } else {
-                    throw new Exception("Tipologia inserita non corretta");
+                }
+                if (tipologia == null || (cf == null && pIva == null) || (cf.trim().equals("") && pIva.trim().equals(""))) {
+                    throw new Http400ResponseException("400", "Tipologia necessaria");
                 }
 
                 Contatto contatto = new Contatto();
@@ -473,6 +475,7 @@ public class RaccoltaSempliceCustomController {
                         dettaglio.setIdContatto(contatto);
                         dettaglio.setDescrizione(indirizzoDettaglio);
                         dettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+                        dettaglio = dettaglioRepository.save(dettaglio);
                     }
 
                     contatto = contattoRepository.save(contatto);
