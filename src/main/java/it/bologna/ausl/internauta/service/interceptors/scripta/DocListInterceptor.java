@@ -78,7 +78,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
      * Questa funzione si occupa di generare un predicato che contenga tutti i
      * filtri di sicurezza che riguardano docList Essi sono: 1- Se demiurgo vede
      * tutto 2- Gli altri vedono solo documenti delle aziende su cui sono attivi
-     * 3- Se osservatore vede tutto delle aziende su cui è osservatore 4- Se
+     * 3- Se osservatore vede tutto delle aziende su cui è osservatore tranne i riservati 4- Se
      * utente generico vede solo le sue proposte 5- Se segretario vede anche
      * proposte non sue purché dei suoi "superiori" 6- Se utente sta cercando
      * per campi sensibili e non ha piena visibilità non vede riservati/vis lim
@@ -129,12 +129,12 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
                             .or(Expressions.FALSE.eq(isFilteringSpecialFields(visLimFields)))
                             .or(pienaVisibilita)
             );
+            
+            BooleanExpression filtroOsservatore = qdoclist.idAzienda.codice.in(listaCodiciAziendaOsservatore)
+                    .and(qdoclist.riservato.eq(Boolean.FALSE)); // Filtro 3
 
             filter = qdoclist.idAzienda.codice.in(listaCodiciAziendaUtenteAttivo); // Filtro 2
-            filter = filter.and(
-                    qdoclist.idAzienda.codice.in(listaCodiciAziendaOsservatore) // Filtro 3
-                            .or(filtroStandard)
-            );
+            filter = filter.and(filtroOsservatore.or(filtroStandard));
         }
 
         return filter;
@@ -145,7 +145,6 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
      * tutti i fields filtrati dal frontend. La funzione torna true se almeno
      * uno dei fields in esame è ritenuto un campo sensisbile. L'elenco dei
      * campi sensibili è passatto come parametro.
-     *
      * @param specialFields
      * @return
      */
@@ -169,7 +168,6 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
     /**
      * Controlla se l'utente connesso ha pienaVisbilita: true nella colonna
      * personeVedenti del doc passato.
-     *
      * @param doc
      * @return
      */
@@ -209,9 +207,8 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
      * @param doc
      */
     private void securityHiding(DocList doc, Persona persona, Boolean isSuperDemiurgo, List<String> listaCodiciAziendaOsservatore) {
-        if ((doc.getRiservato() || doc.getVisibilitaLimitata())
+        if ((doc.getRiservato() || (doc.getVisibilitaLimitata() && !listaCodiciAziendaOsservatore.contains(doc.getIdAzienda().getCodice())))
                 && !isSuperDemiurgo
-                && !listaCodiciAziendaOsservatore.contains(doc.getIdAzienda().getCodice())
                 && !pienaVisibilita(doc, persona)) {
             
             doc.setFirmatari(null);
