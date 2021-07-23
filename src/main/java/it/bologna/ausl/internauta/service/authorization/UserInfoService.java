@@ -104,12 +104,11 @@ public class UserInfoService {
 
     @Autowired
     ParametriAziende parametriAziende;
-    
+
     /**
-     * E' necessario mettere in autowired la stessa UserInfoService per
-     * poter usare le funzioni cacheable. Se una funzione cacheable non viene
-     * chiamata così: userInfoService.nomeFunzione() non verrà usata come 
-     * cacheable
+     * E' necessario mettere in autowired la stessa UserInfoService per poter
+     * usare le funzioni cacheable. Se una funzione cacheable non viene chiamata
+     * così: userInfoService.nomeFunzione() non verrà usata come cacheable
      */
     @Autowired
     UserInfoService userInfoService;
@@ -236,30 +235,30 @@ public class UserInfoService {
         Map<String, List<Ruolo>> mappaRuoli = new HashMap();
         Persona persona = utente.getIdPersona();
         Integer[] idAziende = userInfoService.getAziendePersona(persona).stream().map(a -> a.getId()).collect(Collectors.toList()).toArray(new Integer[0]);
-        
+
         // modulo generale
         Set<Ruolo> ruoliModuloGenerale = userInfoService.getRuoliGenerali(utente, interaziendali);
-        
+
         // modulo Matrint
         Set<Ruolo> ruoliModuloMatrint = userInfoService.getRuoliMatrint(utente, interaziendali, idAziende, true);
         // modulo Pool
         Set<Ruolo> ruoliModuloPool = userInfoService.getRuoliPool(utente, interaziendali, idAziende, true);
-        
+
         mappaRuoli.put(Ruolo.ModuliRuolo.GENERALE.toString(), new ArrayList<>(ruoliModuloGenerale));
         mappaRuoli.put(Ruolo.ModuliRuolo.MATRINT.toString(), new ArrayList<>(ruoliModuloMatrint));
         mappaRuoli.put(Ruolo.ModuliRuolo.POOLS.toString(), new ArrayList<>(ruoliModuloPool));
 
         return mappaRuoli;
     }
-    
+
     @Cacheable(value = "getRuoliMatrint_utente__ribaltorg__", key = "{#utente.getId()}")
     public Set<Ruolo> getRuoliMatrint(Utente utente, Boolean interaziendali, Integer[] idAziende, Boolean calcolaRuoliStandard) {
         Set<Ruolo> res = new HashSet();
-        
+
         if (calcolaRuoliStandard) {
             res.addAll(userInfoService.getRuoliStandard(utente, interaziendali));
         }
-        
+
         List<ParametroAziende> filtraResponsabiliMatrintParams = parametriAziende.getParameters("AccessoMatrintFiltratoPerRuolo", idAziende);
         if (filtraResponsabiliMatrintParams != null && !filtraResponsabiliMatrintParams.isEmpty() && filtraResponsabiliMatrintParams.stream().anyMatch(param -> parametriAziende.getValue(param, Boolean.class))) {
             res.addAll(userInfoService.getRuoliStrutture(utente, Arrays.asList(Ruolo.CodiciRuolo.R)));
@@ -274,18 +273,19 @@ public class UserInfoService {
         }
         return res;
     }
-    
+
     @CacheEvict(value = "getRuoliMatrint_utente__ribaltorg__", key = "{#utente.getId()}")
-    public void getRuoliMatrintRemoveCache(Utente utente) {}
-    
+    public void getRuoliMatrintRemoveCache(Utente utente) {
+    }
+
     @Cacheable(value = "getRuoliPool_utente__ribaltorg__", key = "{#utente.getId()}")
     public Set<Ruolo> getRuoliPool(Utente utente, Boolean interaziendali, Integer[] idAziende, Boolean calcolaRuoliStandard) {
         Set<Ruolo> res = new HashSet();
-        
+
         if (calcolaRuoliStandard) {
             res.addAll(userInfoService.getRuoliStandard(utente, interaziendali));
         }
-        
+
         List<ParametroAziende> filtraResponsabiliParams = parametriAziende.getParameters("AccessoPoolFiltratoPerRuolo", idAziende);
         if (filtraResponsabiliParams != null && !filtraResponsabiliParams.isEmpty() && filtraResponsabiliParams.stream().anyMatch(param -> parametriAziende.getValue(param, Boolean.class))) {
             res.addAll(userInfoService.getRuoliStrutture(utente, Arrays.asList(Ruolo.CodiciRuolo.R)));
@@ -300,10 +300,11 @@ public class UserInfoService {
 //        }
         return res;
     }
-    
+
     @CacheEvict(value = "getRuoliPool_utente__ribaltorg__", key = "{#utente.getId()}")
-    public void getRuoliPoolRemoveCache(Utente utente) {}
-    
+    public void getRuoliPoolRemoveCache(Utente utente) {
+    }
+
     @Cacheable(value = "getRuoliGenerali_utente__ribaltorg__", key = "{#utente.getId()}")
     public Set<Ruolo> getRuoliGenerali(Utente utente, Boolean interaziendali) {
         Set<Ruolo> res = userInfoService.getRuoliStandard(utente, interaziendali);
@@ -318,10 +319,11 @@ public class UserInfoService {
 //        }
         return res;
     }
-    
+
     @CacheEvict(value = "getRuoliGenerali_utente__ribaltorg__", key = "{#utente.getId()}")
-    public void getRuoliGeneraliRemoveCache(Utente utente) {}
-    
+    public void getRuoliGeneraliRemoveCache(Utente utente) {
+    }
+
     @Cacheable(value = "getRuoliStandard_utente__ribaltorg__", key = "{#utente.getId()}")
     public Set<Ruolo> getRuoliStandard(Utente utente, Boolean interaziendali) {
         Set<Ruolo> res = new HashSet<>();
@@ -340,10 +342,11 @@ public class UserInfoService {
         }
         return res;
     }
-    
+
     @CacheEvict(value = "getRuoliStandard_utente__ribaltorg__", key = "{#utente.getId()}")
-    public void getRuoliStandardRemoveCache(Utente utente) {}
-    
+    public void getRuoliStandardRemoveCache(Utente utente) {
+    }
+
     /**
      * restituisce i ruoli aziendali/interaziendali a seconda del parametro
      * interaziendali o entrambi nel caso in cui il parametro sia null
@@ -385,7 +388,6 @@ public class UserInfoService {
 //
 //        return new ArrayList(res);
 //    }
-
     /**
      * Torna la lista dei ruoli intersecati con i ruoli passati in input
      * dell'utente sulle sue strutture
@@ -417,8 +419,9 @@ public class UserInfoService {
     }
 
     @CacheEvict(value = "getRuoliStrutture_utente__ribaltorg__", key = "{#utente.getId(), #codiciRuoloUtenteStruttura != null? #codiciRuoloUtenteStruttura.toString(): 'null'}")
-    public void getRuoliStruttureRemoveCache(Utente utente, List<Ruolo.CodiciRuolo> codiciRuoloUtenteStruttura){}
-    
+    public void getRuoliStruttureRemoveCache(Utente utente, List<Ruolo.CodiciRuolo> codiciRuoloUtenteStruttura) {
+    }
+
     /**
      * restituisce i ruoli di una persona
      *
@@ -460,20 +463,20 @@ public class UserInfoService {
             ancheByRuolo = true;
         }
 //        if(persona.getUtenteList() == null){
-        persona.setUtenteList(getUtentiPersona(persona));
+        persona.setUtenteList(userInfoService.getUtentiPersona(persona));
 //        }
 
         // popolo mappa azienda->listaRuoli
-        Map<String, Map<String, List<String>>> mapAziendeRuoli = 
-                persona.getUtenteList().stream().collect(
-                Collectors.toMap(
-                        u -> u.getIdAzienda().getCodice(), 
-                        u -> userInfoService.getRuoliPerModuli(u, false).entrySet().stream().collect(
-                                Collectors.toMap(Map.Entry::getKey, e -> e.getValue().stream().map(r -> r.getNomeBreve().toString()).collect(Collectors.toList())))
-                    )
+        Map<String, Map<String, List<String>>> mapAziendeRuoli
+                = persona.getUtenteList().stream().collect(
+                        Collectors.toMap(
+                                u -> u.getIdAzienda().getCodice(),
+                                u -> userInfoService.getRuoliPerModuli(u, false).entrySet().stream().collect(
+                                        Collectors.toMap(Map.Entry::getKey, e -> e.getValue().stream().map(r -> r.getNomeBreve().toString()).collect(Collectors.toList())))
+                        )
                 );
         List<Ruolo> ruoliInteraziendali = userInfoService.getRuoliInteraziendali(persona);
-        if (ruoliInteraziendali != null && !ruoliInteraziendali.isEmpty()){
+        if (ruoliInteraziendali != null && !ruoliInteraziendali.isEmpty()) {
             Map<String, List<String>> map = new HashMap();
             map.put(Ruolo.ModuliRuolo.GENERALE.toString(), ruoliInteraziendali.stream().map(r -> r.getNomeBreve().toString()).collect(Collectors.toList()));
             mapAziendeRuoli.put("interaziendali", map);
@@ -485,7 +488,7 @@ public class UserInfoService {
         if (ancheByRuolo) {
             for (Map.Entry<String, Map<String, List<String>>> aziendaEntry : mapAziendeRuoli.entrySet()) {
                 Map<String, List<String>> mappaRuoli = aziendaEntry.getValue();
-                
+
                 for (Map.Entry<String, List<String>> ruoloModuliEntry : mappaRuoli.entrySet()) {
                     for (String ruolo : ruoloModuliEntry.getValue()) {
                         if (mapRuoloAziende.containsKey(ruolo)) {
@@ -523,12 +526,13 @@ public class UserInfoService {
     @CacheEvict(value = "getRuoli_utente__ribaltorg__", key = "{#utente.getId()}")
     public void getRuoliRemoveCache(Utente utente) {
     }
-    
+
     /**
-     * Il value comincia per getRuoli perché così la cache viene svuotata al login
-     * vedere CacheUtilities per crederci.
+     * Il value comincia per getRuoli perché così la cache viene svuotata al
+     * login vedere CacheUtilities per crederci.
+     *
      * @param persona
-     * @return 
+     * @return
      */
     @Cacheable(value = "getRuoliListaCodiciAziendaOsservatore_persona__ribaltorg__", key = "{#persona.getId()}")
     public List<String> getListaCodiciAziendaOsservatore(Persona persona) {
@@ -620,7 +624,7 @@ public class UserInfoService {
     public UtenteStrutturaWithIdAfferenzaStrutturaAndIdStruttura getUtenteStrutturaAfferenzaPrincipaleAttiva(UtenteStruttura utenteStruttura) {
         Iterable<UtenteStruttura> afferenze = utenteStrutturaRepository.findAll(
                 QUtenteStruttura.utenteStruttura.idUtente.id.eq(utenteStruttura.getIdUtente().getId())
-                .and(QUtenteStruttura.utenteStruttura.attivo.eq(Boolean.TRUE)));
+                        .and(QUtenteStruttura.utenteStruttura.attivo.eq(Boolean.TRUE)));
         UtenteStruttura afferenzaPrincipale = null;
         for (UtenteStruttura afferenza : afferenze) {
             if (afferenzaPrincipale == null) {
@@ -685,7 +689,7 @@ public class UserInfoService {
 
         return res;
     }
-    
+
     @CacheEvict(value = "getPermessiDiFlusso__ribaltorg__", key = "{#utente.getId()}")
     public void getPermessiDiFlussoRemoveCache(Utente utente) {
     }
@@ -789,13 +793,13 @@ public class UserInfoService {
             + "#idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null', #ambitiPermesso != null? #ambitiPermesso.toString(): 'null', "
             + "#tipiPermesso != null? #tipiPermesso.toString(): 'null'}")
     public List<Permesso> getPermessiFilteredByAdditionalDataByIdUtente(
-            Utente utente, 
+            Utente utente,
             LocalDateTime dataPermesso,
-            String modalita, 
-            Integer idProvenienzaOggetto, 
-            List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, 
+            String modalita,
+            Integer idProvenienzaOggetto,
+            List<InternautaConstants.Permessi.Ambiti> ambitiPermesso,
             List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
-        
+
         List<PermessoEntitaStoredProcedure> permessiFilteredByAdditionalData = userInfoService.getPermessiFilteredByAdditionalData(utente, dataPermesso, modalita, idProvenienzaOggetto, ambitiPermesso, tipiPermesso);
         // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend
         List<Permesso> permessiUtente = new ArrayList<>();
@@ -938,7 +942,7 @@ public class UserInfoService {
 
         return aziende;
     }
-    
+
     @Cacheable(value = "getAziendeWherePersonaIsR__ribaltorg__", key = "{#persona.getId()}")
     public List<Azienda> getAziendeWherePersonaIsR(Persona persona) {
         List<Azienda> aziende = null;
@@ -973,7 +977,6 @@ public class UserInfoService {
 //    public boolean isR(Utente user) {
 //       return isR(user, null);
 //    }
-    
     @Cacheable(value = "getRuoliIIsR__ribaltorg__", key = "{#user.getId(), #modulo.toString()}")
     public boolean isR(Utente user, Ruolo.ModuliRuolo modulo) {
         if (user.getRuoliUtentiPersona() == null) {
@@ -992,8 +995,9 @@ public class UserInfoService {
 
     /**
      * Torna "true" se l'utente è CA di almeno un'azienda
+     *
      * @param user
-     * @return 
+     * @return
      */
     @Cacheable(value = "getRuoliIsCA__ribaltorg__", key = "{#user.getId()}")
     public boolean isCA(Utente user) {
@@ -1042,8 +1046,7 @@ public class UserInfoService {
     @CacheEvict(value = "getPermessiDelega__ribaltorg__", key = "{#user.getId()}")
     public void getPermessiDelegaRemoveCache(Utente user) {
     }
-    
-    
+
     @Cacheable(value = "getPermessiAvatar__ribaltorg__", key = "{#user.getId()}")
     public List<Integer> getPermessiAvatar(Utente user) throws BlackBoxPermissionException {
         List<PermessoEntitaStoredProcedure> permissionsOfSubject = permissionManager.getPermissionsOfSubjectActualFromDate(user, null,
@@ -1099,6 +1102,7 @@ public class UserInfoService {
         return factory.createProjection(KrintBaborgAzienda.class, utente.getIdAzienda());
     }
 
+    @Cacheable(value = "getStruttureKrint__ribaltorg__", key = "{#utente.getId()}")
     public List<KrintBaborgStruttura> getStruttureKrint(Utente utente) {
         utente.setUtenteStrutturaList(userInfoService.getUtenteStrutturaList(utente, true));
         return utente.getUtenteStrutturaList().stream()
@@ -1217,21 +1221,23 @@ public class UserInfoService {
         listToReturn = addPersoneIfNotPresenti(listToReturn, personeDiStruttureDiCuiSonoResponsabile);
         return listToReturn;
     }
-    
+
     /**
-     * Torna true se l'utente loggato passato come parametro ha il permeso passato sull'azienda passata
+     * Torna true se l'utente loggato passato come parametro ha il permeso
+     * passato sull'azienda passata
+     *
      * @param predicato
      * @param user al posto della Persona passare l'Utente loggato
      * @param azienda
      * @param ambito
      * @param tipo
-     * @return 
+     * @return
      */
     public Boolean userHasPermissionOnAzienda(
-            InternautaConstants.Permessi.Predicati predicato, 
-            Utente user, 
-            Azienda azienda, 
-            InternautaConstants.Permessi.Ambiti ambito, 
+            InternautaConstants.Permessi.Predicati predicato,
+            Utente user,
+            Azienda azienda,
+            InternautaConstants.Permessi.Ambiti ambito,
             InternautaConstants.Permessi.Tipi tipo) {
         Map<String, List<PermessoEntitaStoredProcedure>> permessiDiFlussoByCodiceAzienda = user.getPermessiDiFlussoByCodiceAzienda();
         if (!permessiDiFlussoByCodiceAzienda.containsKey(azienda.getCodice())) {

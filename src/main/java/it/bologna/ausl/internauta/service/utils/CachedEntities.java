@@ -65,7 +65,7 @@ public class CachedEntities {
 
     @Autowired
     private PersonaRepository personaRepository;
-    
+
     @Autowired
     private RegistroRepository registroRepository;
 
@@ -232,7 +232,7 @@ public class CachedEntities {
     public void getRuoloByNomeBreve(String ruoloNomeBreve) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    
+
     @Cacheable(value = "registroAzienda", key = "{#idAzienda, #codice.toString()}")
     public Registro getRegistro(Integer idAzienda, Registro.CodiceRegistro codice) {
         QRegistro qRegistro = QRegistro.registro;
