@@ -91,7 +91,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
         BooleanExpression filter = Expressions.TRUE.eq(true);
 
         if (!userInfoService.isSD(user)) { // Filtro 1
-            String[] visLimFields = {"firmatari"}; // Nella tscol non ci sono i firmatari quindi non serve che li aggiungo
+            String[] visLimFields = {"firmatari", "fascicolazioni", "fascicolazioniTscol"}; // Nella tscol non ci sono i firmatari quindi non serve che li aggiungo
             String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "fascicolazioni", "fascicolazioniTscol"};
             List<String> listaCodiciAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getCodice()).collect(Collectors.toList());
             List<String> listaCodiciAziendaOsservatore = userInfoService.getListaCodiciAziendaOsservatore(persona);
@@ -175,7 +175,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
      */
     private Boolean pienaVisibilita(DocList doc, Persona persona) {
         for (DocList.PersonaVedente personaVedente : doc.getPersoneVedenti()) {
-            if (personaVedente.getIdPersona().equals(persona.getId())) {
+            if (personaVedente.getIdPersona() != null && personaVedente.getIdPersona().equals(persona.getId())) {
                 if (personaVedente.getPienaVisibilita()) {
                     return true;
                 } else {
@@ -213,15 +213,17 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
                 && !isSuperDemiurgo
                 && !listaCodiciAziendaOsservatore.contains(doc.getIdAzienda().getCodice())
                 && !pienaVisibilita(doc, persona)) {
+            
             doc.setFirmatari(null);
-
+            doc.setFascicolazioni(null);
+            doc.setFascicolazioniTscol(null);
+            
             if (doc.getRiservato()) {
                 doc.setOggetto("[RISERVATO]");
                 doc.setOggettoTscol(null);
                 doc.setDestinatari(null);
                 doc.setDestinatariTscol(null);
-                doc.setFascicolazioni(null);
-                doc.setFascicolazioniTscol(null);
+                
                 doc.setTscol(null);
                 doc.setFirmatari(null);
                 doc.setIdPersonaRedattrice(null);
