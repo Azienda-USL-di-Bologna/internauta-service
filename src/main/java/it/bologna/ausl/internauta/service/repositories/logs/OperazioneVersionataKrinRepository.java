@@ -21,15 +21,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * nome tutto in minuscolo
  */
 @NextSdrRepository(repositoryPath = "${logs.mapping.url.root}/operazioneversionatakrint", defaultProjection = OperazioneKrintWithPlainFields.class)
-@RepositoryRestResource(collectionResourceRel = "operazioneversionatakrint", path =  "operazioneversionatakrint", exported = false, excerptProjection = OperazioneVersionataKrintWithPlainFields.class)
+@RepositoryRestResource(collectionResourceRel = "operazioneversionatakrint", path = "operazioneversionatakrint", exported = false, excerptProjection = OperazioneVersionataKrintWithPlainFields.class)
 public interface OperazioneVersionataKrinRepository extends
         NextSdrQueryDslRepository<OperazioneVersionataKrint, Integer, QOperazioneVersionataKrint>,
         JpaRepository<OperazioneVersionataKrint, Integer> {
-    
-//    Optional<OperazioneKrint> findByCodice(String codice);
 
-    Optional<OperazioneVersionataKrint> findFirstByIdOperazioneOrderByVersioneDesc(OperazioneKrint operazioneKrint);
-    
+//    Optional<OperazioneKrint> findByCodice(String codice);
+    Optional<OperazioneVersionataKrint> findFirstByIdOperazioneIdOrderByVersioneDesc(Integer idOperazioneKrint);
+
 }
 
 //findFirstByOrderByIdAsc();
