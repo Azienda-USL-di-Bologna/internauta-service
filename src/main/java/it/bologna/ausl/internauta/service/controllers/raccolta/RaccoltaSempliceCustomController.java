@@ -336,8 +336,10 @@ public class RaccoltaSempliceCustomController {
                 if (tipologia.equals("GIURIDICA") && pIva != null) {
                     listaContatto = contattoRepository.findByPartitaIva(pIva);
                 }
-                if (tipologia == null || (cf == null && pIva == null) || (cf.trim().equals("") && pIva.trim().equals(""))) {
-                    throw new Http400ResponseException("400", "Tipologia necessaria");
+                if (tipologia == null || (cf == null && pIva == null)) {
+                    if (cf != null && cf.trim().equals("") && pIva != null && pIva.trim().equals("")) {
+                        throw new Http400ResponseException("400", "Tipologia necessaria");
+                    }
                 }
 
                 Contatto contatto = new Contatto();
@@ -350,8 +352,7 @@ public class RaccoltaSempliceCustomController {
 
                 if (listaContatto.isEmpty()) {
                     if (tipologia.equals("FISICA")) {
-                        contatto.setNome(nome);
-                        contatto.setCognome(cognome);
+
                         contatto.setCodiceFiscale(cf);
                         contatto.setTipo(Contatto.TipoContatto.PERSONA_FISICA);
                     }
@@ -360,6 +361,9 @@ public class RaccoltaSempliceCustomController {
                         contatto.setPartitaIva(pIva);
                         contatto.setTipo(Contatto.TipoContatto.AZIENDA);
                     }
+
+                    contatto.setNome(nome);
+                    contatto.setCognome(cognome);
                     contatto.setModificabile(true);
                     contatto.setEliminato(false);
                     contatto.setDescrizione(descrizione);
