@@ -9,6 +9,7 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.DocList;
@@ -56,7 +57,28 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
 
         initialPredicate = safetyFilters().and(initialPredicate);
-
+        
+        List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                switch (operationRequested) {
+                    case FiltraPerStruttureDelSegretario:
+                        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+                        Utente user = authenticatedSessionData.getUser();
+                        Persona persona = user.getIdPersona();
+                        QDocList qdoclist = QDocList.docList;
+                        Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
+                        BooleanExpression sonoSegretario = Expressions.booleanTemplate(
+                                String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idStruttureSegretario, ","), "integer[]", "&&"),
+                                qdoclist.idStruttureFirmatari
+                        );
+                        initialPredicate = sonoSegretario.and(initialPredicate);
+                        break;
+                }
+            }
+        }
+        
+        
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass);
     }
 
@@ -95,7 +117,8 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
             String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "fascicolazioni", "fascicolazioniTscol"};
             List<String> listaCodiciAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getCodice()).collect(Collectors.toList());
             List<String> listaCodiciAziendaOsservatore = userInfoService.getListaCodiciAziendaOsservatore(persona);
-            Integer[] idStruttureSegretario = personaRepository.getStruttureDelSegretario(persona.getId());
+            Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
+//            Integer[] idStruttureSegretario = personaRepository.getStruttureDelSegretario(persona.getId());
             BooleanExpression pienaVisibilita = Expressions.booleanTemplate(
                     String.format("FUNCTION('jsonb_contains', {0}, '[{\"idPersona\": %d, \"pienaVisibilita\": true}]') = true", persona.getId()),
                     qdoclist.personeVedenti
@@ -214,15 +237,13 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
             doc.setFirmatari(null);
             doc.setFascicolazioni(null);
             doc.setFascicolazioniTscol(null);
+            doc.setTscol(null);
             
             if (doc.getRiservato()) {
                 doc.setOggetto("[RISERVATO]");
                 doc.setOggettoTscol(null);
                 doc.setDestinatari(null);
                 doc.setDestinatariTscol(null);
-                
-                doc.setTscol(null);
-                doc.setFirmatari(null);
                 doc.setIdPersonaRedattrice(null);
             }
         }

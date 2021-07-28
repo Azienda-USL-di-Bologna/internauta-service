@@ -139,6 +139,7 @@ public class AuthorizationUtils {
 //        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user, true));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         user.setPermessiDiFlussoByCodiceAzienda(userInfoService.getPermessiDiFlussoByCodiceAzienda(user));
+        user.setStruttureDelSegretario(userInfoService.getStruttureDelSegretario(user.getIdPersona()));
         boolean fromInternet = false;
         Object fromInternetObj = claims.get(AuthorizationUtils.TokenClaims.FROM_INTERNET.name());
 //        logger.info("fromInternetObj: " + fromInternetObj);
