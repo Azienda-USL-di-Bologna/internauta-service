@@ -1258,4 +1258,13 @@ public class UserInfoService {
         }
         return false;
     }
+    
+    @Cacheable(value = "getStruttureDelSegretario__ribaltorg__", key = "{#persona.getId()}")
+    public Integer[] getStruttureDelSegretario(Persona persona) {
+        return personaRepository.getStruttureDelSegretario(persona.getId());
+    }
+    
+    @CacheEvict(value = "getStruttureDelSegretario__ribaltorg__", key = "{#persona.getId()}")
+    public void getStruttureDelSegretarioRemoveCache(Persona persona) {
+    }
 }
