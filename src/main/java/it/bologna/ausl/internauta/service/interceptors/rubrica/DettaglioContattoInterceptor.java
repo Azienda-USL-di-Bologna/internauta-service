@@ -4,12 +4,16 @@ import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.PredicateOperation;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintRubricaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
@@ -55,6 +59,8 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        Utente loggedUser = authenticatedSessionData.getUser();
         if (mainEntity) {
             List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
             String stringDaCercare;
@@ -101,7 +107,16 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
             }
             // Se la chiamata viene fatta direttamente sui dettagli contatti mi assicuro che siano dettagli di contatti che l'utente può vedere.           
             // AGGIUNGO I FILTRI DI SICUREZZA PER GARANTIRE CHE L'UTENTE NON VEDA CONTATTI CHE NON PUO' VEDERE
-            initialPredicate = contattoInterceptor.addFilterVisibilita(initialPredicate, QDettaglioContatto.dettaglioContatto.idContatto);
+            List<Persona> personeDiCuiVedoIProtoconattiList;
+            try {
+                personeDiCuiVedoIProtoconattiList = userInfoService
+                        .getPersoneDiStruttureDiCuiPersonaIsSegretario(getAuthenticatedUserProperties().getPerson());
+            } catch (BlackBoxPermissionException ex) {
+                LOGGER.error(ex.toString());
+                throw new AbortLoadInterceptorException("Errore nel caricamento delle persone di cui si è segretario dalla BlackBox", ex);
+            }
+            personeDiCuiVedoIProtoconattiList.add(loggedUser.getIdPersona());
+            initialPredicate = contattoInterceptor.addFilterVisibilita(initialPredicate, QDettaglioContatto.dettaglioContatto.idContatto, personeDiCuiVedoIProtoconattiList);
         }
 
         return initialPredicate;
