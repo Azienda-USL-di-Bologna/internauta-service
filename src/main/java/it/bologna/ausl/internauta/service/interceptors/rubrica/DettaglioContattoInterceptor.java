@@ -1,7 +1,6 @@
 package it.bologna.ausl.internauta.service.interceptors.rubrica;
 
 import com.querydsl.core.types.Predicate;
-import com.querydsl.core.types.PredicateOperation;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;

@@ -39,7 +39,9 @@ import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;
+import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.Ruolo.CodiciRuolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import java.util.HashMap;
@@ -518,6 +520,18 @@ public class UserInfoService {
         return finalMap;
     }
 
+    public List<String> getCodiciAziendaListDovePersonaHaRuolo(Persona persona, CodiciRuolo nomeBreveRuolo) {
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = getRuoliUtentiPersona(persona, true);
+        if (ruoliUtentiPersona.containsKey(nomeBreveRuolo.toString())) {
+            Map<String, List<String>> listaModuliDelRuolo = ruoliUtentiPersona.get(nomeBreveRuolo.toString());
+            if (listaModuliDelRuolo.containsKey(Ruolo.ModuliRuolo.GENERALE.toString())) {
+                return listaModuliDelRuolo.get(Ruolo.ModuliRuolo.GENERALE.toString());
+            }
+        }
+        return new ArrayList();
+    }
+    
+    
     @Cacheable(value = "getRuoliUtentiPersona_utente__ribaltorg__", key = "{#utente.getId(), #ancheByRuolo.booleanValue()}")
     public Map<String, Map<String, List<String>>> getRuoliUtentiPersona(Utente utente, Boolean ancheByRuolo) {
         return getRuoliUtentiPersona(utente.getIdPersona(), ancheByRuolo);

@@ -10,7 +10,9 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.DocList;
 import it.bologna.ausl.model.entities.scripta.QDocList;
@@ -26,8 +28,11 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +43,8 @@ import org.springframework.stereotype.Component;
 @Component
 @NextSdrInterceptor(name = "doclist-interceptor")
 public class DocListInterceptor extends InternautaBaseInterceptor {
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(DocListInterceptor.class);
 
     @Autowired
     UserInfoService userInfoService;
@@ -55,29 +62,44 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        Utente user = authenticatedSessionData.getUser();
+        Persona persona = user.getIdPersona();
+        QDocList qdoclist = QDocList.docList;
+                        
         initialPredicate = safetyFilters().and(initialPredicate);
         
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
-                    case FiltraPerStruttureDelSegretario:
-                        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-                        Utente user = authenticatedSessionData.getUser();
-                        Persona persona = user.getIdPersona();
-                        QDocList qdoclist = QDocList.docList;
-                        Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
-                        BooleanExpression sonoSegretario = Expressions.booleanTemplate(
-                                String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idStruttureSegretario, ","), "integer[]", "&&"),
-                                qdoclist.idStruttureFirmatari
-                        );
-                        initialPredicate = sonoSegretario.and(initialPredicate);
+                    case VisualizzaTabIFirmario:
+                        initialPredicate = buildFilterPerStruttureDelSegretario(persona).and(initialPredicate);
+                        initialPredicate = qdoclist.numeroRegistrazione.isNull().and(initialPredicate);
+                        initialPredicate = qdoclist.annullato.isFalse().and(initialPredicate);
+                        initialPredicate = qdoclist.stato.in(
+                                Arrays.asList(new String[]{
+                                    DocList.StatoDoc.CONTROLLO_SEGRETERIA.toString(),
+                                    DocList.StatoDoc.PARERE.toString(),
+                                    DocList.StatoDoc.FIRMA.toString()
+                                })).and(initialPredicate);
+                        break;
+                    case VisualizzaTabIFirmato:
+                        initialPredicate = buildFilterPerStruttureDelSegretario(persona).and(initialPredicate);
+                        initialPredicate = qdoclist.numeroRegistrazione.isNotNull().and(initialPredicate);
+                        break;
+                    case VisualizzaTabRegistrazioni:
+                        if (!userInfoService.isSD(user)) {
+                            List<String> codiceAziendaListDoveSonoOS = userInfoService.getCodiciAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.OS);
+                            List<String> codiceAziendaListDoveSonoMOS = userInfoService.getCodiciAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.MOS);
+                            List<String> codicAziendaOSoMOS = Stream.concat(codiceAziendaListDoveSonoOS.stream(), codiceAziendaListDoveSonoMOS.stream()).collect(Collectors.toList());
+                            initialPredicate = qdoclist.idAzienda.codice.in(codicAziendaOSoMOS).and(initialPredicate);
+                        }
+                        initialPredicate = qdoclist.numeroRegistrazione.isNotNull().and(initialPredicate);
                         break;
                 }
             }
         }
-        
         
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass);
     }
@@ -94,6 +116,22 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
         entities.add(entity);
         manageAfterCollection(entities);
         return entity;
+    }
+    
+    /**
+     * Mi ritorna il filtro per controllare che il doc sia del segretario
+     * per quanto riguarda i tab ifirmario/ifirmato
+     * @param persona
+     * @return 
+     */
+    private BooleanExpression buildFilterPerStruttureDelSegretario(Persona persona) {
+        QDocList qdoclist = QDocList.docList;
+        Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
+        BooleanExpression sonoSegretario = Expressions.booleanTemplate(
+                String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idStruttureSegretario, ","), "integer[]", "&&"),
+                qdoclist.idStruttureFirmatari
+        );
+        return sonoSegretario;
     }
 
     /**
