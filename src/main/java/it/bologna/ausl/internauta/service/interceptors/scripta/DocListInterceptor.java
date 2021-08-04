@@ -10,21 +10,25 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
+import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configuration.Applicazione;
 import it.bologna.ausl.model.entities.scripta.DocList;
 import it.bologna.ausl.model.entities.scripta.QDocList;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -51,6 +55,9 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    InternautaUtils internautaUtils;
     
     @Autowired
     ObjectMapper objectMapper;
@@ -106,7 +113,11 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-        manageAfterCollection(entities);
+        try {
+            manageAfterCollection(entities);
+        } catch (IOException ex) {
+            throw new AbortLoadInterceptorException("Errore nella generazione dell'url", ex);
+        }
         return entities;
     }
 
@@ -114,7 +125,11 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         List<Object> entities = new ArrayList();
         entities.add(entity);
-        manageAfterCollection(entities);
+        try {
+            manageAfterCollection(entities);
+        } catch (IOException ex) {
+            throw new AbortLoadInterceptorException("Errore nella generazione dell'url", ex);
+        }
         return entity;
     }
     
@@ -250,7 +265,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
      * risultato, eventualmente nascondendo dei campi.
      * @param entities 
      */
-    private void manageAfterCollection(Collection<Object> entities) {
+    private void manageAfterCollection(Collection<Object> entities) throws IOException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Utente user = authenticatedSessionData.getUser();
         Persona persona = user.getIdPersona();
@@ -259,6 +274,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
         for (Object entity : entities) {
             DocList doc = (DocList) entity;
             securityHiding(doc, persona, isSuperDemiurgo, listaCodiciAziendaOsservatore);
+            buildUrlComplete(doc, persona, authenticatedSessionData);
         }
     }
 
@@ -285,5 +301,35 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
                 doc.setIdPersonaRedattrice(null);
             }
         }
+    }
+    
+    private void buildUrlComplete(DocList doc, Persona persona, AuthenticatedSessionData authenticatedSessionData) throws IOException {
+        if (doc.getCommandType() == DocList.CommandType.URL) {
+            doc.setUrlComplete(
+                internautaUtils.getUrl(
+                    authenticatedSessionData, 
+                    doc.getOpenCommand(), 
+                    getIdApplicazione(doc), 
+                    doc.getIdAzienda()
+                )
+            );
+        }
+    }
+    
+    private String getIdApplicazione(DocList doc) {
+        String idApplicazione = null;
+        switch (doc.getTipologia()) {
+            case PROTOCOLLO_IN_ENTRATA:
+            case PROTOCOLLO_IN_USCITA:
+                idApplicazione = Applicazione.Applicazioni.procton.toString();
+                break;
+            case DETERMINA:
+                idApplicazione = Applicazione.Applicazioni.dete.toString();
+                break;    
+            case DELIBERA:
+                idApplicazione = Applicazione.Applicazioni.deli.toString();
+                break;
+        }
+        return idApplicazione;
     }
 }
