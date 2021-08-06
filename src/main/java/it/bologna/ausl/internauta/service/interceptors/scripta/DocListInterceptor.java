@@ -144,7 +144,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
         Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
         BooleanExpression sonoSegretario = Expressions.booleanTemplate(
                 String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idStruttureSegretario, ","), "integer[]", "&&"),
-                qdoclist.idStruttureFirmatari
+                qdoclist.idStruttureSegreteria
         );
         return sonoSegretario;
     }
@@ -184,7 +184,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
             if (idStruttureSegretario != null && idStruttureSegretario.length > 0) {
                 sonoSegretario = Expressions.booleanTemplate(
                         String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idStruttureSegretario, ","), "integer[]", "&&"),
-                        qdoclist.idStruttureFirmatari
+                        qdoclist.idStruttureSegreteria
                 );
             } else {
                 sonoSegretario = Expressions.FALSE.eq(true);
