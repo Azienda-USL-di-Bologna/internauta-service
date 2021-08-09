@@ -308,7 +308,7 @@ public class GestioneMenu {
      * @throws it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException 
      */
     // @Cacheable(value = "buildMenu__ribaltorg__", key = "{#persona.getId()}")
-    public List<ItemMenu> buildMenu(Persona persona) throws BlackBoxPermissionException, IOException {
+    public List<ItemMenu> buildMenu(Persona persona) throws BlackBoxPermissionException, IOException, Throwable {
         LOGGER.info("Dentro la build menu. Carico un po' di roba.");
         List<Utente> utentiAttivi = userInfoService.getUtentiPersona(persona).stream().filter(u -> u.getAttivo()).collect(Collectors.toList());
         List<ItemMenu> menu = new ArrayList();
