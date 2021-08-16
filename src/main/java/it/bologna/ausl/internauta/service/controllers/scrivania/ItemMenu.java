@@ -1,6 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.scrivania;
 
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.scrivania.Bmenu;
 import java.util.List;
 

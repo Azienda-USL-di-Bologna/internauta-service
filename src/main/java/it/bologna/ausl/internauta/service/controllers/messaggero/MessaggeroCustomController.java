@@ -13,7 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.messaggero.Amministrazion
 import it.bologna.ausl.internauta.service.utils.IntimusUtils;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
 import it.bologna.ausl.model.entities.messaggero.QAmministrazioneMessaggio;
 import it.nextsw.common.controller.exceptions.NotFoundResourceException;

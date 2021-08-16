@@ -38,7 +38,7 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
-import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
+import it.bologna.ausl.model.entities.configurazione.Applicazione.Applicazioni;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import org.springframework.web.bind.annotation.RequestParam;

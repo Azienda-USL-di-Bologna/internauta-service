@@ -1,7 +1,7 @@
 package it.bologna.ausl.internauta.service.authorization;
 
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
+import it.bologna.ausl.model.entities.configurazione.Applicazione.Applicazioni;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 
