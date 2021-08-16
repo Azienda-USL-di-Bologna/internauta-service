@@ -39,7 +39,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
-import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
+import it.bologna.ausl.model.entities.configurazione.Applicazione.Applicazioni;
 import it.bologna.ausl.model.entities.tools.UserAccess;
 import java.util.Arrays;
 import java.util.HashMap;

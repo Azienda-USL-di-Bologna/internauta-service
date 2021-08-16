@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdAfferenzaStrutturaAndIdStruttura;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;

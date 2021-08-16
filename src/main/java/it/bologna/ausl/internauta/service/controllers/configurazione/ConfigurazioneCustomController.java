@@ -14,11 +14,11 @@ import it.bologna.ausl.internauta.service.repositories.configurazione.Impostazio
 import it.bologna.ausl.internauta.service.repositories.configurazione.ParametroAziendeRepository;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
-import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
-import it.bologna.ausl.model.entities.configuration.QImpostazioniApplicazioni;
-import it.bologna.ausl.model.entities.configuration.QParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.Applicazione.Applicazioni;
+import it.bologna.ausl.model.entities.configurazione.ImpostazioniApplicazioni;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.QImpostazioniApplicazioni;
+import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

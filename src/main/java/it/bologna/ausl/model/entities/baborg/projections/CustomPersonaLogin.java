@@ -2,7 +2,7 @@ package it.bologna.ausl.model.entities.baborg.projections;
 
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.projections.generated.PersonaWithImpostazioniApplicazioniList;
-import it.bologna.ausl.model.entities.configuration.projections.generated.ImpostazioniApplicazioniWithPlainFields;
+import it.bologna.ausl.model.entities.configurazione.projections.generated.ImpostazioniApplicazioniWithPlainFields;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;

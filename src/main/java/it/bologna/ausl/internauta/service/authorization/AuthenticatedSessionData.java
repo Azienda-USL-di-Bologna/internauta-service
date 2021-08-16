@@ -2,7 +2,7 @@ package it.bologna.ausl.internauta.service.authorization;
 
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 
 /**
  *

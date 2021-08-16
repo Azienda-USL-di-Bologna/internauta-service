@@ -22,8 +22,8 @@ import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAf
 import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
 import it.bologna.ausl.model.entities.baborg.projections.generated.PecAziendaWithIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
-import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
-import it.bologna.ausl.model.entities.configuration.projections.generated.ImpostazioniApplicazioniWithPlainFields;
+import it.bologna.ausl.model.entities.configurazione.ImpostazioniApplicazioni;
+import it.bologna.ausl.model.entities.configurazione.projections.generated.ImpostazioniApplicazioniWithPlainFields;
 import it.bologna.ausl.model.entities.scrivania.projections.generated.AttivitaWithIdPersona;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageAddress;
@@ -64,7 +64,7 @@ import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteStrutturaWi
 import it.bologna.ausl.model.entities.baborg.projections.PersonaWithUtentiAndStruttureAndAfferenzeCustom;
 import it.bologna.ausl.model.entities.baborg.projections.StrutturaUnificataCustom;
 import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithReplicheCustom;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import java.util.HashMap;
 import java.util.Map;
 import it.bologna.ausl.model.entities.logs.projections.KrintShpeckPec;
