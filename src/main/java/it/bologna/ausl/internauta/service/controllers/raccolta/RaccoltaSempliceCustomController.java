@@ -716,9 +716,10 @@ public class RaccoltaSempliceCustomController {
             @RequestParam(required = false, value = "fascicoli") String fascicolo,
             @RequestParam(required = false, value = "documentoBabel") String documentoBabel,
             @RequestParam(required = false, value = "creatore") String creatore,
-            @RequestParam(required = false, value = "struttura") String struttura,
+            @RequestParam(required = false, value = "descrizioneStruttura") String struttura,
             @RequestParam(required = false, value = "createTime") String data,
             @RequestParam(required = false, value = "piva") String piva,
+            @RequestParam(required = false, value = "stato") String stato,
             @RequestParam(required = false, value = "cf") String cf,
             @RequestParam(required = true, value = "offset") Integer offset,
             @RequestParam(required = true, value = "limit") Integer limit,
@@ -746,7 +747,28 @@ public class RaccoltaSempliceCustomController {
                 if (query == "") {
                     query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE applicazione_chiamante ilike '%" + applicazione + "%' ";
                 } else {
-                    query = query + " and r.applicazione_chiamante ilike '%" + numero + "%' ";
+                    query = query + " and r.applicazione_chiamante ilike '%" + applicazione + "%' ";
+                }
+                log.info("Query: " + query);
+            }
+
+            if (stato != null) {
+                if (query == "") {
+                    if (stato.toUpperCase().startsWith("AN")) {
+                        stato = "ANNULLATO";
+                    }
+                    if (stato.toUpperCase().startsWith("AT")) {
+                        stato = "ATTIVO";
+                    }
+                    query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE r.stato = '" + stato + "' ";
+                } else {
+                    if (stato.toUpperCase().startsWith("AN")) {
+                        stato = "ANNULLATO";
+                    }
+                    if (stato.toUpperCase().startsWith("AT")) {
+                        stato = "ATTIVO";
+                    }
+                    query = query + " and r.stato ilike '" + stato + "' ";
                 }
                 log.info("Query: " + query);
             }
@@ -865,26 +887,39 @@ public class RaccoltaSempliceCustomController {
                             stringQuery = stringQuery + " OR id = " + listCoinvolti.get(i).toString();
                         }
                     }
-                    Query queryCoinvolti = conn.createQuery(stringQuery);
+                }
 
-                    List<Integer> listRaccolte = queryCoinvolti.executeAndFetch(Integer.class);
+                boolean firsttime = true;
 
-                    for (int j = 0; j < listRaccolte.size(); j++) {
-                        if (listRaccolte.size() == 1) {
-                            if (query == "") {
-                                query = "SELECT * from gd.raccolte WHERE id = " + listRaccolte.get(j);
-                            } else {
-                                query = query + " AND id = " + listRaccolte.get(j);
-                            }
+                Query queryCoinvolti = conn.createQuery(stringQuery);
+
+                List<Integer> listRaccolte = queryCoinvolti.executeAndFetch(Integer.class);
+
+                for (int j = 0; j < listRaccolte.size(); j++) {
+                    if (listRaccolte.size() == 1) {
+                        if (query == "") {
+                            query = "SELECT * from gd.raccolte WHERE id = " + listRaccolte.get(j) + " ";
+                            firsttime = false;
                         } else {
-                            if (query == "") {
-                                query = "SELECT * from gd.raccolte WHERE (id = " + listRaccolte.get(j);
+                            query = query + " AND ( id = " + listRaccolte.get(j);
+                            firsttime = false;
+                        }
+                    } else {
+                        if (query == "") {
+                            query = "SELECT * from gd.raccolte WHERE (id = " + listRaccolte.get(j) + " ";
+                            firsttime = false;
+                        } else {
+                            if (firsttime) {
+                                query = query + " AND ( id = " + listRaccolte.get(j) + " ";
+                                firsttime = false;
+                            }
+
+                            if (j == listRaccolte.size() - 1) {
+                                query = query + " OR id = " + listRaccolte.get(j) + " ) ";
+                                firsttime = false;
                             } else {
-                                if (j == listRaccolte.size() - 1) {
-                                    query = query + " OR id = " + listRaccolte.get(j) + " ) ";
-                                } else {
-                                    query = query + "OR id = " + listRaccolte.get(j) + " ";
-                                }
+                                query = query + " OR id = " + listRaccolte.get(j) + " ";
+                                firsttime = false;
                             }
                         }
                     }
@@ -908,27 +943,38 @@ public class RaccoltaSempliceCustomController {
                             stringQuery = stringQuery + " OR id = " + listCoinvolti.get(i).toString();
                         }
                     }
+                }
 
-                    Query queryCoinvolti = conn.createQuery(stringQuery);
+                Query queryCoinvolti = conn.createQuery(stringQuery);
 
-                    List<Integer> listRaccolte = queryCoinvolti.executeAndFetch(Integer.class);
+                boolean firsttime = true;
 
-                    for (int j = 0; j < listRaccolte.size(); j++) {
-                        if (listRaccolte.size() == 1) {
-                            if (query == "") {
-                                query = "SELECT * from gd.raccolte WHERE id = " + listRaccolte.get(j);
-                            } else {
-                                query = query + " AND id = " + listRaccolte.get(j);
-                            }
+                List<Integer> listRaccolte = queryCoinvolti.executeAndFetch(Integer.class);
+
+                for (int j = 0; j < listRaccolte.size(); j++) {
+                    if (listRaccolte.size() == 1) {
+                        if (query == "") {
+                            query = "SELECT * from gd.raccolte WHERE id = " + listRaccolte.get(j);
+                            firsttime = false;
                         } else {
-                            if (query == "") {
-                                query = "SELECT * from gd.raccolte WHERE (id = " + listRaccolte.get(j);
+                            query = query + " AND ( id = " + listRaccolte.get(j) + " )";
+                            firsttime = false;
+                        }
+                    } else {
+                        if (query == "") {
+                            query = "SELECT * from gd.raccolte WHERE ( id = " + listRaccolte.get(j);
+                            firsttime = false;
+                        } else {
+                            if (firsttime) {
+                                query = query + " AND ( id = " + listRaccolte.get(j) + " ";
+                                firsttime = false;
+                            }
+                            if (j == listRaccolte.size() - 1) {
+                                query = query + " OR id = " + listRaccolte.get(j) + " ) ";
+                                firsttime = false;
                             } else {
-                                if (j == listRaccolte.size() - 1) {
-                                    query = query + " OR id = " + listRaccolte.get(j) + " ) ";
-                                } else {
-                                    query = query + "OR id = " + listRaccolte.get(j) + " ";
-                                }
+                                query = query + " OR id = " + listRaccolte.get(j) + " ";
+                                firsttime = false;
                             }
                         }
                     }
