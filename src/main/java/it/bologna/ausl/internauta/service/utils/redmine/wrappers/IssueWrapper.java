@@ -176,7 +176,7 @@ public class IssueWrapper {
             buildRedmineCustmoFiledsManager();
             JSONObject issue = getDefaultJsonIssue();
             issue.put(SUBJECT_KEY.toString(), segnalazione.getOggetto());
-            issue.put(DESCRIPTION_KEY.toString(), segnalazione.getDescrizione());
+            issue.put(DESCRIPTION_KEY.toString(), segnalazione.getDescrizione().replaceAll("\n\r", "<br>").replaceAll("\n", "<br>"));
             issue.put(CUSTOM_FIELDS_KEY.toString(), getCustomFiledsJSONArray(segnalazione));
             return issue;
         } catch (Exception ex) {
