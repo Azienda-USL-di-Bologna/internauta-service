@@ -768,7 +768,7 @@ public class RaccoltaSempliceCustomController {
                     if (stato.toUpperCase().startsWith("AT")) {
                         stato = "ATTIVO";
                     }
-                    query = query + " and r.stato ilike '" + stato + "' ";
+                    query = query + " and r.stato = '" + stato + "' ";
                 }
                 log.info("Query: " + query);
             }
@@ -999,7 +999,11 @@ public class RaccoltaSempliceCustomController {
                             break;
                         }
                     } else {
-                        if (firstTime) {
+                        if (firstTime && listGddocs.size() == 1) {
+                            query = query + " and id_gddoc_associato = '" + idG + "' ";
+                            countId++;
+                        }
+                        if (firstTime && listGddocs.size() > 1) {
                             query = query + " and ( id_gddoc_associato = '" + idG + "' ";
                             countId++;
                         }
@@ -1009,7 +1013,7 @@ public class RaccoltaSempliceCustomController {
                             countId++;
                         }
                         if (!firstTime && countId < listGddocs.size() - 1) {
-                            //log.info(("Non sono all'ultimo"));
+                            //log.info(("Non sono all'ultimo"))
                             query = query + " or id_gddoc_associato = '" + idG + "' ";
                             countId++;
                         }
