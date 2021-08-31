@@ -100,7 +100,7 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
                 String operation = additionalData.get("operation");
                 if (operation.equals("setDisableNow")) {
                     AmministrazioneMessaggio temp = (AmministrazioneMessaggio) entity;
-                    LOGGER.info("Spengo alle ore " + ZonedDateTime.now().toString());
+                    LOGGER.info("Spengo alle ore " + ZonedDateTime.now().toString() + " il messaggio " + temp.getId());
                     temp.setDataScadenza(ZonedDateTime.now());
                     entity = temp;
                 }
