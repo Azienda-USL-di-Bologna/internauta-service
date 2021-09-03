@@ -166,7 +166,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
         BooleanExpression filter = Expressions.TRUE.eq(true);
 
         if (!userInfoService.isSD(user)) { // Filtro 1
-            String[] visLimFields = {"firmatari", "fascicolazioni", "fascicolazioniTscol"}; // Nella tscol non ci sono i firmatari quindi non serve che li aggiungo
+            String[] visLimFields = {"firmatari", "fascicolazioni", "fascicolazioniTscol", "tscol"};
             String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "fascicolazioni", "fascicolazioniTscol"};
             List<String> listaCodiciAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getCodice()).collect(Collectors.toList());
             List<String> listaCodiciAziendaOsservatore = userInfoService.getListaCodiciAziendaOsservatore(persona);
