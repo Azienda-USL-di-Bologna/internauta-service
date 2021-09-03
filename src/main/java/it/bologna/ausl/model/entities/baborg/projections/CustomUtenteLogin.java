@@ -1,12 +1,8 @@
 package it.bologna.ausl.model.entities.baborg.projections;
 
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
-import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdAziendaAndIdPersona;
-import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +49,10 @@ public interface CustomUtenteLogin extends UtenteWithIdPersonaAndPermessiCustom 
     @Value("#{@userInfoService.getPermessiDiFlussoByCodiceAzienda(target)}")
     @Override
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda();
+    
+    @Value("#{@userInfoService.getStruttureDelSegretario(target.getIdPersona())}")
+    @Override
+    public Object getStruttureDelSegretario();
 
     @Value("#{@userInfoService.getPermessiAvatar(target).size() > 0}")
     public Boolean getHasPermessoAvatar();

@@ -33,8 +33,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(value = "${messaggero.mapping.url.root}")
 public class MessaggeroBaseController extends BaseCrudController {
-    
-    private static final Logger LOGGER = LoggerFactory.getLogger(BaborgBaseController.class);
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MessaggeroBaseController.class);
 
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
@@ -42,8 +42,8 @@ public class MessaggeroBaseController extends BaseCrudController {
     @Override
     public RestControllerEngine getRestControllerEngine() {
         return restControllerEngine;
-    }    
-    
+    }
+
     @RequestMapping(value = {"amministrazionemessaggio", "amministrazionemessaggio/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> amministrazionemessaggio(
             @QuerydslPredicate(root = AmministrazioneMessaggio.class) Predicate predicate,
@@ -56,7 +56,7 @@ public class MessaggeroBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAmministrazioneMessaggio.amministrazioneMessaggio, AmministrazioneMessaggio.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"templatemessaggio", "templatemessaggio/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> templatemessaggio(
             @QuerydslPredicate(root = TemplateMessaggio.class) Predicate predicate,

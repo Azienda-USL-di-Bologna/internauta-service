@@ -672,9 +672,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         messageTagListSource.add(messageTagSource);
         messageRepository.save(messageSource);
 
-        System.out.println(messageSource.toString());
-        System.out.println("-----------------------");
-        System.out.println(messageDestination.toString());
+        LOG.info(messageSource.toString());
+        LOG.info("-----------------------");
+        LOG.info(messageDestination.toString());
 
         messageRepository.updateTscol(messageDestination.getId());
 

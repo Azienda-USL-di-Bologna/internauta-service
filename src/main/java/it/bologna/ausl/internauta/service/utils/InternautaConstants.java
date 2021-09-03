@@ -85,7 +85,10 @@ public class InternautaConstants {
             SvuotaStruttureConnesseUfficio,
             FilterStrutturePoolsRuolo,
             FilterStruttureRuolo,
-            CreateDocPerMessageRegistration
+            CreateDocPerMessageRegistration,
+            VisualizzaTabIFirmario,
+            VisualizzaTabIFirmato,
+            VisualizzaTabRegistrazioni
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {

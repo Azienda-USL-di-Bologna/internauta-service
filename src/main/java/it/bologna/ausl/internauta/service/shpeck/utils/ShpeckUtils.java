@@ -17,7 +17,7 @@ import it.bologna.ausl.internauta.service.repositories.configurazione.Applicazio
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxRepository;
 import it.bologna.ausl.model.entities.baborg.Pec;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.Draft.MessageRelatedType;
 import it.bologna.ausl.model.entities.shpeck.Message;

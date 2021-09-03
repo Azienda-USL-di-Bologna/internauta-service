@@ -2,7 +2,7 @@
 package it.bologna.ausl.internauta.service.krint;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.logs.projections.KrintShpeckDraft;
