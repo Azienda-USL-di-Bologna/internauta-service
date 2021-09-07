@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.authorization.jwt;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.bitwalker.useragentutils.UserAgent;
@@ -41,7 +40,6 @@ import org.springframework.transaction.annotation.Transactional;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.configurazione.Applicazione.Applicazioni;
 import it.bologna.ausl.model.entities.tools.UserAccess;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.Cookie;
