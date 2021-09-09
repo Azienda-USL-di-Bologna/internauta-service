@@ -213,7 +213,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             if (operationsRequested.contains(AdditionalData.OperationsRequested.SvuotaStruttureConnesseUfficio)) {
                 try {
                     Struttura struttura = (Struttura) entity;
-                    if (!struttura.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture()) {
+                    if (struttura!=null && struttura.getAttributiStruttura()!=null&& struttura.getAttributiStruttura().getIdTipologiaStruttura()!=null && struttura.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture()!= null && !struttura.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture()) {
                         List<PermessoEntitaStoredProcedure> permessiAttuali = permissionManager.getSubjectsWithPermissionsOnObject(
                                 struttura,
                                 Arrays.asList(Predicati.CONNESSO.toString()),
