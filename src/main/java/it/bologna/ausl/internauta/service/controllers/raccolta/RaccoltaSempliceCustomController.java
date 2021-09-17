@@ -588,21 +588,20 @@ public class RaccoltaSempliceCustomController {
                             }
                             indirizzi.add(indirizzo);
                             contatto.setIndirizziList(indirizzi);
-
-                        }
-
-                        if (indirizzoDettaglio != null) {
-                            if (!descrizioneDettagli.contains(indirizzoCompleto)) {
-                                DettaglioContatto dettaglio = new DettaglioContatto();
-                                dettaglio.setIdContatto(contatto);
-                                dettaglio.setDescrizione(indirizzoCompleto);
-                                dettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
-                                dettaglio = dettaglioRepository.save(dettaglio);
-                            }
                         }
                     }
-                    contatto = contattoRepository.save(contatto);
+
+                    if (indirizzoDettaglio != null) {
+                        if (!descrizioneDettagli.contains(indirizzoDettaglio)) {
+                            DettaglioContatto dettaglio = new DettaglioContatto();
+                            dettaglio.setIdContatto(contatto);
+                            dettaglio.setDescrizione(indirizzoDettaglio);
+                            dettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+                            dettaglio = dettaglioRepository.save(dettaglio);
+                        }
+                    }
                 }
+                contatto = contattoRepository.save(contatto);
             }
         } catch (Throwable e) {
             log.error("Errore nel salvataggio del contatto", e);
