@@ -116,7 +116,7 @@ import org.springframework.context.ApplicationEventPublisher;
 public class ShpeckCustomController implements ControllerHandledExceptions {
 
     private static final Logger LOG = LoggerFactory.getLogger(ShpeckCustomController.class);
-    
+
     @Autowired
     private ShpeckUtils shpeckUtils;
 
@@ -146,7 +146,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private FolderRepository folderRepository;
-    
+
     @Autowired
     private OutboxLiteRepository outboxLiteRepository;
 
@@ -173,7 +173,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     MessagesTagsProtocollazioneFixManager messagesTagsProtocollazioneFixManager;
-    
+
     @Autowired
     ManageMessageRegistrationUtils manageMessageRegistrationUtils;
 
@@ -342,14 +342,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
     }
 
-    
-
-    
-
-    
-
-    
-
     /**
      *
      * @param idMessage
@@ -466,7 +458,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona personaConnessa = authenticatedUserProperties.getPerson();
-       
+
         List<String> permessiSufficienti = new ArrayList();
         permessiSufficienti.add(InternautaConstants.Permessi.Predicati.ELIMINA.toString());
         permessiSufficienti.add(InternautaConstants.Permessi.Predicati.RISPONDE.toString());
@@ -478,7 +470,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         } catch (BlackBoxPermissionException ex) {
             throw new Http403ResponseException("008", "Non hai il permesso sulla casella", ex);
         }
-        
+
         ArrayList<EmlHandlerAttachment> listAttachments = shpeckUtils.convertAttachments(attachments);
 
         ArrayList<MimeMessage> mimeMessagesList = new ArrayList<>();
@@ -490,7 +482,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             Utente utente = this.cachedEntities.getUtente(idUtente);
             draftMessage.setIdUtente(utente);
         }
-
 
         String from = pec.getIndirizzo();
         LOG.info("Start building mime message...");
@@ -725,7 +716,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
                         return messageFolderRespository.count(filter);
                     }
-                    
+
             }
         }
 
@@ -801,9 +792,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         LOG.info("Dentro controller manageMessageRegistration");
 
         Boolean doIHaveToKrint = KrintUtils.doIHaveToKrint(request);
-        
+
         manageMessageRegistrationUtils.manageMessageRegistration(
-            uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, null
+                uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, null
         );
     }
 
@@ -900,5 +891,4 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
     }
 
-    
 }
