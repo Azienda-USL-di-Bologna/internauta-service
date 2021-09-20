@@ -357,7 +357,6 @@ public class ImportaDaCSV {
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(time).toInstant();
                 return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
             } catch (ParseException e) {
-                //non Ã¨ stato parsato
             }
 
         }
@@ -670,13 +669,16 @@ public class ImportaDaCSV {
                             mapError.put("datafi", appartenentiMap.get("datafi"));
                         }
 
-                        if ((datain == null && datafi != null) || (datain != null && datafi != null && datain.isAfter(datafi))) {
+                        if (!checkDateFinisconoDopoInizio(datain, datafi)) {
+                            anomalia = true;
                             if (mapError.get("ERRORE") != null) {
-                                mapError.put("ERRORE", mapError.get("ERRORE") + " datain maggiore di datafi,");
+                                mapError.put("ERRORE", mapError.get("ERRORE") + " questa riga non è valida perche la data di fine è precedente alla data di fine,");
                             } else {
-                                mapError.put("ERRORE", "datain maggiore di datafi,");
+                                mapError.put("ERRORE", "questa riga non è valida perche la data di fine è precedente alla data di fine,");
                             }
+
                         }
+
                         //Codice Ente 
                         Integer codiceEnte = checkCodiceEnte(appartenentiMap, mapError, codiceAzienda);
                         anomalia = anomalia ? anomalia : codiceEnte.equals("");
@@ -848,15 +850,6 @@ public class ImportaDaCSV {
                             anomalia = true;
                             mapError.put("ERRORE", e.getMessage());
                         }
-//TODO si possono usare le mappe anche qui   ------- ci sarebbe da fare il controllo sull'id casella che deve essere non null
-                        if (id_casella != null && mdrResponsabiliRepository.countMultiReponsabilePerStruttura(codiceAzienda,
-                                Integer.parseInt(id_casella),
-                                datafiString,
-                                datainString) > 0) {
-                            anomaliaRiga = true;
-                            anomalia = true;
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " la struttura di questo responsabile è già assegnata ad un altro respondabile,");
-                        }
 //                      DATAFI non bloccante
                         if (responsabiliMap.get("datafi") == null || responsabiliMap.get("datafi").toString().trim().equals("") || responsabiliMap.get("datafi") == "") {
                             mapError.put("datafi", "");
@@ -866,6 +859,25 @@ public class ImportaDaCSV {
                             mR.setDatafi(formattattore(responsabiliMap.get("datafi")));
                         }
 
+                        if (!checkDateFinisconoDopoInizio(datain, datafi)) {
+                            anomaliaRiga = true;
+                            anomalia = true;
+                            if (mapError.get("ERRORE") != null) {
+                                mapError.put("ERRORE", mapError.get("ERRORE") + "questa riga non è valida perche la data di fine è precedente alla data di fine,");
+                            } else {
+                                mapError.put("ERRORE", "questa riga non è valida perche la data di fine è precedente alla data di fine,");
+                            }
+                            
+                        }
+//TODO si possono usare le mappe anche qui
+                        if (id_casella != null && mdrResponsabiliRepository.countMultiReponsabilePerStruttura(codiceAzienda,
+                                Integer.parseInt(id_casella),
+                                datafiString,
+                                datainString) > 0) {
+                            anomaliaRiga = true;
+                            anomalia = true;
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " la struttura di questo responsabile è già assegnata ad un altro respondabile,");
+                        }
 //                      TIPO bloccante
                         String tipoR = checkTipoR(responsabiliMap, mapError);
                         mR.setTipo(tipoR);
@@ -1760,7 +1772,8 @@ public class ImportaDaCSV {
             return "";
         } else {
             mapError.put("descrizione", strutturaMap.get("descrizione"));
-            return strutturaMap.get("descrizione").toString();
+            return strutturaMap.get("descrizione").toString().replaceAll("(\\n\\r+)|(\\n+)"," ");
+            
         }
     }
 
@@ -1831,5 +1844,20 @@ public class ImportaDaCSV {
             }
         }
         return true;
+    }
+
+    private boolean checkDateFinisconoDopoInizio(ZonedDateTime datain, ZonedDateTime datafi) {
+        if (datain != null) {
+            if (datafi == null) {
+                return true;
+            } else if (datafi.isAfter(datain)) {
+                return true;
+            } else {
+                return false;
+            }
+
+        } else {
+            return false;
+        }
     }
 }
