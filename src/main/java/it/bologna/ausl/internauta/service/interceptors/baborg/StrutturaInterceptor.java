@@ -213,7 +213,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             if (operationsRequested.contains(AdditionalData.OperationsRequested.SvuotaStruttureConnesseUfficio)) {
                 try {
                     Struttura struttura = (Struttura) entity;
-                    if (struttura!=null && struttura.getAttributiStruttura()!=null&& struttura.getAttributiStruttura().getIdTipologiaStruttura()!=null && struttura.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture()!= null && !struttura.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture()) {
+                    if (struttura != null && struttura.getAttributiStruttura() != null && struttura.getAttributiStruttura().getIdTipologiaStruttura() != null && struttura.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture() != null && !struttura.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture()) {
                         List<PermessoEntitaStoredProcedure> permessiAttuali = permissionManager.getSubjectsWithPermissionsOnObject(
                                 struttura,
                                 Arrays.asList(Predicati.CONNESSO.toString()),
@@ -249,21 +249,22 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         boolean isCA = userInfoService.isCA(utente);
         boolean isCI = userInfoService.isCI(utente);
         boolean isSD = userInfoService.isSD(utente);
-        
+
         if (struttura.getUfficio() && struttura.getIdStrutturaPadre() == null) {
             //setto la data di attivazione al primo momento del giorno 
             struttura.setDataAttivazione(ZonedDateTime.of(LocalDate.now(), LocalTime.MIN, ZoneId.systemDefault()));
             // In caso di creazione ufficio vogliamo arbitrariamente popolare la struttura padre
-            if (isCA || isCI || isSD) {
-                // In questo caso setto la radice dell'organigramma
-                //Non vogliamo più settare la radice dell'organigramma, ma vogliamo che sia selezionata dall'utente.
+//            if (isCA || isCI || isSD) {
+            // In questo caso setto la radice dell'organigramma
+            //Non vogliamo più settare la radice dell'organigramma, ma vogliamo che sia selezionata dall'utente.
 //                BooleanExpression findRadice = 
 //                        QStruttura.struttura.idStrutturaPadre.isNull()
 //                        .and(QStruttura.struttura.idAzienda.id.eq(struttura.getIdAzienda().getId()))
 //                        .and(QStruttura.struttura.attiva.eq(Boolean.TRUE));
 //                Struttura strutturaRadice = strutturaRepository.findOne(findRadice).get();
 //                struttura.setIdStrutturaPadre(strutturaRadice);
-            } else {
+//            } else {
+            if (!isCA && !isCI && !isSD) {
                 Integer mascheraBit = internautaUtils.getSommaMascheraBit(Ruolo.CodiciRuolo.R.toString());
 
                 Map<String, Integer> struttureResponsabile = objectMapper.convertValue(
@@ -292,7 +293,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
     }
 
     private void aggiungiSistemaStoricoRelazione(Struttura strutturaNuova, Struttura strutturaVecchia) {
-        if (strutturaVecchia.getIdStrutturaPadre() == null && strutturaNuova.getIdStrutturaPadre()!= null) {
+        if (strutturaVecchia.getIdStrutturaPadre() == null && strutturaNuova.getIdStrutturaPadre() != null) {
             StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
             storicoRelazioneRepository.save(storicoRelazione);
         } else if (strutturaVecchia.getIdStrutturaPadre() != null && !strutturaVecchia.getIdStrutturaPadre().getId().equals(strutturaNuova.getIdStrutturaPadre().getId())) {
@@ -307,7 +308,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                 storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
                 StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
                 storicoRelazioneRepository.save(storicoRelazione);
-            }else{
+            } else {
                 storicoRelazioneVecchia.setAttivaAl(now);
                 storicoRelazioneRepository.save(storicoRelazioneVecchia);
                 storicoRelazioneRepository.save(buildStoricoRelazione(strutturaNuova));
