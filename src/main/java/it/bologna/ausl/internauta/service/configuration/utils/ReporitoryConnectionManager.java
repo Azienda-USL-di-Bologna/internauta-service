@@ -98,7 +98,8 @@ public class ReporitoryConnectionManager {
         String minIODBUrl = (String) minIOConfig.get("DBUrl");
         String minIODBUsername = (String) minIOConfig.get("DBUsername");
         String minIODBPassword = (String) minIOConfig.get("DBPassword");
-        minIOWrapper = new MinIOWrapper(minIODBDriver, minIODBUrl, minIODBUsername, minIODBPassword, objectMapper);
+        Integer maxPoolSize = (Integer) minIOConfig.get("maxPoolSize");
+        minIOWrapper = new MinIOWrapper(minIODBDriver, minIODBUrl, minIODBUsername, minIODBPassword, maxPoolSize, objectMapper);
     }
 
     public MongoWrapper getRepositoryWrapper(Integer idAzienda) {
