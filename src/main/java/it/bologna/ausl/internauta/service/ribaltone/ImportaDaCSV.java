@@ -669,7 +669,7 @@ public class ImportaDaCSV {
                             mapError.put("datafi", appartenentiMap.get("datafi"));
                         }
 
-                        if (!checkDateFinisconoDopoInizio(datain, datafi)) {
+                        if (checkDateFinisconoDopoInizio(datain, datafi)) {
                             anomalia = true;
                             if (mapError.get("ERRORE") != null) {
                                 mapError.put("ERRORE", mapError.get("ERRORE") + " questa riga non è valida perche la data di fine è precedente alla data di fine, ");
@@ -858,7 +858,7 @@ public class ImportaDaCSV {
                             mR.setDatafi(formattattore(responsabiliMap.get("datafi")));
                         }
 
-                        if (!checkDateFinisconoDopoInizio(datain, datafi)) {
+                        if (checkDateFinisconoDopoInizio(datain, datafi)) {
                             anomaliaRiga = true;
                             anomalia = true;
                             if (mapError.get("ERRORE") != null) {
@@ -1770,8 +1770,8 @@ public class ImportaDaCSV {
             return "";
         } else {
             mapError.put("descrizione", strutturaMap.get("descrizione"));
-            return strutturaMap.get("descrizione").toString().replaceAll("(\\n\\r+)|(\\n+)"," ");
-            
+            return strutturaMap.get("descrizione").toString().replaceAll("(\\n\\r+)|(\\n+)", " ");
+
         }
     }
 
@@ -1848,13 +1848,11 @@ public class ImportaDaCSV {
         if (datain != null) {
             if (datafi == null) {
                 return false;
-            } else if (datafi.isAfter(datain)&& !datafi.isEqual(datain)) {
-                return true;
             } else {
-                return false;
+                return (datafi.isBefore(datain));
             }
         } else {
-            return false;
+            return true;
         }
     }
 }
