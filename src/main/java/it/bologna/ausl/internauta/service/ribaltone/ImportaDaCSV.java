@@ -672,11 +672,10 @@ public class ImportaDaCSV {
                         if (!checkDateFinisconoDopoInizio(datain, datafi)) {
                             anomalia = true;
                             if (mapError.get("ERRORE") != null) {
-                                mapError.put("ERRORE", mapError.get("ERRORE") + " questa riga non è valida perche la data di fine è precedente alla data di fine,");
+                                mapError.put("ERRORE", mapError.get("ERRORE") + " questa riga non è valida perche la data di fine è precedente alla data di fine, ");
                             } else {
                                 mapError.put("ERRORE", "questa riga non è valida perche la data di fine è precedente alla data di fine,");
                             }
-
                         }
 
                         //Codice Ente 
@@ -867,7 +866,6 @@ public class ImportaDaCSV {
                             } else {
                                 mapError.put("ERRORE", "questa riga non è valida perche la data di fine è precedente alla data di fine,");
                             }
-                            
                         }
 //TODO si possono usare le mappe anche qui
                         if (id_casella != null && mdrResponsabiliRepository.countMultiReponsabilePerStruttura(codiceAzienda,
@@ -1849,13 +1847,12 @@ public class ImportaDaCSV {
     private boolean checkDateFinisconoDopoInizio(ZonedDateTime datain, ZonedDateTime datafi) {
         if (datain != null) {
             if (datafi == null) {
-                return true;
-            } else if (datafi.isAfter(datain)) {
+                return false;
+            } else if (datafi.isAfter(datain)&& !datafi.isEqual(datain)) {
                 return true;
             } else {
                 return false;
             }
-
         } else {
             return false;
         }
