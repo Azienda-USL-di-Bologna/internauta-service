@@ -58,6 +58,7 @@ import org.sql2o.Sql2o;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
+import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashSet;
@@ -128,6 +129,13 @@ public class UserInfoService {
         Optional<Utente> utenteOp = utenteRepository.findById(id);
         if (utenteOp.isPresent()) {
             res = utenteOp.get();
+            
+            // Questo pezzo di codice ci permette di essere sicure che utenteList sia caricata.
+            // E' una possibile soluzione al problema del menu scrivania che a volte non compare.
+            if (res.getIdPersona().getUtenteList() != null) {
+                res.getIdPersona().getUtenteList().size();
+            }
+
 //            res.getIdPersona().setApplicazione(applicazione);
         }
         return res;
@@ -154,6 +162,12 @@ public class UserInfoService {
             Optional<Utente> utenteOp = utenteRepository.findOne(utenteFilter);
             if (utenteOp.isPresent()) {
                 res = utenteOp.get();
+                
+                // Questo pezzo di codice ci permette di essere sicure che utenteList sia caricata.
+                // E' una possibile soluzione al problema del menu scrivania che a volte non compare.
+                if (res.getIdPersona().getUtenteList() != null) {
+                    res.getIdPersona().getUtenteList().size();
+                }
 //                res.getIdPersona().setApplicazione(applicazione);
             }
         }
@@ -203,6 +217,12 @@ public class UserInfoService {
 
         if (utenteOp.isPresent()) {
             res = utenteOp.get();
+            
+            // Questo pezzo di codice ci permette di essere sicure che utenteList sia caricata.
+            // E' una possibile soluzione al problema del menu scrivania che a volte non compare.
+            if (res.getIdPersona().getUtenteList() != null) {
+                res.getIdPersona().getUtenteList().size();
+            }
 //            res.getIdPersona().setApplicazione(applicazione);
             return res;
         }
@@ -840,7 +860,11 @@ public class UserInfoService {
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Utente utente) throws BlackBoxPermissionException {
         return getPermessiDiFlussoByCodiceAzienda(utente.getIdPersona());
     }
-
+    
+    @CacheEvict(value = "getPermessiDiFlussoByCodiceAzienda_utente__ribaltorg__", key = "{#utente.getId()}")
+    public void getPermessiDiFlussoByCodiceAziendaRemoveCache(Utente utente) {
+    }
+  
     // NB: non è by CODICEAZIENDA, ma è ByPersona da cui prendo codice azienda
     @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda_persona__ribaltorg__", key = "{#persona.getId()}")
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
