@@ -21,7 +21,7 @@ import it.bologna.ausl.model.entities.baborg.QRuolo;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
 import it.bologna.ausl.model.entities.permessi.projections.PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded;

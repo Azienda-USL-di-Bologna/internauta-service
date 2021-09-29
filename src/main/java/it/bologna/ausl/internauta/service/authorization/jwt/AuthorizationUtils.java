@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.authorization.jwt;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.bitwalker.useragentutils.UserAgent;
@@ -39,9 +38,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
-import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
+import it.bologna.ausl.model.entities.configurazione.Applicazione.Applicazioni;
 import it.bologna.ausl.model.entities.tools.UserAccess;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.Cookie;
@@ -139,6 +137,7 @@ public class AuthorizationUtils {
 //        user.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(user, true));
         user.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(user));
         user.setPermessiDiFlussoByCodiceAzienda(userInfoService.getPermessiDiFlussoByCodiceAzienda(user));
+        user.setStruttureDelSegretario(userInfoService.getStruttureDelSegretario(user.getIdPersona()));
         boolean fromInternet = false;
         Object fromInternetObj = claims.get(AuthorizationUtils.TokenClaims.FROM_INTERNET.name());
 //        logger.info("fromInternetObj: " + fromInternetObj);

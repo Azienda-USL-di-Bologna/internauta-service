@@ -25,8 +25,8 @@ import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.QContatto;
@@ -84,8 +84,20 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        Utente loggedUser = authenticatedSessionData.getUser();
+        List<Persona> personeDiCuiVedoIProtoconattiList;
+        try {
+            personeDiCuiVedoIProtoconattiList = userInfoService
+                    .getPersoneDiStruttureDiCuiPersonaIsSegretario(getAuthenticatedUserProperties().getPerson());
+        } catch (BlackBoxPermissionException ex) {
+            LOGGER.error(ex.toString());
+            throw new AbortLoadInterceptorException("Errore nel caricamento delle persone di cui si è segretario dalla BlackBox", ex);
+        }
+        personeDiCuiVedoIProtoconattiList.add(loggedUser.getIdPersona());
+        
         // AGGIUNGO I FILTRI DI SICUREZZA PER GARANTIRE CHE L'UTENTE NON VEDA CONTATTI CHE NON PUO' VEDERE
-        initialPredicate = addFilterVisibilita(initialPredicate, QContatto.contatto);
+        initialPredicate = addFilterVisibilita(initialPredicate, QContatto.contatto, personeDiCuiVedoIProtoconattiList);
 
         // CONTOLLIAMO EVENTUALI ADDITIONAL DATA.
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
@@ -95,33 +107,27 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                     // QUESTO E' IL FILTRO CHE RIGUARDA I PROTOCONTATTI E I CONTATTI DA VERIFICARE
                     // Serve a mettere in OR i due booleani (cosa che dal front-end non si può fare))
                     case FilterContattiDaVerificareOProtocontatti:
-                        BooleanExpression protocontattoFilter;
-                        protocontattoFilter = QContatto.contatto.daVerificare.eq(true).or(QContatto.contatto.protocontatto.eq(true));
-                        initialPredicate = (protocontattoFilter).and(initialPredicate);
-                        try {
-                            LOGGER.info("Devo cercare i PROTOCONTATTI "
-                                    + "creati dalle persone che fanno parte "
-                                    + "delle strutture di cui AuthenticatedUser e' responsabile...");
-                            List<Persona> personaListInStrutture = userInfoService
-                                    .getPersoneDiStruttureDiCuiPersonaIsSegretario(getAuthenticatedUserProperties().getPerson());
-                            if (personaListInStrutture != null && personaListInStrutture.size() > 0) {
-                                LOGGER.info("Trovate "
-                                        + personaListInStrutture.size()
-                                        + " persone: aggiungo una OR condition "
-                                        + "all' initialPredicate...");
-                                BooleanExpression protocontattiDiAltrePersona
-                                        = QContatto.contatto.protocontatto.eq(true)
+                        LOGGER.info("Devo cercare i PROTOCONTATTI "
+                                + "creati dalle persone che fanno parte "
+                                + "delle strutture di cui AuthenticatedUser e' responsabile...");
+
+                        if (personeDiCuiVedoIProtoconattiList != null && personeDiCuiVedoIProtoconattiList.size() > 0) {
+                            LOGGER.info("Trovate "
+                                    + personeDiCuiVedoIProtoconattiList.size()
+                                    + " persone: aggiungo una AND condition "
+                                    + "all' initialPredicate...");
+                            BooleanExpression daVerfificareOrProtocontattoVisbile
+                                    = QContatto.contatto.daVerificare.eq(true).or(
+                                            QContatto.contatto.protocontatto.eq(true)
                                                 .and(QContatto.contatto.idPersonaCreazione
-                                                        .in(personaListInStrutture));
-                                initialPredicate = (protocontattiDiAltrePersona).or(initialPredicate);
-                            } else {
-                                LOGGER.info("AuthenticatedUser non e' segretario "
-                                        + "oppure non ci sono persone nelle "
-                                        + "strutture di cui lui e' segretario");
-                            }
-                        } catch (BlackBoxPermissionException ex) {
-                            LOGGER.error(ex.toString());
+                                                    .in(personeDiCuiVedoIProtoconattiList)));
+                            initialPredicate = (daVerfificareOrProtocontattoVisbile).and(initialPredicate);
+                        } else {
+                            LOGGER.info("AuthenticatedUser non e' segretario "
+                                    + "oppure non ci sono persone nelle "
+                                    + "strutture di cui lui e' segretario");
                         }
+
                         
                         break;
                     case CercaContattiCustomFilterPico:
@@ -173,7 +179,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList());
     }
     
-    public Predicate addFilterVisibilita(Predicate initialPredicate, QContatto contatto) throws AbortLoadInterceptorException {
+    public Predicate addFilterVisibilita(Predicate initialPredicate, QContatto contatto, List<Persona> personeDiCuiVedoIProtoconattiList) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Utente loggedUser = authenticatedSessionData.getUser();
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(loggedUser.getIdPersona());
@@ -196,10 +202,10 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                         .or(contatto.riservato.eq(false)));
         initialPredicate = contactFilter.and(initialPredicate);
 
-        // QUESTO E' IL FILTRO PER I PROTOCONTATTI. Un protocontatto lo può vedeere solo un CA/CI o il creatore del contatto
+        // QUESTO E' IL FILTRO PER I PROTOCONTATTI. Un protocontatto lo può vedeere solo un CA/CI o le persone dentro personeDiCuiVedoIProtoconattiList
         BooleanExpression sonoCAoCI = (userInfoService.isCI(loggedUser) || userInfoService.isCA(loggedUser)) ? Expressions.TRUE : Expressions.FALSE;
         BooleanExpression protocontattoFilters = contatto.protocontatto.eq(false)
-                .or(contatto.idUtenteCreazione.id.eq(loggedUser.getId())
+                .or(contatto.idPersonaCreazione.in(personeDiCuiVedoIProtoconattiList)
                         .or(sonoCAoCI.isTrue()));
         initialPredicate = protocontattoFilters.and(initialPredicate);
         

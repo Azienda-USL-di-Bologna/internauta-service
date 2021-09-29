@@ -2,16 +2,18 @@ package it.bologna.ausl.internauta.service.controllers.configurazione;
 
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
-import it.bologna.ausl.model.entities.configuration.ConfigurazioneAmbiente;
-import it.bologna.ausl.model.entities.configuration.FirmePersona;
-import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
-import it.bologna.ausl.model.entities.configuration.QApplicazione;
-import it.bologna.ausl.model.entities.configuration.QConfigurazioneAmbiente;
-import it.bologna.ausl.model.entities.configuration.QFirmePersona;
-import it.bologna.ausl.model.entities.configuration.QImpostazioniApplicazioni;
-import it.bologna.ausl.model.entities.configuration.QParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.ConfigurazioneAmbiente;
+import it.bologna.ausl.model.entities.configurazione.DominioFirma;
+import it.bologna.ausl.model.entities.configurazione.FirmePersona;
+import it.bologna.ausl.model.entities.configurazione.ImpostazioniApplicazioni;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.QApplicazione;
+import it.bologna.ausl.model.entities.configurazione.QConfigurazioneAmbiente;
+import it.bologna.ausl.model.entities.configurazione.QDominioFirma;
+import it.bologna.ausl.model.entities.configurazione.QFirmePersona;
+import it.bologna.ausl.model.entities.configurazione.QImpostazioniApplicazioni;
+import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
@@ -117,6 +119,19 @@ public class ConfigurazioneBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QFirmePersona.firmePersona, FirmePersona.class);
+        return ResponseEntity.ok(resource);
+    }
+
+    @RequestMapping(value = {"dominiofirma", "dominiofirma/{codice}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> dominiofirma(
+            @QuerydslPredicate(root = DominioFirma.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) String codice,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, codice, projection, predicate, pageable, additionalData, QDominioFirma.dominioFirma, DominioFirma.class);
         return ResponseEntity.ok(resource);
     }
 }

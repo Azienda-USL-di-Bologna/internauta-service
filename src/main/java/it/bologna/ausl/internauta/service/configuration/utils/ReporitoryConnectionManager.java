@@ -10,7 +10,7 @@ import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.mongowrapper.MongoWrapper;
 import it.bologna.ausl.mongowrapper.exceptions.MongoWrapperException;
 import java.io.IOException;

@@ -19,8 +19,8 @@ import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.gru.MdrTrasformazioniRepository;
 import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.gru.MdrAppartenenti;
 import it.bologna.ausl.model.entities.gru.MdrResponsabili;
 import it.bologna.ausl.model.entities.gru.MdrStruttura;

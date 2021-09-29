@@ -9,24 +9,34 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
+import it.bologna.ausl.internauta.service.utils.InternautaUtils;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.scripta.DocList;
 import it.bologna.ausl.model.entities.scripta.QDocList;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -37,12 +47,17 @@ import org.springframework.stereotype.Component;
 @Component
 @NextSdrInterceptor(name = "doclist-interceptor")
 public class DocListInterceptor extends InternautaBaseInterceptor {
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(DocListInterceptor.class);
 
     @Autowired
     UserInfoService userInfoService;
 
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    InternautaUtils internautaUtils;
     
     @Autowired
     ObjectMapper objectMapper;
@@ -54,15 +69,55 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        Utente user = authenticatedSessionData.getUser();
+        Persona persona = user.getIdPersona();
+        QDocList qdoclist = QDocList.docList;
+                        
         initialPredicate = safetyFilters().and(initialPredicate);
-
+        
+        List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                switch (operationRequested) {
+                    case VisualizzaTabIFirmario:
+                        initialPredicate = buildFilterPerStruttureDelSegretario(persona).and(initialPredicate);
+                        initialPredicate = qdoclist.numeroRegistrazione.isNull().and(initialPredicate);
+                        initialPredicate = qdoclist.annullato.isFalse().and(initialPredicate);
+                        initialPredicate = qdoclist.stato.in(
+                                Arrays.asList(new String[]{
+                                    DocList.StatoDoc.CONTROLLO_SEGRETERIA.toString(),
+                                    DocList.StatoDoc.PARERE.toString(),
+                                    DocList.StatoDoc.FIRMA.toString()
+                                })).and(initialPredicate);
+                        break;
+                    case VisualizzaTabIFirmato:
+                        initialPredicate = buildFilterPerStruttureDelSegretario(persona).and(initialPredicate);
+                        initialPredicate = qdoclist.numeroRegistrazione.isNotNull().and(initialPredicate);
+                        break;
+                    case VisualizzaTabRegistrazioni:
+                        if (!userInfoService.isSD(user)) {
+                            List<String> codiceAziendaListDoveSonoOS = userInfoService.getCodiciAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.OS);
+                            List<String> codiceAziendaListDoveSonoMOS = userInfoService.getCodiciAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.MOS);
+                            List<String> codicAziendaOSoMOS = Stream.concat(codiceAziendaListDoveSonoOS.stream(), codiceAziendaListDoveSonoMOS.stream()).collect(Collectors.toList());
+                            initialPredicate = qdoclist.idAzienda.codice.in(codicAziendaOSoMOS).and(initialPredicate);
+                        }
+                        initialPredicate = qdoclist.numeroRegistrazione.isNotNull().and(initialPredicate);
+                        break;
+                }
+            }
+        }
+        
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass);
     }
 
     @Override
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-        manageAfterCollection(entities);
+        try {
+            manageAfterCollection(entities);
+        } catch (IOException ex) {
+            throw new AbortLoadInterceptorException("Errore nella generazione dell'url", ex);
+        }
         return entities;
     }
 
@@ -70,8 +125,28 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         List<Object> entities = new ArrayList();
         entities.add(entity);
-        manageAfterCollection(entities);
+        try {
+            manageAfterCollection(entities);
+        } catch (IOException ex) {
+            throw new AbortLoadInterceptorException("Errore nella generazione dell'url", ex);
+        }
         return entity;
+    }
+    
+    /**
+     * Mi ritorna il filtro per controllare che il doc sia del segretario
+     * per quanto riguarda i tab ifirmario/ifirmato
+     * @param persona
+     * @return 
+     */
+    private BooleanExpression buildFilterPerStruttureDelSegretario(Persona persona) {
+        QDocList qdoclist = QDocList.docList;
+        Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
+        BooleanExpression sonoSegretario = Expressions.booleanTemplate(
+                String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idStruttureSegretario, ","), "integer[]", "&&"),
+                qdoclist.idStruttureSegreteria
+        );
+        return sonoSegretario;
     }
 
     /**
@@ -91,11 +166,12 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
         BooleanExpression filter = Expressions.TRUE.eq(true);
 
         if (!userInfoService.isSD(user)) { // Filtro 1
-            String[] visLimFields = {"firmatari", "fascicolazioni", "fascicolazioniTscol"}; // Nella tscol non ci sono i firmatari quindi non serve che li aggiungo
+            String[] visLimFields = {"firmatari", "fascicolazioni", "fascicolazioniTscol", "tscol"};
             String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "fascicolazioni", "fascicolazioniTscol"};
             List<String> listaCodiciAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getCodice()).collect(Collectors.toList());
             List<String> listaCodiciAziendaOsservatore = userInfoService.getListaCodiciAziendaOsservatore(persona);
-            Integer[] idStruttureSegretario = personaRepository.getStruttureDelSegretario(persona.getId());
+            Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
+//            Integer[] idStruttureSegretario = personaRepository.getStruttureDelSegretario(persona.getId());
             BooleanExpression pienaVisibilita = Expressions.booleanTemplate(
                     String.format("FUNCTION('jsonb_contains', {0}, '[{\"idPersona\": %d, \"pienaVisibilita\": true}]') = true", persona.getId()),
                     qdoclist.personeVedenti
@@ -108,7 +184,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
             if (idStruttureSegretario != null && idStruttureSegretario.length > 0) {
                 sonoSegretario = Expressions.booleanTemplate(
                         String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idStruttureSegretario, ","), "integer[]", "&&"),
-                        qdoclist.idStruttureFirmatari
+                        qdoclist.idStruttureSegreteria
                 );
             } else {
                 sonoSegretario = Expressions.FALSE.eq(true);
@@ -189,7 +265,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
      * risultato, eventualmente nascondendo dei campi.
      * @param entities 
      */
-    private void manageAfterCollection(Collection<Object> entities) {
+    private void manageAfterCollection(Collection<Object> entities) throws IOException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Utente user = authenticatedSessionData.getUser();
         Persona persona = user.getIdPersona();
@@ -198,6 +274,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
         for (Object entity : entities) {
             DocList doc = (DocList) entity;
             securityHiding(doc, persona, isSuperDemiurgo, listaCodiciAziendaOsservatore);
+            buildUrlComplete(doc, persona, authenticatedSessionData);
         }
     }
 
@@ -214,17 +291,45 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
             doc.setFirmatari(null);
             doc.setFascicolazioni(null);
             doc.setFascicolazioniTscol(null);
+            doc.setTscol(null);
             
             if (doc.getRiservato()) {
                 doc.setOggetto("[RISERVATO]");
                 doc.setOggettoTscol(null);
                 doc.setDestinatari(null);
                 doc.setDestinatariTscol(null);
-                
-                doc.setTscol(null);
-                doc.setFirmatari(null);
                 doc.setIdPersonaRedattrice(null);
             }
         }
+    }
+    
+    private void buildUrlComplete(DocList doc, Persona persona, AuthenticatedSessionData authenticatedSessionData) throws IOException {
+        if (doc.getCommandType() == DocList.CommandType.URL) {
+            doc.setUrlComplete(
+                internautaUtils.getUrl(
+                    authenticatedSessionData, 
+                    doc.getOpenCommand(), 
+                    getIdApplicazione(doc), 
+                    doc.getIdAzienda()
+                )
+            );
+        }
+    }
+    
+    private String getIdApplicazione(DocList doc) {
+        String idApplicazione = null;
+        switch (doc.getTipologia()) {
+            case PROTOCOLLO_IN_ENTRATA:
+            case PROTOCOLLO_IN_USCITA:
+                idApplicazione = Applicazione.Applicazioni.procton.toString();
+                break;
+            case DETERMINA:
+                idApplicazione = Applicazione.Applicazioni.dete.toString();
+                break;    
+            case DELIBERA:
+                idApplicazione = Applicazione.Applicazioni.deli.toString();
+                break;
+        }
+        return idApplicazione;
     }
 }

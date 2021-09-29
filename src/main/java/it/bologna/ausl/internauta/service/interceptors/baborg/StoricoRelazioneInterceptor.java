@@ -15,7 +15,7 @@ import it.bologna.ausl.internauta.service.utils.ParametriAziende;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.time.Instant;
