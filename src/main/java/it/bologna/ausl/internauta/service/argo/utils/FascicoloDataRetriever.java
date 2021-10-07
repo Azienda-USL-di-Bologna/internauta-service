@@ -28,10 +28,14 @@ public class FascicoloDataRetriever {
             + "from gd.fascicologd "
             + "where numerazione_gerarchica = '%s'; ";
 
-    public void getFascicoloByNumerazioneGerarchica(Integer idAzienda, String numerazioneGerarchica) {
+    private Connection getConnection(Integer idAzienda) {
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(idAzienda);
+        return (Connection) dbConnection.open();
+    }
+
+    public void getFascicoloByNumerazioneGerarchica(Integer idAzienda, String numerazioneGerarchica) {
         String queryString = String.format(QUERY_FIND_FASCICOLO_BY_NUMERAZIONE_GERARCHICA, numerazioneGerarchica);
-        Connection conn = (Connection) dbConnection.open();
+        Connection conn = getConnection(idAzienda);
         Query query = conn.createQuery(queryString);
         ResultSetHandler resultSetHandler = null;
         List executeAndFetch = query.executeAndFetch(resultSetHandler);
