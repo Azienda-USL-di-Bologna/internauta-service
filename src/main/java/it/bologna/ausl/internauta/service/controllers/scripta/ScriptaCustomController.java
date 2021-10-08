@@ -95,6 +95,7 @@ import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
@@ -606,19 +607,22 @@ public class ScriptaCustomController {
                 .build();
 
         Call call = client.newCall(request);
-        Map<String, String> hmresp = new HashMap<String, String>();
+        HashMap readValue = null;
         try (Response response = call.execute();) {
             int responseCode = response.code();
             if (response.isSuccessful()) {
-                log.info("Chiamata a webapi inde effettuata con successo" + response.message());
-                hmresp.put("message", response.message());
+                readValue = objectMapper.readValue(response.body().string(), HashMap.class);
+//                r.put(resp);
+                log.info("Chiamata a webapi inde effettuata con successo");
             } else {
                 log.info("Errore nella chiamata alla webapi InDe: " + responseCode + " " + response.message());
                 throw new IOException(String.format("Errore nella chiamata alla WepApi InDe: %s", response.message()));
             }
-        }
 
-        return new ResponseEntity(hmresp, HttpStatus.OK);
+        } catch (Exception ex) {
+
+        }
+        return new ResponseEntity(readValue, HttpStatus.OK);
     }
 
 }
