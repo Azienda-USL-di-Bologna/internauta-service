@@ -8,11 +8,15 @@ import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxRepository;
@@ -52,10 +56,13 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.RawMessageRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.QRawMessage;
 import it.bologna.ausl.model.entities.shpeck.RawMessage;
@@ -68,6 +75,7 @@ import java.io.ByteArrayInputStream;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import javax.mail.Message.RecipientType;
 import javax.servlet.http.HttpServletRequest;
 
@@ -115,6 +123,15 @@ public class ShpeckUtils {
 
     @Autowired
     private AziendaRepository aziendaRepository;
+    
+    @Autowired
+    private PecRepository pecRepository;
+    
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    private CachedEntities cachedEntities;
 
     /**
      * usato da {@link #downloadEml(EmlSource, Integer)} per reperire l'eml
@@ -124,6 +141,115 @@ public class ShpeckUtils {
         DRAFT,
         OUTBOX,
         MESSAGE
+    }
+    
+    public static enum MailMessageOperation {
+        SAVE_DRAFT,
+        SEND_MESSAGE
+    }
+    
+    public Integer BuildAndSendMailMessage(
+            MailMessageOperation mailMessageOperation,
+            String hostname,
+            Integer idDraftMessage,
+            Integer idPec,
+            String body,
+            Boolean hideRecipients,
+            String subject,
+            String[] to,
+            String[] cc,
+            MultipartFile[] attachments,
+            Integer idMessageRelated,
+            MessageRelatedType messageRelatedType,
+            Integer[] idMessageRelatedAttachments,
+            Integer idUtente,
+            Boolean krint
+    ) throws IOException, MessagingException, EmlHandlerException, Http500ResponseException, BadParamsException, Http403ResponseException, BlackBoxPermissionException {
+        
+        Integer res = null;
+
+        LOG.info("Getting PEC from repository...");
+        Pec pec = pecRepository.getOne(idPec);
+
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona personaConnessa = authenticatedUserProperties.getPerson();
+
+        List<String> permessiSufficienti = new ArrayList();
+        permessiSufficienti.add(InternautaConstants.Permessi.Predicati.ELIMINA.toString());
+        permessiSufficienti.add(InternautaConstants.Permessi.Predicati.RISPONDE.toString());
+        try {
+            Boolean userHasPermissionOnThisPec = userHasPermissionOnThisPec(pec, permessiSufficienti, personaConnessa);
+            if (!userHasPermissionOnThisPec) {
+                throw new BlackBoxPermissionException("nessun permesso trovato");
+            }
+        } catch (BlackBoxPermissionException ex) {
+            throw new Http403ResponseException("008", "Non hai il permesso sulla casella", ex);
+        }
+
+        ArrayList<EmlHandlerAttachment> listAttachments = convertAttachments(attachments);
+
+        ArrayList<MimeMessage> mimeMessagesList = new ArrayList<>();
+        MimeMessage mimeMessage = null;
+
+        LOG.info("Getting draft with idDraft: ", idDraftMessage);
+        Draft draftMessage = draftRepository.getOne(idDraftMessage);
+        if (idUtente != null) {
+            Utente utente = this.cachedEntities.getUtente(idUtente);
+            draftMessage.setIdUtente(utente);
+        }
+
+        String from = pec.getIndirizzo();
+        LOG.info("Start building mime message...");
+        // Prende gli allegati dall'eml della draft o dal messaggio che si sta inoltrando
+        ArrayList<EmlHandlerAttachment> emlAttachments = getEmlAttachments(draftMessage, idMessageRelated, messageRelatedType, idMessageRelatedAttachments);
+        switch (mailMessageOperation) {
+            case SAVE_DRAFT:
+                mimeMessage = buildMimeMessage(from, to, cc, body, subject, listAttachments, emlAttachments, hostname, draftMessage);
+                LOG.info("Mime message generated correctly!");
+                LOG.info("Preparing the message for saving...");
+                saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
+                listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments, krint);
+            break;
+            case SEND_MESSAGE:
+                if (Objects.equals(hideRecipients, Boolean.TRUE)) {
+                LOG.info("Hide recipients is true, building mime message for each recipient.");
+                for (String address : to) {
+                    mimeMessage = buildMimeMessage(from, new String[]{address}, cc, body, subject, listAttachments,
+                            emlAttachments, hostname, draftMessage);
+                    mimeMessagesList.add(mimeMessage);
+                }
+                LOG.info("Mime messages generated correctly!");
+                } else {
+                    mimeMessage = buildMimeMessage(from, to, cc, body, subject, listAttachments,
+                            emlAttachments, hostname, draftMessage);
+                    mimeMessagesList.add(mimeMessage);
+                    LOG.info("Mime message generated correctly!");
+                }
+
+                LOG.info("Preparing the message for sending...");
+                try {
+                    for (MimeMessage mime : mimeMessagesList) {
+                        Outbox outbox = sendMessage(pec, subject, idMessageRelated, hideRecipients, body, listAttachments, emlAttachments, mime, krint);
+                        res = outbox.getId();
+                    }
+
+                    if (idMessageRelated != null) {
+                        setTagsToMessage(pec, idMessageRelated, messageRelatedType, krint);
+                    }
+
+                    deleteDraft(draftMessage);
+                } catch (IOException | MessagingException | EntityNotFoundException ex) {
+                    LOG.error("Handling error on send! Trying to save...", ex);
+                    mimeMessage = buildMimeMessage(from, to, cc, body, subject, listAttachments,
+                            emlAttachments, hostname, draftMessage);
+                    saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
+                            listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments, krint);
+                    throw new Http500ResponseException("007", "Errore durante l'invio. La mail è stata salvata nelle bozze.", ex);
+                }
+            break;
+        }
+        
+        return res;
     }
 
     public MimeMessage buildMimeMessage(String from, String[] to, String[] cc, String body, String subject,
@@ -156,7 +282,7 @@ public class ShpeckUtils {
 
         LOG.info("Fields ready, building mime message...");
         Properties props = null;
-        if (hostname.equals("localhost")) {
+        if (hostname != null && hostname.equals("localhost")) {
             props = new Properties();
             props.put("mail.host", "localhost");
 //            props.setProperty("mail.mime.base64.ignoreerrors", "true");
@@ -187,14 +313,14 @@ public class ShpeckUtils {
      * @param idMessageRelated L'id del messaggio correlato
      * @param messageRelatedType Tipo di relazione
      * @param emlAttachments
-     * @param request
+     * @param krint passare true se si vuole krintare l'operazione
      * @throws MessagingException
      * @throws IOException
      */
     public void saveDraft(Draft draftMessage, Pec pec, String subject, String[] to, String[] cc,
             Boolean hideRecipients, ArrayList<EmlHandlerAttachment> listAttachments, String body,
             MimeMessage mimeMessage, Integer idMessageRelated, MessageRelatedType messageRelatedType,
-            ArrayList<EmlHandlerAttachment> emlAttachments, HttpServletRequest request) throws MessagingException, IOException {
+            ArrayList<EmlHandlerAttachment> emlAttachments, Boolean krint) throws MessagingException, IOException {
 
         try {
             draftMessage.setIdPec(pec);
@@ -232,7 +358,7 @@ public class ShpeckUtils {
             }
             LOG.info("Message ready. Saving...");
             draftMessage = draftRepository.save(draftMessage);
-            if (KrintUtils.doIHaveToKrint(request)) {
+            if (krint) {
                 krintShpeckService.writeDraft(draftMessage, OperazioneKrint.CodiceOperazione.PEC_DRAFT_MODIFICA);
             }
         } catch (IOException ex) {
@@ -268,7 +394,8 @@ public class ShpeckUtils {
      * @param listAttachments
      * @param emlAttachments
      * @param body
-     * @param request
+     * @param krint
+     * @return 
      * @throws MessagingException
      * @throws IOException
      */
@@ -279,7 +406,7 @@ public class ShpeckUtils {
             ArrayList<EmlHandlerAttachment> listAttachments,
             ArrayList<EmlHandlerAttachment> emlAttachments,
             MimeMessage mimeMessage,
-            HttpServletRequest request) throws IOException, MessagingException {
+            Boolean krint) throws IOException, MessagingException {
         Outbox outboxMessage = new Outbox();
         Applicazione shpeckApp = applicazioneRepository.getOne("shpeck");
         try {
@@ -319,7 +446,7 @@ public class ShpeckUtils {
             }
 
             outboxMessage = outboxRepository.save(outboxMessage);
-            if (KrintUtils.doIHaveToKrint(request)) {
+            if (krint) {
                 krintShpeckService.writeOutboxMessage(outboxMessage, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_INVIO_NUOVA_MAIL);
             }
         } catch (EntityNotFoundException ex) {
@@ -368,11 +495,11 @@ public class ShpeckUtils {
      * Inserisce i tag alla mail originale passato in ingresso
      *
      * @param pec La pec che sta inviado la mail
-     * @param idMessageRelated Id del messaggio a cui si sta rispondendo o
-     * inoltrando
+     * @param idMessageRelated Id del messaggio a cui si sta rispondendo o inoltrando
      * @param messageRelatedType Tipo di relazione del messaggio relazionato
+     * @param krint
      */
-    public void setTagsToMessage(Pec pec, Integer idMessageRelated, MessageRelatedType messageRelatedType, HttpServletRequest request) {
+    public void setTagsToMessage(Pec pec, Integer idMessageRelated, MessageRelatedType messageRelatedType, Boolean krint) {
         LOG.info("Getting message...");
         Message messageRelated = messageRepository.getOne(idMessageRelated);
         Tag tag = new Tag();
@@ -403,7 +530,7 @@ public class ShpeckUtils {
             messageTag.setIdTag(tag);
             messageTag.setInserted(ZonedDateTime.now());
             messageTagRepository.save(messageTag);
-            if (KrintUtils.doIHaveToKrint(request)) {
+            if (krint) {
                 krintShpeckService.writeReplyToMessage(messageRelated, operazione);
             }
             LOG.info("Tag applied!");
