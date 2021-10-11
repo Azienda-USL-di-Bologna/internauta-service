@@ -32,10 +32,6 @@ public class FascicoloUtils {
     @Autowired
     PostgresConnectionManager postgresConnectionManager;
 
-    String QUERY_FIND_ID_FASCICOLO_BY_NAME_ILIKE = "select id_fascicolo "
-            + "from gd.fascicoligd "
-            + "where nome_fascicolo ilike '%%s%'; ";
-
     String QUERY_FIND_FASCICOLO_BY_NUMERAZIONE_GERARCHICA = "select * "
             + "from gd.fascicoligd "
             + "where numerazione_gerarchica = '%s'; ";
@@ -51,7 +47,7 @@ public class FascicoloUtils {
         return (Connection) dbConnection.open();
     }
 
-    private List queryAndFetcth(String queryString, Connection conn, Class classType) throws Exception {
+    private List queryAndFetcth(String queryString, Connection conn) throws Exception {
         List<Row> rows = null;
         log.info("Creating query object by:\n" + queryString);
         Query query = conn.createQuery(queryString);
@@ -59,16 +55,11 @@ public class FascicoloUtils {
         Table table = query.executeAndFetchTable();
         List<Map<String, Object>> asList = table.asList();
         if (asList != null) {
-            rows = table.rows();
             log.info("Found " + asList.toString());
         } else {
             log.info("No res found!");
         }
-        return rows;
-    }
-
-    private List queryAndFetcth(String queryString, Connection conn) throws Exception {
-        return queryAndFetcth(queryString, conn, Object.class);
+        return asList;
     }
 
     public String getIdFascicoloByPatternInName(Integer idAzienda, String patternLike) throws Exception {
@@ -76,29 +67,44 @@ public class FascicoloUtils {
         String query = "select id_fascicolo "
                 + "from gd.fascicoligd "
                 + "where nome_fascicolo like '%" + patternLike + "%';";
-        List result = (List<Row>) queryAndFetcth(query, connection);
-        Row r = (Row) result.get(0);
-        String idFascicolo = r.getString("id_fascicolo");
+        List result = (List<Map<String, Object>>) queryAndFetcth(query, connection);
+        Map map = (Map) result.get(0);
+        String idFascicolo = (String) map.get("id_fascicolo");
         log.info(idFascicolo);
         return idFascicolo;
+    }
+
+    public Map<String, Object> getIdFascicoloByPatternInNameAndIdFascicoloPadre(Integer idAzienda, String patternLike, String idFascicoloPadre) throws Exception {
+        Connection connection = getConnection(idAzienda);
+        String query = "select id_fascicolo "
+                + "from gd.fascicoligd "
+                + "where id_fascicolo_padre = '" + idFascicoloPadre + "'"
+                + "and nome_fascicolo like '%" + patternLike + "%';";
+        List result = (List<Map<String, Object>>) queryAndFetcth(query, connection);
+        Map fascicolo = (Map) result.get(0);
+        return fascicolo;
+    }
+
+    public Map<String, Object> getFascicoloByPatternInNameAndIdFascicoloPadre(Integer idAzienda, String patternLike, String idFascicoloPadre) throws Exception {
+        Connection connection = getConnection(idAzienda);
+        String query = "select * "
+                + "from gd.fascicoligd "
+                + "where id_fascicolo_padre = '" + idFascicoloPadre + "'"
+                + "and nome_fascicolo like '%" + patternLike + "%';";
+        List result = (List<Map<String, Object>>) queryAndFetcth(query, connection);
+        Map fascicolo = (Map) result.get(0);
+        return fascicolo;
     }
 
     public String getIdFascicoloByNumerazioneGerarchica(Integer idAzienda, String numerazioneGerarchica) throws Exception {
         String queryString = String.format(QUERY_FIND_ID_FASCICOLO_BY_NUMERAZIONE_GERARCHICA, numerazioneGerarchica);
         log.info(queryString);
         Connection conn = getConnection(idAzienda);
-        log.info(conn.toString());
-        List fascicoliIdsFound = (List<String>) queryAndFetcth(queryString, conn, String.class);
-        log.info("Found: " + fascicoliIdsFound.size());
-        return (String) fascicoliIdsFound.get(0);
+        List result = (List<Map<String, Object>>) queryAndFetcth(queryString, conn);
+        Map map = (Map) result.get(0);
+        String idFascicolo = (String) map.get("id_fascicolo");
+        log.info(idFascicolo);
+        return idFascicolo;
     }
 
-    public Fascicolo getFascicoloByNumerazioneGerarchica(Integer idAzienda, String numerazioneGerarchica) throws Exception {
-        String queryString = String.format(QUERY_FIND_FASCICOLO_BY_NUMERAZIONE_GERARCHICA, numerazioneGerarchica);
-        log.info(queryString);
-        Connection conn = getConnection(idAzienda);
-        List fascicoliFound = queryAndFetcth(queryString, conn, Fascicolo.class);
-        log.info("Found: " + fascicoliFound.size());
-        return (Fascicolo) fascicoliFound.get(0);
-    }
 }

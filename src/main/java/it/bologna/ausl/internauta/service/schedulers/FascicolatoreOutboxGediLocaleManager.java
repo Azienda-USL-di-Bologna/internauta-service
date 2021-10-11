@@ -65,4 +65,19 @@ public class FascicolatoreOutboxGediLocaleManager {
         worker.setScheduleObject(schedule);
     }
 
+    public void scheduleAutoFascicolazioneOutbox(Integer idOutbox,
+            Integer idAzienda,
+            String numerazioneGerarchica) throws Exception {
+        log.info("Chiamato scheduleAutoFascicolazioneOutbox");
+        log.info(String.format("Parametri:\n"
+                + "idOutbox %s \n"
+                + "numerazioneGerarchica %s",
+                idOutbox.toString(), numerazioneGerarchica));
+        FascicolatoreAutomaticoGediParams params = new FascicolatoreAutomaticoGediParams(idOutbox, idAzienda, null, null, numerazioneGerarchica);
+        FascicolatoreAutomaticoGediLocaleWorker worker = beanFactory.getBean(FascicolatoreAutomaticoGediLocaleWorker.class);
+        worker.setParams(params);
+        ScheduledFuture<?> schedule = scheduledThreadPoolExecutor.scheduleAtFixedRate(worker, initialDelay, period, TimeUnit.MILLISECONDS);
+        worker.setScheduleObject(schedule);
+    }
+
 }

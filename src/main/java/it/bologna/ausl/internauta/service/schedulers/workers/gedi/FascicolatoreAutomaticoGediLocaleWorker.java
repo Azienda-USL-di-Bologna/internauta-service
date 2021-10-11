@@ -48,12 +48,11 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
 
     private String getFascicolo() throws Exception {
         FascicoloUtils fascicoloUtils = beanFactory.getBean(FascicoloUtils.class);
-        String idFascicolo = null;
-        if (params.getNumerazioneGerarchica() != null) {
-            idFascicolo = fascicoloUtils.getIdFascicoloByNumerazioneGerarchica(params.getIdAzienda(), params.getNumerazioneGerarchica());
+        String idFascicolo = fascicoloUtils.getIdFascicoloByNumerazioneGerarchica(params.getIdAzienda(), params.getNumerazioneGerarchica());
+        if (idFascicolo != null) {
             log.info("Id found " + idFascicolo);
         } else {
-            idFascicolo = fascicoloUtils.getIdFascicoloByPatternInName(params.getIdAzienda(), params.getCf());
+            throw new Exception("Fascicolo destinazione non trovato: " + params.getNumerazioneGerarchica());
         }
         log.info("Fascicolo found " + idFascicolo);
         return idFascicolo;
