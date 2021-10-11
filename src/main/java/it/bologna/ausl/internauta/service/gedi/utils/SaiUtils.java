@@ -12,10 +12,10 @@ import org.springframework.stereotype.Component;
  * @author Salo
  */
 @Component
-public class GediUtils {
+public class SAIUtils {
 
     // fascicola pec
-    public String fascicolaPecSAI(Integer idOutbox,
+    public String fascicolaPec(Integer idOutbox,
             Integer idAzienda,
             String codiceFiscale,
             String mittente,
@@ -24,5 +24,5 @@ public class GediUtils {
     }
 
     // cerca fascicolo
-    // crea 
+    // crea fascicolo
 }
