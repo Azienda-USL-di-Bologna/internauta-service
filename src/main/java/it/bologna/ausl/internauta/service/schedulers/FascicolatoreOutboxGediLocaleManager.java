@@ -6,6 +6,7 @@
 package it.bologna.ausl.internauta.service.schedulers;
 
 import it.bologna.ausl.internauta.service.schedulers.workers.gedi.FascicolatoreAutomaticoGediLocaleWorker;
+import it.bologna.ausl.internauta.service.schedulers.workers.gedi.wrappers.FascicolatoreAutomaticoGediParams;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +58,9 @@ public class FascicolatoreOutboxGediLocaleManager {
                 + "mittente %s \n"
                 + "numerazioneGerarchica %s",
                 idOutbox.toString(), cf, mittente, numerazioneGerarchica));
+        FascicolatoreAutomaticoGediParams params = new FascicolatoreAutomaticoGediParams(idOutbox, idAzienda, cf, mittente, numerazioneGerarchica);
         FascicolatoreAutomaticoGediLocaleWorker worker = beanFactory.getBean(FascicolatoreAutomaticoGediLocaleWorker.class);
+        worker.setParams(params);
         ScheduledFuture<?> schedule = scheduledThreadPoolExecutor.scheduleAtFixedRate(worker, initialDelay, period, TimeUnit.MILLISECONDS);
         worker.setScheduleObject(schedule);
     }
