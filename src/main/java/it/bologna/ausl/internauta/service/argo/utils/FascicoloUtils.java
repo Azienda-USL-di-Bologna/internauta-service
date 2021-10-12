@@ -35,7 +35,7 @@ public class FascicoloUtils {
     private static final Logger log = LoggerFactory.getLogger(FascicoloUtils.class);
 
     @Autowired
-    PostgresConnectionManager postgresConnectionManager;
+    ArgoConnectionManager connectionManager;
 
     String QUERY_FIND_FASCICOLO_BY_NUMERAZIONE_GERARCHICA = "select * "
             + "from gd.fascicoligd "
@@ -50,10 +50,7 @@ public class FascicoloUtils {
             + "where numerazione_gerarchica = '%s'; ";
 
     private Connection getConnection(Integer idAzienda) throws Exception {
-        log.info("Retrieving connection for azienda id " + idAzienda);
-        Sql2o dbConnection = postgresConnectionManager.getDbConnection(idAzienda);
-        log.info("Returning open connection...");
-        return (Connection) dbConnection.open();
+        return connectionManager.getConnection(idAzienda);
     }
 
     private Integer getLastNumberFascicolo(Integer idAzienda, Integer anno, String idFascicoloPadre) throws Exception {

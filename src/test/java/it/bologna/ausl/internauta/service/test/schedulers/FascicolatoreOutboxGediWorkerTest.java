@@ -28,6 +28,7 @@ public class FascicolatoreOutboxGediWorkerTest {
 
     String cf, mittente, numerazioneGerarchica = null;
     Integer idAzienda = 2;
+    Integer idOutbox = 823;
 
     @Autowired
     FascicolatoreAutomaticoGediLocaleWorker worker;
@@ -39,7 +40,7 @@ public class FascicolatoreOutboxGediWorkerTest {
             mittente = "babel.test1@pec.ausl.bologna.it";
             cf = "SLMLNZ85C13A944M";
             numerazioneGerarchica = "56-1/2021";
-            FascicolatoreAutomaticoGediParams fascicolatoreAutomaticoGediParams = new FascicolatoreAutomaticoGediParams(1, idAzienda, cf, mittente, numerazioneGerarchica);
+            FascicolatoreAutomaticoGediParams fascicolatoreAutomaticoGediParams = new FascicolatoreAutomaticoGediParams(idOutbox, idAzienda, cf, mittente, numerazioneGerarchica);
             worker.setParams(fascicolatoreAutomaticoGediParams);
             worker.run();
 

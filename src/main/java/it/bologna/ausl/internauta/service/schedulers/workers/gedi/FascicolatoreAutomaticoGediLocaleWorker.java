@@ -7,7 +7,12 @@ package it.bologna.ausl.internauta.service.schedulers.workers.gedi;
 
 import it.bologna.ausl.internauta.service.argo.raccolta.Fascicolo;
 import it.bologna.ausl.internauta.service.argo.utils.FascicoloUtils;
+import it.bologna.ausl.internauta.service.argo.utils.GddocUtils;
+import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.gedi.wrappers.FascicolatoreAutomaticoGediParams;
+import it.bologna.ausl.model.entities.shpeck.Message;
+import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +34,12 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
 
     @Autowired
     private BeanFactory beanFactory;
+
+    @Autowired
+    MessageRepository messageRepository;
+
+    @Autowired
+    GddocUtils gddocUtils;
 
     private ScheduledFuture<?> scheduleObject;
 
@@ -52,10 +63,18 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
         if (idFascicolo != null) {
             log.info("Id found " + idFascicolo);
         } else {
-            throw new Exception("Fascicolo destinazione non trovato: " + params.getNumerazioneGerarchica());
+            throw new FascicoloNotFoundException("Fascicolo destinazione non trovato: " + params.getNumerazioneGerarchica());
         }
         log.info("Fascicolo found " + idFascicolo);
+
+        // creare gdddoc
+        // fascicolare gddoc
         return idFascicolo;
+    }
+
+    private String getOggettoMail() {
+        Message message = messageRepository.findByIdOutbox(params.getIdOutbox());
+        return message.getName();
     }
 
     @Override
@@ -65,6 +84,9 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
             log.info("Runno...");
             log.info("Params: " + params.toString());
             String idFascicolo = getFascicolo();
+            String nome = getOggettoMail();
+            Map<String, Object> gddoc = gddocUtils.createGddoc(params.getIdAzienda(), nome, null);
+
         } catch (Exception ex) {
             log.error(ex.toString());
             ex.printStackTrace();
