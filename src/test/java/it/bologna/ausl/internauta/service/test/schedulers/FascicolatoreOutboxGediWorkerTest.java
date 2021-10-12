@@ -38,7 +38,7 @@ public class FascicolatoreOutboxGediWorkerTest {
             log.info("Loggo");
             mittente = "babel.test1@pec.ausl.bologna.it";
             cf = "SLMLNZ85C13A944M";
-            //numerazioneGerarchica = "56/2021";
+            numerazioneGerarchica = "56-1/2021";
             FascicolatoreAutomaticoGediParams fascicolatoreAutomaticoGediParams = new FascicolatoreAutomaticoGediParams(1, idAzienda, cf, mittente, numerazioneGerarchica);
             worker.setParams(fascicolatoreAutomaticoGediParams);
             worker.run();
