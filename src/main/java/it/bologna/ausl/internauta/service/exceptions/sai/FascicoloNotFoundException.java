@@ -6,4 +6,8 @@ package it.bologna.ausl.internauta.service.exceptions.sai;
  */
 public class FascicoloNotFoundException extends SAIException {
 
+    public FascicoloNotFoundException(String message) {
+        super(message);
+    }
+
 }

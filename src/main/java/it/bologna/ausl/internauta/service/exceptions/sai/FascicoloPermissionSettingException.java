@@ -6,4 +6,8 @@ package it.bologna.ausl.internauta.service.exceptions.sai;
  */
 public class FascicoloPermissionSettingException extends SAIException {
 
+    public FascicoloPermissionSettingException(String message) {
+        super(message);
+    }
+
 }
