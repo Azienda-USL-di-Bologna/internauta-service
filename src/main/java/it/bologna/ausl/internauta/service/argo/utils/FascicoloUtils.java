@@ -185,8 +185,8 @@ public class FascicoloUtils {
     }
 
     public Map<String, Object> createFascicolo(Integer idAzienda, String nomeFascicolo, Map<String, Object> fascicoloPadre) throws Exception {
-        log.info("Creazione fascicolo del fascicolo  " + nomeFascicolo + " per azienda " + idAzienda);
-        log.info("Fascicolo padre " + fascicoloPadre.toString());
+        log.info("Creazione fascicolo del fascicolo " + nomeFascicolo + " per azienda " + idAzienda);
+        log.info("Fascicolo padre: " + fascicoloPadre != null ? fascicoloPadre.toString() : "NULL");
 
         log.info("Recupero un fascicolo per ciclarmi le chiavi");
         Map<String, Object> templateFascicoloObject = getGenericRowFromFascicoligd(idAzienda);

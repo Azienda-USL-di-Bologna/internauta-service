@@ -117,7 +117,7 @@ public class GddocUtils {
                 val = 0;
             } else {
 
-                // mancano tutti i campi in cui il gddoc potrebbe essere un fascicolo
+                // TODO mancano tutti i campi in cui il gddoc potrebbe essere un pg/dete/deli/registro
                 val = null;
             }
 

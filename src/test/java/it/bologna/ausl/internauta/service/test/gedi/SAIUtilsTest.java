@@ -18,8 +18,8 @@ import org.springframework.test.context.junit4.SpringRunner;
  *
  * @author Salo
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
+//@RunWith(SpringRunner.class)
+//@SpringBootTest
 public class SAIUtilsTest {
 
     private static final Logger log = LoggerFactory.getLogger(SAIUtilsTest.class);
@@ -30,9 +30,9 @@ public class SAIUtilsTest {
     Integer idOutbox, idAzienda;
     String codiceFiscale, mittente, numerazioneGerarchicaDelPadre = null;
 
-    @Test
+    //@Test
     public void testProtocollaPec() throws Exception {
-        idOutbox = 1;
+        idOutbox = 828;
         idAzienda = 2;
         mittente = "babel.test1@pec.ausl.bologna.it";
         //codiceFiscale = "SLMLNZ85C13A944M";

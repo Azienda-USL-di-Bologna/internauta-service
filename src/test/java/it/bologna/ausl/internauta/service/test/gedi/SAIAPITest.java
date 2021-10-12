@@ -32,9 +32,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 public class SAIAPITest {
-
+    
     private static final Logger log = LoggerFactory.getLogger(SAIAPITest.class);
-
+    
     public final String INTERNAUTA_BASE_URL = "http://localhost:10005";
     public final String SAI_SEND_AND_ARCHIVE_API_PATH = "internauta-api/resources/shpeck/send-and-archive-pec";
     public final String LOGIN_PATH = "internauta-api/login";
@@ -44,7 +44,7 @@ public class SAIAPITest {
     
     @Autowired
     public ObjectMapper objectMapper;
-
+    
     @Test
     public void testSendMailAndArchiveAPI() throws Exception {
         String senderAddress = "babel.test1@pec.ausl.bologna.it";
@@ -56,35 +56,36 @@ public class SAIAPITest {
         String token = getToken();
         
         RequestBody requestBody = new MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart("senderAddress", senderAddress)
-            .addFormDataPart("to", TO)
-//            .addFormDataPart("cc", CC)
-            .addFormDataPart("azienda", azienda)
-            .addFormDataPart("hideRecipients", "false")
-            .addFormDataPart("subject", "oggetto della mail SAI di test")
-            .addFormDataPart("body", "corpo della mail SAI di test")
-            .addFormDataPart("userCF", codiceFiscale)
-            //.addFormDataPart("fascicolo", numerazioneGerarchicaDelPadre)
-            .addFormDataPart("attachments", "Allegato-test-SAI.txt", RequestBody.create(MediaType.parse("application/octet-stream"), getFileBytes()))
-      .build();
-
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("senderAddress", senderAddress)
+                .addFormDataPart("to", TO)
+                //            .addFormDataPart("cc", CC)
+                .addFormDataPart("azienda", azienda)
+                .addFormDataPart("hideRecipients", "false")
+                .addFormDataPart("subject", "oggetto della mail SAI di test")
+                .addFormDataPart("body", "corpo della mail SAI di test")
+                .addFormDataPart("userCF", codiceFiscale)
+                .addFormDataPart("fascicolo", numerazioneGerarchicaDelPadre)
+                .addFormDataPart("attachments", "Allegato-test-SAI.txt", RequestBody.create(MediaType.parse("application/octet-stream"), getFileBytes()))
+                .build();
+        
         Request request = new Request.Builder()
-            .url(INTERNAUTA_BASE_URL + "/" + SAI_SEND_AND_ARCHIVE_API_PATH)
-            .addHeader("Authorization", "Bearer " + token)
-            .addHeader("application", "sai")
-            .post(requestBody)
-            .build();
-
+                .url(INTERNAUTA_BASE_URL + "/" + SAI_SEND_AND_ARCHIVE_API_PATH)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("application", "sai")
+                .post(requestBody)
+                .build();
+        
         OkHttpClient client = new OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .build();
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build();
         Call call = client.newCall(request);
         Response response = call.execute();
-
+        
         Assert.assertEquals("mi aspetto un http ok (200)", 200, response.code());
+        Thread.sleep(80000);
     }
     
     private String getToken() throws JsonProcessingException, IOException {
@@ -94,18 +95,19 @@ public class SAIAPITest {
         params.put("application", "sai");
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json"), objectMapper.writeValueAsString(params));
         Request request = new Request.Builder()
-            .url(INTERNAUTA_BASE_URL + "/" + LOGIN_PATH)
-            .post(requestBody)
-            .build();
-
+                .url(INTERNAUTA_BASE_URL + "/" + LOGIN_PATH)
+                .post(requestBody)
+                .build();
+        
         OkHttpClient client = new OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .build();
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build();
         Call call = client.newCall(request);
         Response response = call.execute();
-        Map<String, Object> res = objectMapper.readValue(response.body().string(), new TypeReference<Map<String, Object>>(){});
+        Map<String, Object> res = objectMapper.readValue(response.body().string(), new TypeReference<Map<String, Object>>() {
+        });
         String token = (String) res.get("token");
         System.out.println("token:" + token);
         return token;
@@ -116,5 +118,5 @@ public class SAIAPITest {
         InputStream is = classloader.getResourceAsStream("test/sai/Allegato-test-SAI.txt");
         return IOUtils.toByteArray(is);
     }
-
+    
 }

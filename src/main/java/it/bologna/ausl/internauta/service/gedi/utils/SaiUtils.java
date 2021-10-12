@@ -46,7 +46,7 @@ public class SAIUtils {
                 throw new FascicoloNotFoundException("Impossibile trovare il fascicolo " + numerazioneGerarchicaDelPadre);
             }
         } else {
-            // cerca il fascicolo padre nei parametri aziendali
+            log.info("FASCICOLAZIONE GERARCHICA DEL PADRE NON PRESENTE");
         }
         log.info("id fascicolo padre " + idFascicoloPadre);
 

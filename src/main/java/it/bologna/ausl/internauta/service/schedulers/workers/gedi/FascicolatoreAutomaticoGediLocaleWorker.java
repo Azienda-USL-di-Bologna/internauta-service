@@ -6,13 +6,17 @@
 package it.bologna.ausl.internauta.service.schedulers.workers.gedi;
 
 import it.bologna.ausl.internauta.service.argo.raccolta.Fascicolo;
+import it.bologna.ausl.internauta.service.argo.utils.FascicoloGddocUtils;
 import it.bologna.ausl.internauta.service.argo.utils.FascicoloUtils;
 import it.bologna.ausl.internauta.service.argo.utils.GddocUtils;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.gedi.wrappers.FascicolatoreAutomaticoGediParams;
 import it.bologna.ausl.model.entities.shpeck.Message;
+import it.bologna.ausl.model.entities.shpeck.Outbox;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,73 +33,84 @@ import org.springframework.stereotype.Component;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
-
+    
     private static final Logger log = LoggerFactory.getLogger(FascicolatoreAutomaticoGediLocaleWorker.class);
-
+    
     @Autowired
     private BeanFactory beanFactory;
-
+    
     @Autowired
     MessageRepository messageRepository;
-
+    
+    @Autowired
+    OutboxRepository outboxRepository;
+    
     @Autowired
     GddocUtils gddocUtils;
-
+    @Autowired
+    FascicoloGddocUtils fascicoloGddocUtils;
+    
     private ScheduledFuture<?> scheduleObject;
-
+    
     private FascicolatoreAutomaticoGediParams params;
-
+    
     public void setScheduleObject(ScheduledFuture<?> schedule) {
         this.scheduleObject = schedule;
     }
-
+    
     public FascicolatoreAutomaticoGediParams getParams() {
         return params;
     }
-
+    
     public void setParams(FascicolatoreAutomaticoGediParams params) {
         this.params = params;
     }
-
-    private String getFascicolo() throws Exception {
+    
+    private Map<String, Object> getFascicolo() throws Exception {
         FascicoloUtils fascicoloUtils = beanFactory.getBean(FascicoloUtils.class);
-        String idFascicolo = fascicoloUtils.getIdFascicoloByNumerazioneGerarchica(params.getIdAzienda(), params.getNumerazioneGerarchica());
-        if (idFascicolo != null) {
-            log.info("Id found " + idFascicolo);
+        Map<String, Object> fascicolo = fascicoloUtils.getFascicoloByNumerazioneGerarchica(params.getIdAzienda(), params.getNumerazioneGerarchica());
+        if (fascicolo != null) {
+            log.info("Id found " + fascicolo);
         } else {
             throw new FascicoloNotFoundException("Fascicolo destinazione non trovato: " + params.getNumerazioneGerarchica());
         }
-        log.info("Fascicolo found " + idFascicolo);
-
-        // creare gdddoc
-        // fascicolare gddoc
-        return idFascicolo;
+        log.info("Fascicolo found " + fascicolo.toString());
+        return fascicolo;
     }
-
+    
     private String getOggettoMail() {
         Message message = messageRepository.findByIdOutbox(params.getIdOutbox());
         return message.getName();
     }
-
+    
+    private boolean isOutboxSent() {
+        Outbox outbox = outboxRepository.findById(params.getIdOutbox()).get();
+        return outbox.getIgnore();
+        
+    }
+    
     @Override
     public void run() {
         try {
-
+            
             log.info("Runno...");
             log.info("Params: " + params.toString());
-            String idFascicolo = getFascicolo();
-            String nome = getOggettoMail();
-            Map<String, Object> gddoc = gddocUtils.createGddoc(params.getIdAzienda(), nome, null);
-
+            
+            if (isOutboxSent()) {
+                Map<String, Object> fascicolo = getFascicolo();
+                String nome = getOggettoMail();
+                Map<String, Object> gddoc = gddocUtils.createGddoc(params.getIdAzienda(), nome, null);
+                fascicoloGddocUtils.fascicolaGddoc(params.getIdAzienda(), gddoc, fascicolo);
+                if (scheduleObject != null) {
+                    log.info("Setto cancel true");
+                    scheduleObject.cancel(true);
+                }
+            }
+            
         } catch (Exception ex) {
             log.error(ex.toString());
             ex.printStackTrace();
-        } finally {
-            if (scheduleObject != null) {
-                log.info("Setto cancel true");
-                scheduleObject.cancel(true);
-            }
         }
     }
-
+    
 }

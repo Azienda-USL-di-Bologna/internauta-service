@@ -72,7 +72,6 @@ public class SAIController implements ControllerHandledExceptions {
     @Autowired
     private CachedEntities cachedEntities;
 
-
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"send-and-archive-pec", "sendAndArchivePec"}, method = RequestMethod.POST)
     public String sendAndArchiveMail(
@@ -88,7 +87,7 @@ public class SAIController implements ControllerHandledExceptions {
             @RequestParam(name = "fascicolo", required = false) String fascicolo,
             @RequestParam(name = "azienda", required = true) String azienda
     ) throws Http500ResponseException, Http400ResponseException, Http403ResponseException {
-        
+
         Boolean doIHaveToKrint = false;
         String hostname;
         try {
@@ -96,7 +95,7 @@ public class SAIController implements ControllerHandledExceptions {
         } catch (Exception e) {
             LOG.warn("errore nel reperimento dell'hostname");
         }
-        
+
         AuthenticatedSessionData authenticatedUserProperties = null;
         Utente user;
         Persona person;
@@ -114,16 +113,16 @@ public class SAIController implements ControllerHandledExceptions {
         } catch (Exception e) {
             throw new Http500ResponseException("500-002", "errore nel reperimento dell'azienda");
         }
-        if (aziendaObj== null) {
+        if (aziendaObj == null) {
             throw new Http400ResponseException("400-001", String.format("l'azienda %s non è presente in babel", azienda));
         }
-    
+
         Optional<Pec> pecOp = pecRepository.findOne(QPec.pec.indirizzo.eq(senderAddress).and(QPec.pec.attiva.eq(true)));
         if (!pecOp.isPresent()) {
             throw new Http400ResponseException("400-002", String.format("la casella con indirizzo %s non è presente in babel oppure non è attiva", senderAddress));
         }
         Pec pec = pecOp.get();
-        
+
         Draft draft = new Draft();
         try {
             draft.setIdPec(pec);
@@ -131,7 +130,7 @@ public class SAIController implements ControllerHandledExceptions {
         } catch (Exception e) {
             throw new Http500ResponseException("500-003", "errore nella creazione della bozza per l'invio della mail");
         }
-        
+
         Integer idOutBox;
         try {
             idOutBox = shpeckUtils.BuildAndSendMailMessage(
@@ -155,16 +154,16 @@ public class SAIController implements ControllerHandledExceptions {
         } catch (Http500ResponseException ex) {
             throw ex;
         } catch (BlackBoxPermissionException ex) {
-            throw new Http403ResponseException("403-001", String.format("l'utente %s non ha il permesso di invio sulla casella %s", person.getDescrizione(), senderAddress), ex); 
+            throw new Http403ResponseException("403-001", String.format("l'utente %s non ha il permesso di invio sulla casella %s", person.getDescrizione(), senderAddress), ex);
         } catch (Http403ResponseException ex) {
             throw new Http500ResponseException("500-005", "Errore nel calcolo dei permessi", ex);
         } catch (Exception ex) {
             throw new Http500ResponseException("500-006", "Errore non previsto nell'invio della mail", ex);
         }
-        
+
         String numerazioneGerarchica = null;
         try {
-            numerazioneGerarchica = saiUtils.fascicolaPec(idOutBox, aziendaObj.getId(), userCF, senderAddress, null);
+            numerazioneGerarchica = saiUtils.fascicolaPec(idOutBox, aziendaObj.getId(), userCF, senderAddress, fascicolo);
         } catch (FascicolazioneGddocException ex) {
             throw new Http500ResponseException("500-007", "Il sottofacicolo è stato creato, ma c'è stato un errore nella fascicolazione della mail", ex);
         } catch (FascicoloNotFoundException ex) {
@@ -180,7 +179,7 @@ public class SAIController implements ControllerHandledExceptions {
         } catch (Exception ex) {
             throw new Http500ResponseException("500-010", "Errore non previsto nella fascicolazione della mail", ex);
         }
-        
+
         return numerazioneGerarchica;
     }
 

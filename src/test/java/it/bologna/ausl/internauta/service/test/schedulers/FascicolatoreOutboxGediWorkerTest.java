@@ -20,8 +20,8 @@ import org.springframework.test.context.junit4.SpringRunner;
  *
  * @author Salo
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
+//@RunWith(SpringRunner.class)
+//@SpringBootTest
 public class FascicolatoreOutboxGediWorkerTest {
 
     private static final Logger log = LoggerFactory.getLogger(FascicolatoreOutboxGediWorkerTest.class);
@@ -33,7 +33,7 @@ public class FascicolatoreOutboxGediWorkerTest {
     @Autowired
     FascicolatoreAutomaticoGediLocaleWorker worker;
 
-    @Test
+    //@Test
     public void testaScheduleAutoFascicolazioneOutbox() throws Exception {
         try {
             log.info("Loggo");

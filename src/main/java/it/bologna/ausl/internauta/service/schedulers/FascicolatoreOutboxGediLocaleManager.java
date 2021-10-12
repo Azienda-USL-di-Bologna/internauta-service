@@ -32,7 +32,7 @@ public class FascicolatoreOutboxGediLocaleManager {
     private BeanFactory beanFactory;
 
     private long initialDelay = 10;
-    private long period = 10000;
+    private long period = 30000;
 
     /**
      * Schedula un thread internauta per la fascicolazione automatica di un

@@ -1,0 +1,48 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package it.bologna.ausl.internauta.service.argo.utils;
+
+import java.util.Date;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.sql2o.Connection;
+import org.sql2o.Query;
+
+/**
+ *
+ * @author Salo
+ */
+@Component
+public class FascicoloGddocUtils {
+
+    @Autowired
+    ArgoConnectionManager argoConnectionManager;
+
+    public void fascicolaGddoc(Integer idAzienda, Map<String, Object> gddoc, Map<String, Object> fascicolo) throws Exception {
+        String idFascicoloGddoc = IndeUtils.generateIndeID();
+        String idFascicolo = (String) fascicolo.get("id_fascicolo");
+        String idGddoc = (String) gddoc.get("id_gddoc");
+        String idUtenteCreazione = (String) fascicolo.get("id_utente_creazione");
+        Date dataCreazione = new Date();
+        String queryInsert = "insert into gd.fascicoli_gddocs"
+                + "(id_fascicolo_gddoc, id_fascicolo, id_gddoc, "
+                + "id_utente_fascicolatore, data_assegnazione, visibile)"
+                + "VALUES"
+                + "(:idFascicoloGddoc, :idFascicolo, :idGddoc, "
+                + ":idUtenteCreazione, :dataCreazione, -1);";
+        try (Connection conn = argoConnectionManager.getConnection(idAzienda)) {
+            Query createQuery = conn.createQuery(queryInsert)
+                    .addParameter("idFascicoloGddoc", idFascicoloGddoc)
+                    .addParameter("idFascicolo", idFascicolo)
+                    .addParameter("idGddoc", idGddoc)
+                    .addParameter("idUtenteCreazione", idUtenteCreazione)
+                    .addParameter("dataCreazione", dataCreazione);
+            createQuery.executeUpdate();
+        }
+    }
+
+}
