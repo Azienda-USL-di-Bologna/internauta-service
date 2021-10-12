@@ -52,8 +52,9 @@ public class SAIAPITest {
         String senderAddress = "babel.test1@pec.ausl.bologna.it";
         String azienda = "AUSLBO";
         String to = "g.demarco@ausl.bologna.it";
+        String cc = "giuseppe.demarco@nextsw.it";
         //codiceFiscale = "SLMLNZ85C13A944M";
-        codiceFiscale = "SLMLNZ00C13A944M";
+        String codiceFiscale = "SLMLNZ00C13A944M";
         String numerazioneGerarchicaDelPadre = "56/2021";
         
         String token = getToken();
