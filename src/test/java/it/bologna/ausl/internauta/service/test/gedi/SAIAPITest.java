@@ -39,7 +39,7 @@ public class SAIAPITest {
     public final String SAI_SEND_AND_ARCHIVE_API_PATH = "internauta-api/resources/shpeck/send-and-archive-pec";
     public final String LOGIN_PATH = "internauta-api/login";
     
-    private final String TO = "g.demarco@ausl.bologna.it";
+    private final String TO = "babel.test2@pec.ausl.bologna.it";
     private final String CC = "giuseppe.demarco@nextsw.it";
     
     @Autowired
@@ -77,15 +77,15 @@ public class SAIAPITest {
                 .build();
         
         OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
+                .connectTimeout(300, TimeUnit.SECONDS)
+                .writeTimeout(300, TimeUnit.SECONDS)
+                .readTimeout(300, TimeUnit.SECONDS)
                 .build();
         Call call = client.newCall(request);
         Response response = call.execute();
         
         Assert.assertEquals("mi aspetto un http ok (200)", 200, response.code());
-        Thread.sleep(80000);
+        Thread.sleep(800000);
     }
     
     private String getToken() throws JsonProcessingException, IOException {
@@ -100,9 +100,9 @@ public class SAIAPITest {
                 .build();
         
         OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
+                .connectTimeout(300, TimeUnit.SECONDS)
+                .writeTimeout(300, TimeUnit.SECONDS)
+                .readTimeout(300, TimeUnit.SECONDS)
                 .build();
         Call call = client.newCall(request);
         Response response = call.execute();

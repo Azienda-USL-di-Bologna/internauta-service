@@ -31,7 +31,7 @@ import org.springframework.stereotype.Component;
  * @author Salo
  */
 @Component
-@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+// @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
     
     private static final Logger log = LoggerFactory.getLogger(FascicolatoreAutomaticoGediLocaleWorker.class);
@@ -40,15 +40,16 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
     private BeanFactory beanFactory;
     
     @Autowired
-    MessageRepository messageRepository;
+    private MessageRepository messageRepository;
     
     @Autowired
-    OutboxRepository outboxRepository;
+    private OutboxRepository outboxRepository;
     
     @Autowired
-    GddocUtils gddocUtils;
+    private GddocUtils gddocUtils;
+    
     @Autowired
-    FascicoloGddocUtils fascicoloGddocUtils;
+    private FascicoloGddocUtils fascicoloGddocUtils;
     
     private ScheduledFuture<?> scheduleObject;
     

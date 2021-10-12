@@ -1,11 +1,5 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.argo.utils;
 
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +20,10 @@ public class GddocUtils {
 
     private static final Logger log = LoggerFactory.getLogger(GddocUtils.class);
 
-    IndeUtils indeUtils;
+    private IndeUtils indeUtils;
 
     @Autowired
-    ArgoConnectionManager connectionManager;
+    private ArgoConnectionManager connectionManager;
 
     public Map<String, Object> getGddocByIdGddoc(Integer idAzienda, String idGddoc) throws Exception {
         String query = String.format("select * from gd.gddocs where id_gddoc = '%s'", idGddoc);

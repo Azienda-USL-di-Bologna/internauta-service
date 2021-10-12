@@ -72,7 +72,7 @@ public class SAIController implements ControllerHandledExceptions {
     @Autowired
     private CachedEntities cachedEntities;
 
-    @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
+    // @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"send-and-archive-pec", "sendAndArchivePec"}, method = RequestMethod.POST)
     public String sendAndArchiveMail(
             HttpServletRequest request,
@@ -165,18 +165,25 @@ public class SAIController implements ControllerHandledExceptions {
         try {
             numerazioneGerarchica = saiUtils.fascicolaPec(idOutBox, aziendaObj.getId(), userCF, senderAddress, fascicolo);
         } catch (FascicolazioneGddocException ex) {
+            LOG.error("errore fascicolazione 500-007", ex);
             throw new Http500ResponseException("500-007", "Il sottofacicolo è stato creato, ma c'è stato un errore nella fascicolazione della mail", ex);
         } catch (FascicoloNotFoundException ex) {
+            LOG.error("errore fascicolazione 400-003", ex);
             throw new Http400ResponseException("400-003", "Il fascicolo padre in cui fascicolare non è stato trovato", ex);
         } catch (FascicoloPadreNotDefinedException ex) {
+            LOG.error("errore fascicolazione 500-006", ex);
             throw new Http500ResponseException("500-006", "Il fascicolo padre in cui fascicolare non è definito in Babel", ex);
         } catch (FascicoloPermissionSettingException ex) {
+            LOG.error("errore fascicolazione 500-007", ex);
             throw new Http500ResponseException("500-007", "Errore nell'attribuzione dei permessi al fascicolo", ex);
         } catch (GddocCreationException ex) {
+            LOG.error("errore fascicolazione 500-008", ex);
             throw new Http500ResponseException("500-008", "Il sottofacicolo è stato creato, ma c'è stato un errore nella creazione del documento da fascicolare", ex);
         } catch (SubFascicoloCreationException ex) {
+            LOG.error("errore fascicolazione 500-009", ex);
             throw new Http500ResponseException("500-009", "Errore nella creazione del sottofascicolo", ex);
         } catch (Exception ex) {
+            LOG.error("errore fascicolazione 500-010", ex);
             throw new Http500ResponseException("500-010", "Errore non previsto nella fascicolazione della mail", ex);
         }
 
