@@ -6,4 +6,8 @@ package it.bologna.ausl.internauta.service.exceptions.sai;
  */
 public class SubFascicoloCreationException extends SAIException {
 
+    public SubFascicoloCreationException(String message) {
+        super(message);
+    }
+
 }

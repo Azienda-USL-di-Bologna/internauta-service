@@ -6,6 +6,7 @@
 package it.bologna.ausl.internauta.service.gedi.utils;
 
 import it.bologna.ausl.internauta.service.argo.utils.FascicoloUtils;
+import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -36,8 +37,14 @@ public class SAIUtils {
             String numerazioneGerarchicaDelPadre) throws Exception {
         String idFascicoloPadre = null;
         log.info("Cerco il fascicolo padre");
+        Map<String, Object> fascicoloPadre = null;
         if (numerazioneGerarchicaDelPadre != null) {
-            idFascicoloPadre = fascicoloUtils.getIdFascicoloByNumerazioneGerarchica(idAzienda, numerazioneGerarchicaDelPadre);
+            fascicoloPadre = fascicoloUtils.getFascicoloByNumerazioneGerarchica(idAzienda, numerazioneGerarchicaDelPadre);
+            if (fascicoloPadre != null) {
+                idFascicoloPadre = (String) fascicoloPadre.get("id_fascicolo");
+            } else {
+                throw new FascicoloNotFoundException("Impossibile trovare il fascicolo " + numerazioneGerarchicaDelPadre);
+            }
         } else {
             // cerca il fascicolo padre nei parametri aziendali
         }
@@ -47,10 +54,10 @@ public class SAIUtils {
         Map<String, Object> fascicoloDestinazione = fascicoloUtils.getFascicoloByPatternInNameAndIdFascicoloPadre(idAzienda, codiceFiscale, idFascicoloPadre);
         if (fascicoloDestinazione != null) {
             log.info("fascicolo destinazione: " + fascicoloDestinazione.toString());
-
         } else {
             log.info("Not found fascicolo destinazione: va creato");
-            // crea il fascicolo
+            String nomeFascicoloTemplate = "Sottofascicolo SAI di " + codiceFiscale;
+            fascicoloDestinazione = createFascicoloDestinazione(idAzienda, nomeFascicoloTemplate, fascicoloPadre);
             // fascicoloDestinazione = ....
         }
 
@@ -61,6 +68,9 @@ public class SAIUtils {
 
     }
 
-    // cerca fascicolo
+    private Map<String, Object> createFascicoloDestinazione(Integer idAzienda, String codiceFiscale, Map<String, Object> fascicoloPadre) throws Exception {
+        log.info("Creo fascicolo destinazione");
+        return fascicoloUtils.createFascicolo(idAzienda, codiceFiscale, fascicoloPadre);
+    }
     // crea fascicolo
 }

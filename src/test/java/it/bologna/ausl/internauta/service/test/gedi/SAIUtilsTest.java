@@ -35,7 +35,8 @@ public class SAIUtilsTest {
         idOutbox = 1;
         idAzienda = 2;
         mittente = "babel.test1@pec.ausl.bologna.it";
-        codiceFiscale = "SLMLNZ85C13A944M";
+        //codiceFiscale = "SLMLNZ85C13A944M";
+        codiceFiscale = "SLMLNZ00C13A944M";
         numerazioneGerarchicaDelPadre = "56/2021";
         saiUtils.fascicolaPec(idOutbox, idAzienda, codiceFiscale, mittente, numerazioneGerarchicaDelPadre);
     }

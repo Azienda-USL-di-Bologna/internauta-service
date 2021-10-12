@@ -11,4 +11,8 @@ package it.bologna.ausl.internauta.service.exceptions.sai;
  */
 public abstract class SAIException extends Exception {
 
+    public SAIException(String message) {
+        super(message);
+    }
+
 }
