@@ -7,7 +7,6 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerResult;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
@@ -17,6 +16,12 @@ import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseExcepti
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.sai.FascicolazioneGddocException;
+import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
+import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloPadreNotDefinedException;
+import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloPermissionSettingException;
+import it.bologna.ausl.internauta.service.exceptions.sai.GddocCreationException;
+import it.bologna.ausl.internauta.service.exceptions.sai.SubFascicoloCreationException;
 import it.bologna.ausl.internauta.service.gedi.utils.SAIUtils;
 import it.bologna.ausl.internauta.service.interceptors.shpeck.MessageTagInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
@@ -64,7 +69,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -72,7 +76,6 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
 import javax.mail.MessagingException;
 import javax.mail.internet.AddressException;
-import javax.mail.internet.MimeMessage;
 import javax.persistence.EntityNotFoundException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -99,7 +102,6 @@ import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistr
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.QPec;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
-import it.bologna.ausl.model.entities.shpeck.Outbox;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
@@ -107,7 +109,6 @@ import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
-import java.util.logging.Level;
 import org.json.JSONArray;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -938,6 +939,18 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         String numerazioneGerarchica = null;
         try {
             numerazioneGerarchica = saiUtils.fascicolaPec(idOutBox, aziendaObj.getId(), userCF, senderAddress, null);
+        } catch (FascicolazioneGddocException ex) {
+            
+        } catch (FascicoloNotFoundException ex) {
+            
+        } catch (FascicoloPadreNotDefinedException ex) {
+            
+        } catch (FascicoloPermissionSettingException ex) {
+            
+        } catch (GddocCreationException ex) {
+            
+        } catch (SubFascicoloCreationException ex) {
+            
         } catch (Exception e) {
             //TODO: gestione eccezioni
         }
