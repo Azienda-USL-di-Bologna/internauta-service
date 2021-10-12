@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.test.gedi;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -44,6 +39,9 @@ public class SAIAPITest {
     public final String SAI_SEND_AND_ARCHIVE_API_PATH = "internauta-api/resources/shpeck/send-and-archive-pec";
     public final String LOGIN_PATH = "internauta-api/login";
     
+    private final String TO = "g.demarco@ausl.bologna.it";
+    private final String CC = "giuseppe.demarco@nextsw.it";
+    
     @Autowired
     public ObjectMapper objectMapper;
 
@@ -51,8 +49,6 @@ public class SAIAPITest {
     public void testSendMailAndArchiveAPI() throws Exception {
         String senderAddress = "babel.test1@pec.ausl.bologna.it";
         String azienda = "AUSLBO";
-        String to = "g.demarco@ausl.bologna.it";
-        String cc = "giuseppe.demarco@nextsw.it";
         //codiceFiscale = "SLMLNZ85C13A944M";
         String codiceFiscale = "SLMLNZ00C13A944M";
         String numerazioneGerarchicaDelPadre = "56/2021";
@@ -62,8 +58,8 @@ public class SAIAPITest {
         RequestBody requestBody = new MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("senderAddress", senderAddress)
-            .addFormDataPart("to", to)
-            .addFormDataPart("cc", cc)
+            .addFormDataPart("to", TO)
+//            .addFormDataPart("cc", CC)
             .addFormDataPart("azienda", azienda)
             .addFormDataPart("hideRecipients", "false")
             .addFormDataPart("subject", "oggetto della mail SAI di test")
