@@ -21,7 +21,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Amb
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Predicati;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
-import it.bologna.ausl.internauta.service.utils.ParametriAziende;
+import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.QStruttura;
@@ -78,7 +78,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
     StrutturaRepository strutturaRepository;
 
     @Autowired
-    ParametriAziende parametriAziende;
+    ParametriAziendeReader parametriAziende;
 
     @Autowired
     UserInfoService userInfoService;
