@@ -29,8 +29,8 @@ import org.springframework.test.context.junit4.SpringRunner;
  *
  * @author gdm
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+//@RunWith(SpringRunner.class)
+//@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 public class SAIAPITest {
 
     private static final Logger log = LoggerFactory.getLogger(SAIAPITest.class);
@@ -45,7 +45,7 @@ public class SAIAPITest {
     @Autowired
     public ObjectMapper objectMapper;
 
-    @Test
+//    @Test
     public void testSendMailAndArchiveAPI() throws Exception {
         String senderAddress = "babel.test1@pec.ausl.bologna.it";
         String azienda = "AUSLBO";
@@ -85,7 +85,7 @@ public class SAIAPITest {
         Response response = call.execute();
 
         Assert.assertEquals("mi aspetto un http ok (200)", 200, response.code());
-        //Thread.sleep(800000);
+        Thread.sleep(800000);
     }
 
     private String getToken() throws JsonProcessingException, IOException {
