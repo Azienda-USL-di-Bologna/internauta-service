@@ -9,6 +9,7 @@ import it.bologna.ausl.internauta.service.argo.raccolta.Fascicolo;
 import it.bologna.ausl.internauta.service.argo.utils.FascicoloGddocUtils;
 import it.bologna.ausl.internauta.service.argo.utils.FascicoloUtils;
 import it.bologna.ausl.internauta.service.argo.utils.GddocUtils;
+import it.bologna.ausl.internauta.service.exceptions.FascicolatoreAutomaticoGediLocaleWorkerException;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxRepository;
@@ -18,6 +19,7 @@ import it.bologna.ausl.model.entities.shpeck.Outbox;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
+import org.apache.log4j.lf5.LogLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -33,40 +35,40 @@ import org.springframework.stereotype.Component;
 @Component
 // @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
-    
+
     private static final Logger log = LoggerFactory.getLogger(FascicolatoreAutomaticoGediLocaleWorker.class);
-    
+
     @Autowired
     private BeanFactory beanFactory;
-    
+
     @Autowired
     private MessageRepository messageRepository;
-    
+
     @Autowired
     private OutboxRepository outboxRepository;
-    
+
     @Autowired
     private GddocUtils gddocUtils;
-    
+
     @Autowired
     private FascicoloGddocUtils fascicoloGddocUtils;
-    
+
     private ScheduledFuture<?> scheduleObject;
-    
+
     private FascicolatoreAutomaticoGediParams params;
-    
+
     public void setScheduleObject(ScheduledFuture<?> schedule) {
         this.scheduleObject = schedule;
     }
-    
+
     public FascicolatoreAutomaticoGediParams getParams() {
         return params;
     }
-    
+
     public void setParams(FascicolatoreAutomaticoGediParams params) {
         this.params = params;
     }
-    
+
     private Map<String, Object> getFascicolo() throws Exception {
         FascicoloUtils fascicoloUtils = beanFactory.getBean(FascicoloUtils.class);
         Map<String, Object> fascicolo = fascicoloUtils.getFascicoloByNumerazioneGerarchica(params.getIdAzienda(), params.getNumerazioneGerarchica());
@@ -78,25 +80,36 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
         log.info("Fascicolo found " + fascicolo.toString());
         return fascicolo;
     }
-    
-    private String getOggettoMail() {
-        Message message = messageRepository.findByIdOutbox(params.getIdOutbox());
+
+    private String getOggettoMail() throws Exception {
+        Message message = null;
+        try {
+            message = messageRepository.findByIdOutbox(params.getIdOutbox());
+        } catch (Exception e) {
+            throw new Exception("Errore nel recuperare oggetto del Message con id_outbox " + params.getIdOutbox(), e);
+        }
+
         return message.getName();
     }
-    
-    private boolean isOutboxSent() {
-        Outbox outbox = outboxRepository.findById(params.getIdOutbox()).get();
+
+    private boolean isOutboxSent() throws Exception {
+        Outbox outbox = null;
+        try {
+            outbox = outboxRepository.findById(params.getIdOutbox()).get();
+        } catch (Exception e) {
+            throw new Exception("Errore nel recuperare l'outbox con id " + params.getIdOutbox(), e);
+        }
         return outbox.getIgnore();
-        
+
     }
-    
+
     @Override
     public void run() {
         try {
-            
+
             log.info("Runno...");
             log.info("Params: " + params.toString());
-            
+
             if (isOutboxSent()) {
                 Map<String, Object> fascicolo = getFascicolo();
                 String nome = getOggettoMail();
@@ -108,11 +121,11 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
                     scheduleObject.cancel(true);
                 }
             }
-            
+
         } catch (Exception ex) {
-            log.error(ex.toString());
-            ex.printStackTrace();
+            log.error("Errore imprevisto durante l'esecuzione del mestiere "
+                    + "di fascicolazione automatica; params\n:" + params.toString(), ex);
         }
     }
-    
+
 }
