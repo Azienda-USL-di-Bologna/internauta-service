@@ -1,5 +1,8 @@
-package it.bologna.ausl.internauta.service.argo.utils;
+package it.bologna.ausl.internauta.service.argo.utils.gd;
 
+import it.bologna.ausl.internauta.service.argo.utils.ArgoConnectionManager;
+import it.bologna.ausl.internauta.service.argo.utils.IndeUtils;
+import it.bologna.ausl.internauta.service.exceptions.sai.GddocCreationException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +40,12 @@ public class GddocUtils {
     }
 
     private Map<String, Object> getGenericRowFromGddoc(Integer idAzienda) throws Exception {
-        Connection connection = getConnection(idAzienda);
-        List result = (List<Map<String, Object>>) connectionManager.queryAndFetcth("select * from gd.gddocs limit 1;", connection);
+        List result = null;
+        try (Connection connection = getConnection(idAzienda)) {
+            result = (List<Map<String, Object>>) connectionManager.queryAndFetcth("select * from gd.gddocs limit 1;", connection);
+        } catch (Throwable t) {
+            throw new Exception("Errore nel reperire un gddoc", t);
+        }
         return result != null && result.size() > 0 ? (Map) result.get(0) : null;
     }
 
@@ -78,48 +85,50 @@ public class GddocUtils {
         String insertQueryTemplateByGddoc = getInsertQueryTemplateByGddoc(genericRowFromGddoc);
 
         log.info("Genero una connessione...");
-        Connection connection = getConnection(idAzienda);
-        log.info("Genero la query da oggetto connection");
-        Query createQuery = connection.createQuery(insertQueryTemplateByGddoc);
-        log.info("Ciclo le chiavi (" + genericRowFromGddoc.entrySet().size() + ")");
+        try (Connection connection = getConnection(idAzienda)) {
+            log.info("Genero la query da oggetto connection");
+            Query createQuery = connection.createQuery(insertQueryTemplateByGddoc);
+            log.info("Ciclo le chiavi (" + genericRowFromGddoc.entrySet().size() + ")");
 
-        for (Map.Entry<String, Object> entry : genericRowFromGddoc.entrySet()) {
-            String key = entry.getKey();
-            Object val = entry.getValue();
+            for (Map.Entry<String, Object> entry : genericRowFromGddoc.entrySet()) {
+                String key = entry.getKey();
+                Object val = entry.getValue();
 
-            if (key.equals("id_gddoc")) {
-                val = idGddoc;
-            } else if (key.equals("guid_gddoc")) {
-                val = guidNuovoGddoc;
-            } else if (key.equals("nome_gddoc")) {
-                val = nome;
-            } else if (key.equals("guid_gddoc")) {
-                val = guidNuovoGddoc;
-            } else if (key.equals("id_documento_origine")) {
-                val = "babel_suite_" + guidNuovoGddoc;
-            } else if (key.equals("tipo_gddoc")) {
-                val = "d";
-            } else if (key.equals("stato_gd_doc")) {
-                val = 1;
-            } else if (key.equals("data_gddoc")) {
-                val = new Date();
-            } else if (key.equals("id_oggetto_origine") || key.equals("codice")) {
-                val = "babel_suite_" + guidNuovoGddoc;
-            } else if (key.equals("annullato")) {
-                val = false;
-            } else if (key.equals("multiplo")) {
-                val = 0;
-            } else {
+                if (key.equals("id_gddoc")) {
+                    val = idGddoc;
+                } else if (key.equals("guid_gddoc")) {
+                    val = guidNuovoGddoc;
+                } else if (key.equals("nome_gddoc")) {
+                    val = nome;
+                } else if (key.equals("guid_gddoc")) {
+                    val = guidNuovoGddoc;
+                } else if (key.equals("id_documento_origine")) {
+                    val = "babel_suite_" + guidNuovoGddoc;
+                } else if (key.equals("tipo_gddoc")) {
+                    val = "d";
+                } else if (key.equals("stato_gd_doc")) {
+                    val = 1;
+                } else if (key.equals("data_gddoc")) {
+                    val = new Date();
+                } else if (key.equals("id_oggetto_origine") || key.equals("codice")) {
+                    val = "babel_suite_" + guidNuovoGddoc;
+                } else if (key.equals("annullato")) {
+                    val = false;
+                } else if (key.equals("multiplo")) {
+                    val = 0;
+                } else {
 
-                // TODO mancano tutti i campi in cui il gddoc potrebbe essere un pg/dete/deli/registro
-                val = null;
+                    // TODO mancano tutti i campi in cui il gddoc potrebbe essere un pg/dete/deli/registro
+                    val = null;
+                }
+
+                createQuery = createQuery.addParameter(key, val);
+
             }
-
-            createQuery = createQuery.addParameter(key, val);
-
+            log.info("QUERY INSERT: \n" + createQuery.toString());
+            createQuery.executeUpdate();  // c'è l'autocommit
         }
-        log.info("QUERY INSERT: \n" + createQuery.toString());
-        Connection executeUpdate = createQuery.executeUpdate();  // c'è l'autocommit
+
         log.info("Ora ricerco il gddoc con id " + idGddoc);
         Map<String, Object> gddocByIdGddoc = getGddocByIdGddoc(idAzienda, idGddoc);
         log.info(gddocByIdGddoc.toString());

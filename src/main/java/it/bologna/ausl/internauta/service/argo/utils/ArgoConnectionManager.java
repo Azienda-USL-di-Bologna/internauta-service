@@ -93,9 +93,9 @@ public class ArgoConnectionManager {
 
     public List queryAndFetcth(String queryString, Integer idAzienda) throws Exception {
         List<Map<String, Object>> asList = null;
-        Connection conn = getConnection(idAzienda);
-        Query query = createQuery(conn, queryString);
-        try {
+
+        try (Connection conn = getConnection(idAzienda)) {
+            Query query = createQuery(conn, queryString);
             log.info("Execute and fetch....");
             Table table = query.executeAndFetchTable();
             asList = table.asList();
@@ -104,7 +104,6 @@ public class ArgoConnectionManager {
             } else {
                 log.info("No res found!");
             }
-            conn.close();
         } catch (Throwable t) {
             throw new ArgoConnectionException("Errore nel retrieving dei dati", t);
         }

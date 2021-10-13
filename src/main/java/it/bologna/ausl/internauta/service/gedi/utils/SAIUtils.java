@@ -1,7 +1,7 @@
 package it.bologna.ausl.internauta.service.gedi.utils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import it.bologna.ausl.internauta.service.argo.utils.FascicoloUtils;
+import it.bologna.ausl.internauta.service.argo.utils.gd.FascicoloUtils;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
@@ -26,7 +26,7 @@ public class SAIUtils {
 
     @Autowired
     private FascicolatoreOutboxGediLocaleManager fasicolatoreManager;
-    
+
     @Autowired
     private ParametriAziendeReader parametriAziendeReader;
 
@@ -65,9 +65,8 @@ public class SAIUtils {
             log.info("Not found fascicolo destinazione: va creato");
             String nomeFascicoloTemplate = "Sottofascicolo SAI di " + codiceFiscale;
             fascicoloDestinazione = createFascicoloDestinazione(idAzienda, nomeFascicoloTemplate, fascicoloPadre);
-          
-            
-            // fascicoloDestinazione = ....
+
+            // QUA SI DOVREBBERO DUPLICARE I PERMESSI, MA ABBIAMO DECISO DI NO
         }
 
         String numerazioneFascicoloDestinazione = (String) fascicoloDestinazione.get("numerazione_gerarchica");
@@ -81,8 +80,11 @@ public class SAIUtils {
         log.info("Creo fascicolo destinazione");
         return fascicoloUtils.createFascicolo(idAzienda, codiceFiscale, fascicoloPadre);
     }
-    // crea fascicolo
-    
+
+    private void duplicaPermessiFascicolo(Map<String, Object> fascicoloOrigine, Map<String, Object> fascicoloDestinazione) {
+
+    }
+
     private String getNumerazioneGerarchicaFascicoloDestinazione(String indirizzoPec, Integer idAzienda) throws FascicoloPadreNotDefinedException {
         String res;
         Map<String, String> mappaPecFascicoli;
@@ -97,12 +99,12 @@ public class SAIUtils {
         if (mappaPecFascicoli == null || mappaPecFascicoli.isEmpty()) {
             throw new FascicoloPadreNotDefinedException(String.format("non è stato definito nessun fascicolo padre nei parametri_azienda per l'azienda passata idAzienda %d", idAzienda));
         }
-        
+
         if (mappaPecFascicoli.containsKey(indirizzoPec)) {
             res = mappaPecFascicoli.get(indirizzoPec);
         } else {
             log.warn(String.format("non è stato definito nessun fascicolo padre nei parametri_azienda per la pec %s e l'azienda %d, leggo quello di default", indirizzoPec, idAzienda));
-            if (mappaPecFascicoli.containsKey("default")) {     
+            if (mappaPecFascicoli.containsKey("default")) {
                 res = mappaPecFascicoli.get("default");
             } else {
                 throw new FascicoloPadreNotDefinedException(String.format("non è stato definito nessun fascicolo padre nei parametri_azienda per la pec %s e l'azienda passata", indirizzoPec));

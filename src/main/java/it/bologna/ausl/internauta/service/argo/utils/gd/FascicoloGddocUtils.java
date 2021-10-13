@@ -3,8 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package it.bologna.ausl.internauta.service.argo.utils;
+package it.bologna.ausl.internauta.service.argo.utils.gd;
 
+import it.bologna.ausl.internauta.service.argo.utils.ArgoConnectionManager;
+import it.bologna.ausl.internauta.service.argo.utils.IndeUtils;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicolazioneGddocException;
 import java.util.Date;
 import java.util.Map;

@@ -65,7 +65,7 @@ public class SAIAPITest {
                 .addFormDataPart("subject", "oggetto della mail SAI di test")
                 .addFormDataPart("body", "corpo della mail SAI di test")
                 .addFormDataPart("userCF", codiceFiscale)
-//                .addFormDataPart("fascicolo", numerazioneGerarchicaDelPadre)
+                //                .addFormDataPart("fascicolo", numerazioneGerarchicaDelPadre)
                 .addFormDataPart("attachments", "Allegato-test-SAI.txt", RequestBody.create(MediaType.parse("application/octet-stream"), getFileBytes()))
                 .build();
 
@@ -85,7 +85,7 @@ public class SAIAPITest {
         Response response = call.execute();
 
         Assert.assertEquals("mi aspetto un http ok (200)", 200, response.code());
-        Thread.sleep(800000);
+        //Thread.sleep(800000);
     }
 
     private String getToken() throws JsonProcessingException, IOException {
