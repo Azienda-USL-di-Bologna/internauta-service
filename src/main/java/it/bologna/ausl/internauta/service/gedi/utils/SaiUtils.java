@@ -47,6 +47,7 @@ public class SAIUtils {
             }
         } else {
             log.info("FASCICOLAZIONE GERARCHICA DEL PADRE NON PRESENTE");
+            // TODO:LETTURA DEL PARAMETRO DEL FASCICOLO IN BASE AL  MITTENTE DAL DB
         }
         log.info("id fascicolo padre " + idFascicoloPadre);
 

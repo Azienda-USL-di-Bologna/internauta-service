@@ -10,4 +10,8 @@ public class GddocCreationException extends SAIException {
         super(message);
     }
 
+    public GddocCreationException(String message, Throwable t) {
+        super(message, t);
+    }
+
 }

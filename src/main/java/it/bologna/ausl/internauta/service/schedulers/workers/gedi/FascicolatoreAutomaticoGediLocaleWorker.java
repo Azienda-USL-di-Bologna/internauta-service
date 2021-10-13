@@ -101,6 +101,7 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
                 Map<String, Object> fascicolo = getFascicolo();
                 String nome = getOggettoMail();
                 Map<String, Object> gddoc = gddocUtils.createGddoc(params.getIdAzienda(), nome, null);
+                log.info("Ora fascicolo il gddoc...");
                 fascicoloGddocUtils.fascicolaGddoc(params.getIdAzienda(), gddoc, fascicolo);
                 if (scheduleObject != null) {
                     log.info("Setto cancel true");

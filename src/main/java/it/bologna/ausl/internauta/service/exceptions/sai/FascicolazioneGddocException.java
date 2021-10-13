@@ -10,4 +10,8 @@ public class FascicolazioneGddocException extends SAIException {
         super(message);
     }
 
+    public FascicolazioneGddocException(String string, Throwable ex) {
+        super(string, ex);
+    }
+
 }

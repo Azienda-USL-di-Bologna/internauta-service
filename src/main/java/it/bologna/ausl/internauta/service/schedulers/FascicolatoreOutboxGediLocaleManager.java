@@ -70,8 +70,9 @@ public class FascicolatoreOutboxGediLocaleManager {
             String numerazioneGerarchica) throws Exception {
         log.info("Chiamato scheduleAutoFascicolazioneOutbox");
         log.info(String.format("Parametri:\n"
+                + "idAzienda %s \n"
                 + "idOutbox %s \n"
-                + "numerazioneGerarchica %s",
+                + "numerazioneGerarchica %s", idAzienda.toString(),
                 idOutbox.toString(), numerazioneGerarchica));
         FascicolatoreAutomaticoGediParams params = new FascicolatoreAutomaticoGediParams(idOutbox, idAzienda, null, null, numerazioneGerarchica);
         FascicolatoreAutomaticoGediLocaleWorker worker = beanFactory.getBean(FascicolatoreAutomaticoGediLocaleWorker.class);

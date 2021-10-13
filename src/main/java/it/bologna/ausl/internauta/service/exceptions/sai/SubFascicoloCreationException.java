@@ -10,4 +10,8 @@ public class SubFascicoloCreationException extends SAIException {
         super(message);
     }
 
+    public SubFascicoloCreationException(String message, Throwable t) {
+        super(message, t);
+    }
+
 }

@@ -15,4 +15,8 @@ public abstract class SAIException extends Exception {
         super(message);
     }
 
+    public SAIException(String message, Throwable t) {
+        super(message, t);
+    }
+
 }

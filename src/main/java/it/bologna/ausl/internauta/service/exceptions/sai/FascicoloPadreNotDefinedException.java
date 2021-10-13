@@ -10,4 +10,8 @@ public class FascicoloPadreNotDefinedException extends SAIException {
         super(message);
     }
 
+    public FascicoloPadreNotDefinedException(String message, Throwable t) {
+        super(message, t);
+    }
+
 }

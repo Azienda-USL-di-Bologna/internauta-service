@@ -5,8 +5,11 @@
  */
 package it.bologna.ausl.internauta.service.argo.utils;
 
+import it.bologna.ausl.internauta.service.exceptions.sai.FascicolazioneGddocException;
 import java.util.Date;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.sql2o.Connection;
@@ -22,7 +25,10 @@ public class FascicoloGddocUtils {
     @Autowired
     ArgoConnectionManager argoConnectionManager;
 
+    private static final Logger log = LoggerFactory.getLogger(FascicoloGddocUtils.class);
+
     public void fascicolaGddoc(Integer idAzienda, Map<String, Object> gddoc, Map<String, Object> fascicolo) throws Exception {
+
         String idFascicoloGddoc = IndeUtils.generateIndeID();
         String idFascicolo = (String) fascicolo.get("id_fascicolo");
         String idGddoc = (String) gddoc.get("id_gddoc");
@@ -42,6 +48,12 @@ public class FascicoloGddocUtils {
                     .addParameter("idUtenteCreazione", idUtenteCreazione)
                     .addParameter("dataCreazione", dataCreazione);
             createQuery.executeUpdate();
+        } catch (Exception ex) {
+            log.error(ex.toString());
+            log.error(ex.getMessage());
+            throw new FascicolazioneGddocException("Errore nella fascicolazione del gddoc\n"
+                    + "gddoc: " + gddoc.toString() + "\n"
+                    + "fascicolo: " + fascicolo.toString(), ex);
         }
     }
 

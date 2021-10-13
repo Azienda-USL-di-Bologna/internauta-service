@@ -10,4 +10,8 @@ public class FascicoloPermissionSettingException extends SAIException {
         super(message);
     }
 
+    public FascicoloPermissionSettingException(String message, Throwable t) {
+        super(message, t);
+    }
+
 }

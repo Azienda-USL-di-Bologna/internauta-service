@@ -10,4 +10,8 @@ public class FascicoloNotFoundException extends SAIException {
         super(message);
     }
 
+    public FascicoloNotFoundException(String message, Throwable t) {
+        super(message, t);
+    }
+
 }
