@@ -61,6 +61,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocListRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -122,6 +123,9 @@ public class ScriptaCustomController {
 
     @Autowired
     DocRepository docRepository;
+
+    @Autowired
+    DocListRepository docListRepository;
 
     @Autowired
     RegistroDocRepository registroDocRepository;
@@ -614,14 +618,16 @@ public class ScriptaCustomController {
                 readValue = objectMapper.readValue(response.body().string(), HashMap.class);
 //                r.put(resp);
                 log.info("Chiamata a webapi inde effettuata con successo");
+                docListRepository.deleteByGuidDocumento(guidDoc);
             } else {
                 log.info("Errore nella chiamata alla webapi InDe: " + responseCode + " " + response.message());
                 throw new IOException(String.format("Errore nella chiamata alla WepApi InDe: %s", response.message()));
             }
 
         } catch (Exception ex) {
-
+            throw new Exception(ex.getMessage());
         }
+
         return new ResponseEntity(readValue, HttpStatus.OK);
     }
 
