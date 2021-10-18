@@ -1,5 +1,8 @@
 package it.bologna.ausl.internauta.service.shpeck.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoException;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.PermissionManager;
@@ -14,7 +17,6 @@ import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
-import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
@@ -37,7 +39,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
@@ -56,6 +57,8 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.RawMessageRepository;
+import it.bologna.ausl.model.entities.data.AdditionalData;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi;
@@ -77,7 +80,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import javax.mail.Message.RecipientType;
-import javax.servlet.http.HttpServletRequest;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -132,6 +135,9 @@ public class ShpeckUtils {
     
     @Autowired
     private CachedEntities cachedEntities;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     /**
      * usato da {@link #downloadEml(EmlSource, Integer)} per reperire l'eml
@@ -234,7 +240,7 @@ public class ShpeckUtils {
                     }
 
                     if (idMessageRelated != null) {
-                        setTagsToMessage(pec, idMessageRelated, messageRelatedType, krint);
+                        setReplyForwardTagToMessage(pec, idMessageRelated, messageRelatedType, authenticatedUserProperties.getUser(), krint);
                     }
 
                     deleteDraft(draftMessage);
@@ -494,48 +500,111 @@ public class ShpeckUtils {
     /**
      * Inserisce i tag alla mail originale passato in ingresso
      *
-     * @param pec La pec che sta inviado la mail
-     * @param idMessageRelated Id del messaggio a cui si sta rispondendo o inoltrando
-     * @param messageRelatedType Tipo di relazione del messaggio relazionato
-     * @param krint
+     * @param pec la pec che sta inviado la mail
+     * @param messageToTag messaggio a cui si vuole applicare il tag
+     * @param tagName nome del tag che si vuole applicare
+     * @param additionalData se passati, vengono inseriti/aggiunti nel tag
+     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se l'utente viene passato sul tag è diverso, viene aggiornato
+     * @return torna true se il messaggio è stato taggato, false altrimenti (ad esempio torna false se il messaggio aveva già il tag passato)
      */
-    public void setTagsToMessage(Pec pec, Integer idMessageRelated, MessageRelatedType messageRelatedType, Boolean krint) {
+    public boolean setTagToMessage(Pec pec, Message messageToTag, String tagName, AdditionalData additionalData, Utente utente) throws JsonProcessingException {
         LOG.info("Getting message...");
-        Message messageRelated = messageRepository.getOne(idMessageRelated);
-        Tag tag = new Tag();
-
-        OperazioneKrint.CodiceOperazione operazione = null;
 
         LOG.info("Getting tag to apply...");
-        switch (messageRelatedType) {
-            case REPLIED:
-                tag = tagRepository.findByidPecAndName(pec, SystemTagName.replied.toString());
-                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA;
-                break;
-            case REPLIED_ALL:
-                tag = tagRepository.findByidPecAndName(pec, SystemTagName.replied_all.toString());
-                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA_A_TUTTI;
-                break;
-            case FORWARDED:
-                tag = tagRepository.findByidPecAndName(pec, SystemTagName.forwarded.toString());
-                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_INOLTRO;
-                break;
-        }
+        Tag tag = tagRepository.findByidPecAndName(pec, tagName);
+
         LOG.info("Check if tag is already present");
-        List<MessageTag> findByIdMessageAndIdTag = messageTagRepository.findByIdMessageAndIdTag(messageRelated, tag);
+        List<MessageTag> findByIdMessageAndIdTag = messageTagRepository.findByIdMessageAndIdTag(messageToTag, tag);
+
+        // Cerco se il messageTag esiste già
+        List<AdditionalData> currentAdditionalDataList;
+        MessageTag messageTag;
+        boolean tagged = false;
         if (findByIdMessageAndIdTag.isEmpty()) {
-            LOG.info("Applying tag: {} to message with id: {}", tag.getName(), messageRelated.getId());
-            MessageTag messageTag = new MessageTag();
-            messageTag.setIdMessage(messageRelated);
+            LOG.info("Applying tag: {} to message with id: {}", tag.getName(), messageToTag.getId());
+            messageTag = new MessageTag();
+            messageTag.setIdMessage(messageToTag);
             messageTag.setIdTag(tag);
-            messageTag.setInserted(ZonedDateTime.now());
-            messageTagRepository.save(messageTag);
-            if (krint) {
-                krintShpeckService.writeReplyToMessage(messageRelated, operazione);
+            if (additionalData!= null) {
+                currentAdditionalDataList = new ArrayList();
+                currentAdditionalDataList.add(additionalData);
+                messageTag.setAdditionalData(objectMapper.writeValueAsString(currentAdditionalDataList));
             }
+            messageTag.setInserted(ZonedDateTime.now());
+           
+            tagged = true;
             LOG.info("Tag applied!");
         } else {
             LOG.info("Tag already present, skip applying!");
+            messageTag = findByIdMessageAndIdTag.get(0);
+            if (additionalData!= null) {
+                if (StringUtils.hasText(messageTag.getAdditionalData())) {
+                    currentAdditionalDataList = objectMapper.readValue(messageTag.getAdditionalData(), new TypeReference<List<AdditionalData>>() {});
+                    currentAdditionalDataList.add(additionalData);
+                }
+            }
+        }
+        if (utente != null) {
+            if (messageTag.getIdUtente() == null || !messageTag.getIdUtente().getId().equals(utente.getId())) {
+                messageTag.setIdUtente(utente);
+            }
+        } else if (messageTag.getIdUtente() != null) {
+            messageTag.setIdUtente(null);
+        }
+        messageTagRepository.save(messageTag);
+        return tagged;
+    }
+
+    /**
+     * Aggiunge il tag di fascicolazione
+     * @param pec la pec che sta inviado la mail
+     * @param messageToTag messaggio a cui si vuole applicare il tag
+     * @param additionalDataArchiviation gli additional data da inserire
+     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se l'utente viene passato sul tag è diverso, viene aggiornato
+     * @param krint se si vuole kritnare l'operazione
+     * @throws JsonProcessingException 
+     */
+    public void SetArchiviationTag (Pec pec, Message messageToTag, AdditionalDataTagComponent.AdditionalDataArchiviation additionalDataArchiviation, Utente utente, boolean krint) throws JsonProcessingException {
+        setTagToMessage(pec, messageToTag, SystemTagName.archived.toString(), additionalDataArchiviation, utente);
+        if (krint) {
+            krintShpeckService.writeArchiviation(messageToTag, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_FASCICOLAZIONE, additionalDataArchiviation);
+        }
+    }
+    
+    
+    /**
+     * Inserisce i tag di rispondi/rispondi a tutti/inoltro alla mail originale passato in ingresso
+     *
+     * @param pec La pec che sta inviado la mail
+     * @param idMessageRelated Id del messaggio a cui si sta rispondendo o inoltrando
+     * @param messageRelatedType Tipo di relazione del messaggio relazionato
+     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se l'utente viene passato sul tag è diverso, viene aggiornato
+     * @param krint se si vuole kritnare l'operazione
+     */
+    public void setReplyForwardTagToMessage(Pec pec, Integer idMessageRelated, MessageRelatedType messageRelatedType, Utente utente, Boolean krint) throws JsonProcessingException {
+        LOG.info("Getting message...");
+        Message messageRelated = messageRepository.getOne(idMessageRelated);
+        String tagName = null;
+        OperazioneKrint.CodiceOperazione operazione = null;
+        switch (messageRelatedType) {
+            case REPLIED:
+                tagName = SystemTagName.replied.toString();
+                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA;
+                break;
+            case REPLIED_ALL:
+                tagName = SystemTagName.replied_all.toString();
+                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA_A_TUTTI;
+                break;
+            case FORWARDED:
+                tagName = SystemTagName.forwarded.toString();
+                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_INOLTRO;
+                break;
+        }
+        boolean tagged = setTagToMessage(pec, messageRelated, tagName, null, utente);
+        if (krint && tagged) {
+            LOG.info("krinting...");
+            krintShpeckService.writeReplyToMessage(messageRelated, operazione);
+            LOG.info("krinted...");
         }
     }
 

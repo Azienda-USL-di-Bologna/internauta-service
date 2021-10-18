@@ -83,7 +83,9 @@ public class SAIAPITest {
                 .build();
         Call call = client.newCall(request);
         Response response = call.execute();
-
+        System.out.println("response code: " + response.code());
+        System.out.println("response string : " + response.body().string());
+        
         Assert.assertEquals("mi aspetto un http ok (200)", 200, response.code());
         Thread.sleep(800000);
     }

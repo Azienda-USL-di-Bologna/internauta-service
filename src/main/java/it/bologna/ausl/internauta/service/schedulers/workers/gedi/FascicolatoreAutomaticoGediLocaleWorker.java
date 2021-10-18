@@ -1,36 +1,31 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.schedulers.workers.gedi;
 
-import it.bologna.ausl.internauta.service.argo.raccolta.Fascicolo;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import it.bologna.ausl.internauta.service.argo.utils.gd.FascicoloGddocUtils;
 import it.bologna.ausl.internauta.service.argo.utils.gd.FascicoloUtils;
 import it.bologna.ausl.internauta.service.argo.utils.gd.GddocUtils;
 import it.bologna.ausl.internauta.service.argo.utils.gd.SottoDocumentiUtils;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
-import it.bologna.ausl.internauta.service.exceptions.FascicolatoreAutomaticoGediLocaleWorkerException;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.gedi.wrappers.FascicolatoreAutomaticoGediParams;
+import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.Outbox;
+import it.bologna.ausl.model.entities.shpeck.Tag;
+import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
-import javax.validation.constraints.Min;
-import org.apache.log4j.lf5.LogLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 /**
@@ -56,13 +51,18 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
     private GddocUtils gddocUtils;
     
     @Autowired
-    SottoDocumentiUtils sottoDocumentiUtils;
+    private ShpeckUtils shpeckUtils;
+    
+    @Autowired
+    private SottoDocumentiUtils sottoDocumentiUtils;
     
     @Autowired
     private FascicoloGddocUtils fascicoloGddocUtils;
     
     @Autowired
-    ReporitoryConnectionManager aziendeConnectionManager;
+    private ReporitoryConnectionManager aziendeConnectionManager;
+    
+    private Message message;
     
     private ScheduledFuture<?> scheduleObject;
     
@@ -82,7 +82,7 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
     
     private Map<String, Object> getFascicolo() throws Exception {
         FascicoloUtils fascicoloUtils = beanFactory.getBean(FascicoloUtils.class);
-        Map<String, Object> fascicolo = fascicoloUtils.getFascicoloByNumerazioneGerarchica(params.getIdAzienda(), params.getNumerazioneGerarchica());
+        Map<String, Object> fascicolo = fascicoloUtils.getFascicoloByNumerazioneGerarchica(params.getIdAzienda().getId(), params.getNumerazioneGerarchica());
         if (fascicolo != null) {
             log.info("Id found " + fascicolo);
         } else {
@@ -103,17 +103,12 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
         return message.getName();
     }
     
-    private String getMessageUuid() throws Exception {
-        
-        Message message = null;
+    private void loadMessage() throws Exception {
         try {
-            message = messageRepository.findByIdOutbox(params.getIdOutbox());
+            this.message = messageRepository.findByIdOutbox(params.getIdOutbox());
         } catch (Exception e) {
-            throw new Exception("Errore nel recuperare oggetto del Message con id_outbox " + params.getIdOutbox(), e);
+            throw new Exception("Errore nel recuperare il Message con id_outbox " + params.getIdOutbox(), e);
         }
-        
-        return message.getUuidRepository();
-        
     }
     
     private boolean isOutboxSent() throws Exception {
@@ -131,7 +126,7 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
         MinIOWrapperFileInfo fileInfoByUuid = null;
         try {
             MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-            fileInfoByUuid = minIOWrapper.getFileInfoByUuid(getMessageUuid());
+            fileInfoByUuid = minIOWrapper.getFileInfoByUuid(message.getUuidRepository());
         } catch (Exception e) {
             throw new Exception("Errore nel recuperare il file da mongo", e);
         }
@@ -144,17 +139,20 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
             
             log.info("Runno...");
             log.info("Params: " + params.toString());
-            
-            if (isOutboxSent() && getMessageUuid() != null) {
+            loadMessage();
+            if (isOutboxSent() && message.getUuidRepository() != null) {
                 Map<String, Object> fascicolo = getFascicolo();
                 String nome = getOggettoMail();
-                Map<String, Object> gddoc = gddocUtils.createGddoc(params.getIdAzienda(), nome, null);
+                Map<String, Object> gddoc = gddocUtils.createGddoc(params.getIdAzienda().getId(), nome, null);
                 log.info("Ora fascicolo il gddoc...");
                 MinIOWrapperFileInfo fileInfo = getFileInfo();
                 fileInfo.getFileName();
-                fascicoloGddocUtils.fascicolaGddoc(params.getIdAzienda(), gddoc, fascicolo);
-                sottoDocumentiUtils.createSottoDocumento(params.getIdAzienda(), (String) gddoc.get("id_gddoc"), fileInfo, null);
-                
+                fascicoloGddocUtils.fascicolaGddoc(params.getIdAzienda().getId(), gddoc, fascicolo);
+                sottoDocumentiUtils.createSottoDocumento(params.getIdAzienda().getId(), (String) gddoc.get("id_gddoc"), fileInfo, null);
+
+                log.info("messaggio fascicolato, setto il tag...");
+                insertArchiviationTag(fascicolo, gddoc);
+
                 if (scheduleObject != null) {
                     log.info("Setto cancel true");
                     scheduleObject.cancel(true);
@@ -162,9 +160,35 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
             }
             
         } catch (Exception ex) {
-            log.error("Errore imprevisto durante l'esecuzione del mestiere "
-                    + "di fascicolazione automatica; params\n:" + params.toString(), ex);
+            log.error("Errore imprevisto durante l'esecuzione del mestiere di fascicolazione automatica; params\n:" + params.toString(), ex);
         }
     }
     
+    private void insertArchiviationTag(Map<String, Object> fascicolo, Map<String, Object> gddoc) throws JsonProcessingException {
+        Utente utente = params.getUtente();
+        AdditionalDataTagComponent.AdditionalDataArchiviation additionalDataArchiviation = new AdditionalDataTagComponent().new  AdditionalDataArchiviation();
+
+        AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent().new idUtente(utente.getId(), params.getPersona().getDescrizione());
+        additionalDataArchiviation.setIdUtente(utenteAdditionalData);
+
+        Azienda azienda = params.getIdAzienda();
+        AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent().new idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
+        additionalDataArchiviation.setIdAzienda(aziendaAdditionalData);
+
+        String idFascicolo = (String) fascicolo.get("id_fascicolo");
+        String oggettoFascicolo = (String) fascicolo.get("nome_fascicolo");
+        String numerazioneGerarchicaFascicolo = (String) fascicolo.get("numerazione_gerarchica");
+        AdditionalDataTagComponent.idFascicolo fascicoloAdditionalData = new AdditionalDataTagComponent().new idFascicolo(idFascicolo, oggettoFascicolo, numerazioneGerarchicaFascicolo);
+        additionalDataArchiviation.setIdFascicolo(fascicoloAdditionalData);
+
+        String idGdDoc = (String) gddoc.get("id_gddoc");
+//        String oggettoGdDoc = (String) gddoc.get("oggetto");
+        String oggettoGdDoc = (String) gddoc.get("nome_gddoc");
+        AdditionalDataTagComponent.IdGdDoc gdDocAdditionalData = new AdditionalDataTagComponent().new IdGdDoc(idGdDoc, oggettoGdDoc);
+        additionalDataArchiviation.setIdGdDoc(gdDocAdditionalData);
+
+        additionalDataArchiviation.setDataArchiviazione(LocalDateTime.now());
+        
+        shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalDataArchiviation, utente, true);
+    }
 }

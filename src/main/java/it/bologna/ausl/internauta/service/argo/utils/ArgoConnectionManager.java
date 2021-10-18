@@ -70,26 +70,26 @@ public class ArgoConnectionManager {
         return beginTransaction;
     }
 
-    public List queryAndFetcth(String queryString, Connection conn) throws Exception {
-        List<Map<String, Object>> asList = null;
-        try {
-            List<Row> rows = null;
-            log.info("Creating query object by:\n" + queryString);
-            Query query = conn.createQuery(queryString);
-            log.info("Execute and fetch....");
-            Table table = query.executeAndFetchTable();
-            asList = table.asList();
-            if (asList != null) {
-                log.info("Found " + asList.toString());
-            } else {
-                log.info("No res found!");
-            }
-            conn.close();
-        } catch (Throwable t) {
-            throw new ArgoConnectionException("Errore nel retrieving dei dati", t);
-        }
-        return asList != null && asList.size() > 0 ? asList : null;
-    }
+//    public List queryAndFetcth(String queryString, Connection conn) throws Exception {
+//        List<Map<String, Object>> asList = null;
+//        try {
+//            List<Row> rows = null;
+//            log.info("Creating query object by:\n" + queryString);
+//            Query query = conn.createQuery(queryString);
+//            log.info("Execute and fetch....");
+//            Table table = query.executeAndFetchTable();
+//            asList = table.asList();
+//            if (asList != null) {
+//                log.info("Found " + asList.toString());
+//            } else {
+//                log.info("No res found!");
+//            }
+//            conn.close();
+//        } catch (Throwable t) {
+//            throw new ArgoConnectionException("Errore nel retrieving dei dati", t);
+//        }
+//        return asList != null && asList.size() > 0 ? asList : null;
+//    }
 
     public List queryAndFetcth(String queryString, Integer idAzienda) throws Exception {
         List<Map<String, Object>> asList = null;

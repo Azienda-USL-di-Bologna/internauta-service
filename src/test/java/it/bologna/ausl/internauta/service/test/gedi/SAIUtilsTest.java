@@ -38,7 +38,7 @@ public class SAIUtilsTest {
         //codiceFiscale = "SLMLNZ85C13A944M";
         codiceFiscale = "SLMLNZ00C13A944M";
         numerazioneGerarchicaDelPadre = "56/2021";
-        saiUtils.fascicolaPec(idOutbox, idAzienda, codiceFiscale, mittente, numerazioneGerarchicaDelPadre);
+//        saiUtils.fascicolaPec(idOutbox, idAzienda, codiceFiscale, mittente, numerazioneGerarchicaDelPadre);
     }
 
 }

@@ -11,6 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloPadreNotDefinedException;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Utente;
 
 /**
  *
@@ -32,19 +35,21 @@ public class SAIUtils {
 
     // fascicola pec
     public String fascicolaPec(Integer idOutbox,
-            Integer idAzienda,
+            Azienda azienda,
             String codiceFiscale,
             String mittente,
-            String numerazioneGerarchicaDelPadre) throws Exception {
+            String numerazioneGerarchicaDelPadre,
+            Utente utente,
+            Persona persona) throws Exception {
         String idFascicoloPadre = null;
         log.info("Cerco il fascicolo padre");
         Map<String, Object> fascicoloPadre = null;
         if (numerazioneGerarchicaDelPadre == null) {
             log.info("fascicolazione gerarchida del padre non passata, la cerco in parametri_aziene");
-            numerazioneGerarchicaDelPadre = getNumerazioneGerarchicaFascicoloDestinazione(mittente, idAzienda);
+            numerazioneGerarchicaDelPadre = getNumerazioneGerarchicaFascicoloDestinazione(mittente, azienda.getId());
         }
         if (numerazioneGerarchicaDelPadre != null) {
-            fascicoloPadre = fascicoloUtils.getFascicoloByNumerazioneGerarchica(idAzienda, numerazioneGerarchicaDelPadre);
+            fascicoloPadre = fascicoloUtils.getFascicoloByNumerazioneGerarchica(azienda.getId(), numerazioneGerarchicaDelPadre);
             if (fascicoloPadre != null) {
                 idFascicoloPadre = (String) fascicoloPadre.get("id_fascicolo");
             } else {
@@ -58,20 +63,20 @@ public class SAIUtils {
         log.info("id fascicolo padre: " + idFascicoloPadre);
 
         log.info("Cerco il fascicolo destinazione ...");
-        Map<String, Object> fascicoloDestinazione = fascicoloUtils.getFascicoloByPatternInNameAndIdFascicoloPadre(idAzienda, codiceFiscale, idFascicoloPadre);
+        Map<String, Object> fascicoloDestinazione = fascicoloUtils.getFascicoloByPatternInNameAndIdFascicoloPadre(azienda.getId(), codiceFiscale, idFascicoloPadre);
         if (fascicoloDestinazione != null) {
             log.info("fascicolo destinazione: " + fascicoloDestinazione.toString());
         } else {
             log.info("Not found fascicolo destinazione: va creato");
             String nomeFascicoloTemplate = "Sottofascicolo SAI di " + codiceFiscale;
-            fascicoloDestinazione = createFascicoloDestinazione(idAzienda, nomeFascicoloTemplate, fascicoloPadre);
+            fascicoloDestinazione = createFascicoloDestinazione(azienda.getId(), nomeFascicoloTemplate, fascicoloPadre);
 
             // QUA SI DOVREBBERO DUPLICARE I PERMESSI, MA ABBIAMO DECISO DI NO
         }
 
         String numerazioneFascicoloDestinazione = (String) fascicoloDestinazione.get("numerazione_gerarchica");
         log.info("Accodo mestieri di fascicolazione outbox");
-        fasicolatoreManager.scheduleAutoFascicolazioneOutbox(idOutbox, idAzienda, numerazioneFascicoloDestinazione);
+        fasicolatoreManager.scheduleAutoFascicolazioneOutbox(idOutbox, azienda, numerazioneFascicoloDestinazione, utente, persona);
         return numerazioneFascicoloDestinazione;
 
     }
