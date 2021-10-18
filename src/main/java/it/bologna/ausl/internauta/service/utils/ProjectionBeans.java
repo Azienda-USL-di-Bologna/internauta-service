@@ -186,7 +186,7 @@ public class ProjectionBeans {
     AziendaInterceptor aziendaInterceptor;
 
     @Autowired
-    ParametriAziende parametriAziende;
+    ParametriAziendeReader parametriAziende;
 
     @Autowired
     AdditionalDataParamsExtractor additionalDataParamsExtractor;

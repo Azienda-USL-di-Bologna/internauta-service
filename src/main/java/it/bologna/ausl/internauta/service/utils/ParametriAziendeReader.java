@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
  * @author gdm
  */
 @Component
-public class ParametriAziende {
+public class ParametriAziendeReader {
 
     @Autowired
     ParametroAziendeRepository parametroAziendeRepository;
@@ -30,7 +30,7 @@ public class ParametriAziende {
     @Autowired
     ObjectMapper objectMapper;
 
-    public ParametriAziende() {
+    public ParametriAziendeReader() {
     }
 
     public List<ParametroAziende> getParameters(String nome) {

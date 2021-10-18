@@ -20,7 +20,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.service.utils.ParametriAziende;
+import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -72,7 +72,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     private PermissionManager permissionManager;
     
     @Autowired
-    private ParametriAziende parametriAziende;
+    private ParametriAziendeReader parametriAziende;
     
     @Autowired
     private ObjectMapper objectMapper;
