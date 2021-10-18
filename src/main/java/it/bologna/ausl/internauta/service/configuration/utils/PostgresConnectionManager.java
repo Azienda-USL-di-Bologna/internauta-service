@@ -58,8 +58,19 @@ public class PostgresConnectionManager {
         return azienda.getId();
     }
 
+    /**
+     * Restituisce una connessione Sql2o al database argo dell'azienda passata
+     * come paramertro (per codice azienda).
+     *
+     * @param codiceAzienda il codice dell'azienda (es.:102, 105...)
+     */
     public Sql2o getDbConnection(String codiceAzienda) {
         return dbConnectionMap.get(codiceAzienda);
+    }
+
+    public Sql2o getDbConnection(Integer idAzienda) {
+        Azienda azienda = aziendaRepository.findById(idAzienda).get();
+        return dbConnectionMap.get(azienda.getCodice());
     }
 
     public List<AziendaParams> getConnParams() {

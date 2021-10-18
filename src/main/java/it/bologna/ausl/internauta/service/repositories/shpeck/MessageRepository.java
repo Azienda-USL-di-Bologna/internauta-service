@@ -25,22 +25,22 @@ public interface MessageRepository extends
     public Integer getIdAziendaRepository(
             @Param("id_message") Integer idMessage
     );
-    
+
     @Procedure("shpeck.get_id_message_of_repository")
     public Integer getIdMessageOfRepository(
             @Param("id_message") Integer idMessage
     );
-    
-    @Query(value="select * from shpeck.messages m where id = (select get_id_message_of_repository from shpeck.get_id_message_of_repository(?1))", nativeQuery = true)
+
+    @Query(value = "select * from shpeck.messages m where id = (select get_id_message_of_repository from shpeck.get_id_message_of_repository(?1))", nativeQuery = true)
     public Message getMessageOfRepository(
             @Param("id_message") Integer idMessage
     );
-    
+
     @Procedure("shpeck.update_tscol")
     public String updateTscol(
             @Param("id_message") Integer idMessage
     );
-    
+
     List<Message> findByUuidMessage(String uuidMessage);
 
 //    @Override
@@ -52,4 +52,5 @@ public interface MessageRepository extends
 //             return null;
 //         });
 //    }
+    public Message findByIdOutbox(Integer idOutbox);
 }
