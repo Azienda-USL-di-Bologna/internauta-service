@@ -35,6 +35,7 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,19 +55,24 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocListRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.NonCachedEntities;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato.TipoDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
@@ -85,7 +91,14 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Formatter;
+import java.util.concurrent.TimeUnit;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 
 /**
@@ -110,6 +123,9 @@ public class ScriptaCustomController {
 
     @Autowired
     DocRepository docRepository;
+
+    @Autowired
+    DocListRepository docListRepository;
 
     @Autowired
     RegistroDocRepository registroDocRepository;
@@ -148,6 +164,9 @@ public class ScriptaCustomController {
     StrutturaRepository strutturaRepository;
 
     @Autowired
+    AziendaRepository aziendaRepository;
+
+    @Autowired
     GeneratePE generatePE;
 
     @Autowired
@@ -155,6 +174,14 @@ public class ScriptaCustomController {
 
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+
+    @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
+    private String EliminaPropostaDaEdiUrl;
+
+    @Value("${babelsuite.webapi.eliminapropostadaedi.method}")
+    private String eliminaPropostaDaEdiMethod;
+
+    private static final Logger log = LoggerFactory.getLogger(ScriptaCustomController.class);
 
     @RequestMapping(value = "saveAllegato", method = RequestMethod.POST)
     public ResponseEntity<?> saveAllegato(
@@ -181,9 +208,8 @@ public class ScriptaCustomController {
 //            } else {
 //                numeroOrdine = doc.getAllegati().size();
 //            }
-
             for (MultipartFile file : files) {
-                
+
                 scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename());
 
             }
@@ -539,4 +565,70 @@ public class ScriptaCustomController {
 //        }
         return hashString;
     }
+
+    @RequestMapping(value = "eliminaProposta", method = RequestMethod.POST)
+    public ResponseEntity<?> eliminaProposta(
+            @RequestParam("guid_doc") String guidDoc,
+            @RequestParam("id_applicazione") String idApplicazione,
+            @RequestParam("id_azienda") String idAzienda) throws HttpInternautaResponseException,
+            Throwable {
+        Azienda azienda = aziendaRepository.findById(Integer.parseInt(idAzienda)).get();
+
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+
+        String cf = "";
+        String cfReale = "";
+        try {
+            cf = authenticatedUserProperties.getPerson().getCodiceFiscale();
+            cfReale = authenticatedUserProperties.getRealPerson().getCodiceFiscale();
+        } catch (Exception e) {
+            cfReale = authenticatedUserProperties.getPerson().getCodiceFiscale();
+        }
+
+        Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
+        AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), EliminaPropostaDaEdiUrl);
+//        String url = "http://localhost:8080/Procton/EliminaPropostaDaEdi";
+//        String url = "http://localhost:8080/Dete/EliminaPropostaDaEdi";
+//        String url = "http://localhost:8080/Deli/EliminaPropostaDaEdi";
+
+        Map<String, String> hm = new HashMap<String, String>();
+        hm.put("guidDoc", guidDoc);
+        hm.put("idApplicazione", idApplicazione);
+        hm.put("idAzienda", idAzienda);
+        hm.put("cf", cf);
+        hm.put("cfReale", cfReale);
+
+        okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
+                okhttp3.MediaType.get("application/json; charset=utf-8"),
+                objectMapper.writeValueAsString(hm));
+        OkHttpClient client = new OkHttpClient.Builder().connectTimeout(12, TimeUnit.MINUTES).build();
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .addHeader("X-HTTP-Method-Override", eliminaPropostaDaEdiMethod)
+                .build();
+
+        Call call = client.newCall(request);
+        HashMap readValue = null;
+        try (Response response = call.execute();) {
+            int responseCode = response.code();
+            if (response.isSuccessful()) {
+                readValue = objectMapper.readValue(response.body().string(), HashMap.class);
+//                r.put(resp);
+                log.info("Chiamata a webapi inde effettuata con successo");
+                docListRepository.deleteByGuidDocumento(guidDoc);
+            } else {
+                log.info("Errore nella chiamata alla webapi InDe: " + responseCode + " " + response.message());
+                throw new IOException(String.format("Errore nella chiamata alla WepApi InDe: %s", response.message()));
+            }
+
+        } catch (Exception ex) {
+            throw new Exception(ex.getMessage());
+        }
+
+        return new ResponseEntity(readValue, HttpStatus.OK);
+    }
+
 }

@@ -92,9 +92,6 @@ public class ImportaDaCSV {
     AziendaRepository aziendaRepository;
 
     @Autowired
-    BeanFactory beanFactory;
-
-    @Autowired
     MdrTrasformazioniRepository mdrTrasformazioniRepository;
 
     @Autowired
