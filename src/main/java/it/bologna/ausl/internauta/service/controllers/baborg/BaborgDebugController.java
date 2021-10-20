@@ -1,21 +1,14 @@
 package it.bologna.ausl.internauta.service.controllers.baborg;
 
-import com.querydsl.core.types.Expression;
-import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.core.types.dsl.NumberTemplate;
-import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositoryImpl;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
-import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
-import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.IOException;
@@ -39,6 +32,7 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
 
 /**
  *
@@ -48,6 +42,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "${internauta.mapping.url.debug}")
 public class BaborgDebugController {
 
+    @Autowired
+    ProjectionFactory projectionFactory;
+    
     @Autowired
     StrutturaRepository strutturaRepository;
     
@@ -65,6 +62,9 @@ public class BaborgDebugController {
     
     @Autowired
     ParametriAziendeReader parametriAziende;
+    
+    @Autowired
+    DocDetailRepository docDetailRepository;
 
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
@@ -167,6 +167,31 @@ public class BaborgDebugController {
     @RequestMapping(value = "test2", method = RequestMethod.GET)
     public Object test2(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException {
         
+//        
+//        QDocList qDocList = QDocList.docList;
+//        
+//        JPQLQuery<Integer> where = JPAExpressions.select(qDocList.id)
+//                .from(QDocList.docList)
+//                .innerJoin(QPersoneVedenti.personeVedenti)
+//                .on(QDocList.docList.id.eq(QPersoneVedenti.personeVedenti.idDocList.id))
+//                .where(QPersoneVedenti.personeVedenti.idPersona.eq(245948))
+//                .orderBy(QDocList.docList.ranking.asc())
+//                .limit(0)
+//                .offset(0);
+//        
+//        BooleanExpression filter = QDocList.docList.id.in(where);
+        
+//        Iterable<DocList> findAll = docListRepository.findAll(filter);
+//        .innerJoin(media.dimensions, dimension )
+//        .on(dimension.dimensionType.id.eq(Long.valueOf(inputDimensionType))
+        
+//            JPASubQuery
+//                    .from(qDocList);
+//            .where(attribute.in(person.attributes),
+//                   attribute.attributeName().name.toLowerCase().eq("eye color"),
+//                   attribute.attributeValue.toLowerCase().eq("blue"))
+//             .exists()
+        
 //        Expression<Integer> value = Expressions.asNumber(16);
 //        NumberTemplate<Integer> numberTemplate = Expressions.numberTemplate(Integer.class, "function('bitand', {0}, {1})", QUtenteStruttura.utenteStruttura.bitRuoli, value);
 //        
@@ -184,8 +209,48 @@ public class BaborgDebugController {
 //            System.out.println(parametriAziende.getValue(parameters2.get(0), Boolean.class));
 //        else 
 //            System.out.println("parameters2 empty");
-        Object struttureRuolo = storicoRelazioneRepository.getStruttureRuolo(256, 351272);
+//        Object struttureRuolo = storicoRelazioneRepository.getStruttureRuolo(256, 351272);
+
         
-        return struttureRuolo;
+//        final long userId = 245948;
+//        final Specification<DocDetail> spec = new Specification<DocDetail>() {
+//            @Override
+//            public Predicate toPredicate(Root<DocDetail> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+//                query.distinct(true);
+//                query.select(root.get("id"));
+//                query.orderBy(cb.desc(root.get("dataCreazione")));
+//                Join<Object, Object> join = root.join("personeVedentiList", JoinType.LEFT);
+//                return cb.equal(join.get("idPersona"), userId);
+//            }
+//
+//            @Override
+//            public Specification<DocDetail> and(Specification<DocDetail> other) {
+//                return Specification.super.and(other); //To change body of generated methods, choose Tools | Templates.
+//            }
+//            
+//            
+//        };
+
+        /**
+         * Idea: La query la mettiamo nel beforeSelect di scripta. Ci servirà solo a tirara fuori gli id (come con la blackbox)
+         * 1- Serve la paginazione. come si mette? E possibile leggerla nell'interceptor?
+         * 2- Servirebbe se possibile prendere solo l'id. 
+         *  Se non ci si riescie, come mi è parso di capire, allora la facciamo basata su PersoneVedenti e non doclist
+         * 3- vanno messi tutti i filtri e gli ordinamenti chiesti dal frontend..
+         * 
+         * Si però è na merda. si andrebbe a fare due volte la stessa query.. quindi è una idea di merda.
+         * Piuttosto servirebbe che a seconda di quello che si vuole ci fosse una sorta di seconda versione del framework con tanto 
+         * di interceptor per questa modalità di query "Specification".. 
+         */
+//        BooleanExpression eq = QDocList.docList.personeVedentiList.any().idPersona.eq(spec);
+//        BooleanExpression eq = QDocList.docList.personeVedentiList.any().idPersona.eq(245948);
+//          Page<DocList> pageResult = docListRepository.findAll(spec, pageRequest);
+
+//        Iterable<DocList> findAll = docListRepository.findAll(filter);
+//        Iterable<DocList> findAll = docListRepository.findAll(spec);
+//        Stream<DocList> stream = StreamSupport.stream(findAll.spliterator(), false);
+//        Stream<DocListWithPersoneVedentiList> map = stream.map(a -> projectionFactory.createProjection(DocListWithPersoneVedentiList.class, a));
+//        return map.collect(Collectors.toList());
+        return new Struttura();
     }
 }
