@@ -31,8 +31,10 @@ import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -45,6 +47,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -207,7 +210,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Object afterUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+    public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             if (operationsRequested.contains(AdditionalData.OperationsRequested.SvuotaStruttureConnesseUfficio)) {
@@ -236,8 +239,16 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             }
         }
         Struttura strutturaNuova = (Struttura) entity;
-        Struttura strutturaVecchia = (Struttura) beforeUpdateEntity;
-        aggiungiSistemaStoricoRelazione(strutturaNuova, strutturaVecchia);
+        try {
+            //        Struttura strutturaVecchia = (Struttura) beforeUpdateEntity;
+            beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
+                Struttura strutturaVecchia = (Struttura) oldEntity;
+                aggiungiSistemaStoricoRelazione(strutturaNuova, strutturaVecchia);
+            });
+        } catch (Exception ex) {
+            throw new AbortSaveInterceptorException("errore nel reperire la vecchia struttura", ex);
+        }
+//        aggiungiSistemaStoricoRelazione(strutturaNuova, strutturaVecchia);
         return entity;
     }
 
