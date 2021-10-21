@@ -929,10 +929,11 @@ public class ImportaDaCSV {
                         if (!anomali) {
                             datain = formattattore(strutturaMap.get("datain"));
                             datainString = UtilityFunctions.getZonedDateTimeString(datain);
-                        }
-                        bloccante = anomali ? anomali : bloccante;
-                        mS.setDatain(anomali ? null : datain);
-                        if (anomali) {
+                            mS.setDatain(datain);
+                        }else{
+                            mS.setDatain(null);
+                            bloccante=true;
+                            nRigheAnomale++;
                             log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " Errore bloccante su data inizio vuota");
                         }
 
@@ -1004,7 +1005,7 @@ public class ImportaDaCSV {
                                 if (!listaStrutture.containsKey(Integer.parseInt(strutturaErrorMap.get("id_padre").toString()))) {
                                     bloccante = true;
                                     log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + "  padre non presente");
-                                    strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE") + " padre non presente,");
+                                    strutturaErrorMapWrite.put("ERRORE", strutturaErrorMap.get("ERRORE")!=null? strutturaErrorMap.get("ERRORE"):"" + " padre non presente,");
                                 } else {
                                     List<Map<String, Object>> elementi = listaStrutture.get(Integer.parseInt(strutturaErrorMap.get("id_padre").toString()));
 
