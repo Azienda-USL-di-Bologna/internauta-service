@@ -5,6 +5,8 @@ import it.bologna.ausl.model.entities.gru.QMdrAnagrafica;
 import it.bologna.ausl.model.entities.gru.projections.generated.MdrAnagraficaWithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.util.List;
+import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -29,5 +31,8 @@ public interface MdrAnagraficaRepository extends
     
     @Query(value = "select count(id_azienda) FROM gru.mdr_anagrafica where id_azienda = ?1", nativeQuery = true)
     public Integer countRow(Integer idAzienda);
+    
+    @Query(value =  "SELECT codice_ente, codice_matricola, cognome, nome, codice_fiscale, email FROM gru.mdr_anagrafica WHERE id_azienda= ?1", nativeQuery = true)
+    public  List<Map<String,Object>> selectAnagraficaByIdAzienda(Integer idAzienda);
 
 }
