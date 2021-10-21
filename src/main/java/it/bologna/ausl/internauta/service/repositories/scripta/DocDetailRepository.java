@@ -23,6 +23,6 @@ public interface DocDetailRepository extends
     
     @Transactional
     @Modifying
-    @Query(value = "DELETE FROM scripta.docs_detail WHERE guid_documento = ?1", nativeQuery = true)
+    @Query(value = "DELETE FROM scripta.docs_details WHERE guid_documento = ?1", nativeQuery = true)
     public void deleteByGuidDocumento(String guidDocumento);
 }

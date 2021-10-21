@@ -540,7 +540,7 @@ public class UserInfoService {
     }
 
     public List<String> getCodiciAziendaListDovePersonaHaRuolo(Persona persona, CodiciRuolo nomeBreveRuolo) {
-        Map<String, Map<String, List<String>>> ruoliUtentiPersona = getRuoliUtentiPersona(persona, true);
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = userInfoService.getRuoliUtentiPersona(persona, true);
         if (ruoliUtentiPersona.containsKey(nomeBreveRuolo.toString())) {
             Map<String, List<String>> listaModuliDelRuolo = ruoliUtentiPersona.get(nomeBreveRuolo.toString());
             if (listaModuliDelRuolo.containsKey(Ruolo.ModuliRuolo.GENERALE.toString())) {
@@ -569,7 +569,6 @@ public class UserInfoService {
      */
     @Cacheable(value = "getRuoliListaCodiciAziendaOsservatore_persona__ribaltorg__", key = "{#persona.getId()}")
     public List<String> getListaCodiciAziendaOsservatore(Persona persona) {
-        // NB: E' necessario usare il bean userInfoService altrimenti non verrà usata la cache!
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = getRuoliUtentiPersona(persona, true);
         Map<String, List<String>> listeOsservatore = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.OS.toString());
         List<String> listaCodiciAziendaOsservatore;
