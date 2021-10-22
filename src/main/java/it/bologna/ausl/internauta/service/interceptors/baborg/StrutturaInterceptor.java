@@ -69,28 +69,28 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(StrutturaInterceptor.class);
 
     @Autowired
-    PermissionManager permissionManager;
+    private PermissionManager permissionManager;
 
     @Autowired
-    PermissionRepositoryAccess permissionRepositoryAccess;
+    private PermissionRepositoryAccess permissionRepositoryAccess;
 
     @Autowired
-    StoricoRelazioneRepository storicoRelazioneRepository;
+    private StoricoRelazioneRepository storicoRelazioneRepository;
 
     @Autowired
-    StrutturaRepository strutturaRepository;
+    private StrutturaRepository strutturaRepository;
 
     @Autowired
-    ParametriAziendeReader parametriAziende;
+    private ParametriAziendeReader parametriAziende;
 
     @Autowired
-    UserInfoService userInfoService;
+    private UserInfoService userInfoService;
 
     @Autowired
-    InternautaUtils internautaUtils;
+    private InternautaUtils internautaUtils;
 
     @Autowired
-    public ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     @Override
     public Class getTargetEntityClass() {
@@ -239,16 +239,19 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             }
         }
         Struttura strutturaNuova = (Struttura) entity;
+        ArrayList<Struttura> listaFarlocca = new ArrayList();
         try {
-            //        Struttura strutturaVecchia = (Struttura) beforeUpdateEntity;
+//                    Struttura strutturaVecchia = (Struttura) beforeUpdateEntity;
             beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
                 Struttura strutturaVecchia = (Struttura) oldEntity;
-                aggiungiSistemaStoricoRelazione(strutturaNuova, strutturaVecchia);
+                listaFarlocca.add(strutturaVecchia.getIdStrutturaPadre());
+//                aggiungiSistemaStoricoRelazione(strutturaNuova, strutturaVecchia);
             });
         } catch (Exception ex) {
             throw new AbortSaveInterceptorException("errore nel reperire la vecchia struttura", ex);
         }
-//        aggiungiSistemaStoricoRelazione(strutturaNuova, strutturaVecchia);
+        Struttura strutturaPadreVecchia = listaFarlocca.get(0);
+        aggiungiSistemaStoricoRelazione(strutturaNuova, strutturaPadreVecchia);
         return entity;
     }
 
@@ -303,26 +306,59 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         return struttura;
     }
 
-    private void aggiungiSistemaStoricoRelazione(Struttura strutturaNuova, Struttura strutturaVecchia) {
-        if (strutturaVecchia.getIdStrutturaPadre() == null && strutturaNuova.getIdStrutturaPadre() != null) {
-            StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
-            storicoRelazioneRepository.save(storicoRelazione);
-        } else if (strutturaVecchia.getIdStrutturaPadre() != null && !strutturaVecchia.getIdStrutturaPadre().getId().equals(strutturaNuova.getIdStrutturaPadre().getId())) {
+    private void aggiungiSistemaStoricoRelazione(Struttura strutturaNuova, Struttura strutturaPadreVecchia) throws AbortSaveInterceptorException {
+        if (!strutturaNuova.getAttiva()) {
             ZonedDateTime now = ZonedDateTime.now();
-            StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
-                    QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaVecchia.getId()).and(
-                            (QStoricoRelazione.storicoRelazione.attivaDal.after(now).and(
-                                    (QStoricoRelazione.storicoRelazione.attivaAl.isNull().or(QStoricoRelazione.storicoRelazione.attivaAl.before(now)))
-                            ))
-                    )).get();
-            if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
-                storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
+            if (strutturaNuova.getIdStrutturaPadre() != null) {
+                try {
+                    StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+                            QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(QStoricoRelazione.storicoRelazione.attivaAl.isNull())
+                    ).get();
+                    if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                        storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
+                    } else {
+                        storicoRelazioneVecchia.setAttivaAl(now);
+                        storicoRelazioneRepository.save(storicoRelazioneVecchia);
+                    }
+                } catch (Exception ex) {
+                    throw new AbortSaveInterceptorException("Relazioni da spegnere non trovate");
+                }
+            }
+        } else {
+            if (strutturaPadreVecchia == null && strutturaNuova.getIdStrutturaPadre() != null) {
                 StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
                 storicoRelazioneRepository.save(storicoRelazione);
-            } else {
-                storicoRelazioneVecchia.setAttivaAl(now);
-                storicoRelazioneRepository.save(storicoRelazioneVecchia);
-                storicoRelazioneRepository.save(buildStoricoRelazione(strutturaNuova));
+            } else if (strutturaPadreVecchia != null && strutturaNuova.getIdStrutturaPadre() != null && !strutturaPadreVecchia.getId().equals(strutturaNuova.getIdStrutturaPadre().getId())) {
+                ZonedDateTime now = ZonedDateTime.now();
+                StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+                        QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(
+                                (QStoricoRelazione.storicoRelazione.attivaDal.before(now).and(
+                                        QStoricoRelazione.storicoRelazione.attivaAl.isNull()
+                                ))
+                        )).get();
+                if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                    storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
+                    StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
+                    storicoRelazioneRepository.save(storicoRelazione);
+                } else {
+                    storicoRelazioneVecchia.setAttivaAl(now);
+                    storicoRelazioneRepository.save(storicoRelazioneVecchia);
+                    storicoRelazioneRepository.save(buildStoricoRelazione(strutturaNuova));
+                }
+            } else if (strutturaPadreVecchia != null && strutturaNuova.getIdStrutturaPadre() == null) {
+                ZonedDateTime now = ZonedDateTime.now();
+                StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+                        QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(
+                                (QStoricoRelazione.storicoRelazione.attivaDal.before(now).and(
+                                        QStoricoRelazione.storicoRelazione.attivaAl.isNull()
+                                ))
+                        )).get();
+                if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                    storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
+                } else {
+                    storicoRelazioneVecchia.setAttivaAl(now);
+                    storicoRelazioneRepository.save(storicoRelazioneVecchia);
+                }
             }
         }
     }
@@ -331,8 +367,11 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         StoricoRelazione storicoRelazione = new StoricoRelazione();
         ZonedDateTime now = ZonedDateTime.of(LocalDate.now(), LocalTime.MIN, ZoneId.systemDefault());
         storicoRelazione.setAttivaDal(now);
+//        Struttura strutturaNuovaReloaded = strutturaRepository.getById(strutturaNuova.getIdStrutturaPadre().getId());
+//        Struttura strutturaNuovaPadre = strutturaRepository.getById(strutturaNuova.getIdStrutturaPadre().getId());
+        Struttura strutturaNuovaPadre = strutturaNuova.getIdStrutturaPadre();
         storicoRelazione.setIdStrutturaFiglia(strutturaNuova);
-        storicoRelazione.setIdStrutturaPadre(strutturaNuova.getIdStrutturaPadre());
+        storicoRelazione.setIdStrutturaPadre(strutturaNuovaPadre);
         storicoRelazione.setAttivaAl(null);
         return storicoRelazione;
     }
