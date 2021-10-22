@@ -158,7 +158,7 @@ public class BaborgUtils {
     }
 
     public File buildCSV(List<Map<String, Object>> elementi, String tipo) {
-
+        log.info("sto generando il csv del tipo" + tipo);
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
         String nameCsv = sdf.format(timestamp) + "_" + tipo + ".csv";
@@ -213,6 +213,7 @@ public class BaborgUtils {
             }
 
         } catch (Exception e) {
+            log.error("ho fallito miseramente",e);
             System.out.println("e" + e);
             return null;
         }
@@ -1384,7 +1385,7 @@ public class BaborgUtils {
      */
     private static CellProcessor[] getProcessors(String tipo) {
         CellProcessor[] cellProcessor = null;
-
+        log.info("sto generando i processor del tipo" + tipo);
         switch (tipo) {
             case "APPARTENENTI":
                 final CellProcessor[] processorsAPPARTENENTI = new CellProcessor[]{
@@ -1442,6 +1443,18 @@ public class BaborgUtils {
                     new Optional() // codice_ente
                 };
                 cellProcessor = processorsSTRUTTURA;
+                break;
+            case "ANAGRAFICA":
+                final CellProcessor[] processorsANAGRAFICA = new CellProcessor[]{
+                    // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
+                    new Optional(), // codice_ente
+                    new Optional(), // codice_matricola Non Bloccante
+                    new Optional(), // cognome Bloccante
+                    new Optional(), // nome Bloccante
+                    new Optional(), // codice_fiscale bloccante
+                    new Optional(), // EMAIL bloccante
+                };
+                cellProcessor = processorsANAGRAFICA;
                 break;
             default:
                 System.out.println("non dovrebbe essere altro tipo di tabella");
@@ -1526,6 +1539,7 @@ public class BaborgUtils {
     }
 
     private static String[] headersGenerator(String tipo) {
+        log.info("sto generando l'header del tipo" + tipo);
         String[] headers = null;
         switch (tipo) {
             case "APPARTENENTI":
@@ -1544,6 +1558,10 @@ public class BaborgUtils {
             case "TRASFORMAZIONI":
                 headers = new String[]{"progressivo_riga", "id_casella_partenza", "id_casella_arrivo", "data_trasformazione",
                     "motivo", "datain_partenza", "dataora_oper", "codice_ente"};
+                break;
+            case "ANAGRAFICA":
+                headers = new String[]{"codice_ente", "codice_matricola", "cognome",
+                    "nome", "codice_fiscale", "email"};
                 break;
             default:
                 System.out.println("non dovrebbe essere");
@@ -1641,13 +1659,13 @@ public class BaborgUtils {
         int idAziendaCodice = Integer.parseInt(codiceAzienda);
         ImportazioniOrganigramma res = null;
         BaborgUtils bean = beanFactory.getBean(BaborgUtils.class);
-        ImportaDaCSV beanSave = beanFactory.getBean(ImportaDaCSV.class);
+        ImportaDaCSV importaDaCSVBeanSave = beanFactory.getBean(ImportaDaCSV.class);
 
 
         try {
 
 //            String csv_error_link = bean.csvTransactionalReadDeleteInsert(file, tipo, idAziendaCodice, idAziendaInt);
-            String csv_error_link = beanSave.csvTransactionalReadDeleteInsert(file, tipo, idAziendaCodice, idAziendaInt);
+            String csv_error_link = importaDaCSVBeanSave.csvTransactionalReadDeleteInsert(file, tipo, idAziendaCodice, idAziendaInt);
             // Update nello storico importazioni. esito: OK e Data Fine: Data.now
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Ok", csv_error_link);
         } catch (BaborgCSVBloccanteException e) {

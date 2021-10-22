@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ImportazioniOrganigrammaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.gru.MdrAnagraficaRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrAppartenentiRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrResponsabiliRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepository;
@@ -71,6 +72,9 @@ public class BaborgCustomController {
     @Autowired
     MdrStrutturaRepository mdrStrutturaRepository;
 
+    @Autowired
+    MdrAnagraficaRepository mdrAnagraficaRepository;
+        
     @Autowired
     ReporitoryConnectionManager mongoConnectionManager;
 
@@ -149,6 +153,11 @@ public class BaborgCustomController {
                 case "TRASFORMAZIONI":
                     List<Map<String, Object>> selectTrasformazioniByIdAzienda = mdrTrasformazioniRepository.selectTrasformazioniByIdAzienda(idAziendaInt);
                     buildCSV = baborgUtils.buildCSV(selectTrasformazioniByIdAzienda,tipo);
+                    break;
+                    
+                case "ANAGRAFICA":
+                    List<Map<String, Object>> selectAnagraficaByIdAzienda = mdrAnagraficaRepository.selectAnagraficaByIdAzienda(idAziendaInt);
+                    buildCSV = baborgUtils.buildCSV(selectAnagraficaByIdAzienda,tipo);
                     break;
         }
         if (buildCSV != null) {
