@@ -61,7 +61,6 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.DocListRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -100,6 +99,7 @@ import okhttp3.ResponseBody;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
 
 /**
  *
@@ -125,7 +125,7 @@ public class ScriptaCustomController {
     DocRepository docRepository;
 
     @Autowired
-    DocListRepository docListRepository;
+    DocDetailRepository docDetailRepository;
 
     @Autowired
     RegistroDocRepository registroDocRepository;
@@ -618,7 +618,7 @@ public class ScriptaCustomController {
                 readValue = objectMapper.readValue(response.body().string(), HashMap.class);
 //                r.put(resp);
                 log.info("Chiamata a webapi inde effettuata con successo");
-                docListRepository.deleteByGuidDocumento(guidDoc);
+                docDetailRepository.deleteByGuidDocumento(guidDoc);
             } else {
                 log.info("Errore nella chiamata alla webapi InDe: " + responseCode + " " + response.message());
                 throw new IOException(String.format("Errore nella chiamata alla WepApi InDe: %s", response.message()));

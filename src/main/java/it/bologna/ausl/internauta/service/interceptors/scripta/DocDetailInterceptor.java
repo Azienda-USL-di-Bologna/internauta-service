@@ -1,25 +1,25 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.querydsl.core.types.Path;
 import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.SubQueryExpression;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import static com.querydsl.jpa.JPAExpressions.select;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
-import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configurazione.Applicazione;
-import it.bologna.ausl.model.entities.scripta.DocList;
-import it.bologna.ausl.model.entities.scripta.QDocList;
+import it.bologna.ausl.model.entities.scripta.DocDetail;
+import it.bologna.ausl.model.entities.scripta.PersonaVedente;
+import it.bologna.ausl.model.entities.scripta.QDocDetail;
+import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
-import it.nextsw.common.interceptors.NextSdrControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,10 +27,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
@@ -45,10 +42,15 @@ import org.springframework.stereotype.Component;
  * @author gusgus
  */
 @Component
-@NextSdrInterceptor(name = "doclist-interceptor")
-public class DocListInterceptor extends InternautaBaseInterceptor {
-    
-    private static final Logger LOGGER = LoggerFactory.getLogger(DocListInterceptor.class);
+@NextSdrInterceptor(name = "docdetail-interceptor")
+public class DocDetailInterceptor extends InternautaBaseInterceptor {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DocDetailInterceptor.class);
+
+    @Override
+    public Class getTargetEntityClass() {
+        return DocDetail.class;
+    }
 
     @Autowired
     UserInfoService userInfoService;
@@ -61,19 +63,17 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     ObjectMapper objectMapper;
-
-    @Override
-    public Class getTargetEntityClass() {
-        return DocList.class;
-    }
+    
+    @Autowired
+    DocDetailInterceptorUtils docDetailInterceptorUtils;
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Utente user = authenticatedSessionData.getUser();
         Persona persona = user.getIdPersona();
-        QDocList qdoclist = QDocList.docList;
-                        
+        QDocDetail qdoclist = QDocDetail.docDetail;
+  
         initialPredicate = safetyFilters().and(initialPredicate);
         
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
@@ -86,9 +86,9 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
                         initialPredicate = qdoclist.annullato.isFalse().and(initialPredicate);
                         initialPredicate = qdoclist.stato.in(
                                 Arrays.asList(new String[]{
-                                    DocList.StatoDoc.CONTROLLO_SEGRETERIA.toString(),
-                                    DocList.StatoDoc.PARERE.toString(),
-                                    DocList.StatoDoc.FIRMA.toString()
+                                    DocDetail.StatoDoc.CONTROLLO_SEGRETERIA.toString(),
+                                    DocDetail.StatoDoc.PARERE.toString(),
+                                    DocDetail.StatoDoc.FIRMA.toString()
                                 })).and(initialPredicate);
                         break;
                     case VisualizzaTabIFirmato:
@@ -97,10 +97,10 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
                         break;
                     case VisualizzaTabRegistrazioni:
                         if (!userInfoService.isSD(user)) {
-                            List<String> codiceAziendaListDoveSonoOS = userInfoService.getCodiciAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.OS);
-                            List<String> codiceAziendaListDoveSonoMOS = userInfoService.getCodiciAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.MOS);
-                            List<String> codicAziendaOSoMOS = Stream.concat(codiceAziendaListDoveSonoOS.stream(), codiceAziendaListDoveSonoMOS.stream()).collect(Collectors.toList());
-                            initialPredicate = qdoclist.idAzienda.codice.in(codicAziendaOSoMOS).and(initialPredicate);
+                            List<Integer> codiceAziendaListDoveSonoOS = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.OS);
+                            List<Integer> codiceAziendaListDoveSonoMOS = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.MOS);
+                            List<Integer> idAziendaOSoMOS = Stream.concat(codiceAziendaListDoveSonoOS.stream(), codiceAziendaListDoveSonoMOS.stream()).collect(Collectors.toList());
+                            initialPredicate = qdoclist.idAzienda.id.in(idAziendaOSoMOS).and(initialPredicate);
                         }
                         initialPredicate = qdoclist.numeroRegistrazione.isNotNull().and(initialPredicate);
                         break;
@@ -114,7 +114,9 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
     @Override
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         try {
-            manageAfterCollection(entities);
+            AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+            BiFunction<Object,Persona,Boolean> fnPienaVisibilita = (o, p) -> pienaVisibilita((DocDetail)o, p);
+            docDetailInterceptorUtils.manageAfterCollection(entities, authenticatedSessionData, fnPienaVisibilita);
         } catch (IOException ex) {
             throw new AbortLoadInterceptorException("Errore nella generazione dell'url", ex);
         }
@@ -126,7 +128,9 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
         List<Object> entities = new ArrayList();
         entities.add(entity);
         try {
-            manageAfterCollection(entities);
+            AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+            BiFunction<Object,Persona,Boolean> fnPienaVisibilita = (o, p) -> pienaVisibilita((DocDetail)o, p);
+            docDetailInterceptorUtils.manageAfterCollection(entities, authenticatedSessionData, fnPienaVisibilita);
         } catch (IOException ex) {
             throw new AbortLoadInterceptorException("Errore nella generazione dell'url", ex);
         }
@@ -140,7 +144,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
      * @return 
      */
     private BooleanExpression buildFilterPerStruttureDelSegretario(Persona persona) {
-        QDocList qdoclist = QDocList.docList;
+        QDocDetail qdoclist = QDocDetail.docDetail;
         Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
         BooleanExpression sonoSegretario = Expressions.booleanTemplate(
                 String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idStruttureSegretario, ","), "integer[]", "&&"),
@@ -151,7 +155,7 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
 
     /**
      * Questa funzione si occupa di generare un predicato che contenga tutti i
-     * filtri di sicurezza che riguardano docList Essi sono: 1- Se demiurgo vede
+     * filtri di sicurezza che riguardano docDetail Essi sono: 1- Se demiurgo vede
      * tutto 2- Gli altri vedono solo documenti delle aziende su cui sono attivi
      * 3- Se osservatore vede tutto delle aziende su cui è osservatore tranne i riservati 4- Se
      * utente generico vede solo le sue proposte 5- Se segretario vede anche
@@ -162,24 +166,28 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Utente user = authenticatedSessionData.getUser();
         Persona persona = user.getIdPersona();
-        QDocList qdoclist = QDocList.docList;
+        QDocDetail qdoclist = QDocDetail.docDetail;
         BooleanExpression filter = Expressions.TRUE.eq(true);
 
         if (!userInfoService.isSD(user)) { // Filtro 1
             String[] visLimFields = {"firmatari", "fascicolazioni", "fascicolazioniTscol", "tscol"};
             String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "fascicolazioni", "fascicolazioniTscol"};
-            List<String> listaCodiciAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getCodice()).collect(Collectors.toList());
-            List<String> listaCodiciAziendaOsservatore = userInfoService.getListaCodiciAziendaOsservatore(persona);
+            List<Integer> listaIdAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getId()).collect(Collectors.toList());
+            List<Integer> listaIdAziendaOsservatore = userInfoService.getListaIdAziendaOsservatore(persona);
             Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
-//            Integer[] idStruttureSegretario = personaRepository.getStruttureDelSegretario(persona.getId());
-            BooleanExpression pienaVisibilita = Expressions.booleanTemplate(
-                    String.format("FUNCTION('jsonb_contains', {0}, '[{\"idPersona\": %d, \"pienaVisibilita\": true}]') = true", persona.getId()),
-                    qdoclist.personeVedenti
-            );
-            BooleanExpression personaVedente = Expressions.booleanTemplate(
-                    String.format("FUNCTION('jsonb_contains', {0}, '[{\"idPersona\": %d}]') = true", persona.getId()),
-                    qdoclist.personeVedenti
-            );
+
+            QPersonaVedente qPersonaVedente = QPersonaVedente.personaVedente;
+            SubQueryExpression<Long> queryPersoneVedenteConPienaVisibilita = 
+                    select(qPersonaVedente.id)
+                    .from(qPersonaVedente)
+                    .where(
+                        qPersonaVedente.idPersona.id.eq(persona.getId()),
+                        qPersonaVedente.pienaVisibilita.eq(Expressions.TRUE),
+                        qdoclist.id.eq(qPersonaVedente.idDocDetail.id)
+                    );
+            BooleanExpression pienaVisibilita = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteConPienaVisibilita);
+            BooleanExpression personaVedente = qdoclist.personeVedentiList.any().idPersona.id.eq(persona.getId());
+            
             BooleanExpression sonoSegretario = null;
             if (idStruttureSegretario != null && idStruttureSegretario.length > 0) {
                 sonoSegretario = Expressions.booleanTemplate(
@@ -196,50 +204,26 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
 
             filtroStandard = filtroStandard.and(
                     qdoclist.riservato.eq(Boolean.FALSE) // Filtro 6 Riservato
-                            .or(Expressions.FALSE.eq(isFilteringSpecialFields(reservedFields)))
+                            .or(Expressions.FALSE.eq(docDetailInterceptorUtils.isFilteringSpecialFields(reservedFields)))
                             .or(pienaVisibilita)
             );
 
             filtroStandard = filtroStandard.and(
                     qdoclist.visibilitaLimitata.eq(Boolean.FALSE) // Filtro 6 Visibilità limitata
-                            .or(Expressions.FALSE.eq(isFilteringSpecialFields(visLimFields)))
+                            .or(Expressions.FALSE.eq(docDetailInterceptorUtils.isFilteringSpecialFields(visLimFields)))
                             .or(pienaVisibilita)
             );
             
-            BooleanExpression filtroOsservatore = qdoclist.idAzienda.codice.in(listaCodiciAziendaOsservatore)
+            BooleanExpression filtroOsservatore = qdoclist.idAzienda.id.in(listaIdAziendaOsservatore)
                     .and(qdoclist.riservato.eq(Boolean.FALSE)); // Filtro 3
 
-            filter = qdoclist.idAzienda.codice.in(listaCodiciAziendaUtenteAttivo); // Filtro 2
+            filter = qdoclist.idAzienda.id.in(listaIdAziendaUtenteAttivo); // Filtro 2
             filter = filter.and(filtroOsservatore.or(filtroStandard));
         }
 
         return filter;
     }
 
-    /**
-     * La variabile threadlocal filterDescriptor è una mappa. Le sue chiavi sono
-     * tutti i fields filtrati dal frontend. La funzione torna true se almeno
-     * uno dei fields in esame è ritenuto un campo sensisbile. L'elenco dei
-     * campi sensibili è passatto come parametro.
-     * @param specialFields
-     * @return
-     */
-    private Boolean isFilteringSpecialFields(String[] specialFields) {
-        Map<Path<?>, List<Object>> filterDescriptorMap = NextSdrControllerInterceptor.filterDescriptor.get();
-        if (!filterDescriptorMap.isEmpty()) {
-            Pattern pattern = Pattern.compile("\\.(.*?)(\\.|$)");
-            Set<Path<?>> pathSet = filterDescriptorMap.keySet();
-            for (Path<?> path : pathSet) {
-                Matcher matcher = pattern.matcher(path.toString());
-                matcher.find();
-                String fieldName = matcher.group(1);
-                if (Arrays.stream(specialFields).anyMatch(fieldName::equals)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
 
     /**
      * Controlla se l'utente connesso ha pienaVisbilita: true nella colonna
@@ -247,9 +231,9 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
      * @param doc
      * @return
      */
-    private Boolean pienaVisibilita(DocList doc, Persona persona) {
-        for (DocList.PersonaVedente personaVedente : doc.getPersoneVedenti()) {
-            if (personaVedente.getIdPersona() != null && personaVedente.getIdPersona().equals(persona.getId())) {
+    private Boolean pienaVisibilita(DocDetail doc, Persona persona) {
+        for (PersonaVedente personaVedente : doc.getPersoneVedentiList()) {
+            if (personaVedente.getIdPersona() != null && personaVedente.getIdPersona().getId().equals(persona.getId())) {
                 if (personaVedente.getPienaVisibilita()) {
                     return true;
                 } else {
@@ -260,76 +244,4 @@ public class DocListInterceptor extends InternautaBaseInterceptor {
         return false;
     }
 
-    /**
-     * Metodo chiamato in after select. Si occupa di fare dei controlli sul
-     * risultato, eventualmente nascondendo dei campi.
-     * @param entities 
-     */
-    private void manageAfterCollection(Collection<Object> entities) throws IOException {
-        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        Utente user = authenticatedSessionData.getUser();
-        Persona persona = user.getIdPersona();
-        List<String> listaCodiciAziendaOsservatore = userInfoService.getListaCodiciAziendaOsservatore(persona);
-        Boolean isSuperDemiurgo = userInfoService.isSD(user);
-        for (Object entity : entities) {
-            DocList doc = (DocList) entity;
-            securityHiding(doc, persona, isSuperDemiurgo, listaCodiciAziendaOsservatore);
-            buildUrlComplete(doc, persona, authenticatedSessionData);
-        }
-    }
-
-    /**
-     * Metodo chiamato a seguito di una select. Se il doc è riservato e l'utente
-     * connesso non è autorizzato nascondo i campi sensibili.
-     * @param doc
-     */
-    private void securityHiding(DocList doc, Persona persona, Boolean isSuperDemiurgo, List<String> listaCodiciAziendaOsservatore) {
-        if ((doc.getRiservato() || (doc.getVisibilitaLimitata() && !listaCodiciAziendaOsservatore.contains(doc.getIdAzienda().getCodice())))
-                && !isSuperDemiurgo
-                && !pienaVisibilita(doc, persona)) {
-            
-            doc.setFirmatari(null);
-            doc.setFascicolazioni(null);
-            doc.setFascicolazioniTscol(null);
-            doc.setTscol(null);
-            
-            if (doc.getRiservato()) {
-                doc.setOggetto("[RISERVATO]");
-                doc.setOggettoTscol(null);
-                doc.setDestinatari(null);
-                doc.setDestinatariTscol(null);
-                doc.setIdPersonaRedattrice(null);
-            }
-        }
-    }
-    
-    private void buildUrlComplete(DocList doc, Persona persona, AuthenticatedSessionData authenticatedSessionData) throws IOException {
-        if (doc.getCommandType() == DocList.CommandType.URL) {
-            doc.setUrlComplete(
-                internautaUtils.getUrl(
-                    authenticatedSessionData, 
-                    doc.getOpenCommand(), 
-                    getIdApplicazione(doc), 
-                    doc.getIdAzienda()
-                )
-            );
-        }
-    }
-    
-    private String getIdApplicazione(DocList doc) {
-        String idApplicazione = null;
-        switch (doc.getTipologia()) {
-            case PROTOCOLLO_IN_ENTRATA:
-            case PROTOCOLLO_IN_USCITA:
-                idApplicazione = Applicazione.Applicazioni.procton.toString();
-                break;
-            case DETERMINA:
-                idApplicazione = Applicazione.Applicazioni.dete.toString();
-                break;    
-            case DELIBERA:
-                idApplicazione = Applicazione.Applicazioni.deli.toString();
-                break;
-        }
-        return idApplicazione;
-    }
 }
