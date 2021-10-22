@@ -23,19 +23,23 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import it.bologna.ausl.model.entities.scripta.Doc;
-import it.bologna.ausl.model.entities.scripta.DocList;
+import it.bologna.ausl.model.entities.scripta.DocDetail;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
+import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
 import it.bologna.ausl.model.entities.scripta.QDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.QDoc;
-import it.bologna.ausl.model.entities.scripta.QDocList;
+import it.bologna.ausl.model.entities.scripta.QDocDetail;
+import it.bologna.ausl.model.entities.scripta.views.QDocDetailView;
 import it.bologna.ausl.model.entities.scripta.QMezzo;
+import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QRelated;
 import it.bologna.ausl.model.entities.scripta.QSmistamento;
 import it.bologna.ausl.model.entities.scripta.QSpedizione;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Smistamento;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
+import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
 
 @RestController
 @RequestMapping(value = "${scripta.mapping.url.root}")
@@ -147,16 +151,42 @@ public class ScriptaBaseController extends BaseCrudController {
         return ResponseEntity.ok(resource);
     }
     
-    @RequestMapping(value = {"doclist", "doclist/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> doclist(
-            @QuerydslPredicate(root = DocList.class) Predicate predicate,
+    @RequestMapping(value = {"docdetail", "docdetail/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> docdetail(
+            @QuerydslPredicate(root = DocDetail.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDocList.docList, DocList.class);
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDocDetail.docDetail, DocDetail.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"personavedente", "personavedente/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> personavedente(
+            @QuerydslPredicate(root = PersonaVedente.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPersonaVedente.personaVedente, PersonaVedente.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"docdetailview", "docdetailview/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> docdetailview(
+            @QuerydslPredicate(root = DocDetailView.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDocDetailView.docDetailView, DocDetailView.class);
         return ResponseEntity.ok(resource);
     }
 }

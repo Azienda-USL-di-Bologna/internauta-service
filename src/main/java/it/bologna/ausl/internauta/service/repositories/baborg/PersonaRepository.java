@@ -40,7 +40,7 @@ public interface PersonaRepository extends
     public List<Persona> getPersoneAttiveListInStruttureAttiveList(List<Integer> idStrutture);
 
     
-    @Query(value = "select unnest(baborg.strutture_del_segretario(?1))", nativeQuery = true)
+    @Query(value = "select unnest(array_remove(baborg.strutture_del_segretario(?1),NULL))", nativeQuery = true)
     public Integer[] getStruttureDelSegretario(
            Integer idPersona
     );

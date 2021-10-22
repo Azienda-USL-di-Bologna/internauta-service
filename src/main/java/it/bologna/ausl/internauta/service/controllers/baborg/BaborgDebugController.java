@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.baborg;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -13,6 +14,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
@@ -30,12 +32,18 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.persistence.Column;
+import javax.persistence.EntityManager;
 import javax.persistence.JoinColumn;
 import javax.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -64,10 +72,19 @@ public class BaborgDebugController {
     ProjectionFactory factory;
     
     @Autowired
+    ObjectMapper objectMapper;
+    
+    @Autowired
     ParametriAziendeReader parametriAziende;
+    
+    @Autowired
+    EntityManager entityManager;
 
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+    
+    @Autowired
+    BeanFactory beanFactory;
 
     @RequestMapping(value = "ping", method = RequestMethod.GET)
     public String ping() {
@@ -187,5 +204,49 @@ public class BaborgDebugController {
         Object struttureRuolo = storicoRelazioneRepository.getStruttureRuolo(256, 351272);
         
         return struttureRuolo;
+    }
+    
+    @RequestMapping(value = "test3", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
+    public Object test3(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException {
+        
+        Struttura newPadre = strutturaRepository.getOne(242687); 
+        Struttura original = strutturaRepository.getOne(25240);
+        BaborgDebugController bean = beanFactory.getBean(BaborgDebugController.class);
+        original.setIdStrutturaPadre(newPadre);
+        //Struttura strutturaClonata = bean.loadCloned(one.getId());
+        
+//        Foo foo = parameter -> parameter + " from lambda";
+//        String result = this.add("Message ", foo);
+
+       
+        
+        
+        System.out.println("res:" + original);
+        //strutturaClonata.setNome(one.getNome()+ "_1");
+        //return objectMapper.writeValueAsString(strutturaClonata);
+        return original;
+    }
+    
+//    public String add(String string, Foo foo) {
+//        return foo.method(string);
+//    }   
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public void manageCloned(UnaryOperator<Object> fn) {
+        Integer id = 25240;
+        Object entity = entityManager.find(beanFactory.getClass(), id);
+        //res.setNome("Centrale di Sterilizzazione_99");
+//        Struttura idStrutturaPadre = entity.getIdStrutturaPadre();
+//        System.out.println("idPadre:" + idStrutturaPadre.getId());
+        fn.apply(entity);
+    }
+    
+//    @Transactional(propagation = Propagation.REQUIRED, readOnly = false)
+    public Struttura loadCloned(Integer id) {
+        Struttura res = entityManager.find(Struttura.class, id);
+        //res.setNome("Centrale di Sterilizzazione_99");
+        Struttura idStrutturaPadre = res.getIdStrutturaPadre();
+        System.out.println("idPadre:" + idStrutturaPadre.getId());
+        return res;
     }
 }
