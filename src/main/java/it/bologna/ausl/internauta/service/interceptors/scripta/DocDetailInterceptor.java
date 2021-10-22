@@ -182,7 +182,8 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                     .from(qPersonaVedente)
                     .where(
                         qPersonaVedente.idPersona.id.eq(persona.getId()),
-                        qPersonaVedente.pienaVisibilita.eq(Expressions.TRUE)
+                        qPersonaVedente.pienaVisibilita.eq(Expressions.TRUE),
+                        qdoclist.id.eq(qPersonaVedente.idDocDetail.id)
                     );
             BooleanExpression pienaVisibilita = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteConPienaVisibilita);
             BooleanExpression personaVedente = qdoclist.personeVedentiList.any().idPersona.id.eq(persona.getId());
