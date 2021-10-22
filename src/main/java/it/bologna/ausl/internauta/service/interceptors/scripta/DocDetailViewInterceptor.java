@@ -1,7 +1,6 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.querydsl.core.types.Path;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -9,29 +8,20 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configurazione.Applicazione;
-import it.bologna.ausl.model.entities.scripta.DocDetail;
 import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
 import it.bologna.ausl.model.entities.scripta.views.QDocDetailView;
 import it.nextsw.common.annotations.NextSdrInterceptor;
-import it.nextsw.common.interceptors.NextSdrControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +36,13 @@ import org.slf4j.LoggerFactory;
 @Component
 @NextSdrInterceptor(name = "docdetailview-interceptor")
 public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
+    
     private static final Logger LOGGER = LoggerFactory.getLogger(DocDetailViewInterceptor.class);
+    
+    @Override
+    public Class getTargetEntityClass() {
+        return DocDetailView.class;
+    }
     
     @Autowired
     UserInfoService userInfoService;
@@ -59,50 +55,13 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     ObjectMapper objectMapper;
-
-    @Override
-    public Class getTargetEntityClass() {
-        return DocDetailView.class;
-    }
+    
+    @Autowired
+    DocDetailInterceptorUtils docDetailInterceptorUtils;
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        Utente user = authenticatedSessionData.getUser();
-        Persona persona = user.getIdPersona();
-        QDocDetailView qdocdetailview = QDocDetailView.docDetailView;
         initialPredicate = safetyFilters().and(initialPredicate);
-        List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
-        if (operationsRequested != null && !operationsRequested.isEmpty()) {
-            for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
-                switch (operationRequested) {
-                    case VisualizzaTabIFirmario:
-                        initialPredicate = buildFilterPerStruttureDelSegretario(persona).and(initialPredicate);
-                        initialPredicate = qdocdetailview.numeroRegistrazione.isNull().and(initialPredicate);
-                        initialPredicate = qdocdetailview.annullato.isFalse().and(initialPredicate);
-                        initialPredicate = qdocdetailview.stato.in(
-                                Arrays.asList(new String[]{
-                                    DocDetail.StatoDoc.CONTROLLO_SEGRETERIA.toString(),
-                                    DocDetail.StatoDoc.PARERE.toString(),
-                                    DocDetail.StatoDoc.FIRMA.toString()
-                                })).and(initialPredicate);
-                        break;
-                    case VisualizzaTabIFirmato:
-                        initialPredicate = buildFilterPerStruttureDelSegretario(persona).and(initialPredicate);
-                        initialPredicate = qdocdetailview.numeroRegistrazione.isNotNull().and(initialPredicate);
-                        break;
-                    case VisualizzaTabRegistrazioni:
-                        if (!userInfoService.isSD(user)) {
-                            List<String> codiceAziendaListDoveSonoOS = userInfoService.getCodiciAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.OS);
-                            List<String> codiceAziendaListDoveSonoMOS = userInfoService.getCodiciAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.MOS);
-                            List<String> codicAziendaOSoMOS = Stream.concat(codiceAziendaListDoveSonoOS.stream(), codiceAziendaListDoveSonoMOS.stream()).collect(Collectors.toList());
-                            initialPredicate = qdocdetailview.idAzienda.codice.in(codicAziendaOSoMOS).and(initialPredicate);
-                        }
-                        initialPredicate = qdocdetailview.numeroRegistrazione.isNotNull().and(initialPredicate);
-                        break;
-                }
-            }
-        }
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -111,7 +70,9 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
         List<Object> entities = new ArrayList();
         entities.add(entity);
         try {
-            manageAfterCollection(entities);
+            AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+            BiFunction<Object,Persona,Boolean> fnPienaVisibilita = (o, p) -> pienaVisibilita((DocDetailView)o, p);
+            docDetailInterceptorUtils.manageAfterCollection(entities, authenticatedSessionData, fnPienaVisibilita);
         } catch (IOException ex) {
             throw new AbortLoadInterceptorException("Errore nella generazione dell'url", ex);
         }
@@ -121,14 +82,14 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
     @Override
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         try {
-            manageAfterCollection(entities);
+            AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+            BiFunction<Object,Persona,Boolean> fnPienaVisibilita = (o, p) -> pienaVisibilita((DocDetailView)o, p);
+            docDetailInterceptorUtils.manageAfterCollection(entities, authenticatedSessionData, fnPienaVisibilita);
         } catch (IOException ex) {
             throw new AbortLoadInterceptorException("Errore nella generazione dell'url", ex);
         }
         return entities;
     }
-    
-    
     
     /**
      * Controlla se l'utente connesso ha pienaVisbilita: true nella colonna
@@ -159,8 +120,8 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
         if (!userInfoService.isSD(user)) { // Filtro 1
             String[] visLimFields = {"firmatari", "fascicolazioni", "fascicolazioniTscol", "tscol"};
             String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "fascicolazioni", "fascicolazioniTscol"};
-            List<String> listaCodiciAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getCodice()).collect(Collectors.toList());
-            List<String> listaCodiciAziendaOsservatore = userInfoService.getListaCodiciAziendaOsservatore(persona);
+            List<Integer> listaIdAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getId()).collect(Collectors.toList());
+            List<Integer> listaIdAziendaOsservatore = userInfoService.getListaIdAziendaOsservatore(persona);
             Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
             BooleanExpression pienaVisibilita = qdocdetailview.idPersona.id.eq(persona.getId()).and(qdocdetailview.pienaVisibilita.eq(Expressions.TRUE));
             BooleanExpression personaVedente = qdocdetailview.idPersona.id.eq(persona.getId());
@@ -180,137 +141,23 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
 
             filtroStandard = filtroStandard.and(
                     qdocdetailview.riservato.eq(Boolean.FALSE) // Filtro 6 Riservato
-                            .or(Expressions.FALSE.eq(isFilteringSpecialFields(reservedFields)))
+                            .or(Expressions.FALSE.eq(docDetailInterceptorUtils.isFilteringSpecialFields(reservedFields)))
                             .or(pienaVisibilita)
             );
 
             filtroStandard = filtroStandard.and(
                     qdocdetailview.visibilitaLimitata.eq(Boolean.FALSE) // Filtro 6 Visibilità limitata
-                            .or(Expressions.FALSE.eq(isFilteringSpecialFields(visLimFields)))
+                            .or(Expressions.FALSE.eq(docDetailInterceptorUtils.isFilteringSpecialFields(visLimFields)))
                             .or(pienaVisibilita)
             );
             
-            BooleanExpression filtroOsservatore = qdocdetailview.idAzienda.codice.in(listaCodiciAziendaOsservatore)
+            BooleanExpression filtroOsservatore = qdocdetailview.idAzienda.id.in(listaIdAziendaOsservatore)
                     .and(qdocdetailview.riservato.eq(Boolean.FALSE)); // Filtro 3
 
-            filter = qdocdetailview.idAzienda.codice.in(listaCodiciAziendaUtenteAttivo); // Filtro 2
+            filter = qdocdetailview.idAzienda.id.in(listaIdAziendaUtenteAttivo); // Filtro 2
             filter = filter.and(filtroOsservatore.or(filtroStandard));
         }
 
         return filter;
-    }
-    
-    /**
-     * La variabile threadlocal filterDescriptor è una mappa. Le sue chiavi sono
-     * tutti i fields filtrati dal frontend. La funzione torna true se almeno
-     * uno dei fields in esame è ritenuto un campo sensisbile. L'elenco dei
-     * campi sensibili è passatto come parametro.
-     * @param specialFields
-     * @return
-     */
-    private Boolean isFilteringSpecialFields(String[] specialFields) {
-        Map<Path<?>, List<Object>> filterDescriptorMap = NextSdrControllerInterceptor.filterDescriptor.get();
-        if (!filterDescriptorMap.isEmpty()) {
-            Pattern pattern = Pattern.compile("\\.(.*?)(\\.|$)");
-            Set<Path<?>> pathSet = filterDescriptorMap.keySet();
-            for (Path<?> path : pathSet) {
-                Matcher matcher = pattern.matcher(path.toString());
-                matcher.find();
-                String fieldName = matcher.group(1);
-                if (Arrays.stream(specialFields).anyMatch(fieldName::equals)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-    
-    /**
-     * Mi ritorna il filtro per controllare che il doc sia del segretario
-     * per quanto riguarda i tab ifirmario/ifirmato
-     * @param persona
-     * @return 
-     */
-    private BooleanExpression buildFilterPerStruttureDelSegretario(Persona persona) {
-        QDocDetailView qdocdetailview = QDocDetailView.docDetailView;
-        Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
-        BooleanExpression sonoSegretario = Expressions.booleanTemplate(
-                String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idStruttureSegretario, ","), "integer[]", "&&"),
-                qdocdetailview.idStruttureSegreteria
-        );
-        return sonoSegretario;
-    }
-    
-    /**
-     * Metodo chiamato in after select. Si occupa di fare dei controlli sul
-     * risultato, eventualmente nascondendo dei campi.
-     * @param entities 
-     */
-    private void manageAfterCollection(Collection<Object> entities) throws IOException {
-        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        Utente user = authenticatedSessionData.getUser();
-        Persona persona = user.getIdPersona();
-        List<String> listaCodiciAziendaOsservatore = userInfoService.getListaCodiciAziendaOsservatore(persona);
-        Boolean isSuperDemiurgo = userInfoService.isSD(user);
-        for (Object entity : entities) {
-            DocDetailView doc = (DocDetailView) entity;
-            securityHiding(doc, persona, isSuperDemiurgo, listaCodiciAziendaOsservatore);
-            buildUrlComplete(doc, persona, authenticatedSessionData);
-        }
-    }
-    
-    /**
-     * Metodo chiamato a seguito di una select. Se il doc è riservato e l'utente
-     * connesso non è autorizzato nascondo i campi sensibili.
-     * @param doc
-     */
-    private void securityHiding(DocDetailView doc, Persona persona, Boolean isSuperDemiurgo, List<String> listaCodiciAziendaOsservatore) {
-        if ((doc.getRiservato() || (doc.getVisibilitaLimitata() && !listaCodiciAziendaOsservatore.contains(doc.getIdAzienda().getCodice())))
-                && !isSuperDemiurgo
-                && !pienaVisibilita(doc, persona)) {
-            
-            doc.setFirmatari(null);
-            doc.setFascicolazioni(null);
-            doc.setFascicolazioniTscol(null);
-            doc.setTscol(null);
-            
-            if (doc.getRiservato()) {
-                doc.setOggetto("[RISERVATO]");
-                doc.setOggettoTscol(null);
-                doc.setDestinatari(null);
-                doc.setDestinatariTscol(null);
-                doc.setIdPersonaRedattrice(null);
-            }
-        }
-    }
-    
-    private void buildUrlComplete(DocDetailView doc, Persona persona, AuthenticatedSessionData authenticatedSessionData) throws IOException {
-        if (doc.getCommandType() == DocDetail.CommandType.URL) {
-            doc.setUrlComplete(
-                internautaUtils.getUrl(
-                    authenticatedSessionData, 
-                    doc.getOpenCommand(), 
-                    getIdApplicazione(doc), 
-                    doc.getIdAzienda()
-                )
-            );
-        }
-    }
-    
-    private String getIdApplicazione(DocDetailView doc) {
-        String idApplicazione = null;
-        switch (doc.getTipologia()) {
-            case PROTOCOLLO_IN_ENTRATA:
-            case PROTOCOLLO_IN_USCITA:
-                idApplicazione = Applicazione.Applicazioni.procton.toString();
-                break;
-            case DETERMINA:
-                idApplicazione = Applicazione.Applicazioni.dete.toString();
-                break;    
-            case DELIBERA:
-                idApplicazione = Applicazione.Applicazioni.deli.toString();
-                break;
-        }
-        return idApplicazione;
     }
 }

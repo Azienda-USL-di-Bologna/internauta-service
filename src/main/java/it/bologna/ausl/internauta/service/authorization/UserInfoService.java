@@ -539,12 +539,17 @@ public class UserInfoService {
         return finalMap;
     }
 
-    public List<String> getCodiciAziendaListDovePersonaHaRuolo(Persona persona, CodiciRuolo nomeBreveRuolo) {
+    public List<Integer> getIdAziendaListDovePersonaHaRuolo(Persona persona, CodiciRuolo nomeBreveRuolo) {
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = userInfoService.getRuoliUtentiPersona(persona, true);
         if (ruoliUtentiPersona.containsKey(nomeBreveRuolo.toString())) {
             Map<String, List<String>> listaModuliDelRuolo = ruoliUtentiPersona.get(nomeBreveRuolo.toString());
             if (listaModuliDelRuolo.containsKey(Ruolo.ModuliRuolo.GENERALE.toString())) {
-                return listaModuliDelRuolo.get(Ruolo.ModuliRuolo.GENERALE.toString());
+                List<String> codiciAziende = listaModuliDelRuolo.get(Ruolo.ModuliRuolo.GENERALE.toString());
+                List<Integer> idAziende = new ArrayList();
+                codiciAziende.stream().forEach(codice -> {
+                    idAziende.add(cachedEntities.getAziendaFromCodice(codice).getId());
+                });
+                return idAziende;
             }
         }
         return new ArrayList();
@@ -567,17 +572,21 @@ public class UserInfoService {
      * @param persona
      * @return
      */
-    @Cacheable(value = "getRuoliListaCodiciAziendaOsservatore_persona__ribaltorg__", key = "{#persona.getId()}")
-    public List<String> getListaCodiciAziendaOsservatore(Persona persona) {
+    @Cacheable(value = "getRuoliListaIdAziendaOsservatore_persona__ribaltorg__", key = "{#persona.getId()}")
+    public List<Integer> getListaIdAziendaOsservatore(Persona persona) {
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = getRuoliUtentiPersona(persona, true);
         Map<String, List<String>> listeOsservatore = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.OS.toString());
+        List<Integer> listaIdAziendaOsservatore = new ArrayList();
         List<String> listaCodiciAziendaOsservatore;
         if (listeOsservatore == null) {
             listaCodiciAziendaOsservatore = new ArrayList();
         } else {
             listaCodiciAziendaOsservatore = listeOsservatore.get(Ruolo.ModuliRuolo.GENERALE.toString());
         }
-        return listaCodiciAziendaOsservatore;
+        listaCodiciAziendaOsservatore.stream().forEach(codice -> {
+            listaIdAziendaOsservatore.add(cachedEntities.getAziendaFromCodice(codice).getId());
+        });
+        return listaIdAziendaOsservatore;
     }
 
     public List<AziendaWithPlainFields> getAziendePersonaWithPlainField(Utente utente) {
