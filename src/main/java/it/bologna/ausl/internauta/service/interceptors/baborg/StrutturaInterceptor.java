@@ -40,6 +40,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -317,6 +318,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                     if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
                         storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
                     } else {
+                        now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
                         storicoRelazioneVecchia.setAttivaAl(now);
                         storicoRelazioneRepository.save(storicoRelazioneVecchia);
                     }
@@ -341,6 +343,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                     StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
                     storicoRelazioneRepository.save(storicoRelazione);
                 } else {
+                    now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
                     storicoRelazioneVecchia.setAttivaAl(now);
                     storicoRelazioneRepository.save(storicoRelazioneVecchia);
                     storicoRelazioneRepository.save(buildStoricoRelazione(strutturaNuova));
@@ -356,6 +359,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                 if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
                     storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
                 } else {
+                    now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
                     storicoRelazioneVecchia.setAttivaAl(now);
                     storicoRelazioneRepository.save(storicoRelazioneVecchia);
                 }
