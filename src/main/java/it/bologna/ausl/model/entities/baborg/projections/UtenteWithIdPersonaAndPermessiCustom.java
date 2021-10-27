@@ -12,12 +12,14 @@ import org.springframework.data.rest.core.config.Projection;
 public interface UtenteWithIdPersonaAndPermessiCustom extends UtenteWithIdPersona {
 
     @Value("#{@userInfoService.getPermessiFilteredByAdditionalData("
-            + "target, "
+            + "target,"
             + "@additionalDataParamsExtractor.getDataRiferimentoZoned(),"
             + "@additionalDataParamsExtractor.getModalita(),"
             + "@additionalDataParamsExtractor.getIdProvenienzaOggetto(),"
             + "@additionalDataParamsExtractor.getAmbitiPermesso(),"
             + "@additionalDataParamsExtractor.getTipiPermesso(),"
+            + "@additionalDataParamsExtractor.getPredicatiPermesso(),"
+            + "@additionalDataParamsExtractor.getDammiPermessiVirtualiPermesso()"
             + ")}")
     public List<PermessoEntitaStoredProcedure> getPermessiFilteredByAdditionalData();
 

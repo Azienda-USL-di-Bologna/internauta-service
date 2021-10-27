@@ -3,8 +3,6 @@ package it.bologna.ausl.internauta.service.utils;
 import it.bologna.ausl.internauta.service.utils.AdditionalDataUtils;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
@@ -84,5 +82,29 @@ public class AdditionalDataParamsExtractor {
             }
         }
         return null;
+    }
+    
+    public List<InternautaConstants.Permessi.Predicati> getPredicatiPermesso() {
+        Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
+        if (additionalData != null) {
+            String predicatiPermessoString = additionalData.get("predicatiPermesso");
+            if (StringUtils.hasText(predicatiPermessoString)) {
+                List<InternautaConstants.Permessi.Predicati> predicatiPermesso = Arrays.asList(predicatiPermessoString.split("\\s*;\\s*"))
+                        .stream().map(predicatoStr -> InternautaConstants.Permessi.Predicati.valueOf(predicatoStr.toUpperCase())).collect(Collectors.toList());
+                return predicatiPermesso;
+            }
+        }
+        return null;
+    }
+    
+    public Boolean getDammiPermessiVirtualiPermesso() {
+        Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
+        if (additionalData != null) {
+            String dammiPermessiVirtualiString = additionalData.get("dammiPermessiVirtuali");
+            if (StringUtils.hasText(dammiPermessiVirtualiString)) {
+                return Boolean.parseBoolean(dammiPermessiVirtualiString);
+            }
+        }
+        return false;
     }
 }
