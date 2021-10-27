@@ -844,7 +844,12 @@ public class ImportaDaCSV {
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
                         mAn.setCodiceMatricola(Integer.parseInt(mapError.get("codice_matricola").toString()));
                         
-
+                        if (anagraficaMap.get("email") != null && !anagraficaMap.get("email").toString().trim().equals("") && anagraficaMap.get("email") != ""){
+                            mAn.setEmail(anagraficaMap.get("email").toString());
+                            mapError.put("email", anagraficaMap.get("email"));
+                        }else{
+                            mAn.setEmail("");
+                        }
 //                      COGNOME bloccante
                         anomali = checkCognomeA(anagraficaMap, mapError);
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
