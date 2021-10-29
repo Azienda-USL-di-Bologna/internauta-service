@@ -88,8 +88,8 @@ public class SAIController implements ControllerHandledExceptions {
             @RequestParam(name = "azienda", required = true) String azienda
     ) throws Http500ResponseException, Http400ResponseException, Http403ResponseException {
 
-        Boolean doIHaveToKrint = false;
-        String hostname;
+        Boolean doIHaveToKrint = true;
+        String hostname = null;
         try {
             hostname = nextSdrCommonUtils.getHostname(request);
         } catch (Exception e) {
@@ -135,7 +135,7 @@ public class SAIController implements ControllerHandledExceptions {
         try {
             idOutBox = shpeckUtils.BuildAndSendMailMessage(
                     ShpeckUtils.MailMessageOperation.SEND_MESSAGE,
-                    null,
+                    hostname,
                     draft.getId(),
                     pec.getId(),
                     body,
@@ -154,16 +154,16 @@ public class SAIController implements ControllerHandledExceptions {
         } catch (Http500ResponseException ex) {
             throw ex;
         } catch (BlackBoxPermissionException ex) {
-            throw new Http403ResponseException("403-001", String.format("l'utente %s non ha il permesso di invio sulla casella %s", person.getDescrizione(), senderAddress), ex);
-        } catch (Http403ResponseException ex) {
             throw new Http500ResponseException("500-005", "Errore nel calcolo dei permessi", ex);
+        } catch (Http403ResponseException ex) {
+            throw new Http403ResponseException("403-001", String.format("l'utente %s non ha il permesso di invio sulla casella %s", person.getDescrizione(), senderAddress), ex);
         } catch (Exception ex) {
             throw new Http500ResponseException("500-006", "Errore non previsto nell'invio della mail", ex);
         }
 
         String numerazioneGerarchica = null;
         try {
-            numerazioneGerarchica = saiUtils.fascicolaPec(idOutBox, aziendaObj.getId(), userCF, senderAddress, fascicolo);
+            numerazioneGerarchica = saiUtils.fascicolaPec(idOutBox, aziendaObj, userCF, senderAddress, fascicolo, user, person);
         } catch (FascicolazioneGddocException ex) {
             LOG.error("errore fascicolazione 500-007", ex);
             throw new Http500ResponseException("500-007", "Il sottofacicolo è stato creato, ma c'è stato un errore nella fascicolazione della mail", ex);

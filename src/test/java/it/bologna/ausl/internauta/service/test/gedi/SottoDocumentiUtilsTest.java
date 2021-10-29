@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.test.gedi;
 
 import it.bologna.ausl.internauta.service.argo.utils.gd.SottoDocumentiUtils;
@@ -22,8 +17,8 @@ import org.springframework.test.context.junit4.SpringRunner;
  *
  * @author Salo
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
+//@RunWith(SpringRunner.class)
+//@SpringBootTest
 public class SottoDocumentiUtilsTest {
 
     @Autowired
@@ -32,7 +27,7 @@ public class SottoDocumentiUtilsTest {
     @Autowired
     ReporitoryConnectionManager aziendeConnectionManager;
 
-    @Test
+//    @Test
     public void testaReperirmentoCampiSottodocumenti() throws Exception {
         System.out.println("testaReperirmentoCampiSottodocumenti() ...");
         List<String> tableFieldsName = sottoDocumentiUtils.getTableFieldsName(2);

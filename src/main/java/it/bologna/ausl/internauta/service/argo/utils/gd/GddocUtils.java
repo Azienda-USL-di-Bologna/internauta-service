@@ -41,8 +41,8 @@ public class GddocUtils {
 
     private Map<String, Object> getGenericRowFromGddoc(Integer idAzienda) throws Exception {
         List result = null;
-        try (Connection connection = getConnection(idAzienda)) {
-            result = (List<Map<String, Object>>) connectionManager.queryAndFetcth("select * from gd.gddocs limit 1;", connection);
+        try  {
+            result = (List<Map<String, Object>>) connectionManager.queryAndFetcth("select * from gd.gddocs limit 1;", idAzienda);
         } catch (Throwable t) {
             throw new Exception("Errore nel reperire un gddoc", t);
         }

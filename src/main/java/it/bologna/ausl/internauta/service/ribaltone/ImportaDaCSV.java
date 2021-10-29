@@ -12,6 +12,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ImportazioniOrganigrammaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.repositories.gru.MdrAnagraficaRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrAppartenentiRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrResponsabiliRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepository;
@@ -21,10 +22,12 @@ import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.gru.MdrAnagrafica;
 import it.bologna.ausl.model.entities.gru.MdrAppartenenti;
 import it.bologna.ausl.model.entities.gru.MdrResponsabili;
 import it.bologna.ausl.model.entities.gru.MdrStruttura;
 import it.bologna.ausl.model.entities.gru.MdrTrasformazioni;
+import it.bologna.ausl.model.entities.gru.QMdrAnagrafica;
 import it.bologna.ausl.model.entities.gru.QMdrAppartenenti;
 import it.bologna.ausl.model.entities.gru.QMdrResponsabili;
 import it.bologna.ausl.model.entities.gru.QMdrStruttura;
@@ -96,6 +99,9 @@ public class ImportaDaCSV {
 
     @Autowired
     MdrAppartenentiRepository mdrAppartenentiRepository;
+    
+    @Autowired
+    MdrAnagraficaRepository mdrAnagraficaRepository;
 
     @Autowired
     MdrResponsabiliRepository mdrResponsabiliRepository;
@@ -122,6 +128,10 @@ public class ImportaDaCSV {
                 headers = new String[]{"codice_ente", "codice_matricola", "cognome",
                     "nome", "codice_fiscale", "id_casella", "datain", "datafi", "tipo_appartenenza",
                     "username", "data_assunzione", "data_dimissione"};
+                break;
+            case "ANAGRAFICA":
+                headers = new String[]{"codice_ente", "codice_matricola", "cognome",
+                    "nome", "codice_fiscale", "email"};
                 break;
             case "RESPONSABILI":
                 headers = new String[]{"codice_ente", "codice_matricola",
@@ -163,6 +173,18 @@ public class ImportaDaCSV {
                     new Optional() // data_adimissione
                 };
                 cellProcessor = processorsAPPARTENENTI;
+                break;
+            case "ANAGRAFICA":
+                final CellProcessor[] processorsANAGRAFICA = new CellProcessor[]{
+                    // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
+                    new Optional(), // codice_ente
+                    new Optional(), // codice_matricola Non Bloccante
+                    new Optional(), // cognome Bloccante
+                    new Optional(), // nome Bloccante
+                    new Optional(), // codice_fiscale bloccante
+                    new Optional(), // EMAIL bloccante
+                };
+                cellProcessor = processorsANAGRAFICA;
                 break;
             case "RESPONSABILI":
                 final CellProcessor[] processorsRESPONSABILI = new CellProcessor[]{
@@ -218,6 +240,10 @@ public class ImportaDaCSV {
                     "nome", "codice_fiscale", "id_casella", "datain", "datafi", "tipo_appartenenza",
                     "username", "data_assunzione", "data_dimissione", "ERRORE"};
                 break;
+            case "ANAGRAFICA":
+                headers = new String[]{"codice_ente", "codice_matricola", "cognome",
+                    "nome", "codice_fiscale", "email","ERRORE"};
+                break;
             case "RESPONSABILI":
                 headers = new String[]{"codice_ente", "codice_matricola",
                     "id_casella", "datain", "datafi", "tipo", "ERRORE"};
@@ -262,6 +288,19 @@ public class ImportaDaCSV {
                     new Optional() // errore
                 };
                 cellProcessor = processorsAPPARTENENTI;
+                break;
+            case "ANAGRAFICA":
+                final CellProcessor[] processorsANAGRAFICA = new CellProcessor[]{
+                    // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
+                    new Optional(), // codice_ente
+                    new Optional(), // codice_matricola Non Bloccante
+                    new Optional(), // cognome Bloccante
+                    new Optional(), // nome Bloccante
+                    new Optional(), // codice_fiscale bloccante
+                    new Optional(), // EMAIL bloccante
+                    new Optional(), // ERRORE
+                };
+                cellProcessor = processorsANAGRAFICA;
                 break;
             case "RESPONSABILI":
                 final CellProcessor[] processorsRESPONSABILI = new CellProcessor[]{
@@ -640,7 +679,6 @@ public class ImportaDaCSV {
                             }
 
                         }
-//                      ID_CASELLA bloccante
 
 //                      DATAIN bloccante
                         anomali = checkDatainA(appartenentiMap, mapError);
@@ -774,7 +812,78 @@ public class ImportaDaCSV {
                     log.info("ora fine: " + LocalDateTime.now());
                 }
                 break;
+                case "ANAGRAFICA": {
+                    parameters = parametriAziende.getParameters("tolleranzaAnagrafica", new Integer[]{idAzienda}, new String[]{Applicazione.Applicazioni.ribaltorg.toString()});
+                    if (parameters != null && !parameters.isEmpty()) {
+                        tolleranza = parametriAziende.getValue(parameters.get(0), Integer.class);
+                    }
+                    nRigheDB = mdrAnagraficaRepository.countRow(idAzienda);
+                    nRigheCSV = 0;
+                    nRigheAnomale = 0;
+                    List<Map<String, Object>> listAnagraficaMap = new ArrayList<>();
+                    // Delete delle righe da sostituire
+                    predicateAzienda = QMdrAnagrafica.mdrAnagrafica.idAzienda.id.eq(idAzienda);
+                    mdrAnagraficaRepository.deleteByIdAzienda(idAzienda);
+                    //Reading with CsvMapReader
+                    Map<String, Object> anagraficaMap;
+                    Integer riga;
+                    Boolean anomaliaRiga = false;
+                    while ((anagraficaMap = mapReader.read(headers, processors)) != null) {
+                        boolean anomali = false;
+                        mapError = new HashMap<>();
+                        riga = mapReader.getLineNumber();
+                        log.info("getLineNumber: " + mapReader.getLineNumber());
+                        // Inserisco la riga
+                        MdrAnagrafica mAn = new MdrAnagrafica();
+//                      preparo la mappa di errore
+                        mapError.put("ERRORE", "");
+                        mapError.put("Anomalia", "");
 
+//                      CODICE_MATRICOLA bloccante
+                        anomali = checkCodiceMatricolaA(anagraficaMap, mapError);
+                        anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
+                        mAn.setCodiceMatricola(Integer.parseInt(mapError.get("codice_matricola").toString()));
+                        
+                        if (anagraficaMap.get("email") != null && !anagraficaMap.get("email").toString().trim().equals("") && anagraficaMap.get("email") != ""){
+                            mAn.setEmail(anagraficaMap.get("email").toString());
+                            mapError.put("email", anagraficaMap.get("email"));
+                        }else{
+                            mAn.setEmail("");
+                        }
+//                      COGNOME bloccante
+                        anomali = checkCognomeA(anagraficaMap, mapError);
+                        anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
+                        mAn.setCognome(mapError.get("cognome").toString());
+//                      NOME bloccante
+                        anomali = checkNomeA(anagraficaMap, mapError);
+                        anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
+                        mAn.setNome(mapError.get("nome").toString());
+
+//                      CODICE_FISCALE bloccante
+                        anomali = checkCodiceFiscaleA(anagraficaMap, mapError);
+                        anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
+                        mAn.setCodiceFiscale(mapError.get("codice_fiscale").toString());
+                        
+                        mAn.setIdAzienda(azienda);
+                        //Codice Ente 
+                        Integer codiceEnte = checkCodiceEnte(anagraficaMap, mapError, codiceAzienda);
+                        anomaliaRiga = anomaliaRiga ? anomaliaRiga : codiceEnte.equals("");
+                        mAn.setCodiceEnte(codiceEnte);
+                        if (anomaliaRiga){
+                            anomalia=true;
+                            nRigheAnomale++;
+                            log.error("errore alla riga "+mapReader.getLineNumber());
+                        }else{
+                            em.persist(mAn);
+                        
+                        }
+                        anomaliaRiga = false;
+                        mapWriter.write(mapError, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
+                        nRigheCSV = mapReader.getRowNumber();
+                    }
+                    log.info("ora fine: " + LocalDateTime.now());
+                }
+                break;
                 case "RESPONSABILI": {
                     parameters = parametriAziende.getParameters("tolleranzaResponsabili", new Integer[]{idAzienda}, new String[]{Applicazione.Applicazioni.ribaltorg.toString()});
                     if (parameters != null && !parameters.isEmpty()) {
@@ -935,6 +1044,12 @@ public class ImportaDaCSV {
                             bloccante=true;
                             nRigheAnomale++;
                             log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " Errore bloccante su data inizio vuota");
+                            if (mapError.get("ERRORE")==null || mapError.get("ERRORE").toString().trim() == "" ){
+                                mapError.put("ERRORE","la data di inizio è vuota");
+                            }else{
+                                mapError.put("ERRORE",mapError.get("ERRORE").toString()+", la data di inizio è vuota");
+                            }
+                            
                         }
 
                         datafi = checkDatafi(strutturaMap, mapError);
@@ -1041,8 +1156,6 @@ public class ImportaDaCSV {
                             mapErrorWriter.write(strutturaErrorMapWrite, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
 
                         }
-//                        csvErrorFile.deleteOnExit();
-//                        csvErrorFile2.deleteOnExit();
                     } catch (Exception ex) {
                         bloccante = true;
                         log.error("Importa CSV -- error generic");

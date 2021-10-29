@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.test.schedulers;
 
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
@@ -40,8 +35,8 @@ public class FascicolatoreOutboxGediWorkerTest {
             mittente = "babel.test1@pec.ausl.bologna.it";
             cf = "SLMLNZ85C13A944M";
             numerazioneGerarchica = "56-1/2021";
-            FascicolatoreAutomaticoGediParams fascicolatoreAutomaticoGediParams = new FascicolatoreAutomaticoGediParams(idOutbox, idAzienda, cf, mittente, numerazioneGerarchica);
-            worker.setParams(fascicolatoreAutomaticoGediParams);
+//            FascicolatoreAutomaticoGediParams fascicolatoreAutomaticoGediParams = new FascicolatoreAutomaticoGediParams(idOutbox, idAzienda, cf, mittente, numerazioneGerarchica);
+//            worker.setParams(fascicolatoreAutomaticoGediParams);
             worker.run();
 
         } catch (Exception e) {

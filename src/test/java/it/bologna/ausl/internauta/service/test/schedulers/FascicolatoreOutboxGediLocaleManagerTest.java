@@ -37,7 +37,7 @@ public class FascicolatoreOutboxGediLocaleManagerTest {
             mittente = "babel.test1@pec.ausl.bologna.it";
             cf = "SLMLNZ85C13A944M";
             //numerazioneGerarchica = "56/2021";
-            manager.scheduleAutoFascicolazioneOutbox(1, idAzienda, cf, mittente, numerazioneGerarchica);
+//            manager.scheduleAutoFascicolazioneOutbox(1, idAzienda, cf, mittente, numerazioneGerarchica);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;

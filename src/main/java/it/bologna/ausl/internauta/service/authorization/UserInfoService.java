@@ -11,6 +11,7 @@ import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
+import it.bologna.ausl.internauta.service.permessi.PermessiUtils;
 import it.bologna.ausl.internauta.service.permessi.Permesso;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -106,6 +107,9 @@ public class UserInfoService {
 
     @Autowired
     ParametriAziendeReader parametriAziende;
+    
+    @Autowired
+    private PermessiUtils permessiUtils;
 
     /**
      * E' necessario mettere in autowired la stessa UserInfoService per poter
@@ -539,12 +543,17 @@ public class UserInfoService {
         return finalMap;
     }
 
-    public List<String> getCodiciAziendaListDovePersonaHaRuolo(Persona persona, CodiciRuolo nomeBreveRuolo) {
-        Map<String, Map<String, List<String>>> ruoliUtentiPersona = getRuoliUtentiPersona(persona, true);
+    public List<Integer> getIdAziendaListDovePersonaHaRuolo(Persona persona, CodiciRuolo nomeBreveRuolo) {
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = userInfoService.getRuoliUtentiPersona(persona, true);
         if (ruoliUtentiPersona.containsKey(nomeBreveRuolo.toString())) {
             Map<String, List<String>> listaModuliDelRuolo = ruoliUtentiPersona.get(nomeBreveRuolo.toString());
             if (listaModuliDelRuolo.containsKey(Ruolo.ModuliRuolo.GENERALE.toString())) {
-                return listaModuliDelRuolo.get(Ruolo.ModuliRuolo.GENERALE.toString());
+                List<String> codiciAziende = listaModuliDelRuolo.get(Ruolo.ModuliRuolo.GENERALE.toString());
+                List<Integer> idAziende = new ArrayList();
+                codiciAziende.stream().forEach(codice -> {
+                    idAziende.add(cachedEntities.getAziendaFromCodice(codice).getId());
+                });
+                return idAziende;
             }
         }
         return new ArrayList();
@@ -567,18 +576,21 @@ public class UserInfoService {
      * @param persona
      * @return
      */
-    @Cacheable(value = "getRuoliListaCodiciAziendaOsservatore_persona__ribaltorg__", key = "{#persona.getId()}")
-    public List<String> getListaCodiciAziendaOsservatore(Persona persona) {
-        // NB: E' necessario usare il bean userInfoService altrimenti non verrà usata la cache!
+    @Cacheable(value = "getRuoliListaIdAziendaOsservatore_persona__ribaltorg__", key = "{#persona.getId()}")
+    public List<Integer> getListaIdAziendaOsservatore(Persona persona) {
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = getRuoliUtentiPersona(persona, true);
         Map<String, List<String>> listeOsservatore = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.OS.toString());
+        List<Integer> listaIdAziendaOsservatore = new ArrayList();
         List<String> listaCodiciAziendaOsservatore;
         if (listeOsservatore == null) {
             listaCodiciAziendaOsservatore = new ArrayList();
         } else {
             listaCodiciAziendaOsservatore = listeOsservatore.get(Ruolo.ModuliRuolo.GENERALE.toString());
         }
-        return listaCodiciAziendaOsservatore;
+        listaCodiciAziendaOsservatore.stream().forEach(codice -> {
+            listaIdAziendaOsservatore.add(cachedEntities.getAziendaFromCodice(codice).getId());
+        });
+        return listaIdAziendaOsservatore;
     }
 
     public List<AziendaWithPlainFields> getAziendePersonaWithPlainField(Utente utente) {
@@ -752,11 +764,22 @@ public class UserInfoService {
                 false, dataPermesso != null ? dataPermesso.toLocalDate() : null, null, direzione);
     }
 
-    @Cacheable(value = "getPermessiFilteredByAdditionalData__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toLocalDate().toEpochDay(): 'null', #modalita, "
+    @Cacheable(value = "getPermessiFilteredByAdditionalData__ribaltorg__", 
+            key = "{#entitySoggetto.toString(), #dataPermesso != null? #dataPermesso.toLocalDate().toEpochDay(): 'null', #modalita, "
             + "#idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null', #ambitiPermesso != null? #ambitiPermesso.toString(): 'null', "
-            + "#tipiPermesso != null? #tipiPermesso.toString(): 'null'}")
-    public List<PermessoEntitaStoredProcedure> getPermessiFilteredByAdditionalData(Utente utente, LocalDateTime dataPermesso,
-            String modalita, Integer idProvenienzaOggetto, List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
+            + "#tipiPermesso != null? #tipiPermesso.toString(): 'null',"
+            + "#predicatiPermesso != null? #predicatiPermesso.toString(): 'null',"
+            + "#dammiPermessiVirtuali}")
+    public List<PermessoEntitaStoredProcedure> getPermessiFilteredByAdditionalData(
+            Object entitySoggetto, 
+            LocalDateTime dataPermesso,
+            String modalita, 
+            Integer idProvenienzaOggetto, 
+            List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, 
+            List<InternautaConstants.Permessi.Tipi> tipiPermesso,
+            List<InternautaConstants.Permessi.Predicati> predicatiPermesso,
+            Boolean dammiPermessiVirtuali
+    ) throws BlackBoxPermissionException {
         BlackBoxConstants.Direzione direzione;
         if (modalita != null) {
             switch (modalita) {
@@ -775,12 +798,39 @@ public class UserInfoService {
         } else {
             direzione = BlackBoxConstants.Direzione.PRESENTE;
         }
-        return permissionManager.getPermissionsOfSubjectAdvanced(utente,
+        return permissionManager.getPermissionsOfSubjectAdvanced(
+                entitySoggetto,
                 idProvenienzaOggetto != null ? Lists.newArrayList(new Struttura(idProvenienzaOggetto)) : null,
-                null,
+                predicatiPermesso != null ? ambitiPermesso.stream().map(ambito -> ambito.toString()).collect(Collectors.toList()) : null,
                 ambitiPermesso != null ? ambitiPermesso.stream().map(ambito -> ambito.toString()).collect(Collectors.toList()) : null,
                 tipiPermesso != null ? tipiPermesso.stream().map(tipo -> tipo.toString()).collect(Collectors.toList()) : null,
-                false, dataPermesso != null ? dataPermesso.toLocalDate() : null, null, direzione);
+                dammiPermessiVirtuali, 
+                dataPermesso != null ? dataPermesso.toLocalDate() : null, 
+                null, 
+                direzione);
+    }
+    
+    public List<PermessoEntitaStoredProcedure> getPermessiFilteredByAdditionalDataAndSetDescriptionOggetto(
+            Object entitySoggetto, 
+            LocalDateTime dataPermesso,
+            String modalita, 
+            Integer idProvenienzaOggetto, 
+            List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, 
+            List<InternautaConstants.Permessi.Tipi> tipiPermesso,
+            List<InternautaConstants.Permessi.Predicati> predicatiPermesso,
+            Boolean dammiPermessiVirtuali,
+            String entityAddtiionalDataParam
+    ) throws BlackBoxPermissionException {
+        return permessiUtils.setDescriptionsOggetto(
+                getPermessiFilteredByAdditionalData(
+                    entitySoggetto, 
+                    dataPermesso, 
+                    modalita, 
+                    idProvenienzaOggetto, 
+                    ambitiPermesso, 
+                    tipiPermesso, 
+                    predicatiPermesso, 
+                    dammiPermessiVirtuali), entityAddtiionalDataParam);
     }
 
     /**
@@ -812,7 +862,7 @@ public class UserInfoService {
                     permesso.setPermesso(permessoCategoria.getPredicato());
                     permesso.setAttivoDal(permessoCategoria.getAttivoDal());
                     permesso.setAttivoAl(permessoCategoria.getAttivoAl() != null ? permessoCategoria.getAttivoAl() : null);
-                    permesso.setNomeStruttura(strutturaRepository.getOne(permessoEntita.getOggetto().getIdProvenienza()).getNome());
+                    permesso.setNomeStruttura(strutturaRepository.getById(permessoEntita.getOggetto().getIdProvenienza()).getNome());
                     permessiUtente.add(permesso);
                 });
             });
@@ -833,7 +883,8 @@ public class UserInfoService {
             List<InternautaConstants.Permessi.Ambiti> ambitiPermesso,
             List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
 
-        List<PermessoEntitaStoredProcedure> permessiFilteredByAdditionalData = getPermessiFilteredByAdditionalData(utente, dataPermesso, modalita, idProvenienzaOggetto, ambitiPermesso, tipiPermesso);
+        List<PermessoEntitaStoredProcedure> permessiFilteredByAdditionalData = 
+                getPermessiFilteredByAdditionalData(utente, dataPermesso, modalita, idProvenienzaOggetto, ambitiPermesso, tipiPermesso, null, null);
         // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend
         List<Permesso> permessiUtente = new ArrayList<>();
 

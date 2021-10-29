@@ -1,9 +1,8 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.schedulers.workers.gedi.wrappers;
+
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Utente;
 
 /**
  *
@@ -12,20 +11,24 @@ package it.bologna.ausl.internauta.service.schedulers.workers.gedi.wrappers;
 public class FascicolatoreAutomaticoGediParams {
 
     private Integer idOutbox;
-    private Integer idAzienda;
+    private Azienda azienda;
     private String cf;
     private String mittente;
     private String numerazioneGerarchica;
+    private Utente utente;
+    private Persona persona;
 
     public FascicolatoreAutomaticoGediParams() {
     }
 
-    public FascicolatoreAutomaticoGediParams(Integer idOutbox, Integer idAzienda, String cf, String mittente, String numerazioneGerarchica) {
+    public FascicolatoreAutomaticoGediParams(Integer idOutbox, Azienda azienda, String cf, String mittente, String numerazioneGerarchica, Utente utente, Persona persona) {
         this.idOutbox = idOutbox;
-        this.idAzienda = idAzienda;
+        this.azienda = azienda;
         this.cf = cf;
         this.mittente = mittente;
         this.numerazioneGerarchica = numerazioneGerarchica;
+        this.utente = utente;
+        this.persona = persona;
     }
 
     public Integer getIdOutbox() {
@@ -36,12 +39,12 @@ public class FascicolatoreAutomaticoGediParams {
         this.idOutbox = idOutbox;
     }
 
-    public Integer getIdAzienda() {
-        return idAzienda;
+    public Azienda getIdAzienda() {
+        return azienda;
     }
 
-    public void setIdAzienda(Integer idAzienda) {
-        this.idAzienda = idAzienda;
+    public void setIdAzienda(Azienda idAzienda) {
+        this.azienda = idAzienda;
     }
 
     public String getCf() {
@@ -68,9 +71,25 @@ public class FascicolatoreAutomaticoGediParams {
         this.numerazioneGerarchica = numerazioneGerarchica;
     }
 
+    public Utente getUtente() {
+        return utente;
+    }
+
+    public void setUtente(Utente utente) {
+        this.utente = utente;
+    }
+
+    public Persona getPersona() {
+        return persona;
+    }
+
+    public void setPersona(Persona persona) {
+        this.persona = persona;
+    }
+
     @Override
     public String toString() {
-        return "FascicolatoreAutomaticoGediParams{" + "idOutbox=" + idOutbox + ", idAzienda=" + idAzienda + ", cf=" + cf + ", mittente=" + mittente + ", numerazioneGerarchica=" + numerazioneGerarchica + '}';
+        return "FascicolatoreAutomaticoGediParams{" + "idOutbox=" + idOutbox + ", idAzienda=" + azienda + ", cf=" + cf + ", mittente=" + mittente + ", numerazioneGerarchica=" + numerazioneGerarchica + '}';
     }
 
 }
