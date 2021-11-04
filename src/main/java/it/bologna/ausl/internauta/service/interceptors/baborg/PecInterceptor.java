@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.interceptors.baborg;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -20,6 +21,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPec;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.projections.generated.PersonaWithPlainFields;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
@@ -39,6 +41,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -68,6 +71,12 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     UserInfoService userInfoService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private ProjectionFactory projectionFactory;
 
     @Override
     public Class getTargetEntityClass() {
@@ -313,7 +322,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
                             Collections.sort(gestoriAzienda, Comparator.comparing(Persona::getDescrizione));
 
-                            pec.setGestori(gestoriAzienda);
+                            pec.setGestori(gestoriAzienda.stream().map(p -> projectionFactory.createProjection(PersonaWithPlainFields.class, p)).collect(Collectors.toList()));
                         }
                         break;
                     case LoadDataPerInterfacciaElencoPec:
@@ -358,7 +367,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
                             Collections.sort(gestoriAzienda, Comparator.comparing(Persona::getDescrizione));
 
-                            pec.setGestori(gestoriAzienda);
+                            pec.setGestori(gestoriAzienda.stream().map(p -> projectionFactory.createProjection(PersonaWithPlainFields.class, p)).collect(Collectors.toList()));
                         }
 
                         // Aggiungo le strutture
