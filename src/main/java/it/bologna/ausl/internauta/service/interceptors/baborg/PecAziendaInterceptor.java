@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.interceptors.baborg;
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
@@ -24,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -46,7 +48,7 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     UserInfoService userInfoService;
-
+    
     @Autowired
     private PermissionManager permissionManager;
 
@@ -119,7 +121,7 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
     @Override
     public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-
+        
         PecAzienda pa = (PecAzienda) entity;
 
         if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
