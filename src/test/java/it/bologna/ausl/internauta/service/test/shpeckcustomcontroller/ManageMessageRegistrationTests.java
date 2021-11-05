@@ -212,13 +212,18 @@ public class ManageMessageRegistrationTests {
         return serviceMode.equals("test");
     }
 
-    private boolean chiamaShpeckCustomController(InternautaConstants.Shpeck.MessageRegistrationOperation operation) {
+    private boolean chiamaShpeckCustomController(
+            InternautaConstants.Shpeck.MessageRegistrationOperation operation,
+            String codiceAzienda
+    ) {
         boolean tuttoOK = false;
         try {
-            System.out.println("chiamaShpeckCustomController(" + operation.toString() + ")");
 //            String encodedUUID = URLEncoder.encode(uuidMessageTest);
             String encodedUUID = uuidMessageTest;
             Base64.Encoder encoder = Base64.getEncoder();
+            System.out.println("chiamaShpeckCustomController()");// + operation.toString() + ", " + codiceAzienda != null ? codiceAzienda : "NULL" + ")");
+            System.out.println("operation -> " + operation.name());
+            System.out.println("codiceAzienda -> " + (codiceAzienda != null ? codiceAzienda : "NULL"));
             System.out.println("TOKEN " + token);
             String params = String.format("uuidMessage=%s&operation=%s&idMessage=%s", encodedUUID, operation.toString(), testMessage.getId());
             //HttpUriRequest request = new HttpPost("http://localhost:10005" + shpeckMappingUrl + "/manageMessageRegistration" + "?" + params);
@@ -235,7 +240,9 @@ public class ManageMessageRegistrationTests {
             HashMap<String, Map<String, Object>> additionalData = new HashMap<String, Map<String, Object>>();
             shpeckController.manageMessageRegistration(encodedUUID,
                     operation,
-                    Integer.SIZE, additionalData, (HttpServletRequest) request);
+                    testMessage.getId(),
+                    codiceAzienda,
+                    additionalData, (HttpServletRequest) request);
             System.out.println("TUTTO OK");
             tuttoOK = true;
         } catch (Throwable ex) {
@@ -302,11 +309,9 @@ public class ManageMessageRegistrationTests {
         Assert.assertFalse("Il messaggio e' già taggato", isMessageTagIsAlreadyPresent());
     }
 
-    @Test
-    @Order(2)
-    public void saveMessageTag() throws JSONException {
+    public void saveMessageTag() {
         assumeTrue(isTestMode());
-        System.out.println("@Test: saveMessageTag()");
+        System.out.println("saveMessageTag()");
         MessageTag mt = getMessageTagInRegistrationPerCasoBase();
         MessageTag saved = messageTagRepository.save(mt);
         System.out.println("Saved: " + saved.toString());
@@ -315,21 +320,39 @@ public class ManageMessageRegistrationTests {
     }
 
     @Test
-    @Order(3)
+    @Order(2)
     public void manageRemoveInRegistrationTag() {
         System.out.println("@Test manageRemoveInRegistrationTag()");
-        System.out.println("Ho gia' salvato una riga messagesTag? " + isMessageTagIsAlreadyPresent());
-        boolean res = chiamaShpeckCustomController(InternautaConstants.Shpeck.MessageRegistrationOperation.REMOVE_IN_REGISTRATION);
-        Assert.assertTrue("Rimozione InRegistration Tag fallita", res);
-        System.out.println("E' rimasta una riga messagesTag? " + isMessageTagIsAlreadyPresent());
+        boolean messageTagIsAlreadyPresent = isMessageTagIsAlreadyPresent();
+        System.out.println("Ho gia' salvato una riga messagesTag? " + messageTagIsAlreadyPresent);
+        Assert.assertFalse("C'è già un tag sul messaggio", messageTagIsAlreadyPresent);
+        System.out.println("Creo il caso di base con due message Tag (105, 106)");
+        saveMessageTag();
+        System.out.println("Rimuovo il tag di 106");
+        boolean isSuccessfull = chiamaShpeckCustomController(
+                InternautaConstants.Shpeck.MessageRegistrationOperation.REMOVE_IN_REGISTRATION, "106"
+        );
+        Assert.assertTrue("Rimozione InRegistration Tag fallita", isSuccessfull);
+        messageTagIsAlreadyPresent = isMessageTagIsAlreadyPresent();
+        System.out.println("E' rimasta una riga messagesTag? " + messageTagIsAlreadyPresent);
+        Assert.assertTrue("Non c'è più MessageTag per il messaggio", messageTagIsAlreadyPresent);
+        System.out.println("Rimuovo il tag rimanente passando azienda NULL");
+        isSuccessfull = chiamaShpeckCustomController(
+                InternautaConstants.Shpeck.MessageRegistrationOperation.REMOVE_IN_REGISTRATION, null
+        );
+        Assert.assertTrue("Rimozione InRegistration Tag fallita", isSuccessfull);
 
+        messageTagIsAlreadyPresent = isMessageTagIsAlreadyPresent();
+        System.out.println("E' rimasta una riga messagesTag? " + messageTagIsAlreadyPresent);
+        Assert.assertFalse("E' rimasta una riga messagesTag! ", messageTagIsAlreadyPresent);
+        removeMessageTagAlreadyPresent();
     }
 
 //    @Test
 //    @Order(4)
     public void removeMessageTagAlreadyPresent() {
         assumeTrue(isTestMode());
-        System.out.println("@Test removeMessageTagAlreadyPresent()");
+        System.out.println("removeMessageTagAlreadyPresent()");
         List<MessageTag> loadSavedMessagesTag = loadSavedMessagesTag();
         loadSavedMessagesTag.forEach((messageTag) -> {
             messageTagRepository.delete(messageTag);

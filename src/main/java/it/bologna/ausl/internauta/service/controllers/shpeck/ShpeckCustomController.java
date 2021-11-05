@@ -19,6 +19,7 @@ import it.bologna.ausl.internauta.service.gedi.utils.SAIUtils;
 import it.bologna.ausl.internauta.service.interceptors.shpeck.MessageTagInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
@@ -125,6 +126,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private PecRepository pecRepository;
+
+    @Autowired
+    private AziendaRepository aziendaRepository;
 
     @Autowired
     private DraftRepository draftRepository;
@@ -734,6 +738,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "uuidMessage", required = true) String uuidMessage,
             @RequestParam(name = "operation", required = true) InternautaConstants.Shpeck.MessageRegistrationOperation operation,
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
+            @RequestParam(name = "codiceAzienda", required = false) String codiceAzienda,
             @RequestBody Map<String, Map<String, Object>> additionalData,
             HttpServletRequest request
     ) throws BlackBoxPermissionException, IOException, Throwable {
@@ -742,8 +747,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         Boolean doIHaveToKrint = KrintUtils.doIHaveToKrint(request);
 
+        Azienda azienda = null;
+        if (codiceAzienda != null) {
+            azienda = aziendaRepository.findByCodice(codiceAzienda);
+        }
+
         manageMessageRegistrationUtils.manageMessageRegistration(
-                uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, null
+                uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, azienda
         );
     }
 
