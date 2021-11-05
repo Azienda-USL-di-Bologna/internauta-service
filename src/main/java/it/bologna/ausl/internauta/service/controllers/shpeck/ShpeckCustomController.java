@@ -19,6 +19,7 @@ import it.bologna.ausl.internauta.service.gedi.utils.SAIUtils;
 import it.bologna.ausl.internauta.service.interceptors.shpeck.MessageTagInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
@@ -125,6 +126,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private PecRepository pecRepository;
+
+    @Autowired
+    private AziendaRepository aziendaRepository;
 
     @Autowired
     private DraftRepository draftRepository;
@@ -431,7 +435,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws
      * it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
      * @throws it.bologna.ausl.internauta.service.exceptions.BadParamsException
-     * @throws it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException
+     * @throws
+     * it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException
      * @throws it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
@@ -454,31 +459,31 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         Boolean doIHaveToKrint = KrintUtils.doIHaveToKrint(request);
         String hostname = nextSdrCommonUtils.getHostname(request);
-        
+
         ShpeckUtils.MailMessageOperation mailMessageOperation;
         if (request.getServletPath().endsWith("saveDraftMessage")) {
             mailMessageOperation = ShpeckUtils.MailMessageOperation.SAVE_DRAFT;
         } else {
             mailMessageOperation = ShpeckUtils.MailMessageOperation.SEND_MESSAGE;
         }
-        
+
         Integer res = shpeckUtils.BuildAndSendMailMessage(
-            mailMessageOperation, 
-            hostname, 
-            idDraftMessage, 
-            idPec, 
-            body,
-            hideRecipients,
-            subject,
-            to,
-            cc,
-            attachments,
-            idMessageRelated,
-            messageRelatedType,
-            idMessageRelatedAttachments,
-            idUtente,
-            doIHaveToKrint);
-        
+                mailMessageOperation,
+                hostname,
+                idDraftMessage,
+                idPec,
+                body,
+                hideRecipients,
+                subject,
+                to,
+                cc,
+                attachments,
+                idMessageRelated,
+                messageRelatedType,
+                idMessageRelatedAttachments,
+                idUtente,
+                doIHaveToKrint);
+
         return res;
     }
 
@@ -733,6 +738,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "uuidMessage", required = true) String uuidMessage,
             @RequestParam(name = "operation", required = true) InternautaConstants.Shpeck.MessageRegistrationOperation operation,
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
+            @RequestParam(name = "codiceAzienda", required = false) String codiceAzienda,
             @RequestBody Map<String, Map<String, Object>> additionalData,
             HttpServletRequest request
     ) throws BlackBoxPermissionException, IOException, Throwable {
@@ -741,15 +747,20 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         Boolean doIHaveToKrint = KrintUtils.doIHaveToKrint(request);
 
+        Azienda azienda = null;
+        if (codiceAzienda != null) {
+            azienda = aziendaRepository.findByCodice(codiceAzienda);
+        }
+
         manageMessageRegistrationUtils.manageMessageRegistration(
-                uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, null
+                uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, azienda
         );
     }
 
     /**
      * Gestisco il dopo archiviazione di un messaggio.La funzione nasce per
      * essere chiamata da Babel.Aggiunge il tag archiviazione con le
- informazioni su chi e fascicolo.
+     * informazioni su chi e fascicolo.
      *
      * @param idMessage
      * @param additionalData
@@ -768,16 +779,16 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente user = authenticatedUserProperties.getUser();
         Persona person = authenticatedUserProperties.getPerson();
-        
+
         AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent().new idUtente(user.getId(), person.getDescrizione());
         additionalData.setIdUtente(utenteAdditionalData);
-        
+
         Azienda azienda = user.getIdAzienda();
         AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent().new idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
         additionalData.setIdAzienda(aziendaAdditionalData);
-        
+
         additionalData.setDataArchiviazione(LocalDateTime.now());
-        
+
         shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalData, user, true);
     }
 
@@ -803,5 +814,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             data.put("idMessage", idMessage);
             applicationEventPublisher.publishEvent(new ShpeckEvent(ShpeckEvent.Phase.AFTER_DELETE, ShpeckEvent.Operation.SEND_CUSTOM_DELETE_INTIMUS_COMMAND, data));
         }
+    }
+
+    public void manageMessageRegistration(String encodedUUID, String operation, int SIZE, HashMap<String, Map<String, Object>> additionalData, HttpServletRequest httpServletRequest) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }
