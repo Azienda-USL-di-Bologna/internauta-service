@@ -68,6 +68,9 @@ public class AuthorizationUtils {
 
     private final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
 
+    @Value("${internauta.mode}")
+    String serviceMode;
+
     @Autowired
     UserAccessRepository userAccessRepository;
 
@@ -171,12 +174,13 @@ public class AuthorizationUtils {
         authentication.setIdSessionLog(idSessionLog);
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
-    
+
     /**
      * Trona true se l'utente reale è CA dell'azienda dell'utente impersonato
+     *
      * @param utenteReale
      * @param utenteImpersonato
-     * @return 
+     * @return
      */
     public boolean isCAOfAziendaUtenteImpersonato(Utente utenteReale, Utente utenteImpersonato) {
         Map<String, Map<String, List<String>>> ruoliUtentiPersona = utenteReale.getRuoliUtentiPersona();
@@ -304,7 +308,7 @@ public class AuthorizationUtils {
             userInfoService.getUtentiPersonaRemoveCache(impersonatedUser.getIdPersona());
             userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, true);
             userInfoService.getUtenteStrutturaListRemoveCache(impersonatedUser, false);
-            
+
             cacheUtilities.cleanCacheRuoliUtente(impersonatedUser.getId(), impersonatedUser.getIdPersona().getId());
 
 //            userInfoService.getPermessiDiFlussoRemoveCache(impersonatedUser);
@@ -315,7 +319,7 @@ public class AuthorizationUtils {
             impersonatedUser.setMappaRuoli(userInfoService.getRuoliPerModuli(impersonatedUser, null));
             impersonatedUser.setRuoliUtentiPersona(userInfoService.getRuoliUtentiPersona(impersonatedUser.getIdPersona(), true));
             impersonatedUser.setPermessiDiFlusso(userInfoService.getPermessiDiFlusso(impersonatedUser));
-            
+
             impersonatedUser.setUtenteReale(user);
 
             isSD = userInfoService.isSD(user);
@@ -452,6 +456,22 @@ public class AuthorizationUtils {
 
     public ResponseEntity generateResponseEntityFromUsername() {
         return null;
+    }
+
+    public LoginController.LoginResponse generateTestLoginResponse(
+            Utente currentUser,
+            Utente realUser,
+            Azienda azienda,
+            Class<?> entityClass,
+            String field,
+            String ssoFieldValue,
+            String secretKey,
+            String applicazione,
+            boolean fromInternet) {
+        if (!serviceMode.equals("test")) {
+            return null;
+        }
+        return generateLoginResponse(currentUser, realUser, azienda, entityClass, field, ssoFieldValue, secretKey, applicazione, fromInternet);
     }
 
     private LoginController.LoginResponse generateLoginResponse(

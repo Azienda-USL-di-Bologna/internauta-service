@@ -14,7 +14,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TagRepository extends
         NextSdrQueryDslRepository<Tag, Integer, QTag>,
         JpaRepository<Tag, Integer> {
-    
+
     public Tag findByidPecAndName(Pec pec, String name);
-    
+
+    public Tag findByidPecAndName(Pec idPec, Tag.SystemTagName systemTagName);
+
 }
