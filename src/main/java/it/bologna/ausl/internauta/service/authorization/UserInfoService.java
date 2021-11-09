@@ -801,7 +801,7 @@ public class UserInfoService {
         return permissionManager.getPermissionsOfSubjectAdvanced(
                 entitySoggetto,
                 idProvenienzaOggetto != null ? Lists.newArrayList(new Struttura(idProvenienzaOggetto)) : null,
-                predicatiPermesso != null ? ambitiPermesso.stream().map(ambito -> ambito.toString()).collect(Collectors.toList()) : null,
+                predicatiPermesso != null ? predicatiPermesso.stream().map(ambito -> ambito.toString()).collect(Collectors.toList()) : null,
                 ambitiPermesso != null ? ambitiPermesso.stream().map(ambito -> ambito.toString()).collect(Collectors.toList()) : null,
                 tipiPermesso != null ? tipiPermesso.stream().map(tipo -> tipo.toString()).collect(Collectors.toList()) : null,
                 dammiPermessiVirtuali, 
