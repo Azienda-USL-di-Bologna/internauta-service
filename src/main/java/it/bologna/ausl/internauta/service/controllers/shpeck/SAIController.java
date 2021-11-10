@@ -40,6 +40,9 @@ import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.QPec;
+import java.util.HashMap;
+import java.util.Map;
+import org.springframework.http.MediaType;
 
 /**
  *
@@ -73,8 +76,8 @@ public class SAIController implements ControllerHandledExceptions {
     private CachedEntities cachedEntities;
 
     // @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
-    @RequestMapping(value = {"send-and-archive-pec", "sendAndArchivePec"}, method = RequestMethod.POST)
-    public String sendAndArchiveMail(
+    @RequestMapping(value = {"send-and-archive-pec", "sendAndArchivePec"}, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> sendAndArchiveMail(
             HttpServletRequest request,
             @RequestParam(name = "senderAddress", required = true) String senderAddress,
             @RequestParam(name = "body", required = false) String body,
@@ -187,7 +190,11 @@ public class SAIController implements ControllerHandledExceptions {
             throw new Http500ResponseException("500-010", "Errore non previsto nella fascicolazione della mail", ex);
         }
 
-        return numerazioneGerarchica;
+        Map<String, Object> res = new HashMap();
+        res.put("mail-id", idOutBox);
+        res.put("fascicolo-id", numerazioneGerarchica);
+        
+        return res;
     }
 
 }
