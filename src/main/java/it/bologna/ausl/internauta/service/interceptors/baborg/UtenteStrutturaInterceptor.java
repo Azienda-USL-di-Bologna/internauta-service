@@ -9,8 +9,10 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.time.Instant;
@@ -19,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -171,8 +174,26 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
 //    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
 //
 //        UtenteStruttura utenteStruttura = (UtenteStruttura) entity;
-//        utenteStruttura.setAttivoDal(ZonedDateTime.now());
+//        utenteStruttura.setAttivoDal(ZonedDateTime.now())
 //
 //        return utenteStruttura;
 //    }
+    @Override
+    public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        UtenteStruttura utenteStrutturaNuovo = (UtenteStruttura) entity;
+        List<UtenteStruttura> utenteStrutturaVecchioList = new ArrayList<UtenteStruttura>();
+        try {
+            beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
+                utenteStrutturaVecchioList.add((UtenteStruttura) oldEntity);
+            });
+        } catch (Exception ex) {
+            throw new AbortSaveInterceptorException("errore nel reperire la vecchia struttura", ex);
+        }
+        if (utenteStrutturaVecchioList.get(0) != null
+                && utenteStrutturaVecchioList.get(0).getAttivo()
+                && !utenteStrutturaNuovo.getAttivo()) {
+            utenteStrutturaNuovo.setAttivoAl(ZonedDateTime.now());
+        }
+        return utenteStrutturaNuovo;
+    }
 }
