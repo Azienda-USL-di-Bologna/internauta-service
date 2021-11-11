@@ -1,11 +1,9 @@
 package it.bologna.ausl.model.entities.baborg.projections;
 
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Pec;
-import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.projections.generated.PecAziendaWithIdAzienda;
+import it.bologna.ausl.model.entities.baborg.projections.generated.PersonaWithPlainFields;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
 /**
@@ -20,6 +18,5 @@ public interface PecPlainWithStruttureAndGestoriCustom extends PecWithPecProvide
     //@Value("#{@projectionBeans.getPecAziendaListWithIdAzienda(target.getPecAziendaList())}")
     public List<PecAziendaWithIdAzienda> getPecAziendaList();
 
-//    @Override
-//    public List<Persona> getGestori();
+    public List<PersonaWithPlainFields> getGestori();
 }
