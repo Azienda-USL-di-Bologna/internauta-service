@@ -769,11 +769,11 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         Utente user = authenticatedUserProperties.getUser();
         Persona person = authenticatedUserProperties.getPerson();
         
-        AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent().new idUtente(user.getId(), person.getDescrizione());
+        AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(user.getId(), person.getDescrizione());
         additionalData.setIdUtente(utenteAdditionalData);
         
         Azienda azienda = user.getIdAzienda();
-        AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent().new idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
+        AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
         additionalData.setIdAzienda(aziendaAdditionalData);
         
         additionalData.setDataArchiviazione(LocalDateTime.now());
