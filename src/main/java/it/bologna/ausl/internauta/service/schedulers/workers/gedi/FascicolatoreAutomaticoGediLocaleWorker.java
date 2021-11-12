@@ -166,25 +166,25 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
     
     private void insertArchiviationTag(Map<String, Object> fascicolo, Map<String, Object> gddoc) throws JsonProcessingException {
         Utente utente = params.getUtente();
-        AdditionalDataTagComponent.AdditionalDataArchiviation additionalDataArchiviation = new AdditionalDataTagComponent().new  AdditionalDataArchiviation();
+        AdditionalDataTagComponent.AdditionalDataArchiviation additionalDataArchiviation = new AdditionalDataTagComponent.AdditionalDataArchiviation();
 
-        AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent().new idUtente(utente.getId(), params.getPersona().getDescrizione());
+        AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), params.getPersona().getDescrizione());
         additionalDataArchiviation.setIdUtente(utenteAdditionalData);
 
         Azienda azienda = params.getIdAzienda();
-        AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent().new idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
+        AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
         additionalDataArchiviation.setIdAzienda(aziendaAdditionalData);
 
         String idFascicolo = (String) fascicolo.get("id_fascicolo");
         String oggettoFascicolo = (String) fascicolo.get("nome_fascicolo");
         String numerazioneGerarchicaFascicolo = (String) fascicolo.get("numerazione_gerarchica");
-        AdditionalDataTagComponent.idFascicolo fascicoloAdditionalData = new AdditionalDataTagComponent().new idFascicolo(idFascicolo, oggettoFascicolo, numerazioneGerarchicaFascicolo);
+        AdditionalDataTagComponent.idFascicolo fascicoloAdditionalData = new AdditionalDataTagComponent.idFascicolo(idFascicolo, oggettoFascicolo, numerazioneGerarchicaFascicolo);
         additionalDataArchiviation.setIdFascicolo(fascicoloAdditionalData);
 
         String idGdDoc = (String) gddoc.get("id_gddoc");
 //        String oggettoGdDoc = (String) gddoc.get("oggetto");
         String oggettoGdDoc = (String) gddoc.get("nome_gddoc");
-        AdditionalDataTagComponent.IdGdDoc gdDocAdditionalData = new AdditionalDataTagComponent().new IdGdDoc(idGdDoc, oggettoGdDoc);
+        AdditionalDataTagComponent.IdGdDoc gdDocAdditionalData = new AdditionalDataTagComponent.IdGdDoc(idGdDoc, oggettoGdDoc);
         additionalDataArchiviation.setIdGdDoc(gdDocAdditionalData);
 
         additionalDataArchiviation.setDataArchiviazione(LocalDateTime.now());
