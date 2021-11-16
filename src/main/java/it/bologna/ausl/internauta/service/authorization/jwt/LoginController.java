@@ -2,7 +2,6 @@ package it.bologna.ausl.internauta.service.authorization.jwt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -14,16 +13,10 @@ import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.SSOException;
 import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandException;
 import it.bologna.ausl.internauta.service.utils.CacheUtilities;
-import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.logoutmanager.LogoutManagerWorker;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.service.utils.IntimusUtils;
-import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
-import it.bologna.ausl.internauta.service.utils.ProjectionBeans;
 import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.Ruolo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,12 +38,9 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
-import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
+import it.bologna.ausl.model.entities.configurazione.Applicazione.Applicazioni;
 import java.time.ZonedDateTime;
 import java.util.Date;
-import java.util.Map;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
@@ -87,28 +77,13 @@ public class LoginController {
     private AuthorizationUtils authorizationUtils;
 
     @Autowired
-    private MasterChefUtils masterChefUtils;
-
-    @Autowired
-    private IntimusUtils intimusUtils;
-
-    @Autowired
     private UserInfoService userInfoService;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private CommonUtils commonUtils;
 
     @Autowired
-    private UtenteRepository utenteRepository;
-
-    @Autowired
     private CacheUtilities cacheUtilities;
-
-    @Autowired
-    private ProjectionBeans projectionBeans;
 
     @Autowired
     private ProjectionFactory factory;
@@ -260,6 +235,7 @@ public class LoginController {
         userInfoService.getUtenteStrutturaListRemoveCache(utente, true);
         userInfoService.getUtenteStrutturaListRemoveCache(utente, false);
         userInfoService.getPermessiPecRemoveCache(utente.getIdPersona());
+        userInfoService.getStruttureDelSegretarioRemoveCache(utente.getIdPersona());
 
         String realUserId = null;
         if (StringUtils.hasText(userLogin.realUser)) {
@@ -276,6 +252,7 @@ public class LoginController {
             userInfoService.getUtentiPersonaRemoveCache(utenteReale.getIdPersona());
             userInfoService.getUtenteStrutturaListRemoveCache(utenteReale, true);
             userInfoService.getUtenteStrutturaListRemoveCache(utenteReale, false);
+            userInfoService.getStruttureDelSegretarioRemoveCache(utenteReale.getIdPersona());
 //            userInfoService.getPermessiDelegaRemoveCache(utenteReale);
             List<Integer> permessiAvatar = userInfoService.getPermessiAvatar(utenteReale);
             boolean isSD = userInfoService.isSD(utenteReale);
@@ -299,7 +276,7 @@ public class LoginController {
             realUserId = String.valueOf(utenteReale.getId());
         }
 
-        CustomUtenteLogin utenteWithPersona = factory.createProjection(CustomUtenteLogin.class, utente);
+        
 
         Integer idSessionLog = authorizationUtils.createIdSessionLog().getId();
         String idSessionLogString = String.valueOf(idSessionLog);
@@ -322,7 +299,9 @@ public class LoginController {
                 .compact();
 
         authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application, false);
-
+        
+        CustomUtenteLogin utenteWithPersona = factory.createProjection(CustomUtenteLogin.class, utente);
+        
 //        utente.setPasswordHash(null);
         return new ResponseEntity(
                 new LoginResponse(

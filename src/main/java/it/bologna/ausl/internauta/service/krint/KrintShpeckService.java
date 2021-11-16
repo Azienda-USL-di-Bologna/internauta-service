@@ -2,7 +2,8 @@
 package it.bologna.ausl.internauta.service.krint;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.logs.projections.KrintShpeckDraft;
@@ -117,15 +118,15 @@ public class KrintShpeckService {
      * Questa funzione si occupa di preparare il log per la fascicolazione
      * @param message
      * @param codiceOperazione: PEC_MESSAGE_FASCICOLAZIONE
-     * @param jsonAdditionalData
+     * @param additionalDataArchiviation
      */
-    public void writeArchiviation(Message message, OperazioneKrint.CodiceOperazione codiceOperazione, JSONObject jsonAdditionalData) {
+    public void writeArchiviation(Message message, OperazioneKrint.CodiceOperazione codiceOperazione, AdditionalDataTagComponent.AdditionalDataArchiviation additionalDataArchiviation) {
         try {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);
             Map<String, Object> map = new HashMap();
             map.put("idMessage", krintPecMessage);
-            map.put("tagAdditionalData", jsonAdditionalData);
+            map.put("tagAdditionalData", additionalDataArchiviation);
             String jsonKrintPecMessage = objectMapper.writeValueAsString(map);
             
             // Informazioni oggetto contenitore

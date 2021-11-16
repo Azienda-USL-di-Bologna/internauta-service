@@ -59,16 +59,13 @@ public class ToolsUtils {
                 + "pertanto il personale del servizio Babelcare e di sviluppo Babel "
                 + "sta gestendo le normali attività adottando la modalità di smartworking.\n"
                 + "In questo periodo per aiutarci a gestire al meglio il servizio e per garantire tempi di risposta rapidi, "
-                + "preghiamo di utilizzare l’apposito FORM di Invio Segnalazione e di contattarci telefonicamente "
-                + "solo in caso di reale necessità.\n"
+                + "preghiamo di utilizzare l’apposito FORM di Invio Segnalazione.\n"
                 + "Ringraziamo anticipatamente per la collaborazione.\n"
                 + "Saluti e buon lavoro.\n\n"
-                + "Team Babelcare\n"
                 + "Help Desk Babelcare\n"
-                + "tel. 0513172497\n"
-                + "email: babel.care@ausl.bologna.it\n"
-                + "orario di servizio telefonico: 09.00-16.00\n"
-                + "orario di servizio mail (o Form Invio Segnalazione): 8.30.00-17.00\n\n";
+                + "Email: babel.care@ausl.bologna.it\n"
+                + "Orario di servizio: 9.00-17.00\n"
+                + "(Il telefono in ingresso è disattivato, si possono aprire ticket solo via Mail o Form Invio Segnalazione)\n";
 
         return body;
     }

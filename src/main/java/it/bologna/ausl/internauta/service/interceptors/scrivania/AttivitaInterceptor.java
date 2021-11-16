@@ -20,7 +20,6 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
-import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
@@ -150,94 +149,6 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                                 
                                 String assembledUrl = internautaUtils.getUrl(authenticatedSessionData, urlAttivita, attivita.getIdApplicazione().getId(), aziendaTarget);
 
-                                /**
-                                String paramWithContextInformation = urlAttivita;
-                                String paramWithoutContextInformation = urlAttivita;
-                                
-//                                String stringToEncode = urlAttivita;
-
-                                paramWithContextInformation += "&utente=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
-
-                                // stringToEncode += "&richiesta=" + UUID.randomUUID().toString();
-                                if (authenticatedSessionData.getRealPerson() != null) {
-                                    paramWithContextInformation += "&realUser=" + authenticatedSessionData.getRealPerson().getCodiceFiscale();
-                                    paramWithContextInformation += "&impersonatedUser=" + authenticatedSessionData.getPerson().getCodiceFiscale();
-                                    paramWithContextInformation += "&utenteLogin=" + authenticatedSessionData.getRealPerson().getCodiceFiscale(); // serve alle applicazioni INDE
-                                } else {
-                                    paramWithContextInformation += "&user=" + authenticatedSessionData.getPerson().getCodiceFiscale();
-                                    paramWithContextInformation += "&utenteLogin=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // serve alle applicazioni INDE
-                                }
-
-                                paramWithContextInformation += "&utenteImpersonato=" + authenticatedSessionData.getPerson().getCodiceFiscale(); // serve alle applicazioni INDE
-
-                                paramWithContextInformation += "&idSessionLog=" + authenticatedSessionData.getIdSessionLog();
-
-                                paramWithContextInformation += FROM;
-
-                                paramWithContextInformation += "&modalitaAmministrativa=0"; // serve alle applicazioni INDE
-
-                                
-                                Azienda azienda = authenticatedSessionData.getUser().getIdAzienda();
-                                if (attivita.getIdAzienda() != null) {
-                                    azienda = attivita.getIdAzienda();
-                                }
-
-                                paramWithContextInformation += "&idAzienda=" + azienda.getId();
-                                paramWithContextInformation += "&aziendaImpersonatedUser=" + azienda.getId();
-                                try {
-                                    AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(this.objectMapper, azienda.getParametri());
-                                    targetLoginPath = parametriAziendaTarget.getLoginPath();
-                                    targetBasePath = parametriAziendaTarget.getBasePath();
-                                } catch (IOException ex) {
-                                    throw new AbortLoadInterceptorException("errore nella lettura dei parametri dell'azienda target", ex);
-                                }
-                                String encodedParamsWithContextInformation = "";
-                                String encodedParamsWithoutContextInformation = "";
-                                try {
-                                    encodedParamsWithContextInformation = URLEncoder.encode(paramWithContextInformation, "UTF-8");
-                                    encodedParamsWithoutContextInformation = URLEncoder.encode(paramWithoutContextInformation, "UTF-8");
-                                } catch (UnsupportedEncodingException ex) {
-                                    LOGGER.error("errore nella creazione del link", ex);
-                                    throw new AbortLoadInterceptorException("errore nella creazione del link", ex);
-                                }
-                                
-                                String assembledURL = null;
-                                switch (attivita.getIdApplicazione().getUrlGenerationStrategy()) {
-                                    case TRUSTED_URL_WITH_CONTEXT_INFORMATION:
-                                        assembledURL = crossLoginUrlTemplate.
-                                        replace("[target-login-path]", targetLoginPath).
-                                        replace("[entity-id]", entityId).
-                                        replace("[app]", applicationURL).
-                                        replace("[encoded-params]", encodedParamsWithContextInformation);
-                                    break;
-                                    case TRUSTED_URL_WITHOUT_CONTEXT_INFORMATION:
-                                        assembledURL = crossLoginUrlTemplate.
-                                        replace("[target-login-path]", targetLoginPath).
-                                        replace("[entity-id]", entityId).
-                                        replace("[app]", applicationURL).
-                                        replace("[encoded-params]", encodedParamsWithoutContextInformation);
-                                    break;
-                                    case RELATIVE_WITH_CONTEXT_INFORMATION:
-                                        assembledURL = simpleCrossLoginUrlTemplate.
-                                        replace("[target-login-path]", targetBasePath).
-                                        replace("[app]", applicationURL).
-                                        replace("[params]", paramWithContextInformation);
-                                    break;
-                                    case RELATIVE_WITHOUT_CONTEXT_INFORMATION:
-                                        assembledURL = simpleCrossLoginUrlTemplate.
-                                        replace("[target-login-path]", targetBasePath).
-                                        replace("[app]", applicationURL).
-                                        replace("[params]", paramWithoutContextInformation);
-                                    break;
-                                    case ABSOLUTE_WITH_CONTEXT_INFORMATION:
-                                        assembledURL = applicationURL + paramWithContextInformation;
-                                    break;
-                                    case ABSOLUTE_WITHOUT_CONTEXT_INFORMATION:
-                                        assembledURL = paramWithoutContextInformation;
-                                    break;
-                                }
-                                
-                                */
                                 compiledUrlMap.put("url", assembledUrl);
                                 compiledUrls.add(compiledUrlMap);
                             }

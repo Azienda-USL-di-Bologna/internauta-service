@@ -11,8 +11,8 @@
 //import it.bologna.ausl.model.entities.baborg.Gdm2;
 //import it.bologna.ausl.model.entities.baborg.QGdm1;
 //import it.bologna.ausl.model.entities.baborg.QGdm2;
-//import it.bologna.ausl.model.entities.configuration.Applicazione;
-//import it.bologna.ausl.model.entities.configuration.QApplicazione;
+//import it.bologna.ausl.model.entities.configurazione.Applicazione;
+//import it.bologna.ausl.model.entities.configurazione.QApplicazione;
 //import it.bologna.ausl.model.entities.scrivania.Attivita;
 //import it.bologna.ausl.model.entities.scrivania.QAttivita;
 //import it.nextsw.common.controller.BaseCrudController;

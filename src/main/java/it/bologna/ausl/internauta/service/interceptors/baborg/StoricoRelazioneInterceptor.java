@@ -11,17 +11,16 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
-import it.bologna.ausl.internauta.service.utils.ParametriAziende;
+import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
-import java.sql.SQLException;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.HashMap;
@@ -48,7 +47,7 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
     ObjectMapper objectMapper;
 
     @Autowired
-    ParametriAziende parametriAziende;
+    ParametriAziendeReader parametriAziende;
 
     @Autowired
     UserInfoService userInfoService;
@@ -76,11 +75,11 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
         boolean isSD = userInfoService.isSD(utente);
 
         String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
-        LocalDateTime dataRiferimento;
+        ZonedDateTime dataRiferimento;
         if (additionalData != null && additionalData.containsKey(key)) {
-            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).toLocalDateTime().truncatedTo(ChronoUnit.DAYS);
+            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS);
         } else {
-            dataRiferimento = LocalDateTime.now();
+            dataRiferimento = ZonedDateTime.now();
         }
         BooleanExpression filter = qStoricoRelazione.attivaDal.loe(dataRiferimento)
                 .and((qStoricoRelazione.attivaAl.isNull()).or(qStoricoRelazione.attivaAl.goe(dataRiferimento)));

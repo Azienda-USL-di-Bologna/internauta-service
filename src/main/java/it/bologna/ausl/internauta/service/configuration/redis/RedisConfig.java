@@ -80,7 +80,7 @@ public class RedisConfig {
                 .build();
 
         JedisConnectionFactory jedisCacheConnectionFactory = new JedisConnectionFactory(redisStandaloneConfiguration, jedisClientConfiguration);
-
+        jedisCacheConnectionFactory.afterPropertiesSet();
         return jedisCacheConnectionFactory;
     }
     
@@ -101,6 +101,7 @@ public class RedisConfig {
                 .build();
 
         JedisConnectionFactory jedisConnectionFactory = new JedisConnectionFactory(redisStandaloneConfiguration, jedisClientConfiguration);
+        jedisConnectionFactory.afterPropertiesSet();
         return jedisConnectionFactory;
     }
     
@@ -120,6 +121,7 @@ public class RedisConfig {
                 .build();
 
         JedisConnectionFactory jedisConnectionFactory = new JedisConnectionFactory(redisStandaloneConfiguration, jedisClientConfiguration);
+        jedisConnectionFactory.afterPropertiesSet();
         return jedisConnectionFactory;
     }
     

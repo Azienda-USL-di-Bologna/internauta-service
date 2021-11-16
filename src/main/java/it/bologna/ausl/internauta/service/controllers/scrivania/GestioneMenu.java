@@ -18,7 +18,7 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.scrivania.Bmenu;
 import it.bologna.ausl.model.entities.scrivania.QBmenu;
 import java.io.IOException;
@@ -308,7 +308,7 @@ public class GestioneMenu {
      * @throws it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException 
      */
     // @Cacheable(value = "buildMenu__ribaltorg__", key = "{#persona.getId()}")
-    public List<ItemMenu> buildMenu(Persona persona) throws BlackBoxPermissionException, IOException {
+    public List<ItemMenu> buildMenu(Persona persona) throws BlackBoxPermissionException, IOException, Throwable {
         LOGGER.info("Dentro la build menu. Carico un po' di roba.");
         List<Utente> utentiAttivi = userInfoService.getUtentiPersona(persona).stream().filter(u -> u.getAttivo()).collect(Collectors.toList());
         List<ItemMenu> menu = new ArrayList();

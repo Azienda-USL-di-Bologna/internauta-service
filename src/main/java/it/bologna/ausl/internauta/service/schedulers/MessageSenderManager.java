@@ -1,9 +1,6 @@
 package it.bologna.ausl.internauta.service.schedulers;
 
-import com.querydsl.core.types.Expression;
-import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.BooleanTemplate;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -15,6 +12,7 @@ import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.messaggero.AmministrazioneMessaggio;
 import it.bologna.ausl.model.entities.messaggero.QAmministrazioneMessaggio;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -24,8 +22,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
@@ -58,7 +54,7 @@ public class MessageSenderManager {
 //        return messageThreadsMap;
 //    }
 
-    public void scheduleMessageSenderAtBoot(LocalDateTime now) {
+    public void scheduleMessageSenderAtBoot(ZonedDateTime now) {
         
         BooleanExpression onlyPopup = QAmministrazioneMessaggio.amministrazioneMessaggio.invasivita.eq(AmministrazioneMessaggio.InvasivitaEnum.POPUP.toString());
         
@@ -76,7 +72,7 @@ public class MessageSenderManager {
         }
     }
     
-    public void scheduleSeenCleanerAtBoot(LocalDateTime now) {
+    public void scheduleSeenCleanerAtBoot(ZonedDateTime now) {
         
         BooleanExpression notCleand = JPAExpressions.selectFrom(QPersona.persona)
                 .where(Expressions.booleanTemplate("arraycontains({0}, tools.string_to_integer_array(cast({1} as text), ','))=true", QPersona.persona.messaggiVisti, QAmministrazioneMessaggio.amministrazioneMessaggio.id))
@@ -98,11 +94,11 @@ public class MessageSenderManager {
     }
     
 //    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public ScheduledFuture<?> scheduleMessageSender(AmministrazioneMessaggio message, LocalDateTime now) {
+    public ScheduledFuture<?> scheduleMessageSender(AmministrazioneMessaggio message, ZonedDateTime now) {
         if (message.getDataScadenza() == null || message.getDataScadenza().isAfter(now)) {
             MessageSenderWorker messageSenderWorker = beanFactory.getBean(MessageSenderWorker.class);
             messageSenderWorker.setMessaggio(message);
-            LocalDateTime dataPubblicazione = message.getDataPubblicazione();
+            ZonedDateTime dataPubblicazione = message.getDataPubblicazione();
             long initialDelayMillis = 1000;
             long perdiodMillis = 0;
             if (dataPubblicazione.isAfter(now)) {
@@ -125,7 +121,7 @@ public class MessageSenderManager {
         }
     }
     
-    public ScheduledFuture<?> scheduleSeenCleaner(AmministrazioneMessaggio message, LocalDateTime now) {
+    public ScheduledFuture<?> scheduleSeenCleaner(AmministrazioneMessaggio message, ZonedDateTime now) {
         ScheduledFuture<?> schedule = null;
         if (message.getDataScadenza() != null) {
             MessageSeenCleanerWorker messageSeenCleanerWorker = beanFactory.getBean(MessageSeenCleanerWorker.class);

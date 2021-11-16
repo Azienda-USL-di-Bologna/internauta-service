@@ -1,19 +1,20 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import it.bologna.ausl.documentgenerator.GeneratePE;
 import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
-import it.bologna.ausl.internauta.service.utils.ParametriAziende;
+import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.internauta.service.utils.ProjectionBeans;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.Related;
@@ -21,7 +22,6 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +35,7 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.io.FilenameUtils;
+
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,17 +55,29 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.NonCachedEntities;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Pec;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato.TipoDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
+import it.bologna.ausl.model.entities.scripta.Registro;
+import it.bologna.ausl.model.entities.scripta.RegistroDoc;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithDettagliAllegatiListAndIdAllegatoPadre;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.shpeck.Message;
@@ -74,8 +86,20 @@ import java.io.FileNotFoundException;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.Formatter;
+import java.util.concurrent.TimeUnit;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.StringUtils;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
 
 /**
  *
@@ -92,10 +116,25 @@ public class ScriptaCustomController {
     List<Allegato> savedFilesOnInternauta = new ArrayList();
 
     @Autowired
+    CachedEntities cachedEntities;
+
+    @Autowired
+    NonCachedEntities nonCachedEntities;
+
+    @Autowired
     DocRepository docRepository;
 
     @Autowired
+    DocDetailRepository docDetailRepository;
+
+    @Autowired
+    RegistroDocRepository registroDocRepository;
+
+    @Autowired
     PecRepository pecRepository;
+
+    @Autowired
+    PersonaRepository personaRepository;
 
     @Autowired
     ScriptaUtils scriptaUtils;
@@ -104,7 +143,7 @@ public class ScriptaCustomController {
     ReporitoryConnectionManager aziendeConnectionManager;
 
     @Autowired
-    ParametriAziende parametriAziende;
+    ParametriAziendeReader parametriAziende;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
@@ -125,6 +164,9 @@ public class ScriptaCustomController {
     StrutturaRepository strutturaRepository;
 
     @Autowired
+    AziendaRepository aziendaRepository;
+
+    @Autowired
     GeneratePE generatePE;
 
     @Autowired
@@ -133,12 +175,20 @@ public class ScriptaCustomController {
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
 
+    @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
+    private String EliminaPropostaDaEdiUrl;
+
+    @Value("${babelsuite.webapi.eliminapropostadaedi.method}")
+    private String eliminaPropostaDaEdiMethod;
+
+    private static final Logger log = LoggerFactory.getLogger(ScriptaCustomController.class);
+
     @RequestMapping(value = "saveAllegato", method = RequestMethod.POST)
     public ResponseEntity<?> saveAllegato(
             HttpServletRequest request,
             @RequestParam("idDoc") Integer idDoc,
             @RequestParam("numeroProposta") String numeroProposta,
-            @RequestParam("files") List<MultipartFile> files) throws MinIOWrapperException {
+            @RequestParam("files") List<MultipartFile> files) throws MinIOWrapperException, NoSuchAlgorithmException, Throwable {
         projectionsInterceptorLauncher.setRequestParams(null, request);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         Iterable<Allegato> tuttiAllegati = null;
@@ -151,45 +201,17 @@ public class ScriptaCustomController {
                 doc = optionalDoc.get();
             }
 
-            List<Allegato> allegati = doc.getAllegati();
-            Integer numeroOrdine = null;
-            if (allegati == null || allegati.isEmpty()) {
-                numeroOrdine = 0;
-            } else {
-                numeroOrdine = doc.getAllegati().size();
-            }
-
+//            List<Allegato> allegati = doc.getAllegati();
+//            Integer numeroOrdine = null;
+//            if (allegati == null || allegati.isEmpty()) {
+//                numeroOrdine = 0;
+//            } else {
+//                numeroOrdine = doc.getAllegati().size();
+//            }
             for (MultipartFile file : files) {
-                numeroOrdine++;
-                DateTimeFormatter data = DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss.SSSSSS Z");
-                String format = ZonedDateTime.now().format(data);
 
-                savedFileOnRepository = minIOWrapper.put(file.getInputStream(), doc.getIdAzienda().getCodice(), numeroProposta, file.getOriginalFilename(), null, true);
-                Allegato allegato = new Allegato();
-                allegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
-                allegato.setIdDoc(doc);
-                allegato.setPrincipale(false);
-                allegato.setTipo(Allegato.TipoAllegato.ALLEGATO);
-                allegato.setDataInserimento(ZonedDateTime.now());
-                allegato.setOrdinale(numeroOrdine);
-                allegato.setFirmato(false);
-                DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
-                //allegato.setConvertibilePdf(false);
-                dettaglioAllegato.setHashMd5(savedFileOnRepository.getMd5());
+                scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename());
 
-                dettaglioAllegato.setHashSha256(getHashFromFile(file.getInputStream(), "SHA-256"));
-                dettaglioAllegato.setNome(FilenameUtils.getBaseName(file.getOriginalFilename()));
-                dettaglioAllegato.setIdAllegato(allegato);
-                dettaglioAllegato.setEstensione(FilenameUtils.getExtension(file.getOriginalFilename()));
-                dettaglioAllegato.setDimensioneByte(Math.toIntExact(file.getSize()));
-                dettaglioAllegato.setIdRepository(savedFileOnRepository.getFileId());
-                dettaglioAllegato.setCaratteristica(TipoDettaglioAllegato.ORIGINALE);
-                dettaglioAllegato.setMimeType(file.getContentType());
-                List<DettaglioAllegato> dettagliAllegatiList = new ArrayList();
-                dettagliAllegatiList.add(dettaglioAllegato);
-                savedFilesOnRepository.add(savedFileOnRepository);
-                allegato.setDettagliAllegatiList(dettagliAllegatiList);
-                savedFilesOnInternauta.add(saveFileOnInternauta(allegato));
             }
             tuttiAllegati = allegatoRepository.findAll(QAllegato.allegato.idDoc.id.eq(idDoc));
         } catch (Exception e) {
@@ -289,7 +311,10 @@ public class ScriptaCustomController {
         pecMessageDetail.put("idSorgentePec", message.getId());
         pecMessageDetail.put("subject", message.getSubject());
         pecMessageDetail.put("mittente", mittente.getDescrizione());
-        pecMessageDetail.put("dataArrivo", message.getReceiveTime());
+//        pecMessageDetail.put("dataArrivo", message.getReceiveTime());
+        Spedizione spedizioneMittente = scriptaUtils.getSpedizioneMittente(mittente);
+        ZonedDateTime data = spedizioneMittente.getData();
+        pecMessageDetail.put("dataArrivo", data.toLocalDateTime());
         pecMessageDetail.put("messageID", message.getUuidMessage());
         Pec pecDaCuiProtocollo = pecRepository.findById(message.getIdPec().getId()).get();
         pecMessageDetail.put("indirizzoPecOrigine", pecDaCuiProtocollo.getIndirizzo());
@@ -316,16 +341,17 @@ public class ScriptaCustomController {
         Map<String, Object> parametersMap = new HashMap();
         parametersMap.put("azienda", doc.getIdAzienda().getCodiceRegione() + doc.getIdAzienda().getCodice());
         parametersMap.put("applicazione_chiamante", authenticatedUserProperties.getApplicazione().toString());
-        parametersMap.put("numero_documento_origine", doc.getId().toString());
-        parametersMap.put("anno_documento_origine", doc.getDataCreazione().getYear());
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        String dateFormat = doc.getDataCreazione().format(formatter);
-        parametersMap.put("data_registrazione_origine", dateFormat);
+//        parametersMap.put("numero_documento_origine", doc.getId().toString());
+        parametersMap.put("id_doc_esterno", doc.getId());
+//        parametersMap.put("anno_documento_origine", doc.getDataCreazione().getYear());
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//        String dateFormat = doc.getDataCreazione().format(formatter);
+//        parametersMap.put("data_registrazione_origine", dateFormat);
         parametersMap.put("oggetto", doc.getOggetto());
         //TODO da decommentare quando ci saranno i campi sul db e bisogna mettere la data in stringa
         //parametersMap.put("data_arrivo_origine", doc.getMittenti().get(0).getSpedizioneList().get(0).getData());
         //da elimare quando ci saranno i campi sul db
-        parametersMap.put("data_arrivo_origine", dateFormat);
+//        parametersMap.put("data_arrivo_origine", dateFormat);
         parametersMap.put("utente_protocollante", loggedUser.getIdPersona().getCodiceFiscale());
         //TODO da mettere quando avremo le fascicolazioni
         //da decommentare quando avremo le tabelle della fascicolazione
@@ -389,7 +415,7 @@ public class ScriptaCustomController {
             HttpServletRequest request) throws HttpInternautaResponseException,
             Throwable {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Utente loggedUser = authenticatedUserProperties.getUser();
+        Persona loggedPersona = nonCachedEntities.getPersona(authenticatedUserProperties.getPerson().getId());
 
         Optional<Doc> docOp = docRepository.findById(idDoc);
         Doc doc;
@@ -416,7 +442,7 @@ public class ScriptaCustomController {
             minIOActive = parametriAziende.getValue(mongoAndMinIOActive.get(0), Boolean.class);
         }
         generatePE.init(
-                loggedUser.getIdPersona().getCodiceFiscale(),
+                loggedPersona.getCodiceFiscale(),
                 parametersMap,
                 multipartPrincipale,
                 Optional.of(multipartList),
@@ -426,29 +452,67 @@ public class ScriptaCustomController {
                 true // dobbiamo evitare l'estrazione ricorsiva degli allegati
         );
 
-        String record = generatePE.create(null);
-        LOG.info("generatePE.create() ha tornato '" + record + "'");
-        if (!(record != null && record != "")) {
+        String resultJson = generatePE.create(null);
+        LOG.info("generatePE.create() ha tornato '" + resultJson + "'");
+        if (!StringUtils.hasText(resultJson)) {
             throw new Throwable("Errore nella protocollazione del PE");
         }
-        Map<String, String> resMap = new HashMap();
-        resMap.put("protocollo", record);
-        ResponseEntity res = ResponseEntity.ok(resMap);
+
+        Map<String, Object> resObj = objectMapper.readValue(resultJson, new TypeReference<Map<String, Object>>() {
+        });
+        saveRegistriDoc(resObj, doc, loggedPersona);
+
+        ResponseEntity res = ResponseEntity.ok(resObj);
         return res;
+    }
+
+    private void saveRegistriDoc(Map<String, Object> resObj, Doc doc, Persona loggedPersona) throws JsonProcessingException {
+        Integer numeroProtocollo = Integer.parseInt((String) resObj.get("numeroProtocollo"));
+        Integer annoProtocollo = (Integer) resObj.get("annoProtocollo");
+        String numeroPropostaConAnno = (String) resObj.get("numeroProposta");
+        Integer numeroProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[1]);
+        Integer annoProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[0]);
+        Integer idStrutturaProtocollante = (Integer) resObj.get("idStrutturaProtocollante");
+
+        Struttura struttura = nonCachedEntities.getStruttura(idStrutturaProtocollante);
+        Registro registroPropostaPico = nonCachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PROP_PG);
+        Registro registroProtocolloPico = nonCachedEntities.getRegistro(doc.getIdAzienda().getId(), Registro.CodiceRegistro.PG);
+
+        String dataRegistrazioneString = (String) resObj.get("dataRegistrazione");
+        LocalDateTime dataRegistrazioneLocal = LocalDateTime.parse(dataRegistrazioneString);
+
+        RegistroDoc proposta = new RegistroDoc();
+        proposta.setAnno(annoProposta);
+        proposta.setDataRegistrazione(ZonedDateTime.of(dataRegistrazioneLocal, ZoneId.systemDefault()));
+        proposta.setIdDoc(doc);
+        proposta.setIdPersonaRegistrante(loggedPersona);
+        proposta.setIdStrutturaRegistrante(struttura);
+        proposta.setNumero(numeroProposta);
+        proposta.setIdRegistro(registroPropostaPico);
+
+        RegistroDoc protocollo = new RegistroDoc();
+        protocollo.setAnno(annoProtocollo);
+        protocollo.setDataRegistrazione(ZonedDateTime.of(dataRegistrazioneLocal, ZoneId.systemDefault()));
+        protocollo.setIdDoc(doc);
+        protocollo.setIdPersonaRegistrante(loggedPersona);
+        protocollo.setIdStrutturaRegistrante(struttura);
+        protocollo.setNumero(numeroProtocollo);
+        protocollo.setIdRegistro(registroProtocolloPico);
+
+        registroDocRepository.saveAll(Arrays.asList(proposta, protocollo));
     }
 
     @Transactional(rollbackFor = Throwable.class)
     private Allegato saveFileOnInternauta(Allegato allegato) {
         Allegato saved = allegatoRepository.save(allegato);
         return saved;
-
     }
 
     private Map<String, Object> buildMittente(Related mittenteDoc) throws JsonProcessingException {
         Map<String, Object> mittente = new HashMap();
         mittente.put("descrizione", mittenteDoc.getDescrizione());
         Spedizione spedizioneMittente = scriptaUtils.getSpedizioneMittente(mittenteDoc);
-        mittente.put("indirizzo_spedizione", spedizioneMittente.getIndirizzo().toString());
+        mittente.put("indirizzo_spedizione", spedizioneMittente.getIndirizzo().getCompleto());
         Mezzo mezzo = spedizioneMittente.getIdMezzo();
         mittente.put("mezzo_spedizione", mezzo.ottieniCodiceArgo());
         return mittente;
@@ -477,7 +541,6 @@ public class ScriptaCustomController {
     }
 
     public static String getHashFromFile(InputStream is, String algorithmName) throws FileNotFoundException, IOException, NoSuchAlgorithmException {
-        //    Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
         MessageDigest algorithm = MessageDigest.getInstance(algorithmName);
         DigestInputStream dis = new DigestInputStream(is, algorithm);
@@ -502,4 +565,70 @@ public class ScriptaCustomController {
 //        }
         return hashString;
     }
+
+    @RequestMapping(value = "eliminaProposta", method = RequestMethod.POST)
+    public ResponseEntity<?> eliminaProposta(
+            @RequestParam("guid_doc") String guidDoc,
+            @RequestParam("id_applicazione") String idApplicazione,
+            @RequestParam("id_azienda") String idAzienda) throws HttpInternautaResponseException,
+            Throwable {
+        Azienda azienda = aziendaRepository.findById(Integer.parseInt(idAzienda)).get();
+
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+
+        String cf = "";
+        String cfReale = "";
+        try {
+            cf = authenticatedUserProperties.getPerson().getCodiceFiscale();
+            cfReale = authenticatedUserProperties.getRealPerson().getCodiceFiscale();
+        } catch (Exception e) {
+            cfReale = authenticatedUserProperties.getPerson().getCodiceFiscale();
+        }
+
+        Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
+        AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), EliminaPropostaDaEdiUrl);
+//        String url = "http://localhost:8080/Procton/EliminaPropostaDaEdi";
+//        String url = "http://localhost:8080/Dete/EliminaPropostaDaEdi";
+//        String url = "http://localhost:8080/Deli/EliminaPropostaDaEdi";
+
+        Map<String, String> hm = new HashMap<String, String>();
+        hm.put("guidDoc", guidDoc);
+        hm.put("idApplicazione", idApplicazione);
+        hm.put("idAzienda", idAzienda);
+        hm.put("cf", cf);
+        hm.put("cfReale", cfReale);
+
+        okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
+                okhttp3.MediaType.get("application/json; charset=utf-8"),
+                objectMapper.writeValueAsString(hm));
+        OkHttpClient client = new OkHttpClient.Builder().connectTimeout(12, TimeUnit.MINUTES).build();
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .addHeader("X-HTTP-Method-Override", eliminaPropostaDaEdiMethod)
+                .build();
+
+        Call call = client.newCall(request);
+        HashMap readValue = null;
+        try (Response response = call.execute();) {
+            int responseCode = response.code();
+            if (response.isSuccessful()) {
+                readValue = objectMapper.readValue(response.body().string(), HashMap.class);
+//                r.put(resp);
+                log.info("Chiamata a webapi inde effettuata con successo");
+                docDetailRepository.deleteByGuidDocumento(guidDoc);
+            } else {
+                log.info("Errore nella chiamata alla webapi InDe: " + responseCode + " " + response.message());
+                throw new IOException(String.format("Errore nella chiamata alla WepApi InDe: %s", response.message()));
+            }
+
+        } catch (Exception ex) {
+            throw new Exception(ex.getMessage());
+        }
+
+        return new ResponseEntity(readValue, HttpStatus.OK);
+    }
+
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.concurrent.TimeUnit;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.MongoException;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
@@ -12,8 +13,10 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
+import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.configuration.utils.RubricaRestClientConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.permessi.PermessiCustomController;
 import it.bologna.ausl.internauta.service.exceptions.GruppiException;
@@ -30,13 +33,17 @@ import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContatto
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
+import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.internauta.service.utils.rubrica.CreatoreJsonPermessiContatto;
+import it.bologna.ausl.internauta.service.utils.rubrica.SelectedContactsUtils;
+import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
@@ -44,13 +51,16 @@ import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.Indirizzo;
 import it.bologna.ausl.model.entities.rubrica.Telefono;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithDettaglioContattoList;
+import it.bologna.ausl.mongowrapper.MongoWrapper;
 import it.bologna.ausl.rubrica.maven.client.RestClient;
 import it.bologna.ausl.rubrica.maven.client.RestClientException;
 import it.bologna.ausl.rubrica.maven.resources.EmailResource;
 import it.bologna.ausl.rubrica.maven.resources.FullContactResource;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.CommonUtils;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.time.ZoneId;
@@ -64,25 +74,30 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -105,6 +120,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     CommonUtils commonUtils;
+
+    @Autowired
+    SelectedContactsUtils selectedContactsUtils;
 
     @Autowired
     RestControllerEngineImpl restControllerEngine;
@@ -132,6 +150,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     AziendaRepository aziendaRepository;
+
+    @Autowired
+    ParametriAziendeReader parametriAziende;
 
     @Autowired
     StrutturaRepository strutturaRepository;
@@ -162,6 +183,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+
+    @Autowired
+    ReporitoryConnectionManager mongoConnectionManager;
 
     @PersistenceContext
     private EntityManager em;
@@ -359,17 +383,17 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         Persona getPersona = personaRepository.findById(persona.getId()).get();
         Utente getUtente = utenteRepository.findById(utente.getId()).get();
 
-        if (estemporaneiToAddToRubricaAsProtocontatti != null && !estemporaneiToAddToRubricaAsProtocontatti.isEmpty()) {
+        if (estemporaneiToAddToRubricaAsProtocontatti != null
+                && !estemporaneiToAddToRubricaAsProtocontatti.isEmpty()) {
             //List<Contatto> listContattiAsProtocontattiDaSalvare = new ArrayList<Contatto>();
 
             //ObjectMapper mapper = new ObjectMapper();
 //            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
 //            mapper.setPropertyNamingStrategy(PropertyNamingStrategy.UPPER_CAMEL_CASE);
             SelectedContactsLists selectedContactsLists = objectMapper.readValue(data.getSelectedContactsLists(), SelectedContactsLists.class);
-            
+
 //            String prova = objectMapper.writeValueAsString(selectedContactsLists);
 //            log.info("prova: " + prova);
-
 //            liste
             List<SelectedContact> allSelectedContactsMITTENTE = selectedContactsLists.getMITTENTE();
             List<SelectedContact> allSelectedContactsA = selectedContactsLists.getA();
@@ -427,12 +451,26 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             selectedContactsLists.setMITTENTE(allSelectedContactsMITTENTE);
 
             String selectedContactsListsAsString = objectMapper.writeValueAsString(selectedContactsLists);
-            
+
             log.info("selectedContactsListsAsString to send at inde: " + selectedContactsListsAsString);
             data.setSelectedContactsLists(selectedContactsListsAsString);
         }
         log.info("set estemporaneiToAddToRubrica to null");
         data.setEstemporaneiToAddToRubrica(null);
+
+        if (data.getMode().equals("DESTINATARI") && data.getApp().equals("procton")) {
+            log.info("Devo verificare i gruppi per escludere "
+                    + "contatti interni di un'altra azienda");
+            System.out.println("getSelectedContactsLists()\n" + data.getSelectedContactsLists());
+
+            String selectedContactsListsAsString = filtraTogliendoContattiInterniDiAltreAziende(
+                    data.getSelectedContactsLists(),
+                    azienda);
+            log.info("Selected filtrata:\n" + selectedContactsListsAsString);
+            data.setSelectedContactsLists(selectedContactsListsAsString);
+        }
+
+        System.out.println("Ora data.selectedCOntactsList =\n" + data.getSelectedContactsLists());
 
         log.info("Faccio una Lista di persone a cui aggiornare la videata");
         //List<String> cfPersoneDiCuiAggiornareLaVideataList = Arrays.asList(getPersona.getCodiceFiscale());
@@ -461,7 +499,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.get("application/json; charset=utf-8"),
                 objectMapper.writeValueAsString(data));
-        OkHttpClient client = new OkHttpClient.Builder().connectTimeout(2, TimeUnit.MINUTES).build();
+        OkHttpClient client = new OkHttpClient.Builder().connectTimeout(12, TimeUnit.MINUTES).build();
 
         Request request = new Request.Builder()
                 .url(buildGestisciDestinatariDaRubricaInternautarUrl(azienda, data.getApp()))
@@ -493,6 +531,25 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         }
     }
 
+    private String filtraTogliendoContattiInterniDiAltreAziende(
+            String selectedContactsLists,
+            Azienda azienda) throws JsonProcessingException {
+        JSONObject selectedCOntactsListJSON = new JSONObject(selectedContactsLists);
+        JSONArray jsonArrayA = selectedCOntactsListJSON.getJSONArray("A");
+        jsonArrayA = selectedContactsUtils.togliDaJSONArrayDestinatariContattiInterniDiAltreAziende(
+                jsonArrayA, azienda);
+        JSONArray jsonArrayCC = selectedCOntactsListJSON.getJSONArray("CC");
+        jsonArrayCC = selectedContactsUtils.togliDaJSONArrayDestinatariContattiInterniDiAltreAziende(
+                jsonArrayCC, azienda);
+
+        JSONObject oggettoneToReturn = new JSONObject();
+
+        oggettoneToReturn.put("A", jsonArrayA);
+        oggettoneToReturn.put("CC", jsonArrayCC);
+        selectedContactsLists = oggettoneToReturn.toString();
+        return selectedContactsLists;
+    }
+
     private List<SelectedContact> setSelectedContactAsInsertedToRubrica(List<SelectedContact> selectedContactsList, Contatto savedContatto) {
         for (SelectedContact selectedContactEstemporaneo : selectedContactsList) {
             log.info("Loop Selected Contatti, update keys, Id, estemporaneo, addToRubrica, status");
@@ -504,7 +561,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
             if (selectedContact.getDescrizione().equals(savedContatto.getDescrizione())
                     && selectedContactEstemporaneo.getAddToRubrica() != null && selectedContactEstemporaneo.getAddToRubrica()
-//                    && selectedContactEstemporaneo.getStatus() != null && selectedContactEstemporaneo.getStatus().equals(SelectedContactStatus.INITIAL)
+                    //                    && selectedContactEstemporaneo.getStatus() != null && selectedContactEstemporaneo.getStatus().equals(SelectedContactStatus.INITIAL)
                     && selectedContactEstemporaneo.getEstemporaneo() != null && selectedContactEstemporaneo.getEstemporaneo()) {
                 selectedContact.setId(savedContatto.getId());
                 selectedAddress.setIdContatto(savedContatto);
@@ -843,7 +900,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                     JSONObject dettaglioContattoJSON = new JSONObject();
                     log.info("Cerco il dettaglio contatto per IdContattoAndIdContattoEsterno...");
                     DettaglioContatto dettaglioContatto = dettaglioContattoRepository.
-                            findByIdContattoAndIdContattoEsterno(contatto, contattoStruttura.getId());
+                            findByIdContattoAndIdContattoEsterno(contatto, contattoStruttura);
                     if (dettaglioContatto != null) {
                         log.info("dettaglioContatto: " + dettaglioContatto.getId());
                         dettaglioContattoJSON.put("id", dettaglioContatto.getId());
@@ -1045,5 +1102,38 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         }
         log.info("RIRTONO LA RISPOSTA\n" + jArrayDiRisposta.toString(4));
         return new ResponseEntity(jArrayDiRisposta.toString(4), HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "downloadCSVModelFromIdAzienda", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public void downloadCSVModelFromIdAzienda(@RequestParam(required = true) Integer idAzienda, HttpServletResponse response, HttpServletRequest request) throws FileNotFoundException {
+
+        String modelloCSV = "";
+        List<ParametroAziende> parameters = parametriAziende.getParameters("modelloCSV", new Integer[]{idAzienda}, new String[]{Applicazione.Applicazioni.rubrica.toString()});
+        if (parameters != null && !parameters.isEmpty()) {
+            modelloCSV = parametriAziende.getValue(parameters.get(0), String.class);
+        } else {
+            log.error("manca il parametro pubblico");
+        }
+
+        MinIOWrapper minIOWrapper = mongoConnectionManager.getMinIOWrapper();
+        InputStream is = null;
+
+        try {
+            try {
+                is = minIOWrapper.getByFileId(modelloCSV);
+
+                if (is == null) {
+                    throw new MongoException("File non trovato!!");
+                }
+            } catch (Exception e) {
+                throw new MongoException("qualcosa è andato storto in downloadCSVModelFromUUID", e);
+            }
+            StreamUtils.copy(is, response.getOutputStream());
+        } catch (IOException ex) {
+            java.util.logging.Logger.getLogger(BaborgUtils.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            IOUtils.closeQuietly(is);
+        }
+
     }
 }

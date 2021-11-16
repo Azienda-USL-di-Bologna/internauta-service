@@ -1,10 +1,7 @@
 package it.bologna.ausl.internauta.service.utils;
 
-import it.bologna.ausl.model.entities.baborg.Utente;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +28,12 @@ public class CacheUtilities {
     public void cleanCachePermessiUtente(Integer idUtente) {
         Set<String> keys = redisTemplate.keys(prefixInternauta + PREFIX_PERMESSI + "::" + idUtente + "*");
         redisTemplate.delete(keys);
+        
+        Set<String> keysWithBrackets = redisTemplate.keys(prefixInternauta + PREFIX_PERMESSI + "::*Utente*id=" + idUtente + "*");
+        // TODO: Se passi di qui. e hai voglia. prova a vedere come mai non funziona la seguente invece della precedente.
+        //         Set<String> keysWithBrackets = redisTemplate.keys("\"" + prefixInternauta + PREFIX_PERMESSI + "::*Utente\\\\[*id=" + idUtente + "*\\\\]*" + "\"");
+
+        redisTemplate.delete(keysWithBrackets);
     }
     
     public void cleanCacheRuoliUtente(Integer idUtente, Integer idPersona) {

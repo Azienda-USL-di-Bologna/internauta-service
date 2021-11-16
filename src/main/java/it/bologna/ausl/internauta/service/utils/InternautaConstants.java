@@ -61,6 +61,7 @@ public class InternautaConstants {
         }
 
         public enum OperationsRequested {
+            FiltraSuTuttiFolderTranneTrash,
             GetPermessiGestoriPec,
             GetPermessiDiFlusso,
             GetPermessiStrutturePec,
@@ -84,7 +85,10 @@ public class InternautaConstants {
             SvuotaStruttureConnesseUfficio,
             FilterStrutturePoolsRuolo,
             FilterStruttureRuolo,
-            CreateDocPerMessageRegistration
+            CreateDocPerMessageRegistration,
+            VisualizzaTabIFirmario,
+            VisualizzaTabIFirmato,
+            VisualizzaTabRegistrazioni
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
@@ -110,7 +114,7 @@ public class InternautaConstants {
 
         public enum Keys {
             PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject, UtenteLogin, IdSessionLog,
-            KRINT_ROWS, KRINT_ERRORS, ContattoGruppoAppenaCreato, MEMORY_DEBUGGER_MESSAGE_SIZE
+            KRINT_ROWS, KRINT_ERRORS, ContattoGruppoAppenaCreato, MEMORY_DEBUGGER_MESSAGE_SIZE,DettagliAllegatiDaEliminare
         }
     }
 

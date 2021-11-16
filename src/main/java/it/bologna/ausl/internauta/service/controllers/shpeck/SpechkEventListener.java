@@ -17,7 +17,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  *
- * @author gdm
+ * @author gdm 
  */
 @Component
 public class SpechkEventListener {

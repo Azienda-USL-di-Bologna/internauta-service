@@ -7,6 +7,7 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -44,6 +45,9 @@ public class DraftInterceptor extends InternautaBaseInterceptor {
     @Autowired
     UserInfoService userInfoService;
 
+    @Autowired
+    ShpeckUtils shpeckUtils;
+    
     @Autowired
     private KrintShpeckService krintShpeckService;
 
@@ -101,16 +105,11 @@ public class DraftInterceptor extends InternautaBaseInterceptor {
         Utente utente = (Utente) authentication.getPrincipal();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
 
-        // Prendo i permessi pec
-        Map<Integer, List<String>> permessiPec = null;
-        permessiPec = userInfoService.getPermessiPec(persona);
-
-        // Controllo che ci sia almeno il RISPONDE sulla pec interessata
-        List<String> permessiTrovati = permessiPec.get(draft.getIdPec().getId());
         List<String> permessiSufficienti = new ArrayList();
         permessiSufficienti.add(InternautaConstants.Permessi.Predicati.ELIMINA.toString());
         permessiSufficienti.add(InternautaConstants.Permessi.Predicati.RISPONDE.toString());
-        if (Collections.disjoint(permessiTrovati, permessiSufficienti)) {
+        Boolean userHasPermissionOnThisPec = shpeckUtils.userHasPermissionOnThisPec(draft.getIdPec(), permessiSufficienti, persona);
+        if (!userHasPermissionOnThisPec) {
             throw new Http403ResponseException("1", "Non hai il permesso di creare mail");
         }
     }

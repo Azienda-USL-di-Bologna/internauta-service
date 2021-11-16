@@ -22,8 +22,8 @@ import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAf
 import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
 import it.bologna.ausl.model.entities.baborg.projections.generated.PecAziendaWithIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
-import it.bologna.ausl.model.entities.configuration.ImpostazioniApplicazioni;
-import it.bologna.ausl.model.entities.configuration.projections.generated.ImpostazioniApplicazioniWithPlainFields;
+import it.bologna.ausl.model.entities.configurazione.ImpostazioniApplicazioni;
+import it.bologna.ausl.model.entities.configurazione.projections.generated.ImpostazioniApplicazioniWithPlainFields;
 import it.bologna.ausl.model.entities.scrivania.projections.generated.AttivitaWithIdPersona;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageAddress;
@@ -51,16 +51,20 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaUnificataRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
-import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
+import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteStrutturaWithIdStrutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.PersonaWithUtentiAndStruttureAndAfferenzeCustom;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.baborg.projections.StrutturaUnificataCustom;
+import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithReplicheCustom;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import java.util.HashMap;
 import java.util.Map;
 import it.bologna.ausl.model.entities.logs.projections.KrintShpeckPec;
@@ -79,9 +83,8 @@ import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAf
 import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtentiResponsabiliCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithStruttureAndResponsabiliCustom;
+import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaUnificataWithIdStrutturaDestinazioneAndIdStrutturaSorgente;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithAttributiStrutturaAndIdAzienda;
-import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaContatto;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaDettaglioContatto;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaGruppoContatto;
@@ -100,11 +103,11 @@ import it.bologna.ausl.model.entities.rubrica.projections.CustomGruppiContattiWi
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.scripta.projections.CustomRelatedWithSpedizioneList;
-import it.bologna.ausl.model.entities.scripta.projections.generated.RelatedWithSpedizioneList;
 import it.bologna.ausl.model.entities.scripta.projections.generated.SpedizioneWithIdMezzo;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import javax.persistence.Table;
 import org.json.JSONArray;
@@ -151,6 +154,9 @@ public class ProjectionBeans {
 
     @Autowired
     protected StoricoRelazioneRepository storicoRelazioneRepository;
+    
+    @Autowired
+    protected StrutturaUnificataRepository strutturaUnificataRepository;
 
     @Autowired
     protected PredicatoAmbitoRepository predicatoAmbitoRepository;
@@ -180,7 +186,7 @@ public class ProjectionBeans {
     AziendaInterceptor aziendaInterceptor;
 
     @Autowired
-    ParametriAziende parametriAziende;
+    ParametriAziendeReader parametriAziende;
 
     @Autowired
     AdditionalDataParamsExtractor additionalDataParamsExtractor;
@@ -608,15 +614,6 @@ public class ProjectionBeans {
         return res;
     }
 
-    public UtenteWithIdPersonaAndPermessiCustom getUtenteWithIdPersonaAndPermessiCustom(UtenteStruttura utenteStruttura) {
-        UtenteWithIdPersonaAndPermessiCustom res = null;
-        Utente idUtente = utenteStruttura.getIdUtente();
-        if (idUtente != null) {
-            res = factory.createProjection(UtenteWithIdPersonaAndPermessiCustom.class, idUtente);
-        }
-        return res;
-    }
-
     public PersonaWithUtentiAndStruttureAndAfferenzeCustom getPersonaWithUtentiAndStruttureAndAfferenzeCustom(Contatto contatto) {
         PersonaWithUtentiAndStruttureAndAfferenzeCustom res = null;
         Persona idPersona = contatto.getIdPersona();
@@ -664,12 +661,14 @@ public class ProjectionBeans {
         return null;
     }
 
-    public StrutturaWithPlainFields getStrutturaFigliaWithFogliaCalcolata(StoricoRelazione storicoRelazione) {
+    public StrutturaWithReplicheCustom getStrutturaFigliaWithFogliaCalcolata(StoricoRelazione storicoRelazione) {
         Struttura idStrutturaFiglia = storicoRelazione.getIdStrutturaFiglia();
         if (idStrutturaFiglia != null) {
-            LocalDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimento().truncatedTo(ChronoUnit.DAYS);
+            
+            // Devo capire se questa struttura è una foglia.
+            ZonedDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimentoZoned().truncatedTo(ChronoUnit.DAYS);
             if (dataRiferimento == null) {
-                dataRiferimento = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
+                dataRiferimento = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS);
             }
             QStoricoRelazione qStoricoRelazione = QStoricoRelazione.storicoRelazione;
             BooleanExpression filter = qStoricoRelazione.idStrutturaPadre.id.eq(idStrutturaFiglia.getId()).and(qStoricoRelazione.attivaDal.loe(dataRiferimento)
@@ -681,9 +680,42 @@ public class ProjectionBeans {
 //                });
             idStrutturaFiglia.setFogliaCalcolata(isLeaf);
 
-            return factory.createProjection(StrutturaWithPlainFields.class, idStrutturaFiglia);
+            return factory.createProjection(StrutturaWithReplicheCustom.class, idStrutturaFiglia);
         }
         return null;
+    }
+    
+    /**
+     * Metedo da chiamare per riempire il campo fusioni di una struttura.
+     * E' necessario che in additionalData ci sia la data per fargli prendere le
+     * fusioni attive in una certa data.
+     * @param struttura
+     * @return 
+     */
+    public List<StrutturaUnificataCustom> getFusioni(Struttura struttura) {
+        ZonedDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimentoZoned().truncatedTo(ChronoUnit.DAYS);
+        if (dataRiferimento == null) {
+            dataRiferimento = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS);
+        }
+        QStrutturaUnificata qStrutturaUnificata = QStrutturaUnificata.strutturaUnificata;
+        BooleanExpression filtraFusioni = 
+                qStrutturaUnificata.dataAttivazione.loe(dataRiferimento)
+                .and((qStrutturaUnificata.dataDisattivazione.isNull()).or(qStrutturaUnificata.dataDisattivazione.goe(dataRiferimento)))
+                .and(qStrutturaUnificata.dataAccensioneAttivazione.isNotNull())
+                .and(qStrutturaUnificata.tipoOperazione.eq("FUSIONE"))
+                .and(qStrutturaUnificata.idStrutturaSorgente.id.eq(struttura.getId())
+                        .or(qStrutturaUnificata.idStrutturaDestinazione.id.eq(struttura.getId())));
+        Iterable<StrutturaUnificata> fusioniStruttura = strutturaUnificataRepository.findAll(filtraFusioni);
+        
+        List<StrutturaUnificataCustom> fusioniStrutturaCustom = new ArrayList();
+        
+        if (fusioniStruttura != null) {
+            for (StrutturaUnificata s : fusioniStruttura) {
+                fusioniStrutturaCustom.add(factory.createProjection(StrutturaUnificataCustom.class, s));
+            }
+        }
+
+        return fusioniStrutturaCustom;
     }
 
     public List<KrintRubricaDettaglioContatto> getCustomKrintDettaglioContattoList(Contatto contatto) {

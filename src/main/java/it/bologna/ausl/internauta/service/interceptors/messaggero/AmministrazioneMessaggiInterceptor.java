@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.schedulers.workers.messagesender.MessageSeenCleanerWorker;
 import it.bologna.ausl.internauta.service.schedulers.workers.messagesender.MessageThreadEvent;
+import java.time.ZonedDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -29,11 +30,11 @@ import org.springframework.context.ApplicationEventPublisher;
 @Component
 @NextSdrInterceptor(name = "amministrazionemessaggi-interceptor")
 public class AmministrazioneMessaggiInterceptor extends InternautaBaseInterceptor {
+    
     private static final Logger LOGGER = LoggerFactory.getLogger(AmministrazioneMessaggiInterceptor.class);
 
 //    @Autowired
 //    private MessageSenderManager messageSenderManager;
-    
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
     
@@ -44,28 +45,28 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
     public Class getTargetEntityClass() {
         return AmministrazioneMessaggio.class;
     }
-
+    
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         BooleanExpression filtroAmministrazioneMessaggi = null;
-
+        
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
                     case GetAmministrazioneMessaggiAttivi:
                         filtroAmministrazioneMessaggi = QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.isNull()
-                                .or( QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.gt(LocalDateTime.now()));
+                                .or(QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.gt(ZonedDateTime.now()));
                         break;
                     case GetAmministrazioneMessaggiStorico:
-                        filtroAmministrazioneMessaggi = QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.loe(LocalDateTime.now());
+                        filtroAmministrazioneMessaggi = QAmministrazioneMessaggio.amministrazioneMessaggio.dataScadenza.loe(ZonedDateTime.now());
                         break;
-               }
-           }
+                }
+            }
         }
         return filtroAmministrazioneMessaggi != null ? filtroAmministrazioneMessaggi.and(initialPredicate) : initialPredicate;
     }
-
+    
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
@@ -77,7 +78,7 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
         }
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
-
+    
     @Override
     public Object afterUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
@@ -90,6 +91,24 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
         }
         return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass);
     }
+    
+    @Override
+    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
+        if (additionalData != null) {
+            if (additionalData.get("operation") != null) {
+                String operation = additionalData.get("operation");
+                if (operation.equals("setDisableNow")) {
+                    AmministrazioneMessaggio temp = (AmministrazioneMessaggio) entity;
+                    LOGGER.info("Spengo alle ore " + ZonedDateTime.now().toString() + " il messaggio " + temp.getId());
+                    temp.setDataScadenza(ZonedDateTime.now());
+                    entity = temp;
+                }
+            }
+        }
+        
+        return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass);
+    }
 
 //    @Override
 //    public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
@@ -98,5 +117,4 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
 //            MessageSeenCleanerWorker.cleanSeenFromPersone(amministrazioneMessaggio.getId(), personaRepository);
 //        }
 //    }
-    
 }

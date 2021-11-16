@@ -3,8 +3,8 @@ package it.bologna.ausl.internauta.service;
 import it.bologna.ausl.internauta.service.schedulers.LogoutManager;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
 import it.bologna.ausl.internauta.service.schedulers.workers.ShutdownThread;
+import java.time.ZonedDateTime;
 import it.nextsw.common.repositories.CustomJpaRepositoryFactoryBean;
-import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,31 +27,31 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableCaching
 //@EnableAsync
 public class InternautaApplication {
-    
+
     private static final Logger log = LoggerFactory.getLogger(InternautaApplication.class);
 
     @Autowired
     MessageSenderManager messageSenderManager;
-    
+
     @Autowired
     LogoutManager logoutManager;
-    
+
     @Autowired
     ShutdownThread shutdownThread;
-    
+
     @Value("${internauta.scheduled-thread-pool-executor.active}")
     Boolean poolExecutorActive;
 
     public static void main(String[] args) {
         SpringApplication.run(InternautaApplication.class, args);
     }
-    
+
     @Bean
     public CommandLineRunner schedulingRunner() {
 
         return (String... args) -> {
             if (poolExecutorActive) {
-                LocalDateTime now = LocalDateTime.now();
+                ZonedDateTime now = ZonedDateTime.now();
                 log.info("schedulo i threads messageSender...");
                 try {
                     messageSenderManager.scheduleMessageSenderAtBoot(now);
@@ -64,7 +64,7 @@ public class InternautaApplication {
                 } catch (Exception e) {
                     log.info("errore nella schedulazione thread logoutManager", e);
                 }
-                
+
 //                log.info("schedulo i threads messageSeenCleaner...");
 //                try {
 //                    messageSenderManager.scheduleSeenCleanerAtBoot(now);
@@ -72,7 +72,6 @@ public class InternautaApplication {
 //                    log.info("errore nella schedulazione threads messageSeenCleaner.", e);
 //                }
 //                log.info("schedulazione threads messageSeenCleaner terminata con successo.");
-
                 log.info("imposto ShutdownHook... ");
                 try {
                     Runtime.getRuntime().addShutdownHook(shutdownThread);

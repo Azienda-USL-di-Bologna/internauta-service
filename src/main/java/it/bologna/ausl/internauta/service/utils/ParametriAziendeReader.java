@@ -7,9 +7,9 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.BooleanTemplate;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ParametroAziendeRepository;
-import it.bologna.ausl.model.entities.configuration.Applicazione.Applicazioni;
-import it.bologna.ausl.model.entities.configuration.ParametroAziende;
-import it.bologna.ausl.model.entities.configuration.QParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.Applicazione.Applicazioni;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
  * @author gdm
  */
 @Component
-public class ParametriAziende {
+public class ParametriAziendeReader {
 
     @Autowired
     ParametroAziendeRepository parametroAziendeRepository;
@@ -30,7 +30,7 @@ public class ParametriAziende {
     @Autowired
     ObjectMapper objectMapper;
 
-    public ParametriAziende() {
+    public ParametriAziendeReader() {
     }
 
     public List<ParametroAziende> getParameters(String nome) {

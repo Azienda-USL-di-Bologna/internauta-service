@@ -96,7 +96,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 
     public Boolean sendMail(
             Integer idAzienda, String fromName, String Subject, List<String> To, String body,
-            List<String> cc, List<String> bcc, MultipartFile[] attachments) throws IOException {
+            List<String> cc, List<String> bcc, MultipartFile[] attachments, List<String> replyTo) throws IOException {
 
         Azienda azienda = cachedEntities.getAzienda(idAzienda);
         AziendaParametriJson aziendaParametri = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
@@ -131,6 +131,15 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                 String mailFrom = mailParams.getMailFrom();
                 // from
                 msg.setFrom(new InternetAddress(mailFrom, fromName));
+                
+                if (replyTo != null) {
+                    String addressesReplyTo = "";
+                    for (String toElement : replyTo) {
+                        addressesReplyTo += toElement + ",";
+                    }
+                    addressesReplyTo = addressesReplyTo.substring(0, addressesReplyTo.length() - 1);
+                    msg.setReplyTo(InternetAddress.parse(addressesReplyTo, false));
+                }
 
                 // inserisco lista TO
                 if (To != null && !To.isEmpty()) {
@@ -365,7 +374,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 
         Integer idAzienda = (Integer) jsonRequestSW.get("idAzienda");
 
-        if (!sendMail(idAzienda, accountFrom, subject, to, emailTextBody, cc, null, null)) {
+        if (!sendMail(idAzienda, accountFrom, subject, to, emailTextBody, cc, null, null, null)) {
             throw new SendMailException("Fallito invio mail");
         }
     }
@@ -540,15 +549,15 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         String bodyCustomerSupport = toolsUtils.buildMailForCustomerSupport(segnalazioneUtente, numeroNuovaSegnalazione);
         // Build body mail da inviare all'utente
         String bodyUser = toolsUtils.buildMailForUser(bodyCustomerSupport, numeroNuovaSegnalazione);
-
+        List<String> replyToUsers = Arrays.asList(fromName);
         try {
-            sendMail(utente.getIdAzienda().getId(), nameCustomerSupport, subject, to, bodyCustomerSupport, null, null, segnalazioneUtente.getAllegati());
+            sendMail(utente.getIdAzienda().getId(), nameCustomerSupport, subject, to, bodyCustomerSupport, null, null, segnalazioneUtente.getAllegati(), replyToUsers);
         } catch (IOException ex) {
             return new ResponseEntity("Errore durante l'invio della mail al servizio assistenza.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
         try {
             List<String> toUser = Arrays.asList(fromName);
-            sendMail(utente.getIdAzienda().getId(), nameCustomerSupport, subject, toUser, bodyUser, null, null, null);
+            sendMail(utente.getIdAzienda().getId(), nameCustomerSupport, subject, toUser, bodyUser, null, null, null, null);
         } catch (IOException ex) {
             return new ResponseEntity("Errore durante l'invio della mail all'utente.", HttpStatus.INTERNAL_SERVER_ERROR);
         }

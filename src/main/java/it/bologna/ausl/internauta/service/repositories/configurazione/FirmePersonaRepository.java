@@ -1,8 +1,8 @@
 package it.bologna.ausl.internauta.service.repositories.configurazione;
 
-import it.bologna.ausl.model.entities.configuration.FirmePersona;
-import it.bologna.ausl.model.entities.configuration.QFirmePersona;
-import it.bologna.ausl.model.entities.configuration.projections.generated.FirmePersonaWithPlainFields;
+import it.bologna.ausl.model.entities.configurazione.FirmePersona;
+import it.bologna.ausl.model.entities.configurazione.QFirmePersona;
+import it.bologna.ausl.model.entities.configurazione.projections.generated.FirmePersonaWithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;

@@ -8,12 +8,16 @@ package it.bologna.ausl.internauta.service.interceptors.scripta;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +39,7 @@ public class DettaglioAllegatoInteceptor extends InternautaBaseInterceptor {
     @Autowired
     AllegatoRepository allegatoRepository;    
     
+    
     @Override
     public Class getTargetEntityClass() {
         return DettaglioAllegato.class;
@@ -46,10 +51,18 @@ public class DettaglioAllegatoInteceptor extends InternautaBaseInterceptor {
         //TODO: in caso di fallimento quando si hanno piu dettagli allegati se uno fallisce bisogna fare l'undelete degli altri
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         try {
-            minIOWrapper.deleteByFileId(dettaglioAllegato.getIdRepository());
+            Set<String> data = (Set) super.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.DettagliAllegatiDaEliminare);
+            if (data == null){
+                data = new HashSet();
+                super.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.DettagliAllegatiDaEliminare, data);
+            }
+            data.add(dettaglioAllegato.getIdRepository());
+            
+            
         } catch (Exception ex) {
             LOGGER.error("errore nell'eliminazione del file su minIO",ex);
             throw new AbortSaveInterceptorException("errore nell'eliminazione del file su minIO",ex);
         }
     }
+    
 }

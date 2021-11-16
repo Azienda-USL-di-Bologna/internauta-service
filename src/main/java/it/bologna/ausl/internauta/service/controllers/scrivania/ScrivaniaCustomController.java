@@ -23,6 +23,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
+import it.bologna.ausl.internauta.service.repositories.diagnostica.ReportRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloader;
 import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloaderResponseBody;
@@ -32,7 +33,8 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configuration.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.diagnostica.Report;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import it.bologna.ausl.model.entities.scrivania.Attivita.TipoAttivita;
 import it.bologna.ausl.model.entities.scrivania.QAttivita;
@@ -131,6 +133,9 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private GestioneMenu gestioneMenu;
+    
+    @Autowired
+    private ReportRepository reportRepository;
 
     private final String CMD_APRI_FIRMONE = "?CMD=open_firmone_local";
     private final String CMD_APRI_PRENDONE = "?CMD=open_prendone_local";
@@ -345,11 +350,24 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
 
     @RequestMapping(value = {"getMenuScrivania"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<ItemMenu>> getMenuScrivania(HttpServletRequest request, HttpServletResponse response) throws IOException, BlackBoxPermissionException {
-        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Utente utente = authenticatedSessionData.getUser();
-        Persona persona = utente.getIdPersona();
+        try {
+            AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+            Utente utente = authenticatedSessionData.getUser();
+            Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
+    //        Persona persona = utente.getIdPersona();
 
-        List<ItemMenu> buildMenu = gestioneMenu.buildMenu(persona);
-        return new ResponseEntity(objectMapper.writeValueAsString(buildMenu), HttpStatus.OK);
+            List<ItemMenu> buildMenu = gestioneMenu.buildMenu(persona);
+            return new ResponseEntity(objectMapper.writeValueAsString(buildMenu), HttpStatus.OK);
+        } catch (Throwable t) {
+            Report report = new Report();
+            report.setTipologia("GET_MENU_SCRIVANIA_ERROR");
+            Map<String, String> additionalData = new HashMap();
+            additionalData.put("message", t.getMessage());
+            additionalData.put("toString", t.toString());
+            t.printStackTrace();
+            report.setAdditionalData(objectMapper.writeValueAsString(additionalData));
+            reportRepository.save(report);
+            return new ResponseEntity("Not so good madafaca :D", HttpStatus.OK);
+        }
     }
 }
