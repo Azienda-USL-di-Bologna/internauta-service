@@ -61,6 +61,7 @@ import it.nextsw.common.utils.CommonUtils;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.time.ZoneId;
@@ -1128,6 +1129,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
             } catch (Exception e) {
                 throw new MongoException("qualcosa è andato storto in downloadCSVModelFromUUID", e);
             }
+            response.setHeader("Content-Type", "text/csv");
             StreamUtils.copy(is, response.getOutputStream());
         } catch (IOException ex) {
             java.util.logging.Logger.getLogger(BaborgUtils.class.getName()).log(Level.SEVERE, null, ex);
