@@ -638,8 +638,8 @@ public class ProjectionBeans {
         List<CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda> res = null;
         List<DettaglioContatto> dettaglioContattoList = contatto.getDettaglioContattoList();
         if (dettaglioContattoList != null && !dettaglioContattoList.isEmpty()) {
-            res = dettaglioContattoList.stream().map(dettaglioContatto -> {
-                return factory.createProjection(CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda.class, dettaglioContatto);
+            res = dettaglioContattoList.stream().filter(dettaglioContatto -> dettaglioContatto.getEliminato() == false).map(dettaglioContatto -> {
+                return factory.createProjection(CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda.class, dettaglioContatto);                
             }).collect(Collectors.toList());
         }
         return res;
