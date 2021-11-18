@@ -6,7 +6,7 @@ import com.mongodb.MongoException;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.service.utils.ParametriAziende;
+import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
@@ -33,7 +33,7 @@ public class ReporitoryConnectionManager {
     private AziendaRepository aziendaRepository;
 
     @Autowired
-    private ParametriAziende parametriAziende;
+    private ParametriAziendeReader parametriAziende;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -98,7 +98,8 @@ public class ReporitoryConnectionManager {
         String minIODBUrl = (String) minIOConfig.get("DBUrl");
         String minIODBUsername = (String) minIOConfig.get("DBUsername");
         String minIODBPassword = (String) minIOConfig.get("DBPassword");
-        minIOWrapper = new MinIOWrapper(minIODBDriver, minIODBUrl, minIODBUsername, minIODBPassword, objectMapper);
+        Integer maxPoolSize = (Integer) minIOConfig.get("maxPoolSize");
+        minIOWrapper = new MinIOWrapper(minIODBDriver, minIODBUrl, minIODBUsername, minIODBPassword, maxPoolSize, objectMapper);
     }
 
     public MongoWrapper getRepositoryWrapper(Integer idAzienda) {

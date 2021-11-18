@@ -104,6 +104,17 @@ public class CachedEntities {
             return null;
         }
     }
+    
+    @Cacheable(value = "aziendaFromNome__ribaltorg__", key = "{#nome}")
+    public Azienda getAziendaFromNome(String nome) {
+        BooleanExpression filter = QAzienda.azienda.nome.eq(nome);
+        Optional<Azienda> azienda = aziendaRepository.findOne(filter);
+        if (azienda.isPresent()) {
+            return azienda.get();
+        } else {
+            return null;
+        }
+    }
 
     /**
      * carica l'azienda a partire dal path che ha effettuato la richiesta

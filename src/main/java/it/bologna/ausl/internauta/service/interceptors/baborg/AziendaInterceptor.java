@@ -11,7 +11,10 @@ import it.bologna.ausl.internauta.service.repositories.ribaltoneutils.RibaltoneD
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.logging.Level;
@@ -118,8 +121,32 @@ public class AziendaInterceptor extends InternautaBaseInterceptor{
         }
         return entities;
     }
-    
-    
+
+//    @Override
+//    public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+//        Azienda aziendaNow = (Azienda) entity;
+//        System.out.println("----------");
+//        System.out.println(aziendaNow.getPecList());
+//        System.out.println("----------");
+//        try {
+//            beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
+//                Azienda aziendaBefore = (Azienda) oldEntity;
+//                System.out.println(aziendaBefore.getDescrizione());
+//                System.out.println(aziendaBefore.getPecList());
+//                System.out.println(aziendaNow.getDescrizione());
+//                System.out.println(aziendaNow.getPecList());
+//            });
+//        } catch (NoSuchMethodException ex) {
+//            java.util.logging.Logger.getLogger(AziendaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (IllegalAccessException ex) {
+//            java.util.logging.Logger.getLogger(AziendaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (IllegalArgumentException ex) {
+//            java.util.logging.Logger.getLogger(AziendaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (InvocationTargetException ex) {
+//            java.util.logging.Logger.getLogger(AziendaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//        return entity;
+//    }
 }
     
 

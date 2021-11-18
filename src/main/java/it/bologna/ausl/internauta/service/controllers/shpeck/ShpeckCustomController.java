@@ -7,7 +7,6 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerResult;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
@@ -16,6 +15,7 @@ import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExcep
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.gedi.utils.SAIUtils;
 import it.bologna.ausl.internauta.service.interceptors.shpeck.MessageTagInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
@@ -29,7 +29,6 @@ import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils.EmlSource;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.Draft.MessageRelatedType;
 import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.Message;
@@ -62,7 +61,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -70,7 +68,6 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
 import javax.mail.MessagingException;
 import javax.mail.internet.AddressException;
-import javax.mail.internet.MimeMessage;
 import javax.persistence.EntityNotFoundException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -91,11 +88,12 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxLiteRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ManageMessageRegistrationUtils;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
-import it.bologna.ausl.model.entities.shpeck.Outbox;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
@@ -103,7 +101,6 @@ import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
-import java.util.logging.Level;
 import org.json.JSONArray;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -116,7 +113,7 @@ import org.springframework.context.ApplicationEventPublisher;
 public class ShpeckCustomController implements ControllerHandledExceptions {
 
     private static final Logger LOG = LoggerFactory.getLogger(ShpeckCustomController.class);
-    
+
     @Autowired
     private ShpeckUtils shpeckUtils;
 
@@ -146,9 +143,12 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private FolderRepository folderRepository;
-    
+
     @Autowired
     private OutboxLiteRepository outboxLiteRepository;
+
+    @Autowired
+    private SAIUtils saiUtils;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
@@ -173,7 +173,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     @Autowired
     MessagesTagsProtocollazioneFixManager messagesTagsProtocollazioneFixManager;
-    
+
     @Autowired
     ManageMessageRegistrationUtils manageMessageRegistrationUtils;
 
@@ -342,14 +342,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
     }
 
-    
-
-    
-
-    
-
-    
-
     /**
      *
      * @param idMessage
@@ -430,6 +422,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @param messageRelatedType Il tipo della relazione del messaggio related
      * @param idMessageRelatedAttachments
      * @param idUtente // TODO: non usato ancora
+     * @return idOutbox della mail creata
      * @throws AddressException Errore nella creazione degli indirizzi
      * @throws IOException Errore di salvataggio
      * @throws MessagingException Errore nella creazione del mimemessage
@@ -438,6 +431,8 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @throws
      * it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
      * @throws it.bologna.ausl.internauta.service.exceptions.BadParamsException
+     * @throws it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException
+     * @throws it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"saveDraftMessage", "sendMessage"}, method = RequestMethod.POST)
@@ -457,89 +452,33 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "idUtente", required = false) Integer idUtente
     ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException, Http403ResponseException, BlackBoxPermissionException {
 
-        Integer res = null;
-        LOG.info("Shpeck controller -> Message received from PEC with id: " + idPec);
+        Boolean doIHaveToKrint = KrintUtils.doIHaveToKrint(request);
         String hostname = nextSdrCommonUtils.getHostname(request);
-
-        LOG.info("Getting PEC from repository...");
-        Pec pec = pecRepository.getOne(idPec);
-
-        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Persona personaConnessa = authenticatedUserProperties.getPerson();
-       
-        List<String> permessiSufficienti = new ArrayList();
-        permessiSufficienti.add(InternautaConstants.Permessi.Predicati.ELIMINA.toString());
-        permessiSufficienti.add(InternautaConstants.Permessi.Predicati.RISPONDE.toString());
-        try {
-            Boolean userHasPermissionOnThisPec = shpeckUtils.userHasPermissionOnThisPec(pec, permessiSufficienti, personaConnessa);
-            if (!userHasPermissionOnThisPec) {
-                throw new BlackBoxPermissionException("nessun permesso trovato");
-            }
-        } catch (BlackBoxPermissionException ex) {
-            throw new Http403ResponseException("008", "Non hai il permesso sulla casella", ex);
+        
+        ShpeckUtils.MailMessageOperation mailMessageOperation;
+        if (request.getServletPath().endsWith("saveDraftMessage")) {
+            mailMessageOperation = ShpeckUtils.MailMessageOperation.SAVE_DRAFT;
+        } else {
+            mailMessageOperation = ShpeckUtils.MailMessageOperation.SEND_MESSAGE;
         }
         
-        ArrayList<EmlHandlerAttachment> listAttachments = shpeckUtils.convertAttachments(attachments);
-
-        ArrayList<MimeMessage> mimeMessagesList = new ArrayList<>();
-        MimeMessage mimeMessage = null;
-
-        LOG.info("Getting draft with idDraft: ", idDraftMessage);
-        Draft draftMessage = draftRepository.getOne(idDraftMessage);
-        if (idUtente != null) {
-            Utente utente = this.cachedEntities.getUtente(idUtente);
-            draftMessage.setIdUtente(utente);
-        }
-
-
-        String from = pec.getIndirizzo();
-        LOG.info("Start building mime message...");
-        // Prende gli allegati dall'eml della draft o dal messaggio che si sta inoltrando
-        ArrayList<EmlHandlerAttachment> emlAttachments = shpeckUtils.getEmlAttachments(draftMessage, idMessageRelated, messageRelatedType, idMessageRelatedAttachments);
-        if (request.getServletPath().endsWith("saveDraftMessage")) {
-            mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments, emlAttachments,
-                    hostname, draftMessage);
-            LOG.info("Mime message generated correctly!");
-            LOG.info("Preparing the message for saving...");
-            shpeckUtils.saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
-                    listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments, request);
-        } else if (request.getServletPath().endsWith("sendMessage")) {
-            if (Objects.equals(hideRecipients, Boolean.TRUE)) {
-                LOG.info("Hide recipients is true, building mime message for each recipient.");
-                for (String address : to) {
-                    mimeMessage = shpeckUtils.buildMimeMessage(from, new String[]{address}, cc, body, subject, listAttachments,
-                            emlAttachments, hostname, draftMessage);
-                    mimeMessagesList.add(mimeMessage);
-                }
-                LOG.info("Mime messages generated correctly!");
-            } else {
-                mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments,
-                        emlAttachments, hostname, draftMessage);
-                mimeMessagesList.add(mimeMessage);
-                LOG.info("Mime message generated correctly!");
-            }
-
-            LOG.info("Preparing the message for sending...");
-            try {
-                for (MimeMessage mime : mimeMessagesList) {
-                    Outbox outbox = shpeckUtils.sendMessage(pec, subject, idMessageRelated, hideRecipients, body, listAttachments, emlAttachments, mime, request);
-                    res = outbox.getId();
-                }
-
-                if (idMessageRelated != null) {
-                    shpeckUtils.setTagsToMessage(pec, idMessageRelated, messageRelatedType, request);
-                }
-
-                shpeckUtils.deleteDraft(draftMessage);
-            } catch (IOException | MessagingException | EntityNotFoundException ex) {
-                LOG.error("Handling error on send! Trying to save...", ex);
-                mimeMessage = shpeckUtils.buildMimeMessage(from, to, cc, body, subject, listAttachments,
-                        emlAttachments, hostname, draftMessage);
-                shpeckUtils.saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
-                        listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments, request);
-                throw new Http500ResponseException("007", "Errore durante l'invio. La mail è stata salvata nelle bozze.", ex);
-            }
-        }
+        Integer res = shpeckUtils.BuildAndSendMailMessage(
+            mailMessageOperation, 
+            hostname, 
+            idDraftMessage, 
+            idPec, 
+            body,
+            hideRecipients,
+            subject,
+            to,
+            cc,
+            attachments,
+            idMessageRelated,
+            messageRelatedType,
+            idMessageRelatedAttachments,
+            idUtente,
+            doIHaveToKrint);
+        
         return res;
     }
 
@@ -725,7 +664,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                         filter = QMessageFolder.messageFolder.idFolder.id.eq(idFolder).and(QMessageFolder.messageFolder.deleted.eq(false));
                         return messageFolderRespository.count(filter);
                     }
-                    
+
             }
         }
 
@@ -801,79 +740,45 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         LOG.info("Dentro controller manageMessageRegistration");
 
         Boolean doIHaveToKrint = KrintUtils.doIHaveToKrint(request);
-        
+
         manageMessageRegistrationUtils.manageMessageRegistration(
-            uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, null
+                uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, null
         );
     }
 
     /**
      * Gestisco il dopo archiviazione di un messaggio.La funzione nasce per
-     * essere chiamata da Babel. Aggiunge il tag archiviazione con le
-     * informazioni su chi e fascicolo.
+     * essere chiamata da Babel.Aggiunge il tag archiviazione con le
+ informazioni su chi e fascicolo.
      *
      * @param idMessage
      * @param additionalData
      * @param request
      * @throws BlackBoxPermissionException
+     * @throws com.fasterxml.jackson.core.JsonProcessingException
      */
     @Transactional
     @RequestMapping(value = "manageMessageArchiviation", method = RequestMethod.POST)
     public void manageMessageArchiviation(
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
-            @RequestBody Map<String, Object> additionalData,
-            HttpServletRequest request) throws BlackBoxPermissionException {
+            @RequestBody AdditionalDataTagComponent.AdditionalDataArchiviation additionalData,
+            HttpServletRequest request) throws BlackBoxPermissionException, JsonProcessingException {
 
         Message message = messageRepository.getOne(idMessage);
-        List<Tag> pecTagList = message.getIdPec().getTagList();
-        Tag pecTagArchived = pecTagList.stream().filter(t -> "archived".equals(t.getName())).collect(Collectors.toList()).get(0);
-
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-
-        JSONObject jsonAdditionalData = null;
-
-        if (additionalData != null) {
-            // Inserisco l'utente fascicolatore
-            Map<String, Object> idUtenteMap = new HashMap<>();
-            idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
-            idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
-            additionalData.put("idUtente", idUtenteMap);
-            // Inserisco l'azienda su cui il message è stato fascicolato
-            Map<String, Object> idAziendaMap = new HashMap<>();
-            idAziendaMap.put("id", authenticatedUserProperties.getUser().getIdAzienda().getId());
-            idAziendaMap.put("nome", authenticatedUserProperties.getUser().getIdAzienda().getNome());
-            idAziendaMap.put("descrizione", authenticatedUserProperties.getUser().getIdAzienda().getDescrizione());
-            additionalData.put("idAzienda", idAziendaMap);
-            // Inserisco la data di arichiviazione
-            additionalData.put("dataArchiviazione", LocalDateTime.now());
-            jsonAdditionalData = new JSONObject(additionalData);
-        }
-
-        MessageTag messageTag = null;
-
-        // Cerco se il messageTag esiste già
-        List<MessageTag> findByIdMessageAndIdTag = messageTagRespository.findByIdMessageAndIdTag(message, pecTagArchived);
-
-        if (!findByIdMessageAndIdTag.isEmpty()) {   // Il message era già stato archiviato in passato
-            messageTag = findByIdMessageAndIdTag.get(0);
-            JSONArray jsonArr = new JSONArray(messageTag.getAdditionalData());
-            jsonArr.put(jsonAdditionalData);
-            messageTag.setAdditionalData(jsonArr.toString());
-        } else {
-            // Devo creare il message tag e mettere dentro all'additional data il jsonAdditionalData dentro un array
-            messageTag = new MessageTag();
-            messageTag.setIdUtente(authenticatedUserProperties.getUser());
-            messageTag.setIdMessage(message);
-            messageTag.setIdTag(pecTagArchived);
-            JSONArray jsonArr = new JSONArray();
-            jsonArr.put(jsonAdditionalData);
-            messageTag.setAdditionalData(jsonArr.toString());
-        }
-
-        messageTagRespository.save(messageTag);
-        if (KrintUtils.doIHaveToKrint(request)) {
-            krintShpeckService.writeArchiviation(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_FASCICOLAZIONE, jsonAdditionalData);
-        }
+        Utente user = authenticatedUserProperties.getUser();
+        Persona person = authenticatedUserProperties.getPerson();
+        
+        AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(user.getId(), person.getDescrizione());
+        additionalData.setIdUtente(utenteAdditionalData);
+        
+        Azienda azienda = user.getIdAzienda();
+        AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
+        additionalData.setIdAzienda(aziendaAdditionalData);
+        
+        additionalData.setDataArchiviazione(LocalDateTime.now());
+        
+        shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalData, user, true);
     }
 
     @Transactional(rollbackFor = Throwable.class)
@@ -899,6 +804,4 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             applicationEventPublisher.publishEvent(new ShpeckEvent(ShpeckEvent.Phase.AFTER_DELETE, ShpeckEvent.Operation.SEND_CUSTOM_DELETE_INTIMUS_COMMAND, data));
         }
     }
-
-    
 }

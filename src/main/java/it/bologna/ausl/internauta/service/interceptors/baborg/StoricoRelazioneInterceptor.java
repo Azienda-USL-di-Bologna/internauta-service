@@ -11,7 +11,7 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
-import it.bologna.ausl.internauta.service.utils.ParametriAziende;
+import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -47,7 +47,7 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
     ObjectMapper objectMapper;
 
     @Autowired
-    ParametriAziende parametriAziende;
+    ParametriAziendeReader parametriAziende;
 
     @Autowired
     UserInfoService userInfoService;

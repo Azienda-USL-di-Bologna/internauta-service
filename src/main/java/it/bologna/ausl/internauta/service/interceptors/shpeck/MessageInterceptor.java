@@ -46,29 +46,30 @@ import org.springframework.stereotype.Component;
 @Component
 @NextSdrInterceptor(name = "message-interceptor")
 public class MessageInterceptor extends InternautaBaseInterceptor {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageInterceptor.class);
-    
+
     @Autowired
     PermissionManager permissionManager;
-    
+
     @Autowired
     ProjectionFactory factory;
-    
+
     @Autowired
     UserInfoService userInfoService;
-    
+
     @Autowired
     ShpeckUtils shpeckUtils;
-    
+
     @Autowired
     PersonaRepository personaRepository;
-    
+
     @Autowired
     ObjectMapper objectMapper;
-    
+
     @Autowired
     KrintShpeckService krintShpeckService;
-    
+
     @Override
     public Class getTargetEntityClass() {
         return Message.class;
@@ -79,24 +80,25 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
 
         AuthenticatedSessionData authenticatedUserProperties = super.getAuthenticatedUserProperties();
         Persona persona = authenticatedUserProperties.getPerson();
-        
+
         BooleanExpression messageInPecWithPermission;
-        
+
         try {
             Map<Integer, List<String>> permessiPec = userInfoService.getPermessiPec(persona);
             if (!permessiPec.isEmpty()) {
                 List<Integer> myPec = new ArrayList<Integer>();
                 myPec.addAll(permessiPec.keySet());
-                messageInPecWithPermission = QMessage.message.idPec.id.in(myPec);Expressions.FALSE.eq(true);
+                messageInPecWithPermission = QMessage.message.idPec.id.in(myPec);
+                Expressions.FALSE.eq(true);
             } else {
                 messageInPecWithPermission = Expressions.FALSE.eq(true);
             }
         } catch (BlackBoxPermissionException ex) {
             throw new AbortLoadInterceptorException("errore nella lettura del permessi sulle caselle pec", ex);
         }
-        
+
         initialPredicate = messageInPecWithPermission.and(initialPredicate);
-        
+
 //        try {
 //            Template a = TemplateFactory.DEFAULT.create("to_tsquery('italian', '$${0}:*$$') {1} tscol");
 //            String value = "middleware";
@@ -117,6 +119,13 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
                                 .and(qMessage.messageFolderList.any().idFolder.type.ne(FolderType.TRASH.toString()));
                         initialPredicate = filtro.and(initialPredicate);
                         break;
+//                    case FiltraSuTuttiFolder:
+//                        
+//                        QMessage qMessage = QMessage.message;
+//                        BooleanExpression filtro = qMessage.messageFolderList.any().idFolder.isNotNull()
+//                                .and(qMessage.messageFolderList.any().idFolder.type.ne(FolderType.TRASH.toString()));
+//                        initialPredicate = filtro.and(initialPredicate);
+//                        break;
 //                    case GetPermessiGestoriPec: 
 //                        /* Nel caso di GetPermessiGestoriPec in Data avremo l'id della PEC della quale si chiedono i permessi */
 //                        String idPec = additionalData.get(AdditionalData.Keys.idPec.toString());
@@ -164,19 +173,19 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
         } catch (BlackBoxPermissionException | Http403ResponseException ex) {
             throw new AbortSaveInterceptorException();
         }
-        super.beforeDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); 
+        super.beforeDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
-    
+
     private void lanciaEccezioneSeNonHaPermessoDiEliminaMessage(Message message) throws AbortSaveInterceptorException, BlackBoxPermissionException, Http403ResponseException {
         // Prendo l'utente loggato
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Utente utente = (Utente) authentication.getPrincipal();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
-        
+
         // Prendo i permessi pec
         Map<Integer, List<String>> permessiPec = null;
         permessiPec = userInfoService.getPermessiPec(persona);
-        
+
         // Controllo che ci sia almeno il RISPONDE sulla pec interessata
         List<String> permessiTrovati = permessiPec.get(message.getIdPec().getId());
         List<String> permessiSufficienti = new ArrayList();
@@ -188,13 +197,13 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
-        
+
         Message message = (Message) entity;
         Message mBefore = (Message) beforeUpdateEntity;
-        
+
         // Se ho cambiato il seen lo loggo
-        if(mainEntity && (mBefore.getSeen() != message.getSeen()) && KrintUtils.doIHaveToKrint(request)){
-            if(message.getSeen()){
+        if (mainEntity && (mBefore.getSeen() != message.getSeen()) && KrintUtils.doIHaveToKrint(request)) {
+            if (message.getSeen()) {
                 // ha settato "Letto"
                 krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_LETTO);
             } else {
@@ -202,10 +211,9 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
                 krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_DA_LEGGERE);
             }
         }
-        
+
         return entity;
-               
+
     }
-    
-    
+
 }

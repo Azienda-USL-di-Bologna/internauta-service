@@ -1,5 +1,8 @@
 package it.bologna.ausl.internauta.service.shpeck.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoException;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.PermissionManager;
@@ -8,11 +11,14 @@ import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
-import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxRepository;
@@ -33,7 +39,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
@@ -52,10 +57,15 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.RawMessageRepository;
+import it.bologna.ausl.model.entities.data.AdditionalData;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.QRawMessage;
 import it.bologna.ausl.model.entities.shpeck.RawMessage;
@@ -68,8 +78,9 @@ import java.io.ByteArrayInputStream;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import javax.mail.Message.RecipientType;
-import javax.servlet.http.HttpServletRequest;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -115,6 +126,18 @@ public class ShpeckUtils {
 
     @Autowired
     private AziendaRepository aziendaRepository;
+    
+    @Autowired
+    private PecRepository pecRepository;
+    
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    private CachedEntities cachedEntities;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     /**
      * usato da {@link #downloadEml(EmlSource, Integer)} per reperire l'eml
@@ -124,6 +147,115 @@ public class ShpeckUtils {
         DRAFT,
         OUTBOX,
         MESSAGE
+    }
+    
+    public static enum MailMessageOperation {
+        SAVE_DRAFT,
+        SEND_MESSAGE
+    }
+    
+    public Integer BuildAndSendMailMessage(
+            MailMessageOperation mailMessageOperation,
+            String hostname,
+            Integer idDraftMessage,
+            Integer idPec,
+            String body,
+            Boolean hideRecipients,
+            String subject,
+            String[] to,
+            String[] cc,
+            MultipartFile[] attachments,
+            Integer idMessageRelated,
+            MessageRelatedType messageRelatedType,
+            Integer[] idMessageRelatedAttachments,
+            Integer idUtente,
+            Boolean krint
+    ) throws IOException, MessagingException, EmlHandlerException, Http500ResponseException, BadParamsException, Http403ResponseException, BlackBoxPermissionException {
+        
+        Integer res = null;
+
+        LOG.info("Getting PEC from repository...");
+        Pec pec = pecRepository.getOne(idPec);
+
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona personaConnessa = authenticatedUserProperties.getPerson();
+
+        List<String> permessiSufficienti = new ArrayList();
+        permessiSufficienti.add(InternautaConstants.Permessi.Predicati.ELIMINA.toString());
+        permessiSufficienti.add(InternautaConstants.Permessi.Predicati.RISPONDE.toString());
+        try {
+            Boolean userHasPermissionOnThisPec = userHasPermissionOnThisPec(pec, permessiSufficienti, personaConnessa);
+            if (!userHasPermissionOnThisPec) {
+                throw new BlackBoxPermissionException("nessun permesso trovato");
+            }
+        } catch (BlackBoxPermissionException ex) {
+            throw new Http403ResponseException("008", "Non hai il permesso sulla casella", ex);
+        }
+
+        ArrayList<EmlHandlerAttachment> listAttachments = convertAttachments(attachments);
+
+        ArrayList<MimeMessage> mimeMessagesList = new ArrayList<>();
+        MimeMessage mimeMessage = null;
+
+        LOG.info("Getting draft with idDraft: ", idDraftMessage);
+        Draft draftMessage = draftRepository.getOne(idDraftMessage);
+        if (idUtente != null) {
+            Utente utente = this.cachedEntities.getUtente(idUtente);
+            draftMessage.setIdUtente(utente);
+        }
+
+        String from = pec.getIndirizzo();
+        LOG.info("Start building mime message...");
+        // Prende gli allegati dall'eml della draft o dal messaggio che si sta inoltrando
+        ArrayList<EmlHandlerAttachment> emlAttachments = getEmlAttachments(draftMessage, idMessageRelated, messageRelatedType, idMessageRelatedAttachments);
+        switch (mailMessageOperation) {
+            case SAVE_DRAFT:
+                mimeMessage = buildMimeMessage(from, to, cc, body, subject, listAttachments, emlAttachments, hostname, draftMessage);
+                LOG.info("Mime message generated correctly!");
+                LOG.info("Preparing the message for saving...");
+                saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
+                listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments, krint);
+            break;
+            case SEND_MESSAGE:
+                if (Objects.equals(hideRecipients, Boolean.TRUE)) {
+                LOG.info("Hide recipients is true, building mime message for each recipient.");
+                for (String address : to) {
+                    mimeMessage = buildMimeMessage(from, new String[]{address}, cc, body, subject, listAttachments,
+                            emlAttachments, hostname, draftMessage);
+                    mimeMessagesList.add(mimeMessage);
+                }
+                LOG.info("Mime messages generated correctly!");
+                } else {
+                    mimeMessage = buildMimeMessage(from, to, cc, body, subject, listAttachments,
+                            emlAttachments, hostname, draftMessage);
+                    mimeMessagesList.add(mimeMessage);
+                    LOG.info("Mime message generated correctly!");
+                }
+
+                LOG.info("Preparing the message for sending...");
+                try {
+                    for (MimeMessage mime : mimeMessagesList) {
+                        Outbox outbox = sendMessage(pec, subject, idMessageRelated, hideRecipients, body, listAttachments, emlAttachments, mime, krint);
+                        res = outbox.getId();
+                    }
+
+                    if (idMessageRelated != null) {
+                        setReplyForwardTagToMessage(pec, idMessageRelated, messageRelatedType, authenticatedUserProperties.getUser(), krint);
+                    }
+
+                    deleteDraft(draftMessage);
+                } catch (IOException | MessagingException | EntityNotFoundException ex) {
+                    LOG.error("Handling error on send! Trying to save...", ex);
+                    mimeMessage = buildMimeMessage(from, to, cc, body, subject, listAttachments,
+                            emlAttachments, hostname, draftMessage);
+                    saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
+                            listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments, krint);
+                    throw new Http500ResponseException("007", "Errore durante l'invio. La mail è stata salvata nelle bozze.", ex);
+                }
+            break;
+        }
+        
+        return res;
     }
 
     public MimeMessage buildMimeMessage(String from, String[] to, String[] cc, String body, String subject,
@@ -156,7 +288,7 @@ public class ShpeckUtils {
 
         LOG.info("Fields ready, building mime message...");
         Properties props = null;
-        if (hostname.equals("localhost")) {
+        if (hostname != null && hostname.equals("localhost")) {
             props = new Properties();
             props.put("mail.host", "localhost");
 //            props.setProperty("mail.mime.base64.ignoreerrors", "true");
@@ -187,14 +319,14 @@ public class ShpeckUtils {
      * @param idMessageRelated L'id del messaggio correlato
      * @param messageRelatedType Tipo di relazione
      * @param emlAttachments
-     * @param request
+     * @param krint passare true se si vuole krintare l'operazione
      * @throws MessagingException
      * @throws IOException
      */
     public void saveDraft(Draft draftMessage, Pec pec, String subject, String[] to, String[] cc,
             Boolean hideRecipients, ArrayList<EmlHandlerAttachment> listAttachments, String body,
             MimeMessage mimeMessage, Integer idMessageRelated, MessageRelatedType messageRelatedType,
-            ArrayList<EmlHandlerAttachment> emlAttachments, HttpServletRequest request) throws MessagingException, IOException {
+            ArrayList<EmlHandlerAttachment> emlAttachments, Boolean krint) throws MessagingException, IOException {
 
         try {
             draftMessage.setIdPec(pec);
@@ -232,7 +364,7 @@ public class ShpeckUtils {
             }
             LOG.info("Message ready. Saving...");
             draftMessage = draftRepository.save(draftMessage);
-            if (KrintUtils.doIHaveToKrint(request)) {
+            if (krint) {
                 krintShpeckService.writeDraft(draftMessage, OperazioneKrint.CodiceOperazione.PEC_DRAFT_MODIFICA);
             }
         } catch (IOException ex) {
@@ -268,7 +400,8 @@ public class ShpeckUtils {
      * @param listAttachments
      * @param emlAttachments
      * @param body
-     * @param request
+     * @param krint
+     * @return 
      * @throws MessagingException
      * @throws IOException
      */
@@ -279,7 +412,7 @@ public class ShpeckUtils {
             ArrayList<EmlHandlerAttachment> listAttachments,
             ArrayList<EmlHandlerAttachment> emlAttachments,
             MimeMessage mimeMessage,
-            HttpServletRequest request) throws IOException, MessagingException {
+            Boolean krint) throws IOException, MessagingException {
         Outbox outboxMessage = new Outbox();
         Applicazione shpeckApp = applicazioneRepository.getOne("shpeck");
         try {
@@ -319,7 +452,7 @@ public class ShpeckUtils {
             }
 
             outboxMessage = outboxRepository.save(outboxMessage);
-            if (KrintUtils.doIHaveToKrint(request)) {
+            if (krint) {
                 krintShpeckService.writeOutboxMessage(outboxMessage, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_INVIO_NUOVA_MAIL);
             }
         } catch (EntityNotFoundException ex) {
@@ -367,48 +500,111 @@ public class ShpeckUtils {
     /**
      * Inserisce i tag alla mail originale passato in ingresso
      *
-     * @param pec La pec che sta inviado la mail
-     * @param idMessageRelated Id del messaggio a cui si sta rispondendo o
-     * inoltrando
-     * @param messageRelatedType Tipo di relazione del messaggio relazionato
+     * @param pec la pec che sta inviado la mail
+     * @param messageToTag messaggio a cui si vuole applicare il tag
+     * @param tagName nome del tag che si vuole applicare
+     * @param additionalData se passati, vengono inseriti/aggiunti nel tag
+     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se l'utente viene passato sul tag è diverso, viene aggiornato
+     * @return torna true se il messaggio è stato taggato, false altrimenti (ad esempio torna false se il messaggio aveva già il tag passato)
      */
-    public void setTagsToMessage(Pec pec, Integer idMessageRelated, MessageRelatedType messageRelatedType, HttpServletRequest request) {
+    public boolean setTagToMessage(Pec pec, Message messageToTag, String tagName, AdditionalData additionalData, Utente utente) throws JsonProcessingException {
         LOG.info("Getting message...");
-        Message messageRelated = messageRepository.getOne(idMessageRelated);
-        Tag tag = new Tag();
-
-        OperazioneKrint.CodiceOperazione operazione = null;
 
         LOG.info("Getting tag to apply...");
-        switch (messageRelatedType) {
-            case REPLIED:
-                tag = tagRepository.findByidPecAndName(pec, SystemTagName.replied.toString());
-                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA;
-                break;
-            case REPLIED_ALL:
-                tag = tagRepository.findByidPecAndName(pec, SystemTagName.replied_all.toString());
-                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA_A_TUTTI;
-                break;
-            case FORWARDED:
-                tag = tagRepository.findByidPecAndName(pec, SystemTagName.forwarded.toString());
-                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_INOLTRO;
-                break;
-        }
+        Tag tag = tagRepository.findByidPecAndName(pec, tagName);
+
         LOG.info("Check if tag is already present");
-        List<MessageTag> findByIdMessageAndIdTag = messageTagRepository.findByIdMessageAndIdTag(messageRelated, tag);
+        List<MessageTag> findByIdMessageAndIdTag = messageTagRepository.findByIdMessageAndIdTag(messageToTag, tag);
+
+        // Cerco se il messageTag esiste già
+        List<AdditionalData> currentAdditionalDataList;
+        MessageTag messageTag;
+        boolean tagged = false;
         if (findByIdMessageAndIdTag.isEmpty()) {
-            LOG.info("Applying tag: {} to message with id: {}", tag.getName(), messageRelated.getId());
-            MessageTag messageTag = new MessageTag();
-            messageTag.setIdMessage(messageRelated);
+            LOG.info("Applying tag: {} to message with id: {}", tag.getName(), messageToTag.getId());
+            messageTag = new MessageTag();
+            messageTag.setIdMessage(messageToTag);
             messageTag.setIdTag(tag);
-            messageTag.setInserted(ZonedDateTime.now());
-            messageTagRepository.save(messageTag);
-            if (KrintUtils.doIHaveToKrint(request)) {
-                krintShpeckService.writeReplyToMessage(messageRelated, operazione);
+            if (additionalData!= null) {
+                currentAdditionalDataList = new ArrayList();
+                currentAdditionalDataList.add(additionalData);
+                messageTag.setAdditionalData(objectMapper.writeValueAsString(currentAdditionalDataList));
             }
+            messageTag.setInserted(ZonedDateTime.now());
+           
+            tagged = true;
             LOG.info("Tag applied!");
         } else {
             LOG.info("Tag already present, skip applying!");
+            messageTag = findByIdMessageAndIdTag.get(0);
+            if (additionalData!= null) {
+                if (StringUtils.hasText(messageTag.getAdditionalData())) {
+                    currentAdditionalDataList = objectMapper.readValue(messageTag.getAdditionalData(), new TypeReference<List<AdditionalData>>() {});
+                    currentAdditionalDataList.add(additionalData);
+                }
+            }
+        }
+        if (utente != null) {
+            if (messageTag.getIdUtente() == null || !messageTag.getIdUtente().getId().equals(utente.getId())) {
+                messageTag.setIdUtente(utente);
+            }
+        } else if (messageTag.getIdUtente() != null) {
+            messageTag.setIdUtente(null);
+        }
+        messageTagRepository.save(messageTag);
+        return tagged;
+    }
+
+    /**
+     * Aggiunge il tag di fascicolazione
+     * @param pec la pec che sta inviado la mail
+     * @param messageToTag messaggio a cui si vuole applicare il tag
+     * @param additionalDataArchiviation gli additional data da inserire
+     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se l'utente viene passato sul tag è diverso, viene aggiornato
+     * @param krint se si vuole kritnare l'operazione
+     * @throws JsonProcessingException 
+     */
+    public void SetArchiviationTag (Pec pec, Message messageToTag, AdditionalDataTagComponent.AdditionalDataArchiviation additionalDataArchiviation, Utente utente, boolean krint) throws JsonProcessingException {
+        setTagToMessage(pec, messageToTag, SystemTagName.archived.toString(), additionalDataArchiviation, utente);
+        if (krint) {
+            krintShpeckService.writeArchiviation(messageToTag, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_FASCICOLAZIONE, additionalDataArchiviation);
+        }
+    }
+    
+    
+    /**
+     * Inserisce i tag di rispondi/rispondi a tutti/inoltro alla mail originale passato in ingresso
+     *
+     * @param pec La pec che sta inviado la mail
+     * @param idMessageRelated Id del messaggio a cui si sta rispondendo o inoltrando
+     * @param messageRelatedType Tipo di relazione del messaggio relazionato
+     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se l'utente viene passato sul tag è diverso, viene aggiornato
+     * @param krint se si vuole kritnare l'operazione
+     */
+    public void setReplyForwardTagToMessage(Pec pec, Integer idMessageRelated, MessageRelatedType messageRelatedType, Utente utente, Boolean krint) throws JsonProcessingException {
+        LOG.info("Getting message...");
+        Message messageRelated = messageRepository.getOne(idMessageRelated);
+        String tagName = null;
+        OperazioneKrint.CodiceOperazione operazione = null;
+        switch (messageRelatedType) {
+            case REPLIED:
+                tagName = SystemTagName.replied.toString();
+                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA;
+                break;
+            case REPLIED_ALL:
+                tagName = SystemTagName.replied_all.toString();
+                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_RISPOSTA_A_TUTTI;
+                break;
+            case FORWARDED:
+                tagName = SystemTagName.forwarded.toString();
+                operazione = OperazioneKrint.CodiceOperazione.PEC_MESSAGE_INOLTRO;
+                break;
+        }
+        boolean tagged = setTagToMessage(pec, messageRelated, tagName, null, utente);
+        if (krint && tagged) {
+            LOG.info("krinting...");
+            krintShpeckService.writeReplyToMessage(messageRelated, operazione);
+            LOG.info("krinted...");
         }
     }
 
