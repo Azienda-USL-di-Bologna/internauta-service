@@ -763,22 +763,25 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
             @RequestBody AdditionalDataTagComponent.AdditionalDataArchiviation additionalData,
             HttpServletRequest request) throws BlackBoxPermissionException, JsonProcessingException {
-
+        LOG.info("inizio la procedura di Fascicolazione per pec "+idMessage.toString());
         Message message = messageRepository.getOne(idMessage);
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente user = authenticatedUserProperties.getUser();
         Persona person = authenticatedUserProperties.getPerson();
-        
+        LOG.info("inizio la procedura di setIdUtente");
         AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(user.getId(), person.getDescrizione());
         additionalData.setIdUtente(utenteAdditionalData);
-        
+         LOG.info("inizio la procedura di setIdAzienda");
         Azienda azienda = user.getIdAzienda();
         AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
         additionalData.setIdAzienda(aziendaAdditionalData);
         
+        LOG.info("inizio la procedura di setDataArchiviazione");
         additionalData.setDataArchiviazione(LocalDateTime.now());
-        
+        LOG.info("inizio la procedura di SetArchiviationTag");
         shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalData, user, true);
+
+        LOG.info("Finita la procedura di set archiviazione");    
     }
 
     @Transactional(rollbackFor = Throwable.class)
