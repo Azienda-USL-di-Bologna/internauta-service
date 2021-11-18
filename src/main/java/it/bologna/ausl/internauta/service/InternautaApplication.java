@@ -4,6 +4,7 @@ import it.bologna.ausl.internauta.service.schedulers.LogoutManager;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
 import it.bologna.ausl.internauta.service.schedulers.workers.ShutdownThread;
 import java.time.ZonedDateTime;
+import it.nextsw.common.repositories.CustomJpaRepositoryFactoryBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = {"it.bologna.ausl", "it.nextsw"})
-@EnableJpaRepositories({"it.bologna.ausl.internauta.service.repositories", "it.bologna.ausl.blackbox.repositories"})
+@EnableJpaRepositories(value =  {"it.bologna.ausl.internauta.service.repositories", "it.bologna.ausl.blackbox.repositories"},
+//        repositoryBaseClass = NextQuerydslJpaPredicateExecutorImpl.class
+        repositoryFactoryBeanClass = CustomJpaRepositoryFactoryBean.class
+)
+
 @EntityScan("it.bologna.ausl.model.entities")
 @EnableCaching
 //@EnableAsync
