@@ -47,6 +47,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -64,41 +65,41 @@ import org.springframework.util.StringUtils;
 @NextSdrInterceptor(name = "struttura-interceptor")
 @Order(1)
 public class StrutturaInterceptor extends InternautaBaseInterceptor {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(StrutturaInterceptor.class);
-    
+
     @Autowired
     private PermissionManager permissionManager;
-    
+
     @Autowired
     private PermissionRepositoryAccess permissionRepositoryAccess;
-    
+
     @Autowired
     private StoricoRelazioneRepository storicoRelazioneRepository;
-    
+
     @Autowired
     private StrutturaRepository strutturaRepository;
-    
+
     @Autowired
     private ParametriAziendeReader parametriAziende;
-    
+
     @Autowired
     private UserInfoService userInfoService;
-    
+
     @Autowired
     private InternautaUtils internautaUtils;
-    
+
     @Autowired
     private ObjectMapper objectMapper;
-    
+
     @Autowired
     private UtenteStrutturaRepository utenteStrutturaRepository;
-    
+
     @Override
     public Class getTargetEntityClass() {
         return Struttura.class;
     }
-    
+
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
@@ -106,7 +107,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         boolean isCA = userInfoService.isCA(utente);
         boolean isCI = userInfoService.isCI(utente);
         boolean isSD = userInfoService.isSD(utente);
-        
+
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
@@ -144,7 +145,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                             List<ParametroAziende> filtraResponsabiliParams = parametriAziende.getParameters("AccessoPoolFiltratoPerRuolo", new Integer[]{utente.getIdAzienda().getId()});
                             if (filtraResponsabiliParams != null && !filtraResponsabiliParams.isEmpty() && parametriAziende.getValue(filtraResponsabiliParams.get(0), Boolean.class)) {
                                 Integer mascheraBit = internautaUtils.getSommaMascheraBit(ruoliNomeBreveString);
-                                
+
                                 Map<String, Integer> struttureRuoloEFiglie = objectMapper.convertValue(
                                         storicoRelazioneRepository.getStruttureRuoloEFiglie(mascheraBit, utente.getId(), ZonedDateTime.now()).get("result"),
                                         new TypeReference<Map<String, Integer>>() {
@@ -170,7 +171,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         }
         return initialPredicate;
     }
-    
+
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         Struttura struttura = (Struttura) entity;
@@ -195,7 +196,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         }
         return struttura;
     }
-    
+
     @Override
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
@@ -210,7 +211,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         }
         return entities;
     }
-    
+
     @Override
     public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
@@ -257,7 +258,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         spegniUtentiStrutturaEspegniPermessiStruttureConnesse(strutturaNuova);
         return entity;
     }
-    
+
     @Override
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Struttura struttura = (Struttura) entity;
@@ -266,7 +267,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         boolean isCA = userInfoService.isCA(utente);
         boolean isCI = userInfoService.isCI(utente);
         boolean isSD = userInfoService.isSD(utente);
-        
+
         if (struttura.getUfficio() && struttura.getIdStrutturaPadre() == null) {
             //setto la data di attivazione al primo momento del giorno 
             struttura.setDataAttivazione(ZonedDateTime.of(LocalDate.now(), LocalTime.MIN, ZoneId.systemDefault()));
@@ -283,23 +284,23 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
 //            } else {
             if (!isCA && !isCI && !isSD) {
                 Integer mascheraBit = internautaUtils.getSommaMascheraBit(Ruolo.CodiciRuolo.R.toString());
-                
+
                 Map<String, Integer> struttureResponsabile = objectMapper.convertValue(
                         storicoRelazioneRepository.getStruttureRuolo(mascheraBit, utente.getId(), ZonedDateTime.now()).get("result"),
                         new TypeReference<Map<String, Integer>>() {
                 }
                 );
-                
+
                 if (struttureResponsabile.size() == 0) {
                     throw new AbortSaveInterceptorException("Utente non autorizzato alla creazione di uffici");
                 }
-                
+
                 Iterator<String> struttureRespIterator = struttureResponsabile.keySet().iterator();
                 Integer idStrutturaResp = null;
                 if (struttureRespIterator.hasNext()) {
                     idStrutturaResp = Integer.parseInt(struttureRespIterator.next());
                 }
-                
+
                 BooleanExpression findStrutturaResponsabile
                         = QStruttura.struttura.id.eq(idStrutturaResp);
                 Struttura strutturaResponsabile = strutturaRepository.findOne(findStrutturaResponsabile).get();
@@ -308,21 +309,23 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         }
         return struttura;
     }
-    
+
     private void aggiungiSistemaStoricoRelazione(Struttura strutturaNuova, Struttura strutturaPadreVecchia) throws AbortSaveInterceptorException {
         if (!strutturaNuova.getAttiva()) {
             ZonedDateTime now = ZonedDateTime.now();
             if (strutturaNuova.getIdStrutturaPadre() != null) {
                 try {
-                    StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+                    Optional<StoricoRelazione> storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
                             QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(QStoricoRelazione.storicoRelazione.attivaAl.isNull())
-                    ).get();
-                    if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
-                        storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
-                    } else {
-                        now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
-                        storicoRelazioneVecchia.setAttivaAl(now);
-                        storicoRelazioneRepository.save(storicoRelazioneVecchia);
+                    );
+                    if (storicoRelazioneVecchia.isPresent()) {
+                        if (storicoRelazioneVecchia.get().getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                            storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.get().getId());
+                        } else {
+                            now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
+                            storicoRelazioneVecchia.get().setAttivaAl(now);
+                            storicoRelazioneRepository.save(storicoRelazioneVecchia.get());
+                        }
                     }
                 } catch (Exception ex) {
                     throw new AbortSaveInterceptorException("Relazioni da spegnere non trovate");
@@ -334,41 +337,45 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                 storicoRelazioneRepository.save(storicoRelazione);
             } else if (strutturaPadreVecchia != null && strutturaNuova.getIdStrutturaPadre() != null && !strutturaPadreVecchia.getId().equals(strutturaNuova.getIdStrutturaPadre().getId())) {
                 ZonedDateTime now = ZonedDateTime.now();
-                StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+                Optional<StoricoRelazione> storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
                         QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(
                                 (QStoricoRelazione.storicoRelazione.attivaDal.before(now).and(
                                         QStoricoRelazione.storicoRelazione.attivaAl.isNull()
                                 ))
-                        )).get();
-                if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
-                    storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
-                    StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
-                    storicoRelazioneRepository.save(storicoRelazione);
-                } else {
-                    now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
-                    storicoRelazioneVecchia.setAttivaAl(now);
-                    storicoRelazioneRepository.save(storicoRelazioneVecchia);
-                    storicoRelazioneRepository.save(buildStoricoRelazione(strutturaNuova));
+                        ));
+                if (storicoRelazioneVecchia.isPresent()) {
+                    if (storicoRelazioneVecchia.get().getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                        storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.get().getId());
+                        StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
+                        storicoRelazioneRepository.save(storicoRelazione);
+                    } else {
+                        now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
+                        storicoRelazioneVecchia.get().setAttivaAl(now);
+                        storicoRelazioneRepository.save(storicoRelazioneVecchia.get());
+                        storicoRelazioneRepository.save(buildStoricoRelazione(strutturaNuova));
+                    }
                 }
             } else if (strutturaPadreVecchia != null && strutturaNuova.getIdStrutturaPadre() == null) {
                 ZonedDateTime now = ZonedDateTime.now();
-                StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+                Optional<StoricoRelazione> storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
                         QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(
                                 (QStoricoRelazione.storicoRelazione.attivaDal.before(now).and(
                                         QStoricoRelazione.storicoRelazione.attivaAl.isNull()
                                 ))
-                        )).get();
-                if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
-                    storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
-                } else {
-                    now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
-                    storicoRelazioneVecchia.setAttivaAl(now);
-                    storicoRelazioneRepository.save(storicoRelazioneVecchia);
+                        ));
+                if (storicoRelazioneVecchia.isPresent()) {
+                    if (storicoRelazioneVecchia.get().getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                        storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.get().getId());
+                    } else {
+                        now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
+                        storicoRelazioneVecchia.get().setAttivaAl(now);
+                        storicoRelazioneRepository.save(storicoRelazioneVecchia.get());
+                    }
                 }
             }
         }
     }
-    
+
     private StoricoRelazione buildStoricoRelazione(Struttura strutturaNuova) {
         StoricoRelazione storicoRelazione = new StoricoRelazione();
         ZonedDateTime now = ZonedDateTime.of(LocalDate.now(), LocalTime.MIN, ZoneId.systemDefault());
@@ -381,10 +388,10 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         storicoRelazione.setAttivaAl(null);
         return storicoRelazione;
     }
-    
+
     private void spegniUtentiStrutturaEspegniPermessiStruttureConnesse(Struttura strutturaNuova) throws AbortSaveInterceptorException {
         if (!strutturaNuova.getAttiva()) {
-            
+
             strutturaNuova.setDataCessazione(ZonedDateTime.now());
 
             //spengo gli utenti
@@ -403,7 +410,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                         Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.BABORG.toString()}),
                         Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.UFFICIO.toString()}),
                         false);
-                
+
                 if (oggettoneListStruttureConnesse != null) {
                     oggettoneListStruttureConnesse.forEach(permessoEntitaStoredProcedure -> {
                         permessoEntitaStoredProcedure.getCategorie().forEach(categoria -> {
@@ -418,5 +425,5 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             }
         }
     }
-    
+
 }
