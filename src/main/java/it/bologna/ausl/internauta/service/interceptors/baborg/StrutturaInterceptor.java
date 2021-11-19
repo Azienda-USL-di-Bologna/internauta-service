@@ -47,6 +47,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -316,18 +317,21 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             ZonedDateTime now = ZonedDateTime.now();
             if (strutturaNuova.getIdStrutturaPadre() != null) {
                 try {
-                    StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+
+                    Optional<StoricoRelazione> storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
                             QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(QStoricoRelazione.storicoRelazione.attivaAl.isNull())
-                    ).get();
-                    if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
-                        storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
-                    } else {
-                        now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
-                        storicoRelazioneVecchia.setAttivaAl(now);
-                        storicoRelazioneRepository.save(storicoRelazioneVecchia);
+                    );
+                    if (storicoRelazioneVecchia.isPresent()) {
+                        if (storicoRelazioneVecchia.get().getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                            storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.get().getId());
+                        } else {
+                            now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
+                            storicoRelazioneVecchia.get().setAttivaAl(now);
+                            storicoRelazioneRepository.save(storicoRelazioneVecchia.get());
+                        }
                     }
                 } catch (Exception ex) {
-                    throw new AbortSaveInterceptorException("Relazioni da spegnere non trovate");
+                    throw new AbortSaveInterceptorException("Relazioni da spegnere non trovate", ex);
                 }
             }
         } else {
@@ -336,36 +340,40 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                 storicoRelazioneRepository.save(storicoRelazione);
             } else if (strutturaPadreVecchia != null && strutturaNuova.getIdStrutturaPadre() != null && !strutturaPadreVecchia.getId().equals(strutturaNuova.getIdStrutturaPadre().getId())) {
                 ZonedDateTime now = ZonedDateTime.now();
-                StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+                Optional<StoricoRelazione> storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
                         QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(
                                 (QStoricoRelazione.storicoRelazione.attivaDal.before(now).and(
                                         QStoricoRelazione.storicoRelazione.attivaAl.isNull()
                                 ))
-                        )).get();
-                if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
-                    storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
-                    StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
-                    storicoRelazioneRepository.save(storicoRelazione);
-                } else {
-                    now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
-                    storicoRelazioneVecchia.setAttivaAl(now);
-                    storicoRelazioneRepository.save(storicoRelazioneVecchia);
-                    storicoRelazioneRepository.save(buildStoricoRelazione(strutturaNuova));
+                        ));
+                if (storicoRelazioneVecchia.isPresent()) {
+                    if (storicoRelazioneVecchia.get().getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                        storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.get().getId());
+                        StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
+                        storicoRelazioneRepository.save(storicoRelazione);
+                    } else {
+                        now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
+                        storicoRelazioneVecchia.get().setAttivaAl(now);
+                        storicoRelazioneRepository.save(storicoRelazioneVecchia.get());
+                        storicoRelazioneRepository.save(buildStoricoRelazione(strutturaNuova));
+                    }
                 }
             } else if (strutturaPadreVecchia != null && strutturaNuova.getIdStrutturaPadre() == null) {
                 ZonedDateTime now = ZonedDateTime.now();
-                StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+                Optional<StoricoRelazione> storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
                         QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(
                                 (QStoricoRelazione.storicoRelazione.attivaDal.before(now).and(
                                         QStoricoRelazione.storicoRelazione.attivaAl.isNull()
                                 ))
-                        )).get();
-                if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
-                    storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
-                } else {
-                    now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
-                    storicoRelazioneVecchia.setAttivaAl(now);
-                    storicoRelazioneRepository.save(storicoRelazioneVecchia);
+                        ));
+                if (storicoRelazioneVecchia.isPresent()) {
+                    if (storicoRelazioneVecchia.get().getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                        storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.get().getId());
+                    } else {
+                        now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
+                        storicoRelazioneVecchia.get().setAttivaAl(now);
+                        storicoRelazioneRepository.save(storicoRelazioneVecchia.get());
+                    }
                 }
             }
         }
