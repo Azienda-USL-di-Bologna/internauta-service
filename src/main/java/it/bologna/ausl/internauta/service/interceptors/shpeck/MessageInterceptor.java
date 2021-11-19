@@ -23,6 +23,8 @@ import it.bologna.ausl.model.entities.shpeck.Folder.FolderType;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
+import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
@@ -196,13 +198,19 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
 
         Message message = (Message) entity;
-        Message mBefore = (Message) beforeUpdateEntity;
 
-        // Se ho cambiato il seen lo loggo
-        if (mainEntity && (mBefore.getSeen() != message.getSeen()) && KrintUtils.doIHaveToKrint(request)) {
+        Message mBefore;
+        try {
+            mBefore = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, Message.class);
+
+        } catch (BeforeUpdateEntityApplierException ex) {
+            throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
+        }
+         // Se ho cambiato il seen lo loggo
+        if (mainEntity && (!mBefore.getSeen().equals(message.getSeen())) && KrintUtils.doIHaveToKrint(request)) {
             if (message.getSeen()) {
                 // ha settato "Letto"
                 krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_LETTO);
@@ -211,7 +219,6 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
                 krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_DA_LEGGERE);
             }
         }
-
         return entity;
 
     }

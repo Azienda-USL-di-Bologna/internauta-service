@@ -31,6 +31,8 @@ import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.QContatto;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
+import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.Arrays;
@@ -254,9 +256,15 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     }
     
     @Override
-    public Object afterUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+    public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Contatto contatto = (Contatto) entity;
-        Contatto contattoOld = (Contatto) beforeUpdateEntity;
+        Contatto contattoOld;
+        try {
+            contattoOld = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, Contatto.class);
+
+        } catch (BeforeUpdateEntityApplierException ex) {
+            throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
+        }
         boolean isEliminato = (contatto.getEliminato() && (contattoOld.getEliminato() == false));
         boolean isModificato = isContactModified(contatto, contattoOld);
         if (KrintUtils.doIHaveToKrint(request)) {
@@ -277,7 +285,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             }
         }
         
-        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
     
     public boolean isContactModified(Contatto contatto, Contatto contattoOld) {
@@ -343,10 +351,19 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     }
     
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
         Contatto contatto = (Contatto) entity;
-        Contatto oldContatto = (Contatto) beforeUpdateEntity;
+        
+        Contatto oldContatto;
+        try {
+            oldContatto = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, Contatto.class);
+
+        } catch (BeforeUpdateEntityApplierException ex) {
+            throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
+        }
+        
+        
         Integer idAzienda = authenticatedUserProperties.getUser().getIdAzienda().getId();
         try {
             manageFlagDaVerificarePerUpdate(contatto, oldContatto,idAzienda);
@@ -354,7 +371,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
         }
         
-        return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+        return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
     
     public void manageFlagDaVerificarePerUpdate(Contatto contatto, Contatto oldContatto,Integer idAzienda) throws JsonProcessingException {
