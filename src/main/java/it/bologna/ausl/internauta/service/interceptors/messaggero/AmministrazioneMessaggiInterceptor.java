@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.schedulers.workers.messagesender.MessageSeenCleanerWorker;
 import it.bologna.ausl.internauta.service.schedulers.workers.messagesender.MessageThreadEvent;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import java.time.ZonedDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -80,7 +81,7 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
     }
     
     @Override
-    public Object afterUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+    public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
         if (mainEntity) {
             MessageSeenCleanerWorker.cleanSeenFromPersone(amministrazioneMessaggio.getId(), personaRepository);
@@ -89,11 +90,11 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
                 applicationEventPublisher.publishEvent(messageThreadEvent);
             }
         }
-        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass);
+        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass);
     }
     
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AmministrazioneMessaggio amministrazioneMessaggio = (AmministrazioneMessaggio) entity;
         if (additionalData != null) {
             if (additionalData.get("operation") != null) {
@@ -107,7 +108,7 @@ public class AmministrazioneMessaggiInterceptor extends InternautaBaseIntercepto
             }
         }
         
-        return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass);
+        return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass);
     }
 
 //    @Override

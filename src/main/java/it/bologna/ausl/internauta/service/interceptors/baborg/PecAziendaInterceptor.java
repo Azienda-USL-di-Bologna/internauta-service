@@ -7,7 +7,10 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.shpeck.Message;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
+import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
@@ -83,10 +86,15 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
      * L'azienda e la PEC dell'entity devono essere le stesse del beforeUpdateEntity.
      */
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         PecAzienda dopo = (PecAzienda) entity;
-        PecAzienda prima = (PecAzienda) beforeUpdateEntity;
+        PecAzienda prima;
+        try {
+            prima = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, PecAzienda.class);
 
+        } catch (BeforeUpdateEntityApplierException ex) {
+            throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
+        }
         if (!(dopo.getIdAzienda().getId().equals(prima.getIdAzienda().getId())) || !(dopo.getIdPec().getId().equals(prima.getIdPec().getId()))) {
             throw new AbortSaveInterceptorException();
         }
