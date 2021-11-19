@@ -18,12 +18,13 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.Outbox;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
+import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +64,7 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Object beforeUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+    public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         // TODO controllare che chi sta facendo sto update abbia almeno un permesso sulla casella del folder.
         // deve fare il contorllo una volta per più update (per via del batch che fa spostare più message in una volta sola?)
 
@@ -73,7 +74,12 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
 //        return messageFolder;
         // Se sto spostando nel cestino devo avere il peremsso elimina
         MessageFolder messageFolder = (MessageFolder) entity;
-        MessageFolder beforeMessageFolder = (MessageFolder) beforeUpdateEntity;
+        MessageFolder beforeMessageFolder;
+        try {
+            beforeMessageFolder = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, MessageFolder.class);
+        } catch (BeforeUpdateEntityApplierException ex) {
+            throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
+        }
         Message message = messageFolder.getIdMessage();
 
         if (messageFolder.getIdFolder().getType().equals(FolderType.TRASH)) {
