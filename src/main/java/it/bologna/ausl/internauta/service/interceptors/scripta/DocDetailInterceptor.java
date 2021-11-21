@@ -10,6 +10,7 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -27,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -57,6 +59,9 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    PersonaVedenteRepository personaVedenteRepository;
     
     @Autowired
     InternautaUtils internautaUtils;
@@ -93,7 +98,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         break;
                     case VisualizzaTabIFirmato:
                         initialPredicate = buildFilterPerStruttureDelSegretario(persona).and(initialPredicate);
-                        initialPredicate = qdoclist.numeroRegistrazione.isNotNull().and(initialPredicate);
+                        initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
                         break;
                     case VisualizzaTabRegistrazioni:
                         if (!userInfoService.isSD(user)) {
@@ -102,7 +107,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                             List<Integer> idAziendaOSoMOS = Stream.concat(codiceAziendaListDoveSonoOS.stream(), codiceAziendaListDoveSonoMOS.stream()).collect(Collectors.toList());
                             initialPredicate = qdoclist.idAzienda.id.in(idAziendaOSoMOS).and(initialPredicate);
                         }
-                        initialPredicate = qdoclist.numeroRegistrazione.isNotNull().and(initialPredicate);
+                        initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
                         break;
                 }
             }
@@ -232,16 +237,23 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
      * @return
      */
     private Boolean pienaVisibilita(DocDetail doc, Persona persona) {
-        for (PersonaVedente personaVedente : doc.getPersoneVedentiList()) {
-            if (personaVedente.getIdPersona() != null && personaVedente.getIdPersona().getId().equals(persona.getId())) {
-                if (personaVedente.getPienaVisibilita()) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        }
-        return false;
+        QPersonaVedente qPersoneVedente = QPersonaVedente.personaVedente;
+        Optional<PersonaVedente> findOne = personaVedenteRepository.findOne(
+                qPersoneVedente.idDocDetail.id.eq(doc.getId())
+                .and(qPersoneVedente.pienaVisibilita.eq(Boolean.TRUE))
+                .and(qPersoneVedente.idPersona.id.eq(persona.getId()))
+        );
+//        for (PersonaVedente personaVedente : doc.getPersoneVedentiList()) {
+//            if (personaVedente.getIdPersona() != null && personaVedente.getIdPersona().getId().equals(persona.getId())) {
+//                if (personaVedente.getPienaVisibilita()) {
+//                    return true;
+//                } else {
+//                    return false;
+//                }
+//            }
+//        }
+//        return false;
+        return findOne.isPresent();
     }
 
 }
