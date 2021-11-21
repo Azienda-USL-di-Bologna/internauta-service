@@ -18,6 +18,8 @@ import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
+import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
@@ -133,16 +135,22 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-    public Object afterUpdateEntityInterceptor(Object entity, Object beforeUpdateEntity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+    public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         DettaglioContatto dettaglioContatto = (DettaglioContatto) entity;
-        DettaglioContatto dettaglioContattoOld = (DettaglioContatto) beforeUpdateEntity;
+        DettaglioContatto dettaglioContattoOld;
+        try {
+            dettaglioContattoOld = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, DettaglioContatto.class);
+
+        } catch (BeforeUpdateEntityApplierException ex) {
+            throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
+        }
         if (KrintUtils.doIHaveToKrint(request)) {
             if (dettaglioContatto.getIdContatto().getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
                 krintRubricaService.writeContactDetailUpdate(dettaglioContatto, dettaglioContattoOld, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DETAIL_UPDATE);
             }
         }
 
-        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
