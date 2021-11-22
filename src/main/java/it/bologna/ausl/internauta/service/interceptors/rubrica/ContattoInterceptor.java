@@ -35,9 +35,11 @@ import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -52,38 +54,38 @@ import org.springframework.stereotype.Component;
 @Component
 @NextSdrInterceptor(name = "contatto-interceptor")
 public class ContattoInterceptor extends InternautaBaseInterceptor {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ContattoInterceptor.class);
-    
+
     @Autowired
     private ContattoRepository contattoRepository;
-    
+
     @Autowired
     private PersonaRepository personaRepository;
-    
+
     @Autowired
     private UtenteRepository utenteRepository;
-    
+
     @Autowired
     private UserInfoService userInfoService;
-    
+
     @Autowired
     private KrintRubricaService krintRubricaService;
-    
+
     @Autowired
     private PermissionManager permissionManager;
-    
+
     @Autowired
     private ParametriAziendeReader parametriAziende;
-    
+
     @Autowired
     private ObjectMapper objectMapper;
-    
+
     @Override
     public Class getTargetEntityClass() {
         return Contatto.class;
     }
-    
+
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
@@ -97,7 +99,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             throw new AbortLoadInterceptorException("Errore nel caricamento delle persone di cui si è segretario dalla BlackBox", ex);
         }
         personeDiCuiVedoIProtoconattiList.add(loggedUser.getIdPersona());
-        
+
         // AGGIUNGO I FILTRI DI SICUREZZA PER GARANTIRE CHE L'UTENTE NON VEDA CONTATTI CHE NON PUO' VEDERE
         initialPredicate = addFilterVisibilita(initialPredicate, QContatto.contatto, personeDiCuiVedoIProtoconattiList);
 
@@ -121,8 +123,8 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                             BooleanExpression daVerfificareOrProtocontattoVisbile
                                     = QContatto.contatto.daVerificare.eq(true).or(
                                             QContatto.contatto.protocontatto.eq(true)
-                                                .and(QContatto.contatto.idPersonaCreazione
-                                                    .in(personeDiCuiVedoIProtoconattiList)));
+                                                    .and(QContatto.contatto.idPersonaCreazione
+                                                            .in(personeDiCuiVedoIProtoconattiList)));
                             initialPredicate = (daVerfificareOrProtocontattoVisbile).and(initialPredicate);
                         } else {
                             LOGGER.info("AuthenticatedUser non e' segretario "
@@ -130,7 +132,6 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                                     + "strutture di cui lui e' segretario");
                         }
 
-                        
                         break;
                     case CercaContattiCustomFilterPico:
                         String cercaAncheGruppiString = additionalData.get(InternautaConstants.AdditionalData.Keys.cercaAncheGruppi.toString());
@@ -141,11 +142,10 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                         BooleanExpression picoCustomFilter
                                 = QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.ESTERNO.toString()).or(
                                         ((QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.PERSONA.toString())
-                                                .or(QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.STRUTTURA.toString()))
-                                                )
+                                                .or(QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.STRUTTURA.toString())))
                                                 .and(
-                                                QContatto.contatto.tipo.eq(Contatto.TipoContatto.ORGANIGRAMMA.toString())
-                                        ))
+                                                        QContatto.contatto.tipo.eq(Contatto.TipoContatto.ORGANIGRAMMA.toString())
+                                                ))
                                 );
                         if (cercaAncheGruppi) {
                             picoCustomFilter = picoCustomFilter.or(QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.GRUPPO.toString()));
@@ -159,7 +159,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("query: " + initialPredicate.toString());
         return initialPredicate;
     }
-    
+
     public List<Integer> getIdContattiRiservatiVisbili() throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         List<PermessoEntitaStoredProcedure> contattiWithStandardPermissions;
@@ -175,12 +175,12 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             LOGGER.error("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
             throw new AbortLoadInterceptorException("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
         }
-        
+
         return contattiWithStandardPermissions
                 .stream()
                 .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList());
     }
-    
+
     public Predicate addFilterVisibilita(Predicate initialPredicate, QContatto contatto, List<Persona> personeDiCuiVedoIProtoconattiList) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Utente loggedUser = authenticatedSessionData.getUser();
@@ -210,10 +210,10 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 .or(contatto.idPersonaCreazione.in(personeDiCuiVedoIProtoconattiList)
                         .or(sonoCAoCI.isTrue()));
         initialPredicate = protocontattoFilters.and(initialPredicate);
-        
+
         return initialPredicate;
     }
-    
+
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Contatto contatto = (Contatto) entity;
@@ -251,10 +251,10 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
             }
         }
-        
+
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
-    
+
     @Override
     public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Contatto contatto = (Contatto) entity;
@@ -284,10 +284,10 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
-        
+
         return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
-    
+
     public boolean isContactModified(Contatto contatto, Contatto contattoOld) {
         if (contatto.getDescrizione() == null ? contattoOld.getDescrizione() != null : !contatto.getDescrizione().equals(contattoOld.getDescrizione())) {
             return true;
@@ -309,11 +309,11 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         }
         return false;
     }
-    
+
     @Override
     public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Contatto contatto = (Contatto) entity;
-        
+
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
 //      String contattoString = objectMapper.writeValueAsString(contatto);
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(authenticatedUserProperties.getPerson());
@@ -346,15 +346,15 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 contatto.setDescrizione((contatto.getRagioneSociale()).trim());
             }
         }
-        
+
         return contatto;
     }
-    
+
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
         Contatto contatto = (Contatto) entity;
-        
+
         Contatto oldContatto;
         try {
             oldContatto = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, Contatto.class);
@@ -362,19 +362,18 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         } catch (BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
-        
-        
+
         Integer idAzienda = authenticatedUserProperties.getUser().getIdAzienda().getId();
         try {
-            manageFlagDaVerificarePerUpdate(contatto, oldContatto,idAzienda);
-        } catch (JsonProcessingException ex) {
+            manageFlagDaVerificarePerUpdate(contatto, beforeUpdateEntityApplier, idAzienda);
+        } catch (JsonProcessingException | BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
         }
-        
+
         return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
-    
-    public void manageFlagDaVerificarePerUpdate(Contatto contatto, Contatto oldContatto,Integer idAzienda) throws JsonProcessingException {
+
+    public void manageFlagDaVerificarePerUpdate(Contatto contatto, BeforeUpdateEntityApplier oldContattoApplier, Integer idAzienda) throws JsonProcessingException, BeforeUpdateEntityApplierException, AbortSaveInterceptorException {
         /*  
             PASSI DELLA GESTIONE DEL FLAG DA VERIFICARE
             Dall'oldContatto voglio prendere i contatti simili. contattiSimiliBefore.
@@ -387,18 +386,31 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 - se non hanno similarità e sono da verificare li setto non da verificare
          */
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
+
         String contattoString = objectMapper.writeValueAsString(contatto);
-        String oldContattoString = objectMapper.writeValueAsString(oldContatto);
+
+        List<String> oldContattoListTmp = new ArrayList();
+        oldContattoApplier.beforeUpdateApply(oldContatto -> {
+            try {
+                oldContattoListTmp.add(objectMapper.writeValueAsString(oldContatto));
+            } catch (JsonProcessingException ex) {
+                oldContattoListTmp.add(null);
+            }
+        });
+        String oldContattoString = oldContattoListTmp.get(0);
+        if (oldContattoString == null) {
+            throw new AbortSaveInterceptorException("Errore nella lettura del oldContatto");
+        }
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(authenticatedUserProperties.getPerson());
         List<Integer> collect = aziendePersona.stream().map(p -> p.getId()).collect(Collectors.toList());
         String idAziendeStr = UtilityFunctions.getArrayString(objectMapper, collect);
-        
+
         String res = contattoRepository.getSimilarContacts(contattoString, idAziendeStr);
         List<Contatto> contattiSimiliNow = objectMapper.readValue(res, SqlSimilarityResults.class).getContatti(SqlSimilarityResults.ContactListInclude.ALL);
-        
+
         res = contattoRepository.getSimilarContacts(oldContattoString, idAziendeStr);
         List<Contatto> contattiSimiliBefore = objectMapper.readValue(res, SqlSimilarityResults.class).getContatti(SqlSimilarityResults.ContactListInclude.ALL);
-        
+
         if (contattiSimiliNow.isEmpty()) {
             contatto.setDaVerificare(Boolean.FALSE);
         } else {
@@ -408,14 +420,14 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 Contatto cSimile = contattoRepository.getOne(c.getId());
                 if (!cSimile.getDaVerificare()) {
 //                    cSimile.setDaVerificare(Boolean.TRUE);
-                    setDaVerificareByProvenienza(cSimile,idAzienda);
+                    setDaVerificareByProvenienza(cSimile, idAzienda);
                     contattoRepository.save(cSimile);
                 }
                 // Rimuovo, se presente, dalla lista contattiSimiliBefore il contatto con id = c.getId()
                 contattiSimiliBefore.removeIf(e -> e.getId().equals(cSimile.getId()));
             }
         }
-        
+
         for (Contatto c : contattiSimiliBefore) {
             Contatto cSimileBefore = contattoRepository.getOne(c.getId());
             String cSimileBeforeString = objectMapper.writeValueAsString(cSimileBefore);
@@ -430,53 +442,57 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
              */
             similiTrovati.removeSimileById(contatto.getId());
             Integer similaritiesNumber = similiTrovati.similaritiesNumber();
-            
+
             if (similaritiesNumber.equals(0) && cSimileBefore.getDaVerificare()) {
                 cSimileBefore.setDaVerificare(Boolean.FALSE);
             } else if (!similaritiesNumber.equals(0) && !cSimileBefore.getDaVerificare()) {
 //                cSimileBefore.setDaVerificare(Boolean.TRUE);
                 setDaVerificareByProvenienza(cSimileBefore, idAzienda);
-                
+
             }
             contattoRepository.save(cSimileBefore);
         }
-        
+
     }
+
     /**
-     * questa funzione setta il parametro daVerificare false per le fonti esterne IPA e GAAC a prescindere da tutto.
-     * se la provenienza non è una fonte esterna allora setto il parametro daVerificare a TRUE
-     * @param contatto 
+     * questa funzione setta il parametro daVerificare false per le fonti
+     * esterne IPA e GAAC a prescindere da tutto. se la provenienza non è una
+     * fonte esterna allora setto il parametro daVerificare a TRUE
+     *
+     * @param contatto
      */
     private void setDaVerificareByProvenienza(Contatto contatto, Integer idAzienda) {
         List<ParametroAziende> parameters;
-        List<String> fontiEsterne = null ;
+        List<String> fontiEsterne = null;
         parameters = parametriAziende.getParameters("fonti_esterne", new Integer[]{idAzienda}, new String[]{Applicazione.Applicazioni.rubrica.toString()});
-            if (parameters != null && !parameters.isEmpty()) {
-                fontiEsterne = parametriAziende.getValue(parameters.get(0), new TypeReference<List<String>>(){});
-            }
-            
-        if (fontiEsterne!= null && fontiEsterne.contains(contatto.getProvenienza())) {
+        if (parameters != null && !parameters.isEmpty()) {
+            fontiEsterne = parametriAziende.getValue(parameters.get(0), new TypeReference<List<String>>() {
+            });
+        }
+
+        if (fontiEsterne != null && fontiEsterne.contains(contatto.getProvenienza())) {
             contatto.setDaVerificare(Boolean.FALSE);
         } else {
             contatto.setDaVerificare(Boolean.TRUE);
         }
     }
-    
+
     public void manageFlagDaVerificarePerCreate(Contatto contatto, Integer idAzienda) throws JsonProcessingException {
         /*
             Prendo i contatti simili se ce ne sono. Se ce ne sono setto da verificare true.
             Se ce ne sono, li ciclo e se non sono settati da verificare true li  setto escludendo quelli provenienti da ipa o gaac.
          */
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
-        
+
         String contattoString = objectMapper.writeValueAsString(contatto);
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(authenticatedUserProperties.getPerson());
         List<Integer> collect = aziendePersona.stream().map(p -> p.getId()).collect(Collectors.toList());
         String idAziendeStr = UtilityFunctions.getArrayString(objectMapper, collect);
-        
+
         String res = contattoRepository.getSimilarContacts(contattoString, idAziendeStr);
         SqlSimilarityResults contattiSimiliResults = objectMapper.readValue(res, SqlSimilarityResults.class);
-        
+
         if (contattiSimiliResults.similaritiesNumber() > 0) {
             List<Contatto> contattiSimili = contattiSimiliResults.getContatti(SqlSimilarityResults.ContactListInclude.ALL);
 //            contatto.setDaVerificare(Boolean.TRUE);
