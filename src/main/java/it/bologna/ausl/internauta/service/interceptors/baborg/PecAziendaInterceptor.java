@@ -106,15 +106,15 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
      */
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
-        PecAzienda dopo = (PecAzienda) entity;
-        PecAzienda prima;
+        PecAzienda pecDopo = (PecAzienda) entity;
+        PecAzienda pecPrima;
         try {
-            prima = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, PecAzienda.class);
+            pecPrima = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, PecAzienda.class);
 
         } catch (BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
-        if (!(dopo.getIdAzienda().getId().equals(prima.getIdAzienda().getId())) || !(dopo.getIdPec().getId().equals(prima.getIdPec().getId()))) {
+        if (!(pecDopo.getIdAzienda().getId().equals(pecPrima.getIdAzienda().getId())) || !(pecDopo.getIdPec().getId().equals(pecPrima.getIdPec().getId()))) {
             throw new AbortSaveInterceptorException();
         }
 
