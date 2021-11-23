@@ -176,15 +176,21 @@ public class MessagesTagsProtocollazioneFixManager {
     }
 
     private void geminiMailFixing(Message message, JSONArray verifiedElements) {
+        //i take the mail with the same uuid message
         List<Message> geminiMails = getGeminiMails(message);
         if (geminiMails.size() > 0) {
             log.info("Mettiamo a posto i messaggi gemelli...");
             for (Message geminiMail : geminiMails) {
                 log.info("Vediamo di fissare questo: id = {}", geminiMail.getId());
+                //create the tag for the other mail
                 dataHolder = dataHolderFactory.createNewMessagesTagsProctocollazioneFixDataHolder(geminiMail);
+                // if it is registered yet
                 MessageTag registeredTag = dataHolder.getRegisteredTag();
+                //verify if theere is the tag and add the additional data
                 verifyAndFixRegisteredMessageTagWithVerifiedElements(registeredTag, verifiedElements);
+                //if it is in registration
                 MessageTag inRegistrationMessageTag = dataHolder.getInRegistrationMessagesTag();
+                //if there is a in registration tag i clean it
                 if (inRegistrationMessageTag != null) {
                     JSONArray purifiedAdditionalData = getAdditionalDataRemovingElementiInutili(inRegistrationMessageTag, verifiedElements);
                     inRegistrationMessageTag.setAdditionalData(purifiedAdditionalData.toString());
@@ -199,7 +205,7 @@ public class MessagesTagsProtocollazioneFixManager {
                     log.info("Salvo i dati aggiornati di Registered MessageTag");
                     registeredTag = messageTagRepository.save(registeredTag);
                 }
-                verificaAndSpostaMessaggioInProtocollatiSeAppartenenteAdAzienda(message, verifiedElements);
+                //verificaAndSpostaMessaggioInProtocollatiSeAppartenenteAdAzienda(message, verifiedElements);
             }
         } else {
             log.info("Nessun altro messaggio da sistemare.");
