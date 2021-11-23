@@ -64,7 +64,7 @@ public class ManageMessageRegistrationUtils {
             String uuidMessage,
             InternautaConstants.Shpeck.MessageRegistrationOperation operation,
             Integer idMessage,
-            Map<String, Map<String, Object>> additionalData,
+            Map<String, Object> additionalData,
             Boolean doIHaveToKrint,
             Azienda azienda
     ) throws BlackBoxPermissionException, IOException, Throwable {
@@ -100,8 +100,8 @@ public class ManageMessageRegistrationUtils {
                 List<MessageTag> messageTagInRegistrationList = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
                 List<MessageTag> messageTagRegisteredList = messageTagRespository.findByIdMessageAndIdTag(message, tagRegistered);
                 //vedere se cambiare
-                List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration = new ArrayList<>();
-                List<Map<String, Map<String, Object>>> initialAdditionalDataArrayRegistered = new ArrayList<>();
+                List<Map<String, Object>> initialAdditionalDataArrayInRegistration = new ArrayList<>();
+                List<Map<String, Object>> initialAdditionalDataArrayRegistered = new ArrayList<>();
 
                 if (messageTagInRegistrationList != null && (messageTagInRegistrationList.size() == 1)) {
                     messageTagInRegistration = messageTagInRegistrationList.get(0);
@@ -114,7 +114,7 @@ public class ManageMessageRegistrationUtils {
                 // leggo gli additional data del messaggio in stado di in registrazione
                 if (messageTagInRegistration != null && messageTagInRegistration.getAdditionalData() != null) {
                     try {
-                        Map<String, Map<String, Object>> initialAdditionalData = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), Map.class);
+                        Map<String, Object> initialAdditionalData = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), Map.class);
                         initialAdditionalDataArrayInRegistration.add(initialAdditionalData);
                     } catch (Throwable ex) {
                         initialAdditionalDataArrayInRegistration = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), List.class);
@@ -123,7 +123,7 @@ public class ManageMessageRegistrationUtils {
                 // leggo gli additional data del messaggio in stato di registrati
                 if (messageTagRegistered != null && messageTagRegistered.getAdditionalData() != null) {
                     try {
-                        Map<String, Map<String, Object>> initialAdditionalData = objectMapper.readValue(messageTagRegistered.getAdditionalData(), Map.class);
+                        Map<String, Object> initialAdditionalData = objectMapper.readValue(messageTagRegistered.getAdditionalData(), Map.class);
                         initialAdditionalDataArrayRegistered.add(initialAdditionalData);
                     } catch (Throwable ex) {
                         initialAdditionalDataArrayRegistered = objectMapper.readValue(messageTagRegistered.getAdditionalData(), List.class);
@@ -167,7 +167,7 @@ public class ManageMessageRegistrationUtils {
         }
     }
     
-    public void makeAdditionalData(Map<String, Map<String, Object>> additionalData, AuthenticatedSessionData authenticatedUserProperties, Azienda azienda) {
+    public void makeAdditionalData(Map<String, Object> additionalData, AuthenticatedSessionData authenticatedUserProperties, Azienda azienda) {
         Map<String, Object> idUtenteMap = new HashMap<>();
         idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
         idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
@@ -183,12 +183,12 @@ public class ManageMessageRegistrationUtils {
     }
     
     public void addInRegistration(
-            Map<String, Map<String, Object>> additionalData,
+            Map<String, Object> additionalData,
             AuthenticatedSessionData authenticatedUserProperties,
             Message message,
             MessageTag messageTagInRegistration,
             Tag tagInRegistration,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration
+            List<Map<String, Object>> initialAdditionalDataArrayInRegistration
     ) throws Exception {
         LOG.info("dentro ADD_IN_REGISTRATION per il messaggio con id: " + message.getId());
         if (additionalData == null) {
@@ -226,12 +226,12 @@ public class ManageMessageRegistrationUtils {
      * @throws Exception 
      */
     public void checkIfAziendaAlreadyHasThisTag(
-            Map<String, Map<String, Object>> additionalData,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArray
+            Map<String, Object> additionalData,
+            List<Map<String, Object>> initialAdditionalDataArray
     ) throws Exception {
-        Integer idAziendaAdditionalData = (Integer)additionalData.get("idAzienda").get("id");
-        for (Map<String, Map<String, Object>> initialData : initialAdditionalDataArray) {
-            Integer idAziendaInitialData = (Integer)initialData.get("idAzienda").get("id");
+        Integer idAziendaAdditionalData = (Integer)((Map<String, Object>)additionalData.get("idAzienda")).get("id");
+        for (Map<String, Object> initialData : initialAdditionalDataArray) {
+            Integer idAziendaInitialData = (Integer)((Map<String, Object>)initialData.get("idAzienda")).get("id");
             if (idAziendaInitialData.equals(idAziendaAdditionalData)) {
                 LOG.info("errore, tag su azienda " + idAziendaAdditionalData + " gia presente");
                 throw new Exception("errore, tag su azienda " + idAziendaAdditionalData + " gia presente");
@@ -239,14 +239,14 @@ public class ManageMessageRegistrationUtils {
         }
     }
 
-    public void addRegistered(Map<String, Map<String, Object>> additionalData,
+    public void addRegistered(Map<String, Object> additionalData,
             Message message,
             MessageTag messageTagRegistered,
             AuthenticatedSessionData authenticatedUserProperties,
             Tag tagRegistered,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayRegistered,
+            List<Map<String, Object>> initialAdditionalDataArrayRegistered,
             MessageTag messageTagInRegistration,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration,
+            List<Map<String, Object>> initialAdditionalDataArrayInRegistration,
             Folder folderRegistered) throws Exception {
 
         LOG.info("dentro ADD_REGISTERED per il messaggio con id: " + message.getId());
@@ -266,7 +266,7 @@ public class ManageMessageRegistrationUtils {
                 messageTagToAdd.setIdTag(tagRegistered);
             }
             List<Integer> aziendePrecedentementeProtocollate = initialAdditionalDataArrayRegistered.stream()
-                    .map(ad -> (Integer) ad.get("idAzienda").get("id")).collect(Collectors.toList());
+                    .map(ad -> (Integer) ((Map<String, Object>)ad.get("idAzienda")).get("id")).collect(Collectors.toList());
 
             initialAdditionalDataArrayRegistered.add(additionalData);
             messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayRegistered));
@@ -316,8 +316,8 @@ public class ManageMessageRegistrationUtils {
     }
 
     public void removeInRegistration(MessageTag messageTagInRegistration,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration,
-            Map<String, Map<String, Object>> additionalData) throws JsonProcessingException {
+            List<Map<String, Object>> initialAdditionalDataArrayInRegistration,
+            Map<String, Object> additionalData) throws JsonProcessingException {
         removeAdditionalDataByIdAziendaFromTag(messageTagInRegistration, initialAdditionalDataArrayInRegistration, additionalData);
 
     }
@@ -332,13 +332,13 @@ public class ManageMessageRegistrationUtils {
      * @throws JsonProcessingException
      */
     public void removeAdditionalDataByIdAziendaFromTag(MessageTag messageTag,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayOfTag,
-            Map<String, Map<String, Object>> additionalData) throws JsonProcessingException {
+            List<Map<String, Object>> initialAdditionalDataArrayOfTag,
+            Map<String, Object> additionalData) throws JsonProcessingException {
         if (messageTag != null) {
             // devo togliere dal tag in_registration l'azienda passata
-            Predicate<Map<String, Map<String, Object>>> isQualified
+            Predicate<Map<String, Object>> isQualified
                     = item
-                    -> item.get("idAzienda").get("id").equals(additionalData.get("idAzienda").get("id"));
+                    -> ((Map<String, Object>)item.get("idAzienda")).get("id").equals(((Map<String, Object>)additionalData.get("idAzienda")).get("id"));
 
             initialAdditionalDataArrayOfTag.removeIf(isQualified);
 
@@ -354,9 +354,9 @@ public class ManageMessageRegistrationUtils {
     
     public void removeRegistered(Message message,
             MessageTag messageTagRegistered,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayRegistered,
+            List<Map<String, Object>> initialAdditionalDataArrayRegistered,
             AuthenticatedSessionData authenticatedUserProperties,
-            Map<String, Map<String, Object>> additionalData) throws JsonProcessingException {
+            Map<String, Object> additionalData) throws JsonProcessingException {
         LOG.info("dentro REMOVE_REGISTERED per il messaggio con id: " + message.getId());
 
         removeAdditionalDataByIdAziendaFromTag(messageTagRegistered, initialAdditionalDataArrayRegistered, additionalData);
@@ -366,7 +366,7 @@ public class ManageMessageRegistrationUtils {
             Devo spostare il messaggio se esso non è protocollato in altre aziende della aziendaPecList
          */
         List<Integer> aziendeInCuiRimaneProtocollato = initialAdditionalDataArrayRegistered.stream()
-                .map(ad -> (Integer) ad.get("idAzienda").get("id")).collect(Collectors.toList());
+                .map(ad -> (Integer) ((Map<String, Object>)ad.get("idAzienda")).get("id")).collect(Collectors.toList());
 
         Boolean daNonSpostare = message.getIdPec().getPecAziendaList().stream()
                 .anyMatch(pecazienda

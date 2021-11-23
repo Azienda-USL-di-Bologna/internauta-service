@@ -2,8 +2,6 @@
 package it.bologna.ausl.internauta.service.krint;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
-import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.logs.projections.KrintShpeckDraft;
@@ -18,9 +16,9 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.Outbox;
 import it.bologna.ausl.model.entities.shpeck.Tag;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import java.util.HashMap;
 import java.util.Map;
-import org.jose4j.json.internal.json_simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Service;
@@ -120,7 +118,7 @@ public class KrintShpeckService {
      * @param codiceOperazione: PEC_MESSAGE_FASCICOLAZIONE
      * @param additionalDataArchiviation
      */
-    public void writeArchiviation(Message message, OperazioneKrint.CodiceOperazione codiceOperazione, AdditionalDataTagComponent.AdditionalDataArchiviation additionalDataArchiviation) {
+    public void writeArchiviation(Message message, OperazioneKrint.CodiceOperazione codiceOperazione, AdditionalDataArchiviation additionalDataArchiviation) {
         try {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);
