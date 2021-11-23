@@ -91,7 +91,7 @@ public class ArgoConnectionManager {
 //        return asList != null && asList.size() > 0 ? asList : null;
 //    }
 
-    public List queryAndFetcth(String queryString, Integer idAzienda) throws Exception {
+    public List<Map<String, Object>> queryAndFetcth(String queryString, Integer idAzienda) throws Exception {
         List<Map<String, Object>> asList = null;
 
         try (Connection conn = getConnection(idAzienda)) {

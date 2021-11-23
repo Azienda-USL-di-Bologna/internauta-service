@@ -29,6 +29,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.Base64;
@@ -237,7 +238,7 @@ public class ManageMessageRegistrationTests {
             JSONObject krintHeader = new JSONObject();
             krintHeader.put("logga", false);
             request.addHeader("krint", encoder.encode(krintHeader.toString().getBytes()));
-            HashMap<String, Map<String, Object>> additionalData = new HashMap<String, Map<String, Object>>();
+            AdditionalDataRegistration additionalData = new AdditionalDataRegistration();
             shpeckController.manageMessageRegistration(encodedUUID,
                     operation,
                     testMessage.getId(),

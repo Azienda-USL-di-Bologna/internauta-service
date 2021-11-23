@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.controllers.shpeck;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -97,6 +98,8 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
 import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
@@ -739,7 +742,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "operation", required = true) InternautaConstants.Shpeck.MessageRegistrationOperation operation,
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
             @RequestParam(name = "codiceAzienda", required = false) String codiceAzienda,
-            @RequestBody Map<String, Map<String, Object>> additionalData,
+            @RequestBody AdditionalDataRegistration additionalData,
             HttpServletRequest request
     ) throws BlackBoxPermissionException, IOException, Throwable {
 
@@ -753,7 +756,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
 
         manageMessageRegistrationUtils.manageMessageRegistration(
-                uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, azienda
+                uuidMessage, operation, idMessage, objectMapper.convertValue(additionalData, new TypeReference<Map<String, Object>>(){}), doIHaveToKrint, azienda
         );
     }
 
@@ -772,10 +775,10 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = "manageMessageArchiviation", method = RequestMethod.POST)
     public void manageMessageArchiviation(
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
-            @RequestBody AdditionalDataTagComponent.AdditionalDataArchiviation additionalData,
+            @RequestBody AdditionalDataArchiviation additionalData,
             HttpServletRequest request) throws BlackBoxPermissionException, JsonProcessingException {
         LOG.info("inizio la procedura di Fascicolazione per pec "+idMessage.toString());
-        Message message = messageRepository.getOne(idMessage);
+        Message message = messageRepository.findById(idMessage).get();
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente user = authenticatedUserProperties.getUser();
         Persona person = authenticatedUserProperties.getPerson();
