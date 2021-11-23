@@ -38,11 +38,11 @@ public class SottoDocumentiUtilsTest {
     }
 
     //@Test
-    public void testaCreazioneSottoDocumento() throws MinIOWrapperException, Exception {
-        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        MinIOWrapperFileInfo fileInfoByUuid = minIOWrapper.getFileInfoByUuid("d10a2fab-e624-4b97-98dc-7591fc861572");
-        Map<String, Object> createSottoDocumento = sottoDocumentiUtils.createSottoDocumento(2, "xFi@L`d><bg;v]we,vL:", fileInfoByUuid, "SUDOCSBRUTTO");
-        System.out.println(createSottoDocumento.toString());
-    }
+//    public void testaCreazioneSottoDocumento() throws MinIOWrapperException, Exception {
+//        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+//        MinIOWrapperFileInfo fileInfoByUuid = minIOWrapper.getFileInfoByUuid("d10a2fab-e624-4b97-98dc-7591fc861572");
+//        Map<String, Object> createSottoDocumento = sottoDocumentiUtils.createSottoDocumento(2, "xFi@L`d><bg;v]we,vL:", fileInfoByUuid, "SUDOCSBRUTTO");
+//        System.out.println(createSottoDocumento.toString());
+//    }
 
 }

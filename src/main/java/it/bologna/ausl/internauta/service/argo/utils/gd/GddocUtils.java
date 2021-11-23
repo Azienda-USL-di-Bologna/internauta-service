@@ -3,10 +3,12 @@ package it.bologna.ausl.internauta.service.argo.utils.gd;
 import it.bologna.ausl.internauta.service.argo.utils.ArgoConnectionManager;
 import it.bologna.ausl.internauta.service.argo.utils.IndeUtils;
 import it.bologna.ausl.internauta.service.exceptions.sai.GddocCreationException;
+import it.bologna.ausl.internauta.service.exceptions.sai.TooManyObjectsException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,8 @@ public class GddocUtils {
 
     private static final Logger log = LoggerFactory.getLogger(GddocUtils.class);
 
+    private final String CODICE_GDDOC_TEMPLATE = "babel_suite_id_outbox_[idOutbox]";
+    
     private IndeUtils indeUtils;
 
     @Autowired
@@ -42,7 +46,7 @@ public class GddocUtils {
     private Map<String, Object> getGenericRowFromGddoc(Integer idAzienda) throws Exception {
         List result = null;
         try  {
-            result = (List<Map<String, Object>>) connectionManager.queryAndFetcth("select * from gd.gddocs limit 1;", idAzienda);
+            result = connectionManager.queryAndFetcth("select * from gd.gddocs limit 1;", idAzienda);
         } catch (Throwable t) {
             throw new Exception("Errore nel reperire un gddoc", t);
         }
@@ -78,7 +82,38 @@ public class GddocUtils {
         return formatQuery;
     }
 
-    public Map<String, Object> createGddoc(Integer idAzienda, String nome, String tipologiaDocumentale) throws Exception {
+    /**
+     * Se esiste un gddoc con il codice indentificato dall'idOutbox passato, nell'azienda passata, lo ritorna. Altrimenti torna null
+     * @param idAzienda
+     * @param idOutbox
+     * @return il gddoc con il codice indentificato dall'idOutbox passato, nell'azienda passata, null altrimenti
+     * @throws TooManyObjectsException se trova più di un gdDoc
+     */
+    public Map<String, Object> getGdDocByIdOutbox(Integer idAzienda, Integer idOutbox) throws Exception {
+        log.info("Genero una connessione...");
+        try (Connection connection = getConnection(idAzienda)) {
+            log.info("Genero la query da oggetto connection");
+            String query = "select * from gd.gddocs where codice = :codice";
+            List<Map<String, Object>> gdDocs = connection.createQuery(query)
+                    .addParameter("codice", CODICE_GDDOC_TEMPLATE.replace("[idOutbox]", String.valueOf(idOutbox.intValue())))
+                    .executeAndFetchTable().asList();
+            if (gdDocs == null) {
+                String errorMessage = String.format("La query di ricerca del gdDoc ha tornato null, questo non dovrebbe accadere. IdAzienda %s, idOutbox: %s", idAzienda, idOutbox);
+                log.error(errorMessage);
+                throw new Exception(errorMessage);
+            } else if (gdDocs.isEmpty()) {
+                return null;
+            } else if (gdDocs.size() > 1) {
+                String errorMessage = String.format("trovati %s gdDocs per l'azienda %s e idOutbox %s", gdDocs.size(), idAzienda, idOutbox);
+                log.error(errorMessage);
+                throw new TooManyObjectsException(errorMessage);
+            } else {
+                return gdDocs.get(0);
+            }
+        }
+    }
+    
+    public Map<String, Object> createGddoc(Integer idAzienda, String nome, String tipologiaDocumentale, Integer idOutbox) throws Exception {
         String idGddoc = IndeUtils.generateIndeID();
         UUID guidNuovoGddoc = java.util.UUID.randomUUID();
         Map<String, Object> genericRowFromGddoc = getGenericRowFromGddoc(idAzienda);
@@ -92,34 +127,47 @@ public class GddocUtils {
 
             for (Map.Entry<String, Object> entry : genericRowFromGddoc.entrySet()) {
                 String key = entry.getKey();
-                Object val = entry.getValue();
+                Object val;
 
-                if (key.equals("id_gddoc")) {
-                    val = idGddoc;
-                } else if (key.equals("guid_gddoc")) {
-                    val = guidNuovoGddoc;
-                } else if (key.equals("nome_gddoc")) {
-                    val = nome;
-                } else if (key.equals("guid_gddoc")) {
-                    val = guidNuovoGddoc;
-                } else if (key.equals("id_documento_origine")) {
-                    val = "babel_suite_" + guidNuovoGddoc;
-                } else if (key.equals("tipo_gddoc")) {
-                    val = "d";
-                } else if (key.equals("stato_gd_doc")) {
-                    val = 1;
-                } else if (key.equals("data_gddoc")) {
-                    val = new Date();
-                } else if (key.equals("id_oggetto_origine") || key.equals("codice")) {
-                    val = "babel_suite_" + guidNuovoGddoc;
-                } else if (key.equals("annullato")) {
-                    val = false;
-                } else if (key.equals("multiplo")) {
-                    val = 0;
-                } else {
-
-                    // TODO mancano tutti i campi in cui il gddoc potrebbe essere un pg/dete/deli/registro
-                    val = null;
+                switch (key) {
+                    case "id_gddoc":
+                        val = idGddoc;
+                        break;
+                    case "guid_gddoc":
+                        val = guidNuovoGddoc;
+                        break;
+                    case "nome_gddoc":
+                        val = nome;
+                        break;
+                    case "id_documento_origine":
+                        val = "babel_suite_" + guidNuovoGddoc;
+                        break;
+                    case "tipo_gddoc":
+                        val = "d";
+                        break;
+                    case "stato_gd_doc":
+                        val = 1;
+                        break;
+                    case "data_gddoc":
+                        val = new Date();
+                        break;
+                    case "id_oggetto_origine":
+                        val = "babel_suite_" + guidNuovoGddoc;
+                        break;
+                    case "annullato":
+                        val = false;
+                        break;
+                    case "multiplo":
+                        val = 0;
+                        break;
+                    case "codice":
+                        // inserisco un codice al gddoc in modo da identificarlo in modo univoco in base all'idOutbox
+                        val = CODICE_GDDOC_TEMPLATE.replace("[idOutbox]", String.valueOf(idOutbox.intValue()));
+                        break;
+                    default:
+                        // TODO mancano tutti i campi in cui il gddoc potrebbe essere un pg/dete/deli/registro
+                        val = null;
+                        break;
                 }
 
                 createQuery = createQuery.addParameter(key, val);
