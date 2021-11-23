@@ -140,7 +140,7 @@ public class ManageMessageRegistrationUtils {
                         }
                         break;
                     case "ADD_REGISTERED":
-                        //TO DO: find if this is the message which we registered
+                        //theRegistered si riferisce al fatto che può non essere il messaggio protocollato, ma un suo gemello arrivato a un'altra casella della stessa azienda
                         Boolean isTheRegistered = null;
                         if (Objects.equals(message.getId(), idMessage)) {
                             isTheRegistered = true;
@@ -283,6 +283,8 @@ public class ManageMessageRegistrationUtils {
             List<Integer> aziendePrecedentementeProtocollate = initialAdditionalDataArrayRegistered.stream()
                     .map(ad -> (Integer) ((Map<String, Object>) ad.get("idAzienda")).get("id")).collect(Collectors.toList());
 
+            //isTheRegisteredMesssage è true se la casella da cui si è protocollato è la stessa a cui appartiene il messaggio a cui si mette il tag,
+            // Se non è il messaggio è stato protocollato da un'altra casella della stessa azienda aggiungiamo la casella pec negli additional data come informazione da mostrare all'utente rm 61054
             if (!isTheRegisteredMessage) {
                 additionalData.put("casellaPec", pecOfRegistrationAddress);
             }
