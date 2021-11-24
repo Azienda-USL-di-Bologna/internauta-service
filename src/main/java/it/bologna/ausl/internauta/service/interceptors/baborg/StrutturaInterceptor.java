@@ -14,6 +14,7 @@ import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.HttpSessionData;
@@ -29,14 +30,13 @@ import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
-import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -48,7 +48,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -92,6 +91,9 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private UtenteStrutturaRepository utenteStrutturaRepository;
 
     @Override
     public Class getTargetEntityClass() {
@@ -253,6 +255,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         }
         Struttura strutturaPadreVecchia = listaFarlocca.get(0);
         aggiungiSistemaStoricoRelazione(strutturaNuova, strutturaPadreVecchia);
+        spegniUtentiStrutturaEspegniPermessiStruttureConnesse(strutturaNuova);
         return entity;
     }
 
@@ -312,15 +315,17 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             ZonedDateTime now = ZonedDateTime.now();
             if (strutturaNuova.getIdStrutturaPadre() != null) {
                 try {
-                    StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+                    Optional<StoricoRelazione> storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
                             QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(QStoricoRelazione.storicoRelazione.attivaAl.isNull())
-                    ).get();
-                    if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
-                        storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
-                    } else {
-                        now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
-                        storicoRelazioneVecchia.setAttivaAl(now);
-                        storicoRelazioneRepository.save(storicoRelazioneVecchia);
+                    );
+                    if (storicoRelazioneVecchia.isPresent()) {
+                        if (storicoRelazioneVecchia.get().getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                            storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.get().getId());
+                        } else {
+                            now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
+                            storicoRelazioneVecchia.get().setAttivaAl(now);
+                            storicoRelazioneRepository.save(storicoRelazioneVecchia.get());
+                        }
                     }
                 } catch (Exception ex) {
                     throw new AbortSaveInterceptorException("Relazioni da spegnere non trovate");
@@ -332,36 +337,40 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                 storicoRelazioneRepository.save(storicoRelazione);
             } else if (strutturaPadreVecchia != null && strutturaNuova.getIdStrutturaPadre() != null && !strutturaPadreVecchia.getId().equals(strutturaNuova.getIdStrutturaPadre().getId())) {
                 ZonedDateTime now = ZonedDateTime.now();
-                StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+                Optional<StoricoRelazione> storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
                         QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(
                                 (QStoricoRelazione.storicoRelazione.attivaDal.before(now).and(
                                         QStoricoRelazione.storicoRelazione.attivaAl.isNull()
                                 ))
-                        )).get();
-                if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
-                    storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
-                    StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
-                    storicoRelazioneRepository.save(storicoRelazione);
-                } else {
-                    now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
-                    storicoRelazioneVecchia.setAttivaAl(now);
-                    storicoRelazioneRepository.save(storicoRelazioneVecchia);
-                    storicoRelazioneRepository.save(buildStoricoRelazione(strutturaNuova));
+                        ));
+                if (storicoRelazioneVecchia.isPresent()) {
+                    if (storicoRelazioneVecchia.get().getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                        storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.get().getId());
+                        StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
+                        storicoRelazioneRepository.save(storicoRelazione);
+                    } else {
+                        now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
+                        storicoRelazioneVecchia.get().setAttivaAl(now);
+                        storicoRelazioneRepository.save(storicoRelazioneVecchia.get());
+                        storicoRelazioneRepository.save(buildStoricoRelazione(strutturaNuova));
+                    }
                 }
             } else if (strutturaPadreVecchia != null && strutturaNuova.getIdStrutturaPadre() == null) {
                 ZonedDateTime now = ZonedDateTime.now();
-                StoricoRelazione storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
+                Optional<StoricoRelazione> storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
                         QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(
                                 (QStoricoRelazione.storicoRelazione.attivaDal.before(now).and(
                                         QStoricoRelazione.storicoRelazione.attivaAl.isNull()
                                 ))
-                        )).get();
-                if (storicoRelazioneVecchia.getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
-                    storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.getId());
-                } else {
-                    now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
-                    storicoRelazioneVecchia.setAttivaAl(now);
-                    storicoRelazioneRepository.save(storicoRelazioneVecchia);
+                        ));
+                if (storicoRelazioneVecchia.isPresent()) {
+                    if (storicoRelazioneVecchia.get().getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
+                        storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.get().getId());
+                    } else {
+                        now = now.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
+                        storicoRelazioneVecchia.get().setAttivaAl(now);
+                        storicoRelazioneRepository.save(storicoRelazioneVecchia.get());
+                    }
                 }
             }
         }
@@ -378,6 +387,43 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         storicoRelazione.setIdStrutturaPadre(strutturaNuovaPadre);
         storicoRelazione.setAttivaAl(null);
         return storicoRelazione;
+    }
+
+    private void spegniUtentiStrutturaEspegniPermessiStruttureConnesse(Struttura strutturaNuova) throws AbortSaveInterceptorException {
+        if (!strutturaNuova.getAttiva()) {
+
+            strutturaNuova.setDataCessazione(ZonedDateTime.now());
+
+            //spengo gli utenti
+            List<UtenteStruttura> utentiStruttura = strutturaNuova.getUtenteStrutturaList();
+            for (int i = 0; i < utentiStruttura.size(); i++) {
+                utentiStruttura.get(i).setAttivo(false);
+                utentiStruttura.get(i).setAttivoAl(ZonedDateTime.now());
+                utenteStrutturaRepository.save(utentiStruttura.get(i));
+            }
+
+            //spengo i permessi
+            try {
+                List<PermessoEntitaStoredProcedure> oggettoneListStruttureConnesse = permissionManager.getSubjectsWithPermissionsOnObject(
+                        strutturaNuova,
+                        Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.CONNESSO.toString()}),
+                        Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.BABORG.toString()}),
+                        Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.UFFICIO.toString()}),
+                        false);
+
+                if (oggettoneListStruttureConnesse != null) {
+                    oggettoneListStruttureConnesse.forEach(permessoEntitaStoredProcedure -> {
+                        permessoEntitaStoredProcedure.getCategorie().forEach(categoria -> {
+                            categoria.setPermessi(new ArrayList<>());
+                        });
+                    });
+                    permissionManager.managePermissions(oggettoneListStruttureConnesse, null);
+                }
+            } catch (BlackBoxPermissionException ex) {
+                LOGGER.error("Errore nel caricamento dei permessi  dalla BlackBox", ex);
+                throw new AbortSaveInterceptorException("Errore nel caricamento dei permessi dalla BlackBox", ex);
+            }
+        }
     }
 
 }

@@ -9,15 +9,19 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -40,10 +44,10 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     StrutturaRepository strutturaRepository;
-    
+
     @Autowired
     UtenteStrutturaRepository utenteStrutturaRepository;
-    
+
     @Autowired
     ObjectMapper objectMapper;
 
@@ -89,12 +93,11 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
             /* vogliamo che per default, se non si passa una data di riferimento, oppure si passa come data di riferimento la data odierna,
             * si cerchino le righe con campo attivo = true
             * NB: il front-end a volte lo mette già nei filtri dell'initialPredicate
-            */
+             */
             BooleanExpression customFilterUtenteStrutturaAttivo = QUtenteStruttura.utenteStruttura.attivo.eq(true);
             customFilterUtenteStrutturaAttivo = customFilterUtenteStrutturaAttivo.and(QUtenteStruttura.utenteStruttura.idStruttura.attiva.eq(true));
             initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
         }
-
 
         return initialPredicate;
     }
@@ -131,22 +134,22 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
                                 throw new AbortLoadInterceptorException("errore nell'estrazione dei sotto resposabili", ex);
                             }
 //                            System.out.println("aaaaaaaaaa");
-                    try {
-                        System.out.println(objectMapper.writeValueAsString(utentiStrutturaSottoResponsabili));
-                    } catch (JsonProcessingException ex) {
-                        Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                            try {
+                                System.out.println(objectMapper.writeValueAsString(utentiStrutturaSottoResponsabili));
+                            } catch (JsonProcessingException ex) {
+                                Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+                            }
                             List<Object> res = utentiStrutturaSottoResponsabili.stream().map(utenteStrutturaMap -> {
                                 Object utenteStruttura = this.getUtenteStruttura(utenteStrutturaMap, projectionClass);
                                 //return factory.createProjection(UtenteStrutturaWithIdUtente.class, utenteStruttura);
                                 return utenteStruttura;
                             }).collect(Collectors.toList());
                             System.out.println("res");
-                    try {
-                        System.out.println(objectMapper.writeValueAsString(res));
-                    } catch (JsonProcessingException ex) {
-                        Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                            try {
+                                System.out.println(objectMapper.writeValueAsString(res));
+                            } catch (JsonProcessingException ex) {
+                                Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+                            }
                             entities.addAll(res);
 //                            List entitiesList = new ArrayList(entities);
 //                            Collections.sort(entitiesList, (UtenteStrutturaWithIdUtente us1, UtenteStrutturaWithIdUtente us2) -> {
@@ -165,5 +168,32 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         return entity;
+    }
+
+//    @Override
+//    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+//
+//        UtenteStruttura utenteStruttura = (UtenteStruttura) entity;
+//        utenteStruttura.setAttivoDal(ZonedDateTime.now())
+//
+//        return utenteStruttura;
+//    }
+    @Override
+    public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        UtenteStruttura utenteStrutturaNuovo = (UtenteStruttura) entity;
+        List<UtenteStruttura> utenteStrutturaVecchioList = new ArrayList<UtenteStruttura>();
+        try {
+            beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
+                utenteStrutturaVecchioList.add((UtenteStruttura) oldEntity);
+            });
+        } catch (Exception ex) {
+            throw new AbortSaveInterceptorException("errore nel reperire la vecchia struttura", ex);
+        }
+        if (utenteStrutturaVecchioList.get(0) != null
+                && utenteStrutturaVecchioList.get(0).getAttivo()
+                && !utenteStrutturaNuovo.getAttivo()) {
+            utenteStrutturaNuovo.setAttivoAl(ZonedDateTime.now());
+        }
+        return utenteStrutturaNuovo;
     }
 }

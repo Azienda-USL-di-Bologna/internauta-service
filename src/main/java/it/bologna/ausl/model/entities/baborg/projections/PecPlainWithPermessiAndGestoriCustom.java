@@ -13,6 +13,7 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "PecPlainWithPermessiAndGestoriCustom", types = Pec.class)
 public interface PecPlainWithPermessiAndGestoriCustom extends PecWithPecProviderAndAziendaCustom {
 
+    @Override
     public List<PermessoEntitaStoredProcedure> getPermessi();
 
     public List<PersonaWithPlainFields> getGestori();
