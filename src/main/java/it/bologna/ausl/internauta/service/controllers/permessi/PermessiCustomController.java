@@ -502,8 +502,8 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         });
         List<PermessoEntitaStoredProcedure> permessiAggiunti = null;
 
-        LocalDate dataDiLavoro = null;
-        if (params.get("dataDiLavoro") != null) {
+        LocalDate dataDiLavoro = LocalDate.now();
+        if (params.containsKey("dataDiLavoro") && params.get("dataDiLavoro") != null) {
             Long dataMillis = (Long) params.get("dataDiLavoro");
             dataDiLavoro = Instant.ofEpochMilli(dataMillis).atZone(ZoneId.systemDefault()).toLocalDate();
         }
