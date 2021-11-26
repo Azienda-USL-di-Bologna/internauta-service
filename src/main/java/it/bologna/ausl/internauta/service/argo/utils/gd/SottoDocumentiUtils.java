@@ -126,13 +126,8 @@ public class SottoDocumentiUtils {
      * @throws TooManyObjectsException se trova più di un sottodocumento
      */
     public Map<String, Object> getSottoDocumentoByIdOutbox(Integer idAzienda, Integer idOutbox) throws Exception {
-        String query = "select * from gd.sotto_documenti where codice_sottodocumento = :codice_sottodocumento";
         List<Map<String, Object>> sottodocumenti;
-        try (Connection conn = argoConnectionManager.getConnection(idAzienda)) {
-            sottodocumenti = conn.createQuery(query)
-                    .addParameter("codice_sottodocumento", CODICE_SOTTODOCUMENTO_TEMPLATE.replace("[idOutbox]", String.valueOf(idOutbox.intValue())))
-                    .executeAndFetchTable().asList();
-        }
+        sottodocumenti = getSottoDocumentoByCodice(idAzienda, CODICE_SOTTODOCUMENTO_TEMPLATE.replace("[idOutbox]", String.valueOf(idOutbox.intValue())));
         if (sottodocumenti == null) {
             String errorMessage = String.format("La query di ricerca del sottodocumento ha tornato null, questo non dovrebbe accadere. IdAzienda %s, idOutbox: %s", idAzienda, idOutbox);
             log.error(errorMessage);
@@ -146,6 +141,17 @@ public class SottoDocumentiUtils {
         } else {
             return sottodocumenti.get(0);
         }
+    }
+    
+    public List<Map<String, Object>> getSottoDocumentoByCodice(Integer idAzienda, String codice) throws Exception {
+        String query = "select * from gd.sotto_documenti where codice_sottodocumento = :codice_sottodocumento";
+        List<Map<String, Object>> sottodocumenti;
+        try (Connection conn = argoConnectionManager.getConnection(idAzienda)) {
+            sottodocumenti = conn.createQuery(query)
+                    .addParameter("codice_sottodocumento", codice)
+                    .executeAndFetchTable().asList();
+        }
+        return sottodocumenti;
     }
     
     private Map<String, Object> getSottoDocumentoByIdSottoDocumento(Integer idAzienda, String idSottoDocumento) throws Exception {
