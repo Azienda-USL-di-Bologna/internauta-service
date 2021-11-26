@@ -217,11 +217,12 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             if (operationsRequested.contains(AdditionalData.OperationsRequested.SvuotaStruttureConnesseUfficio)) {
+                //entro solo nel caso del pool quando cerco di eliminarne uno
                 try {
-                    Struttura struttura = (Struttura) entity;
-                    if (struttura != null && struttura.getAttributiStruttura() != null && struttura.getAttributiStruttura().getIdTipologiaStruttura() != null && struttura.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture() != null && !struttura.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture()) {
+                    Struttura pool = (Struttura) entity;
+                    if (pool != null && pool.getAttributiStruttura() != null && pool.getAttributiStruttura().getIdTipologiaStruttura() != null && pool.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture() != null && !pool.getAttributiStruttura().getIdTipologiaStruttura().getAssociaStrutture()) {
                         List<PermessoEntitaStoredProcedure> permessiAttuali = permissionManager.getSubjectsWithPermissionsOnObject(
-                                struttura,
+                                pool,
                                 Arrays.asList(Predicati.CONNESSO.toString()),
                                 Arrays.asList(Ambiti.BABORG.toString()),
                                 Arrays.asList(Tipi.UFFICIO.toString()),
@@ -255,7 +256,8 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         }
         Struttura strutturaPadreVecchia = listaFarlocca.get(0);
         aggiungiSistemaStoricoRelazione(strutturaNuova, strutturaPadreVecchia);
-        spegniUtentiStrutturaEspegniPermessiStruttureConnesse(strutturaNuova);
+
+        spegniUtentiStrutturaEspegniPermessiStruttureConnesseAPool(strutturaNuova);
         return entity;
     }
 
@@ -315,6 +317,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             ZonedDateTime now = ZonedDateTime.now();
             if (strutturaNuova.getIdStrutturaPadre() != null) {
                 try {
+
                     Optional<StoricoRelazione> storicoRelazioneVecchia = storicoRelazioneRepository.findOne(
                             QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.eq(strutturaNuova.getId()).and(QStoricoRelazione.storicoRelazione.attivaAl.isNull())
                     );
@@ -328,7 +331,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                         }
                     }
                 } catch (Exception ex) {
-                    throw new AbortSaveInterceptorException("Relazioni da spegnere non trovate");
+                    throw new AbortSaveInterceptorException("Relazioni da spegnere non trovate", ex);
                 }
             }
         } else {
@@ -389,23 +392,24 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         return storicoRelazione;
     }
 
-    private void spegniUtentiStrutturaEspegniPermessiStruttureConnesse(Struttura strutturaNuova) throws AbortSaveInterceptorException {
-        if (!strutturaNuova.getAttiva()) {
-
-            strutturaNuova.setDataCessazione(ZonedDateTime.now());
+    private void spegniUtentiStrutturaEspegniPermessiStruttureConnesseAPool(Struttura poolNuovo) throws AbortSaveInterceptorException {
+        //si tratta di un pool, perchè è l'unica struttura che si può spegnere
+        if (!poolNuovo.getAttiva()) {
+            ZonedDateTime dataSpegnimento = ZonedDateTime.now();
+            poolNuovo.setDataCessazione(dataSpegnimento);
 
             //spengo gli utenti
-            List<UtenteStruttura> utentiStruttura = strutturaNuova.getUtenteStrutturaList();
-            for (int i = 0; i < utentiStruttura.size(); i++) {
-                utentiStruttura.get(i).setAttivo(false);
-                utentiStruttura.get(i).setAttivoAl(ZonedDateTime.now());
-                utenteStrutturaRepository.save(utentiStruttura.get(i));
+            List<UtenteStruttura> utentiPool = poolNuovo.getUtenteStrutturaList();
+            for (int i = 0; i < utentiPool.size(); i++) {
+                utentiPool.get(i).setAttivo(false);
+                utentiPool.get(i).setAttivoAl(dataSpegnimento);
+                utenteStrutturaRepository.save(utentiPool.get(i));
             }
 
             //spengo i permessi
             try {
                 List<PermessoEntitaStoredProcedure> oggettoneListStruttureConnesse = permissionManager.getSubjectsWithPermissionsOnObject(
-                        strutturaNuova,
+                        poolNuovo,
                         Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.CONNESSO.toString()}),
                         Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.BABORG.toString()}),
                         Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.UFFICIO.toString()}),

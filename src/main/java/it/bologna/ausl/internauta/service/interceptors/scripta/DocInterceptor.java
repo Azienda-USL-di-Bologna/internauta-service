@@ -200,7 +200,7 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                                 doc.setMessageDocList(messageDocList);
                                 
                                 // Setto il tag in registraion sul messaggio
-                                Map<String, Map<String, Object>> inRegistrationAdditionalData = new HashMap();
+                                Map<String, Object> inRegistrationAdditionalData = new HashMap();
                                 Map<String, Object> idDocumento = new HashMap();
                                 idDocumento.put("numeroProposta", "PEIS_CAMPO_DA_AGGIORNARE");
                                 idDocumento.put("oggetto", message.getSubject());
