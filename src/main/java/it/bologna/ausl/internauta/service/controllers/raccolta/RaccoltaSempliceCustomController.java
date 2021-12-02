@@ -1,11 +1,13 @@
 package it.bologna.ausl.internauta.service.controllers.raccolta;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import com.mongodb.MongoException;
 import it.bologna.ausl.documentgenerator.exceptions.Http400ResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.Sql2oSelectException;
 import it.bologna.ausl.documentgenerator.utils.AziendaParamsManager;
+import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedMimeTypes;
 import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedSignatureType;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.argo.raccolta.CoinvoltiRaccolte;
@@ -67,6 +69,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
@@ -79,6 +82,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.util.UUID;
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletResponse;
 import org.json.simple.JSONArray;
@@ -1323,6 +1327,8 @@ public class RaccoltaSempliceCustomController {
         // trasformo MultipartFile in InputStream
         org.json.simple.JSONArray jsonAllegati = new org.json.simple.JSONArray();
         List<MultipartFile> allegatiList = allegati.orElse(Collections.emptyList());
+//        String json = new Gson().toJson(allegatiList);
+//        jsonAllegati = (JSONArray) new JSONParser().parse(json);
         log.info("Allegati: " + allegatiList.size());
 
         // se non ci sono allegati allora deve esserci un riferimento a un record su Babel valido; altrimenti non è consistente la RS
@@ -1333,6 +1339,21 @@ public class RaccoltaSempliceCustomController {
         // non ci deve essere il caso di un riferimento a un record su Babel e allegati associati
         if (allegatiList.size() > 0 && rifDocumentoInBabel) {
             throw new Http404ResponseException("404", "richiesta inconsistente: se si fa riferimento a un record di Babel non si possono inviare allegati");
+        }
+
+        if (allegatiList.size() > 0 && !rifDocumentoInBabel) {
+            for (MultipartFile allegato : allegatiList) {
+                JSONObject jsonAllegato = new JSONObject();
+                jsonAllegato.put("nome_file", allegato.getOriginalFilename());
+                jsonAllegato.put("mime_type", allegato.getContentType());
+                jsonAllegato.put("da_convertire", !allegato.getContentType().equals(SupportedMimeTypes.PDF.toString()));
+                Integer idAzienda = postgresConnectionManager.getIdAzienda(codiceAzienda);
+                MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
+                String uuidAllegato = mongo.put(allegato.getInputStream(), allegato.getOriginalFilename(), "/temp/generazione_documenti_da_ext/" + UUID.randomUUID(), false);
+                jsonAllegato.put("uuid_file", uuidAllegato);
+                jsonAllegato.put("principale", false);
+                jsonAllegati.add(jsonAllegato);
+            }
         }
 
         // ottenimento id struttura in argo

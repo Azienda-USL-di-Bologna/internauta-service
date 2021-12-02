@@ -14,7 +14,6 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagReposito
 import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.factories.DataHolderFactory;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.holders.MessagesTagsProtocollazioneFixDataHolder;
-import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.ProctonWebApiCallManager;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Pec;
@@ -68,9 +67,6 @@ public class MessagesTagsProtocollazioneFixManagerTest {
 
     @Autowired
     private PersonaRepository personaRepository;
-
-    @Autowired
-    MessagesTagsProtocollazioneFixManager mtpfm;
 
     @Autowired
     private MessagesTagsProtocollazioneFixDataHolder dataHolder;

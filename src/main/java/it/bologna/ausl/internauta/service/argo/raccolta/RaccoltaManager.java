@@ -233,7 +233,7 @@ public class RaccoltaManager {
             if (strToFind.matches("(\\d+/\\d) | (\\d+\\-\\d+/\\d+) | (\\d+\\-\\d+\\-\\d+/\\d)")) {
                 whereCondition = "where f.numerazione_gerarchica = '" + strToFind + "' "; // In questo caso uso l'uguale
             } else {
-                whereCondition = "where f.numerazione_gerarchica like ('" + strToFind + "%')"; // In questo caso si vuole l'"inizia con"
+                whereCondition = "where f.numerazione_gerarchica like ('%" + strToFind + "%')"; // In questo caso si vuole l'"inizia con"
             }
         } else {
             whereCondition = "where f.nome_fascicolo ilike ('%" + strToFind + "%')";
