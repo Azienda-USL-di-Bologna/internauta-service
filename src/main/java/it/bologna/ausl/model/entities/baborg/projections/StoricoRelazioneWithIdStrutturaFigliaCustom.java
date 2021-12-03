@@ -13,7 +13,8 @@ public interface StoricoRelazioneWithIdStrutturaFigliaCustom extends StoricoRela
 
     @Override
 //    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getIdStrutturaFiglia', 'StrutturaWithStruttureFiglieList')}")
-    @Value("#{@projectionBeans.getStrutturaFigliaWithFogliaCalcolata(target)}")
+    @Value("#{@projectionBeans.getStrutturaFigliaWithFogliaCalcolata(target,"
+            + "@additionalDataParamsExtractor.getShowPool())}")
     public StrutturaWithReplicheCustom getIdStrutturaFiglia();
 
     
