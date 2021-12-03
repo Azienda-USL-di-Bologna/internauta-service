@@ -107,4 +107,15 @@ public class AdditionalDataParamsExtractor {
         }
         return false;
     }
+    
+    public Boolean getShowPool() {
+        Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
+        if (additionalData != null) {
+            String showPoolString = additionalData.get("showPool");
+            if (StringUtils.hasText(showPoolString)) {
+                return Boolean.parseBoolean(showPoolString);
+            }
+        }
+        return true;
+    }
 }
