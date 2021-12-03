@@ -87,6 +87,57 @@ public class MasterChefUtils {
         public abstract String getJobType();
     }
     
+    public class MasterchefJobResult {
+    }
+    
+    public class ReporterJobParams extends MasterchefJobParams {
+        public String templatePath = null;
+        public String templateName;
+        public Map<String, String> data;
+        public QRCodeData qrCodeData;
+
+        public ReporterJobParams(String templateName, Map<String, String> data) {
+            this.templateName = templateName;
+            this.data = data;
+        }
+    
+        public ReporterJobParams(String templateName,  Map<String, String> data, String qrCodeFieldName, String qrCodeValue) {
+            this(templateName, data);
+            this.qrCodeData = new QRCodeData(qrCodeFieldName, qrCodeValue);
+        }
+
+        @Override
+        public String getJobType() {
+            return "Reporter";
+        }
+    }
+    
+    public class QRCodeData {
+        public String fieldName;
+        public String value;
+
+        public QRCodeData(String fieldName, String value) {
+            this.fieldName = fieldName;
+            this.value = value;
+        }
+
+        public String getFieldName() {
+            return fieldName;
+        }
+
+        public void setFieldName(String fieldName) {
+            this.fieldName = fieldName;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public void setValue(String value) {
+            this.value = value;
+        }
+    }
+    
     public class PrimusCommanderJobParams extends MasterchefJobParams {
         public String id;
         public String interval;
@@ -133,6 +184,13 @@ public class MasterChefUtils {
         PrimusCommanderMessage primusCommanderMessage = new PrimusCommanderMessage(dest, destApp, primusCommanderCommand);
         MasterchefJobParams primusCommanderJobParams = new PrimusCommanderJobParams(interval, times, primusCommanderMessage);
         MasterchefJob masterchefJob = new MasterchefJob(primusCommanderJobParams, null);
+        MasterchefJobDescriptor masterchefJobDescriptor = new MasterchefJobDescriptor(Arrays.asList(masterchefJob));
+        return masterchefJobDescriptor;
+    }
+    
+    public MasterchefJobDescriptor buildReporterMasterchefJob(String templateName,  Map<String, String> data, String qrCodeFieldName, String qrCodeValue) {
+        MasterchefJobParams reporterJobParams = new ReporterJobParams(templateName, data, qrCodeFieldName, qrCodeValue);
+        MasterchefJob masterchefJob = new MasterchefJob(reporterJobParams, null);
         MasterchefJobDescriptor masterchefJobDescriptor = new MasterchefJobDescriptor(Arrays.asList(masterchefJob));
         return masterchefJobDescriptor;
     }

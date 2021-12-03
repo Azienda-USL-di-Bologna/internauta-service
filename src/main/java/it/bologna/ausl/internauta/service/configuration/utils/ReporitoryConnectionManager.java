@@ -36,7 +36,7 @@ public class ReporitoryConnectionManager {
     private ParametriAziendeReader parametriAziende;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     private Map<String, Object> minIOConfig;
 
