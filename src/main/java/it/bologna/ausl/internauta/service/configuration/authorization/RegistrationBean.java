@@ -17,8 +17,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RegistrationBean {
 
-    @Value("${internauta.security.start-node-protection}")
-    private String startNodeProtection;
+    @Value("${internauta.security.start-nodes-protection}")
+    private String startNodesProtection;
     
     @Value("${internauta.security.passtoken-path}")
     private String passTokenPath;
@@ -43,7 +43,7 @@ public class RegistrationBean {
         registrationBean.setFilter(new JwtFilter(secretKey, authorizationUtils));
 
         // intercetta tutte le chiamate che iniziano per...
-        registrationBean.addUrlPatterns(startNodeProtection);
+        registrationBean.addUrlPatterns(startNodesProtection.split(","));
         // e anche il path che genera il passtoken
         registrationBean.addUrlPatterns(passTokenPath);
         // e anche il path di logout
