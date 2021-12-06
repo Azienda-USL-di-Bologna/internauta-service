@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.utils;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import java.util.Arrays;
@@ -88,6 +89,29 @@ public class MasterChefUtils {
     }
     
     public class MasterchefJobResult {
+        private Boolean succesful;
+        private Map<String, Object> result;
+
+        public MasterchefJobResult(Boolean succesful, Map<String, Object> result) {
+            this.succesful = succesful;
+            this.result = result;
+        }
+
+        public Boolean isSuccesful() {
+            return succesful;
+        }
+
+        public void setSuccesful(Boolean succesful) {
+            this.succesful = succesful;
+        }
+
+        public Map<String, Object> getResult() {
+            return result;
+        }
+
+        public void setResult(Map<String, Object> result) {
+            this.result = result;
+        }
     }
     
     public class ReporterJobParams extends MasterchefJobParams {
@@ -103,7 +127,8 @@ public class MasterChefUtils {
     
         public ReporterJobParams(String templateName,  Map<String, String> data, String qrCodeFieldName, String qrCodeValue) {
             this(templateName, data);
-            this.qrCodeData = new QRCodeData(qrCodeFieldName, qrCodeValue);
+            if (qrCodeFieldName != null)
+                this.qrCodeData = new QRCodeData(qrCodeFieldName, qrCodeValue);
         }
 
         @Override
@@ -202,18 +227,33 @@ public class MasterChefUtils {
         }
     }
     
-    public String sendMasterChefJobAndWaitResult(MasterchefJobDescriptor masterchefJobDescriptor, AziendaParametriJson.MasterChefParmas masterChefParmas) throws JsonProcessingException {
+    public MasterchefJobResult sendMasterChefJobAndWaitResult(MasterchefJobDescriptor masterchefJobDescriptor, AziendaParametriJson.MasterChefParmas masterChefParmas) throws JsonProcessingException {
         JedisPool jedisPool = getInstance(masterChefParmas.getRedisHost(), masterChefParmas.getRedisPort());
+        MasterchefJobResult masterchefJobResult;
         try (Jedis j = jedisPool.getResource()) {
             j.lpush(masterChefParmas.getInQueue(), objectMapper.writeValueAsString(masterchefJobDescriptor));
             int timeout = 0;
             if (masterchefJobDescriptor.returnQueueTimeout != null)
                 timeout = Math.toIntExact(masterchefJobDescriptor.returnQueueTimeout);
             List<String> res = j.blpop(timeout, masterchefJobDescriptor.returnQueue);
+            Boolean isSuccesful = false;
+            Map<String, Object> masterchefResult = null;
             if (res != null) {
-                return res.get(0);
+                if (res.size() == 2) {
+                    String masterchefResp = res.get(1);
+                    if (masterchefResp != null) {
+                        Map<String, Object> masterchefRespMap = objectMapper.readValue(masterchefResp, new TypeReference<Map<String, Object>>(){});
+                        if (masterchefRespMap.get("status").equals("OK")) {
+                            isSuccesful = true;
+                            List masterchefRespResults = (List) masterchefRespMap.get("results");
+                            Map masterchefResultElement = (Map) masterchefRespResults.get(0);
+                            masterchefResult = (Map<String, Object>) masterchefResultElement.get("res");
+                        }
+                    }
+                }
             }
+            masterchefJobResult = new MasterchefJobResult(isSuccesful, masterchefResult);
         }
-        return null;
+        return masterchefJobResult;
     }
 }

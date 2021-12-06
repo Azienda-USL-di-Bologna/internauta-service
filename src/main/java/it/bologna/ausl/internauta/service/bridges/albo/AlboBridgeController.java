@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.argo.utils.gd.SottoDocumentiUtils;
 import it.bologna.ausl.internauta.service.bridges.albo.exceptions.AlboBridgeException;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
-import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaCustomController;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
@@ -13,19 +12,13 @@ import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.UnsupportedCharsetException;
-import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
-import org.apache.http.ParseException;
 import org.apache.http.entity.ContentType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,8 +39,10 @@ public class AlboBridgeController implements ControllerHandledExceptions {
     
     private static final Logger LOG = LoggerFactory.getLogger(AlboBridgeController.class);
 
+    private final String RELATE_FILENAME_TEMPLATE = "relata_[numeroPubblicazione]_[annoPubblicazione]_[registro][numeroRegistro]_[annoRegistro].pdf";
     private final String RELATE_TEMPLATE_NAME = "[codiceAzienda]_relata.xhtml";
     private final String RELATE_MINIO_PATH = "relate";
+    private final String RELATE_BUCKET_NAME = "albi";
     
     private final boolean gediInternauta = false;
     
@@ -70,6 +65,16 @@ public class AlboBridgeController implements ControllerHandledExceptions {
         STAMPA_UNICA, RELATA
     }
     
+    /**
+     * Torna lo stream dell'allegato richiesto
+     * @param azienda il codice azienda (es, 105, 106, 109, ecc.)
+     * @param codice il codice del file da reperire, nel caso di relata è il codice tornalto dalla makeAndSaveRelata
+     * @param tipo il tipo di allegato (es. STAMPA_UNICA, RELATA)
+     * @param forceDownload se "true" viene settato l'header Content-disposition con "attachment;filename=..." per poter forzare il download
+     * @param request
+     * @param response
+     * @throws AlboBridgeException 
+     */
     @RequestMapping(value = {"getAllegato"}, method = RequestMethod.GET)
     public void getAllegato(
             @RequestParam(required = true) String azienda,
@@ -78,8 +83,7 @@ public class AlboBridgeController implements ControllerHandledExceptions {
             @RequestParam(required = false, defaultValue = "false") Boolean forceDownload,
             HttpServletRequest request,
             HttpServletResponse response) throws AlboBridgeException {
-        
-        //TODO: controllo parametri
+
         InputStream fileToSend = null;
         String errorMessage = null;
         
@@ -105,7 +109,7 @@ public class AlboBridgeController implements ControllerHandledExceptions {
                         throw new AlboBridgeException(String.format("trovato più di un sottodocumento in gedi per l'azienda %s, con il codice %s di tipo %s", azienda, codice, tipo));
                     }
                     repositoryFileId = (String) sottoDocumenti.get(0).get("uuid_mongo_pdf");
-                    mimeType = (String) sottoDocumenti.get(0).get("application/pdf");
+                    mimeType = "application/pdf";
                     if (!StringUtils.hasText(repositoryFileId)) {
                         repositoryFileId = (String) sottoDocumenti.get(0).get("uuid_mongo_originale");
                         mimeType = (String) sottoDocumenti.get(0).get("mimetype_file_originale");
@@ -114,9 +118,11 @@ public class AlboBridgeController implements ControllerHandledExceptions {
                 case RELATA:
                     try {
                         // le relate sono memorizzate nel bucket albi di minio, ma nella tabela repo.files come azienda hanno l'azienda a cui la pubblicazione fa riferimento
-                        // come path hanno "relate" e come nome file il codice passato (che è una cosa del tipo relata_[numeroPubblicazione]_[annoPubblicazione]_[azienda].pdf)
+                        // come path hanno "relate" e come nome file il codice passato (che è una cosa del tipo relata_[numeroPubblicazione]_[annoPubblicazione]_[registro][numeroRegistro]_[annoRegistro].pdf)
                         MinIOWrapperFileInfo minIOWrapperFileInfo = minIOWrapper.getFileInfoByPathAndFileName(RELATE_MINIO_PATH, codice, azienda);
                         repositoryFileId = minIOWrapperFileInfo.getFileId();
+                        fileName = minIOWrapperFileInfo.getFileName();
+                        mimeType = "application/pdf";
                     } catch (MinIOWrapperException ex) {
                         errorMessage = String.format("errore nel reperimento del file da minIO con path %s e nome %s per l'azienda %s", RELATE_MINIO_PATH, codice, azienda);
                         LOG.error(errorMessage, ex);
@@ -136,8 +142,8 @@ public class AlboBridgeController implements ControllerHandledExceptions {
                     fileToSend = minIOWrapper.getByFileId(repositoryFileId);
                 } else { // nel caso di gedi il reposotoryId è il mongo_uuid generato dalla libreria di minIO, per cui lo devo cercare con getByUuid()
                     fileToSend = minIOWrapper.getByUuid(repositoryFileId);
+                    fileName = minIOWrapper.getFileInfoByUuid(repositoryFileId).getFileName();
                 }
-                fileName = minIOWrapper.getFileInfoByUuid(repositoryFileId).getFileName();
             } catch (MinIOWrapperException ex) {
                 errorMessage = String.format("errore nel reperimento del file da minIO con mongoUuid %s", repositoryFileId);
                 LOG.error(errorMessage, ex);
@@ -187,12 +193,15 @@ public class AlboBridgeController implements ControllerHandledExceptions {
      * @param numeroRegistro il numero registro
      * @param annoRegistro anno del registro
      * @param oggetto l'oggetto del documento
+     * @param numeroPubblicazione
+     * @param annoPubblicazione
      * @param request
      * @param response
+     * @return il codice della relata creata, serve per poterla reperire con il metodo getAllegato
      * @throws AlboBridgeException 
      */
     @RequestMapping(value = {"makeAndSaveRelata"}, method = RequestMethod.GET)
-    public void makeAndSaveRelata(
+    public String makeAndSaveRelata(
             @RequestParam(required = true) String azienda,
             @RequestParam(required = true) String titolo,
             @RequestParam(required = true) String intestazione,
@@ -201,6 +210,8 @@ public class AlboBridgeController implements ControllerHandledExceptions {
             @RequestParam(required = true) String numeroRegistro,
             @RequestParam(required = true) String annoRegistro,
             @RequestParam(required = true) String oggetto,
+            @RequestParam(required = true) String numeroPubblicazione,
+            @RequestParam(required = true) String annoPubblicazione,
             HttpServletRequest request,
             HttpServletResponse response) throws AlboBridgeException {
         
@@ -208,7 +219,7 @@ public class AlboBridgeController implements ControllerHandledExceptions {
             Azienda aziendaObj = cachedEntities.getAziendaFromCodice(azienda);
             AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, aziendaObj.getParametri());
             AziendaParametriJson.MasterChefParmas masterchefParams = aziendaParametriJson.getMasterchefParams();
-            String templateNameRelata = String.format("%s_relata.xhtml", azienda);
+            String templateNameRelata = RELATE_TEMPLATE_NAME.replace("[codiceAzienda]", azienda);
             
             Map<String, String> templateData = new HashMap();
             templateData.put("titolo", titolo);
@@ -220,10 +231,28 @@ public class AlboBridgeController implements ControllerHandledExceptions {
             templateData.put("oggetto", oggetto);
             
             MasterChefUtils.MasterchefJobDescriptor masterchefJobDescriptor = masterChefUtils.buildReporterMasterchefJob(templateNameRelata, templateData, null, null);
-            String res = masterChefUtils.sendMasterChefJobAndWaitResult(masterchefJobDescriptor, masterchefParams);
-            System.out.println(res);
-        } catch (IOException ex) {
-        
+            MasterChefUtils.MasterchefJobResult resMasterchef = masterChefUtils.sendMasterChefJobAndWaitResult(masterchefJobDescriptor, masterchefParams);
+            if (resMasterchef.isSuccesful()) {
+                String relataUuid = (String) resMasterchef.getResult().get("pdf");
+                MinIOWrapper minIOWrapper = this.reporitoryConnectionManager.getMinIOWrapper();
+                String relataFileName = RELATE_FILENAME_TEMPLATE
+                                            .replace("[numeroPubblicazione]", numeroPubblicazione)
+                                            .replace("[annoPubblicazione]", annoPubblicazione)
+                                            .replace("[registro]", registro)
+                                            .replace("[numeroRegistro]", numeroRegistro)
+                                            .replace("[annoRegistro]", annoRegistro);
+                MinIOWrapperFileInfo relataFileInfo = minIOWrapper.put(minIOWrapper.getByUuid(relataUuid), azienda, RELATE_MINIO_PATH, relataFileName, null, true, RELATE_BUCKET_NAME);
+                String codiceRelata = relataFileInfo.getFileName();
+                return codiceRelata;
+            } else {
+                String errorMessage = "errore nella creazione della relata dal masterchef";
+                LOG.error(errorMessage);
+                throw new AlboBridgeException(errorMessage);
+            }
+        } catch (Exception ex) {
+            String errorMessage = "errore nella creazione della relata dal masterchef";
+            LOG.error(errorMessage, ex);
+            throw new AlboBridgeException(errorMessage, ex);
         }
     }
 }
