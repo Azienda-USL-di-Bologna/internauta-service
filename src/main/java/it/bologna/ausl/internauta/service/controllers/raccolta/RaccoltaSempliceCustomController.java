@@ -1931,20 +1931,25 @@ public class RaccoltaSempliceCustomController {
 
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
         dbConnection.setDefaultColumnMappings(RaccoltaManager.mapSottoDocumenti());
-        List<Sottodocumento> documento = new ArrayList<Sottodocumento>();
+        List<Sottodocumento> documenti = new ArrayList<Sottodocumento>();
 
         try ( Connection conn = (Connection) dbConnection.open()) {
 
             Query query = conn.createQuery(RaccoltaManager.queryInfoSottoDocumenti(id));
-            documento = (List<Sottodocumento>) query.executeAndFetch(Sottodocumento.class);
-            String extension = documento.get(0).getEstensione();
-            String fileName = documento.get(0).getNomeOriginale() + "." + extension;
+            documenti = (List<Sottodocumento>) query.executeAndFetch(Sottodocumento.class);
+            String extension = documenti.get(0).getEstensione();
+            String fileName;
+            if (!documenti.get(0).getNomeOriginale().contains("." + extension)) {
+                fileName = documenti.get(0).getNomeOriginale() + "." + extension;
+            } else {
+                fileName = documenti.get(0).getNomeOriginale();
+            }
             File file = new File(System.getProperty("java.io.tmpdir"), fileName);
             Integer idAzienda = postgresConnectionManager.getIdAzienda(codiceAzienda);
             MongoWrapper mongoWrapper = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
             InputStream is = null;
             DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(file));
-            is = mongoWrapper.get(documento.get(0).getUuidMongo());
+            is = mongoWrapper.get(documenti.get(0).getUuidMongo());
             if (is == null) {
                 throw new MongoException("File non trovato");
             }
