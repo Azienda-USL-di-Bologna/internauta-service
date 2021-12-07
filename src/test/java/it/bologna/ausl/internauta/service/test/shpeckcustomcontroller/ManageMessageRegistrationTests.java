@@ -137,7 +137,9 @@ public class ManageMessageRegistrationTests {
     }
 
     private String getMessageTagAdditionalDataString() {
-        return "[{\n"
+        return "["
+                +"{\n"
+                + "\"classType\": \"AdditionalDataRegistration\","
                 + "	\"idUtente\": {\n"
                 + "		\"id\": 294712,\n"
                 + "		\"descrizione\": \"Salomone Lorenzo\"\n"
@@ -154,6 +156,7 @@ public class ManageMessageRegistrationTests {
                 + "	}\n"
                 + "},\n"
                 + "{\n"
+                + "\"classType\": \"AdditionalDataRegistration\","
                 + "	\"idUtente\": {\n"
                 + "		\"id\": 1054352,\n"
                 + "		\"descrizione\": \"Salomone Lorenzo\"\n"
@@ -337,9 +340,9 @@ public class ManageMessageRegistrationTests {
         messageTagIsAlreadyPresent = isMessageTagIsAlreadyPresent();
         System.out.println("E' rimasta una riga messagesTag? " + messageTagIsAlreadyPresent);
         Assert.assertTrue("Non c'è più MessageTag per il messaggio", messageTagIsAlreadyPresent);
-        System.out.println("Rimuovo il tag rimanente passando azienda NULL");
+        System.out.println("Rimuovo il tag rimanente passando azienda 105");
         isSuccessfull = chiamaShpeckCustomController(
-                InternautaConstants.Shpeck.MessageRegistrationOperation.REMOVE_IN_REGISTRATION, null
+                InternautaConstants.Shpeck.MessageRegistrationOperation.REMOVE_IN_REGISTRATION, "105"
         );
         Assert.assertTrue("Rimozione InRegistration Tag fallita", isSuccessfull);
 

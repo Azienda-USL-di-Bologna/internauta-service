@@ -756,7 +756,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         }
 
         manageMessageRegistrationUtils.manageMessageRegistration(
-                uuidMessage, operation, idMessage, objectMapper.convertValue(additionalData, new TypeReference<Map<String, Object>>(){}), doIHaveToKrint, azienda
+                uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, azienda
         );
     }
 
