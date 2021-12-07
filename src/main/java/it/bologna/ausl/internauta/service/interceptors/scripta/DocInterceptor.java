@@ -24,6 +24,8 @@ import it.bologna.ausl.model.entities.scripta.Spedizione.IndirizzoSpedizione;
 import it.bologna.ausl.model.entities.shpeck.Address;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageAddress;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.time.ZonedDateTime;
@@ -200,13 +202,16 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                                 doc.setMessageDocList(messageDocList);
                                 
                                 // Setto il tag in registraion sul messaggio
-                                Map<String, Object> inRegistrationAdditionalData = new HashMap();
-                                Map<String, Object> idDocumento = new HashMap();
-                                idDocumento.put("numeroProposta", "PEIS_CAMPO_DA_AGGIORNARE");
-                                idDocumento.put("oggetto", message.getSubject());
-                                idDocumento.put("codiceRegistro", "PEIS");
-                                idDocumento.put("dataProposta", ZonedDateTime.now().toString());
-                                inRegistrationAdditionalData.put("idDocumento", idDocumento);
+                                // Prima era gestito attraverso le mappe,ora gli additionaldata hanno una loro classe
+//                                Map<String, Object> inRegistrationAdditionalData = new HashMap();
+                                AdditionalDataRegistration inRegistrationAdditionalData = new AdditionalDataRegistration();
+                                AdditionalDataTagComponent.idDocumento documentoAdditionalData = new AdditionalDataTagComponent.idDocumento();
+//                                Map<String, Object> idDocumento = new HashMap();
+                                documentoAdditionalData.setNumeroProposta("PEIS_CAMPO_DA_AGGIORNARE");
+                                documentoAdditionalData.setOggetto(message.getSubject());
+                                documentoAdditionalData.setCodiceRegistro("PEIS");
+                                documentoAdditionalData.setDataProposta(ZonedDateTime.now().toString());
+                                inRegistrationAdditionalData.setIdDocumento(documentoAdditionalData);
 
                                 try {
                                     manageMessageRegistrationUtils.manageMessageRegistration(
