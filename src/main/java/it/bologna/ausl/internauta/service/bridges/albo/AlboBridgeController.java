@@ -73,7 +73,7 @@ public class AlboBridgeController implements ControllerHandledExceptions {
      * @param forceDownload se "true" viene settato l'header Content-disposition con "attachment;filename=..." per poter forzare il download
      * @param request
      * @param response
-     * @throws AlboBridgeException 
+     * @throws AlboBridgeException in caso di eccezione gestita con message raprpesentante l'errore rilevato 
      */
     @RequestMapping(value = {"getAllegato"}, method = RequestMethod.GET)
     public void getAllegato(
@@ -114,7 +114,15 @@ public class AlboBridgeController implements ControllerHandledExceptions {
                         repositoryFileId = (String) sottoDocumenti.get(0).get("uuid_mongo_originale");
                         mimeType = (String) sottoDocumenti.get(0).get("mimetype_file_originale");
                     }
+                    
+                    try {
+                        fileName = minIOWrapper.getFileInfoByUuid(repositoryFileId).getFileName();
+                    } catch (MinIOWrapperException ex) {
+                        errorMessage = String.format("errore nel reperimento del nome del file da minIO con mongoUuid %s", repositoryFileId);
+                        throw new AlboBridgeException(errorMessage);
+                    }
                     break;
+
                 case RELATA:
                     try {
                         // le relate sono memorizzate nel bucket albi di minio, ma nella tabela repo.files come azienda hanno l'azienda a cui la pubblicazione fa riferimento
@@ -142,7 +150,6 @@ public class AlboBridgeController implements ControllerHandledExceptions {
                     fileToSend = minIOWrapper.getByFileId(repositoryFileId);
                 } else { // nel caso di gedi il reposotoryId è il mongo_uuid generato dalla libreria di minIO, per cui lo devo cercare con getByUuid()
                     fileToSend = minIOWrapper.getByUuid(repositoryFileId);
-                    fileName = minIOWrapper.getFileInfoByUuid(repositoryFileId).getFileName();
                 }
             } catch (MinIOWrapperException ex) {
                 errorMessage = String.format("errore nel reperimento del file da minIO con mongoUuid %s", repositoryFileId);
@@ -184,7 +191,7 @@ public class AlboBridgeController implements ControllerHandledExceptions {
     }
     
     /**
-     * 
+     * Crea la relata e la salva nel repository delle relate (bucket "albi" path logico "relate")
      * @param azienda il codice azienda (es, 105, 106, 109, ecc.)
      * @param titolo il titolo della relata (es. RELATA DI PUBBLICAZIONE, RELATA DI PUBBLICAZIONE PROFILO DEL COMMITTENTE, ecc.)
      * @param intestazione intestazione della relata (es.Registrazione Albo n. [numero] del [anno])
@@ -193,12 +200,12 @@ public class AlboBridgeController implements ControllerHandledExceptions {
      * @param numeroRegistro il numero registro
      * @param annoRegistro anno del registro
      * @param oggetto l'oggetto del documento
-     * @param numeroPubblicazione
-     * @param annoPubblicazione
+     * @param numeroPubblicazione il numero di pubblicazione
+     * @param annoPubblicazione l'anno di pubblicazione
      * @param request
      * @param response
      * @return il codice della relata creata, serve per poterla reperire con il metodo getAllegato
-     * @throws AlboBridgeException 
+     * @throws AlboBridgeException in caso di eccezione gestita con message raprpesentante l'errore rilevato
      */
     @RequestMapping(value = {"makeAndSaveRelata"}, method = RequestMethod.GET)
     public String makeAndSaveRelata(
@@ -216,11 +223,15 @@ public class AlboBridgeController implements ControllerHandledExceptions {
             HttpServletResponse response) throws AlboBridgeException {
         
         try {
+            // leggo i parametri del masterchef aziendale
             Azienda aziendaObj = cachedEntities.getAziendaFromCodice(azienda);
             AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, aziendaObj.getParametri());
             AziendaParametriJson.MasterChefParmas masterchefParams = aziendaParametriJson.getMasterchefParams();
+            
+            // calcolo il nome del template della relata (c'è un template per ogni azienda)
             String templateNameRelata = RELATE_TEMPLATE_NAME.replace("[codiceAzienda]", azienda);
             
+            // creo il json con i dati per la relata da passare al masterchef
             Map<String, String> templateData = new HashMap();
             templateData.put("titolo", titolo);
             templateData.put("intestazione", intestazione);
@@ -230,19 +241,30 @@ public class AlboBridgeController implements ControllerHandledExceptions {
             templateData.put("anno_registro", annoRegistro);
             templateData.put("oggetto", oggetto);
             
+            // creo i parametri per il job
             MasterChefUtils.MasterchefJobDescriptor masterchefJobDescriptor = masterChefUtils.buildReporterMasterchefJob(templateNameRelata, templateData, null, null);
+            
+            // accodo il job e ne attendo il risultato
             MasterChefUtils.MasterchefJobResult resMasterchef = masterChefUtils.sendMasterChefJobAndWaitResult(masterchefJobDescriptor, masterchefParams);
+            
+            // se tutto ok devo scaricare la relata dal repository temporaneo e copiarla nel repository delle relate
             if (resMasterchef.isSuccesful()) {
                 String relataUuid = (String) resMasterchef.getResult().get("pdf");
                 MinIOWrapper minIOWrapper = this.reporitoryConnectionManager.getMinIOWrapper();
+                
+                // calcolo il nome da attribuire alla relata in base al template
                 String relataFileName = RELATE_FILENAME_TEMPLATE
                                             .replace("[numeroPubblicazione]", numeroPubblicazione)
                                             .replace("[annoPubblicazione]", annoPubblicazione)
                                             .replace("[registro]", registro)
                                             .replace("[numeroRegistro]", numeroRegistro)
                                             .replace("[annoRegistro]", annoRegistro);
+                
+                // carico la relata nel posto giusto
                 MinIOWrapperFileInfo relataFileInfo = minIOWrapper.put(minIOWrapper.getByUuid(relataUuid), azienda, RELATE_MINIO_PATH, relataFileName, null, true, RELATE_BUCKET_NAME);
                 String codiceRelata = relataFileInfo.getFileName();
+                
+                // torno il nome delle relata che sarà il codice per poterla poi reperire (il nome è univoco all'interno dello stesso path)
                 return codiceRelata;
             } else {
                 String errorMessage = "errore nella creazione della relata dal masterchef";
