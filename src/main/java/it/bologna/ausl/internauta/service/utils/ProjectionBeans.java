@@ -661,7 +661,7 @@ public class ProjectionBeans {
         return null;
     }
 
-    public StrutturaWithReplicheCustom getStrutturaFigliaWithFogliaCalcolata(StoricoRelazione storicoRelazione) {
+public StrutturaWithReplicheCustom getStrutturaFigliaWithFogliaCalcolata(StoricoRelazione storicoRelazione, boolean showPool) {
         Struttura idStrutturaFiglia = storicoRelazione.getIdStrutturaFiglia();
         if (idStrutturaFiglia != null) {
             
@@ -673,6 +673,10 @@ public class ProjectionBeans {
             QStoricoRelazione qStoricoRelazione = QStoricoRelazione.storicoRelazione;
             BooleanExpression filter = qStoricoRelazione.idStrutturaPadre.id.eq(idStrutturaFiglia.getId()).and(qStoricoRelazione.attivaDal.loe(dataRiferimento)
                     .and((qStoricoRelazione.attivaAl.isNull()).or(qStoricoRelazione.attivaAl.goe(dataRiferimento))));
+
+            if (showPool == false) {
+                filter = filter.and(qStoricoRelazione.idStrutturaFiglia.ufficio.eq(false));
+            } 
             boolean isLeaf = !storicoRelazioneRepository.exists(filter);
 //                List<Struttura> struttureFiglieDellaStrutturaFiglia = new ArrayList<>();
 //                struttureFiglieDellaStrutturaFigliaInStoricoRelazione.forEach(storicoRelazioneFiglie -> {

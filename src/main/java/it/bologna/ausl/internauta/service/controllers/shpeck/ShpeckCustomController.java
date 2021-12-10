@@ -1,7 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.shpeck;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -755,8 +754,9 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             azienda = aziendaRepository.findByCodice(codiceAzienda);
         }
 
+        
         manageMessageRegistrationUtils.manageMessageRegistration(
-                uuidMessage, operation, idMessage, objectMapper.convertValue(additionalData, new TypeReference<Map<String, Object>>(){}), doIHaveToKrint, azienda
+                uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, azienda
         );
     }
 

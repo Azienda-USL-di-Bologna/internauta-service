@@ -70,6 +70,7 @@ import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.QRawMessage;
 import it.bologna.ausl.model.entities.shpeck.RawMessage;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
 import javax.mail.Address;
 import javax.mail.MessagingException;
 import javax.mail.internet.AddressException;
@@ -106,7 +107,7 @@ public class ShpeckUtils {
 
     @Autowired
     PermissionManager permissionManager;
-    
+
     @Autowired
     private MessageRepository messageRepository;
 
@@ -127,16 +128,16 @@ public class ShpeckUtils {
 
     @Autowired
     private AziendaRepository aziendaRepository;
-    
+
     @Autowired
     private PecRepository pecRepository;
-    
+
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-    
+
     @Autowired
     private CachedEntities cachedEntities;
-    
+
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -149,12 +150,12 @@ public class ShpeckUtils {
         OUTBOX,
         MESSAGE
     }
-    
+
     public static enum MailMessageOperation {
         SAVE_DRAFT,
         SEND_MESSAGE
     }
-    
+
     public Integer BuildAndSendMailMessage(
             MailMessageOperation mailMessageOperation,
             String hostname,
@@ -172,7 +173,7 @@ public class ShpeckUtils {
             Integer idUtente,
             Boolean krint
     ) throws IOException, MessagingException, EmlHandlerException, Http500ResponseException, BadParamsException, Http403ResponseException, BlackBoxPermissionException {
-        
+
         Integer res = null;
 
         LOG.info("Getting PEC from repository...");
@@ -215,17 +216,17 @@ public class ShpeckUtils {
                 LOG.info("Mime message generated correctly!");
                 LOG.info("Preparing the message for saving...");
                 saveDraft(draftMessage, pec, subject, to, cc, hideRecipients,
-                listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments, krint);
-            break;
+                        listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments, krint);
+                break;
             case SEND_MESSAGE:
                 if (Objects.equals(hideRecipients, Boolean.TRUE)) {
-                LOG.info("Hide recipients is true, building mime message for each recipient.");
-                for (String address : to) {
-                    mimeMessage = buildMimeMessage(from, new String[]{address}, cc, body, subject, listAttachments,
-                            emlAttachments, hostname, draftMessage);
-                    mimeMessagesList.add(mimeMessage);
-                }
-                LOG.info("Mime messages generated correctly!");
+                    LOG.info("Hide recipients is true, building mime message for each recipient.");
+                    for (String address : to) {
+                        mimeMessage = buildMimeMessage(from, new String[]{address}, cc, body, subject, listAttachments,
+                                emlAttachments, hostname, draftMessage);
+                        mimeMessagesList.add(mimeMessage);
+                    }
+                    LOG.info("Mime messages generated correctly!");
                 } else {
                     mimeMessage = buildMimeMessage(from, to, cc, body, subject, listAttachments,
                             emlAttachments, hostname, draftMessage);
@@ -253,9 +254,9 @@ public class ShpeckUtils {
                             listAttachments, body, mimeMessage, idMessageRelated, messageRelatedType, emlAttachments, krint);
                     throw new Http500ResponseException("007", "Errore durante l'invio. La mail è stata salvata nelle bozze.", ex);
                 }
-            break;
+                break;
         }
-        
+
         return res;
     }
 
@@ -402,7 +403,7 @@ public class ShpeckUtils {
      * @param emlAttachments
      * @param body
      * @param krint
-     * @return 
+     * @return
      * @throws MessagingException
      * @throws IOException
      */
@@ -505,8 +506,10 @@ public class ShpeckUtils {
      * @param messageToTag messaggio a cui si vuole applicare il tag
      * @param tagName nome del tag che si vuole applicare
      * @param additionalData se passati, vengono inseriti/aggiunti nel tag
-     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se l'utente viene passato sul tag è diverso, viene aggiornato
-     * @return torna true se il messaggio è stato taggato, false altrimenti (ad esempio torna false se il messaggio aveva già il tag passato)
+     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se
+     * l'utente viene passato sul tag è diverso, viene aggiornato
+     * @return torna true se il messaggio è stato taggato, false altrimenti (ad
+     * esempio torna false se il messaggio aveva già il tag passato)
      * @throws com.fasterxml.jackson.core.JsonProcessingException
      */
     public boolean setTagToMessage(Pec pec, Message messageToTag, String tagName, AdditionalData additionalData, Utente utente) throws JsonProcessingException {
@@ -527,20 +530,27 @@ public class ShpeckUtils {
             messageTag = new MessageTag();
             messageTag.setIdMessage(messageToTag);
             messageTag.setIdTag(tag);
-            if (additionalData!= null) {
+            if (additionalData != null) {
                 currentAdditionalDataList = new ArrayList();
                 currentAdditionalDataList.add(additionalData);
 //                messageTag.setAdditionalData(objectMapper.writeValueAsString(currentAdditionalDataList));
                 messageTag.setAdditionalData(AdditionalData.toJsonString(objectMapper, currentAdditionalDataList));
             }
+            if (utente != null) {
+                if (messageTag.getIdUtente() == null || !messageTag.getIdUtente().getId().equals(utente.getId())) {
+                    messageTag.setIdUtente(utente);
+                }
+            } else if (messageTag.getIdUtente() != null) {
+                messageTag.setIdUtente(null);
+            }
             messageTag.setInserted(ZonedDateTime.now());
-           
+
             tagged = true;
             LOG.info("Tag applied!");
         } else {
             LOG.info("Tag already present, skip applying!");
             messageTag = findByIdMessageAndIdTag.get(0);
-            if (additionalData!= null) {
+            if (additionalData != null) {
                 if (StringUtils.hasText(messageTag.getAdditionalData())) {
                     currentAdditionalDataList = AdditionalData.fromJsonString(objectMapper, messageTag.getAdditionalData());
                     currentAdditionalDataList.add(additionalData);
@@ -561,22 +571,24 @@ public class ShpeckUtils {
 
     /**
      * Aggiunge il tag di fascicolazione
+     *
      * @param pec la pec che sta inviado la mail
      * @param messageToTag messaggio a cui si vuole applicare il tag
      * @param additionalDataArchiviation gli additional data da inserire
-     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se l'utente viene passato sul tag è diverso, viene aggiornato
+     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se
+     * l'utente viene passato sul tag è diverso, viene aggiornato
      * @param krint se si vuole kritnare l'operazione
-     * @throws JsonProcessingException 
+     * @throws JsonProcessingException
      */
-    public void SetArchiviationTag (Pec pec, Message messageToTag, AdditionalDataArchiviation additionalDataArchiviation, Utente utente, boolean krint) throws JsonProcessingException {
+    public void SetArchiviationTag(Pec pec, Message messageToTag, AdditionalDataArchiviation additionalDataArchiviation, Utente utente, boolean krint) throws JsonProcessingException {
         boolean toTag = true;
         List<MessageTag> messageTagList = getMessageTagList(pec, messageToTag, SystemTagName.archived.toString());
         if (!messageTagList.isEmpty()) {
             if (StringUtils.hasText(messageTagList.get(0).getAdditionalData())) {
                 List<AdditionalData> additionalData = AdditionalData.fromJsonString(objectMapper, messageTagList.get(0).getAdditionalData());
-                boolean additionalDataAlreadyExits = additionalData.stream().anyMatch(a -> 
-                    ((AdditionalDataArchiviation) a).getIdFascicolo().getId().equals(additionalDataArchiviation.getIdFascicolo().getId()) &&
-                    ((AdditionalDataArchiviation) a).getIdGdDoc().getId().equals(additionalDataArchiviation.getIdGdDoc().getId()));
+                boolean additionalDataAlreadyExits = additionalData.stream().anyMatch(a
+                        -> ((AdditionalDataArchiviation) a).getIdFascicolo().getId().equals(additionalDataArchiviation.getIdFascicolo().getId())
+                        && ((AdditionalDataArchiviation) a).getIdGdDoc().getId().equals(additionalDataArchiviation.getIdGdDoc().getId()));
                 if (additionalDataAlreadyExits) {
                     toTag = false;
                 }
@@ -589,21 +601,93 @@ public class ShpeckUtils {
             }
         }
     }
+
+    /**
+     * Aggiunge il tag di protocollazione
+     *
+     * @param pec la pec che sta inviado la mail
+     * @param messageToTag messaggio a cui si vuole applicare il tag
+     * @param additionalDataRegistration gli additional data da inserire
+     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se
+     * l'utente viene passato sul tag è diverso, viene aggiornato
+     * @param krint se si vuole kritnare l'operazione
+     * @throws JsonProcessingException
+     */
+    public void SetRegistrationTag(Pec pec, Message messageToTag, AdditionalDataRegistration additionalDataRegistration, Utente utente, boolean krint) throws JsonProcessingException {
+        boolean toTag = true;
+        List<MessageTag> messageTagList = getMessageTagList(pec, messageToTag, SystemTagName.registered.toString());
+        if (!messageTagList.isEmpty()) {
+            if (StringUtils.hasText(messageTagList.get(0).getAdditionalData())) {
+                List<AdditionalData> additionalData = AdditionalData.fromJsonString(objectMapper, messageTagList.get(0).getAdditionalData());
+                boolean additionalDataAlreadyExits = additionalData.stream().anyMatch(a
+                        -> ((AdditionalDataRegistration) a).getIdDocumento().getNumeroProtocollo().equals(additionalDataRegistration.getIdDocumento().getNumeroProtocollo())
+                        && ((AdditionalDataRegistration) a).getIdDocumento().getNumeroProposta().equals(additionalDataRegistration.getIdDocumento().getNumeroProposta()));
+                if (additionalDataAlreadyExits) {
+                    toTag = false;
+                }
+            }
+        }
+
+        if (toTag) {
+            boolean tagged = setTagToMessage(pec, messageToTag, SystemTagName.registered.toString(), additionalDataRegistration, utente);
+            if (tagged && krint) {
+                krintShpeckService.writeRegistration(messageToTag, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_PROTOCOLLAZIONE);
+            }
+        }
+    }
     
+        /**
+     * Aggiunge il tag di in registrazione
+     *
+     * @param pec la pec che sta inviado la mail
+     * @param messageToTag messaggio a cui si vuole applicare il tag
+     * @param additionalDataRegistration gli additional data da inserire
+     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se
+     * l'utente viene passato sul tag è diverso, viene aggiornato
+     * @param krint se si vuole kritnare l'operazione
+     * @throws JsonProcessingException
+     */
+    public void SetInRegistrationTag(Pec pec, Message messageToTag, AdditionalDataRegistration additionalDataRegistration, Utente utente, boolean krint) throws JsonProcessingException {
+        boolean toTag = true;
+        List<MessageTag> messageTagList = getMessageTagList(pec, messageToTag, SystemTagName.in_registration.toString());
+        if (!messageTagList.isEmpty()) {
+            if (StringUtils.hasText(messageTagList.get(0).getAdditionalData())) {
+                List<AdditionalData> additionalData = AdditionalData.fromJsonString(objectMapper, messageTagList.get(0).getAdditionalData());
+                boolean additionalDataAlreadyExits = additionalData.stream().anyMatch(a
+                        -> ((AdditionalDataRegistration) a).getIdDocumento().getNumeroProtocollo().equals(additionalDataRegistration.getIdDocumento().getNumeroProtocollo())
+                        && ((AdditionalDataRegistration) a).getIdDocumento().getNumeroProposta().equals(additionalDataRegistration.getIdDocumento().getNumeroProposta()));
+                if (additionalDataAlreadyExits) {
+                    toTag = false;
+                }
+            }
+        }
+
+        if (toTag) {
+            boolean tagged = setTagToMessage(pec, messageToTag, SystemTagName.in_registration.toString(), additionalDataRegistration, utente);
+            if (tagged && krint) {
+                krintShpeckService.writeRegistration(messageToTag, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_IN_PROTOCOLLAZIONE);
+            }
+        }
+    }
+    
+
     public List<MessageTag> getMessageTagList(Pec pec, Message messageToTag, String tagName) {
         LOG.info("Getting tag to apply...");
         Tag tag = tagRepository.findByidPecAndName(pec, tagName);
         List<MessageTag> messageTagList = messageTagRepository.findByIdMessageAndIdTag(messageToTag, tag);
         return messageTagList;
     }
-    
+
     /**
-     * Inserisce i tag di rispondi/rispondi a tutti/inoltro alla mail originale passato in ingresso
+     * Inserisce i tag di rispondi/rispondi a tutti/inoltro alla mail originale
+     * passato in ingresso
      *
      * @param pec La pec che sta inviado la mail
-     * @param idMessageRelated Id del messaggio a cui si sta rispondendo o inoltrando
+     * @param idMessageRelated Id del messaggio a cui si sta rispondendo o
+     * inoltrando
      * @param messageRelatedType Tipo di relazione del messaggio relazionato
-     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se l'utente viene passato sul tag è diverso, viene aggiornato
+     * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se
+     * l'utente viene passato sul tag è diverso, viene aggiornato
      * @param krint se si vuole kritnare l'operazione
      */
     public void setReplyForwardTagToMessage(Pec pec, Integer idMessageRelated, MessageRelatedType messageRelatedType, Utente utente, Boolean krint) throws JsonProcessingException {
@@ -890,13 +974,14 @@ public class ShpeckUtils {
         message.setIdAziendaRepository(a);
         messageRepository.save(message);
     }
-    
+
     /**
      * Torna true se l'utente ha il permesso passsato sulla Pec passata
+     *
      * @param pec
      * @param predicati
      * @param persona
-     * @return 
+     * @return
      */
     public Boolean userHasPermissionOnThisPec(Pec pec, List<String> predicati, Persona persona) throws BlackBoxPermissionException {
         List<PermessoEntitaStoredProcedure> pecWithStandardPermissions;
@@ -906,8 +991,8 @@ public class ShpeckUtils {
                     Arrays.asList(new Pec[]{pec}),
                     predicati,
                     Arrays.asList(new String[]{Permessi.Ambiti.PECG.toString()}),
-                    Arrays.asList(new String[]{Permessi.Tipi.PEC.toString()}), 
-                    false, 
+                    Arrays.asList(new String[]{Permessi.Tipi.PEC.toString()}),
+                    false,
                     null);
         } catch (BlackBoxPermissionException ex) {
             LOG.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
