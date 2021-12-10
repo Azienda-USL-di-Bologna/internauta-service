@@ -21,7 +21,6 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
-import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import java.io.IOException;
@@ -30,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,6 +89,7 @@ public class ManageMessageRegistrationUtils {
                 Persona persona = authenticatedUserProperties.getPerson();
                 AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), persona.getDescrizione());
                 additionalData.setIdUtente(utenteAdditionalData);
+                
             }
             if(azienda != null){
                 AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
@@ -138,7 +137,8 @@ public class ManageMessageRegistrationUtils {
                 // leggo gli additional data del messaggio in stado di in registrazione
                 if (messageTagInRegistration != null && messageTagInRegistration.getAdditionalData() != null) {
                     try {
-                        AdditionalDataRegistration initialAdditionalData = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), AdditionalDataRegistration.class);
+                        AdditionalDataRegistration initialAdditionalData = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), new TypeReference<AdditionalDataRegistration>() {});
+
                         initialAdditionalDataArrayInRegistration.add(initialAdditionalData);
                     } catch (Throwable ex) {
 //                        initialAdditionalDataArrayInRegistration = (List<AdditionalDataRegistration>)AdditionalDataRegistration.fromJsonString(objectMapper, messageTagInRegistration.getAdditionalData());
@@ -224,6 +224,7 @@ public class ManageMessageRegistrationUtils {
             List<AdditionalDataRegistration> initialAdditionalDataArrayInRegistration
     ) throws Exception {
         LOG.info("dentro ADD_IN_REGISTRATION per il messaggio con id: " + message.getId());
+        
         if (additionalData == null) {
             throw new Exception("add tag ADD_IN_REGISTRATION no additional data");
         } else {
@@ -243,7 +244,8 @@ public class ManageMessageRegistrationUtils {
                 messageTagToAdd.setIdTag(tagInRegistration);
             }
             initialAdditionalDataArrayInRegistration.add(additionalData);
-            messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayInRegistration));
+//            messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayInRegistration));
+            messageTagToAdd.setAdditionalData(AdditionalData.toJsonString(objectMapper, initialAdditionalDataArrayInRegistration));
             messageTagRespository.save(messageTagToAdd);
         } catch (Exception ex) {
             throw new Exception("errore nella funzione--> addInRegistration " + ex.getMessage());
@@ -314,11 +316,11 @@ public class ManageMessageRegistrationUtils {
             if (!isTheRegisteredMessage) {
                 additionalData.setCasellaPec(pecOfRegistrationAddress);
             }
-            initialAdditionalDataArrayRegistered.add(additionalData);
+//            initialAdditionalDataArrayRegistered.add(additionalData);
 //            messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayRegistered));
             Utente utente = authenticatedUserProperties.getUser();
 //            messageTagRespository.save(messageTagToAdd);
-            shpeckUtils.SetRegistrationTag(message.getIdPec(), message, (AdditionalDataRegistration) initialAdditionalDataArrayRegistered, utente, true);
+            shpeckUtils.SetRegistrationTag(message.getIdPec(), message, (AdditionalDataRegistration) additionalData, utente, true);
             removeInRegistration(messageTagInRegistration, initialAdditionalDataArrayInRegistration, additionalData);
             
             
