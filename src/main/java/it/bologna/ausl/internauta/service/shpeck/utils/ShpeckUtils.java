@@ -536,6 +536,13 @@ public class ShpeckUtils {
 //                messageTag.setAdditionalData(objectMapper.writeValueAsString(currentAdditionalDataList));
                 messageTag.setAdditionalData(AdditionalData.toJsonString(objectMapper, currentAdditionalDataList));
             }
+            if (utente != null) {
+                if (messageTag.getIdUtente() == null || !messageTag.getIdUtente().getId().equals(utente.getId())) {
+                    messageTag.setIdUtente(utente);
+                }
+            } else if (messageTag.getIdUtente() != null) {
+                messageTag.setIdUtente(null);
+            }
             messageTag.setInserted(ZonedDateTime.now());
 
             tagged = true;
