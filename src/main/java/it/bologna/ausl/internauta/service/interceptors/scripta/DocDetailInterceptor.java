@@ -1,9 +1,11 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.querydsl.core.types.Path;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.SubQueryExpression;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.EntityPathBase;
 import com.querydsl.core.types.dsl.Expressions;
 import static com.querydsl.jpa.JPAExpressions.select;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -20,16 +22,23 @@ import it.bologna.ausl.model.entities.scripta.DocDetail;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
+import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.interceptors.NextSdrControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
@@ -188,10 +197,23 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                     .where(
                         qPersonaVedente.idPersona.id.eq(persona.getId()),
                         qPersonaVedente.pienaVisibilita.eq(Expressions.TRUE),
-                        qdoclist.id.eq(qPersonaVedente.idDocDetail.id)
+                        qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
+                        qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione),
+                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
+                    );
+            SubQueryExpression<Long> queryPersoneVedenteSenzaObbligoPienaVisbilita = 
+                    select(qPersonaVedente.id)
+                    .from(qPersonaVedente)
+                    .where(
+                        qPersonaVedente.idPersona.id.eq(persona.getId()),
+                        qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
+                        qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione),
+                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
                     );
             BooleanExpression pienaVisibilita = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteConPienaVisibilita);
-            BooleanExpression personaVedente = qdoclist.personeVedentiList.any().idPersona.id.eq(persona.getId());
+            BooleanExpression personaVedente = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteSenzaObbligoPienaVisbilita);//idPersona.id.eq(persona.getId());
             
             BooleanExpression sonoSegretario = null;
             if (idStruttureSegretario != null && idStruttureSegretario.length > 0) {
@@ -256,4 +278,43 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
         return findOne.isPresent();
     }
 
+    
+//    public BooleanExpression duplicateFiltersPerPartition(EntityPathBase qEntity) {
+//        BooleanExpression filter = Expressions.TRUE.eq(true);
+//        Map<Path<?>, List<Object>> filterDescriptorMap = NextSdrControllerInterceptor.filterDescriptor.get();
+//        QPersonaVedente qEntity = QPersonaVedente.personaVedente;
+//        if (!filterDescriptorMap.isEmpty()) {
+//            Pattern pattern = Pattern.compile("\\.(.*?)(\\.|$)");
+//            Set<Path<?>> pathSet = filterDescriptorMap.keySet();
+//            System.out.println(pathSet.toString());
+//            for (Path<?> path : pathSet) {
+//                Matcher matcher = pattern.matcher(path.toString());
+//                matcher.find();
+//                String fieldName = matcher.group(1);
+//                if (fieldName.equals("idAzienda")) {
+//                    List<Object> ids = filterDescriptorMap.get(path);
+//                    for (Object id : ids) {
+//                        filter = filter.and(qEntity.idAzienda.id.eq((Integer) id));
+//                    }
+//                } else if (fieldName.equals("dataCreazione")) {
+////                     if (List.class.isAssignableFrom(filterDescriptorMap.get(path).getClass())) {
+//                    if (filterDescriptorMap.get(path).size() == 2) {
+//                        ZonedDateTime data1 = (ZonedDateTime) filterDescriptorMap.get(path).get(0);
+//                        ZonedDateTime data2 = (ZonedDateTime) filterDescriptorMap.get(path).get(1);
+//                        if (data1.isBefore(data2)) {
+//                            filter = filter.and(qEntity.dataCreazione.goe(data1).and(qEntity.dataCreazione.lt(data2)));
+//                        } else {
+//                            filter = filter.and(qEntity.dataCreazione.goe(data2).and(qEntity.dataCreazione.lt(data1)));
+//                        }
+//                    } else {
+//                        ZonedDateTime data = (ZonedDateTime) filterDescriptorMap.get(path).get(0);
+//                        ZonedDateTime startDate = data.toLocalDate().atTime(0, 0, 0).atZone(data.getZone());
+//                        ZonedDateTime endDate = startDate.plusDays(1);
+//                        filter = filter.and(qEntity.dataCreazione.goe(startDate).and(qEntity.dataCreazione.lt(endDate)));
+//                    }
+//                }
+//            }
+//        }
+//        return filter;
+//    }
 }

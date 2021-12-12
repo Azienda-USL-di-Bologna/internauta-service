@@ -69,7 +69,7 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         initialPredicate = safetyFilters().and(initialPredicate);
-        initialPredicate = duplicateFiltersPerPartition().and(initialPredicate);
+        initialPredicate = docDetailInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc").and(initialPredicate);
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -173,42 +173,42 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
         return filter;
     }
 
-    public BooleanExpression duplicateFiltersPerPartition() {
-        BooleanExpression filter = Expressions.TRUE.eq(true);
-        Map<Path<?>, List<Object>> filterDescriptorMap = NextSdrControllerInterceptor.filterDescriptor.get();
-        QDocDetailView qdocdetailview = QDocDetailView.docDetailView;
-        if (!filterDescriptorMap.isEmpty()) {
-            Pattern pattern = Pattern.compile("\\.(.*?)(\\.|$)");
-            Set<Path<?>> pathSet = filterDescriptorMap.keySet();
-            System.out.println(pathSet.toString());
-            for (Path<?> path : pathSet) {
-                Matcher matcher = pattern.matcher(path.toString());
-                matcher.find();
-                String fieldName = matcher.group(1);
-                if (fieldName.equals("idAzienda")) {
-                    List<Object> ids = filterDescriptorMap.get(path);
-                    for (Object id : ids) {
-                        filter = filter.and(qdocdetailview.idAziendaDoc.id.eq((Integer) id));
-                    }
-                } else if (fieldName.equals("dataCreazione")) {
-//                     if (List.class.isAssignableFrom(filterDescriptorMap.get(path).getClass())) {
-                    if (filterDescriptorMap.get(path).size() == 2) {
-                        ZonedDateTime data1 = (ZonedDateTime) filterDescriptorMap.get(path).get(0);
-                        ZonedDateTime data2 = (ZonedDateTime) filterDescriptorMap.get(path).get(1);
-                        if (data1.isBefore(data2)) {
-                            filter = filter.and(qdocdetailview.dataCreazioneDoc.goe(data1).and(qdocdetailview.dataCreazioneDoc.lt(data2)));
-                        } else {
-                            filter = filter.and(qdocdetailview.dataCreazioneDoc.goe(data2).and(qdocdetailview.dataCreazioneDoc.lt(data1)));
-                        }
-                    } else {
-                        ZonedDateTime data = (ZonedDateTime) filterDescriptorMap.get(path).get(0);
-                        ZonedDateTime startDate = data.toLocalDate().atTime(0, 0, 0).atZone(data.getZone());
-                        ZonedDateTime endDate = startDate.plusDays(1);
-                        filter = filter.and(qdocdetailview.dataCreazioneDoc.goe(startDate).and(qdocdetailview.dataCreazioneDoc.lt(endDate)));
-                    }
-                }
-            }
-        }
-        return filter;
-    }
+//    public BooleanExpression duplicateFiltersPerPartition() {
+//        BooleanExpression filter = Expressions.TRUE.eq(true);
+//        Map<Path<?>, List<Object>> filterDescriptorMap = NextSdrControllerInterceptor.filterDescriptor.get();
+//        QDocDetailView qdocdetailview = QDocDetailView.docDetailView;
+//        if (!filterDescriptorMap.isEmpty()) {
+//            Pattern pattern = Pattern.compile("\\.(.*?)(\\.|$)");
+//            Set<Path<?>> pathSet = filterDescriptorMap.keySet();
+//            System.out.println(pathSet.toString());
+//            for (Path<?> path : pathSet) {
+//                Matcher matcher = pattern.matcher(path.toString());
+//                matcher.find();
+//                String fieldName = matcher.group(1);
+//                if (fieldName.equals("idAzienda")) {
+//                    List<Object> ids = filterDescriptorMap.get(path);
+//                    for (Object id : ids) {
+//                        filter = filter.and(qdocdetailview.idAziendaDoc.id.eq((Integer) id));
+//                    }
+//                } else if (fieldName.equals("dataCreazione")) {
+////                     if (List.class.isAssignableFrom(filterDescriptorMap.get(path).getClass())) {
+//                    if (filterDescriptorMap.get(path).size() == 2) {
+//                        ZonedDateTime data1 = (ZonedDateTime) filterDescriptorMap.get(path).get(0);
+//                        ZonedDateTime data2 = (ZonedDateTime) filterDescriptorMap.get(path).get(1);
+//                        if (data1.isBefore(data2)) {
+//                            filter = filter.and(qdocdetailview.dataCreazioneDoc.goe(data1).and(qdocdetailview.dataCreazioneDoc.lt(data2)));
+//                        } else {
+//                            filter = filter.and(qdocdetailview.dataCreazioneDoc.goe(data2).and(qdocdetailview.dataCreazioneDoc.lt(data1)));
+//                        }
+//                    } else {
+//                        ZonedDateTime data = (ZonedDateTime) filterDescriptorMap.get(path).get(0);
+//                        ZonedDateTime startDate = data.toLocalDate().atTime(0, 0, 0).atZone(data.getZone());
+//                        ZonedDateTime endDate = startDate.plusDays(1);
+//                        filter = filter.and(qdocdetailview.dataCreazioneDoc.goe(startDate).and(qdocdetailview.dataCreazioneDoc.lt(endDate)));
+//                    }
+//                }
+//            }
+//        }
+//        return filter;
+//    }
 }
