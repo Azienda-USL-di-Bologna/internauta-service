@@ -83,11 +83,13 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.util.UUID;
+import java.util.logging.Level;
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletResponse;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.springframework.util.StreamUtils;
 
 /**
@@ -268,8 +270,295 @@ public class RaccoltaSempliceCustomController {
         return "444";
     }
 
+    @RequestMapping(value = {"editRubrica"}, method = RequestMethod.POST)
+    public String editRubrica(@RequestBody String body,
+            HttpServletRequest request) throws Http500ResponseException,
+            Http404ResponseException, RestClientException {
+
+        log.info("Eccoci");
+        JSONParser jsonParser = new JSONParser();
+
+        try {
+
+            JSONObject properties = (JSONObject) jsonParser.parse(body);
+
+            String azienda = (String) properties.get("azienda");
+
+            Sql2o dbConnection = postgresConnectionManager.getDbConnection(azienda);
+
+            Connection conn = (Connection) dbConnection.open();
+
+            String idS = (String) properties.get("idContatto");
+
+            Integer id = Integer.valueOf(idS);
+
+            String telefono, mail, idIndirizzo, via, civico,
+                    cap, comune, provincia, nazione, idTelefono, idMail;
+
+            Contatto contatto = contattoRepository.getOne(id);
+
+            telefono = (String) properties.get("telefono");
+
+            mail = (String) properties.get("mail");
+
+            via = (String) properties.get("via");
+
+            civico = (String) properties.get("civico");
+
+            cap = (String) properties.get("cap");
+
+            comune = (String) properties.get("comune");
+
+            provincia = (String) properties.get("provincia");
+
+            nazione = (String) properties.get("nazione");
+
+            idTelefono = (String) properties.get("idTelefono");
+
+            idMail = (String) properties.get("idMail");
+
+            idIndirizzo = (String) properties.get("idIndirizzo");
+
+            if (telefono != null) {
+
+                if (idTelefono == null) {
+
+                    List<Telefono> listaTel = contatto.getTelefonoList();
+
+                    Telefono tel = new Telefono();
+
+                    tel.setFax(false);
+
+                    tel.setPrincipale(false);
+
+                    tel.setNumero(telefono);
+
+                    tel.setProvenienza("Raccolta Semplice");
+
+                    tel.setIdContatto(contatto);
+
+                    DettaglioContatto newDettaglio = new DettaglioContatto();
+
+                    newDettaglio.setDescrizione(telefono);
+
+                    newDettaglio.setIdContatto(contatto);
+
+                    newDettaglio.setTipo(DettaglioContatto.TipoDettaglio.TELEFONO);
+
+                    newDettaglio.setTelefono(tel);
+
+                    newDettaglio.setEliminato(false);
+
+                    newDettaglio = dettaglioRepository.save(newDettaglio);
+
+                    tel.setIdDettaglioContatto(newDettaglio);
+
+                    listaTel.add(tel);
+
+                    contatto.setTelefonoList(listaTel);
+
+                    contattoRepository.save(contatto);
+
+                } else {
+
+                    DettaglioContatto dettaglioContatto = dettaglioRepository.getOne(Integer.valueOf(idTelefono));
+
+                    dettaglioContatto.setDescrizione(telefono);
+
+                    dettaglioContatto = dettaglioRepository.save(dettaglioContatto);
+
+                    List<Telefono> listaTel = contatto.getTelefonoList();
+
+                    int idTelInt = Integer.valueOf(idTelefono);
+
+                    for (Telefono elm : listaTel) {
+                        if (idTelInt == elm.getIdDettaglioContatto().getId()) {
+
+                            elm.setNumero(telefono);
+                        }
+                    }
+
+                    contatto.setTelefonoList(listaTel);
+
+                    contattoRepository.save(contatto);
+
+                    log.info("Tutto ok");
+                }
+
+            }
+
+            if (mail != null) {
+
+                if (idMail != null) {
+
+                    DettaglioContatto dettaglioContatto = dettaglioRepository.getOne(Integer.valueOf(idMail));
+
+                    dettaglioContatto.setDescrizione(mail);
+
+                    dettaglioContatto = dettaglioRepository.save(dettaglioContatto);
+
+                    List<Email> listMail = contatto.getEmailList();
+
+                    int idMailInt = Integer.valueOf(idMail);
+
+                    for (Email elm : listMail) {
+
+                        if (idMailInt == elm.getIdDettaglioContatto().getId()) {
+
+                            elm.setEmail(mail);
+
+                        }
+                    }
+
+                    contatto.setEmailList(listMail);
+
+                    contattoRepository.save(contatto);
+
+                } else {
+
+                    Email newMail = new Email();
+
+                    DettaglioContatto newDettaglio = new DettaglioContatto();
+
+                    newDettaglio.setDescrizione(mail);
+
+                    newDettaglio.setIdContatto(contatto);
+
+                    newDettaglio.setPrincipale(Boolean.FALSE);
+
+                    newDettaglio.setEliminato(false);
+
+                    newDettaglio.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
+
+                    newDettaglio = dettaglioRepository.save(newDettaglio);
+
+                    newMail.setIdContatto(contatto);
+
+                    newMail.setEmail(mail);
+
+                    newMail.setIdDettaglioContatto(newDettaglio);
+
+                    newMail.setPec(false);
+
+                    newMail.setPrincipale(false);
+
+                    newMail.setProvenienza("Raccolta Semplice");
+
+                    List<Email> listMail = contatto.getEmailList();
+
+                    listMail.add(newMail);
+
+                    contatto.setEmailList(listMail);
+
+                    contattoRepository.save(contatto);
+
+                }
+            }
+
+            if (via != null || civico != null || cap != null
+                    || comune != null || provincia != null || nazione != null) {
+                if (idIndirizzo != null) {
+
+                    List<Indirizzo> listIndirizzo = contatto.getIndirizziList();
+
+                    DettaglioContatto newDettaglio = dettaglioRepository.getOne(Integer.valueOf(idIndirizzo));
+
+                    String indirizzoCompleto = via + " " + civico + " " + cap + " "
+                            + comune + " " + provincia + " " + nazione;
+
+                    newDettaglio.setDescrizione(indirizzoCompleto);
+
+                    int idIndirizzoInt = Integer.valueOf(idIndirizzo);
+
+                    newDettaglio = dettaglioRepository.getOne(Integer.valueOf(idIndirizzo));
+
+                    for (Indirizzo newIndirizzo : listIndirizzo) {
+                        if (idIndirizzoInt == newIndirizzo.getIdDettaglioContatto().getId()) {
+
+                            newIndirizzo.setVia(via);
+
+                            newIndirizzo.setCivico(civico);
+
+                            newIndirizzo.setCap(cap);
+
+                            newIndirizzo.setComune(comune);
+
+                            newIndirizzo.setProvincia(provincia);
+
+                            newIndirizzo.setNazione("");
+
+                            newIndirizzo.setDescrizione(indirizzoCompleto);
+
+                            newIndirizzo.setProvenienza("Raccolta Semplice");
+
+                            contatto.setIndirizziList(listIndirizzo);
+
+                            contattoRepository.save(contatto);
+
+                        }
+                    }
+                } else {
+
+                    Indirizzo newIndirizzo = new Indirizzo();
+
+                    DettaglioContatto newDettaglio = new DettaglioContatto();
+
+                    String indirizzoCompleto = via + " " + civico + " " + cap + " "
+                            + comune + " " + provincia;
+
+                    newDettaglio.setDescrizione(indirizzoCompleto);
+
+                    newDettaglio.setPrincipale(false);
+
+                    newDettaglio.setIdContatto(contatto);
+
+                    newDettaglio.setEliminato(false);
+
+                    newDettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+
+                    newDettaglio = dettaglioRepository.save(newDettaglio);
+
+                    newIndirizzo.setVia(via);
+
+                    newIndirizzo.setCivico(civico);
+
+                    newIndirizzo.setCap(cap);
+
+                    newIndirizzo.setComune(comune);
+
+                    newIndirizzo.setProvincia(provincia);
+
+                    newIndirizzo.setNazione("");
+
+                    newIndirizzo.setIdContatto(contatto);
+
+                    newIndirizzo.setProvenienza("Raccolta Semplice");
+
+                    newIndirizzo.setPrincipale(false);
+
+                    newIndirizzo.setIdDettaglioContatto(newDettaglio);
+
+                    List<Indirizzo> listIndirizzi = contatto.getIndirizziList();
+
+                    listIndirizzi.add(newIndirizzo);
+
+                    contatto.setIndirizziList(listIndirizzi);
+
+                    contattoRepository.save(contatto);
+                }
+            }
+
+            conn.close();
+
+        } catch (Exception e) {
+            log.error("Errore: ", e);
+        }
+
+        return null;
+    }
+
     @RequestMapping(value = {"personaRS"}, method = RequestMethod.POST)
-    public void dettagliPersone(@RequestBody String jsonReq,
+    public String dettagliPersone(@RequestBody String jsonReq,
             HttpServletRequest request) throws Http500ResponseException,
             Http404ResponseException, RestClientException {
 
@@ -606,10 +895,13 @@ public class RaccoltaSempliceCustomController {
                     }
                 }
                 contatto = contattoRepository.save(contatto);
+                return contatto.getId().toString();
             }
         } catch (Throwable e) {
             log.error("Errore nel salvataggio del contatto", e);
+            return "error";
         }
+        return null;
     }
 
     @RequestMapping(value = {"storico"}, method = RequestMethod.GET)
