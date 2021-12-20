@@ -26,11 +26,6 @@ import it.bologna.ausl.model.entities.configurazione.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configurazione.projections.generated.ImpostazioniApplicazioniWithPlainFields;
 import it.bologna.ausl.model.entities.scrivania.projections.generated.AttivitaWithIdPersona;
 import it.bologna.ausl.model.entities.shpeck.Message;
-import it.bologna.ausl.model.entities.shpeck.MessageAddress;
-import it.bologna.ausl.model.entities.shpeck.MessageTag;
-import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageAddressWithIdAddress;
-import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageFolderWithIdFolder;
-import it.bologna.ausl.model.entities.shpeck.projections.generated.MessageTagWithIdTag;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.InterceptorException;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
@@ -81,9 +76,7 @@ import java.util.ArrayList;
 import org.slf4j.Logger;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom;
 import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtentiResponsabiliCustom;
-import it.bologna.ausl.model.entities.baborg.projections.UtenteWithIdPersonaAndPermessiCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithStruttureAndResponsabiliCustom;
-import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaUnificataWithIdStrutturaDestinazioneAndIdStrutturaSorgente;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithAttributiStrutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaContatto;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaDettaglioContatto;
@@ -106,7 +99,6 @@ import it.bologna.ausl.model.entities.scripta.projections.CustomRelatedWithSpedi
 import it.bologna.ausl.model.entities.scripta.projections.generated.SpedizioneWithIdMezzo;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import java.lang.reflect.Method;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import javax.persistence.Table;
@@ -302,42 +294,42 @@ public class ProjectionBeans {
         }
     }
 
-    public List<MessageAddressWithIdAddress> getMessageAddressListWithIdAddress(Message message) {
-        if (message != null) {
-            List<MessageAddress> messageAddresssList = message.getMessageAddressList();
-            if (messageAddresssList != null && !messageAddresssList.isEmpty()) {
-                return messageAddresssList.stream().map(messageAddress -> factory.createProjection(MessageAddressWithIdAddress.class, messageAddress))
-                        .collect(Collectors.toList());
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    }
+//    public List<MessageAddressWithIdAddress> getMessageAddressListWithIdAddress(Message message) {
+//        if (message != null) {
+//            List<MessageAddress> messageAddresssList = message.getMessageAddressList();
+//            if (messageAddresssList != null && !messageAddresssList.isEmpty()) {
+//                return messageAddresssList.stream().map(messageAddress -> factory.createProjection(MessageAddressWithIdAddress.class, messageAddress))
+//                        .collect(Collectors.toList());
+//            } else {
+//                return null;
+//            }
+//        } else {
+//            return null;
+//        }
+//    }
 
-    public List<MessageTagWithIdTag> getMessageTagListWithIdTag(Message message) {
-        if (message != null) {
-            List<MessageTag> messageTagList = message.getMessageTagList();
-            if (messageTagList != null && !messageTagList.isEmpty()) {
-                return messageTagList.stream().map(messageTag -> factory.createProjection(MessageTagWithIdTag.class, messageTag))
-                        .collect(Collectors.toList());
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    }
+//    public List<MessageTagWithIdTag> getMessageTagListWithIdTag(Message message) {
+//        if (message != null) {
+//            List<MessageTag> messageTagList = message.getMessageTagList();
+//            if (messageTagList != null && !messageTagList.isEmpty()) {
+//                return messageTagList.stream().map(messageTag -> factory.createProjection(MessageTagWithIdTag.class, messageTag))
+//                        .collect(Collectors.toList());
+//            } else {
+//                return null;
+//            }
+//        } else {
+//            return null;
+//        }
+//    }
 
-    public List<MessageFolderWithIdFolder> getMessageFolderListWithIdFolder(Message message) {
-        try {
-            return (List<MessageFolderWithIdFolder>) projectionsInterceptorLauncher.lanciaInterceptorCollection(message, "getMessageFolderList", MessageFolderWithIdFolder.class.getSimpleName());
-        } catch (EntityReflectionException | NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | ClassNotFoundException | NoSuchFieldException | InterceptorException | AbortLoadInterceptorException ex) {
-            LOGGER.error("errore nell'estrazione di getRibaltoneDaLanciareList", ex);
-            return null;
-        }
-    }
+//    public List<MessageFolderWithIdFolder> getMessageFolderListWithIdFolder(Message message) {
+//        try {
+//            return (List<MessageFolderWithIdFolder>) projectionsInterceptorLauncher.lanciaInterceptorCollection(message, "getMessageFolderList", MessageFolderWithIdFolder.class.getSimpleName());
+//        } catch (EntityReflectionException | NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | ClassNotFoundException | NoSuchFieldException | InterceptorException | AbortLoadInterceptorException ex) {
+//            LOGGER.error("errore nell'estrazione di getRibaltoneDaLanciareList", ex);
+//            return null;
+//        }
+//    }
 
     public List<RibaltoneDaLanciareCustom> getRibaltoneDaLanciareListWithIdUtente(Azienda a) {
         try {
