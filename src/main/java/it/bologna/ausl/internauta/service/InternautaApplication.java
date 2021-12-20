@@ -47,6 +47,7 @@ public class InternautaApplication {
     Boolean poolExecutorActive;
 
     public static void main(String[] args) {
+//        System.setProperty("user.timezone", "Europe/Rome");
         SpringApplication.run(InternautaApplication.class, args);
     }
 

@@ -55,10 +55,16 @@ public class SAIUtils {
         String idFascicoloPadre = null;
         log.info("Cerco il fascicolo padre");
         Map<String, Object> fascicoloPadre = null;
+        Map<String, String> datiPerFascicolazione;
         if (numerazioneGerarchicaDelPadre == null) {
-            log.info("fascicolazione gerarchida del padre non passata, la cerco in parametri_aziene");
-            numerazioneGerarchicaDelPadre = getNumerazioneGerarchicaFascicoloDestinazione(mittente, azienda.getId());
+            log.info("fascicolazione gerarchida del padre non passata, la cerco in parametri_aziene");            
+            datiPerFascicolazione = getDatiPerFascicolazione(mittente, azienda.getId());
+        } else {
+            datiPerFascicolazione = getDatiPerFascicolazione("default", azienda.getId());
         }
+                    
+        numerazioneGerarchicaDelPadre = datiPerFascicolazione.get("numerazioneGerarchicaFascicolo");
+        String nomeFascicoloTemplate = datiPerFascicolazione.get("templateNomeSottoFascicolo").replace("[CF]", codiceFiscale);
         if (numerazioneGerarchicaDelPadre != null) {
             fascicoloPadre = fascicoloUtils.getFascicoloByNumerazioneGerarchica(azienda.getId(), numerazioneGerarchicaDelPadre);
             if (fascicoloPadre != null) {
@@ -79,7 +85,9 @@ public class SAIUtils {
             log.info("fascicolo destinazione: " + fascicoloDestinazione.toString());
         } else {
             log.info("Not found fascicolo destinazione: va creato");
-            String nomeFascicoloTemplate = "Sottofascicolo SAI di " + codiceFiscale;
+            
+//            String nomeFascicoloTemplate = "SAI di " + codiceFiscale;
+           
             fascicoloDestinazione = createFascicoloDestinazione(azienda.getId(), nomeFascicoloTemplate, fascicoloPadre);
 
             // QUA SI DOVREBBERO DUPLICARE I PERMESSI, MA ABBIAMO DECISO DI NO
@@ -114,13 +122,13 @@ public class SAIUtils {
 
     }
 
-    private String getNumerazioneGerarchicaFascicoloDestinazione(String indirizzoPec, Integer idAzienda) throws FascicoloPadreNotDefinedException {
-        String res;
-        Map<String, String> mappaPecFascicoli;
+    private Map<String, String> getDatiPerFascicolazione(String indirizzoPec, Integer idAzienda) throws FascicoloPadreNotDefinedException {
+        Map<String, String> res;
+        Map<String,  Map<String, String>> mappaPecFascicoli;
         try {
             mappaPecFascicoli = parametriAziendeReader.getValue(
                     parametriAziendeReader.getParameters("fascicoliSAI", new Integer[]{idAzienda}).get(0),
-                    new TypeReference<Map<String, String>>() {
+                    new TypeReference<Map<String,  Map<String, String>>>() {
             });
         } catch (Exception ex) {
             throw new FascicoloPadreNotDefinedException("errore nella lettura del parametro dal database", ex);
