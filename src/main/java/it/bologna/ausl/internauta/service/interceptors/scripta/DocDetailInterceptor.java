@@ -190,8 +190,8 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         qPersonaVedente.pienaVisibilita.eq(Expressions.TRUE),
                         qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
                         qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
-                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione),
-                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
+//                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
                     );
             SubQueryExpression<Long> queryPersoneVedenteSenzaObbligoPienaVisbilita = 
                     select(qPersonaVedente.id)
@@ -200,8 +200,8 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         qPersonaVedente.idPersona.id.eq(persona.getId()),
                         qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
                         qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
-                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione),
-                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
+//                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
                     );
             BooleanExpression pienaVisibilita = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteConPienaVisibilita);
             BooleanExpression personaVedente = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteSenzaObbligoPienaVisbilita);//idPersona.id.eq(persona.getId());

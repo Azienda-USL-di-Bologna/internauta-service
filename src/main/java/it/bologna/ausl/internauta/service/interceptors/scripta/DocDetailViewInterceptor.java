@@ -62,7 +62,7 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         initialPredicate = safetyFilters().and(initialPredicate);
-        initialPredicate = docDetailInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc").and(initialPredicate);
+//        initialPredicate = docDetailInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc").and(initialPredicate);
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 

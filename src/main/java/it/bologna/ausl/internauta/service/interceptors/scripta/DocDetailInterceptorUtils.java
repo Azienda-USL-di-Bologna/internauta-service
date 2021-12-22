@@ -148,7 +148,7 @@ public class DocDetailInterceptorUtils {
      * @param dataCreazioneNameField
      * @return 
      */
-    public BooleanExpression duplicateFiltersPerPartition(Class entityClass, String dataCreazioneNameField) {
+    public BooleanExpression NON_USARE_duplicateFiltersPerPartition(Class entityClass, String dataCreazioneNameField) {
         BooleanExpression filter = Expressions.TRUE.eq(true);
         Map<Path<?>, List<Object>> filterDescriptorMap = NextSdrControllerInterceptor.filterDescriptor.get();
         PathBuilder<?> qEntity = new PathBuilder(entityClass, CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_CAMEL,entityClass.getSimpleName()));
@@ -164,7 +164,7 @@ public class DocDetailInterceptorUtils {
                     List<Object> ids = filterDescriptorMap.get(path);
                     for (Object id : ids) {
                         PathBuilder<Azienda> qAzienda = qEntity.get("idAzienda", Azienda.class);
-                        filter = filter.and(qAzienda.get("id").eq((Integer) id));
+                        filter = filter.and(qAzienda.get("id").eq((Integer) id)); //ATTENZIONE QUI DOVREBBE ESSERE IN OR E NON IN AND
                     }
                 } else if (fieldName.equals("dataCreazione")) {
 //                     if (List.class.isAssignableFrom(filterDescriptorMap.get(path).getClass())) {
