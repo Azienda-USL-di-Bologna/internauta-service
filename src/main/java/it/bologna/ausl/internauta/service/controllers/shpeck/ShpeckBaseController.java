@@ -49,7 +49,11 @@ import org.springframework.web.bind.annotation.RestController;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.model.entities.shpeck.Outbox;
 import it.bologna.ausl.model.entities.shpeck.QOutbox;
+import it.bologna.ausl.model.entities.shpeck.views.MessageWithFolderView;
+import it.bologna.ausl.model.entities.shpeck.views.MessageWithTagView;
 import it.bologna.ausl.model.entities.shpeck.views.OutboxLite;
+import it.bologna.ausl.model.entities.shpeck.views.QMessageWithFolderView;
+import it.bologna.ausl.model.entities.shpeck.views.QMessageWithTagView;
 import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
 
 @RestController
@@ -263,6 +267,32 @@ public class ShpeckBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMessageComplete.messageComplete, MessageComplete.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"messagewithfolderview", "messagewithfolderview/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> messagewithfolderview(
+            @QuerydslPredicate(root = MessageWithFolderView.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMessageWithFolderView.messageWithFolderView, MessageWithFolderView.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"messagewithtagview", "messagewithtagview/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> messagewithtagview(
+            @QuerydslPredicate(root = MessageWithTagView.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMessageWithTagView.messageWithTagView, MessageWithTagView.class);
         return ResponseEntity.ok(resource);
     }
 }

@@ -4,10 +4,8 @@ import com.google.common.base.CaseFormat;
 import com.querydsl.core.types.Path;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.DateTimePath;
-import com.querydsl.core.types.dsl.EntityPathBase;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.PathBuilder;
-import com.querydsl.core.types.dsl.SimpleExpression;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
@@ -17,8 +15,6 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.scripta.DocDetail;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
-import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
-import it.bologna.ausl.model.entities.scripta.views.QDocDetailView;
 import it.nextsw.common.interceptors.NextSdrControllerInterceptor;
 import java.io.IOException;
 import java.time.ZonedDateTime;
@@ -143,10 +139,18 @@ public class DocDetailInterceptorUtils {
         return idApplicazione;
     }
     
-    public BooleanExpression duplicateFiltersPerPartition(Class entityClass, String dataCreazioneNameField) {
+    /**
+     * Le partizioni di docdetail sono su idAzienda e su dataCreazione.
+     * Se questi due campi sono usati come filtro di ricerca allora tali filtri 
+     * devono essere raddoppiati in modo che venga sfruttata la partizione sia 
+     * su DocDetail che su PersonaVedente.
+     * @param entityClass
+     * @param dataCreazioneNameField
+     * @return 
+     */
+    public BooleanExpression NON_USARE_duplicateFiltersPerPartition(Class entityClass, String dataCreazioneNameField) {
         BooleanExpression filter = Expressions.TRUE.eq(true);
         Map<Path<?>, List<Object>> filterDescriptorMap = NextSdrControllerInterceptor.filterDescriptor.get();
-        // QPersonaVedente qPersonaVedente = QPersonaVedente.personaVedente;
         PathBuilder<?> qEntity = new PathBuilder(entityClass, CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_CAMEL,entityClass.getSimpleName()));
         if (!filterDescriptorMap.isEmpty()) {
             Pattern pattern = Pattern.compile("\\.(.*?)(\\.|$)");
@@ -160,7 +164,7 @@ public class DocDetailInterceptorUtils {
                     List<Object> ids = filterDescriptorMap.get(path);
                     for (Object id : ids) {
                         PathBuilder<Azienda> qAzienda = qEntity.get("idAzienda", Azienda.class);
-                        filter = filter.and(qAzienda.get("id").eq((Integer) id));
+                        filter = filter.and(qAzienda.get("id").eq((Integer) id)); //ATTENZIONE QUI DOVREBBE ESSERE IN OR E NON IN AND
                     }
                 } else if (fieldName.equals("dataCreazione")) {
 //                     if (List.class.isAssignableFrom(filterDescriptorMap.get(path).getClass())) {

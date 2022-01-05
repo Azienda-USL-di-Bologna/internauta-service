@@ -1,11 +1,9 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.querydsl.core.types.Path;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.SubQueryExpression;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.EntityPathBase;
 import com.querydsl.core.types.dsl.Expressions;
 import static com.querydsl.jpa.JPAExpressions.select;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -22,23 +20,16 @@ import it.bologna.ausl.model.entities.scripta.DocDetail;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
-import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
-import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.nextsw.common.annotations.NextSdrInterceptor;
-import it.nextsw.common.interceptors.NextSdrControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
@@ -199,8 +190,8 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         qPersonaVedente.pienaVisibilita.eq(Expressions.TRUE),
                         qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
                         qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
-                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione),
-                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
+//                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
                     );
             SubQueryExpression<Long> queryPersoneVedenteSenzaObbligoPienaVisbilita = 
                     select(qPersonaVedente.id)
@@ -209,8 +200,8 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         qPersonaVedente.idPersona.id.eq(persona.getId()),
                         qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
                         qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
-                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione),
-                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
+//                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
                     );
             BooleanExpression pienaVisibilita = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteConPienaVisibilita);
             BooleanExpression personaVedente = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteSenzaObbligoPienaVisbilita);//idPersona.id.eq(persona.getId());

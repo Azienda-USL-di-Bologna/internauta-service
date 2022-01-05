@@ -131,8 +131,8 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
         if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
             throw new AbortSaveInterceptorException();
         }
-
-        return entity;
+        StrutturaUnificata strutturaUnificata = (StrutturaUnificata) entity;
+        return strutturaUnificata;
     }
 
 }
