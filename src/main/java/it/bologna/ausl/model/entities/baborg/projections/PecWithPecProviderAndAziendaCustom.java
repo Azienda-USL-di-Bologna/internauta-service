@@ -7,7 +7,7 @@ package it.bologna.ausl.model.entities.baborg.projections;
 
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.projections.generated.PecAziendaWithIdAzienda;
-import it.bologna.ausl.model.entities.baborg.projections.generated.PecWithIdPecProvider;
+import it.bologna.ausl.model.entities.baborg.projections.generated.PecWithIdPecProviderAndPecAziendaList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
@@ -17,9 +17,9 @@ import org.springframework.data.rest.core.config.Projection;
  * @author guido
  */
 @Projection(name = "PecWithPecProviderAndAziendaCustom", types = Pec.class)
-public interface PecWithPecProviderAndAziendaCustom extends PecWithIdPecProvider{
+public interface PecWithPecProviderAndAziendaCustom extends PecWithIdPecProviderAndPecAziendaList {
     
-    @Value("#{@projectionBeans.getPecAziendaListWithIdAzienda(target.getPecAziendaList())}")
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getPecAziendaList', 'PecAziendaWithIdAzienda')}")
     public List<PecAziendaWithIdAzienda> getPecAziendaList();
     
     @Value("#{target.getUsername()}")

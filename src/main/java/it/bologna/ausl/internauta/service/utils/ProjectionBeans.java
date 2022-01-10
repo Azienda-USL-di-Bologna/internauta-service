@@ -11,20 +11,16 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ImpostazioniApplicazioniRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.baborg.projections.RibaltoneDaLanciareCustom;
-import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaCustom;
 import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
-import it.bologna.ausl.model.entities.baborg.projections.generated.PecAziendaWithIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteWithIdPersona;
 import it.bologna.ausl.model.entities.configurazione.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configurazione.projections.generated.ImpostazioniApplicazioniWithPlainFields;
-import it.bologna.ausl.model.entities.scrivania.projections.generated.AttivitaWithIdPersona;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.InterceptorException;
@@ -55,7 +51,6 @@ import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
-import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteStrutturaWithIdStrutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.PersonaWithUtentiAndStruttureAndAfferenzeCustom;
 import it.bologna.ausl.model.entities.baborg.projections.StrutturaUnificataCustom;
 import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithReplicheCustom;
@@ -64,20 +59,12 @@ import java.util.HashMap;
 import java.util.Map;
 import it.bologna.ausl.model.entities.logs.projections.KrintShpeckPec;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
-import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
-import it.bologna.ausl.model.entities.rubrica.Indirizzo;
-import it.bologna.ausl.model.entities.rubrica.Telefono;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.EmailWithIdDettaglioContatto;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdDettaglioContattoAndIdGruppo;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.IndirizzoWithIdDettaglioContatto;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.TelefonoWithIdDettaglioContatto;
 import java.util.ArrayList;
 import org.slf4j.Logger;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndIdStrutturaAndUtenteResponsabiliCustom;
 import it.bologna.ausl.model.entities.baborg.projections.StrutturaWithUtentiResponsabiliCustom;
 import it.bologna.ausl.model.entities.baborg.projections.UtenteWithStruttureAndResponsabiliCustom;
-import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithAttributiStrutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaContatto;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaDettaglioContatto;
 import it.bologna.ausl.model.entities.logs.projections.KrintRubricaGruppoContatto;
@@ -92,11 +79,8 @@ import it.bologna.ausl.model.entities.permessi.projections.generated.EntitaWithP
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomContattoWithIdStrutturaAndIdPersona;
 import it.bologna.ausl.model.entities.rubrica.projections.CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda;
-import it.bologna.ausl.model.entities.rubrica.projections.CustomGruppiContattiWithIdContattoAndIdDettaglioContatto;
 import it.bologna.ausl.model.entities.scripta.Related;
-import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.scripta.projections.CustomRelatedWithSpedizioneList;
-import it.bologna.ausl.model.entities.scripta.projections.generated.SpedizioneWithIdMezzo;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import java.lang.reflect.Method;
 import java.time.ZonedDateTime;
@@ -186,64 +170,10 @@ public class ProjectionBeans {
     @Autowired
     ObjectMapper objectMapper;
 
-//    protected Utente user, realUser;
-//    protected Persona person, realPerson;
-//    protected Applicazione.Applicazioni applicazione;
-//    protected int idSessionLog;
     final String APP_URL_PICO = "/Procton/Procton.htm";
     final String APP_URL_BABEL = "/Babel/Babel.htm";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectionBeans.class);
-
-//    protected void setAuthenticatedUserProperties() throws BlackBoxPermissionException {
-//        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-//        user = authenticatedSessionData.getUser();
-//        realUser = authenticatedSessionData.getRealUser();
-//        idSessionLog = authenticatedSessionData.getIdSessionLog();
-//        person = authenticatedSessionData.getPerson();
-//        realPerson = authenticatedSessionData.getRealPerson();
-//        applicazione = authenticatedSessionData.getApplicazione();
-//    }
-//    public UtenteWithIdPersona getUtenteConPersona(Utente utente) {
-//        if (utente != null) {
-//            return factory.createProjection(UtenteWithIdPersona.class, utente);
-//        } else {
-//            return null;
-//        }
-//    }
-    public UtenteStrutturaWithIdAfferenzaStrutturaCustom
-            getUtenteStrutturaWithIdAfferenzaStrutturaCustom(UtenteStruttura utenteStruttura) {
-        return factory.createProjection(UtenteStrutturaWithIdAfferenzaStrutturaCustom.class, utenteStruttura);
-    }
-
-//    public StrutturaWithAttributiStrutturaAndIdAzienda getStrutturaConAzienda(Struttura struttura) {
-//        return factory.createProjection(StrutturaWithAttributiStrutturaAndIdAzienda.class, struttura);
-//    }
-    public StrutturaWithAttributiStrutturaAndIdAzienda getStrutturaWithIdAzienda(Contatto contatto) {
-        StrutturaWithAttributiStrutturaAndIdAzienda res = null;
-        Struttura struttura = contatto.getIdStruttura();
-        if (struttura != null) {
-            res = factory.createProjection(StrutturaWithAttributiStrutturaAndIdAzienda.class, struttura);
-        }
-        return res;
-    }
-
-    public CustomUtenteStrutturaWithIdStrutturaAndIdAzienda getUtenteStrutturaWithIdStrutturaAndIdAzienda(DettaglioContatto dettaglioContatto) {
-        CustomUtenteStrutturaWithIdStrutturaAndIdAzienda res = null;
-        UtenteStruttura utenteStruttura = dettaglioContatto.getUtenteStruttura();
-        if (utenteStruttura != null) {
-            res = factory.createProjection(CustomUtenteStrutturaWithIdStrutturaAndIdAzienda.class, utenteStruttura);
-        }
-        return res;
-    }
-
-    public List<AttivitaWithIdPersona> getAttivitaWithIdPersona(Azienda azienda) {
-        return azienda.getAttivitaList().stream().map(
-                a -> {
-                    return factory.createProjection(AttivitaWithIdPersona.class, a);
-                }
-        ).collect(Collectors.toList());
-    }
 
     public CustomUtenteLogin getUtenteRealeWithIdPersonaImpostazioniApplicazioniList(Utente utente) {
         //Utente refreshedUtente = utenteRepository.getOne(utente.getId());
@@ -284,52 +214,6 @@ public class ProjectionBeans {
             return null;
         }
     }
-
-    public List<PecAziendaWithIdAzienda> getPecAziendaListWithIdAzienda(List<PecAzienda> pecAziendaList) {
-        if (pecAziendaList != null && !pecAziendaList.isEmpty()) {
-            return pecAziendaList.stream().map(pecAzienda -> factory.createProjection(PecAziendaWithIdAzienda.class, pecAzienda))
-                    .collect(Collectors.toList());
-        } else {
-            return null;
-        }
-    }
-
-//    public List<MessageAddressWithIdAddress> getMessageAddressListWithIdAddress(Message message) {
-//        if (message != null) {
-//            List<MessageAddress> messageAddresssList = message.getMessageAddressList();
-//            if (messageAddresssList != null && !messageAddresssList.isEmpty()) {
-//                return messageAddresssList.stream().map(messageAddress -> factory.createProjection(MessageAddressWithIdAddress.class, messageAddress))
-//                        .collect(Collectors.toList());
-//            } else {
-//                return null;
-//            }
-//        } else {
-//            return null;
-//        }
-//    }
-
-//    public List<MessageTagWithIdTag> getMessageTagListWithIdTag(Message message) {
-//        if (message != null) {
-//            List<MessageTag> messageTagList = message.getMessageTagList();
-//            if (messageTagList != null && !messageTagList.isEmpty()) {
-//                return messageTagList.stream().map(messageTag -> factory.createProjection(MessageTagWithIdTag.class, messageTag))
-//                        .collect(Collectors.toList());
-//            } else {
-//                return null;
-//            }
-//        } else {
-//            return null;
-//        }
-//    }
-
-//    public List<MessageFolderWithIdFolder> getMessageFolderListWithIdFolder(Message message) {
-//        try {
-//            return (List<MessageFolderWithIdFolder>) projectionsInterceptorLauncher.lanciaInterceptorCollection(message, "getMessageFolderList", MessageFolderWithIdFolder.class.getSimpleName());
-//        } catch (EntityReflectionException | NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | ClassNotFoundException | NoSuchFieldException | InterceptorException | AbortLoadInterceptorException ex) {
-//            LOGGER.error("errore nell'estrazione di getRibaltoneDaLanciareList", ex);
-//            return null;
-//        }
-//    }
 
     public List<RibaltoneDaLanciareCustom> getRibaltoneDaLanciareListWithIdUtente(Azienda a) {
         try {
@@ -427,134 +311,6 @@ public class ProjectionBeans {
         return factory.createProjection(KrintShpeckPec.class, message.getIdPec());
     }
 
-//    public List<GruppiContattiWithIdContatto> getContattiDelGruppoWithIdContatto(Contatto contatto) {
-//        if (contatto != null) {
-//            List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
-//            if (contattiDelGruppoList != null && !contattiDelGruppoList.isEmpty()) {
-//                return contattiDelGruppoList.stream().map(
-//                        gruppoContatto -> factory.createProjection(GruppiContattiWithIdContatto.class, gruppoContatto))
-//                        .collect(Collectors.toList());
-//            } else {
-//                return null;
-//            }
-//        } else {
-//            return null;
-//        }
-//    }
-//
-//    public List<GruppiContattiWithIdGruppo> getGruppiDelContattoWithIdGruppo(Contatto contatto) {
-//        if (contatto != null) {
-//            List<GruppiContatti> gruppiDelContattoList = contatto.getGruppiDelContattoList();
-//            if (gruppiDelContattoList != null && !gruppiDelContattoList.isEmpty()) {
-//                return gruppiDelContattoList.stream().map(
-//                        gruppoContatto -> factory.createProjection(GruppiContattiWithIdGruppo.class, gruppoContatto))
-//                        .collect(Collectors.toList());
-//            } else {
-//                return null;
-//            }
-//        } else {
-//            return null;
-//        }
-//    }
-//    public List<DettaglioContattoWithEmailListAndGruppiDelDettaglioListAndIndirizzoListAndTelefonoList> getDettaglioContattoExpanded(Contatto contatto) {
-//        if (contatto != null) {
-//            List<DettaglioContatto> dettaglioContattoList = contatto.getDettaglioContattoList();
-//            if (dettaglioContattoList != null && !dettaglioContattoList.isEmpty()) {
-//                return dettaglioContattoList.stream().map(
-//                        dettaglioContatto -> factory.createProjection(DettaglioContattoWithEmailListAndGruppiDelDettaglioListAndIndirizzoListAndTelefonoList.class, dettaglioContatto))
-//                        .collect(Collectors.toList());
-//            } else {
-//                return null;
-//            }
-//        } else {
-//            return null;
-//        }
-//    }
-    public List<EmailWithIdDettaglioContatto> getEmailWithIdDettaglioContatto(Contatto contatto) {
-        if (contatto != null) {
-            List<Email> emailList = contatto.getEmailList();
-            if (emailList != null && !emailList.isEmpty()) {
-                return emailList.stream().map(
-                        email -> factory.createProjection(EmailWithIdDettaglioContatto.class, email))
-                        .collect(Collectors.toList());
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    }
-
-    public List<IndirizzoWithIdDettaglioContatto> getIndirizzoWithIdDettaglioContatto(Contatto contatto) {
-        if (contatto != null) {
-            List<Indirizzo> indirizziList = contatto.getIndirizziList();
-            if (indirizziList != null && !indirizziList.isEmpty()) {
-                return indirizziList.stream().map(
-                        indirizzo -> factory.createProjection(IndirizzoWithIdDettaglioContatto.class, indirizzo))
-                        .collect(Collectors.toList());
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    }
-
-    public List<TelefonoWithIdDettaglioContatto> getTelefonoWithIdDettaglioContatto(Contatto contatto) {
-        if (contatto != null) {
-            List<Telefono> telefonoList = contatto.getTelefonoList();
-            if (telefonoList != null && !telefonoList.isEmpty()) {
-                return telefonoList.stream().map(
-                        telefono -> factory.createProjection(TelefonoWithIdDettaglioContatto.class, telefono))
-                        .collect(Collectors.toList());
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    }
-
-    public List<CustomGruppiContattiWithIdContattoAndIdDettaglioContatto> getGruppiContattiWithIdContattoAndIdDettaglioContatto(Contatto contatto) {
-        if (contatto != null) {
-            List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
-            if (contattiDelGruppoList != null && !contattiDelGruppoList.isEmpty()) {
-                return contattiDelGruppoList.stream().map(
-                        gruppoContatto -> factory.createProjection(CustomGruppiContattiWithIdContattoAndIdDettaglioContatto.class, gruppoContatto))
-                        .collect(Collectors.toList());
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    }
-
-    public List<GruppiContattiWithIdDettaglioContattoAndIdGruppo> getGruppiContattiWithIdDettaglioContattoAndIdGruppo(Contatto contatto) {
-        if (contatto != null) {
-            List<GruppiContatti> gruppiDelContattoList = contatto.getGruppiDelContattoList();
-            if (gruppiDelContattoList != null && !gruppiDelContattoList.isEmpty()) {
-                return gruppiDelContattoList.stream().map(
-                        gruppoContatto -> factory.createProjection(GruppiContattiWithIdDettaglioContattoAndIdGruppo.class, gruppoContatto))
-                        .collect(Collectors.toList());
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    }
-
-//    public List<PredicatoAmbitoWithIdPredicato> expandPredicatiAmbiti(Integer[] idPredicatiAmbiti) {
-//        List<PredicatoAmbitoWithIdPredicato> res = new ArrayList();
-//        if (idPredicatiAmbiti != null) {
-//            for (Integer idPredicatoAmbito : idPredicatiAmbiti) {
-//                PredicatoAmbito predicatoAmbito = this.predicatoAmbitoRepository.getOne(idPredicatoAmbito);
-//                res.add(factory.createProjection(PredicatoAmbitoWithIdPredicato.class, predicatoAmbito));
-//            }
-//        }
-//        return res;
-//    }
 //    @Cacheable(value = "permessi__ribaltorg__", key = "{#idPredicatiAmbiti.toString()}")
     public List<PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded> expandPredicatiAmbiti(Integer[] idPredicatiAmbiti) {
         List<PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded> res = new ArrayList();
@@ -870,16 +626,6 @@ public StrutturaWithReplicheCustom getStrutturaFigliaWithFogliaCalcolata(Storico
                     return factory.createProjection(CustomRelatedWithSpedizioneList.class, r);
                 }).collect(Collectors.toList());
             }
-        }
-        return res;
-    }
-
-    public List<SpedizioneWithIdMezzo> getSpedizioneWithIdMezzo(List<Spedizione> spedizioneList) {
-        List<SpedizioneWithIdMezzo> res = null;
-        if (spedizioneList != null && !spedizioneList.isEmpty()) {
-            res = spedizioneList.stream().map(spediz -> {
-                return factory.createProjection(SpedizioneWithIdMezzo.class, spediz);
-            }).collect(Collectors.toList());
         }
         return res;
     }

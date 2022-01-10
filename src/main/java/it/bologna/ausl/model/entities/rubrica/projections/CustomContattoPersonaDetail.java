@@ -24,11 +24,13 @@ public interface CustomContattoPersonaDetail extends ContattoWithDettaglioContat
 //    @Override
 //    public List<DettaglioContattoWithUtenteStruttura> getDettaglioContattoList();
  
-    @Value("#{@projectionBeans.getGruppiContattiWithIdDettaglioContattoAndIdGruppo(target)}")
+//    @Value("#{@projectionBeans.getGruppiContattiWithIdDettaglioContattoAndIdGruppo(target)}")
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getGruppiDelContattoList', 'GruppiContattiWithIdDettaglioContattoAndIdGruppo')}")
     @Override
     public List<GruppiContattiWithIdDettaglioContattoAndIdGruppo> getGruppiDelContattoList();
     
-    @Value("#{@projectionBeans.getEmailWithIdDettaglioContatto(target)}")
+//    @Value("#{@projectionBeans.getEmailWithIdDettaglioContatto(target)}")
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getEmailList', 'EmailWithIdDettaglioContatto')}")
     @Override
     public List<EmailWithIdDettaglioContatto> getEmailList();
 }

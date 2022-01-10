@@ -13,7 +13,8 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda", types = DettaglioContatto.class)
 public interface CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda extends DettaglioContattoWithIndirizzoAndUtenteStruttura {
 
-    @Value("#{@projectionBeans.getUtenteStrutturaWithIdStrutturaAndIdAzienda(target)}")
+//    @Value("#{@projectionBeans.getUtenteStrutturaWithIdStrutturaAndIdAzienda(target)}")
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getUtenteStruttura', 'CustomUtenteStrutturaWithIdStrutturaAndIdAzienda')}")
     @Override
     public CustomUtenteStrutturaWithIdStrutturaAndIdAzienda getUtenteStruttura();
 }

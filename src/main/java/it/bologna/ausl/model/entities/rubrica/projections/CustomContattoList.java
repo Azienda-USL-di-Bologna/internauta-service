@@ -18,7 +18,8 @@ public interface CustomContattoList extends ContattoWithDettaglioContattoListAnd
     @Override
     public List<CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda> getDettaglioContattoList();
 
-    @Value("#{@projectionBeans.getStrutturaWithIdAzienda(target)}")
+//    @Value("#{@projectionBeans.getStrutturaWithIdAzienda(target)}")
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getIdStruttura', 'StrutturaWithAttributiStrutturaAndIdAzienda')}")
     @Override
     public StrutturaWithAttributiStrutturaAndIdAzienda getIdStruttura();
 
