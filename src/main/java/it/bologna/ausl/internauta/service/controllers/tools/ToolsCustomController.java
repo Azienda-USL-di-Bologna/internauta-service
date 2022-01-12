@@ -131,7 +131,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                 String mailFrom = mailParams.getMailFrom();
                 // from
                 msg.setFrom(new InternetAddress(mailFrom, fromName));
-                
+
                 if (replyTo != null) {
                     String addressesReplyTo = "";
                     for (String toElement : replyTo) {
@@ -228,11 +228,11 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         return false;
     }
 
-//      funzione di prova per testare sendMail
-//     @RequestMapping(value = {"testMailSend"}, method = RequestMethod.GET)
-//    public void test() throws IOException{
-//        sendMail(2, "prova.smart@ausl.bo.it", "test", "", "prova", new ArrayList<String>(), new ArrayList<String>());
-//    }
+    @RequestMapping(value = {"newdate"}, method = RequestMethod.GET)
+    public ResponseEntity<?> newDate() {
+        return ResponseEntity.ok(ZonedDateTime.now());
+    }
+
     @RequestMapping(value = {"sendSmartWorkingMail"}, method = RequestMethod.POST)
     public void sendSmartWorkingMail(@RequestBody Map<String, Object> jsonRequestSW) throws HttpInternautaResponseException, IOException, BlackBoxPermissionException, SendMailException {
 

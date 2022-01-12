@@ -1,12 +1,5 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.utils;
 
-import it.bologna.ausl.estrattore.Extractor;
-import it.bologna.ausl.estrattore.ExtractorCreator;
 import it.bologna.ausl.estrattore.ExtractorResult;
 import it.bologna.ausl.estrattoremaven.exception.ExtractorException;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
@@ -14,8 +7,6 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
-import static it.bologna.ausl.internauta.service.utils.FileUtilities.getMimeTypeFromInputStream;
-import static it.bologna.ausl.internauta.service.utils.FileUtilities.getMimeTypeFromPath;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
@@ -42,7 +33,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;

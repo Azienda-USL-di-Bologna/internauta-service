@@ -72,6 +72,9 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
     @Autowired
     KrintShpeckService krintShpeckService;
 
+    @Autowired
+    MessageInterceptorUtils messageInterceptorUtils;
+    
     @Override
     public Class getTargetEntityClass() {
         return Message.class;
@@ -79,38 +82,27 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-
         AuthenticatedSessionData authenticatedUserProperties = super.getAuthenticatedUserProperties();
-        Persona persona = authenticatedUserProperties.getPerson();
-
-        BooleanExpression messageInPecWithPermission;
-
-        try {
-            Map<Integer, List<String>> permessiPec = userInfoService.getPermessiPec(persona);
-            if (!permessiPec.isEmpty()) {
-                List<Integer> myPec = new ArrayList<Integer>();
-                myPec.addAll(permessiPec.keySet());
-                messageInPecWithPermission = QMessage.message.idPec.id.in(myPec);
-                Expressions.FALSE.eq(true);
-            } else {
-                messageInPecWithPermission = Expressions.FALSE.eq(true);
-            }
-        } catch (BlackBoxPermissionException ex) {
-            throw new AbortLoadInterceptorException("errore nella lettura del permessi sulle caselle pec", ex);
-        }
-
-        initialPredicate = messageInPecWithPermission.and(initialPredicate);
-
+//        Persona persona = authenticatedUserProperties.getPerson();
+//        BooleanExpression messageInPecWithPermission;
+//
 //        try {
-//            Template a = TemplateFactory.DEFAULT.create("to_tsquery('italian', '$${0}:*$$') {1} tscol");
-//            String value = "middleware";
-//            String field = "tscol";
-//            BooleanExpression booleanTemplate = Expressions.booleanTemplate("FUNCTION('fts_match', italian, {0}, {1})= true", Expressions.stringPath(value), QMessage.message.tscol);
-//            super.getAuthenticatedUserProperties();
-//            return initialPredicate;
-//        } catch (Exception ex) {
-//            throw new AbortLoadInterceptorException(ex);
+//            Map<Integer, List<String>> permessiPec = userInfoService.getPermessiPec(persona);
+//            if (!permessiPec.isEmpty()) {
+//                List<Integer> myPec = new ArrayList<Integer>();
+//                myPec.addAll(permessiPec.keySet());
+//                messageInPecWithPermission = QMessage.message.idPec.id.in(myPec);
+//                Expressions.FALSE.eq(true);
+//            } else {
+//                messageInPecWithPermission = Expressions.FALSE.eq(true);
+//            }
+//        } catch (BlackBoxPermissionException ex) {
+//            throw new AbortLoadInterceptorException("errore nella lettura del permessi sulle caselle pec", ex);
 //        }
+//
+//        initialPredicate = messageInPecWithPermission.and(initialPredicate);
+        initialPredicate = messageInterceptorUtils.messageInPecWithPermission(authenticatedUserProperties, Message.class).and(initialPredicate);
+
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
@@ -121,46 +113,6 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
                                 .and(qMessage.messageFolderList.any().idFolder.type.ne(FolderType.TRASH.toString()));
                         initialPredicate = filtro.and(initialPredicate);
                         break;
-//                    case FiltraSuTuttiFolder:
-//                        
-//                        QMessage qMessage = QMessage.message;
-//                        BooleanExpression filtro = qMessage.messageFolderList.any().idFolder.isNotNull()
-//                                .and(qMessage.messageFolderList.any().idFolder.type.ne(FolderType.TRASH.toString()));
-//                        initialPredicate = filtro.and(initialPredicate);
-//                        break;
-//                    case GetPermessiGestoriPec: 
-//                        /* Nel caso di GetPermessiGestoriPec in Data avremo l'id della PEC della quale si chiedono i permessi */
-//                        String idPec = additionalData.get(AdditionalData.Keys.idPec.toString());
-//                        Pec pec = new Pec(Integer.parseInt(idPec));
-//                        String idAzienda = additionalData.get(AdditionalData.Keys.idAzienda.toString());
-//                        if(StringUtils.hasText(idAzienda)){                           
-//                            BooleanExpression aziendaFilter = QPersona.persona.utenteList.any().idAzienda.id.eq(Integer.parseInt(idAzienda));
-//                            initialPredicate = aziendaFilter.and(initialPredicate);
-//                        }
-//                        try {
-//                            List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(
-//                                Arrays.asList(new Pec[]{pec}),
-//                                Arrays.asList(new String[]{Predicati.ELIMINA.toString(), Predicati.LEGGE.toString(), Predicati.RISPONDE.toString()}),
-//                                Arrays.asList(new String[]{Ambiti.PECG.toString()}),
-//                                Arrays.asList(new String[]{Tipi.PEC.toString()}), false);
-//                            if (subjectsWithPermissionsOnObject == null){
-//                                initialPredicate = Expressions.FALSE.eq(true);
-//                            }
-//                            else {
-//                                BooleanExpression permessoFilter = QPersona.persona.id.in(
-//                                    subjectsWithPermissionsOnObject
-//                                        .stream()
-//                                        .map(p -> p.getSoggetto().getIdProvenienza()).collect(Collectors.toList()))
-//                                        .and(initialPredicate);
-//                                initialPredicate = permessoFilter.and(initialPredicate);
-//                            }                            
-//                            /* Conserviamo i dati estratti dalla BlackBox */
-//                            this.httpSessionData.putData(HttpSessionData.Keys.PersoneWithPecPermissions, subjectsWithPermissionsOnObject);
-//                        } catch (BlackBoxPermissionException ex) {
-//                            LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
-//                            throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
-//                        }
-//                        break;
                 }
             }
         }

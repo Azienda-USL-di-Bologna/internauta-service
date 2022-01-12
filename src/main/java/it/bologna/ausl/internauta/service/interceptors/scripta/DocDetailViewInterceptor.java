@@ -36,32 +36,33 @@ import org.slf4j.LoggerFactory;
 @Component
 @NextSdrInterceptor(name = "docdetailview-interceptor")
 public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DocDetailViewInterceptor.class);
-    
+
     @Override
     public Class getTargetEntityClass() {
         return DocDetailView.class;
     }
-    
+
     @Autowired
     UserInfoService userInfoService;
 
     @Autowired
     PersonaRepository personaRepository;
-    
+
     @Autowired
     InternautaUtils internautaUtils;
-    
+
     @Autowired
     ObjectMapper objectMapper;
-    
+
     @Autowired
     DocDetailInterceptorUtils docDetailInterceptorUtils;
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         initialPredicate = safetyFilters().and(initialPredicate);
+//        initialPredicate = docDetailInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc").and(initialPredicate);
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -71,7 +72,7 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
         entities.add(entity);
         try {
             AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-            BiFunction<Object,Persona,Boolean> fnPienaVisibilita = (o, p) -> pienaVisibilita((DocDetailView)o, p);
+            BiFunction<Object, Persona, Boolean> fnPienaVisibilita = (o, p) -> pienaVisibilita((DocDetailView) o, p);
             docDetailInterceptorUtils.manageAfterCollection(entities, authenticatedSessionData, fnPienaVisibilita);
         } catch (IOException ex) {
             throw new AbortLoadInterceptorException("Errore nella generazione dell'url", ex);
@@ -83,17 +84,18 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
     public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         try {
             AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-            BiFunction<Object,Persona,Boolean> fnPienaVisibilita = (o, p) -> pienaVisibilita((DocDetailView)o, p);
+            BiFunction<Object, Persona, Boolean> fnPienaVisibilita = (o, p) -> pienaVisibilita((DocDetailView) o, p);
             docDetailInterceptorUtils.manageAfterCollection(entities, authenticatedSessionData, fnPienaVisibilita);
         } catch (IOException ex) {
             throw new AbortLoadInterceptorException("Errore nella generazione dell'url", ex);
         }
         return entities;
     }
-    
+
     /**
      * Controlla se l'utente connesso ha pienaVisbilita: true nella colonna
      * personeVedenti del doc passato.
+     *
      * @param doc
      * @return
      */
@@ -103,12 +105,13 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
 
     /**
      * Questa funzione si occupa di generare un predicato che contenga tutti i
-     * filtri di sicurezza che riguardano docDetailView Essi sono: 1- Se demiurgo vede
-     * tutto 2- Gli altri vedono solo documenti delle aziende su cui sono attivi
-     * 3- Se osservatore vede tutto delle aziende su cui è osservatore tranne i riservati 4- Se
-     * utente generico vede solo le sue proposte 5- Se segretario vede anche
-     * proposte non sue purché dei suoi "superiori" 6- Se utente sta cercando
-     * per campi sensibili e non ha piena visibilità non vede riservati/vis lim
+     * filtri di sicurezza che riguardano docDetailView Essi sono: 1- Se
+     * demiurgo vede tutto 2- Gli altri vedono solo documenti delle aziende su
+     * cui sono attivi 3- Se osservatore vede tutto delle aziende su cui è
+     * osservatore tranne i riservati 4- Se utente generico vede solo le sue
+     * proposte 5- Se segretario vede anche proposte non sue purché dei suoi
+     * "superiori" 6- Se utente sta cercando per campi sensibili e non ha piena
+     * visibilità non vede riservati/vis lim
      */
     private BooleanExpression safetyFilters() {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
@@ -150,14 +153,55 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
                             .or(Expressions.FALSE.eq(docDetailInterceptorUtils.isFilteringSpecialFields(visLimFields)))
                             .or(pienaVisibilita)
             );
-            
+
             BooleanExpression filtroOsservatore = qdocdetailview.idAzienda.id.in(listaIdAziendaOsservatore)
+                    .and(qdocdetailview.idAziendaDoc.id.in(listaIdAziendaOsservatore))
                     .and(qdocdetailview.riservato.eq(Boolean.FALSE)); // Filtro 3
 
-            filter = qdocdetailview.idAzienda.id.in(listaIdAziendaUtenteAttivo); // Filtro 2
+            filter = qdocdetailview.idAzienda.id.in(listaIdAziendaUtenteAttivo)
+                    .and(qdocdetailview.idAziendaDoc.id.in(listaIdAziendaUtenteAttivo)); // Filtro 2
             filter = filter.and(filtroOsservatore.or(filtroStandard));
         }
 
         return filter;
     }
+
+//    public BooleanExpression duplicateFiltersPerPartition() {
+//        BooleanExpression filter = Expressions.TRUE.eq(true);
+//        Map<Path<?>, List<Object>> filterDescriptorMap = NextSdrControllerInterceptor.filterDescriptor.get();
+//        QDocDetailView qdocdetailview = QDocDetailView.docDetailView;
+//        if (!filterDescriptorMap.isEmpty()) {
+//            Pattern pattern = Pattern.compile("\\.(.*?)(\\.|$)");
+//            Set<Path<?>> pathSet = filterDescriptorMap.keySet();
+//            System.out.println(pathSet.toString());
+//            for (Path<?> path : pathSet) {
+//                Matcher matcher = pattern.matcher(path.toString());
+//                matcher.find();
+//                String fieldName = matcher.group(1);
+//                if (fieldName.equals("idAzienda")) {
+//                    List<Object> ids = filterDescriptorMap.get(path);
+//                    for (Object id : ids) {
+//                        filter = filter.and(qdocdetailview.idAziendaDoc.id.eq((Integer) id));
+//                    }
+//                } else if (fieldName.equals("dataCreazione")) {
+////                     if (List.class.isAssignableFrom(filterDescriptorMap.get(path).getClass())) {
+//                    if (filterDescriptorMap.get(path).size() == 2) {
+//                        ZonedDateTime data1 = (ZonedDateTime) filterDescriptorMap.get(path).get(0);
+//                        ZonedDateTime data2 = (ZonedDateTime) filterDescriptorMap.get(path).get(1);
+//                        if (data1.isBefore(data2)) {
+//                            filter = filter.and(qdocdetailview.dataCreazioneDoc.goe(data1).and(qdocdetailview.dataCreazioneDoc.lt(data2)));
+//                        } else {
+//                            filter = filter.and(qdocdetailview.dataCreazioneDoc.goe(data2).and(qdocdetailview.dataCreazioneDoc.lt(data1)));
+//                        }
+//                    } else {
+//                        ZonedDateTime data = (ZonedDateTime) filterDescriptorMap.get(path).get(0);
+//                        ZonedDateTime startDate = data.toLocalDate().atTime(0, 0, 0).atZone(data.getZone());
+//                        ZonedDateTime endDate = startDate.plusDays(1);
+//                        filter = filter.and(qdocdetailview.dataCreazioneDoc.goe(startDate).and(qdocdetailview.dataCreazioneDoc.lt(endDate)));
+//                    }
+//                }
+//            }
+//        }
+//        return filter;
+//    }
 }

@@ -176,15 +176,21 @@ public class MessagesTagsProtocollazioneFixManager {
     }
 
     private void geminiMailFixing(Message message, JSONArray verifiedElements) {
+
         List<Message> geminiMails = getGeminiMails(message);
         if (geminiMails.size() > 0) {
             log.info("Mettiamo a posto i messaggi gemelli...");
             for (Message geminiMail : geminiMails) {
                 log.info("Vediamo di fissare questo: id = {}", geminiMail.getId());
+
                 dataHolder = dataHolderFactory.createNewMessagesTagsProctocollazioneFixDataHolder(geminiMail);
+
                 MessageTag registeredTag = dataHolder.getRegisteredTag();
+
                 verifyAndFixRegisteredMessageTagWithVerifiedElements(registeredTag, verifiedElements);
+
                 MessageTag inRegistrationMessageTag = dataHolder.getInRegistrationMessagesTag();
+
                 if (inRegistrationMessageTag != null) {
                     JSONArray purifiedAdditionalData = getAdditionalDataRemovingElementiInutili(inRegistrationMessageTag, verifiedElements);
                     inRegistrationMessageTag.setAdditionalData(purifiedAdditionalData.toString());

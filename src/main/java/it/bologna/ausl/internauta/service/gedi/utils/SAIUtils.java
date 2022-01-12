@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.gedi.utils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.argo.utils.gd.FascicoloUtils;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
@@ -11,9 +12,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloPadreNotDefinedException;
+import it.bologna.ausl.internauta.service.repositories.tools.PendingJobRepository;
+import it.bologna.ausl.internauta.service.schedulers.workers.gedi.wrappers.FascicolatoreAutomaticoGediParams;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.tools.PendingJob;
+import java.math.BigInteger;
 
 /**
  *
@@ -32,6 +37,12 @@ public class SAIUtils {
 
     @Autowired
     private ParametriAziendeReader parametriAziendeReader;
+    
+    @Autowired
+    private PendingJobRepository pendingJobRepository;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // fascicola pec
     public String fascicolaPec(Integer idOutbox,
@@ -44,10 +55,16 @@ public class SAIUtils {
         String idFascicoloPadre = null;
         log.info("Cerco il fascicolo padre");
         Map<String, Object> fascicoloPadre = null;
+        Map<String, String> datiPerFascicolazione;
         if (numerazioneGerarchicaDelPadre == null) {
-            log.info("fascicolazione gerarchida del padre non passata, la cerco in parametri_aziene");
-            numerazioneGerarchicaDelPadre = getNumerazioneGerarchicaFascicoloDestinazione(mittente, azienda.getId());
+            log.info("fascicolazione gerarchida del padre non passata, la cerco in parametri_aziene");            
+            datiPerFascicolazione = getDatiPerFascicolazione(mittente, azienda.getId());
+        } else {
+            datiPerFascicolazione = getDatiPerFascicolazione("default", azienda.getId());
         }
+                    
+        numerazioneGerarchicaDelPadre = datiPerFascicolazione.get("numerazioneGerarchicaFascicolo");
+        String nomeFascicoloTemplate = datiPerFascicolazione.get("templateNomeSottoFascicolo").replace("[CF]", codiceFiscale);
         if (numerazioneGerarchicaDelPadre != null) {
             fascicoloPadre = fascicoloUtils.getFascicoloByNumerazioneGerarchica(azienda.getId(), numerazioneGerarchicaDelPadre);
             if (fascicoloPadre != null) {
@@ -68,7 +85,9 @@ public class SAIUtils {
             log.info("fascicolo destinazione: " + fascicoloDestinazione.toString());
         } else {
             log.info("Not found fascicolo destinazione: va creato");
-            String nomeFascicoloTemplate = "Sottofascicolo SAI di " + codiceFiscale;
+            
+//            String nomeFascicoloTemplate = "SAI di " + codiceFiscale;
+           
             fascicoloDestinazione = createFascicoloDestinazione(azienda.getId(), nomeFascicoloTemplate, fascicoloPadre);
 
             // QUA SI DOVREBBERO DUPLICARE I PERMESSI, MA ABBIAMO DECISO DI NO
@@ -76,9 +95,22 @@ public class SAIUtils {
 
         String numerazioneFascicoloDestinazione = (String) fascicoloDestinazione.get("numerazione_gerarchica");
         log.info("Accodo mestieri di fascicolazione outbox");
-        fasicolatoreManager.scheduleAutoFascicolazioneOutbox(idOutbox, azienda, numerazioneFascicoloDestinazione, utente, persona);
+        PendingJob pendingJob = createPendongJob(idOutbox, azienda, numerazioneFascicoloDestinazione, utente, persona);
+        fasicolatoreManager.scheduleAutoFascicolazioneOutbox(pendingJob);
         return numerazioneFascicoloDestinazione;
-
+    }
+    
+    private PendingJob createPendongJob(Integer idOutbox,
+            Azienda azienda,
+            String numerazioneGerarchica,
+            Utente utente,
+            Persona persona) {
+        PendingJob pendingJob = new PendingJob();
+        pendingJob.setService(PendingJob.PendigJobsServices.FASCICOLATORE_SAI);
+        FascicolatoreAutomaticoGediParams params = new FascicolatoreAutomaticoGediParams(idOutbox, azienda.getId(), null, null, numerazioneGerarchica, utente.getId(), persona.getId());
+        Map<String, Object> data = objectMapper.convertValue(params, new TypeReference<Map<String, Object>>(){});
+        pendingJob.setData(data);
+        return pendingJobRepository.save(pendingJob);
     }
 
     private Map<String, Object> createFascicoloDestinazione(Integer idAzienda, String codiceFiscale, Map<String, Object> fascicoloPadre) throws Exception {
@@ -90,13 +122,13 @@ public class SAIUtils {
 
     }
 
-    private String getNumerazioneGerarchicaFascicoloDestinazione(String indirizzoPec, Integer idAzienda) throws FascicoloPadreNotDefinedException {
-        String res;
-        Map<String, String> mappaPecFascicoli;
+    private Map<String, String> getDatiPerFascicolazione(String indirizzoPec, Integer idAzienda) throws FascicoloPadreNotDefinedException {
+        Map<String, String> res;
+        Map<String,  Map<String, String>> mappaPecFascicoli;
         try {
             mappaPecFascicoli = parametriAziendeReader.getValue(
                     parametriAziendeReader.getParameters("fascicoliSAI", new Integer[]{idAzienda}).get(0),
-                    new TypeReference<Map<String, String>>() {
+                    new TypeReference<Map<String,  Map<String, String>>>() {
             });
         } catch (Exception ex) {
             throw new FascicoloPadreNotDefinedException("errore nella lettura del parametro dal database", ex);

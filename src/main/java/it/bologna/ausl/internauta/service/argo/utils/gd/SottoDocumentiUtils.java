@@ -7,6 +7,7 @@ package it.bologna.ausl.internauta.service.argo.utils.gd;
 
 import it.bologna.ausl.internauta.service.argo.utils.ArgoConnectionManager;
 import it.bologna.ausl.internauta.service.argo.utils.IndeUtils;
+import it.bologna.ausl.internauta.service.exceptions.sai.TooManyObjectsException;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import java.util.List;
 import java.util.Map;
@@ -24,11 +25,12 @@ import org.sql2o.Query;
  */
 @Component
 public class SottoDocumentiUtils {
-
+    
+    private final String CODICE_SOTTODOCUMENTO_TEMPLATE = "babel_suite_id_outbox_[idOutbox]";
+    private static final Logger log = LoggerFactory.getLogger(SottoDocumentiUtils.class);
+    
     @Autowired
     ArgoConnectionManager argoConnectionManager;
-
-    private static final Logger log = LoggerFactory.getLogger(SottoDocumentiUtils.class);
 
     public List<String> getTableFieldsName(Integer idAzienda) throws Exception {
         List<String> fields = null;
@@ -60,8 +62,9 @@ public class SottoDocumentiUtils {
     public Map<String, Object> createSottoDocumento(Integer idAzienda,
             String idGddoc,
             MinIOWrapperFileInfo fileInfo,
-            String tipoDocumento) throws Exception {
-        Map sottoDocumento = null;
+            String tipoDocumento,
+            Integer idOutbox) throws Exception {
+        Map sottoDocumento;
         String idSottoDocumento = IndeUtils.generateIndeID();
         try (Connection conn = argoConnectionManager.getConnection(idAzienda)) {
             String insertQueryString = getInsertQueryTemplateByIdAzienda(idAzienda);
@@ -69,30 +72,38 @@ public class SottoDocumentiUtils {
             Query createQuery = conn.createQuery(insertQueryString);
             for (String field : tableFieldsName) {
                 Object val = null;
-                if (field.equals("id_sottodocumento")) {
-                    val = idSottoDocumento;
-                } else if (field.equals("id_gddoc")) {
-                    val = idGddoc;
-                } else if (field.equals("nome_sottodocumento")) {
-                    val = fileInfo.getFileName();
-                } else if (field.equals("uuid_mongo_originale")) {
-                    val = fileInfo.getMongoUuid();
-                } else if (field.equals("guid_sottodocumento")) {
-                    val = java.util.UUID.randomUUID();
-                } else if (field.equals("dimensione_originale")) {
-                    val = fileInfo.getSize();
-                } else if (field.equals("convertibile_pdf")) {
-                    val = 0;
-                } else if (field.equals("principale")) {
-                    val = 0;
-                } else if (field.equals("tipo_sottodocumento")) {
-                    val = tipoDocumento;
-                } else if (field.equals("da_spedire_pecgw")) {
-                    val = 0;
-                } else if (field.equals("spedisci_originale_pecgw")) {
-                    val = 0;
-                } else if (field.equals("pubblicazione_albo")) {
-                    val = 0;
+                switch (field) {
+                    case "id_sottodocumento":
+                        val = idSottoDocumento;
+                        break;
+                    case "id_gddoc":
+                        val = idGddoc;
+                        break;
+                    case "nome_sottodocumento":
+                        val = fileInfo.getFileName();
+                        break;
+                    case "uuid_mongo_originale":
+                        val = fileInfo.getMongoUuid();
+                        break;
+                    case "guid_sottodocumento":
+                        val = java.util.UUID.randomUUID();
+                        break;
+                    case "dimensione_originale":
+                        val = fileInfo.getSize();
+                        break;
+                    case "tipo_sottodocumento":
+                        val = tipoDocumento;
+                        break;
+                    case "codice_sottodocumento":
+                        val = CODICE_SOTTODOCUMENTO_TEMPLATE.replace("[idOutbox]", String.valueOf(idOutbox.intValue()));
+                        break;
+                    case "convertibile_pdf":
+                    case "principale":
+                    case "da_spedire_pecgw":
+                    case "spedisci_originale_pecgw":
+                    case "pubblicazione_albo":
+                        val = 0;
+                        break;
                 }
 
                 createQuery = createQuery.addParameter(field, val);
@@ -107,9 +118,45 @@ public class SottoDocumentiUtils {
         return sottoDocumento;
     }
 
-    private Map<String, Object> getSottoDocumentoByIdSottoDocumento(Integer idAzienda, String isSottoDocumento) throws Exception {
+    /**
+     * Torna il sottodocumento identificato dall'idOutbox passato nell'azienda passata, oppure null se non esiste.
+     * @param idAzienda
+     * @param idOutbox
+     * @return il sottodocumento identificato dall'idOutbox passato nell'azienda passata, oppure null se non esiste.
+     * @throws TooManyObjectsException se trova più di un sottodocumento
+     */
+    public Map<String, Object> getSottoDocumentoByIdOutbox(Integer idAzienda, Integer idOutbox) throws Exception {
+        List<Map<String, Object>> sottodocumenti;
+        sottodocumenti = getSottoDocumentoByCodice(idAzienda, CODICE_SOTTODOCUMENTO_TEMPLATE.replace("[idOutbox]", String.valueOf(idOutbox.intValue())));
+        if (sottodocumenti == null) {
+            String errorMessage = String.format("La query di ricerca del sottodocumento ha tornato null, questo non dovrebbe accadere. IdAzienda %s, idOutbox: %s", idAzienda, idOutbox);
+            log.error(errorMessage);
+            throw new Exception(errorMessage);
+        } else if (sottodocumenti.size() > 1) {
+            String errorMessage = String.format("trovati %s sottodocumenti per l'azienda %s e id %s", sottodocumenti.size(), idAzienda, idOutbox);
+            log.error(errorMessage);
+            throw new TooManyObjectsException(errorMessage);
+        } else if (sottodocumenti.isEmpty()) {
+            return null;
+        } else {
+            return sottodocumenti.get(0);
+        }
+    }
+    
+    public List<Map<String, Object>> getSottoDocumentoByCodice(Integer idAzienda, String codice) throws Exception {
+        String query = "select * from gd.sotto_documenti where codice_sottodocumento = :codice_sottodocumento";
+        List<Map<String, Object>> sottodocumenti;
+        try (Connection conn = argoConnectionManager.getConnection(idAzienda)) {
+            sottodocumenti = conn.createQuery(query)
+                    .addParameter("codice_sottodocumento", codice)
+                    .executeAndFetchTable().asList();
+        }
+        return sottodocumenti;
+    }
+    
+    private Map<String, Object> getSottoDocumentoByIdSottoDocumento(Integer idAzienda, String idSottoDocumento) throws Exception {
         List results = argoConnectionManager.queryAndFetcth("select * from gd.sotto_documenti "
-                + "where id_sottodocumento = '" + isSottoDocumento + "'", idAzienda);
+                + "where id_sottodocumento = '" + idSottoDocumento + "'", idAzienda);
         return (Map<String, Object>) results.get(0);
     }
 }

@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.shpeck.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -11,18 +12,23 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.data.AdditionalData;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageFolder;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,35 +42,38 @@ import org.springframework.util.StringUtils;
  */
 @Component
 public class ManageMessageRegistrationUtils {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(ManageMessageRegistrationUtils.class);
-    
+
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-    
+
     @Autowired
     private MessageFolderRepository messageFolderRespository;
-    
+
     @Autowired
     private MessageRepository messageRepository;
-    
+
     @Autowired
     private MessageTagRepository messageTagRespository;
-    
+
     @Autowired
     ObjectMapper objectMapper;
     
     @Autowired
+    ShpeckUtils shpeckUtils;
+
+    @Autowired
     private KrintShpeckService krintShpeckService;
-    
+
     @Autowired
     private ShpeckCacheableFunctions shpeckCacheableFunctions;
-    
+
     public void manageMessageRegistration(
             String uuidMessage,
             InternautaConstants.Shpeck.MessageRegistrationOperation operation,
             Integer idMessage,
-            Map<String, Map<String, Object>> additionalData,
+            AdditionalDataRegistration additionalData,
             Boolean doIHaveToKrint,
             Azienda azienda
     ) throws BlackBoxPermissionException, IOException, Throwable {
@@ -75,9 +84,23 @@ public class ManageMessageRegistrationUtils {
             // operation: IN_REGISTRATION, REGISTER, REMOVE_IN_REGISTRATION
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
 
-            if (additionalData != null) {
-                makeAdditionalData(additionalData, authenticatedUserProperties, azienda);
+            if (authenticatedUserProperties.getUser() != null) {
+                Utente utente = authenticatedUserProperties.getUser();
+                Persona persona = authenticatedUserProperties.getPerson();
+                AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), persona.getDescrizione());
+                additionalData.setIdUtente(utenteAdditionalData);
+                
             }
+            if(azienda != null){
+                AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
+                additionalData.setIdAzienda(aziendaAdditionalData);
+            }
+//                makeAdditionalData(additionalData, authenticatedUserProperties, azienda);
+                
+                
+                
+                  
+            
             // recupero tutti i messaggi con l'uuid passato
             List<Message> messages = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(uuidMessage));
 
@@ -100,8 +123,8 @@ public class ManageMessageRegistrationUtils {
                 List<MessageTag> messageTagInRegistrationList = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
                 List<MessageTag> messageTagRegisteredList = messageTagRespository.findByIdMessageAndIdTag(message, tagRegistered);
                 //vedere se cambiare
-                List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration = new ArrayList<>();
-                List<Map<String, Map<String, Object>>> initialAdditionalDataArrayRegistered = new ArrayList<>();
+                List<AdditionalDataRegistration> initialAdditionalDataArrayInRegistration = new ArrayList<>();
+                List<AdditionalDataRegistration> initialAdditionalDataArrayRegistered = new ArrayList<>();
 
                 if (messageTagInRegistrationList != null && (messageTagInRegistrationList.size() == 1)) {
                     messageTagInRegistration = messageTagInRegistrationList.get(0);
@@ -114,19 +137,21 @@ public class ManageMessageRegistrationUtils {
                 // leggo gli additional data del messaggio in stado di in registrazione
                 if (messageTagInRegistration != null && messageTagInRegistration.getAdditionalData() != null) {
                     try {
-                        Map<String, Map<String, Object>> initialAdditionalData = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), Map.class);
+                        AdditionalDataRegistration initialAdditionalData = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), new TypeReference<AdditionalDataRegistration>() {});
+
                         initialAdditionalDataArrayInRegistration.add(initialAdditionalData);
                     } catch (Throwable ex) {
-                        initialAdditionalDataArrayInRegistration = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), List.class);
+//                        initialAdditionalDataArrayInRegistration = (List<AdditionalDataRegistration>)AdditionalDataRegistration.fromJsonString(objectMapper, messageTagInRegistration.getAdditionalData());
+                        initialAdditionalDataArrayInRegistration = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), new TypeReference<List<AdditionalDataRegistration>>() {});
                     }
                 }
                 // leggo gli additional data del messaggio in stato di registrati
                 if (messageTagRegistered != null && messageTagRegistered.getAdditionalData() != null) {
                     try {
-                        Map<String, Map<String, Object>> initialAdditionalData = objectMapper.readValue(messageTagRegistered.getAdditionalData(), Map.class);
+                        AdditionalDataRegistration initialAdditionalData = objectMapper.readValue(messageTagRegistered.getAdditionalData(), AdditionalDataRegistration.class);
                         initialAdditionalDataArrayRegistered.add(initialAdditionalData);
                     } catch (Throwable ex) {
-                        initialAdditionalDataArrayRegistered = objectMapper.readValue(messageTagRegistered.getAdditionalData(), List.class);
+                        initialAdditionalDataArrayRegistered = objectMapper.readValue(messageTagRegistered.getAdditionalData(),new TypeReference<List<AdditionalDataRegistration>>() {});
                     }
                 }
 
@@ -139,7 +164,15 @@ public class ManageMessageRegistrationUtils {
                         }
                         break;
                     case "ADD_REGISTERED":
-                        addRegistered(additionalData, message, messageTagRegistered, authenticatedUserProperties, tagRegistered, initialAdditionalDataArrayRegistered, messageTagInRegistration, initialAdditionalDataArrayInRegistration, folderRegistered);
+                        //theRegistered si riferisce al fatto che può non essere il messaggio protocollato, ma un suo gemello arrivato a un'altra casella della stessa azienda
+                        Boolean isTheRegistered = null;
+                        if (Objects.equals(message.getId(), idMessage)) {
+                            isTheRegistered = true;
+                        } else {
+                            isTheRegistered = false;
+                        }
+                        String pecOfRegistrationAddress = messageRepository.getById(idMessage).getIdPec().getIndirizzo();
+                        addRegistered(additionalData, message, messageTagRegistered, authenticatedUserProperties, tagRegistered, initialAdditionalDataArrayRegistered, messageTagInRegistration, initialAdditionalDataArrayInRegistration, folderRegistered, isTheRegistered, pecOfRegistrationAddress);
                         if (doIHaveToKrint) {
                             krintShpeckService.writeRegistration(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_PROTOCOLLAZIONE);
                         }
@@ -166,8 +199,8 @@ public class ManageMessageRegistrationUtils {
             throw ex;
         }
     }
-    
-    public void makeAdditionalData(Map<String, Map<String, Object>> additionalData, AuthenticatedSessionData authenticatedUserProperties, Azienda azienda) {
+
+    public void makeAdditionalData(Map<String, Object> additionalData, AuthenticatedSessionData authenticatedUserProperties, Azienda azienda) {
         Map<String, Object> idUtenteMap = new HashMap<>();
         idUtenteMap.put("id", authenticatedUserProperties.getUser().getId());
         idUtenteMap.put("descrizione", authenticatedUserProperties.getPerson().getDescrizione());
@@ -181,16 +214,17 @@ public class ManageMessageRegistrationUtils {
         idAziendaMap.put("descrizione", azienda.getDescrizione());
         additionalData.put("idAzienda", idAziendaMap);
     }
-    
+
     public void addInRegistration(
-            Map<String, Map<String, Object>> additionalData,
+            AdditionalDataRegistration additionalData,
             AuthenticatedSessionData authenticatedUserProperties,
             Message message,
             MessageTag messageTagInRegistration,
             Tag tagInRegistration,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration
+            List<AdditionalDataRegistration> initialAdditionalDataArrayInRegistration
     ) throws Exception {
         LOG.info("dentro ADD_IN_REGISTRATION per il messaggio con id: " + message.getId());
+        
         if (additionalData == null) {
             throw new Exception("add tag ADD_IN_REGISTRATION no additional data");
         } else {
@@ -210,28 +244,33 @@ public class ManageMessageRegistrationUtils {
                 messageTagToAdd.setIdTag(tagInRegistration);
             }
             initialAdditionalDataArrayInRegistration.add(additionalData);
-            messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayInRegistration));
+//            messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayInRegistration));
+            messageTagToAdd.setAdditionalData(AdditionalData.toJsonString(objectMapper, initialAdditionalDataArrayInRegistration));
             messageTagRespository.save(messageTagToAdd);
         } catch (Exception ex) {
             throw new Exception("errore nella funzione--> addInRegistration " + ex.getMessage());
         }
     }
-    
+
     /**
-     * A questa funzione viene passato l'additionalData che si vuole aggiungere ad un tag (nello specifico in_registration oppure registered)
-     * E viene passato anche initialAdditionalDataArray che contiene gli altri già presenti additionalData per quel tag.
-     * Se la funzione rileva che l'azienda di additionalData è già presente dentro initialAdditionalDataArray allora lancerà errore.
+     * A questa funzione viene passato l'additionalData che si vuole aggiungere
+     * ad un tag (nello specifico in_registration oppure registered) E viene
+     * passato anche initialAdditionalDataArray che contiene gli altri già
+     * presenti additionalData per quel tag. Se la funzione rileva che l'azienda
+     * di additionalData è già presente dentro initialAdditionalDataArray allora
+     * lancerà errore.
+     *
      * @param additionalData
      * @param initialAdditionalDataArray
-     * @throws Exception 
+     * @throws Exception
      */
     public void checkIfAziendaAlreadyHasThisTag(
-            Map<String, Map<String, Object>> additionalData,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArray
+            AdditionalDataRegistration additionalData,
+            List<AdditionalDataRegistration> initialAdditionalDataArray
     ) throws Exception {
-        Integer idAziendaAdditionalData = (Integer)additionalData.get("idAzienda").get("id");
-        for (Map<String, Map<String, Object>> initialData : initialAdditionalDataArray) {
-            Integer idAziendaInitialData = (Integer)initialData.get("idAzienda").get("id");
+        Integer idAziendaAdditionalData = additionalData.getIdAzienda().getId();
+        for (AdditionalDataRegistration initialData : initialAdditionalDataArray) {
+            Integer idAziendaInitialData = initialData.getIdAzienda().getId();
             if (idAziendaInitialData.equals(idAziendaAdditionalData)) {
                 LOG.info("errore, tag su azienda " + idAziendaAdditionalData + " gia presente");
                 throw new Exception("errore, tag su azienda " + idAziendaAdditionalData + " gia presente");
@@ -239,15 +278,17 @@ public class ManageMessageRegistrationUtils {
         }
     }
 
-    public void addRegistered(Map<String, Map<String, Object>> additionalData,
+    public void addRegistered(AdditionalDataRegistration additionalData,
             Message message,
             MessageTag messageTagRegistered,
             AuthenticatedSessionData authenticatedUserProperties,
             Tag tagRegistered,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayRegistered,
+            List<AdditionalDataRegistration> initialAdditionalDataArrayRegistered,
             MessageTag messageTagInRegistration,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration,
-            Folder folderRegistered) throws Exception {
+            List<AdditionalDataRegistration> initialAdditionalDataArrayInRegistration,
+            Folder folderRegistered,
+            Boolean isTheRegisteredMessage,
+            String pecOfRegistrationAddress) throws Exception {
 
         LOG.info("dentro ADD_REGISTERED per il messaggio con id: " + message.getId());
         if (additionalData == null) {
@@ -256,24 +297,33 @@ public class ManageMessageRegistrationUtils {
             checkIfAziendaAlreadyHasThisTag(additionalData, initialAdditionalDataArrayRegistered);
         }
         try {
-            MessageTag messageTagToAdd = null;
-            if (messageTagRegistered != null) {
-                messageTagToAdd = messageTagRegistered;
-            } else {
-                messageTagToAdd = new MessageTag();
-                messageTagToAdd.setIdUtente(authenticatedUserProperties.getUser());
-                messageTagToAdd.setIdMessage(message);
-                messageTagToAdd.setIdTag(tagRegistered);
-            }
+//            MessageTag messageTagToAdd = null;
+//            if (messageTagRegistered != null) {
+//                messageTagToAdd = messageTagRegistered;
+//            } else {
+//                messageTagToAdd = new MessageTag();
+//                messageTagToAdd.setIdUtente(authenticatedUserProperties.getUser());
+//                messageTagToAdd.setIdMessage(message);
+//                messageTagToAdd.setIdTag(tagRegistered);
+//            }
+            
+//            List<Integer> aziendePrecedentementeProtocollate = initialAdditionalDataArrayRegistered.stream()
+//                    .map(ad -> (Integer) ((Map<String, Object>) ad.get("idAzienda")).get("id")).collect(Collectors.toList());
             List<Integer> aziendePrecedentementeProtocollate = initialAdditionalDataArrayRegistered.stream()
-                    .map(ad -> (Integer) ad.get("idAzienda").get("id")).collect(Collectors.toList());
-
-            initialAdditionalDataArrayRegistered.add(additionalData);
-            messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayRegistered));
-            messageTagRespository.save(messageTagToAdd);
-
+                    .map(ad -> ad.getIdAzienda().getId()).collect(Collectors.toList());
+            //isTheRegisteredMesssage è true se la casella da cui si è protocollato è la stessa a cui appartiene il messaggio a cui si mette il tag,
+            // Se non è il messaggio è stato protocollato da un'altra casella della stessa azienda aggiungiamo la casella pec negli additional data come informazione da mostrare all'utente rm 61054
+            if (!isTheRegisteredMessage) {
+                additionalData.setCasellaPec(pecOfRegistrationAddress);
+            }
+//            initialAdditionalDataArrayRegistered.add(additionalData);
+//            messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayRegistered));
+            Utente utente = authenticatedUserProperties.getUser();
+//            messageTagRespository.save(messageTagToAdd);
+            shpeckUtils.SetRegistrationTag(message.getIdPec(), message, (AdditionalDataRegistration) additionalData, utente, true);
             removeInRegistration(messageTagInRegistration, initialAdditionalDataArrayInRegistration, additionalData);
-
+            
+            
 
             /* Spostamento folder.
              * Un messaggio viene spostato nella cartella protocollati qualora la sua PEC abbia nella sua aziendaList
@@ -283,31 +333,34 @@ public class ManageMessageRegistrationUtils {
              * in altre parole:
              * Se l'azienda dell'utente è presente tra le aziende della pec e la pec non è associata anche ad un azienda
              * facente parte delle aziendePrecedentementeProtocollate allora lo sposto altrimenti non faccio nulla.
+             * C'è un if che controlla se è il messaggio protocollato o un suo gemello (stessa azienda)
              */
-            Boolean aziendaUtenteInAziendePec = message.getIdPec().getPecAziendaList().stream()
-                    .anyMatch(pecazienda
-                            -> pecazienda.getIdAzienda().getId().equals(authenticatedUserProperties.getUser().getIdAzienda().getId()));
+            if (isTheRegisteredMessage) {
+                Boolean aziendaUtenteInAziendePec = message.getIdPec().getPecAziendaList().stream()
+                        .anyMatch(pecazienda
+                                -> pecazienda.getIdAzienda().getId().equals(authenticatedUserProperties.getUser().getIdAzienda().getId()));
 
-            Boolean aziendaPecInPrecedentementeProtocollate = message.getIdPec().getPecAziendaList().stream()
-                    .anyMatch(pecazienda
-                            -> aziendePrecedentementeProtocollate.contains(pecazienda.getIdAzienda().getId()));
+                Boolean aziendaPecInPrecedentementeProtocollate = message.getIdPec().getPecAziendaList().stream()
+                        .anyMatch(pecazienda
+                                -> aziendePrecedentementeProtocollate.contains(pecazienda.getIdAzienda().getId()));
 
-            if (aziendaUtenteInAziendePec && !aziendaPecInPrecedentementeProtocollate) {
-                // Lo elimino da quella in cui era e lo metto nella cartella registered
-                List<MessageFolder> messageFolder = messageFolderRespository.findByIdMessage(message);
-                if (!messageFolder.isEmpty()) {
-                    MessageFolder mfCurrentMessage = messageFolder.get(0);
-                    mfCurrentMessage.setIdUtente(authenticatedUserProperties.getUser());
-                    mfCurrentMessage.setIdFolder(folderRegistered);
-                    if (mfCurrentMessage.getIdFolder().getType() != Folder.FolderType.REGISTERED) {
-                        messageFolderRespository.save(mfCurrentMessage);
+                if (aziendaUtenteInAziendePec && !aziendaPecInPrecedentementeProtocollate) {
+                    // Lo elimino da quella in cui era e lo metto nella cartella registered
+                    List<MessageFolder> messageFolder = messageFolderRespository.findByIdMessage(message);
+                    if (!messageFolder.isEmpty()) {
+                        MessageFolder mfCurrentMessage = messageFolder.get(0);
+                        mfCurrentMessage.setIdUtente(authenticatedUserProperties.getUser());
+                        mfCurrentMessage.setIdFolder(folderRegistered);
+                        if (mfCurrentMessage.getIdFolder().getType() != Folder.FolderType.REGISTERED) {
+                            messageFolderRespository.save(mfCurrentMessage);
+                        }
+                    } else {
+                        MessageFolder mfRegistered = new MessageFolder();
+                        mfRegistered.setIdUtente(authenticatedUserProperties.getUser());
+                        mfRegistered.setIdMessage(message);
+                        mfRegistered.setIdFolder(folderRegistered);
+                        messageFolderRespository.save(mfRegistered);
                     }
-                } else {
-                    MessageFolder mfRegistered = new MessageFolder();
-                    mfRegistered.setIdUtente(authenticatedUserProperties.getUser());
-                    mfRegistered.setIdMessage(message);
-                    mfRegistered.setIdFolder(folderRegistered);
-                    messageFolderRespository.save(mfRegistered);
                 }
             }
         } catch (Exception ex) {
@@ -316,13 +369,12 @@ public class ManageMessageRegistrationUtils {
     }
 
     public void removeInRegistration(MessageTag messageTagInRegistration,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayInRegistration,
-            Map<String, Map<String, Object>> additionalData) throws JsonProcessingException {
+            List<AdditionalDataRegistration> initialAdditionalDataArrayInRegistration,
+            AdditionalDataRegistration additionalData) throws JsonProcessingException {
         removeAdditionalDataByIdAziendaFromTag(messageTagInRegistration, initialAdditionalDataArrayInRegistration, additionalData);
 
     }
-    
-    
+
     /**
      * TODO
      *
@@ -332,31 +384,36 @@ public class ManageMessageRegistrationUtils {
      * @throws JsonProcessingException
      */
     public void removeAdditionalDataByIdAziendaFromTag(MessageTag messageTag,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayOfTag,
-            Map<String, Map<String, Object>> additionalData) throws JsonProcessingException {
+            List<AdditionalDataRegistration> initialAdditionalDataArrayOfTag,
+            AdditionalDataRegistration additionalData) throws JsonProcessingException {
         if (messageTag != null) {
             // devo togliere dal tag in_registration l'azienda passata
-            Predicate<Map<String, Map<String, Object>>> isQualified
-                    = item
-                    -> item.get("idAzienda").get("id").equals(additionalData.get("idAzienda").get("id"));
-
-            initialAdditionalDataArrayOfTag.removeIf(isQualified);
+            initialAdditionalDataArrayOfTag.removeIf(item -> {
+                if (item.getIdAzienda() != null && additionalData.getIdAzienda() != null) {
+                    Integer itemAziendaId = item.getIdAzienda().getId();
+                    Integer additionalDataAziendaId = additionalData.getIdAzienda().getId();
+                    return itemAziendaId.equals(additionalDataAziendaId);
+                } else {
+                    return false;
+                }
+//                return item.getIdAzienda().getId().equals(additionalData.getIdAzienda().getId());
+            });
 
             if (initialAdditionalDataArrayOfTag.size() > 0) {
-                messageTag.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayOfTag));
+//                messageTag.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayOfTag));
+                messageTag.setAdditionalData(AdditionalData.toJsonString(objectMapper, initialAdditionalDataArrayOfTag));
                 messageTagRespository.save(messageTag);
             } else {
                 messageTagRespository.delete(messageTag);
             }
         }
     }
-    
-    
+
     public void removeRegistered(Message message,
             MessageTag messageTagRegistered,
-            List<Map<String, Map<String, Object>>> initialAdditionalDataArrayRegistered,
+            List<AdditionalDataRegistration> initialAdditionalDataArrayRegistered,
             AuthenticatedSessionData authenticatedUserProperties,
-            Map<String, Map<String, Object>> additionalData) throws JsonProcessingException {
+            AdditionalDataRegistration additionalData) throws JsonProcessingException {
         LOG.info("dentro REMOVE_REGISTERED per il messaggio con id: " + message.getId());
 
         removeAdditionalDataByIdAziendaFromTag(messageTagRegistered, initialAdditionalDataArrayRegistered, additionalData);
@@ -366,7 +423,7 @@ public class ManageMessageRegistrationUtils {
             Devo spostare il messaggio se esso non è protocollato in altre aziende della aziendaPecList
          */
         List<Integer> aziendeInCuiRimaneProtocollato = initialAdditionalDataArrayRegistered.stream()
-                .map(ad -> (Integer) ad.get("idAzienda").get("id")).collect(Collectors.toList());
+                .map(ad -> ad.getIdAzienda().getId()).collect(Collectors.toList());
 
         Boolean daNonSpostare = message.getIdPec().getPecAziendaList().stream()
                 .anyMatch(pecazienda
@@ -377,7 +434,7 @@ public class ManageMessageRegistrationUtils {
         }
 
     }
-    
+
     private void moveInPreviousFolder(Message message, AuthenticatedSessionData authenticatedUserProperties) {
         List<MessageFolder> messageFolder = messageFolderRespository.findByIdMessage(message);
 

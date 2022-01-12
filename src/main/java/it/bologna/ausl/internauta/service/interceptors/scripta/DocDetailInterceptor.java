@@ -188,10 +188,23 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                     .where(
                         qPersonaVedente.idPersona.id.eq(persona.getId()),
                         qPersonaVedente.pienaVisibilita.eq(Expressions.TRUE),
-                        qdoclist.id.eq(qPersonaVedente.idDocDetail.id)
+                        qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
+                        qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
+//                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
+                    );
+            SubQueryExpression<Long> queryPersoneVedenteSenzaObbligoPienaVisbilita = 
+                    select(qPersonaVedente.id)
+                    .from(qPersonaVedente)
+                    .where(
+                        qPersonaVedente.idPersona.id.eq(persona.getId()),
+                        qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
+                        qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
+//                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
                     );
             BooleanExpression pienaVisibilita = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteConPienaVisibilita);
-            BooleanExpression personaVedente = qdoclist.personeVedentiList.any().idPersona.id.eq(persona.getId());
+            BooleanExpression personaVedente = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteSenzaObbligoPienaVisbilita);//idPersona.id.eq(persona.getId());
             
             BooleanExpression sonoSegretario = null;
             if (idStruttureSegretario != null && idStruttureSegretario.length > 0) {
@@ -256,4 +269,43 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
         return findOne.isPresent();
     }
 
+    
+//    public BooleanExpression duplicateFiltersPerPartition(EntityPathBase qEntity) {
+//        BooleanExpression filter = Expressions.TRUE.eq(true);
+//        Map<Path<?>, List<Object>> filterDescriptorMap = NextSdrControllerInterceptor.filterDescriptor.get();
+//        QPersonaVedente qEntity = QPersonaVedente.personaVedente;
+//        if (!filterDescriptorMap.isEmpty()) {
+//            Pattern pattern = Pattern.compile("\\.(.*?)(\\.|$)");
+//            Set<Path<?>> pathSet = filterDescriptorMap.keySet();
+//            System.out.println(pathSet.toString());
+//            for (Path<?> path : pathSet) {
+//                Matcher matcher = pattern.matcher(path.toString());
+//                matcher.find();
+//                String fieldName = matcher.group(1);
+//                if (fieldName.equals("idAzienda")) {
+//                    List<Object> ids = filterDescriptorMap.get(path);
+//                    for (Object id : ids) {
+//                        filter = filter.and(qEntity.idAzienda.id.eq((Integer) id));
+//                    }
+//                } else if (fieldName.equals("dataCreazione")) {
+////                     if (List.class.isAssignableFrom(filterDescriptorMap.get(path).getClass())) {
+//                    if (filterDescriptorMap.get(path).size() == 2) {
+//                        ZonedDateTime data1 = (ZonedDateTime) filterDescriptorMap.get(path).get(0);
+//                        ZonedDateTime data2 = (ZonedDateTime) filterDescriptorMap.get(path).get(1);
+//                        if (data1.isBefore(data2)) {
+//                            filter = filter.and(qEntity.dataCreazione.goe(data1).and(qEntity.dataCreazione.lt(data2)));
+//                        } else {
+//                            filter = filter.and(qEntity.dataCreazione.goe(data2).and(qEntity.dataCreazione.lt(data1)));
+//                        }
+//                    } else {
+//                        ZonedDateTime data = (ZonedDateTime) filterDescriptorMap.get(path).get(0);
+//                        ZonedDateTime startDate = data.toLocalDate().atTime(0, 0, 0).atZone(data.getZone());
+//                        ZonedDateTime endDate = startDate.plusDays(1);
+//                        filter = filter.and(qEntity.dataCreazione.goe(startDate).and(qEntity.dataCreazione.lt(endDate)));
+//                    }
+//                }
+//            }
+//        }
+//        return filter;
+//    }
 }

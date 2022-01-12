@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.schedulers.workers.gedi.wrappers;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import java.math.BigInteger;
 
 /**
  *
@@ -11,24 +12,24 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 public class FascicolatoreAutomaticoGediParams {
 
     private Integer idOutbox;
-    private Azienda azienda;
+    private Integer IdAzienda;
     private String cf;
     private String mittente;
     private String numerazioneGerarchica;
-    private Utente utente;
-    private Persona persona;
+    private Integer idUtente;
+    private Integer idPersona;
 
     public FascicolatoreAutomaticoGediParams() {
     }
 
-    public FascicolatoreAutomaticoGediParams(Integer idOutbox, Azienda azienda, String cf, String mittente, String numerazioneGerarchica, Utente utente, Persona persona) {
+    public FascicolatoreAutomaticoGediParams(Integer idOutbox, Integer IdAzienda, String cf, String mittente, String numerazioneGerarchica, Integer idUtente, Integer idPersona) {
         this.idOutbox = idOutbox;
-        this.azienda = azienda;
+        this.IdAzienda = IdAzienda;
         this.cf = cf;
         this.mittente = mittente;
         this.numerazioneGerarchica = numerazioneGerarchica;
-        this.utente = utente;
-        this.persona = persona;
+        this.idUtente = idUtente;
+        this.idPersona = idPersona;
     }
 
     public Integer getIdOutbox() {
@@ -39,12 +40,12 @@ public class FascicolatoreAutomaticoGediParams {
         this.idOutbox = idOutbox;
     }
 
-    public Azienda getIdAzienda() {
-        return azienda;
+    public Integer getIdAzienda() {
+        return IdAzienda;
     }
 
-    public void setIdAzienda(Azienda idAzienda) {
-        this.azienda = idAzienda;
+    public void setIdAzienda(Integer idAzienda) {
+        this.IdAzienda = idAzienda;
     }
 
     public String getCf() {
@@ -71,25 +72,25 @@ public class FascicolatoreAutomaticoGediParams {
         this.numerazioneGerarchica = numerazioneGerarchica;
     }
 
-    public Utente getUtente() {
-        return utente;
+    public Integer getUtente() {
+        return idUtente;
     }
 
-    public void setUtente(Utente utente) {
-        this.utente = utente;
+    public void setUtente(Integer idUtente) {
+        this.idUtente = idUtente;
     }
 
-    public Persona getPersona() {
-        return persona;
+    public Integer getPersona() {
+        return idPersona;
     }
 
-    public void setPersona(Persona persona) {
-        this.persona = persona;
+    public void setPersona(Integer idPersona) {
+        this.idPersona = idPersona;
     }
 
     @Override
     public String toString() {
-        return "FascicolatoreAutomaticoGediParams{" + "idOutbox=" + idOutbox + ", idAzienda=" + azienda + ", cf=" + cf + ", mittente=" + mittente + ", numerazioneGerarchica=" + numerazioneGerarchica + '}';
+        return "FascicolatoreAutomaticoGediParams{" + "idOutbox=" + idOutbox + ", idAzienda=" + IdAzienda + ", cf=" + cf + ", mittente=" + mittente + ", numerazioneGerarchica=" + numerazioneGerarchica + '}';
     }
 
 }

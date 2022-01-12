@@ -12,7 +12,7 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "CustomRecepitWithAddressList", types = Message.class)
 public interface CustomRecepitWithAddressList extends MessageWithIdRecepitAndMessageAddressList {
     
-    @Value("#{@projectionBeans.getMessageAddressListWithIdAddress(target)}")
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getMessageAddressList', 'MessageAddressWithIdAddress')}")
     @Override
     public List<MessageAddressWithIdAddress> getMessageAddressList();
 }

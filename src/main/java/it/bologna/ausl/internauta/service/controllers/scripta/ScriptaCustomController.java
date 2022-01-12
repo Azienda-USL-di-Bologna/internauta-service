@@ -111,66 +111,66 @@ public class ScriptaCustomController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ScriptaCustomController.class);
 
-    MinIOWrapperFileInfo savedFileOnRepository = null;
-    List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
-    List<Allegato> savedFilesOnInternauta = new ArrayList();
+    private MinIOWrapperFileInfo savedFileOnRepository = null;
+    private List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
+    private List<Allegato> savedFilesOnInternauta = new ArrayList();
 
     @Autowired
-    CachedEntities cachedEntities;
+    private CachedEntities cachedEntities;
 
     @Autowired
-    NonCachedEntities nonCachedEntities;
+    private NonCachedEntities nonCachedEntities;
 
     @Autowired
-    DocRepository docRepository;
+    private DocRepository docRepository;
 
     @Autowired
-    DocDetailRepository docDetailRepository;
+    private DocDetailRepository docDetailRepository;
 
     @Autowired
-    RegistroDocRepository registroDocRepository;
+    private RegistroDocRepository registroDocRepository;
 
     @Autowired
-    PecRepository pecRepository;
+    private PecRepository pecRepository;
 
     @Autowired
-    PersonaRepository personaRepository;
+    private PersonaRepository personaRepository;
 
     @Autowired
-    ScriptaUtils scriptaUtils;
+    private ScriptaUtils scriptaUtils;
 
     @Autowired
-    ReporitoryConnectionManager aziendeConnectionManager;
+    private ReporitoryConnectionManager aziendeConnectionManager;
 
     @Autowired
-    ParametriAziendeReader parametriAziende;
+    private ParametriAziendeReader parametriAziende;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     @Autowired
-    AllegatoRepository allegatoRepository;
+    private AllegatoRepository allegatoRepository;
 
     @Autowired
-    DettaglioAllegatoRepository dettaglioAllegatoRepository;
+    private DettaglioAllegatoRepository dettaglioAllegatoRepository;
 
     @Autowired
-    ProjectionFactory projectionFactory;
+    private ProjectionFactory projectionFactory;
 
     @Autowired
-    ProjectionBeans projectionBeans;
+    private ProjectionBeans projectionBeans;
 
     @Autowired
-    StrutturaRepository strutturaRepository;
+    private StrutturaRepository strutturaRepository;
 
     @Autowired
-    AziendaRepository aziendaRepository;
+    private AziendaRepository aziendaRepository;
 
     @Autowired
-    GeneratePE generatePE;
+    private GeneratePE generatePE;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
