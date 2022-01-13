@@ -70,39 +70,22 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
         // TODO controllare che chi sta facendo sto update abbia almeno un permesso sulla casella del folder.
         // deve fare il contorllo una volta per più update (per via del batch che fa spostare più message in una volta sola?)
 
-//        MessageFolder beforeupdateMessageFolder = (MessageFolder) beforeUpdateEntity;
-//        MessageFolder messageFolder = (MessageFolder) entity;
-//        messageFolder.setIdPreviousFolder(beforeupdateMessageFolder.getIdFolder());
-//        return messageFolder;
         // Se sto spostando nel cestino devo avere il peremsso elimina
         MessageFolder messageFolder = (MessageFolder) entity;
-//        List<Boolean> listaFarloccaBeforeDeleted = new ArrayList();
-//        List<Folder> listaFarloccaBeforeIdFodler = new ArrayList();
         List<MessageFolder> listaFarloccaBeforeMessageFolder = new ArrayList();
         MessageFolder beforeMessageFolder;
-//        Boolean beforeDeleted;
-//        Folder beforeIdFolder;
         try {
             beforeUpdateEntityApplier.beforeUpdateApply(mf -> {
                 MessageFolder messageFolderBefore = (MessageFolder) mf;
-//                listaFarloccaBeforeDeleted.add(messageFolderBefore.getDeleted());
-//                listaFarloccaBeforeIdFodler.add(messageFolderBefore.getIdFolder());
                 listaFarloccaBeforeMessageFolder.add(messageFolderBefore);
                 // forzo l'esecuzione delle query in modo da avere l'oggetto in memoria, altrimenti la query verrebbe fatto dopo quando l'oggetto è staccato dalla sessione
                 messageFolderBefore.getIdFolder().getDescription();
             });
-//            beforeDeleted = listaFarloccaBeforeDeleted.get(0);
-//            beforeIdFolder = listaFarloccaBeforeIdFodler.get(0);
             beforeMessageFolder = listaFarloccaBeforeMessageFolder.get(0);
         } catch (BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
-        
-//        try {
-//            beforeMessageFolder = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, MessageFolder.class);
-//        } catch (BeforeUpdateEntityApplierException ex) {
-//            throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
-//        }
+
         Message message = messageFolder.getIdMessage();
 
         if (messageFolder.getIdFolder().getType().equals(FolderType.TRASH)) {
