@@ -19,6 +19,8 @@ import it.bologna.ausl.model.entities.shpeck.Tag;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class KrintShpeckService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(KrintShpeckService.class);
     
     @Autowired
     ProjectionFactory factory;
@@ -189,13 +192,18 @@ public class KrintShpeckService {
      * @param message
      * @param codiceOperazione: PEC_MESSAGE_SPOSTAMENTO
      * @param folder 
+     * @param idPreviousFolder 
      */
     public void writeFolderChanged(Message message, OperazioneKrint.CodiceOperazione codiceOperazione, Folder folder, Folder idPreviousFolder) {
         try {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);
             KrintShpeckFolder krintPecFolder = factory.createProjection(KrintShpeckFolder.class, folder);
-            KrintShpeckFolder krintPecPreviousFolder = factory.createProjection(KrintShpeckFolder.class, idPreviousFolder);    
+            KrintShpeckFolder krintPecPreviousFolder = null;
+            LOGGER.info("idPreviousFolder: " + idPreviousFolder);
+            if (idPreviousFolder != null) {
+                krintPecPreviousFolder = factory.createProjection(KrintShpeckFolder.class, idPreviousFolder);
+            }
             Map<String, Object> map = new HashMap();
             map.put("idMessage", krintPecMessage);
             map.put("idFolder", krintPecFolder);
@@ -217,6 +225,7 @@ public class KrintShpeckService {
                 jsonKrintPec,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
+            LOGGER.error("errore nel krinting dell'operazione writeFolderChanged", ex);
             Integer idOggetto = null;
             try {
                 idOggetto = message.getId();
