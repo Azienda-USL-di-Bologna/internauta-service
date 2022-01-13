@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.Folder.FolderType;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageFolder;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,12 +76,33 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
 //        return messageFolder;
         // Se sto spostando nel cestino devo avere il peremsso elimina
         MessageFolder messageFolder = (MessageFolder) entity;
+//        List<Boolean> listaFarloccaBeforeDeleted = new ArrayList();
+//        List<Folder> listaFarloccaBeforeIdFodler = new ArrayList();
+        List<MessageFolder> listaFarloccaBeforeMessageFolder = new ArrayList();
         MessageFolder beforeMessageFolder;
+//        Boolean beforeDeleted;
+//        Folder beforeIdFolder;
         try {
-            beforeMessageFolder = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, MessageFolder.class);
+            beforeUpdateEntityApplier.beforeUpdateApply(mf -> {
+                MessageFolder messageFolderBefore = (MessageFolder) mf;
+//                listaFarloccaBeforeDeleted.add(messageFolderBefore.getDeleted());
+//                listaFarloccaBeforeIdFodler.add(messageFolderBefore.getIdFolder());
+                listaFarloccaBeforeMessageFolder.add(messageFolderBefore);
+                // forzo l'esecuzione delle query in modo da avere l'oggetto in memoria, altrimenti la query verrebbe fatto dopo quando l'oggetto è staccato dalla sessione
+                messageFolderBefore.getIdFolder().getDescription();
+            });
+//            beforeDeleted = listaFarloccaBeforeDeleted.get(0);
+//            beforeIdFolder = listaFarloccaBeforeIdFodler.get(0);
+            beforeMessageFolder = listaFarloccaBeforeMessageFolder.get(0);
         } catch (BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
+        
+//        try {
+//            beforeMessageFolder = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, MessageFolder.class);
+//        } catch (BeforeUpdateEntityApplierException ex) {
+//            throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
+//        }
         Message message = messageFolder.getIdMessage();
 
         if (messageFolder.getIdFolder().getType().equals(FolderType.TRASH)) {
