@@ -39,9 +39,14 @@ public interface PersonaRepository extends
             + "and p.attiva = true and s.attiva = true", nativeQuery = true)
     public List<Persona> getPersoneAttiveListInStruttureAttiveList(List<Integer> idStrutture);
 
-    
     @Query(value = "select unnest(array_remove(baborg.strutture_del_segretario(?1),NULL))", nativeQuery = true)
     public Integer[] getStruttureDelSegretario(
-           Integer idPersona
+            Integer idPersona
     );
+
+    @Query(value = "select p.id "
+            + "from baborg.persone p "
+            + "join baborg.utenti u on u.id_persona = p.id  "
+            + "where u.attivo = true and p.attiva = true and u.id_azienda = ?1", nativeQuery = true)
+    public List<Integer> getPersoneAttiveConUtentiAttiviSuAzienda(Integer idAzienda);
 }
