@@ -196,9 +196,9 @@ public class ProjectionBeans {
         return factory.createProjection(CustomPersonaLogin.class, utente.getIdPersona());
     }
 
-    public AziendaWithPlainFields getAziendaWithPlainFields(Utente utente) {
-        return factory.createProjection(AziendaWithPlainFields.class, utente.getIdAzienda());
-    }
+//    public AziendaWithPlainFields getAziendaWithPlainFields(Utente utente) {
+//        return factory.createProjection(AziendaWithPlainFields.class, utente.getIdAzienda());
+//    }
 
     public List<ImpostazioniApplicazioniWithPlainFields> getImpostazioniApplicazioniListWithPlainFields(Persona persona) throws BlackBoxPermissionException {
 //        setAuthenticatedUserProperties();
