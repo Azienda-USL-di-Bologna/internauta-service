@@ -131,8 +131,11 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
         if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
             throw new AbortSaveInterceptorException();
         }
-
-        return entity;
+        StrutturaUnificata strutturaUnificata = (StrutturaUnificata) entity;
+        if(strutturaUnificata.getDataAccensioneAttivazione() == null) {
+            strutturaUnificata.setDataAccensioneAttivazione(ZonedDateTime.now(ZoneId.systemDefault()));
+        }
+        return strutturaUnificata;
     }
 
 }
