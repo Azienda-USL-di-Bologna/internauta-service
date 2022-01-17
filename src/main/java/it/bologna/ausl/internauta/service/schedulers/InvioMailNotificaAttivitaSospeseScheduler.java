@@ -5,14 +5,16 @@
  */
 package it.bologna.ausl.internauta.service.schedulers;
 
-import it.bologna.ausl.internauta.service.schedulers.workers.InviaNotificaAttivitaSospeseWorker;
-import java.util.Date;
+import it.bologna.ausl.internauta.service.schedulers.managers.InviaNotificaAttivitaSospeseWorkerManager;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 
 /**
  *
@@ -21,36 +23,39 @@ import org.springframework.beans.factory.annotation.Value;
  * Schedula l'esecuzione una volta al giorno di uno schedulatore dell'invio
  * notifiche
  */
+@Configuration
+@EnableAsync
+@EnableScheduling
 public class InvioMailNotificaAttivitaSospeseScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(InvioMailNotificaAttivitaSospeseScheduler.class);
-
-    @Value("${internauta.invio.mail.notifica.attivita.sospese.scheduled.day.hour}")
-    Integer oraDiSchedulazioneJobInvioMailNotificaAttivitaSospese;
-
-    @Value("${internauta.scheduled.invio-mail-notifica-attivita-sospese.scheduled-chron-exp}")
-    String scheduledChronExp;
 
     @Autowired
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
     @Autowired
+    InviaNotificaAttivitaSospeseWorkerManager manager;
+
+    @Autowired
     private BeanFactory beanFactory;
+
+    @Scheduled(cron = "${internauta.scheduled.invio-mail-notifica-attivita-sospese.scheduled-chron-exp}",
+            zone = "Europe/Rome")
+    public void chroneScheduleManager() {
+        log.info("InvioMailNotificaAttivitaSospeseScheduler chrone schedule...");
+        schedulaInvioMailNotificaAttivitaSospese();
+        log.info("InvioMailNotificaAttivitaSospeseScheduler chrone schedule end");
+    }
 
     public void scheduleOnBoot() {
         log.info("Scheduling Schedule Josb On Boot");
     }
 
-    public void traQuandiMinutiParto() {
-        Date adesso = new Date();
-
-    }
-
     public void schedulaInvioMailNotificaAttivitaSospese() {
-        InviaNotificaAttivitaSospeseWorker worker = beanFactory
-                .getBean(InviaNotificaAttivitaSospeseWorker.class);
-        // inserisci nel pool
-        // esegui il pool
+//        InviaNotificaAttivitaSospeseWorkerManager worker = beanFactory
+//                .getBean(InviaNotificaAttivitaSospeseWorkerManager.class);
+//        worker.run();
+        manager.run();
     }
 
 }

@@ -28,7 +28,7 @@ public class TestPersonaExtendedRetrieverRepository {
     @Test
     public void caricaPersoneConUtenteAttivoInAUSLBOLOGNA() {
         System.out.println("caricaPersoneConUtenteAttivoInAUSLBOLOGNA()");
-        List<Integer> lista = persRepository.getPersoneAttiveConUtentiAttiviSuAzienda(2);
+        List<Integer> lista = persRepository.getPersoneAttiveInAziendaConAttivitaSuScrivaniaDaAvvisare(2);
         Assert.assertTrue("Caricamento fallito", lista != null);
         Assert.assertTrue("Non sono stati trovati utenti", !lista.isEmpty());
     }

@@ -25,4 +25,6 @@ public interface UtenteRepository extends
     public Utente findByIdAziendaAndIdPersona(Azienda azienda, Persona persona);
 
     public List<Utente> findByIdPersonaAndAttivo(Persona persona, boolean attivo);
+
+    public Utente findByIdAziendaAndIdPersonaAndAttivo(Azienda azienda, Persona persona, boolean attivo);
 }
