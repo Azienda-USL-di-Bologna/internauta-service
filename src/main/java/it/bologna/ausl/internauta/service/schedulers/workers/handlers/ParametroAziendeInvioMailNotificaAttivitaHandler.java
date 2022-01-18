@@ -121,6 +121,10 @@ public class ParametroAziendeInvioMailNotificaAttivitaHandler {
         return idAzienda;
     }
 
+    public ParametroAziende getParametroAziende() {
+        return parametroAziende;
+    }
+
     @Override
     public String toString() {
         return "ParametroAziendeInvioMailNotificaAttivitaHandler{" + "parametroAziende=" + parametroAziende.toString() + ", idAzienda=" + idAzienda + '}';

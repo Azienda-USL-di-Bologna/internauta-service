@@ -13,11 +13,15 @@ import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +56,47 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
     @Autowired
     ParametroAziendeRepository parametroAziendeRepository;
 
+    private ParametroAziende parametroAziende;
+
     private final String nomeParametroDB = "inviaMailNotificaAttivitàSospese";
+
+    private boolean isToday(Date date) {
+        LocalDate thatLocalDate = date.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        LocalDate TODAY = new Date().toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        return thatLocalDate.isEqual(TODAY);
+    }
+
+    private boolean isUltimoGiroPerTuttiPrimaDiOggi() {
+        boolean beforeToday = true;
+        String valore = parametroAziende.getValore();
+        if (valore != null && !valore.trim().equalsIgnoreCase("")) {
+            JSONObject datiTutteAziende = new JSONObject(valore);
+            Set<String> keySet = datiTutteAziende.keySet();
+            String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
+            for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext();) {
+                String key = iterator.next();
+                JSONObject datiUltimoGiroAzienda = (JSONObject) datiTutteAziende.get(key);
+                String lastExecutionString = (String) datiUltimoGiroAzienda.get("lastExecution");
+                try {
+                    Date lastExecutionDate = new SimpleDateFormat(DATE_PATTERN).parse(lastExecutionString);
+                    if (isToday(lastExecutionDate)) {
+                        return false;
+                    }
+
+                } catch (ParseException ex) {
+                    java.util.logging.Logger.getLogger(InviaNotificaAttivitaSospeseWorkerManager.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        } else {
+            beforeToday = false;
+        }
+        return beforeToday;
+
+    }
 
     /**
      * Controlla dal JSON di ParametroAziende se tutte l'aziende hanno già
@@ -75,7 +119,13 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
     private void updateParametroAziendeNuovoCicloEsecuzione(ParametroAziende parametroAziende, ParametroAziendeInvioMailNotificaAttivitaHandler handler) {
         JSONObject setDatiUltimaEsecuzioneMestiere = handler.setDatiUltimaEsecuzioneMestiere();
         parametroAziende.setValore(setDatiUltimaEsecuzioneMestiere.toString(4));
-        parametroAziende = parametroAziendeRepository.save(parametroAziende);
+        parametroAziende = parametroAziendeRepository.saveAndFlush(parametroAziende);
+
+    }
+
+    private void updateAndReloadParametroAziende(ParametroAziende parametroAziende, ParametroAziendeInvioMailNotificaAttivitaHandler handler) {
+        updateParametroAziendeNuovoCicloEsecuzione(parametroAziende, handler);
+        parametroAziende = loadParametroAziende();
     }
 
     private void loopAziendeAndManageWorker(ParametroAziende parametroAziende) throws ParseException {
@@ -92,32 +142,42 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
                 System.out.println("No");
                 // esegui il worker
                 log.info("Setto parametri worker");
-                worker.setParameter(idPersoneAvvisate, handler.getIdAzienda());
+                log.info("idPersoneAvvisate.size() = " + idPersoneAvvisate.size());
+                worker.setParameter(idPersoneAvvisate, handler);
                 log.info("Runno per azienda " + handler.getIdAzienda().toString());
                 worker.run();
                 log.info("Mestiere finito su azienda " + handler.getIdAzienda().toString());
-                log.info("Setto il nuovo stato di esecuzione su azienda " + handler.getIdAzienda().toString());
-                updateParametroAziendeNuovoCicloEsecuzione(parametroAziende, handler);
+//                log.info("Setto il nuovo stato di esecuzione su azienda " + handler.getIdAzienda().toString());
+//                updateAndReloadParametroAziende(parametroAziende, handler);
+                parametroAziende = loadParametroAziende();
             }
             System.out.println("ok");
             log.info("Persone avvisate finora: " + idPersoneAvvisate.size());
         }
     }
 
+    private ParametroAziende loadParametroAziende() {
+        return parametroAziendeRepository.findOne(
+                QParametroAziende.parametroAziende.nome.eq(nomeParametroDB)
+        ).get();
+    }
+
     public void run() {
         log.info("Start running...");
         try {
 
-            ParametroAziende parametro = parametroAziendeRepository.findOne(
-                    QParametroAziende.parametroAziende.nome.eq(nomeParametroDB)
-            ).get();
-            System.out.println(parametro.toString());
-            System.out.println(parametro.getIdAziende().length);
+            parametroAziende = loadParametroAziende();
+            System.out.println(parametroAziende.toString());
+            System.out.println("aziende attive " + parametroAziende.getIdAziende().length);
             System.out.println("persone avvisate: " + idPersoneAvvisate);
-            boolean everyAziendaDone = isEveryAziendaDone(parametro);
+            boolean everyAziendaDone = isEveryAziendaDone(parametroAziende);
+            if (isUltimoGiroPerTuttiPrimaDiOggi()) {
+                log.info("Svuotopersone array avvisate");
+                idPersoneAvvisate = new ArrayList<>();
+            }
             System.out.println("everyAziendaDone " + everyAziendaDone);
             if (!everyAziendaDone) {
-                loopAziendeAndManageWorker(parametro);
+                loopAziendeAndManageWorker(parametroAziende);
             }
             log.info("Totale persone avvisate: " + idPersoneAvvisate.size());
             System.out.println(idPersoneAvvisate);
