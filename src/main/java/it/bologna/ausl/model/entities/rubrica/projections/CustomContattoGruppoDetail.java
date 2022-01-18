@@ -14,11 +14,11 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "CustomContattoGruppoDetail", types = Contatto.class)
 public interface CustomContattoGruppoDetail extends ContattoWithContattiDelGruppoListAndIdPersonaCreazioneAndIdUtenteCreazione {
 
-    @Value("#{@projectionBeans.getGruppiContattiWithIdContattoAndIdDettaglioContatto(target)}")
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getContattiDelGruppoList', 'CustomGruppiContattiWithIdContattoAndIdDettaglioContatto')}")
     @Override
     public List<CustomGruppiContattiWithIdContattoAndIdDettaglioContatto> getContattiDelGruppoList();
     
-    @Value("#{@projectionBeans.getPermessiContatto(target)}")
+    @Value("#{@rubricaProjectionUtils.getPermessiContatto(target)}")
     public List<PermessoEntitaStoredProcedure> getPermessiContatto();
 
 }

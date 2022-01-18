@@ -26,7 +26,7 @@ public interface KrintRubricaGruppo{
     @Value("#{target.getCategoria().name()}") 
     String getCategoria();
     
-    @Value("#{@projectionBeans.getCustomKrintContattiDelGruppoList(target)}")
+    @Value("#{@rubricaProjectionsUtilis.getCustomKrintContattiDelGruppoList(target)}")
     List<KrintRubricaGruppoContatto> getContattiDelGruppoList();
 
     
