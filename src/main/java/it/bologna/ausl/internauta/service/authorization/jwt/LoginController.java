@@ -37,11 +37,11 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.HttpStatus;
 import java.util.List;
 import org.springframework.util.StringUtils;
-import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.configurazione.Applicazione.Applicazioni;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import org.springframework.web.bind.annotation.RequestParam;
+import it.bologna.ausl.model.entities.baborg.projections.utente.UtenteLoginCustom;
 
 /**
  *
@@ -300,7 +300,7 @@ public class LoginController {
 
         authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application, false);
         
-        CustomUtenteLogin utenteWithPersona = factory.createProjection(CustomUtenteLogin.class, utente);
+        UtenteLoginCustom utenteWithPersona = factory.createProjection(UtenteLoginCustom.class, utente);
         
 //        utente.setPasswordHash(null);
         return new ResponseEntity(

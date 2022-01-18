@@ -18,30 +18,26 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "CustomContattoEsternoDetail", types = Contatto.class)
 public interface CustomContattoEsternoDetail extends ContattoWithEmailListAndGruppiDelContattoListAndIdPersonaCreazioneAndIdUtenteCreazioneAndIndirizziListAndTelefonoList {
 
-//    @Value("#{@projectionBeans.getEmailWithIdDettaglioContatto(target)}")
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getEmailList', 'EmailWithIdDettaglioContatto')}")
     @Override
     public List<EmailWithIdDettaglioContatto> getEmailList();
 
-//    @Value("#{@projectionBeans.getIndirizzoWithIdDettaglioContatto(target)}")
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getIndirizziList', 'IndirizzoWithIdDettaglioContatto')}")
     @Override
     public List<IndirizzoWithIdDettaglioContatto> getIndirizziList();
 
-//    @Value("#{@projectionBeans.getTelefonoWithIdDettaglioContatto(target)}")
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getTelefonoList', 'TelefonoWithIdDettaglioContatto')}")
     @Override
     public List<TelefonoWithIdDettaglioContatto> getTelefonoList();
 
-//    @Value("#{@projectionBeans.getGruppiContattiWithIdDettaglioContattoAndIdGruppo(target)}")
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getGruppiDelContattoList', 'GruppiContattiWithIdDettaglioContattoAndIdGruppo')}")
     @Override
     public List<GruppiContattiWithIdDettaglioContattoAndIdGruppo> getGruppiDelContattoList();
 
-    @Value("#{@projectionBeans.getEntita(target)}")
+    @Value("#{@permessiProjectionsUtils.getEntita(target)}")
     public Object getEntita();
 
-    @Value("#{@projectionBeans.getPermessiContatto(target)}")
+    @Value("#{@rubricaProjectionUtils.getPermessiContatto(target)}")
     public List<PermessoEntitaStoredProcedure> getPermessiContatto();
 
 }
