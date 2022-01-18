@@ -101,29 +101,6 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         return azienda.getNome();
     }
 
-    //NO NO NO
-    private String preparaListaAttivitaDaMostrareHTML(List<Attivita> listaAttivita) {
-        final String format = "<tr><td>%-25s</td><td>%-25s</td><td>%-40s</td><td>%-40s</td><td>%s</td></tr>";
-        // Azienda, Data, Tipo, Provenienza, Oggetto attivita
-        String tabella = "<table>"
-                + String.format(format, "Azienda", "Data", "Tipo", "Provenienza", "Oggetto");
-        for (Attivita attivita : listaAttivita) {
-            String provenienza = attivita.getProvenienza() != null && attivita.getProvenienza().length() > 40
-                    ? attivita.getProvenienza().substring(0, 37) + "..."
-                    : attivita.getProvenienza();
-            String oggetto = attivita.getOggetto() != null && attivita.getOggetto().length() > 40
-                    ? attivita.getOggetto().substring(0, 37) + "..."
-                    : attivita.getOggetto();
-
-            tabella += String.format(format, getNomeAzienda(attivita.getIdAzienda().getId()),
-                    attivita.getData().format(DateTimeFormatter.ofPattern("dd/MM/uuuu")).toString(),
-                    attivita.getDescrizione(),
-                    provenienza,
-                    attivita.getOggetto());
-        }
-        return tabella + "</table>";
-    }
-
     private String preparaListaAttivitaDaMostrare(List<Attivita> listaAttivita) {
         final String format = "%-25s %-25s %-40s  %-40s %s\n";
         // Azienda, Data, Tipo, Provenienza, Oggetto attivita
