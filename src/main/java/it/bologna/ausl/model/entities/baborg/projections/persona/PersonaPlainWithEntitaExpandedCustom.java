@@ -21,6 +21,5 @@ public interface PersonaPlainWithEntitaExpandedCustom extends PersonaWithUtenteL
 ////    public Azienda getIdAziendaDefault();
     @Override
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getUtenteList', 'UtenteWithIdAzienda')}")
-//    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getUtenteList')}")
     public List<UtenteWithIdAzienda> getUtenteList();
 }

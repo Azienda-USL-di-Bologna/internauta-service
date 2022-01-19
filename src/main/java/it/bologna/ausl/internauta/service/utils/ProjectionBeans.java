@@ -1,4 +1,4 @@
-//package it.bologna.ausl.internauta.service.utils;
+package it.bologna.ausl.internauta.service.utils;
 //
 //import com.fasterxml.jackson.databind.ObjectMapper;
 //import com.querydsl.core.types.dsl.BooleanExpression;
@@ -32,7 +32,11 @@
 //import org.slf4j.LoggerFactory;
 //import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.data.projection.ProjectionFactory;
-//import org.springframework.stereotype.Component;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.projections.persona.CustomPersonaLogin;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.projection.ProjectionFactory;
+import org.springframework.stereotype.Component;
 //import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 //import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 //import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
@@ -93,13 +97,13 @@
 // *
 // * @author guido
 // */
-//@Component
-//public class ProjectionBeans {
+@Component
+public class ProjectionBeans {
 //
 //    public Object o = new Object();
 //
-//    @Autowired
-//    protected ProjectionFactory factory;
+    @Autowired
+    protected ProjectionFactory factory;
 //
 //    @Autowired
 //    protected CachedEntities cachedEntities;
@@ -183,9 +187,9 @@
 //        }
 //    }
 //
-//    public CustomPersonaLogin getIdPersonaWithImpostazioniApplicazioniList(Utente utente) {
-//        return factory.createProjection(CustomPersonaLogin.class, utente.getIdPersona());
-//    }
+    public CustomPersonaLogin getIdPersonaWithImpostazioniApplicazioniList(Utente utente) {
+        return factory.createProjection(CustomPersonaLogin.class, utente.getIdPersona());
+    }
 //
 //    public AziendaWithPlainFields getAziendaWithPlainFields(Utente utente) {
 //        return factory.createProjection(AziendaWithPlainFields.class, utente.getIdAzienda());
@@ -614,4 +618,4 @@
 //        }
 //        return res;
 //    }
-//}
+}
