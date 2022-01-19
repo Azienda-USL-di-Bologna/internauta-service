@@ -25,10 +25,4 @@ public interface UtenteRepository extends
     public Utente findByIdAziendaAndIdPersona(Azienda azienda, Persona persona);
 
     public List<Utente> findByIdPersonaAndAttivo(Persona persona, boolean attivo);
-
-    public Utente findByIdAziendaAndIdPersonaAndAttivo(Azienda azienda, Persona persona, boolean attivo);
-
-    @Query(value = "select id from baborg.utenti where email is not null and attivo = true", nativeQuery = true)
-    public List<Integer> findAllUtentiWithEmails();
-
 }
