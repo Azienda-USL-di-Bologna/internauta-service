@@ -16,7 +16,7 @@ import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
-import it.bologna.ausl.model.entities.baborg.projections.utentestruttura.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
+import it.bologna.ausl.model.entities.baborg.projections.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;

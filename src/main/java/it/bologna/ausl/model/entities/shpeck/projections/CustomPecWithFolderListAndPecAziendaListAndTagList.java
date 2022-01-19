@@ -23,7 +23,6 @@ public interface CustomPecWithFolderListAndPecAziendaListAndTagList extends PecW
     @Override
     public Object getFolderList();
 
-    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getPecAziendaList', 'PecAziendaWithIdAzienda')}")
-    @Override
+    @Value("#{@projectionBeans.getPecAziendaListWithIdAzienda(target.getPecAziendaList())}")
     public List<PecAziendaWithIdAzienda> getPecAziendaList();
 }

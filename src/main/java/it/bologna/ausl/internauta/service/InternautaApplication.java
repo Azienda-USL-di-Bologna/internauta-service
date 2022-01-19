@@ -19,8 +19,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = {"it.bologna.ausl", "it.nextsw"})
-@EnableJpaRepositories(value =  {"it.bologna.ausl.internauta.service.repositories", "it.bologna.ausl.blackbox.repositories"},
-//        repositoryBaseClass = NextQuerydslJpaPredicateExecutorImpl.class
+@EnableJpaRepositories(value = {"it.bologna.ausl.internauta.service.repositories", "it.bologna.ausl.blackbox.repositories"},
+        //        repositoryBaseClass = NextQuerydslJpaPredicateExecutorImpl.class
         repositoryFactoryBeanClass = CustomJpaRepositoryFactoryBean.class
 )
 
@@ -33,7 +33,7 @@ public class InternautaApplication {
 
     @Autowired
     MessageSenderManager messageSenderManager;
-    
+
     @Autowired
     FascicolatoreOutboxGediLocaleManager fascicolatoreOutboxGediLocaleManager;
 
@@ -60,10 +60,17 @@ public class InternautaApplication {
                 log.info("schedulo i threads messageSender...");
                 try {
                     messageSenderManager.scheduleMessageSenderAtBoot(now);
-                    fascicolatoreOutboxGediLocaleManager.scheduleAutoFascicolazioneOutboxAtBoot();
                 } catch (Exception e) {
                     log.info("errore nella schedulazione threads messageSender", e);
                 }
+
+                log.info("schedulo i threads fascicolatoreOutboxGediLocaleManager...");
+                try {
+                    fascicolatoreOutboxGediLocaleManager.scheduleAutoFascicolazioneOutboxAtBoot();
+                } catch (Exception e) {
+                    log.info("errore nella schedulazione threads fascicolatoreOutboxGediLocaleManager", e);
+                }
+
                 log.info("schedulo il thread logoutManager...");
                 try {
                     logoutManager.scheduleLogoutManager();

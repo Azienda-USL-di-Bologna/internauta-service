@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
+import it.bologna.ausl.model.entities.baborg.projections.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.baborg.projections.generated.UtenteStrutturaWithIdAfferenzaStrutturaAndIdStruttura;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import java.util.Arrays;
@@ -63,7 +64,6 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.stream.Stream;
-import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
 
 /**
  * Service per la creazione dell'oggetto UserInfoOld TODO: descrivere la

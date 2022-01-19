@@ -14,14 +14,14 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "CustomContattoList", types = Contatto.class)
 public interface CustomContattoList extends ContattoWithDettaglioContattoListAndIdPersonaCreazioneAndIdStruttura {
 
-    @Value("#{@rubricaProjectionsUtilis.getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda(target)}")
+    @Value("#{@projectionBeans.getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda(target)}")
     @Override
     public List<CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda> getDettaglioContattoList();
 
-    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getIdStruttura', 'StrutturaWithAttributiStrutturaAndIdAzienda')}")
+    @Value("#{@projectionBeans.getStrutturaWithIdAzienda(target)}")
     @Override
     public StrutturaWithAttributiStrutturaAndIdAzienda getIdStruttura();
 
-    @Value("#{@permessiProjectionsUtils.getEntita(target)}")
+    @Value("#{@projectionBeans.getEntita(target)}")
     public Object getEntita();
 }

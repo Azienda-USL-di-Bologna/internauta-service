@@ -18,7 +18,7 @@ public interface KrintShpeckMessage{
     String getSubject();
     
 //    // idPec lo metto come oggettoContenitore, quindi non lo metto qui
-    @Value("#{@pecProjectionsUtils.getPecKrint(target)}")
+    @Value("#{@projectionBeans.getPecKrint(target)}")
     KrintShpeckPec getIdPec();
       
     

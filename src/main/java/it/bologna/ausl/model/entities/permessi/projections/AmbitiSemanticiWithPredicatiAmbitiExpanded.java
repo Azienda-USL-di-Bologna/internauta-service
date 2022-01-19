@@ -13,6 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 @Projection(name = "AmbitiSemanticiWithPredicatiAmbitiExpanded", types = AmbitoSemantico.class)
 public interface AmbitiSemanticiWithPredicatiAmbitiExpanded extends AmbitoSemanticoWithPlainFields {
 
-    @Value("#{@ambitiSemanticiProjectionUtils.expandPredicatiAmbiti(target.getIdPredicatiAmbiti())}")
+    @Value("#{@projectionBeans.expandPredicatiAmbiti(target.getIdPredicatiAmbiti())}")
     public List<PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded> getPredicatiAmbiti();
 }
