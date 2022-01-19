@@ -16,8 +16,7 @@ public interface UtenteLoginCustom extends UtenteWithIdPersonaAndPermessiCustom 
 
     @Override
 //    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getIdPersona','CustomPersonaLogin')}")
-    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getIdPersona','CustomPersonaLogin')}")
-//    @Value("#{@projectionBeans.getIdPersonaWithImpostazioniApplicazioniList(target)}")
+    @Value("#{@projectionBeans.getIdPersonaWithImpostazioniApplicazioniList(target)}")
     public CustomPersonaLogin getIdPersona();
 
     @Value("#{@userInfoService.getAziendaCustomLogin(target)}")

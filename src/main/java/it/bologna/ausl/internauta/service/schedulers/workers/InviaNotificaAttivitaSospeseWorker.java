@@ -5,11 +5,7 @@
  */
 package it.bologna.ausl.internauta.service.schedulers.workers;
 
-import com.querydsl.core.types.Predicate;
 import org.apache.commons.lang.StringUtils;
-import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
-import it.bologna.ausl.internauta.service.controllers.tools.ToolsCustomController;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
@@ -24,7 +20,6 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
-import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
