@@ -42,6 +42,8 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
 
     private static int times = 0;
 
+    private final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
+
     private static List<Integer> idPersoneAvvisate = new ArrayList<>();
 
     private static final Logger log = LoggerFactory
@@ -76,7 +78,7 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
         if (valore != null && !valore.trim().equalsIgnoreCase("")) {
             JSONObject datiTutteAziende = new JSONObject(valore);
             Set<String> keySet = datiTutteAziende.keySet();
-            String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
+
             for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext();) {
                 String key = iterator.next();
                 JSONObject datiUltimoGiroAzienda = (JSONObject) datiTutteAziende.get(key);
@@ -156,6 +158,47 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
         }
     }
 
+    private boolean isInAziendeAttive(String idAzienda) {
+        boolean attiva = false;
+        Integer[] array = parametroAziende.getIdAziende();
+        for (int i = 0; i < array.length; i++) {
+            Integer integer = array[i];
+            if (integer.equals(Integer.parseInt(idAzienda))) {
+                attiva = true;
+                break;
+            }
+        }
+        return attiva;
+    }
+
+    private ParametroAziende cleanUpValoreParametroAziende() {
+        System.out.println("cleanUpValoreParametroAziende()");
+        String valoreString = parametroAziende.getValore();
+        JSONObject valoreJSON = new JSONObject(valoreString);
+        if (valoreJSON != null) {
+            for (Iterator<String> keys = valoreJSON.keys(); keys.hasNext();) {
+                String idAziendaString = keys.next();
+                if (!isInAziendeAttive(idAziendaString)) {
+                    JSONObject datiUltimaEsecuzione = (JSONObject) valoreJSON.get(idAziendaString);
+                    String lastExecutionString = (String) datiUltimaEsecuzione.get("lastExecution");
+                    try {
+                        Date lastExecutionDate = new SimpleDateFormat(DATE_PATTERN).parse(lastExecutionString);
+                        if (!isToday(lastExecutionDate)) {
+                            log.info("Rimuovo i dati di ultima esecuzione di azienda " + idAziendaString);
+                            valoreJSON.remove(idAziendaString);
+                        }
+                    } catch (ParseException ex) {
+                        java.util.logging.Logger.getLogger(InviaNotificaAttivitaSospeseWorkerManager.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+            log.info("ParametroAziende.valore pulito: " + valoreJSON.toString(4));
+            parametroAziende.setValore(valoreJSON.toString());
+        }
+
+        return parametroAziende;
+    }
+
     private ParametroAziende loadParametroAziende() {
         return parametroAziendeRepository.findOne(
                 QParametroAziende.parametroAziende.nome.eq(nomeParametroDB)
@@ -167,9 +210,11 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
         try {
 
             parametroAziende = loadParametroAziende();
-            System.out.println(parametroAziende.toString());
-            System.out.println("aziende attive " + parametroAziende.getIdAziende().length);
+            log.info(parametroAziende.toString());
+            log.info("aziende attive " + parametroAziende.getIdAziende().length);
             System.out.println("persone avvisate: " + idPersoneAvvisate);
+            System.out.println("Pulisco parametro aziende");
+            parametroAziende = cleanUpValoreParametroAziende();
             boolean everyAziendaDone = isEveryAziendaDone(parametroAziende);
             if (isUltimoGiroPerTuttiPrimaDiOggi()) {
                 log.info("Svuotopersone array avvisate");
