@@ -6,12 +6,14 @@
 package it.bologna.ausl.internauta.service.schedulers.workers;
 
 import com.querydsl.core.types.Predicate;
+import org.apache.commons.lang.StringUtils;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.controllers.tools.ToolsCustomController;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ParametroAziendeRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.handlers.ParametroAziendeInvioMailNotificaAttivitaHandler;
@@ -20,6 +22,7 @@ import it.bologna.ausl.internauta.service.utils.SimpleMailSenderUtility;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
@@ -61,6 +64,9 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
     @Autowired
     AziendaRepository aziendaRepository;
 
+    @Autowired
+    ApplicazioneRepository applicazioneRepository;
+
     @Value("${internauta.mode}")
     private String internautaMode;
 
@@ -73,6 +79,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
     private static List<Integer> idPersoneAvvisate = new ArrayList<>();
     //private Integer idAzienda;
     private List<Azienda> listaAziende;
+    private List<Applicazione> listaApplicazioni;
     private ParametroAziendeInvioMailNotificaAttivitaHandler handler;
 
     public void setParameter(List<Integer> idPersoneAvvisate, ParametroAziendeInvioMailNotificaAttivitaHandler handler) {
@@ -84,6 +91,11 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
     private void loadAziende() {
         log.info("Load aziende");
         listaAziende = aziendaRepository.findAll();
+    }
+
+    private void loadApplicazioni() {
+        log.info("Load aplicazioni");
+        listaApplicazioni = applicazioneRepository.findAll();
     }
 
     private Azienda getAziendaById(Integer idAzienda) {
@@ -101,10 +113,75 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         return azienda.getNome();
     }
 
-    private String preparaListaAttivitaDaMostrare(List<Attivita> listaAttivita) {
-        final String format = "%-25s %-25s %-40s  %-40s %s\n";
+    private String sistemaOggettoAttivitaPerMail(Attivita attivita) {
+        String oggettoDaTornare = "";
+        if (attivita.getIdApplicazione().getId().equals("gedi")) {
+            oggettoDaTornare = attivita.getOggetto();
+        } else {
+            int lastCharIndex = attivita.getOggetto().indexOf(":");
+            oggettoDaTornare = attivita.getOggetto().substring(0, lastCharIndex);
+        }
+        return oggettoDaTornare;
+    }
+
+    private String preparaListaAttivitaDaMostrareHTML(List<Attivita> listaAttivita) {
+        final String format = "<tr>%-18s %-18s %-35s  %-35s %s</tr>";
         // Azienda, Data, Tipo, Provenienza, Oggetto attivita
-        String tabella = String.format(format, "Azienda", "Data", "Tipo", "Provenienza", "Oggetto");
+        String tabella = "<table>";
+        tabella += String.format(format, "<th>AZIENDA</th>", "<th>DATA</th>", "<th>TIPO</th>", "<th>PROVENIENZA</th>", "<th>OGGETTO</th>");
+        for (Attivita attivita : listaAttivita) {
+            String provenienza = attivita.getProvenienza() != null && attivita.getProvenienza().length() > 40
+                    ? attivita.getProvenienza().substring(0, 37) + "..."
+                    : attivita.getProvenienza();
+            String oggetto = sistemaOggettoAttivitaPerMail(attivita);
+
+            tabella += String.format(format, "<th>" + getNomeAzienda(attivita.getIdAzienda().getId()) + "</th>",
+                    "<th>" + attivita.getData().format(DateTimeFormatter.ofPattern("dd/MM/uuuu")).toString() + "</th>",
+                    "<th>" + attivita.getDescrizione() + "</th>",
+                    "<th>" + provenienza + "</th>",
+                    "<th>" + oggetto + "</th>");
+        }
+        tabella += "</table>";
+        return tabella;
+    }
+
+    private String preparaListaAttivitaDaMostrareWithStringUtils(List<Attivita> listaAttivita) {
+        // Azienda, Data, Tipo, Provenienza, Oggetto attivita
+        String newLine = "";
+        String tabella = "";
+        newLine = StringUtils.center("AZIDENDA", 15, " ")
+                + StringUtils.center("DATA", 14, " ")
+                + StringUtils.center("TIPO", 28, " ")
+                + StringUtils.center("PROVENIENZA", 30, " ")
+                + StringUtils.center("OGGETTO", 40, " ");
+        tabella += newLine;
+        tabella += "\n";
+        for (Attivita attivita : listaAttivita) {
+            tabella += "\n";
+            String azienda = getNomeAzienda(attivita.getIdAzienda().getId());
+            String data = attivita.getData().format(DateTimeFormatter.ofPattern("dd/MM/uuuu")).toString();
+            String tipo = attivita.getDescrizione();
+            String provenienza = attivita.getProvenienza();
+            String oggetto = sistemaOggettoAttivitaPerMail(attivita);
+
+            newLine = StringUtils.center(azienda, 15, " ")
+                    + StringUtils.center(data, 14, " ")
+                    + StringUtils.center(tipo, 28, " ")
+                    + StringUtils.center(StringUtils.abbreviate(provenienza, 28), 30, " ")
+                    + StringUtils.center(StringUtils.abbreviate(oggetto, 38), 40, " ");
+
+            tabella += newLine;
+        }
+        tabella += "\n";
+        return tabella;
+    }
+
+    private String preparaListaAttivitaDaMostrare(List<Attivita> listaAttivita) {
+        final String format = "%-18s %-18s %-35s  %-35s %s\n";
+        //StringUtils.
+        // Azienda, Data, Tipo, Provenienza, Oggetto attivita
+        String tabella = String.format(format, "AZIENDA", "DATA", "TIPO", "PROVENIENZA", "OGGETTO");
+        tabella += "\n";
         for (Attivita attivita : listaAttivita) {
             String provenienza = attivita.getProvenienza() != null && attivita.getProvenienza().length() > 40
                     ? attivita.getProvenienza().substring(0, 37) + "..."
@@ -117,7 +194,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
                     attivita.getData().format(DateTimeFormatter.ofPattern("dd/MM/uuuu")).toString(),
                     attivita.getDescrizione(),
                     provenienza,
-                    attivita.getOggetto());
+                    sistemaOggettoAttivitaPerMail(attivita));
         }
         return tabella;
     }
@@ -136,10 +213,11 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         return mittente;
     }
 
-    private String recuperaIndirizzoLogin() {
+    private String recuperaIndirizzoLogin(Persona persona) {
         String indirizzo = "";
+        Integer idAziendaUrl = persona.getIdAziendaDefault() != null ? persona.getIdAziendaDefault().getId() : handler.getIdAzienda();
         try {
-            Azienda azienda = getAziendaById(handler.getIdAzienda());
+            Azienda azienda = getAziendaById(idAziendaUrl);
             JSONObject parametriAziendaJSON = new JSONObject(azienda.getParametri());
             System.out.println("parametriAziendaJSON: " + parametriAziendaJSON.toString(4));
             indirizzo = (String) parametriAziendaJSON.get("basePath") + "/scrivania/attivita";
@@ -149,9 +227,22 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         return indirizzo;
     }
 
-    private String preparaBodyMessaggio(List<Attivita> attivitaSuScrivania) throws Exception {
-        String url = recuperaIndirizzoLogin();
-        String tabellaFormattataAttività = preparaListaAttivitaDaMostrare(attivitaSuScrivania);
+    private String preparaBodyMessaggioHTML(Persona persona, List<Attivita> attivitaSuScrivania) throws Exception {
+        String url = recuperaIndirizzoLogin(persona);
+        String tabellaFormattataAttività = preparaListaAttivitaDaMostrareHTML(attivitaSuScrivania);
+        String body = "<p>Buongiorno, hai delle nuove attività sulla Scrivania di Babel.</p><br>"
+                + "<p>Clicca <a href=\"" + url + "\">qui</a> per accedere alla Scrivania e consultarle<br><br><br>"
+                + "<p>Ecco la lista delle prime " + attivitaSuScrivania.size() + " attività:</p><br><br><br>";
+        body += tabellaFormattataAttività;
+        body += "<br><br>Buon lavoro! Team Babel<br><br><br><br>";
+        System.out.println("QUESTA E' LA LISTA INVIATA");
+        System.out.println(tabellaFormattataAttività);
+        return body;
+    }
+
+    private String preparaBodyMessaggio(Persona persona, List<Attivita> attivitaSuScrivania) throws Exception {
+        String url = recuperaIndirizzoLogin(persona);
+        String tabellaFormattataAttività = preparaListaAttivitaDaMostrareWithStringUtils(attivitaSuScrivania);
         String body = "Buongiorno, hai delle nuove attività sulla Scrivania di Babel.\n"
                 + "Clicca qui per accedere alla Scrivania e consultarle\n\n"
                 + url + "\n\n\n"
@@ -227,9 +318,10 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
                 + parametroAziende.getValore());
     }
 
-    private void preparaMessaggioAndInvia(Utente utenteAziendale, List<Attivita> attivitaSuScrivania) throws Exception {
+    private void preparaMessaggioAndInvia(Persona persona, Utente utenteAziendale, List<Attivita> attivitaSuScrivania) throws Exception {
         // preparo il messaggio
-        String body = preparaBodyMessaggio(attivitaSuScrivania);
+        String body = preparaBodyMessaggio(persona, attivitaSuScrivania);
+        System.out.println(body);
         log.info("Preparo il messaggio da ");
         ArrayList<String> destinatari = new ArrayList<String>();
         destinatari.add(utenteAziendale.getEmails()[0]);
@@ -286,7 +378,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
                 }
 //                      SE SIAMO IN !TEST || (SIAMO IN TEST && EMAIL E' IN ARRAY DI MAIL ABILITATE):
                 if (!internautaMode.equals("test") || isEnabledTestMail(utenteAziendale.getEmails()[0])) {
-                    preparaMessaggioAndInvia(utenteAziendale, attivitaSuScrivania);
+                    preparaMessaggioAndInvia(persona, utenteAziendale, attivitaSuScrivania);
                 } else {
                     log.info("Siamo in test e la mail dell'utente non è tra quelle abilitate");
                 }
@@ -307,6 +399,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         log.info("Run...");
         log.info("parametri: " + handler.getIdAzienda().toString() + " " + idPersoneAvvisate.size());
         loadAziende();
+        loadApplicazioni();
         log.info("Recupero l'azienda attuale da quelle appena caricate");
         Azienda azienda = getAziendaById(handler.getIdAzienda());
         // cerca le persone attive con un utente attivo nell'azienda
