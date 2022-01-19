@@ -13,6 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 @Projection(name = "PermessoWithPredicatoExpanded", types = Permesso.class)
 public interface PermessoWithPredicatoExpanded extends PermessoWithPlainFields {
 
-    @Value("#{@projectionBeans.getPredicato(target)}")
+    @Value("#{@permessiProjectionsUtils.getPredicato(target)}")
     public Predicato getPredicato();
 }
