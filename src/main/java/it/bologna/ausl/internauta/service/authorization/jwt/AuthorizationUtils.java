@@ -37,13 +37,13 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import it.bologna.ausl.model.entities.baborg.projections.CustomUtenteLogin;
 import it.bologna.ausl.model.entities.configurazione.Applicazione.Applicazioni;
 import it.bologna.ausl.model.entities.tools.UserAccess;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.Cookie;
 import org.springframework.util.StringUtils;
-import it.bologna.ausl.model.entities.baborg.projections.utente.UtenteLoginCustom;
 
 /**
  *
@@ -516,7 +516,7 @@ public class AuthorizationUtils {
             insertInContext(currentUser, idSessionLog, field, applicazione, fromInternet);
         }
 
-        UtenteLoginCustom customUtenteLogin = factory.createProjection(UtenteLoginCustom.class, currentUser);
+        CustomUtenteLogin customUtenteLogin = factory.createProjection(CustomUtenteLogin.class, currentUser);
 
         return new LoginController.LoginResponse(
                 token, currentUser.getUsername(), customUtenteLogin);

@@ -15,15 +15,15 @@ import org.springframework.data.rest.core.config.Projection;
 public interface DocWithAll extends DocWithAllegatiAndCoinvoltiAndCompetentiAndIdAziendaAndIdPersonaCreazioneAndMittentiAndRegistroDocListAndRelated {
 
     @Override
-    @Value("#{@scriptaProjectionUtils.filterRelatedWithSpedizioneList(target.getRelated(), 'MITTENTE')}")
+    @Value("#{@projectionBeans.filterRelatedWithSpedizioneList(target.getRelated(), 'MITTENTE')}")
     public List<CustomRelatedWithSpedizioneList> getMittenti();
 
     @Override
-    @Value("#{@scriptaProjectionUtils.filterRelated(target.getRelated(), 'A')}")
+    @Value("#{@projectionBeans.filterRelated(target.getRelated(), 'A')}")
     public List<Related> getCompetenti();
 
     @Override
-    @Value("#{@scriptaProjectionUtils.filterRelated(target.getRelated(), 'CC')}")
+    @Value("#{@projectionBeans.filterRelated(target.getRelated(), 'CC')}")
     public List<Related> getCoinvolti();
     
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getAllegati', 'AllegatoWithDettagliAllegatiListAndIdAllegatoPadre', @projectionsInterceptorLauncher.buildSort('asc', 'ordinale'))}")

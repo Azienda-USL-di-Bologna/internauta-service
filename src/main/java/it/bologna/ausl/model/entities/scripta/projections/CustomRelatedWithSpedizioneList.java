@@ -15,6 +15,6 @@ import org.springframework.data.rest.core.config.Projection;
 public interface CustomRelatedWithSpedizioneList extends RelatedWithSpedizioneList {
 
     @Override
-    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getSpedizioneList', 'SpedizioneWithIdMezzo')}")
+    @Value("#{@projectionBeans.getSpedizioneWithIdMezzo(target.getSpedizioneList())}")
     public List<SpedizioneWithIdMezzo> getSpedizioneList();
 }

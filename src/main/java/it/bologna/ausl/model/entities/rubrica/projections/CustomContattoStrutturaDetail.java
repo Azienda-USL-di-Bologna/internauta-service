@@ -14,7 +14,7 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "CustomContattoStrutturaDetail", types = Contatto.class)
 public interface CustomContattoStrutturaDetail extends ContattoWithGruppiDelContattoListAndIdPersonaCreazioneAndIdStrutturaAndIdUtenteCreazione {
   
-    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getGruppiDelContattoList', 'GruppiContattiWithIdDettaglioContattoAndIdGruppo')}")
+    @Value("#{@projectionBeans.getGruppiContattiWithIdDettaglioContattoAndIdGruppo(target)}")
     @Override
     public List<GruppiContattiWithIdDettaglioContattoAndIdGruppo> getGruppiDelContattoList();
     

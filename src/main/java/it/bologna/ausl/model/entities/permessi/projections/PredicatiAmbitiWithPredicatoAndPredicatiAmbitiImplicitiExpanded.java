@@ -13,6 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 @Projection(name = "PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded", types = PredicatoAmbito.class)
 public interface PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded extends PredicatoAmbitoWithIdPredicato {
 
-    @Value("#{@ambitiSemanticiProjectionUtils.expandPredicatiAmbiti(target.getIdPredicatiAmbitiImpliciti())}")
+    @Value("#{@projectionBeans.expandPredicatiAmbiti(target.getIdPredicatiAmbitiImpliciti())}")
     public List<PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded> getPredicatiAmbitiImpliciti();
 }
