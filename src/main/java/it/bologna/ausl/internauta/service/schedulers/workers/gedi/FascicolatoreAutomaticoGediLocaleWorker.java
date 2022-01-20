@@ -26,11 +26,14 @@ import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import it.bologna.ausl.model.entities.tools.PendingJob;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 /**
@@ -38,7 +41,7 @@ import org.springframework.stereotype.Component;
  * @author Salo
  */
 @Component
-// @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
     
     private static final Logger log = LoggerFactory.getLogger(FascicolatoreAutomaticoGediLocaleWorker.class);
@@ -144,13 +147,20 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
     }
     
     private boolean isOutboxSent() throws Exception {
-        Outbox outbox = null;
         try {
-            outbox = outboxRepository.findById(params.getIdOutbox()).get();
+            Optional<Outbox> outboxOp = outboxRepository.findById(params.getIdOutbox());
+            if (outboxOp.isPresent()) {
+                return outboxOp.get().getIgnore();
+            } else { 
+                /* 
+                  Se non lo trovo in outbox, potrebbe essere che il job sia vecchio e il messaggio sia stato tolto, perché l'outbox viene svuotato ogni tanto. 
+                  In ogni caso se viene tolto allora vuol dire che il messaggio è stato spedito per cui torno true.
+                */
+                return true;
+            }
         } catch (Exception e) {
             throw new Exception("Errore nel recuperare l'outbox con id " + params.getIdOutbox(), e);
         }
-        return outbox.getIgnore();
         
     }
     
@@ -176,14 +186,27 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
     }
     
     private void setPendingJobState(PendingJob.PendigJobsState state) {
+        log.info(String.format("set state %s on job %s", state.toString(), this.pendingJob.getId()));
         this.pendingJob.setState(state);
         this.pendingJob = pendingJobRepository.save(this.pendingJob);
+    }
+    
+    private void reloadPendingJob() {
+        log.info(String.format("reloading job %s...", pendingJob.getId()));
+        Optional<PendingJob> pendingJobOp = pendingJobRepository.findById(pendingJob.getId());
+        if (pendingJobOp.isPresent()) {
+            this.pendingJob = pendingJobOp.get();
+        } else {
+            log.error("il job %s non esiste più, lo salto");
+            scheduleObject.cancel(true);
+        }
     }
     
     @Override
     public void run() {
         try {
-            log.info("avvio thread...");
+            log.info(String.format("avvio thread sul job %s con stato %s...", this.pendingJob.getId(), this.pendingJob.getState().toString()));
+            this.reloadPendingJob();
             this.setPendingJobState(PendingJob.PendigJobsState.RUNNING);
             
             loadParams();
@@ -234,8 +257,14 @@ public class FascicolatoreAutomaticoGediLocaleWorker implements Runnable {
                 }
             }
         } catch (Exception ex) {
-            log.error("Errore imprevisto durante l'esecuzione del mestiere di fascicolazione automatica; params\n:" + params.toString(), ex);
-            this.setPendingJobState(PendingJob.PendigJobsState.ERROR);
+            log.error(String.format("Errore imprevisto durante l'esecuzione del job di fascicolazione automatica %s. Params %s", this.pendingJob.getId(),params.toString()), ex);
+            try {
+                this.setPendingJobState(PendingJob.PendigJobsState.ERROR);
+            } catch (Exception exception) {
+                log.error(String.format("Errore nel settare lo stato di ERROR del job %s", this.pendingJob.getId()), ex);
+            }
+            log.warn(String.format("cancello il job %s", this.pendingJob.getId()));
+            scheduleObject.cancel(true);
         }
     }
     

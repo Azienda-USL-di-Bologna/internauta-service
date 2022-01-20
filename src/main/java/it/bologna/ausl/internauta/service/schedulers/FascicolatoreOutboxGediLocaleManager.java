@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 /**
@@ -43,9 +44,10 @@ public class FascicolatoreOutboxGediLocaleManager {
         Iterable<PendingJob> pendingJobsToReschedule = pendingJobRepository.findAll(
                 QPendingJob.pendingJob.service.eq(PendingJob.PendigJobsServices.FASCICOLATORE_SAI.toString())
             .and(
-                QPendingJob.pendingJob.state.ne(PendingJob.PendigJobsState.DONE.toString())
-            ));
+                QPendingJob.pendingJob.state.eq(PendingJob.PendigJobsState.RETRY.toString())
+            ), Sort.by(Sort.Direction.ASC, "id"));
         for (PendingJob pendingJob : pendingJobsToReschedule) {
+            log.info(String.format("schedulo al boot il job %s con stato %s...", pendingJob.getId(), pendingJob.getState().toString()));
             this.scheduleAutoFascicolazioneOutbox(pendingJob);
         }
     }
@@ -63,7 +65,7 @@ public class FascicolatoreOutboxGediLocaleManager {
      * * persona la persona applicativa
      */
     public void scheduleAutoFascicolazioneOutbox(PendingJob pendingJob) throws Exception {
-        log.info("Chiamato scheduleAutoFascicolazioneOutbox");
+        log.info(String.format("Chiamato scheduleAutoFascicolazioneOutbox per job %s...", pendingJob.getId()));
 //        FascicolatoreAutomaticoGediParams params = new FascicolatoreAutomaticoGediParams(pendingJobId, idOutbox, azienda, null, null, numerazioneGerarchica, utente, persona);
         FascicolatoreAutomaticoGediLocaleWorker worker = beanFactory.getBean(FascicolatoreAutomaticoGediLocaleWorker.class);
 //        worker.setParams(params);
