@@ -110,12 +110,13 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
     private String sistemaOggettoAttivitaPerMail(Attivita attivita) {
         String oggettoDaTornare = "";
-        if (attivita.getIdApplicazione().getId().equals("gedi")) {
-            oggettoDaTornare = attivita.getOggetto();
-        } else {
-            int lastCharIndex = attivita.getOggetto().indexOf(":");
-            oggettoDaTornare = attivita.getOggetto().substring(0, lastCharIndex);
-        }
+//        if (attivita.getIdApplicazione().getId().equals("gedi")) {
+//            oggettoDaTornare = attivita.getOggetto();
+//        } else {
+//            int lastCharIndex = attivita.getOggetto().indexOf(":");
+//            oggettoDaTornare = attivita.getOggetto().substring(0, lastCharIndex);
+//        }
+        oggettoDaTornare = attivita.getOggetto();
         return oggettoDaTornare;
     }
 
@@ -144,7 +145,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         // Azienda, Data, Tipo, Provenienza, Oggetto attivita
         String newLine = "";
         String tabella = "";
-        newLine = StringUtils.center("AZIDENDA", 15, " ")
+        newLine = StringUtils.center("AZIENDA", 15, " ")
                 + StringUtils.center("DATA", 14, " ")
                 + StringUtils.center("TIPO", 28, " ")
                 + StringUtils.center("PROVENIENZA", 30, " ")
@@ -189,7 +190,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
                     attivita.getData().format(DateTimeFormatter.ofPattern("dd/MM/uuuu")).toString(),
                     attivita.getDescrizione(),
                     provenienza,
-                    sistemaOggettoAttivitaPerMail(attivita));
+                    oggetto);
         }
         return tabella;
     }
@@ -227,7 +228,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         String tabellaFormattataAttività = preparaListaAttivitaDaMostrareHTML(attivitaSuScrivania);
         String body = "<p>Buongiorno, hai delle nuove attività sulla Scrivania di Babel.</p><br>"
                 + "<p>Clicca <a href=\"" + url + "\">qui</a> per accedere alla Scrivania e consultarle<br><br><br>"
-                + "<p>Ecco la lista delle prime " + attivitaSuScrivania.size() + " attività:</p><br><br><br>";
+                + "<p>Ecco la lista delle ultime " + attivitaSuScrivania.size() + " attività:</p><br><br><br>";
         body += tabellaFormattataAttività;
         body += "<br><br>Buon lavoro! Team Babel<br><br><br><br>";
         System.out.println("QUESTA E' LA LISTA INVIATA");
@@ -241,7 +242,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         String body = "Buongiorno, hai delle nuove attività sulla Scrivania di Babel.\n"
                 + "Clicca qui per accedere alla Scrivania e consultarle\n\n"
                 + url + "\n\n\n"
-                + "Ecco la lista delle prime " + attivitaSuScrivania.size() + " attività:\n\n\n";
+                + "Ecco la lista delle ultime " + attivitaSuScrivania.size() + " attività:\n\n\n";
         body += tabellaFormattataAttività;
         body += "\n\n\nBuon lavoro! Team Babel\n\n\n";
         System.out.println("QUESTA E' LA LISTA INVIATA");
