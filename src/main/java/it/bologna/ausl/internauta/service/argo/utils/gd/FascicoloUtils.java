@@ -239,7 +239,7 @@ public class FascicoloUtils {
                     } else if (key.equals("nome_fascicolo")) {
                         val = nomeFascicolo;
                     } else if (key.equals("anno_fascicolo")) {
-                        val = fascicoloPadre != null ? fascicoloPadre.get(key) : Calendar.getInstance().get(Calendar.YEAR);
+                        val = fascicoloPadre != null ? fascicoloPadre.get(key) : Calendar.getInstance().get(Calendar.YEAR); //TODO: forse va messo sempre l'anno corrente
                     } else if (key.equals("stato_fascicolo")) {
                         val = "a";
                     } else if (key.equals("id_struttura")) {
