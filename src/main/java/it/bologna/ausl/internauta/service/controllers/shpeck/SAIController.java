@@ -18,6 +18,7 @@ import it.bologna.ausl.internauta.service.exceptions.sai.SubFascicoloCreationExc
 import it.bologna.ausl.internauta.service.gedi.utils.SAIUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
+import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -74,7 +75,15 @@ public class SAIController implements ControllerHandledExceptions {
 
     @Autowired
     private CachedEntities cachedEntities;
+    
+    @Autowired
+    private FascicolatoreOutboxGediLocaleManager fascicolatoreOutboxGediLocaleManager;
 
+    @RequestMapping(value = {"reschedule-fascicolatore-sai-jobs", "rescheduleFascicolatoreSaiJobs"}, method = RequestMethod.GET)
+    public void sendAndArchiveMail() throws Exception {
+        fascicolatoreOutboxGediLocaleManager.scheduleAutoFascicolazioneOutboxAtBoot();
+    }
+    
     // @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"send-and-archive-pec", "sendAndArchivePec"}, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> sendAndArchiveMail(
