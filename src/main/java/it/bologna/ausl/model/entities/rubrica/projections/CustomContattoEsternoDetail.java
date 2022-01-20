@@ -37,7 +37,7 @@ public interface CustomContattoEsternoDetail extends ContattoWithEmailListAndGru
     @Value("#{@permessiProjectionsUtils.getEntita(target)}")
     public Object getEntita();
 
-    @Value("#{@rubricaProjectionUtils.getPermessiContatto(target)}")
+    @Value("#{@rubricaProjectionsUtilis.getPermessiContatto(target)}")
     public List<PermessoEntitaStoredProcedure> getPermessiContatto();
 
 }
