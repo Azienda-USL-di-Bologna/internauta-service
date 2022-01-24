@@ -59,6 +59,9 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     MessageRepository messageRepository;
+    
+    @Autowired
+    private KrintUtils krintUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -97,12 +100,12 @@ public class MessageFolderInterceptor extends InternautaBaseInterceptor {
             } catch (BlackBoxPermissionException | Http403ResponseException ex) {
                 throw new AbortSaveInterceptorException();
             }
-            if (!beforeMessageFolder.getDeleted() && messageFolder.getDeleted() && KrintUtils.doIHaveToKrint(request)) {
+            if (!beforeMessageFolder.getDeleted() && messageFolder.getDeleted() && krintUtils.doIHaveToKrint(request)) {
                 krintShpeckService.writeDeletedFromTrash(messageFolder, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_DELETE_FROM_TRASH);
             }
         }
 
-        if (!messageFolder.getIdFolder().getId().equals(beforeMessageFolder.getIdFolder().getId()) && KrintUtils.doIHaveToKrint(request)) {
+        if (!messageFolder.getIdFolder().getId().equals(beforeMessageFolder.getIdFolder().getId()) && krintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeFolderChanged(messageFolder.getIdMessage(), OperazioneKrint.CodiceOperazione.PEC_MESSAGE_SPOSTAMENTO, messageFolder.getIdFolder(), beforeMessageFolder.getIdFolder());
         }
 

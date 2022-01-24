@@ -5,14 +5,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.krint.KrintBaborgService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
+import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.time.Instant;
@@ -53,6 +57,12 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     ProjectionFactory projectionFactory;
+    
+    @Autowired
+    private KrintBaborgService krintBaborgService;
+    
+    @Autowired
+    private KrintUtils krintUtils;
 
     private static final String FILTER_COMBO = "filterCombo";
 
@@ -170,6 +180,21 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
         return entity;
     }
 
+    @Override
+    public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        UtenteStruttura utenteStruttura = (UtenteStruttura) entity;
+        
+        if (krintUtils.doIHaveToKrint(request)) {
+            if (utenteStruttura.getIdStruttura().getUfficio()) {
+                krintBaborgService.writeUfficioUpdate(utenteStruttura.getIdStruttura(), OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_UTENTE_STRUTTURA_LIST_ADD, utenteStruttura);
+            }
+        }
+        
+        return entity; //To change body of generated methods, choose Tools | Templates.
+    }
+    
+    
+
 //    @Override
 //    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
 //
@@ -189,9 +214,12 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
         } catch (Exception ex) {
             throw new AbortSaveInterceptorException("errore nel reperire la vecchia struttura", ex);
         }
-        if (utenteStrutturaVecchioList.get(0) != null
-                && utenteStrutturaVecchioList.get(0).getAttivo()
-                && !utenteStrutturaNuovo.getAttivo()) {
+        if (utenteStrutturaVecchioList.get(0) != null && utenteStrutturaVecchioList.get(0).getAttivo() && !utenteStrutturaNuovo.getAttivo()) {
+            if (krintUtils.doIHaveToKrint(request)) {
+               if (utenteStrutturaNuovo.getIdStruttura().getUfficio()) {
+                   krintBaborgService.writeUfficioUpdate(utenteStrutturaNuovo.getIdStruttura(), OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_UTENTE_STRUTTURA_LIST_REMOVE, utenteStrutturaNuovo);
+               }
+            }
             utenteStrutturaNuovo.setAttivoAl(ZonedDateTime.now());
         }
         return utenteStrutturaNuovo;

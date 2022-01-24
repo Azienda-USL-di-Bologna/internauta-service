@@ -1191,12 +1191,12 @@ public class UserInfoService {
     }
 
     //@Cacheable(value = "getStruttureKrint__ribaltorg__", key = "{#utente.getId()}")
-    public List<KrintBaborgStruttura> getStruttureKrint(Utente utente) {
+    public List<KrintBaborgUtenteStruttura> getStruttureKrint(Utente utente) {
         utente.setUtenteStrutturaList(getUtenteStrutturaList(utente, true));
         return utente.getUtenteStrutturaList().stream()
                 .map(us -> {
                     //us.setIdStruttura(getIdStruttura(us));
-                    return factory.createProjection(KrintBaborgStruttura.class, us);
+                    return factory.createProjection(KrintBaborgUtenteStruttura.class, us);
                 })
                 .collect(Collectors.toList());
     }
