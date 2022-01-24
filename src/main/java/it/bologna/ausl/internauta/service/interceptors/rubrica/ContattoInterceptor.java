@@ -80,6 +80,9 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private KrintUtils krintUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -219,7 +222,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         Contatto contatto = (Contatto) entity;
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
         Integer idAzienda = authenticatedUserProperties.getUser().getIdAzienda().getId();
-        if (KrintUtils.doIHaveToKrint(request)) {
+        if (krintUtils.doIHaveToKrint(request)) {
             if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)) {
                 // TODO chiamare writeGroupCreation
                 this.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.ContattoGruppoAppenaCreato, contatto);
@@ -267,7 +270,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         }
         boolean isEliminato = (contatto.getEliminato() && (contattoOld.getEliminato() == false));
         boolean isModificato = isContactModified(contatto, contattoOld);
-        if (KrintUtils.doIHaveToKrint(request)) {
+        if (krintUtils.doIHaveToKrint(request)) {
             if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)) {
                 if (isModificato) {
                     krintRubricaService.writeGroupUpdate(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_UPDATE);

@@ -52,6 +52,9 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     ContattoInterceptor contattoInterceptor;
+    
+    @Autowired
+    private KrintUtils krintUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -126,7 +129,7 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         DettaglioContatto dettaglioContatto = (DettaglioContatto) entity;
-        if (KrintUtils.doIHaveToKrint(request)) {
+        if (krintUtils.doIHaveToKrint(request)) {
             if (dettaglioContatto.getIdContatto().getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
                 krintRubricaService.writeContactDetailCreation(dettaglioContatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DETAIL_CREATION);
             }
@@ -144,7 +147,7 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
         } catch (BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
-        if (KrintUtils.doIHaveToKrint(request)) {
+        if (krintUtils.doIHaveToKrint(request)) {
             if (dettaglioContatto.getIdContatto().getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
                 krintRubricaService.writeContactDetailUpdate(dettaglioContatto, dettaglioContattoOld, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DETAIL_UPDATE);
             }
@@ -156,7 +159,7 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
     @Override
     public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         DettaglioContatto dettaglioContatto = (DettaglioContatto) entity;
-        if (KrintUtils.doIHaveToKrint(request)) {
+        if (krintUtils.doIHaveToKrint(request)) {
             if (dettaglioContatto.getIdContatto().getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
                 krintRubricaService.writeContactDetailDelete(dettaglioContatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DETAIL_DELETE);
             }
@@ -168,7 +171,7 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
     @Override
     public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         DettaglioContatto dettaglioContatto = (DettaglioContatto) entity;
-        if (KrintUtils.doIHaveToKrint(request)) {
+        if (krintUtils.doIHaveToKrint(request)) {
             if (dettaglioContatto.getIdContatto().getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
                 krintRubricaService.writeContactDetailDelete(dettaglioContatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DETAIL_DELETE);
             }

@@ -50,6 +50,9 @@ public class DraftInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     private KrintShpeckService krintShpeckService;
+    
+    @Autowired
+    private KrintUtils krintUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -78,7 +81,7 @@ public class DraftInterceptor extends InternautaBaseInterceptor {
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Draft draft = (Draft) entity;
 
-        if (KrintUtils.doIHaveToKrint(request)) {
+        if (krintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeDraft(draft, OperazioneKrint.CodiceOperazione.PEC_DRAFT_CREAZIONE);
         }
 
@@ -93,7 +96,7 @@ public class DraftInterceptor extends InternautaBaseInterceptor {
         } catch (BlackBoxPermissionException | Http403ResponseException ex) {
             throw new AbortSaveInterceptorException();
         }
-        if (KrintUtils.doIHaveToKrint(request)) {
+        if (krintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeDraft(draft, OperazioneKrint.CodiceOperazione.PEC_DRAFT_CANCELLAZIONE);
         }
         super.beforeDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);

@@ -64,6 +64,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.stream.Stream;
 import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
+import it.bologna.ausl.model.entities.logs.projections.KrintBaborgUtenteStruttura;
 
 /**
  * Service per la creazione dell'oggetto UserInfoOld TODO: descrivere la
@@ -1191,12 +1192,12 @@ public class UserInfoService {
     }
 
     //@Cacheable(value = "getStruttureKrint__ribaltorg__", key = "{#utente.getId()}")
-    public List<KrintBaborgStruttura> getStruttureKrint(Utente utente) {
+    public List<KrintBaborgUtenteStruttura> getStruttureKrint(Utente utente) {
         utente.setUtenteStrutturaList(getUtenteStrutturaList(utente, true));
         return utente.getUtenteStrutturaList().stream()
                 .map(us -> {
                     //us.setIdStruttura(getIdStruttura(us));
-                    return factory.createProjection(KrintBaborgStruttura.class, us);
+                    return factory.createProjection(KrintBaborgUtenteStruttura.class, us);
                 })
                 .collect(Collectors.toList());
     }

@@ -30,6 +30,9 @@ public class TagInterceptor extends InternautaBaseInterceptor {
     @Autowired
     private KrintShpeckService krintShpeckService;
     
+    @Autowired
+    private KrintUtils krintUtils;
+    
     @Override
     public Class getTargetEntityClass() {
         return Tag.class;
@@ -39,7 +42,7 @@ public class TagInterceptor extends InternautaBaseInterceptor {
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Tag tag = (Tag) entity;
         
-        if (mainEntity && KrintUtils.doIHaveToKrint(request)) {
+        if (mainEntity && krintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeTag(tag, OperazioneKrint.CodiceOperazione.PEC_TAG_CREAZIONE);
         }
 
@@ -56,7 +59,7 @@ public class TagInterceptor extends InternautaBaseInterceptor {
         } catch (BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
-        if (mainEntity && !tag.getDescription().equals(beforeUpdateTag.getDescription()) && KrintUtils.doIHaveToKrint(request)) {
+        if (mainEntity && !tag.getDescription().equals(beforeUpdateTag.getDescription()) && krintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeTag(tag, OperazioneKrint.CodiceOperazione.PEC_TAG_RINOMINA);
         }
         
@@ -67,7 +70,7 @@ public class TagInterceptor extends InternautaBaseInterceptor {
     public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         Tag tag = (Tag) entity;
         
-        if (mainEntity && KrintUtils.doIHaveToKrint(request)) {
+        if (mainEntity && krintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeTag(tag, OperazioneKrint.CodiceOperazione.PEC_TAG_ELIMINAZIONE);
         }
     }  

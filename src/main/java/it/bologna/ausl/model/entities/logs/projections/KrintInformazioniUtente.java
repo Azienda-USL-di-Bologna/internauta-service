@@ -17,7 +17,7 @@ public interface KrintInformazioniUtente {
             
     // strutture
     @Value("#{@userInfoService.getStruttureKrint(target)}")
-    List<KrintBaborgStruttura> getStrutture();
+    List<KrintBaborgUtenteStruttura> getStrutture();
     
     // persona
     @Value("#{@userInfoService.getPersonaKrint(target)}")
