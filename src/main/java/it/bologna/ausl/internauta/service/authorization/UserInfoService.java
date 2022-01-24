@@ -64,6 +64,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.stream.Stream;
 import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
+import it.bologna.ausl.model.entities.logs.projections.KrintBaborgUtenteStruttura;
 
 /**
  * Service per la creazione dell'oggetto UserInfoOld TODO: descrivere la
