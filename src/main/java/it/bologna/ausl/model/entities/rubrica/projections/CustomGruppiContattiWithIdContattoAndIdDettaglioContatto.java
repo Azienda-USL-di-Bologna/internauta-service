@@ -1,7 +1,6 @@
 package it.bologna.ausl.model.entities.rubrica.projections;
 
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
-import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithIdContatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.GruppiContattiWithIdContattoAndIdDettaglioContatto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
@@ -14,11 +13,11 @@ import org.springframework.data.rest.core.config.Projection;
 public interface CustomGruppiContattiWithIdContattoAndIdDettaglioContatto extends GruppiContattiWithIdContattoAndIdDettaglioContatto {
     
     //TODO devo prendere l'id persona e l'id struttura 
-    @Value("#{@projectionBeans.getContattoWithIdStrutturaAndIdPersonaByGruppoContatto(target)}")
+    @Value("#{@rubricaProjectionUtils.getContattoWithIdStrutturaAndIdPersonaByGruppoContatto(target)}")
     @Override
     public CustomContattoWithIdStrutturaAndIdPersona getIdContatto();
     
-    @Value("#{@projectionBeans.getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAziendaByGruppoContatto(target)}")
+    @Value("#{@rubricaProjectionsUtilis.getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAziendaByGruppoContatto(target)}")
     @Override
     public CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda getIdDettaglioContatto();
 

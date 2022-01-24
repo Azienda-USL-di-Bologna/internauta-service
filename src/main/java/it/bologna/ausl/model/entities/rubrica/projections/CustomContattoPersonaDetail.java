@@ -1,6 +1,6 @@
 package it.bologna.ausl.model.entities.rubrica.projections;
 
-import it.bologna.ausl.model.entities.baborg.projections.PersonaWithUtentiAndStruttureAndAfferenzeCustom;
+import it.bologna.ausl.model.entities.baborg.projections.persona.PersonaWithUtentiAndStruttureAndAfferenzeCustom;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithDettaglioContattoListAndEmailListAndGruppiDelContattoListAndIdPersonaAndIdPersonaCreazioneAndIdUtenteCreazione;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.EmailWithIdDettaglioContatto;
@@ -16,19 +16,15 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "CustomContattoPersonaDetail", types = Contatto.class)
 public interface CustomContattoPersonaDetail extends ContattoWithDettaglioContattoListAndEmailListAndGruppiDelContattoListAndIdPersonaAndIdPersonaCreazioneAndIdUtenteCreazione {
 
-    @Value("#{@projectionBeans.getPersonaWithUtentiAndStruttureAndAfferenzeCustom(target)}")
+    @Value("#{@rubricaProjectionUtils.getPersonaWithUtentiAndStruttureAndAfferenzeCustom(target)}")
     @Override
     public PersonaWithUtentiAndStruttureAndAfferenzeCustom getIdPersona();
     
-//    @Value("#{@projectionBeans.getDettaglioContattoWithUtenteStruttura(target)}")
-//    @Override
-//    public List<DettaglioContattoWithUtenteStruttura> getDettaglioContattoList();
- 
-    @Value("#{@projectionBeans.getGruppiContattiWithIdDettaglioContattoAndIdGruppo(target)}")
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getGruppiDelContattoList', 'GruppiContattiWithIdDettaglioContattoAndIdGruppo')}")
     @Override
     public List<GruppiContattiWithIdDettaglioContattoAndIdGruppo> getGruppiDelContattoList();
-    
-    @Value("#{@projectionBeans.getEmailWithIdDettaglioContatto(target)}")
+
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getEmailList', 'EmailWithIdDettaglioContatto')}")
     @Override
     public List<EmailWithIdDettaglioContatto> getEmailList();
 }

@@ -17,9 +17,9 @@ public interface KrintRubricaGruppoContatto{
     
     Integer getId();
     
-    @Value("#{@projectionBeans.getCustomKrintContatto(target.getIdContatto())}")
+    @Value("#{@rubricaProjectionsUtils.getCustomKrintContatto(target.getIdContatto())}")
     KrintRubricaContatto getIdContatto();
     
-    @Value("#{@projectionBeans.getCustomKrintDettaglioContatto(target.getIdDettaglioContatto())}")
+    @Value("#{@rubricaProjectionsUtils.getCustomKrintDettaglioContatto(target.getIdDettaglioContatto())}")
     KrintRubricaDettaglioContatto getIdDettaglioContatto();
 }

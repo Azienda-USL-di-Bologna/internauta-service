@@ -30,6 +30,9 @@ public class FolderInterceptor extends InternautaBaseInterceptor {
     @Autowired
     private KrintShpeckService krintShpeckService;
     
+    @Autowired
+    private KrintUtils krintUtils;
+    
     @Override
     public Class getTargetEntityClass() {
         return Folder.class;
@@ -39,7 +42,7 @@ public class FolderInterceptor extends InternautaBaseInterceptor {
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Folder folder = (Folder) entity;
         
-        if (mainEntity && KrintUtils.doIHaveToKrint(request)) {
+        if (mainEntity && krintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeFolder(folder, OperazioneKrint.CodiceOperazione.PEC_FOLDER_CREAZIONE);
         }
         
@@ -57,7 +60,7 @@ public class FolderInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
         
-        if (mainEntity && !folder.getDescription().equals(beforeUpdateFolder.getDescription()) && KrintUtils.doIHaveToKrint(request)) {
+        if (mainEntity && !folder.getDescription().equals(beforeUpdateFolder.getDescription()) && krintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeFolder(folder, OperazioneKrint.CodiceOperazione.PEC_FOLDER_RINOMINA);
         }
         
@@ -68,7 +71,7 @@ public class FolderInterceptor extends InternautaBaseInterceptor {
     public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         Folder folder = (Folder) entity;
         
-        if (mainEntity && KrintUtils.doIHaveToKrint(request)) {
+        if (mainEntity && krintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeFolder(folder, OperazioneKrint.CodiceOperazione.PEC_FOLDER_ELIMINAZIONE);
         }
     }  

@@ -44,4 +44,14 @@ public interface PersonaRepository extends
     public Integer[] getStruttureDelSegretario(
            Integer idPersona
     );
+    
+    @Query(value = "with people as (select p.id, p.descrizione , u.emails, count(a.id) as n_attivitas "
+            + "from baborg.persone p "
+            + "join baborg.utenti u on u.id_persona = p.id "
+            + "join scrivania.attivita a on a.id_persona = p.id "
+            + "where u.attivo = true and p.attiva = true and u.id_azienda = ?1 and u.emails is not null "
+            + "group by p.id, p.descrizione , u.emails "
+            + "order by descrizione asc) "
+            + "select id from people", nativeQuery = true)
+    public List<Integer> getPersoneAttiveInAziendaConAttivitaSuScrivaniaDaAvvisare(Integer idAzienda);
 }

@@ -75,6 +75,9 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
     @Autowired
     MessageInterceptorUtils messageInterceptorUtils;
     
+    @Autowired
+    private KrintUtils krintUtils;
+    
     @Override
     public Class getTargetEntityClass() {
         return Message.class;
@@ -162,7 +165,7 @@ public class MessageInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
          // Se ho cambiato il seen lo loggo
-        if (mainEntity && (!mBefore.getSeen().equals(message.getSeen())) && KrintUtils.doIHaveToKrint(request)) {
+        if (mainEntity && (!mBefore.getSeen().equals(message.getSeen())) && krintUtils.doIHaveToKrint(request)) {
             if (message.getSeen()) {
                 // ha settato "Letto"
                 krintShpeckService.writeSeenOrNotSeen(message, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_LETTO);
