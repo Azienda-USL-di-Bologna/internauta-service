@@ -18,7 +18,7 @@ public interface CustomContattoGruppoDetail extends ContattoWithContattiDelGrupp
     @Override
     public List<CustomGruppiContattiWithIdContattoAndIdDettaglioContatto> getContattiDelGruppoList();
     
-    @Value("#{@rubricaProjectionUtils.getPermessiContatto(target)}")
+    @Value("#{@rubricaProjectionsUtils.getPermessiContatto(target)}")
     public List<PermessoEntitaStoredProcedure> getPermessiContatto();
 
 }

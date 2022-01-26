@@ -17,7 +17,7 @@ public interface CustomGruppiContattiWithIdContattoAndIdDettaglioContatto extend
     @Override
     public CustomContattoWithIdStrutturaAndIdPersona getIdContatto();
     
-    @Value("#{@rubricaProjectionsUtilis.getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAziendaByGruppoContatto(target)}")
+    @Value("#{@rubricaProjectionsUtils.getDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAziendaByGruppoContatto(target)}")
     @Override
     public CustomDettaglioContattoWithUtenteStrutturaAndIdStutturaAndIdAzienda getIdDettaglioContatto();
 
