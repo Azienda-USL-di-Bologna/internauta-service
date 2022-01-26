@@ -19,6 +19,7 @@ import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseExcepti
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.permessi.PermessoError;
 import it.bologna.ausl.internauta.service.repositories.baborg.AfferenzaStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
@@ -121,6 +122,9 @@ public class PermessiCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    private KrintUtils krintUtils;
 
     /**
      * E' il controller base.Riceve una lista di PermessoEntitaStoredProcedure e
@@ -527,6 +531,12 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         if (!risultanze.isEmpty()) {
             throw new Http409ResponseException("permesso_futuro", objectMapper.writeValueAsString(risultanze));
         }
+        
+                
+        // Clono
+        List<PermessoEntitaStoredProcedure> permessiListClone = objectMapper.convertValue(permessiEntita, new TypeReference<List<PermessoEntitaStoredProcedure>>(){});
+        
+        krintUtils.manageKrintPermissions(permessiListClone);
         permissionRepositoryAccess.managePermissions(permessiEntita, dataDiLavoro);
         Set<Integer> idUtentiSet = new HashSet();
 

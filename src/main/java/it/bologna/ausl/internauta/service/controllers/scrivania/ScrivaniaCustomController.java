@@ -30,6 +30,7 @@ import it.bologna.ausl.internauta.service.scrivania.anteprima.BabelDownloaderRes
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -53,15 +54,21 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.Response;
 import org.jose4j.json.internal.json_simple.JSONArray;
 import org.jose4j.json.internal.json_simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -136,11 +143,19 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     
     @Autowired
     private ReportRepository reportRepository;
+    
+    @Value("${babelsuite.webapi.eliminaattivitadainternauta.url}")
+    private String EliminaAttivitaDaInternauta;
+
+    @Value("${babelsuite.webapi.eliminaattivitadainternauta.method}")
+    private String eliminaAttivitaDaInternauta;
 
     private final String CMD_APRI_FIRMONE = "?CMD=open_firmone_local";
     private final String CMD_APRI_PRENDONE = "?CMD=open_prendone_local";
     private static final String FROM = "&from=INTERNAUTA";
     private final String HTTPS = "https://";
+    
+    private static final Logger log = LoggerFactory.getLogger(ScrivaniaCustomController.class);
 
     @RequestMapping(value = {"getAnteprima"}, method = RequestMethod.GET)
     public void getAnteprima(
@@ -308,6 +323,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Utente utente = (Utente) authentication.getPrincipal();
         Persona persona = personaRepository.getOne(utente.getIdPersona().getId());
+        //BooleanExpression notifichePersona = QAttivita.attivita.idPersona.id.eq(persona.getId());
         BooleanExpression notifichePersona = QAttivita.attivita.idPersona.id.eq(persona.getId()).and(QAttivita.attivita.tipo.eq(TipoAttivita.NOTIFICA.toString()));
         Iterable<Attivita> notificheList = attivitaRepository.findAll(notifichePersona);
         for (Attivita notifica : notificheList) {
@@ -315,6 +331,70 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
             restControllerEngine.delete(notifica.getId(), request, null, attivitaPath, false, null);
             //ttivitaRepository.delete(notifica);
         }
+    }
+    
+    @Transactional
+    @RequestMapping(value = {"cancellaattivita"}, method = RequestMethod.POST)
+    public ResponseEntity<?> cancellaAttivita(
+            @RequestParam("id_attivita") String idAttivita,
+            @RequestParam("id_applicazione") String idApplicazione,
+            @RequestParam("id_azienda") String idAzienda) throws  Throwable {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+
+        Azienda azienda = aziendaRepository.findById(Integer.parseInt(idAzienda)).get();
+        AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+       
+        
+        String cf = "";
+        String cfReale = "";
+        try {
+            cf = authenticatedUserProperties.getPerson().getCodiceFiscale();
+            cfReale = authenticatedUserProperties.getRealPerson().getCodiceFiscale();
+        } catch (Exception e) {
+            cfReale = authenticatedUserProperties.getPerson().getCodiceFiscale();
+        }
+        Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
+        //String idAttivita = datiAggiutiviJson.get("id_attivita_babel").toString();
+//        ("id_attivita_babel");
+        
+        String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), EliminaAttivitaDaInternauta);
+        //String url = "http://localhost:8080/Babel/EliminaAttivitaDaInternauta";
+        
+        Map<String, String> hm = new HashMap<String, String>();
+        hm.put("idAttivita", idAttivita);
+        hm.put("idApplicazione", idApplicazione);
+        hm.put("cf", cf);
+        hm.put("cfReale", cfReale);
+        okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
+                okhttp3.MediaType.get("application/json; charset=utf-8"),
+                objectMapper.writeValueAsString(hm));
+        OkHttpClient client = new OkHttpClient.Builder().connectTimeout(12, TimeUnit.MINUTES).build();
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .addHeader("X-HTTP-Method-Override", eliminaAttivitaDaInternauta)
+                .build();
+
+        Call call = client.newCall(request);
+        HashMap readValue = null;
+        try (Response response = call.execute();) {
+            int responseCode = response.code();
+            if (response.isSuccessful()) {
+                readValue = objectMapper.readValue(response.body().string(), HashMap.class);
+//                r.put(resp);
+                log.info("Chiamata a webapi inde effettuata con successo");
+            } else {
+                log.info("Errore nella chiamata alla webapi InDe: " + responseCode + " " + response.message());
+                throw new IOException(String.format("Errore nella chiamata alla WepApi InDe: %s", response.message()));
+            }
+
+        } catch (Exception ex) {
+            throw new Exception(ex.getMessage());
+        }
+
+        return new ResponseEntity(readValue, HttpStatus.OK);
+        
     }
 
     @RequestMapping(value = {"getDatiBolloByAzienda"}, method = RequestMethod.GET)

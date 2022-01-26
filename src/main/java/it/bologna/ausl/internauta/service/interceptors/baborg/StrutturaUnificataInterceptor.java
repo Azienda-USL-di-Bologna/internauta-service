@@ -132,6 +132,9 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException();
         }
         StrutturaUnificata strutturaUnificata = (StrutturaUnificata) entity;
+        if(strutturaUnificata.getDataAccensioneAttivazione() == null) {
+            strutturaUnificata.setDataAccensioneAttivazione(ZonedDateTime.now(ZoneId.systemDefault()));
+        }
         return strutturaUnificata;
     }
 

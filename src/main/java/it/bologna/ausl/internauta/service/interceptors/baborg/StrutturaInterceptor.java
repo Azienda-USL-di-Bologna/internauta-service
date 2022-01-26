@@ -12,6 +12,8 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.krint.KrintBaborgService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
@@ -23,6 +25,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Pre
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
+import it.bologna.ausl.model.entities.baborg.AttributiStruttura;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.QStruttura;
@@ -32,8 +35,11 @@ import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
+import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.time.LocalDate;
@@ -94,6 +100,12 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private UtenteStrutturaRepository utenteStrutturaRepository;
+    
+    @Autowired
+    private KrintBaborgService krintBaborgService;
+    
+    @Autowired
+    private KrintUtils krintUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -215,6 +227,42 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
+        
+        
+        
+        Struttura struttura = (Struttura) entity;
+        Struttura strutturaOld;
+        try {
+            strutturaOld = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, Struttura.class);
+
+        } catch (BeforeUpdateEntityApplierException ex) {
+            throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
+        }
+        boolean isEliminata = (!struttura.getAttiva() && (strutturaOld.getAttiva()));
+        boolean isChangedStrutturaPadre = struttura.getIdStrutturaPadre()== null ? strutturaOld.getIdStrutturaPadre() != null : !struttura.getIdStrutturaPadre().equals(strutturaOld.getIdStrutturaPadre());
+        boolean isChangedNome = struttura.getNome() == null ? strutturaOld.getNome() != null : !struttura.getNome().equals(strutturaOld.getNome());
+        boolean isChangedAttributiStruttura = struttura.getAttributiStruttura() == null ? strutturaOld.getAttributiStruttura() != null : !struttura.getAttributiStruttura().equals(strutturaOld.getAttributiStruttura());
+        if (krintUtils.doIHaveToKrint(request)) {
+            if (struttura.getUfficio()) {
+                if (isChangedNome) {
+                    String nomeOld = strutturaOld.getNome();
+                    krintBaborgService.writeUfficioUpdate(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_NOME_UPDATE, nomeOld);
+                }
+                if (isChangedStrutturaPadre && !isChangedNome) {
+                    Struttura strutturaPadre = struttura.getIdStrutturaPadre();
+                    krintBaborgService.writeUfficioUpdate(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_STRUTTURA_PADRE_UPDATE, strutturaPadre);
+                }
+                if (isChangedAttributiStruttura) {
+                    AttributiStruttura attributiStruttura = struttura.getAttributiStruttura();
+                    krintBaborgService.writeUfficioUpdate(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_ATTRIBUTI_STRUTTURA_UPDATE, attributiStruttura);
+                }
+                if (isEliminata) {
+                    krintBaborgService.writeUfficioDelete(struttura, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DELETE);
+                }
+            }
+        }
+        
+      
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             if (operationsRequested.contains(AdditionalData.OperationsRequested.SvuotaStruttureConnesseUfficio)) {
                 //entro solo nel caso del pool quando cerco di eliminarne uno
@@ -259,6 +307,17 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
 
         spegniUtentiStrutturaEspegniPermessiStruttureConnesseAPool(strutturaNuova);
         return entity;
+    }
+
+    @Override
+    public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        Struttura struttura = (Struttura) entity;
+        if (krintUtils.doIHaveToKrint(request)) {
+            if (struttura.getUfficio() && struttura.getIdStrutturaPadre() == null) {
+                krintBaborgService.writeUfficioCreation(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_CREATION);
+            }
+        }
+        return entity; //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
@@ -429,5 +488,4 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             }
         }
     }
-
 }

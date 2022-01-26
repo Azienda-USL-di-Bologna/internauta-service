@@ -172,7 +172,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     private ApplicationEventPublisher applicationEventPublisher;
 
     @Autowired
-    private CachedEntities cachedEntities;
+    private KrintUtils krintUtils;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -459,7 +459,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "idUtente", required = false) Integer idUtente
     ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException, Http403ResponseException, BlackBoxPermissionException {
 
-        Boolean doIHaveToKrint = KrintUtils.doIHaveToKrint(request);
+        Boolean doIHaveToKrint = krintUtils.doIHaveToKrint(request);
         String hostname = nextSdrCommonUtils.getHostname(request);
 
         ShpeckUtils.MailMessageOperation mailMessageOperation;
@@ -625,7 +625,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         messageRepository.updateTscol(messageDestination.getId());
 
         // Loggo il reindirizzamento
-        if (KrintUtils.doIHaveToKrint(request)) {
+        if (krintUtils.doIHaveToKrint(request)) {
             krintShpeckService.writeReaddress(messageSource, messageDestination, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_OUT);
             krintShpeckService.writeReaddress(messageDestination, messageSource, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_IN);
         }
@@ -747,7 +747,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         LOG.info("Dentro controller manageMessageRegistration");
 
-        Boolean doIHaveToKrint = KrintUtils.doIHaveToKrint(request);
+        Boolean doIHaveToKrint = krintUtils.doIHaveToKrint(request);
 
         Azienda azienda = null;
         if (codiceAzienda != null) {

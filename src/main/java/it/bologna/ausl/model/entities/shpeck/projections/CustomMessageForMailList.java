@@ -14,26 +14,14 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "CustomMessageForMailList", types = Message.class)
 public interface CustomMessageForMailList extends MessageWithMessageAddressListAndMessageFolderListAndMessageTagList {
     
-//    @Value("#{@projectionBeans.getMessageAddressListWithIdAddress(target)}")
-//    @Override
-//    public List<MessageAddressWithIdAddress> getMessageAddressList();
-    
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getMessageAddressList', 'MessageAddressWithIdAddress')}")
     @Override
     public List<MessageAddressWithIdAddress> getMessageAddressList();
-    
-//    @Value("#{@projectionBeans.getMessageTagListWithIdTag(target)}")
-//    @Override
-//    public List<MessageTagWithIdTag> getMessageTagList();
     
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getMessageTagList', 'MessageTagWithIdTag')}")
     @Override
     public List<MessageTagWithIdTag> getMessageTagList();
 
-//    @Override
-//    @Value("#{@projectionBeans.getMessageFolderListWithIdFolder(target)}")
-//    public Object getMessageFolderList();
-    
     @Override
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getMessageFolderList', 'MessageFolderWithIdFolder')}")
     public List<MessageFolderWithIdFolder> getMessageFolderList();

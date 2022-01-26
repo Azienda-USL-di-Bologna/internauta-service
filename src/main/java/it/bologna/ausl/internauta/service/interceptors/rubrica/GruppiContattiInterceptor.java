@@ -36,6 +36,9 @@ public class GruppiContattiInterceptor extends InternautaBaseInterceptor{
     @Autowired
     KrintRubricaService krintRubricaService;
     
+    @Autowired
+    private KrintUtils krintUtils;
+    
     @Override
     public Class getTargetEntityClass() {
         return GruppiContatti.class;
@@ -66,7 +69,7 @@ public class GruppiContattiInterceptor extends InternautaBaseInterceptor{
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         GruppiContatti gc = (GruppiContatti) entity;
         if(gc.getIdGruppo() != null){
-            if (KrintUtils.doIHaveToKrint(request)) {
+            if (krintUtils.doIHaveToKrint(request)) {
                 krintRubricaService.writeGroupContactCreation(gc, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_CONTACT_CREATION);
 //                Object data = this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.ContattoGruppoAppenaCreato);
 //                if (data == null) {
@@ -82,7 +85,7 @@ public class GruppiContattiInterceptor extends InternautaBaseInterceptor{
     public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         GruppiContatti gc = (GruppiContatti) entity;
         if(gc.getIdGruppo() != null){
-            if (KrintUtils.doIHaveToKrint(request)) {
+            if (krintUtils.doIHaveToKrint(request)) {
                 krintRubricaService.writeGroupContactDelete(gc, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_CONTACT_DELETE);
             }
         }
@@ -94,7 +97,7 @@ public class GruppiContattiInterceptor extends InternautaBaseInterceptor{
     public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         GruppiContatti gc = (GruppiContatti) entity;
         if(gc.getIdGruppo() != null){
-            if (KrintUtils.doIHaveToKrint(request)) {
+            if (krintUtils.doIHaveToKrint(request)) {
                 krintRubricaService.writeGroupContactUpdate(gc, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_CONTACT_UPDATE);
             }
         }

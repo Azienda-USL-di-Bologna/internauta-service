@@ -10,6 +10,8 @@ import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -181,12 +183,31 @@ public class InternautaUtils {
         return res;
     }
 
-//    
-//    public boolean isSameDay(LocalDateTime date1, LocalDateTime date2) {
-//        return this.isSameDay(date1.toLocalDate(), date2.toLocalDate());
-//    }
-//    
-//    public boolean isSameDay(LocalDate date1, LocalDate date2) {
-//        return date1.isEqual(date2);
-//    }
+    /**
+     * E' la stessa regex che abbiamo su ProctonUtils
+     *
+     * @param emailAddress è la l'indirizzo mail secco da verificare
+     * @return true se la regex valida l'indirizzo passato come parametro, false
+     * altrimenti
+     */
+    public boolean isValidEmailAddress(String emailAddress) {
+        Pattern p = Pattern.compile("^[a-zA-Z0-9_+\'&.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$");
+
+        // Match the given string with the pattern
+        Matcher m = p.matcher(emailAddress);
+
+        // check whether match is found
+        boolean matchFound = m.matches();
+
+        String[] emailSplitted = emailAddress.split("\\.");
+        String lastToken = emailSplitted[emailSplitted.length - 1];
+
+        // validate the country code
+        if (matchFound && lastToken.length() >= 2
+                && emailAddress.length() - 1 != lastToken.length()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

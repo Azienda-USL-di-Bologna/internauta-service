@@ -26,7 +26,4 @@ public interface KrintRubricaContatto{
     String getTipo();
     @Value("#{target.getCategoria().name()}") 
     String getCategoria();
-//    
-//    @Value("#{@projectionBeans.getCustomKrintDettaglioContattoList(target)}") 
-//    List<KrintRubricaDettaglioContatto> getDettaglioContattoList();
 }
