@@ -16,7 +16,7 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "CustomContattoPersonaDetail", types = Contatto.class)
 public interface CustomContattoPersonaDetail extends ContattoWithDettaglioContattoListAndEmailListAndGruppiDelContattoListAndIdPersonaAndIdPersonaCreazioneAndIdUtenteCreazione {
 
-    @Value("#{@rubricaProjectionUtils.getPersonaWithUtentiAndStruttureAndAfferenzeCustom(target)}")
+    @Value("#{@rubricaProjectionsUtils.getPersonaWithUtentiAndStruttureAndAfferenzeCustom(target)}")
     @Override
     public PersonaWithUtentiAndStruttureAndAfferenzeCustom getIdPersona();
     

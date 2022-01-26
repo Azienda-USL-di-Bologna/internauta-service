@@ -13,7 +13,7 @@ import org.springframework.data.rest.core.config.Projection;
 public interface CustomGruppiContattiWithIdContattoAndIdDettaglioContatto extends GruppiContattiWithIdContattoAndIdDettaglioContatto {
     
     //TODO devo prendere l'id persona e l'id struttura 
-    @Value("#{@rubricaProjectionUtils.getContattoWithIdStrutturaAndIdPersonaByGruppoContatto(target)}")
+    @Value("#{@rubricaProjectionsUtils.getContattoWithIdStrutturaAndIdPersonaByGruppoContatto(target)}")
     @Override
     public CustomContattoWithIdStrutturaAndIdPersona getIdContatto();
     
