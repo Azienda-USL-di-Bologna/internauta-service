@@ -3,6 +3,12 @@ package it.bologna.ausl.internauta.service.controllers.scripta;
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.model.entities.scripta.Allegato;
+import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
+import it.bologna.ausl.model.entities.scripta.ArchivioDiInteresse;
+import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
+import it.bologna.ausl.model.entities.scripta.AttoreDoc;
 import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
@@ -24,14 +30,24 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.DocDetail;
+import it.bologna.ausl.model.entities.scripta.FrequenzaUtilizzoArchivio;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
+import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
+import it.bologna.ausl.model.entities.scripta.QArchivio;
+import it.bologna.ausl.model.entities.scripta.QArchivioDetail;
+import it.bologna.ausl.model.entities.scripta.QArchivioDiInteresse;
+import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
+import it.bologna.ausl.model.entities.scripta.QAttoreDoc;
 import it.bologna.ausl.model.entities.scripta.QDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
+import it.bologna.ausl.model.entities.scripta.QFrequenzaUtilizzoArchivio;
 import it.bologna.ausl.model.entities.scripta.views.QDocDetailView;
 import it.bologna.ausl.model.entities.scripta.QMezzo;
+import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QRelated;
 import it.bologna.ausl.model.entities.scripta.QSmistamento;
@@ -39,7 +55,9 @@ import it.bologna.ausl.model.entities.scripta.QSpedizione;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Smistamento;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
+import it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView;
 import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
+import it.bologna.ausl.model.entities.scripta.views.QArchivioDetailView;
 
 @RestController
 @RequestMapping(value = "${scripta.mapping.url.root}")
@@ -187,6 +205,123 @@ public class ScriptaBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDocDetailView.docDetailView, DocDetailView.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"archivio", "archivio/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> archivio(
+            @QuerydslPredicate(root = Archivio.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivio.archivio, Archivio.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"archiviodoc", "archiviodoc/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> archiviodoc(
+            @QuerydslPredicate(root = ArchivioDoc.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivioDoc.archivioDoc, ArchivioDoc.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"attorearchivio", "attorearchivio/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> attorearchivio(
+            @QuerydslPredicate(root = AttoreArchivio.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAttoreArchivio.attoreArchivio, AttoreArchivio.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"attoredoc", "attoredoc/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> attoredoc(
+            @QuerydslPredicate(root = AttoreDoc.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAttoreDoc.attoreDoc, AttoreDoc.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"archiviodiinteresse", "archiviodiinteresse/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> archiviodiinteresse(
+            @QuerydslPredicate(root = ArchivioDiInteresse.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivioDiInteresse.archivioDiInteresse, ArchivioDiInteresse.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"frequenzautilizzoarchivio", "frequenzautilizzoarchivio/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> frequenzautilizzoarchivio(
+            @QuerydslPredicate(root = FrequenzaUtilizzoArchivio.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QFrequenzaUtilizzoArchivio.frequenzaUtilizzoArchivio, FrequenzaUtilizzoArchivio.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"archiviodetail", "archiviodetail/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> archiviodetail(
+            @QuerydslPredicate(root = ArchivioDetail.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivioDetail.archivioDetail, ArchivioDetail.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"permessoarchivio", "permessoarchivio/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> permessoarchivio(
+            @QuerydslPredicate(root = PermessoArchivio.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPermessoArchivio.permessoArchivio, PermessoArchivio.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"archiviodetailview", "archiviodetailview/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> archiviodetailview(
+            @QuerydslPredicate(root = ArchivioDetailView.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivioDetailView.archivioDetailView, ArchivioDetailView.class);
         return ResponseEntity.ok(resource);
     }
 }
