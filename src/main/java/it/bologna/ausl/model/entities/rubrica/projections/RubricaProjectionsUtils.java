@@ -33,7 +33,7 @@ import org.springframework.stereotype.Component;
  * @author gusgus
  */
 @Component
-public class RubricaProjectionsUtilis {
+public class RubricaProjectionsUtils {
     
     @Autowired
     protected ProjectionFactory projectionFactory;
@@ -53,7 +53,7 @@ public class RubricaProjectionsUtilis {
     @Autowired
     private AziendaRepository aziendaRepository;
     
-    private static final Logger LOGGER = LoggerFactory.getLogger(RubricaProjectionsUtilis.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RubricaProjectionsUtils.class);
     
     private String getElencoCodiciAziendeAttualiPersona(Persona persona) {
         String codiciAziende = "";
