@@ -6,7 +6,7 @@ import com.mongodb.MongoException;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
@@ -49,9 +49,9 @@ public class ReporitoryConnectionManager {
     @PostConstruct
     public void init() throws UnknownHostException, IOException, MongoException, MongoWrapperException, ObjectNotFoundException {
         List<ParametroAziende> parameters = parametriAziende.getParameters(
-                InternautaConstants.Configurazione.ParametriAzienda.minIOConfig.toString());
+                ParametriAziendeReader.ParametriAzienda.minIOConfig.toString());
         if (parameters == null || parameters.isEmpty() || parameters.size() > 1) {
-            throw new ObjectNotFoundException("il parametro " + InternautaConstants.Configurazione.ParametriAzienda.minIOConfig.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
+            throw new ObjectNotFoundException("il parametro " + ParametriAziendeReader.ParametriAzienda.minIOConfig.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
         }
         minIOConfig = parametriAziende.getValue(parameters.get(0), new TypeReference<Map<String, Object>>() {
         });
@@ -77,10 +77,10 @@ public class ReporitoryConnectionManager {
             AziendaParametriJson parametriAzienda = aziendeParametriJson.get(azienda.getCodice());
             AziendaParametriJson.MongoParams mongoParams = parametriAzienda.getMongoParams();
             List<ParametroAziende> parameters = parametriAziende.getParameters(
-                    InternautaConstants.Configurazione.ParametriAzienda.mongoAndMinIOActive.toString(),
+                    ParametriAziendeReader.ParametriAzienda.mongoAndMinIOActive.toString(),
                     new Integer[]{azienda.getId()});
             if (parameters == null || parameters.isEmpty() || parameters.size() > 1) {
-                throw new ObjectNotFoundException("il parametro " + InternautaConstants.Configurazione.ParametriAzienda.mongoAndMinIOActive.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
+                throw new ObjectNotFoundException("il parametro " + ParametriAziendeReader.ParametriAzienda.mongoAndMinIOActive.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
             }
             this.mongoAndMinIOActive = parametriAziende.getValue(parameters.get(0), Boolean.class);
             String minIODBDriver = (String) minIOConfig.get("DBDriver");

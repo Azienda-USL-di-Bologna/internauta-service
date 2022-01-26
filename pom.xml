@@ -227,6 +227,12 @@
             <artifactId>document-generator</artifactId>
             <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>it.bologna.ausl.internauta.utils</groupId>
+            <artifactId>parameters-manager</artifactId>
+            <version>1.0</version>
+        </dependency>
+        
         
         <!-- altri progetti -->
         <dependency>

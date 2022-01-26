@@ -33,14 +33,6 @@ public class InternautaConstants {
         }
     }
 
-    public static class Configurazione {
-
-        public enum ParametriAzienda {
-            minIOConfig,
-            mongoAndMinIOActive,
-        }
-    }
-
     public static class AdditionalData {
 
         public enum Keys {
