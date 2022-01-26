@@ -1,7 +1,7 @@
 package it.bologna.ausl.internauta.service.utils;
 
 import it.bologna.ausl.estrattore.ExtractorResult;
-import it.bologna.ausl.estrattoremaven.exception.ExtractorException;
+import it.bologna.ausl.estrattore.exception.ExtractorException;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
