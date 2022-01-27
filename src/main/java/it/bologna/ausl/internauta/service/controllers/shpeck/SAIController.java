@@ -1,7 +1,11 @@
 package it.bologna.ausl.internauta.service.controllers.shpeck;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.eml.handler.EmlHandler;
+import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
+import it.bologna.ausl.eml.handler.EmlHandlerResult;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
@@ -18,7 +22,9 @@ import it.bologna.ausl.internauta.service.exceptions.sai.SubFascicoloCreationExc
 import it.bologna.ausl.internauta.service.gedi.utils.SAIUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
+import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckCacheableFunctions;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -39,11 +45,26 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.QPec;
+import it.bologna.ausl.model.entities.shpeck.Message;
+import it.bologna.ausl.model.entities.shpeck.QMessage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.stream.Stream;
+import org.apache.commons.codec.digest.MessageDigestAlgorithms;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.http.MediaType;
+import org.springframework.util.StreamUtils;
 
 /**
  *
@@ -63,12 +84,18 @@ public class SAIController implements ControllerHandledExceptions {
 
     @Autowired
     private PecRepository pecRepository;
+    
+    @Autowired
+    private MessageRepository messageRepository;
 
     @Autowired
     private DraftRepository draftRepository;
 
     @Autowired
     private SAIUtils saiUtils;
+    
+    @Autowired
+    private ShpeckCacheableFunctions shpeckCacheableFunctions;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
@@ -98,9 +125,17 @@ public class SAIController implements ControllerHandledExceptions {
             @RequestParam(name = "userCF", required = true) String userCF,
             @RequestParam(name = "fascicolo", required = false) String fascicolo,
             @RequestParam(name = "azienda", required = true) String azienda
-    ) throws Http500ResponseException, Http400ResponseException, Http403ResponseException {
+    ) throws Http500ResponseException, Http400ResponseException, Http403ResponseException, IOException, NoSuchAlgorithmException {
 
         Boolean doIHaveToKrint = true;
+        
+        
+//        String hashFromBytes = FileUtilities.getHashFromBytes(MessageDigestAlgorithms.SHA_256, attachments[0].getBytes());
+//        System.out.println(hashFromBytes);
+//        
+//        String hashFromBytes2 = FileUtilities.getHashFromBytes(MessageDigestAlgorithms.SHA_256, attachments[0].getBytes());
+//        System.out.println(hashFromBytes2);
+        
         String hostname = null;
         try {
             hostname = nextSdrCommonUtils.getHostname(request);
@@ -135,42 +170,52 @@ public class SAIController implements ControllerHandledExceptions {
         }
         Pec pec = pecOp.get();
 
-        Draft draft = new Draft();
-        try {
-            draft.setIdPec(pec);
-            draft = draftRepository.save(draft);
-        } catch (Exception e) {
-            throw new Http500ResponseException("500-003", "errore nella creazione della bozza per l'invio della mail");
-        }
+        Integer idOutBox = null;
+//        try {
+//            idOutBox = checkIfMailIsSentAndGetIdOutbox(pec, senderAddress, to, cc, subject, body, attachments);
+//        } catch (Exception ex) {
+//            LOG.error("errore ricerca mail inviata 500-012", ex);
+//            throw new Http500ResponseException("500-012", "errore nella ricerca della mail inviata", ex);
+//        }
+        
+        if (idOutBox == null) {
+            Draft draft = new Draft();
+            try {
+                draft.setIdPec(pec);
+                draft = draftRepository.save(draft);
+            } catch (Exception e) {
+                throw new Http500ResponseException("500-003", "errore nella creazione della bozza per l'invio della mail");
+            }
 
-        Integer idOutBox;
-        try {
-            idOutBox = shpeckUtils.BuildAndSendMailMessage(
-                    ShpeckUtils.MailMessageOperation.SEND_MESSAGE,
-                    hostname,
-                    draft.getId(),
-                    pec.getId(),
-                    body,
-                    hideRecipients,
-                    subject,
-                    to,
-                    cc,
-                    attachments,
-                    null,
-                    null,
-                    null,
-                    user.getId(),
-                    doIHaveToKrint);
-        } catch (IOException | EmlHandlerException | BadParamsException | MessagingException ex) {
-            throw new Http500ResponseException("500-004", "Errore nella creazione del messaggio mail", ex);
-        } catch (Http500ResponseException ex) {
-            throw ex;
-        } catch (BlackBoxPermissionException ex) {
-            throw new Http500ResponseException("500-005", "Errore nel calcolo dei permessi", ex);
-        } catch (Http403ResponseException ex) {
-            throw new Http403ResponseException("403-001", String.format("l'utente %s non ha il permesso di invio sulla casella %s", person.getDescrizione(), senderAddress), ex);
-        } catch (Exception ex) {
-            throw new Http500ResponseException("500-006", "Errore non previsto nell'invio della mail", ex);
+            try {
+                    idOutBox = shpeckUtils.BuildAndSendMailMessage(
+                        ShpeckUtils.MailMessageOperation.SEND_MESSAGE,
+                        hostname,
+                        draft.getId(),
+                        pec.getId(),
+                        body,
+                        hideRecipients,
+                        subject,
+                        to,
+                        cc,
+                        attachments,
+                        null,
+                        null,
+                        null,
+                        user.getId(),
+                        doIHaveToKrint);
+
+            } catch (IOException | EmlHandlerException | BadParamsException | MessagingException ex) {
+                throw new Http500ResponseException("500-004", "Errore nella creazione del messaggio mail", ex);
+            } catch (Http500ResponseException ex) {
+                throw ex;
+            } catch (BlackBoxPermissionException ex) {
+                throw new Http500ResponseException("500-005", "Errore nel calcolo dei permessi", ex);
+            } catch (Http403ResponseException ex) {
+                throw new Http403ResponseException("403-001", String.format("l'utente %s non ha il permesso di invio sulla casella %s", person.getDescrizione(), senderAddress), ex);
+            } catch (Exception ex) {
+                throw new Http500ResponseException("500-006", "Errore non previsto nell'invio della mail", ex);
+            }
         }
 
         String numerazioneGerarchica = null;
@@ -186,8 +231,8 @@ public class SAIController implements ControllerHandledExceptions {
             LOG.error("errore fascicolazione 500-006", ex);
             throw new Http500ResponseException("500-006", "Il fascicolo padre in cui fascicolare non è definito in Babel", ex);
         } catch (FascicoloPermissionSettingException ex) {
-            LOG.error("errore fascicolazione 500-007", ex);
-            throw new Http500ResponseException("500-007", "Errore nell'attribuzione dei permessi al fascicolo", ex);
+            LOG.error("errore fascicolazione 500-011", ex);
+            throw new Http500ResponseException("500-011", "Errore nell'attribuzione dei permessi al fascicolo", ex);
         } catch (GddocCreationException ex) {
             LOG.error("errore fascicolazione 500-008", ex);
             throw new Http500ResponseException("500-008", "Il sottofacicolo è stato creato, ma c'è stato un errore nella creazione del documento da fascicolare", ex);
@@ -205,5 +250,62 @@ public class SAIController implements ControllerHandledExceptions {
         
         return res;
     }
+    
+    private Integer checkIfMailIsSentAndGetIdOutbox(Pec pec, String from, String[] to, String[] cc, String subject, String body, MultipartFile[] multipartAttachments) throws FileNotFoundException, EmlHandlerException, MessagingException, IOException, NoSuchAlgorithmException, BadParamsException {
+        BooleanExpression filter = QMessage.message.idPec.id.eq(pec.getId()).and(
+                QMessage.message.subject.eq(subject).and(
+                QMessage.message.attachmentsNumber.eq(multipartAttachments.length).and(
+                QMessage.message.inOut.eq(Message.InOut.OUT.toString())))
+        );
+        Iterable<Message> candidateMessages = messageRepository.findAll(filter);
+        for (Message m: candidateMessages) {
+            boolean found = true;
+//            File downloadEml = null;SD
+//                downloadEml = shpeckUtils.downloadEml(ShpeckUtils.EmlSource.MESSAGE, m.getId());
+
+            EmlHandlerResult emlHandlerResult = shpeckCacheableFunctions.getInfoEml(ShpeckUtils.EmlSource.MESSAGE, m.getId());
+            int attNumber = (int) Arrays.stream(emlHandlerResult.getAttachments()).filter(a -> {
+                        LOG.info(a.toString());
+                        return a.getForHtmlAttribute() == false;
+            }).count();
+            emlHandlerResult.setRealAttachmentNumber(attNumber);
+            if (attNumber == multipartAttachments.length) {
+                Arrays.sort(emlHandlerResult.getTo());
+                Arrays.sort(to);
+                Arrays.sort(emlHandlerResult.getCc());
+                Arrays.sort(cc);
+                if (emlHandlerResult.getFrom().equals(from) && 
+                        Arrays.equals(emlHandlerResult.getTo(), to) &&
+                        Arrays.equals(emlHandlerResult.getCc(), cc) &&
+                        emlHandlerResult.getSubject().equalsIgnoreCase(subject)
+                    ) {
+                    for (EmlHandlerAttachment attachment : emlHandlerResult.getAttachments()) {
+                        String hashFromFile = FileUtilities.getHashFromFile(attachment.getInputStream(), MessageDigestAlgorithms.SHA_256);
+                        boolean attachementFound = Stream.of(multipartAttachments).anyMatch(att -> {
+                            String hash = null;
+                            try {
+                                hash = FileUtilities.getHashFromBytes(MessageDigestAlgorithms.SHA_256, att.getBytes());
+                            } catch (IOException | NoSuchAlgorithmException ex) {
+                                LOG.error("errore nel calcolo dell'hash dell'allegato multipart", ex);
+                            }
+                            return hash != null && hashFromFile.equalsIgnoreCase(hash);
+                        });
+                        if (!attachementFound) {
+                            found = false;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                found = false;
+            }
+            if (found) {
+                return m.getIdOutbox();
+            }
+        }
+        return null;
+    }
+    
+    
 
 }
