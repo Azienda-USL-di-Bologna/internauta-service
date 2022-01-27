@@ -7,7 +7,7 @@ package it.bologna.ausl.internauta.service.utils;
 
 import it.bologna.ausl.estrattore.ExtractorCreator;
 import it.bologna.ausl.estrattore.ExtractorResult;
-import it.bologna.ausl.estrattoremaven.exception.ExtractorException;
+import it.bologna.ausl.estrattore.exception.ExtractorException;
 import it.bologna.ausl.mimetypeutilitymaven.Detector;
 import java.io.File;
 import java.io.FileNotFoundException;
