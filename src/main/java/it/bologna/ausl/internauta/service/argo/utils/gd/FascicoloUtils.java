@@ -45,9 +45,9 @@ public class FascicoloUtils {
             + "from gd.fascicoligd "
             + "where numerazione_gerarchica = '%s'; ";
 
-    String GET_LAST_NUMBER_BY_YEAR_AND_FATHER = "select numero_fascicolo "
+    String GET_LAST_NUMBER_BY_FATHER = "select numero_fascicolo "
             + "from gd.fascicoligd "
-            + "where anno_fascicolo = %s and id_fascicolo_padre = '%s' order by numero_fascicolo desc limit 1";
+            + "where id_fascicolo_padre = '%s' order by numero_fascicolo desc limit 1";
 
     String QUERY_FIND_ID_FASCICOLO_BY_NUMERAZIONE_GERARCHICA = "select id_fascicolo "
             + "from gd.fascicoligd "
@@ -57,9 +57,9 @@ public class FascicoloUtils {
         return connectionManager.getConnection(idAzienda);
     }
 
-    private Integer getLastNumberFascicolo(Integer idAzienda, Integer anno, String idFascicoloPadre) throws Exception {
+    private Integer getLastNumberFascicolo(Integer idAzienda, String idFascicoloPadre) throws Exception {
         Integer lastNumber = 0;
-        String queryString = String.format(GET_LAST_NUMBER_BY_YEAR_AND_FATHER, anno.toString(), idFascicoloPadre);
+        String queryString = String.format(GET_LAST_NUMBER_BY_FATHER, idFascicoloPadre);
         try (Connection connection = getConnection(idAzienda)) {
             Query query = connection.createQuery(queryString);
             List<Integer> list = query.executeAndFetch(Integer.class);
@@ -209,12 +209,12 @@ public class FascicoloUtils {
                     } else if (key.equals("id_fascicolo_padre")) {
                         val = fascicoloPadre != null ? fascicoloPadre.get("id_fascicolo") : null;
                     } else if (key.equals("numero_fascicolo") || key.equals("numerazione_gerarchica")) {
-                        Integer year = Calendar.getInstance().get(Calendar.YEAR);
-                        if (fascicoloPadre != null) {
-                            year = (Integer) fascicoloPadre.get("anno_fascicolo");
-                        }
+//                        Integer year = Calendar.getInstance().get(Calendar.YEAR);
+//                        if (fascicoloPadre != null) {
+//                            year = (Integer) fascicoloPadre.get("anno_fascicolo");
+//                        }
                         String idFascicoloPadre = fascicoloPadre != null ? (String) fascicoloPadre.get("id_fascicolo") : null;
-                        Integer actualMaxNumber = getLastNumberFascicolo(idAzienda, year, idFascicoloPadre);
+                        Integer actualMaxNumber = getLastNumberFascicolo(idAzienda, idFascicoloPadre);
                         Integer newNumber = actualMaxNumber + 1;
                         val = newNumber;
 
