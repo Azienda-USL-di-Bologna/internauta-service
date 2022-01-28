@@ -69,13 +69,13 @@ public class FileUtilities {
     
     /**
      * Torna l'hash in esadecimale del file, passato come bytes
-     * @param algorithm l'algoritmo da usare ES. SHA-256, MD5, ecc.
      * @param file i bytes del file
+     * @param algorithm l'algoritmo da usare ES. SHA-256, MD5, ecc.
      * @return l'hash in esadecimale del file calcolato con l'algoritmo passato
      * @throws IOException
      * @throws NoSuchAlgorithmException 
      */
-    public static String getHashFromBytes(String algorithm, byte[] file) throws IOException, NoSuchAlgorithmException {
+    public static String getHashFromBytes(byte[] file, String algorithm) throws IOException, NoSuchAlgorithmException {
  
         MessageDigest mdigest = MessageDigest.getInstance(algorithm);
         

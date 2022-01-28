@@ -31,7 +31,20 @@ public class ShpeckCacheableFunctions {
         try {
             downloadEml = shpeckUtils.downloadEml(emlSource, id);
             this.memoryAnalizerService.handleIncrementMessage((int) downloadEml.length());
-            return EmlHandler.handleEml(downloadEml.getAbsolutePath());
+            return EmlHandler.handleEml(downloadEml.getAbsolutePath(), false);
+        } finally {
+            if (downloadEml != null) {
+                downloadEml.delete();
+            }
+        }
+    }
+    
+    public EmlHandlerResult getInfoEmlWithAttachmentsStreamNoCache(ShpeckUtils.EmlSource emlSource, Integer id) throws EmlHandlerException, UnsupportedEncodingException, BadParamsException, IOException {
+        File downloadEml = null;
+        try {
+            downloadEml = shpeckUtils.downloadEml(emlSource, id);
+            this.memoryAnalizerService.handleIncrementMessage((int) downloadEml.length());
+            return EmlHandler.handleEml(downloadEml.getAbsolutePath(), true);
         } finally {
             if (downloadEml != null) {
                 downloadEml.delete();

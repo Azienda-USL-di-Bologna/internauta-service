@@ -2,7 +2,6 @@ package it.bologna.ausl.internauta.service.controllers.shpeck;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.eml.handler.EmlHandler;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.eml.handler.EmlHandlerResult;
@@ -41,7 +40,6 @@ import java.util.Optional;
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -50,21 +48,14 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.QPec;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.apache.commons.codec.digest.MessageDigestAlgorithms;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.http.MediaType;
-import org.springframework.util.StreamUtils;
 
 /**
  *
@@ -171,12 +162,12 @@ public class SAIController implements ControllerHandledExceptions {
         Pec pec = pecOp.get();
 
         Integer idOutBox = null;
-//        try {
-//            idOutBox = checkIfMailIsSentAndGetIdOutbox(pec, senderAddress, to, cc, subject, body, attachments);
-//        } catch (Exception ex) {
-//            LOG.error("errore ricerca mail inviata 500-012", ex);
-//            throw new Http500ResponseException("500-012", "errore nella ricerca della mail inviata", ex);
-//        }
+        try {
+            idOutBox = checkIfMailIsSentAndGetIdOutbox(pec, senderAddress, to, cc, subject, body, attachments);
+        } catch (Exception ex) {
+            LOG.error("errore ricerca mail inviata 500-012", ex);
+            throw new Http500ResponseException("500-012", "errore nella ricerca della mail inviata", ex);
+        }
         
         if (idOutBox == null) {
             Draft draft = new Draft();
@@ -252,60 +243,82 @@ public class SAIController implements ControllerHandledExceptions {
     }
     
     private Integer checkIfMailIsSentAndGetIdOutbox(Pec pec, String from, String[] to, String[] cc, String subject, String body, MultipartFile[] multipartAttachments) throws FileNotFoundException, EmlHandlerException, MessagingException, IOException, NoSuchAlgorithmException, BadParamsException {
+        Integer multipartAttachementsNumber = 0;
+        if (multipartAttachments != null ) {
+            multipartAttachementsNumber = multipartAttachments.length;
+        }
         BooleanExpression filter = QMessage.message.idPec.id.eq(pec.getId()).and(
                 QMessage.message.subject.eq(subject).and(
-                QMessage.message.attachmentsNumber.eq(multipartAttachments.length).and(
+                QMessage.message.attachmentsNumber.eq(multipartAttachementsNumber).and(
                 QMessage.message.inOut.eq(Message.InOut.OUT.toString())))
         );
         Iterable<Message> candidateMessages = messageRepository.findAll(filter);
+        Integer res = null;
         for (Message m: candidateMessages) {
-            boolean found = true;
-//            File downloadEml = null;SD
-//                downloadEml = shpeckUtils.downloadEml(ShpeckUtils.EmlSource.MESSAGE, m.getId());
+            boolean found = false;
 
-            EmlHandlerResult emlHandlerResult = shpeckCacheableFunctions.getInfoEml(ShpeckUtils.EmlSource.MESSAGE, m.getId());
+            EmlHandlerResult emlHandlerResult = shpeckCacheableFunctions.getInfoEmlWithAttachmentsStreamNoCache(ShpeckUtils.EmlSource.MESSAGE, m.getId());
             int attNumber = (int) Arrays.stream(emlHandlerResult.getAttachments()).filter(a -> {
                         LOG.info(a.toString());
                         return a.getForHtmlAttribute() == false;
             }).count();
-            emlHandlerResult.setRealAttachmentNumber(attNumber);
-            if (attNumber == multipartAttachments.length) {
-                Arrays.sort(emlHandlerResult.getTo());
-                Arrays.sort(to);
-                Arrays.sort(emlHandlerResult.getCc());
-                Arrays.sort(cc);
-                if (emlHandlerResult.getFrom().equals(from) && 
-                        Arrays.equals(emlHandlerResult.getTo(), to) &&
-                        Arrays.equals(emlHandlerResult.getCc(), cc) &&
-                        emlHandlerResult.getSubject().equalsIgnoreCase(subject)
-                    ) {
-                    for (EmlHandlerAttachment attachment : emlHandlerResult.getAttachments()) {
-                        String hashFromFile = FileUtilities.getHashFromFile(attachment.getInputStream(), MessageDigestAlgorithms.SHA_256);
-                        boolean attachementFound = Stream.of(multipartAttachments).anyMatch(att -> {
-                            String hash = null;
-                            try {
-                                hash = FileUtilities.getHashFromBytes(MessageDigestAlgorithms.SHA_256, att.getBytes());
-                            } catch (IOException | NoSuchAlgorithmException ex) {
-                                LOG.error("errore nel calcolo dell'hash dell'allegato multipart", ex);
-                            }
-                            return hash != null && hashFromFile.equalsIgnoreCase(hash);
-                        });
-                        if (!attachementFound) {
-                            found = false;
-                            break;
-                        }
+//            emlHandlerResult.setRealAttachmentNumber(attNumber);
+            if (attNumber == multipartAttachementsNumber) {
+                if (
+                        ((emlHandlerResult.getTo() == null && to == null) || (to != null && emlHandlerResult.getTo() != null)) &&
+                        ((emlHandlerResult.getCc() == null && cc == null) || (cc != null && emlHandlerResult.getCc() != null))) {
+                    if (emlHandlerResult.getTo() != null)
+                        Arrays.sort(emlHandlerResult.getTo());
+                    if (to != null)
+                        Arrays.sort(to);
+                    if (emlHandlerResult.getCc() != null)
+                        Arrays.sort(emlHandlerResult.getCc());
+                    if (cc != null)
+                        Arrays.sort(cc);
+                    if (emlHandlerResult.getFrom().equals(from) && 
+                            Arrays.equals(emlHandlerResult.getTo(), to) &&
+                            Arrays.equals(emlHandlerResult.getCc(), cc) &&
+                            emlHandlerResult.getSubject().equalsIgnoreCase(subject) && 
+                            (body.equalsIgnoreCase(emlHandlerResult.getHtmlText()) || body.equalsIgnoreCase(emlHandlerResult.getPlainText())) &&
+                            isAttachmentsEquals(emlHandlerResult.getAttachments(), multipartAttachments)) {
+                        found = true;
                     }
                 }
-            } else {
-                found = false;
             }
             if (found) {
-                return m.getIdOutbox();
+                res = m.getIdOutbox();
+                break;
             }
         }
-        return null;
+        return res;
     }
     
-    
+    private boolean isAttachmentsEquals(EmlHandlerAttachment[] emlHandlerAttachments, MultipartFile[] multipartAttachments) {
+        boolean isEquals;
+        if ((emlHandlerAttachments == null || emlHandlerAttachments.length == 0) && (multipartAttachments == null || multipartAttachments.length == 0)) {
+            isEquals = true;
+        } else if(emlHandlerAttachments == null || multipartAttachments == null) {
+            isEquals = false;
+        } else {
+            Object[] emlHandlerAttachmentsHashs = Stream.of(emlHandlerAttachments).map(a -> {
+                try {
+                    return FileUtilities.getHashFromFile(a.getInputStream(), MessageDigestAlgorithms.SHA_256);
+                } catch (Exception ex) {
+                    return null;
+                }
+            }).sorted().toArray();
+
+            Object[] multipartAttachmentsHashs = Stream.of(multipartAttachments).map(a -> {
+                try {
+                    return FileUtilities.getHashFromBytes(a.getBytes(), MessageDigestAlgorithms.SHA_256);
+                } catch (Exception ex) {
+                    return null;
+                }
+            }).sorted().toArray();
+
+            isEquals = Arrays.equals(emlHandlerAttachmentsHashs, multipartAttachmentsHashs);
+        }
+        return isEquals;
+    }
 
 }
