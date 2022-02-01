@@ -2,6 +2,7 @@
 <configuration>
     <property name="GENERAL_LOG_FILE_NAME" value="internauta-service" />
     <property name="ANALYTICS_LOG_FILE_NAME" value="internauta-analytics" />
+    <property name="FIRMA_LOG_FILE_NAME" value="internauta-firma" />
     <property name="LOG_DIR" value="./logs" />
     <property name="LOG_DIR_ARCHIVE" value="./logs/archive" />
     <property name="PATTERN" value="%cyan(%d{yyyy-MM-dd HH:mm:ss}) %magenta([%thread]) %highlight(%-5level) %green(%logger{35}) - %msg%n" />
@@ -41,12 +42,27 @@
             <fileNamePattern>${LOG_DIR_ARCHIVE}/${ANALYTICS_LOG_FILE_NAME}_%d{yyyy-MM-dd}.log.gz</fileNamePattern>
         </rollingPolicy>
     </appender>
+    <appender name="firma_file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${FIRMA_LOG_FILE_NAME}.log</file>
+        <append>true</append>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>
+                ${PATTERN}
+            </Pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">                                         
+            <fileNamePattern>${LOG_DIR_ARCHIVE}/${FIRMA_LOG_FILE_NAME}_%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+        </rollingPolicy>
+    </appender>
     <!-- additivity=false ensures analytics data only goes to the analytics log -->
     <logger name="general" level="info" additivity="false">
         <appender-ref ref="file"/>
     </logger>
     <logger name="analytics" level="info" additivity="false">
         <appender-ref ref="analytics_file"/>
+    </logger>
+    <logger name="it.bologna.ausl.internauta.utils.firma" level="info" additivity="false">
+        <appender-ref ref="firma_file"/>
     </logger>
 
     <springProfile name="dev">
