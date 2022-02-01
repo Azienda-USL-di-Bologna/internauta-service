@@ -94,16 +94,6 @@ public class FascicoloUtils {
         return idFascicolo;
     }
 
-    public Map<String, Object> getIdFascicoloByPatternInNameAndIdFascicoloPadre(Integer idAzienda, String patternLike, String idFascicoloPadre) throws Exception {
-        String query = "select id_fascicolo "
-                + "from gd.fascicoligd "
-                + "where id_fascicolo_padre = '" + idFascicoloPadre + "' "
-                + "and nome_fascicolo like '%" + patternLike + "%';";
-        List result = (List<Map<String, Object>>) queryAndFetcth(query, idAzienda);
-        Map fascicolo = result != null && result.size() > 0 ? (Map) result.get(0) : null;
-        return fascicolo;
-    }
-
     public Map<String, Object> getFascicoloByPatternInNameAndIdFascicoloPadre(Integer idAzienda, String patternLike, String idFascicoloPadre) throws Exception {
         String query = "select * "
                 + "from gd.fascicoligd "
@@ -112,16 +102,6 @@ public class FascicoloUtils {
         List result = (List<Map<String, Object>>) queryAndFetcth(query, idAzienda);
         Map fascicolo = result != null && result.size() > 0 ? (Map) result.get(0) : null;
         return fascicolo;
-    }
-
-    public String getIdFascicoloByNumerazioneGerarchica(Integer idAzienda, String numerazioneGerarchica) throws Exception {
-        String queryString = String.format(QUERY_FIND_ID_FASCICOLO_BY_NUMERAZIONE_GERARCHICA, numerazioneGerarchica);
-        log.info(queryString);
-        List result = (List<Map<String, Object>>) queryAndFetcth(queryString, idAzienda);
-        Map map = result != null && result.size() > 0 ? (Map) result.get(0) : null;
-        String idFascicolo = (String) map.get("id_fascicolo");
-        log.info(idFascicolo);
-        return idFascicolo;
     }
 
     public Map<String, Object> getFascicoloByNumerazioneGerarchica(Integer idAzienda, String numerazioneGerarchica) throws Exception {
