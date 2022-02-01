@@ -44,14 +44,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
+import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.QPec;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import java.io.FileNotFoundException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.commons.codec.digest.MessageDigestAlgorithms;
@@ -96,6 +99,9 @@ public class SAIController implements ControllerHandledExceptions {
     
     @Autowired
     private FascicolatoreOutboxGediLocaleManager fascicolatoreOutboxGediLocaleManager;
+    
+    @Autowired
+    private ParametriAziendeReader parametriAziendeReader;
 
     @RequestMapping(value = {"reschedule-fascicolatore-sai-jobs", "rescheduleFascicolatoreSaiJobs"}, method = RequestMethod.GET)
     public void sendAndArchiveMail() throws Exception {
@@ -114,6 +120,8 @@ public class SAIController implements ControllerHandledExceptions {
             @RequestParam(name = "cc", required = false) String[] cc,
             @RequestParam(name = "attachments", required = false) MultipartFile[] attachments,
             @RequestParam(name = "userCF", required = true) String userCF,
+            @RequestParam(name = "cognome", required = false) String cognome,
+            @RequestParam(name = "nome", required = false) String nome,
             @RequestParam(name = "fascicolo", required = false) String fascicolo,
             @RequestParam(name = "azienda", required = true) String azienda
     ) throws Http500ResponseException, Http400ResponseException, Http403ResponseException, IOException, NoSuchAlgorithmException {
@@ -163,7 +171,17 @@ public class SAIController implements ControllerHandledExceptions {
 
         Integer idOutBox = null;
         try {
-            idOutBox = checkIfMailIsSentAndGetIdOutbox(pec, senderAddress, to, cc, subject, body, attachments);
+            Map<String, Object> datiPerFascicolazione = saiUtils.getDatiPerFascicolazione(senderAddress, aziendaObj.getId());
+            Boolean checkIfMailIsSent = false;
+            try {
+                checkIfMailIsSent = (Boolean) datiPerFascicolazione.get("checkIfMailIsSent");
+            } catch (Exception ex) {
+                LOG.warn(String.format("errore nella lettura del parametro \"checkIfMailIsSent\", sarà considerato %s", checkIfMailIsSent), ex);
+            }
+            
+            if (checkIfMailIsSent) {
+                idOutBox = checkIfMailIsSentAndGetIdOutbox(pec, senderAddress, to, cc, subject, body, attachments);
+            }
         } catch (Exception ex) {
             LOG.error("errore ricerca mail inviata 500-012", ex);
             throw new Http500ResponseException("500-012", "errore nella ricerca della mail inviata", ex);
@@ -211,7 +229,7 @@ public class SAIController implements ControllerHandledExceptions {
 
         String numerazioneGerarchica = null;
         try {
-            numerazioneGerarchica = saiUtils.fascicolaPec(idOutBox, aziendaObj, userCF, senderAddress, fascicolo, user, person);
+            numerazioneGerarchica = saiUtils.fascicolaPec(idOutBox, aziendaObj, cognome, nome, userCF, senderAddress, fascicolo, user, person);
         } catch (FascicolazioneGddocException ex) {
             LOG.error("errore fascicolazione 500-007", ex);
             throw new Http500ResponseException("500-007", "Il sottofacicolo è stato creato, ma c'è stato un errore nella fascicolazione della mail", ex);
