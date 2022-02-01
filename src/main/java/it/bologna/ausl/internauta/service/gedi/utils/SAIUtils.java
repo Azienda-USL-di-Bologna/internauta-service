@@ -47,6 +47,8 @@ public class SAIUtils {
     // fascicola pec
     public String fascicolaPec(Integer idOutbox,
             Azienda azienda,
+            String cognome,
+            String nome,
             String codiceFiscale,
             String mittente,
             String numerazioneGerarchicaDelPadre,
@@ -55,7 +57,7 @@ public class SAIUtils {
         String idFascicoloPadre = null;
         log.info("Cerco il fascicolo padre");
         Map<String, Object> fascicoloPadre = null;
-        Map<String, String> datiPerFascicolazione;
+        Map<String, Object> datiPerFascicolazione;
         if (numerazioneGerarchicaDelPadre == null) {
             log.info("fascicolazione gerarchida del padre non passata, la cerco in parametri_aziene");            
             datiPerFascicolazione = getDatiPerFascicolazione(mittente, azienda.getId());
@@ -63,19 +65,25 @@ public class SAIUtils {
             datiPerFascicolazione = getDatiPerFascicolazione("default", azienda.getId());
         }
                     
-        numerazioneGerarchicaDelPadre = datiPerFascicolazione.get("numerazioneGerarchicaFascicolo");
-        String nomeFascicoloTemplate = datiPerFascicolazione.get("templateNomeSottoFascicolo").replace("[CF]", codiceFiscale);
+        numerazioneGerarchicaDelPadre = (String) datiPerFascicolazione.get("numerazioneGerarchicaFascicolo");
+        String nomeFascicoloTemplate = ((String) datiPerFascicolazione.get("templateNomeSottoFascicolo"));
+        nomeFascicoloTemplate = nomeFascicoloTemplate.replace("[CF]", codiceFiscale);
+        nomeFascicoloTemplate = nomeFascicoloTemplate.replace("[COGNOME]", cognome != null? cognome: "");
+        nomeFascicoloTemplate = nomeFascicoloTemplate.replace("[NOME]", nome != null? nome: "");
+        nomeFascicoloTemplate = nomeFascicoloTemplate.replaceAll("\\s+", " ").trim(); // toglie gli spazi in mezzo e all'inizio e alla fine
         if (numerazioneGerarchicaDelPadre != null) {
             fascicoloPadre = fascicoloUtils.getFascicoloByNumerazioneGerarchica(azienda.getId(), numerazioneGerarchicaDelPadre);
             if (fascicoloPadre != null) {
                 idFascicoloPadre = (String) fascicoloPadre.get("id_fascicolo");
             } else {
-                throw new FascicoloNotFoundException("Impossibile trovare il fascicolo " + numerazioneGerarchicaDelPadre);
+                String errorMessage = String.format("Impossibile trovare il fascicolo %s ", numerazioneGerarchicaDelPadre);
+                log.error(errorMessage);
+                throw new FascicoloNotFoundException(errorMessage);
             }
         } else {
-            String error = "non è stato possibile reperire la numerazione gerarchica del padre";
-            log.error(error);
-            throw new FascicoloPadreNotDefinedException(error);
+            String errorMessage = "non è stato possibile reperire la numerazione gerarchica del padre";
+            log.error(errorMessage);
+            throw new FascicoloPadreNotDefinedException(errorMessage);
         }
         log.info("id fascicolo padre: " + idFascicoloPadre);
 
@@ -122,19 +130,30 @@ public class SAIUtils {
 
     }
 
-    private Map<String, String> getDatiPerFascicolazione(String indirizzoPec, Integer idAzienda) throws FascicoloPadreNotDefinedException {
-        Map<String, String> res;
-        Map<String,  Map<String, String>> mappaPecFascicoli;
+    /**
+     * Torna la configurazione per l'azienda e l'indirizzo pec passato, se non lo trova, torna la configurazione di default
+     * @param indirizzoPec
+     * @param idAzienda
+     * @return
+     * @throws FascicoloPadreNotDefinedException se il parametro fascicoliSAI non esiste o è vuoto, 
+     * oppure se la configurazione per l'indirizzo pec passato non esiste e se non esiste neanche la configurazione di default
+     */
+    public Map<String, Object> getDatiPerFascicolazione(String indirizzoPec, Integer idAzienda) throws FascicoloPadreNotDefinedException {
+        Map<String, Object> res;
+        Map<String,  Map<String, Object>> mappaPecFascicoli;
         try {
             mappaPecFascicoli = parametriAziendeReader.getValue(
                     parametriAziendeReader.getParameters("fascicoliSAI", new Integer[]{idAzienda}).get(0),
-                    new TypeReference<Map<String,  Map<String, String>>>() {
+                    new TypeReference<Map<String,  Map<String, Object>>>() {
             });
         } catch (Exception ex) {
-            throw new FascicoloPadreNotDefinedException("errore nella lettura del parametro dal database", ex);
+            String errorMessage = "errore nella lettura del parametro \"fascicoliSAI\" dal database";
+            log.error(indirizzoPec);
+            throw new FascicoloPadreNotDefinedException(errorMessage, ex);
         }
         if (mappaPecFascicoli == null || mappaPecFascicoli.isEmpty()) {
-            throw new FascicoloPadreNotDefinedException(String.format("non è stato definito nessun fascicolo padre nei parametri_azienda per l'azienda passata idAzienda %d", idAzienda));
+            String errorMessage = String.format("non è stato definito nessun fascicolo padre nei parametri_azienda per l'azienda passata idAzienda %d", idAzienda);
+            throw new FascicoloPadreNotDefinedException(errorMessage);
         }
 
         if (mappaPecFascicoli.containsKey(indirizzoPec)) {
@@ -144,7 +163,8 @@ public class SAIUtils {
             if (mappaPecFascicoli.containsKey("default")) {
                 res = mappaPecFascicoli.get("default");
             } else {
-                throw new FascicoloPadreNotDefinedException(String.format("non è stato definito nessun fascicolo padre nei parametri_azienda per la pec %s e l'azienda passata", indirizzoPec));
+                String errorMessage = String.format("non è stato definito nessun fascicolo padre nei parametri_azienda per la pec %s e l'azienda passata", indirizzoPec);
+                throw new FascicoloPadreNotDefinedException(errorMessage);
             }
         }
         return res;
