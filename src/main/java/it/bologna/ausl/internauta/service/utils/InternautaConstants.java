@@ -38,6 +38,7 @@ public class InternautaConstants {
         public enum ParametriAzienda {
             minIOConfig,
             mongoAndMinIOActive,
+            fascicoliSAI
         }
     }
 
