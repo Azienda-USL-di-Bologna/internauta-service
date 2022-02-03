@@ -468,7 +468,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         } else {
             mailMessageOperation = ShpeckUtils.MailMessageOperation.SEND_MESSAGE;
         }
-        
+
         Integer res = shpeckUtils.BuildAndSendMailMessage(
                 mailMessageOperation,
                 hostname,
@@ -754,7 +754,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             azienda = aziendaRepository.findByCodice(codiceAzienda);
         }
 
-        
         manageMessageRegistrationUtils.manageMessageRegistration(
                 uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, azienda
         );
@@ -777,7 +776,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
             @RequestBody AdditionalDataArchiviation additionalData,
             HttpServletRequest request) throws BlackBoxPermissionException, JsonProcessingException {
-        LOG.info("inizio la procedura di Fascicolazione per pec "+idMessage.toString());
+        LOG.info("inizio la procedura di Fascicolazione per pec " + idMessage.toString());
         Message message = messageRepository.findById(idMessage).get();
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente user = authenticatedUserProperties.getUser();
@@ -785,7 +784,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         LOG.info("inizio la procedura di setIdUtente");
         AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(user.getId(), person.getDescrizione());
         additionalData.setIdUtente(utenteAdditionalData);
-         LOG.info("inizio la procedura di setIdAzienda");
+        LOG.info("inizio la procedura di setIdAzienda");
         Azienda azienda = user.getIdAzienda();
         AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
         additionalData.setIdAzienda(aziendaAdditionalData);
@@ -795,7 +794,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         LOG.info("inizio la procedura di SetArchiviationTag");
         shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalData, user, true);
 
-        LOG.info("Finita la procedura di set archiviazione");    
+        LOG.info("Finita la procedura di set archiviazione");
     }
 
     @Transactional(rollbackFor = Throwable.class)
@@ -829,13 +828,16 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     private void deleteBozzeOld(Integer idPec) {
         Pec pec = pecRepository.getById(idPec);
         Integer giorniBozza = pec.getGiorniBozza();
-        List<Draft> draftList = pec.getDraftList();
-        List<Draft> draftListDaEliminare = new ArrayList();
-        for (Draft draft : draftList) {
-            if (draft.getUpdateTime().isBefore(ZonedDateTime.now(ZoneId.systemDefault()).minusDays(giorniBozza))){
-                draftListDaEliminare.add(draft);
+        if (giorniBozza != -1) {
+
+            List<Draft> draftList = pec.getDraftList();
+            List<Draft> draftListDaEliminare = new ArrayList();
+            for (Draft draft : draftList) {
+                if (draft.getUpdateTime().isBefore(ZonedDateTime.now(ZoneId.systemDefault()).minusDays(giorniBozza))) {
+                    draftListDaEliminare.add(draft);
+                }
             }
+            draftRepository.deleteAll(draftListDaEliminare);
         }
-        draftRepository.deleteAll(draftListDaEliminare);
     }
 }
