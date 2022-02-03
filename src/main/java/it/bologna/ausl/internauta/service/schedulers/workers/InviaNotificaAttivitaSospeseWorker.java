@@ -117,7 +117,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
         personeAvvisateString = pA.getValore();
 
-        if (personeAvvisateString.replace("{", "").replace("}", "")!=null) {
+        if (!personeAvvisateString.replace("{", "").replace("}", "").isEmpty() && personeAvvisateString != null) {
 
             JSONParser parser = new JSONParser();
 
