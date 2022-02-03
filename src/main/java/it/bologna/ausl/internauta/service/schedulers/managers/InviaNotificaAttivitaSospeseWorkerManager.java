@@ -210,10 +210,13 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
         try {
 
             parametroAziende = loadParametroAziende();
+
             log.info(parametroAziende.toString());
+
             log.info("aziende attive " + parametroAziende.getIdAziende().length);
             System.out.println("persone avvisate: " + idPersoneAvvisate);
             System.out.println("Pulisco parametro aziende");
+
             parametroAziende = cleanUpValoreParametroAziende();
             boolean everyAziendaDone = isEveryAziendaDone(parametroAziende);
             if (isUltimoGiroPerTuttiPrimaDiOggi()) {
