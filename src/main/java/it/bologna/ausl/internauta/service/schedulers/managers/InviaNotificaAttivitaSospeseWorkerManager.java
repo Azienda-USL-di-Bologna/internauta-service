@@ -44,7 +44,7 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
 
     private final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
 
-    private static List<Integer> idPersoneAvvisate = new ArrayList<>();
+    private List<Long> idPersoneAvvisate = new ArrayList<>();
 
     private static final Logger log = LoggerFactory
             .getLogger(InviaNotificaAttivitaSospeseWorkerManager.class);
@@ -54,6 +54,9 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
 
     @Autowired
     InviaNotificaAttivitaSospeseWorker worker;
+
+    @Autowired
+    AziendaRepository aziendaRepository;
 
     @Autowired
     ParametroAziendeRepository parametroAziendeRepository;
@@ -144,17 +147,18 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
                 System.out.println("No");
                 // esegui il worker
                 log.info("Setto parametri worker");
-                log.info("idPersoneAvvisate.size() = " + idPersoneAvvisate.size());
-                worker.setParameter(idPersoneAvvisate, handler);
+                //worker.setParameter(idPersoneAvvisate, handler);
                 log.info("Runno per azienda " + handler.getIdAzienda().toString());
                 worker.run();
                 log.info("Mestiere finito su azienda " + handler.getIdAzienda().toString());
 //                log.info("Setto il nuovo stato di esecuzione su azienda " + handler.getIdAzienda().toString());
 //                updateAndReloadParametroAziende(parametroAziende, handler);
                 parametroAziende = loadParametroAziende();
+
             }
             System.out.println("ok");
-            log.info("Persone avvisate finora: " + idPersoneAvvisate.size());
+            idPersoneAvvisate = worker.loadPersoneNotificate(aziendaRepository.getById(idAziende[i]));
+            log.info("Persone avvisate per azienda " + idAziende[i].toString() + ": " + idPersoneAvvisate.size());
         }
     }
 

@@ -108,7 +108,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         return thatLocalDate.isEqual(TODAY);
     }
 
-    private void loadPersoneNotificate(Azienda azienda) {
+    public List<Long> loadPersoneNotificate(Azienda azienda) {
         Integer[] arrayAziende = new Integer[]{azienda.getId()};
         ParametroAziende pA = parametroAziendeRepository.findOne(
                 QParametroAziende.parametroAziende.nome.eq("personeNotificate")
@@ -117,7 +117,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
         personeAvvisateString = pA.getValore();
 
-        if (personeAvvisateString != null && !personeAvvisateString.replace("{", "").replace("}", "").isEmpty() ) {
+        if (personeAvvisateString != null && !personeAvvisateString.replace("{", "").replace("}", "").isEmpty()) {
 
             JSONParser parser = new JSONParser();
 
@@ -134,7 +134,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
                         Date lastUpdate = (Date) persona.get("version");
 
-                        if (!isToday(lastUpdate)) {
+                        if (isToday(lastUpdate)) {
 
                             personeAvvisate.add(persona.getLong("id"));
 
@@ -147,21 +147,20 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
             }
 
         }
+        return personeAvvisate;
     }
 
     private static List<Integer> idPersoneAvvisate = new ArrayList<>();
-    //private Integer idAzienda;
     private List<Azienda> listaAziende;
     private List<Applicazione> listaApplicazioni;
     private ParametroAziendeInvioMailNotificaAttivitaHandler handler;
 
-    public void setParameter(List<Integer> idPersoneAvvisate, ParametroAziendeInvioMailNotificaAttivitaHandler handler) {
-
-        this.idPersoneAvvisate = idPersoneAvvisate;
-        //this.idAzienda = idAzienda;
-        this.handler = handler;
-    }
-
+//    public void setParameter(List<Integer> idPersoneAvvisate, ParametroAziendeInvioMailNotificaAttivitaHandler handler) {
+//
+//        this.idPersoneAvvisate = idPersoneAvvisate;
+//        //this.idAzienda = idAzienda;
+//        this.handler = handler;
+//    }
     private void loadAziende() {
         log.info("Load aziende");
         listaAziende = aziendaRepository.findAll();
@@ -416,6 +415,9 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
                         .and(QParametroAziende.parametroAziende.idAziende.in(arrayAzienda))
         ).get();
 
+        if (personeAvvisateWithDate.endsWith(",")) {
+            personeAvvisateWithDate = personeAvvisateWithDate.substring(0, personeAvvisateWithDate.length() - 1);
+        }
         personeAvvisateWithDate = "{\"persone\":[" + personeAvvisateWithDate + "]}";
 
         pA.setValore(personeAvvisateWithDate);
@@ -482,7 +484,6 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
             //      se count(attività) > 0
             log.info("Verifico se posso proseguire");
             if (attivitaSuScrivania != null && attivitaSuScrivania.size() > 0) {
-                int count = 0;
                 try {
                     for (Map<Integer, String> map : listEmailToNotify) {
                         if (map.containsKey(persona.getId())) {
@@ -495,13 +496,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
                             Date date = new Date();
 
-                            String personaAvvisata = "{ \"id\": " + persona.getId() + ", \"version\":\"" + formatter.format(date) + "\" }";
-
-                            count++;
-
-                            if (count < personeAvvisate.size()) {
-                                personaAvvisata = personaAvvisata + ",";
-                            }
+                            String personaAvvisata = "{ \"id\": " + persona.getId() + ", \"version\":\"" + formatter.format(date) + "\" },";
 
                             personeAvvisateWithDate = personeAvvisateWithDate + personaAvvisata;
 
@@ -559,7 +554,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         for (Integer idPersona : personeAttiveConUtentiAttiviSuAzienda) {
             try {
                 log.info("Persona " + idPersona);
-                verificaAndInvia(idPersona, azienda); //qui
+                verificaAndInvia(idPersona, azienda);
 
             } catch (Throwable ex) {
                 log.error("Errore in fase di esecutione", ex);

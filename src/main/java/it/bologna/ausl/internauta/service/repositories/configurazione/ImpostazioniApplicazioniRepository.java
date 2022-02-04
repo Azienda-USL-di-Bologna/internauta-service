@@ -20,11 +20,7 @@ public interface ImpostazioniApplicazioniRepository extends
         NextSdrQueryDslRepository<ImpostazioniApplicazioni, String, QImpostazioniApplicazioni>,
         JpaRepository<ImpostazioniApplicazioni, String> {
 
-    @Query(value = "select i.id, i.id_persona, i.id_applicazione,"
-            + " i.impostazioni_visualizzazione,"
-            + " i.version from  configurazione.impostazioni_applicazioni i"
-            + " inner join baborg.persone p on i.id_persona = p.id \n"
-            + "where cast(i.impostazioni_visualizzazione as text) ilike"
-            + " '%scrivania.emailToNotify%' and p.id_azienda_default = ?1", nativeQuery = true)
+    @Query(value = "select * from  configurazione.impostazioni_applicazioni\n"
+            + "ia where cast(impostazioni_visualizzazione as text) ilike '%scrivania.emailToNotify%' ", nativeQuery = true)
     public List<ImpostazioniApplicazioni> getEmailToNotify(Integer azienda);
 }
