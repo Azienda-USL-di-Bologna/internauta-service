@@ -10,6 +10,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
+import it.bologna.ausl.internauta.service.repositories.configurazione.ImpostazioniApplicazioniRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ParametroAziendeRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.handlers.ParametroAziendeInvioMailNotificaAttivitaHandler;
@@ -19,12 +20,27 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +67,9 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
     ParametroAziendeRepository parametroAziendeRepository;
 
     @Autowired
+    ImpostazioniApplicazioniRepository impostazioniApplicazioniRepository;
+
+    @Autowired
     UtenteRepository utenteRepository;
 
     @Autowired
@@ -68,21 +87,80 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
     @Value("${internauta.scheduled.invio-mail-notifica-attivita-sospese.enabled-emails-test}")
     private String[] enabledEmailsForTest;
 
+    private String personeAvvisateString;
+
+    private String personeAvvisateWithDate = "";
+
+    private List<Long> personeAvvisate = new ArrayList();
+
+    private List<Map<Integer, String>> listEmailToNotify = new ArrayList();
+
     private static final Logger log = LoggerFactory
             .getLogger(InviaNotificaAttivitaSospeseWorker.class);
 
+    private boolean isToday(Date date) {
+        LocalDate thatLocalDate = date.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        LocalDate TODAY = new Date().toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        return thatLocalDate.isEqual(TODAY);
+    }
+
+    public List<Long> loadPersoneNotificate(Azienda azienda) {
+        Integer[] arrayAziende = new Integer[]{azienda.getId()};
+        ParametroAziende pA = parametroAziendeRepository.findOne(
+                QParametroAziende.parametroAziende.nome.eq("personeNotificate")
+                        .and(QParametroAziende.parametroAziende.idAziende.in(arrayAziende))
+        ).get();
+
+        personeAvvisateString = pA.getValore();
+
+        if (personeAvvisateString != null && !personeAvvisateString.replace("{", "").replace("}", "").isEmpty()) {
+
+            JSONParser parser = new JSONParser();
+
+            try {
+                JSONObject json = (JSONObject) parser.parse(personeAvvisateString);
+
+                if (json.has("persone")) {
+
+                    JSONArray jsonPersone = (JSONArray) json.get("persone");
+
+                    for (Object elm : jsonPersone) {
+
+                        JSONObject persona = (JSONObject) elm;
+
+                        Date lastUpdate = (Date) persona.get("version");
+
+                        if (isToday(lastUpdate)) {
+
+                            personeAvvisate.add(persona.getLong("id"));
+
+                        }
+                    }
+                }
+
+            } catch (ParseException ex) {
+                log.error("Errore nel parsing delle persone notificate");
+            }
+
+        }
+        return personeAvvisate;
+    }
+
     private static List<Integer> idPersoneAvvisate = new ArrayList<>();
-    //private Integer idAzienda;
     private List<Azienda> listaAziende;
     private List<Applicazione> listaApplicazioni;
     private ParametroAziendeInvioMailNotificaAttivitaHandler handler;
 
-    public void setParameter(List<Integer> idPersoneAvvisate, ParametroAziendeInvioMailNotificaAttivitaHandler handler) {
-        this.idPersoneAvvisate = idPersoneAvvisate;
-        //this.idAzienda = idAzienda;
-        this.handler = handler;
-    }
-
+//    public void setParameter(List<Integer> idPersoneAvvisate, ParametroAziendeInvioMailNotificaAttivitaHandler handler) {
+//
+//        this.idPersoneAvvisate = idPersoneAvvisate;
+//        //this.idAzienda = idAzienda;
+//        this.handler = handler;
+//    }
     private void loadAziende() {
         log.info("Load aziende");
         listaAziende = aziendaRepository.findAll();
@@ -101,6 +179,31 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
             }
         }
         return toReturn;
+    }
+
+    private void loadEmailToNotify(Integer idAzienda) {
+
+        List<ImpostazioniApplicazioni> listEmail = impostazioniApplicazioniRepository.getEmailToNotify(idAzienda);
+
+        JSONParser parser = new JSONParser();
+
+        for (ImpostazioniApplicazioni iA : listEmail) {
+            Map<Integer, String> tempMap = new HashMap();
+            org.json.simple.JSONObject json = new org.json.simple.JSONObject();
+            try {
+
+                json = (org.json.simple.JSONObject) parser.parse(iA.getImpostazioniVisualizzazione());
+
+            } catch (ParseException ex) {
+                log.error("Errore parsing impostazioni_apllicazione");
+            }
+
+            String mail = (String) json.get("scrivania.emailToNotify");
+
+            tempMap.put(iA.getIdPersona().getId(), mail);
+
+            listEmailToNotify.add(tempMap);
+        }
     }
 
     private String getNomeAzienda(Integer idAzienda) {
@@ -304,17 +407,37 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         return internautaUtils.isValidEmailAddress(mailAddres);
     }
 
+    private void updatePersoneAvvisate(Azienda a) {
+
+        Integer[] arrayAzienda = new Integer[]{a.getId()};
+        ParametroAziende pA = parametroAziendeRepository.findOne(
+                QParametroAziende.parametroAziende.nome.eq("personeNotificate")
+                        .and(QParametroAziende.parametroAziende.idAziende.in(arrayAzienda))
+        ).get();
+
+        if (personeAvvisateWithDate.endsWith(",")) {
+            personeAvvisateWithDate = personeAvvisateWithDate.substring(0, personeAvvisateWithDate.length() - 1);
+        }
+        personeAvvisateWithDate = "{\"persone\":[" + personeAvvisateWithDate + "]}";
+
+        pA.setValore(personeAvvisateWithDate);
+        parametroAziendeRepository.saveAndFlush(pA);
+
+    }
+
     private void updateAndFlushParametroAziende() {
         log.info("updateAndFlushParametroAziende() ");
         JSONObject updatedParametroAziendeCampoValoreJSON = handler.setDatiUltimaEsecuzioneMestiere();
         ParametroAziende parametroAziende = handler.getParametroAziende();
         parametroAziende.setValore(updatedParametroAziendeCampoValoreJSON.toString(4));
         parametroAziende = parametroAziendeRepository.saveAndFlush(parametroAziende);
+
         log.info("Updated parametroAziende.valore:\n"
                 + parametroAziende.getValore());
+
     }
 
-    private void preparaMessaggioAndInvia(Persona persona, Utente utenteAziendale, List<Attivita> attivitaSuScrivania) throws Exception {
+    private void preparaMessaggioAndInvia(Persona persona, Utente utenteAziendale, List<Attivita> attivitaSuScrivania, String mail) throws Exception {
         // preparo il messaggio
         String body = preparaBodyMessaggio(persona, attivitaSuScrivania);
         System.out.println(body);
@@ -323,7 +446,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         destinatari.add(utenteAziendale.getEmails()[0]);
         log.info("Invio la mail...");
         Boolean sendMail = simpleMailSenderUtility.sendMail(handler.getIdAzienda(),
-                getMailMittente(), "Nuove attività su Scrivania",
+                mail, "Nuove attività su Scrivania",
                 destinatari, body,
                 null, null, null, null);
         if (!sendMail) {
@@ -336,7 +459,8 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
     private void verificaAndInvia(Integer idPersona, Azienda azienda) throws Exception {
         // se non già fatte:
-        if (!idPersoneAvvisate.contains(idPersona)) {
+        if (!personeAvvisate.contains(idPersona)) {
+
             log.info("Load persona...");
             Persona persona = personaRepository.findById(idPersona).get();
             log.info("Persona: " + persona.getDescrizione());
@@ -354,39 +478,48 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
                 return;
             }
 
-            if (!hasUserEmail(utenteAziendale)) {
-                log.info("La persona " + persona.getDescrizione() + " ha l'utente in "
-                        + getNomeAzienda(handler.getIdAzienda()) + " senza una mail: la salto");
-                return;
-            }
-
             //      cerca attività su scrivania
             log.info("Cerco le attivita'...");
             List<Attivita> attivitaSuScrivania = getAttivitaSuScrivania(idPersona);
             //      se count(attività) > 0
             log.info("Verifico se posso proseguire");
             if (attivitaSuScrivania != null && attivitaSuScrivania.size() > 0) {
-                if (!isValidEmailAddres(utenteAziendale.getEmails()[0])) {
-                    log.info("ATTENZIONE: la mail dell'utente '"
-                            + utenteAziendale.getEmails()[0]
-                            + "' non supera criteri di validità, quindi non invio!");
-                    return;
-                }
-//                      SE SIAMO IN !TEST || (SIAMO IN TEST && EMAIL E' IN ARRAY DI MAIL ABILITATE):
-                if (!internautaMode.equals("test") || isEnabledTestMail(utenteAziendale.getEmails()[0])) {
-                    preparaMessaggioAndInvia(persona, utenteAziendale, attivitaSuScrivania);
-                } else {
-                    log.info("Siamo in test e la mail dell'utente non è tra quelle abilitate");
-                }
-                idPersoneAvvisate.add(idPersona);
-            } else {
+                try {
+                    for (Map<Integer, String> map : listEmailToNotify) {
+                        if (map.containsKey(persona.getId())) {
 
+                            String mail = map.get(persona.getId());
+
+                            preparaMessaggioAndInvia(persona, utenteAziendale, attivitaSuScrivania, mail);
+
+                            SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+
+                            Date date = new Date();
+
+                            String personaAvvisata = "{ \"id\": " + persona.getId() + ", \"version\":\"" + formatter.format(date) + "\" },";
+
+                            personeAvvisateWithDate = personeAvvisateWithDate + personaAvvisata;
+
+                            updatePersoneAvvisate(azienda);
+
+                        }
+                    }
+
+                } catch (Exception e) {
+
+                    log.error("Errore invio mail");
+
+                }
+
+            } else {
                 log.info("La persona "
                         + persona.getDescrizione() + " non ha attivita' sulla scrivania: la salto ");
             }
+
         } else {
             log.info("Gia' avvisato, skippo");
         }
+
     }
 
     @Override
@@ -396,18 +529,33 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         log.info("parametri: " + handler.getIdAzienda().toString() + " " + idPersoneAvvisate.size());
         loadAziende();
         loadApplicazioni();
+
         log.info("Recupero l'azienda attuale da quelle appena caricate");
         Azienda azienda = getAziendaById(handler.getIdAzienda());
+        loadPersoneNotificate(azienda);
+        loadEmailToNotify(azienda.getId());
         // cerca le persone attive con un utente attivo nell'azienda
         log.info("Cerco le persone con  un utente in azienda " + handler.getIdAzienda());
-        List<Integer> personeAttiveConUtentiAttiviSuAzienda
-                = personaRepository.getPersoneAttiveInAziendaConAttivitaSuScrivaniaDaAvvisare(handler.getIdAzienda());
+        List<Integer> personeAttiveConUtentiAttiviSuAzienda = new ArrayList<>();
+        for (Map<Integer, String> map : listEmailToNotify) {
+
+            Set<Integer> keySet = map.keySet();
+
+            for (Iterator<Integer> iterator = keySet.iterator(); iterator.hasNext();) {
+
+                Integer tempId = iterator.next();
+                personeAttiveConUtentiAttiviSuAzienda.add(tempId);
+            }
+
+        }
+
         log.info("Trovate " + personeAttiveConUtentiAttiviSuAzienda.size());
-        // cicla le persone 
+        // cicla le persone
         for (Integer idPersona : personeAttiveConUtentiAttiviSuAzienda) {
             try {
                 log.info("Persona " + idPersona);
                 verificaAndInvia(idPersona, azienda);
+
             } catch (Throwable ex) {
                 log.error("Errore in fase di esecutione", ex);
                 log.error("Proseguo con la prossima persona");

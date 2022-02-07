@@ -5,16 +5,9 @@
  */
 package it.bologna.ausl.internauta.service.test.shpeckcustomcontroller;
 
-import static com.fasterxml.jackson.databind.util.ClassUtil.name;
-import static com.fasterxml.jackson.databind.util.ClassUtil.name;
-import static com.fasterxml.jackson.databind.util.ClassUtil.name;
-import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.internauta.service.authorization.jwt.AuthenticationEndpoint;
 import it.bologna.ausl.internauta.service.authorization.jwt.AuthorizationUtils;
 import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.controllers.shpeck.ShpeckCustomController;
-import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
-import it.bologna.ausl.internauta.service.exceptions.SSOException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -30,22 +23,9 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
-import java.io.IOException;
-import java.net.URLEncoder;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
-import static net.bytebuddy.matcher.ElementMatchers.is;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Assert;
 import static org.junit.Assume.assumeTrue;
@@ -58,7 +38,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.junit4.SpringRunner;
 

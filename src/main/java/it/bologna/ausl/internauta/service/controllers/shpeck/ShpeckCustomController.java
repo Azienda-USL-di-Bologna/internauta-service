@@ -90,11 +90,11 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepos
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxLiteRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ManageMessageRegistrationUtils;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
-import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
@@ -102,6 +102,7 @@ import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
 import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import org.json.JSONArray;
@@ -232,7 +233,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      *
      * @param idMessage
      * @param emlSource
-     * @param recepit
      * @param response
      * @param request
      * @throws EmlHandlerException
@@ -458,7 +458,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "idMessageRelatedAttachments", required = false) Integer[] idMessageRelatedAttachments,
             @RequestParam(name = "idUtente", required = false) Integer idUtente
     ) throws AddressException, IOException, MessagingException, EntityNotFoundException, EmlHandlerException, Http500ResponseException, BadParamsException, Http403ResponseException, BlackBoxPermissionException {
-
+        deleteBozzeOld(idPec);
         Boolean doIHaveToKrint = krintUtils.doIHaveToKrint(request);
         String hostname = nextSdrCommonUtils.getHostname(request);
 
@@ -754,7 +754,6 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             azienda = aziendaRepository.findByCodice(codiceAzienda);
         }
 
-        
         manageMessageRegistrationUtils.manageMessageRegistration(
                 uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, azienda
         );
@@ -777,7 +776,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             @RequestParam(name = "idMessage", required = true) Integer idMessage,
             @RequestBody AdditionalDataArchiviation additionalData,
             HttpServletRequest request) throws BlackBoxPermissionException, JsonProcessingException {
-        LOG.info("inizio la procedura di Fascicolazione per pec "+idMessage.toString());
+        LOG.info("inizio la procedura di Fascicolazione per pec " + idMessage.toString());
         Message message = messageRepository.findById(idMessage).get();
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente user = authenticatedUserProperties.getUser();
@@ -785,7 +784,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         LOG.info("inizio la procedura di setIdUtente");
         AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(user.getId(), person.getDescrizione());
         additionalData.setIdUtente(utenteAdditionalData);
-         LOG.info("inizio la procedura di setIdAzienda");
+        LOG.info("inizio la procedura di setIdAzienda");
         Azienda azienda = user.getIdAzienda();
         AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
         additionalData.setIdAzienda(aziendaAdditionalData);
@@ -795,7 +794,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         LOG.info("inizio la procedura di SetArchiviationTag");
         shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalData, user, true);
 
-        LOG.info("Finita la procedura di set archiviazione");    
+        LOG.info("Finita la procedura di set archiviazione");
     }
 
     @Transactional(rollbackFor = Throwable.class)
@@ -824,5 +823,21 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
     public void manageMessageRegistration(String encodedUUID, String operation, int SIZE, HashMap<String, Map<String, Object>> additionalData, HttpServletRequest httpServletRequest) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    private void deleteBozzeOld(Integer idPec) {
+        Pec pec = pecRepository.getById(idPec);
+        Integer giorniBozza = pec.getGiorniBozza();
+        if (giorniBozza != -1) {
+
+            List<Draft> draftList = pec.getDraftList();
+            List<Draft> draftListDaEliminare = new ArrayList();
+            for (Draft draft : draftList) {
+                if (draft.getUpdateTime().isBefore(ZonedDateTime.now(ZoneId.systemDefault()).minusDays(giorniBozza))) {
+                    draftListDaEliminare.add(draft);
+                }
+            }
+            draftRepository.deleteAll(draftListDaEliminare);
+        }
     }
 }
