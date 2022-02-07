@@ -237,6 +237,11 @@
             <artifactId>firma</artifactId>
             <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>it.bologna.ausl.internauta.utils</groupId>
+            <artifactId>downloader</artifactId>
+            <version>1.0</version>
+        </dependency>
         
         
         <!-- altri progetti -->
