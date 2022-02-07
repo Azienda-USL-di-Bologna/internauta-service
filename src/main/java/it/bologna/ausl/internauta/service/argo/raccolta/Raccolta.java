@@ -1,14 +1,18 @@
 package it.bologna.ausl.internauta.service.argo.raccolta;
 
 import java.sql.Date;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
 
 /**
  *
  * @author Matteo Next
  */
 public class Raccolta {
+
+    private SimpleDateFormat sdfSQL = new SimpleDateFormat("dd-MM-yyyy");
 
     private Long rows;
 

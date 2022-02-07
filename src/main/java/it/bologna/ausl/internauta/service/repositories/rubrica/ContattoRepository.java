@@ -30,4 +30,10 @@ public interface ContattoRepository extends
 
     @Value("select * from rubrica.contatti where id_esterno = ?1 and categoria = ?2")
     public List<Contatto> findByIdEsternoAndCategoria(String idEsterno, String categoria);
+    
+    @Value("select * from rubrica.contatti where codice_fiscale = ?1")
+    public List<Contatto> findByCodiceFiscale(String cf);
+    
+    @Value("select * from rubrica.contatti where partita_iva = ?1")
+    public List<Contatto> findByPartitaIva(String piva);
 }

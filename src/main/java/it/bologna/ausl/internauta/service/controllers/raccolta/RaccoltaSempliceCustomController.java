@@ -1,11 +1,13 @@
 package it.bologna.ausl.internauta.service.controllers.raccolta;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import com.mongodb.MongoException;
 import it.bologna.ausl.documentgenerator.exceptions.Http400ResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.Sql2oSelectException;
 import it.bologna.ausl.documentgenerator.utils.AziendaParamsManager;
+import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedMimeTypes;
 import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedSignatureType;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.argo.raccolta.CoinvoltiRaccolte;
@@ -65,8 +67,14 @@ import okhttp3.Response;
 import org.sql2o.data.Row;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
+import it.bologna.ausl.model.entities.rubrica.Email;
+import it.bologna.ausl.model.entities.rubrica.Indirizzo;
+import it.bologna.ausl.model.entities.rubrica.Telefono;
 import it.bologna.ausl.mongowrapper.MongoWrapper;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -74,11 +82,14 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.util.UUID;
+import java.util.logging.Level;
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletResponse;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.springframework.util.StreamUtils;
 
 /**
@@ -109,15 +120,21 @@ public class RaccoltaSempliceCustomController {
     ContattoRepository contattoRepository;
 
     @Autowired
+    DettaglioContattoRepository dettaglioRepository;
+
+    @Autowired
     UtenteRepository utenteRepository;
 
     @Autowired
     PersonaRepository personaRepository;
 
+//    @Autowired
     @RequestMapping(value = {"getRaccoltaSemplice"}, method = RequestMethod.GET)
     public List<Raccolta> getRaccoltaSemplice(@RequestParam("codiceAzienda") String codiceAzienda,
             @RequestParam("from") String from,
             @RequestParam("to") String to,
+            @RequestParam("cf") String cf,
+            @RequestParam("piva") String pIva,
             @RequestParam("limit") Integer limit,
             @RequestParam("offset") Integer offeset,
             HttpServletRequest request) throws Http500ResponseException, Http404ResponseException, RestClientException {
@@ -130,10 +147,35 @@ public class RaccoltaSempliceCustomController {
         List<Raccolta> returnRaccolta = new ArrayList<Raccolta>();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
+        boolean isCF = cf != null && !cf.trim().equals("null") && !cf.trim().equals("");
+        boolean isPiva = pIva != null && !pIva.trim().equals("null") && !pIva.trim().equals("");
+
+        if ((from.equals("null") || to.equals("null")) && !isCF && !isPiva) {
+            return returnRaccolta;
+        }
+
+        Query queryWithParams = null;
         try ( Connection conn = (Connection) dbConnection.open()) {
-            Query queryWithParams = conn.createQuery(RaccoltaManager.queryRaccoltaSemplice(limit, offeset))
-                    .addParameter("from", dateFormat.parse(from))
-                    .addParameter("to", dateFormat.parse(to));
+            if (isCF || isPiva) {
+                String cfCondition = String.format("%s ", (isCF ? "AND lower(cf)=lower('" + cf + "') " : "AND (1=1) "));
+                String pivaCondition = String.format("%s ", (isPiva ? "AND lower(partitaiva)=lower('" + pIva + "') " : "AND (1=1) "));
+                String fromStr = "AND (1=1) ";
+
+                if (!from.equals("null")) {
+                    String pattern = "yyyy-MM-dd";
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+                    String date = simpleDateFormat.format(dateFormat.parse(from));
+                    fromStr = String.format("AND r.create_time::date >= '%s' ", date);
+                }
+
+                queryWithParams = conn.createQuery(RaccoltaManager.queryRaccoltaSempliceFromCFPiva(cfCondition, pivaCondition, fromStr, limit, offeset))
+                        .addParameter("to", dateFormat.parse(to));
+            } else {
+                queryWithParams = conn.createQuery(RaccoltaManager.queryRaccoltaSemplice(limit, offeset))
+                        .addParameter("from", dateFormat.parse(from))
+                        .addParameter("to", dateFormat.parse(to));
+            }
+
             log.info("esecuzione query getRaccoltaSemplice: " + queryWithParams.toString());
             datiRaccolta = (List<Raccolta>) queryWithParams.executeAndFetch(Raccolta.class);
             if (!datiRaccolta.isEmpty()) {
@@ -218,6 +260,7 @@ public class RaccoltaSempliceCustomController {
             log.error("errore nell'esecuzione della query getRaccoltaSemplice", e);
             throw new Http500ResponseException("1", "Errore nell'escuzione della query getRaccoltaSemplice");
         }
+
         log.info("Tutto ok");
 
         return returnRaccolta;
@@ -225,6 +268,640 @@ public class RaccoltaSempliceCustomController {
 
     public String getNomeUtente(String id) {
         return "444";
+    }
+
+    @RequestMapping(value = {"editRubrica"}, method = RequestMethod.POST)
+    public String editRubrica(@RequestBody String body,
+            HttpServletRequest request) throws Http500ResponseException,
+            Http404ResponseException, RestClientException {
+
+        log.info("Eccoci");
+        JSONParser jsonParser = new JSONParser();
+
+        try {
+
+            JSONObject properties = (JSONObject) jsonParser.parse(body);
+
+            String azienda = (String) properties.get("azienda");
+
+            Sql2o dbConnection = postgresConnectionManager.getDbConnection(azienda);
+
+            Connection conn = (Connection) dbConnection.open();
+
+            String idS = (String) properties.get("idContatto");
+
+            Integer id = Integer.valueOf(idS);
+
+            String telefono, mail, idIndirizzo, via, civico,
+                    cap, comune, provincia, nazione, idTelefono, idMail;
+
+            Contatto contatto = contattoRepository.getOne(id);
+
+            telefono = (String) properties.get("telefono");
+
+            mail = (String) properties.get("mail");
+
+            via = (String) properties.get("via");
+
+            civico = (String) properties.get("civico");
+
+            cap = (String) properties.get("cap");
+
+            comune = (String) properties.get("comune");
+
+            provincia = (String) properties.get("provincia");
+
+            nazione = (String) properties.get("nazione");
+
+            idTelefono = (String) properties.get("idTelefono");
+
+            idMail = (String) properties.get("idMail");
+
+            idIndirizzo = (String) properties.get("idIndirizzo");
+
+            if (telefono != null) {
+
+                if (idTelefono == null) {
+
+                    List<Telefono> listaTel = contatto.getTelefonoList();
+
+                    Telefono tel = new Telefono();
+
+                    tel.setFax(false);
+
+                    tel.setPrincipale(false);
+
+                    tel.setNumero(telefono);
+
+                    tel.setProvenienza("Raccolta Semplice");
+
+                    tel.setIdContatto(contatto);
+
+                    DettaglioContatto newDettaglio = new DettaglioContatto();
+
+                    newDettaglio.setDescrizione(telefono);
+
+                    newDettaglio.setIdContatto(contatto);
+
+                    newDettaglio.setTipo(DettaglioContatto.TipoDettaglio.TELEFONO);
+
+                    newDettaglio.setTelefono(tel);
+
+                    newDettaglio.setEliminato(false);
+
+                    newDettaglio = dettaglioRepository.save(newDettaglio);
+
+                    tel.setIdDettaglioContatto(newDettaglio);
+
+                    listaTel.add(tel);
+
+                    contatto.setTelefonoList(listaTel);
+
+                    contattoRepository.save(contatto);
+
+                } else {
+
+                    DettaglioContatto dettaglioContatto = dettaglioRepository.getOne(Integer.valueOf(idTelefono));
+
+                    dettaglioContatto.setDescrizione(telefono);
+
+                    dettaglioContatto = dettaglioRepository.save(dettaglioContatto);
+
+                    List<Telefono> listaTel = contatto.getTelefonoList();
+
+                    int idTelInt = Integer.valueOf(idTelefono);
+
+                    for (Telefono elm : listaTel) {
+                        if (idTelInt == elm.getIdDettaglioContatto().getId()) {
+
+                            elm.setNumero(telefono);
+                        }
+                    }
+
+                    contatto.setTelefonoList(listaTel);
+
+                    contattoRepository.save(contatto);
+
+                    log.info("Tutto ok");
+                }
+
+            }
+
+            if (mail != null) {
+
+                if (idMail != null) {
+
+                    DettaglioContatto dettaglioContatto = dettaglioRepository.getOne(Integer.valueOf(idMail));
+
+                    dettaglioContatto.setDescrizione(mail);
+
+                    dettaglioContatto = dettaglioRepository.save(dettaglioContatto);
+
+                    List<Email> listMail = contatto.getEmailList();
+
+                    int idMailInt = Integer.valueOf(idMail);
+
+                    for (Email elm : listMail) {
+
+                        if (idMailInt == elm.getIdDettaglioContatto().getId()) {
+
+                            elm.setEmail(mail);
+
+                        }
+                    }
+
+                    contatto.setEmailList(listMail);
+
+                    contattoRepository.save(contatto);
+
+                } else {
+
+                    Email newMail = new Email();
+
+                    DettaglioContatto newDettaglio = new DettaglioContatto();
+
+                    newDettaglio.setDescrizione(mail);
+
+                    newDettaglio.setIdContatto(contatto);
+
+                    newDettaglio.setPrincipale(Boolean.FALSE);
+
+                    newDettaglio.setEliminato(false);
+
+                    newDettaglio.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
+
+                    newDettaglio = dettaglioRepository.save(newDettaglio);
+
+                    newMail.setIdContatto(contatto);
+
+                    newMail.setEmail(mail);
+
+                    newMail.setIdDettaglioContatto(newDettaglio);
+
+                    newMail.setPec(false);
+
+                    newMail.setPrincipale(false);
+
+                    newMail.setProvenienza("Raccolta Semplice");
+
+                    List<Email> listMail = contatto.getEmailList();
+
+                    listMail.add(newMail);
+
+                    contatto.setEmailList(listMail);
+
+                    contattoRepository.save(contatto);
+
+                }
+            }
+
+            if (via != null || civico != null || cap != null
+                    || comune != null || provincia != null || nazione != null) {
+                if (idIndirizzo != null) {
+
+                    List<Indirizzo> listIndirizzo = contatto.getIndirizziList();
+
+                    DettaglioContatto newDettaglio = dettaglioRepository.getOne(Integer.valueOf(idIndirizzo));
+
+                    String indirizzoCompleto = via + " " + civico + " " + cap + " "
+                            + comune + " " + provincia + " " + nazione;
+
+                    newDettaglio.setDescrizione(indirizzoCompleto);
+
+                    int idIndirizzoInt = Integer.valueOf(idIndirizzo);
+
+                    newDettaglio = dettaglioRepository.getOne(Integer.valueOf(idIndirizzo));
+
+                    for (Indirizzo newIndirizzo : listIndirizzo) {
+                        if (idIndirizzoInt == newIndirizzo.getIdDettaglioContatto().getId()) {
+
+                            newIndirizzo.setVia(via);
+
+                            newIndirizzo.setCivico(civico);
+
+                            newIndirizzo.setCap(cap);
+
+                            newIndirizzo.setComune(comune);
+
+                            newIndirizzo.setProvincia(provincia);
+
+                            newIndirizzo.setNazione("");
+
+                            newIndirizzo.setDescrizione(indirizzoCompleto);
+
+                            newIndirizzo.setProvenienza("Raccolta Semplice");
+
+                            contatto.setIndirizziList(listIndirizzo);
+
+                            contattoRepository.save(contatto);
+
+                        }
+                    }
+                } else {
+
+                    Indirizzo newIndirizzo = new Indirizzo();
+
+                    DettaglioContatto newDettaglio = new DettaglioContatto();
+
+                    String indirizzoCompleto = via + " " + civico + " " + cap + " "
+                            + comune + " " + provincia;
+
+                    newDettaglio.setDescrizione(indirizzoCompleto);
+
+                    newDettaglio.setPrincipale(false);
+
+                    newDettaglio.setIdContatto(contatto);
+
+                    newDettaglio.setEliminato(false);
+
+                    newDettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+
+                    newDettaglio = dettaglioRepository.save(newDettaglio);
+
+                    newIndirizzo.setVia(via);
+
+                    newIndirizzo.setCivico(civico);
+
+                    newIndirizzo.setCap(cap);
+
+                    newIndirizzo.setComune(comune);
+
+                    newIndirizzo.setProvincia(provincia);
+
+                    newIndirizzo.setNazione("");
+
+                    newIndirizzo.setIdContatto(contatto);
+
+                    newIndirizzo.setProvenienza("Raccolta Semplice");
+
+                    newIndirizzo.setPrincipale(false);
+
+                    newIndirizzo.setIdDettaglioContatto(newDettaglio);
+
+                    List<Indirizzo> listIndirizzi = contatto.getIndirizziList();
+
+                    listIndirizzi.add(newIndirizzo);
+
+                    contatto.setIndirizziList(listIndirizzi);
+
+                    contattoRepository.save(contatto);
+                }
+            }
+
+            conn.close();
+
+        } catch (Exception e) {
+            log.error("Errore: ", e);
+        }
+
+        return null;
+    }
+
+    @RequestMapping(value = {"personaRS"}, method = RequestMethod.POST)
+    public String dettagliPersone(@RequestBody String jsonReq,
+            HttpServletRequest request) throws Http500ResponseException,
+            Http404ResponseException, RestClientException {
+
+        JSONParser jSONParser = new JSONParser();
+
+        try {
+            JSONArray jsonArray = (JSONArray) jSONParser.parse(jsonReq);
+            for (Object object : jsonArray) {
+                JSONObject jsonProperties = (JSONObject) object;
+
+                String descrizione, cognome, nome, cf, pIva, email, tipologia,
+                        ragioneSociale, cap, via, civico, telefono,
+                        nazione, provincia, comune, indirizzoDettaglio, provenienza;
+
+                Boolean pec, fax;
+
+                pec = (Boolean) jsonProperties.get("pec");
+
+                if (pec == null) {
+                    pec = false;
+                }
+
+                fax = (Boolean) jsonProperties.get("fax");
+
+                if (fax == null) {
+                    fax = false;
+                }
+
+                descrizione = (String) jsonProperties.get("descrizione");
+
+                cognome = (String) jsonProperties.get("cognome");
+
+                nome = (String) jsonProperties.get("nome");
+
+                cf = (String) jsonProperties.get("codice_fiscale");
+
+                pIva = (String) jsonProperties.get("p_iva");
+
+                email = (String) jsonProperties.get("email");
+
+                tipologia = (String) jsonProperties.get("tipologia");
+
+                ragioneSociale = (String) jsonProperties.get("ragione_sociale");
+
+                cap = (String) jsonProperties.get("cap");
+
+                via = (String) jsonProperties.get("via");
+
+                civico = (String) jsonProperties.get("civico");
+
+                comune = (String) jsonProperties.get("comune");
+
+                nazione = (String) jsonProperties.get("nazione");
+
+                provincia = (String) jsonProperties.get("provincia");
+
+                telefono = (String) jsonProperties.get("telefono");
+
+                indirizzoDettaglio = (String) jsonProperties.get("indirizzo");
+
+                provenienza = (String) jsonProperties.get("provenienza");
+
+                List<Contatto> listaContatto = new ArrayList();
+
+                if (tipologia.equals("FISICA") && cf != null) {
+                    listaContatto = contattoRepository.findByCodiceFiscale(cf);
+                }
+                if (tipologia.equals("GIURIDICA") && pIva != null) {
+                    listaContatto = contattoRepository.findByPartitaIva(pIva);
+                }
+                if (tipologia == null || (cf == null && pIva == null)) {
+                    if (cf != null && cf.trim().equals("") && pIva != null && pIva.trim().equals("")) {
+                        throw new Http400ResponseException("400", "Tipologia necessaria");
+                    }
+                }
+
+                Contatto contatto = new Contatto();
+
+                if (!listaContatto.isEmpty()) {
+                    contatto = listaContatto.get(0);
+                }
+
+                List<DettaglioContatto> dettagli = new ArrayList();
+
+                if (listaContatto.isEmpty()) {
+                    if (tipologia.equals("FISICA")) {
+
+                        contatto.setCodiceFiscale(cf);
+                        contatto.setTipo(Contatto.TipoContatto.PERSONA_FISICA);
+                    }
+                    if (tipologia.equals("GIURIDICA")) {
+                        contatto.setRagioneSociale(ragioneSociale);
+                        contatto.setPartitaIva(pIva);
+                        contatto.setTipo(Contatto.TipoContatto.AZIENDA);
+                    }
+
+                    contatto.setNome(nome);
+                    contatto.setCognome(cognome);
+                    contatto.setModificabile(true);
+                    contatto.setEliminato(false);
+                    contatto.setDescrizione(descrizione);
+                    contatto.setProtocontatto(true);
+                    contatto.setDaVerificare(Boolean.TRUE);
+                    contatto.setRiservato(false);
+                    Optional<Persona> p = personaRepository.findById(1);
+                    Persona pp = p.get();
+                    Optional<Utente> u = utenteRepository.findById(1);
+                    Utente uu = u.get();
+                    contatto.setIdPersonaCreazione(pp);
+                    contatto.setIdUtenteCreazione(uu);
+                    Integer[] array = new Integer[]{10};
+                    contatto.setIdAziende(array);
+                    contatto.setProvenienza(provenienza);
+                    contatto.setCategoria(Contatto.CategoriaContatto.ESTERNO);
+
+                    if (email != null) {
+                        DettaglioContatto dettaglio = new DettaglioContatto();
+                        dettaglio.setIdContatto(contatto);
+                        dettaglio.setDescrizione(email);
+                        dettaglio.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
+                        dettaglio = dettaglioRepository.save(dettaglio);
+                        Email mail = new Email();
+                        mail.setDescrizione(email);
+                        mail.setEmail(email);
+                        mail.setProvenienza(provenienza);
+                        mail.setPec(pec);
+                        mail.setIdContatto(contatto);
+                        mail.setIdDettaglioContatto(dettaglio);
+                        mail.setPrincipale(false);
+                        List<Email> mails = new ArrayList<>();
+                        if (contatto.getEmailList() != null) {
+                            mails = contatto.getEmailList();
+                        }
+                        mails.add(mail);
+                        contatto.setEmailList(mails);
+                    }
+
+                    if (telefono != null) {
+                        DettaglioContatto dettaglio = new DettaglioContatto();
+                        dettaglio.setIdContatto(contatto);
+                        dettaglio.setDescrizione(telefono);
+                        dettaglio.setTipo(DettaglioContatto.TipoDettaglio.TELEFONO);
+                        dettaglio = dettaglioRepository.save(dettaglio);
+                        Telefono tel = new Telefono();
+                        tel.setFax(fax);
+                        tel.setPrincipale(false);
+                        tel.setNumero(telefono);
+                        tel.setProvenienza(provenienza);
+                        tel.setIdContatto(contatto);
+                        tel.setIdDettaglioContatto(dettaglio);
+                        List<Telefono> telefoni = new ArrayList<>();
+                        if (contatto.getTelefonoList() != null) {
+                            telefoni = contatto.getTelefonoList();
+                        }
+                        telefoni.add(tel);
+                        contatto.setTelefonoList(telefoni);
+                    }
+
+                    if (cap != null || comune != null
+                            || civico != null || via != null
+                            || provincia != null
+                            || nazione != null) {
+                        if (cap == null) {
+                            cap = "";
+                        }
+                        if (comune == null) {
+                            comune = "";
+                        }
+                        if (civico == null) {
+                            civico = "";
+                        }
+                        if (via == null) {
+                            via = "";
+                        }
+                        if (provincia == null) {
+                            provincia = "";
+                        }
+                        if (nazione == null) {
+                            nazione = "";
+                        }
+                        DettaglioContatto dettaglio = new DettaglioContatto();
+                        dettaglio.setIdContatto(contatto);
+                        String indirizzoCompleto = via + " " + civico + " "
+                                + comune + " " + cap + " "
+                                + provincia + " " + nazione;
+                        dettaglio.setDescrizione(indirizzoCompleto);
+                        dettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+                        dettaglio = dettaglioRepository.save(dettaglio);
+                        Indirizzo indirizzo = new Indirizzo();
+                        indirizzo.setCap(cap);
+                        indirizzo.setVia(via);
+                        indirizzo.setCivico(civico);
+                        indirizzo.setProvincia(provincia);
+                        indirizzo.setNazione(nazione);
+                        indirizzo.setComune(comune);
+                        indirizzo.setIdContatto(contatto);
+                        indirizzo.setIdDettaglioContatto(dettaglio);
+                        indirizzo.setPrincipale(false);
+                        indirizzo.setProvenienza(provenienza);
+                        indirizzo.setDescrizione(indirizzoCompleto);
+                        List<Indirizzo> indirizzi = new ArrayList<>();
+                        if (contatto.getIndirizziList() != null) {
+                            indirizzi = contatto.getIndirizziList();
+                        }
+                        indirizzi.add(indirizzo);
+                        contatto.setIndirizziList(indirizzi);
+                    }
+
+                    if (indirizzoDettaglio != null) {
+                        DettaglioContatto dettaglio = new DettaglioContatto();
+                        dettaglio.setIdContatto(contatto);
+                        dettaglio.setDescrizione(indirizzoDettaglio);
+                        dettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+                        dettaglio = dettaglioRepository.save(dettaglio);
+                    }
+
+                    contatto = contattoRepository.save(contatto);
+
+                } else {
+                    dettagli = dettaglioRepository.findByIdContatto(contatto);
+                    List<String> descrizioneDettagli = new ArrayList();
+
+                    dettagli.forEach((d) -> descrizioneDettagli.add(d.getDescrizione()));
+
+                    if (telefono != null) {
+                        if (!descrizioneDettagli.contains(telefono)) {
+                            DettaglioContatto dettaglio = new DettaglioContatto();
+                            dettaglio.setIdContatto(contatto);
+                            dettaglio.setDescrizione(telefono);
+                            dettaglio.setTipo(DettaglioContatto.TipoDettaglio.TELEFONO);
+                            dettaglio = dettaglioRepository.save(dettaglio);
+                            Telefono tel = new Telefono();
+                            tel.setFax(fax);
+                            tel.setProvenienza(provenienza);
+                            tel.setPrincipale(false);
+                            tel.setNumero(telefono);
+                            tel.setIdContatto(contatto);
+                            tel.setIdDettaglioContatto(dettaglio);
+                            List<Telefono> telefoni = new ArrayList<>();
+                            if (contatto.getTelefonoList() != null) {
+                                telefoni = contatto.getTelefonoList();
+                            }
+                            telefoni.add(tel);
+                            contatto.setTelefonoList(telefoni);
+
+                        }
+                    }
+
+                    if (email != null) {
+                        if (!descrizioneDettagli.contains(email)) {
+                            DettaglioContatto dettaglio = new DettaglioContatto();
+                            dettaglio.setIdContatto(contatto);
+                            dettaglio.setDescrizione(email);
+                            dettaglio.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
+                            dettaglio = dettaglioRepository.save(dettaglio);
+                            Email mail = new Email();
+                            mail.setDescrizione(email);
+                            mail.setEmail(email);
+                            mail.setProvenienza(provenienza);
+                            mail.setPec(pec);
+                            mail.setIdContatto(contatto);
+                            mail.setPrincipale(false);
+                            mail.setIdDettaglioContatto(dettaglio);
+                            List<Email> mails = new ArrayList<>();
+                            if (contatto.getEmailList() != null) {
+                                mails = contatto.getEmailList();
+                            }
+                            mails.add(mail);
+                            contatto.setEmailList(mails);
+
+                        }
+                    }
+
+                    if (cap != null || comune != null
+                            || civico != null || via != null
+                            || provincia != null
+                            || nazione != null) {
+                        if (cap == null) {
+                            cap = "";
+                        }
+                        if (comune == null) {
+                            comune = "";
+                        }
+                        if (civico == null) {
+                            civico = "";
+                        }
+                        if (via == null) {
+                            via = "";
+                        }
+                        if (provincia == null) {
+                            provincia = "";
+                        }
+                        if (nazione == null) {
+                            nazione = "";
+                        }
+                        String indirizzoCompleto = via + " " + civico + " "
+                                + comune + " " + cap + " "
+                                + provincia + " " + nazione;
+                        if (!descrizioneDettagli.contains(indirizzoCompleto)) {
+                            DettaglioContatto dettaglio = new DettaglioContatto();
+                            dettaglio.setIdContatto(contatto);
+                            dettaglio.setDescrizione(indirizzoCompleto);
+                            dettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+                            dettaglio = dettaglioRepository.save(dettaglio);
+                            Indirizzo indirizzo = new Indirizzo();
+                            indirizzo.setCap(cap);
+                            indirizzo.setVia(via);
+                            indirizzo.setCivico(civico);
+                            indirizzo.setProvincia(provincia);
+                            indirizzo.setNazione(nazione);
+                            indirizzo.setComune(comune);
+                            indirizzo.setIdContatto(contatto);
+                            indirizzo.setIdDettaglioContatto(dettaglio);
+                            indirizzo.setPrincipale(false);
+                            indirizzo.setProvenienza(provenienza);
+                            indirizzo.setDescrizione(indirizzoCompleto);
+                            List<Indirizzo> indirizzi = new ArrayList<>();
+                            if (contatto.getIndirizziList() != null) {
+                                indirizzi = contatto.getIndirizziList();
+                            }
+                            indirizzi.add(indirizzo);
+                            contatto.setIndirizziList(indirizzi);
+                        }
+                    }
+
+                    if (indirizzoDettaglio != null) {
+                        if (!descrizioneDettagli.contains(indirizzoDettaglio)) {
+                            DettaglioContatto dettaglio = new DettaglioContatto();
+                            dettaglio.setIdContatto(contatto);
+                            dettaglio.setDescrizione(indirizzoDettaglio);
+                            dettaglio.setTipo(DettaglioContatto.TipoDettaglio.INDIRIZZO_FISICO);
+                            dettaglio = dettaglioRepository.save(dettaglio);
+                        }
+                    }
+                }
+                contatto = contattoRepository.save(contatto);
+                return contatto.getId().toString();
+            }
+        } catch (Throwable e) {
+            log.error("Errore nel salvataggio del contatto", e);
+            return "error";
+        }
+        return null;
     }
 
     @RequestMapping(value = {"storico"}, method = RequestMethod.GET)
@@ -250,10 +927,31 @@ public class RaccoltaSempliceCustomController {
             JSONArray jArray = (JSONArray) jsonReq.get("storico");
             for (Object json : jArray) {
                 if (json instanceof JSONObject) {
-                    String utente = ((JSONObject) json).get("utente").toString();
-                    String data = ((JSONObject) json).get("data").toString();
-                    String motivo = ((JSONObject) json).get("motivazione").toString();
-                    String stato = ((JSONObject) json).get("utente").toString();
+                    String utente, data, motivo, stato;
+
+                    if (((JSONObject) json).get("utente") == null) {
+                        utente = "Utente non inserito";
+                    } else {
+                        utente = ((JSONObject) json).get("utente").toString();
+                    }
+
+                    if (((JSONObject) json).get("data") == null) {
+                        data = "Data non inserita";
+                    } else {
+                        data = ((JSONObject) json).get("data").toString();
+                    }
+
+                    if (((JSONObject) json).get("motivazione") == null) {
+                        motivo = "Motivazione non inserita";
+                    } else {
+                        motivo = ((JSONObject) json).get("motivazione").toString();
+                    }
+
+                    if (((JSONObject) json).get("stato") == null) {
+                        stato = "ATTIVO";
+                    } else {
+                        stato = ((JSONObject) json).get("stato").toString();
+                    }
                     Storico s = new Storico(utente, motivo, stato, data);
                     returnList.add(s);
                     log.info("Inserito annullamento del " + s.getData());
@@ -313,8 +1011,11 @@ public class RaccoltaSempliceCustomController {
             @RequestParam(required = false, value = "fascicoli") String fascicolo,
             @RequestParam(required = false, value = "documentoBabel") String documentoBabel,
             @RequestParam(required = false, value = "creatore") String creatore,
-            @RequestParam(required = false, value = "struttura") String struttura,
+            @RequestParam(required = false, value = "descrizioneStruttura") String struttura,
             @RequestParam(required = false, value = "createTime") String data,
+            @RequestParam(required = false, value = "piva") String piva,
+            @RequestParam(required = false, value = "stato") String stato,
+            @RequestParam(required = false, value = "cf") String cf,
             @RequestParam(required = true, value = "offset") Integer offset,
             @RequestParam(required = true, value = "limit") Integer limit,
             HttpServletRequest request) throws Http500ResponseException,
@@ -327,7 +1028,6 @@ public class RaccoltaSempliceCustomController {
 
             dbConnection.setDefaultColumnMappings(RaccoltaManager.mapQueryGetRaccoltaSemplice());
             String query = "";
-            
 
             if (numero != null) {
                 if (query == "") {
@@ -342,7 +1042,28 @@ public class RaccoltaSempliceCustomController {
                 if (query == "") {
                     query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE applicazione_chiamante ilike '%" + applicazione + "%' ";
                 } else {
-                    query = query + " and r.applicazione_chiamante ilike '%" + numero + "%' ";
+                    query = query + " and r.applicazione_chiamante ilike '%" + applicazione + "%' ";
+                }
+                log.info("Query: " + query);
+            }
+
+            if (stato != null) {
+                if (query == "") {
+                    if (stato.toUpperCase().startsWith("AN")) {
+                        stato = "ANNULLATO";
+                    }
+                    if (stato.toUpperCase().startsWith("AT")) {
+                        stato = "ATTIVO";
+                    }
+                    query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE r.stato = '" + stato + "' ";
+                } else {
+                    if (stato.toUpperCase().startsWith("AN")) {
+                        stato = "ANNULLATO";
+                    }
+                    if (stato.toUpperCase().startsWith("AT")) {
+                        stato = "ATTIVO";
+                    }
+                    query = query + " and r.stato = '" + stato + "' ";
                 }
                 log.info("Query: " + query);
             }
@@ -414,29 +1135,192 @@ public class RaccoltaSempliceCustomController {
                 Boolean firstTime = true;
                 for (String idG : listId) {
                     if (query == "") {
-                        query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE  (id_gddoc_associato = '" + idG + "' ";
+                        query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE  (id_gddoc = '" + idG + "' ";
                         countId++;
                         firstTime = false;
+                        if (listId.size() == 1) {
+                            query = query + ") ";
+                            break;
+                        }
                     } else {
                         if (firstTime) {
-                            query = query + " and id_gddoc_associato = '" + idG + "' ";
-                            countId++;
-                            firstTime = false;
+                            if (listId.size() == 1) {
+                                query = query + " and id_gddoc = '" + idG + "' ";
+                            } else {
+                                query = query + " and ( id_gddoc = '" + idG + "' ";
+                            }
+
                         }
                         if (countId == listId.size() - 1) {
-                            log.info("Sono all'ultimo");
-                            query = query + " or id_gddoc_associato = '" + idG + "') ";
-                            countId++;
+                            //log.info("Sono all'ultimo");
+                            query = query + " or id_gddoc = '" + idG + "') ";
+                        }
+                        if (!firstTime && countId < listId.size() - 1) {
+                            //log.info(("Non sono all'ultimo"));
+                            query = query + " or id_gddoc = '" + idG + "' ";
+                        }
+                        firstTime = false;
+                        countId++;
+                    }
+                }
+            }
+
+            if (piva != null && !piva.trim().equals("")) {
+
+                Query queryPiva = conn.createQuery("SELECT id FROM gd.coinvolti WHERE partitaiva = '" + piva + "' ");
+                List<Integer> listCoinvolti = queryPiva.executeAndFetch(Integer.class);
+
+                String stringQuery = "SELECT id_raccolta from gd.coinvolti_raccolte WHERE id = ";
+
+                for (int i = 0; i < listCoinvolti.size(); i++) {
+                    if (listCoinvolti.size() == 1) {
+                        stringQuery = stringQuery + listCoinvolti.get(i).toString();
+                    } else {
+                        if (i == 0) {
+                            stringQuery = stringQuery + listCoinvolti.get(i).toString();
                         } else {
-                            log.info(("Non sono all'ultimo"));
-                            query = query + " or id_gddoc_associato = '" + idG + "' ";
-                            countId++;
+                            stringQuery = stringQuery + " OR id = " + listCoinvolti.get(i).toString();
+                        }
+                    }
+                }
+
+                boolean firsttime = true;
+
+                Query queryCoinvolti = conn.createQuery(stringQuery);
+
+                List<Integer> listRaccolte = queryCoinvolti.executeAndFetch(Integer.class);
+
+                for (int j = 0; j < listRaccolte.size(); j++) {
+                    if (listRaccolte.size() == 1) {
+                        if (query == "") {
+                            query = "SELECT * from gd.raccolte WHERE id = " + listRaccolte.get(j) + " ";
+                            firsttime = false;
+                        } else {
+                            query = query + " AND ( id = " + listRaccolte.get(j);
+                            firsttime = false;
+                        }
+                    } else {
+                        if (query == "") {
+                            query = "SELECT * from gd.raccolte WHERE (id = " + listRaccolte.get(j) + " ";
+                            firsttime = false;
+                        } else {
+                            if (firsttime) {
+                                query = query + " AND ( id = " + listRaccolte.get(j) + " ";
+                                firsttime = false;
+                            }
+
+                            if (j == listRaccolte.size() - 1) {
+                                query = query + " OR id = " + listRaccolte.get(j) + " ) ";
+                                firsttime = false;
+                            } else {
+                                query = query + " OR id = " + listRaccolte.get(j) + " ";
+                                firsttime = false;
+                            }
                         }
                     }
                 }
             }
 
-            query = query + " order by create_time desc LIMIT " + limit + " OFFSET " + offset + " " ;
+            if (cf != null && !cf.trim().equals("")) {
+                Query queryPiva = conn.createQuery("SELECT id FROM gd.coinvolti WHERE cf = '" + cf + "' ");
+                List<Integer> listCoinvolti = queryPiva.executeAndFetch(Integer.class);
+
+                String stringQuery = "SELECT id_raccolta from gd.coinvolti_raccolte WHERE id = ";
+
+                for (int i = 0; i < listCoinvolti.size(); i++) {
+                    if (listCoinvolti.size() == 1) {
+                        stringQuery = stringQuery + listCoinvolti.get(i).toString();
+                        i = listCoinvolti.size() + 3;
+                    } else {
+                        if (i == 0) {
+                            stringQuery = stringQuery + listCoinvolti.get(i).toString();
+                        } else {
+                            stringQuery = stringQuery + " OR id = " + listCoinvolti.get(i).toString();
+                        }
+                    }
+                }
+
+                Query queryCoinvolti = conn.createQuery(stringQuery);
+
+                boolean firsttime = true;
+
+                List<Integer> listRaccolte = queryCoinvolti.executeAndFetch(Integer.class);
+
+                for (int j = 0; j < listRaccolte.size(); j++) {
+                    if (listRaccolte.size() == 1) {
+                        if (query == "") {
+                            query = "SELECT * from gd.raccolte WHERE id = " + listRaccolte.get(j);
+                            firsttime = false;
+                        } else {
+                            query = query + " AND ( id = " + listRaccolte.get(j) + " )";
+                            firsttime = false;
+                        }
+                    } else {
+                        if (query == "") {
+                            query = "SELECT * from gd.raccolte WHERE ( id = " + listRaccolte.get(j);
+                            firsttime = false;
+                        } else {
+                            if (firsttime) {
+                                query = query + " AND ( id = " + listRaccolte.get(j) + " ";
+                                firsttime = false;
+                            }
+                            if (j == listRaccolte.size() - 1) {
+                                query = query + " OR id = " + listRaccolte.get(j) + " ) ";
+                                firsttime = false;
+                            } else {
+                                query = query + " OR id = " + listRaccolte.get(j) + " ";
+                                firsttime = false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (documentoBabel != null) {
+                Query queryGddocs = conn.createQuery(RaccoltaManager.queryNomeGddoc(documentoBabel));
+
+                List<String> listGddocs = queryGddocs.executeAndFetch(String.class);
+
+                int countId = 0;
+                Boolean firstTime = true;
+
+                for (String idG : listGddocs) {
+                    if (query == "") {
+                        query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE  (id_gddoc_associato = '" + idG + "' ";
+                        countId++;
+                        firstTime = false;
+                        if (listGddocs.size() == 1) {
+                            query = query + ") ";
+                            break;
+                        }
+                    } else {
+                        if (firstTime && listGddocs.size() == 1) {
+                            query = query + " and id_gddoc_associato = '" + idG + "' ";
+                            countId++;
+                        }
+                        if (firstTime && listGddocs.size() > 1) {
+                            query = query + " and ( id_gddoc_associato = '" + idG + "' ";
+                            countId++;
+                        }
+                        if (countId == listGddocs.size() - 1) {
+                            //log.info("Sono all'ultimo");
+                            query = query + " or id_gddoc_associato = '" + idG + "' ) ";
+                            countId++;
+                        }
+                        if (!firstTime && countId < listGddocs.size() - 1) {
+                            //log.info(("Non sono all'ultimo"))
+                            query = query + " or id_gddoc_associato = '" + idG + "' ";
+                            countId++;
+                        }
+                        firstTime = false;
+                    }
+                }
+            }
+            if (query.equals("")) {
+                return null;
+            }
+
+            query = query + " order by create_time desc LIMIT " + limit + " OFFSET " + offset + " ";
             log.info("Query: " + query);
             Query queryWithParams = conn.createQuery(query);
             List<Raccolta> datiRaccolta = (List<Raccolta>) queryWithParams.executeAndFetch(Raccolta.class);
@@ -638,15 +1522,23 @@ public class RaccoltaSempliceCustomController {
             codiceRegistroOrigine = codiceRegistroOrigineOpt.get();
         }
 
-        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Utente loggedUser = authenticatedUserProperties.getUser();
-        String creatore = loggedUser.getUsername();
-
         // controllo dati
         if (azienda == null) {
             throw new Http400ResponseException("400", "il parametro del body azienda è obbligatorio");
         }
         String codiceAzienda = azienda.substring(3);
+
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente loggedUser = authenticatedUserProperties.getUser();
+        String creatore = loggedUser.getIdPersona().getDescrizione();
+        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
+//        try ( Connection conn = (Connection) dbConnection.open()) {
+//            Query queryName = conn.createQuery(RaccoltaManager.queryCreatoreName(idPersona));
+//            creatore = queryName.executeAndFetchFirst(String.class);
+//
+//        } catch(Exception e) {
+//            throw new Http400ResponseException("400", "Errore nel reperimento delle info del creatore");
+//        }
 
         if (oggetto == null) {
             throw new Http400ResponseException("400", "il parametro del body oggetto è obbligatorio");
@@ -669,7 +1561,7 @@ public class RaccoltaSempliceCustomController {
                 throw new Http400ResponseException("400", "il parametro del body anno_documento_origine non è un intero");
             }
         }
-        // se c'è un componente della tupla di riferimento di un doc Babel allora devono esserci tutti e tre i parametri      
+        // se c'è un componente della tupla di riferimento di un doc Babel allora devono esserci tutti e tre i parametri
         boolean riferimentoDocumentoConsistente = riferimentoDocumentoConsistente(numeroDocumentoOrigine, annoDocumentoOrigine, codiceRegistroOrigine);
         if (riferimentoDocumentoConsistente == false) {
             throw new Http400ResponseException("400", "i parametri di riferimento a un documento in Babel non sono coerenti");
@@ -707,13 +1599,10 @@ public class RaccoltaSempliceCustomController {
                 log.info(String.format("contatto da non salvare in rubrica: %s", persona.getDescrizione()));
             }
 
-            if (!persona.isValid()) {
-                log.info(String.format("persona %s passata non valida", persona.getDescrizione()));
-                throw new Http500ResponseException("500", String.format("persona %s passata non valida", persona.getDescrizione()));
-            }
+            // se tipologia non è settata impostala di default a FISICA
+            persona.checkTipologia();
         }
 
-        Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
         //MongoWrapper mongo = aziendaParamsManager.getStorageConnection(codiceAzienda);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
 
@@ -730,6 +1619,8 @@ public class RaccoltaSempliceCustomController {
         // trasformo MultipartFile in InputStream
         org.json.simple.JSONArray jsonAllegati = new org.json.simple.JSONArray();
         List<MultipartFile> allegatiList = allegati.orElse(Collections.emptyList());
+//        String json = new Gson().toJson(allegatiList);
+//        jsonAllegati = (JSONArray) new JSONParser().parse(json);
         log.info("Allegati: " + allegatiList.size());
 
         // se non ci sono allegati allora deve esserci un riferimento a un record su Babel valido; altrimenti non è consistente la RS
@@ -740,6 +1631,21 @@ public class RaccoltaSempliceCustomController {
         // non ci deve essere il caso di un riferimento a un record su Babel e allegati associati
         if (allegatiList.size() > 0 && rifDocumentoInBabel) {
             throw new Http404ResponseException("404", "richiesta inconsistente: se si fa riferimento a un record di Babel non si possono inviare allegati");
+        }
+
+        if (allegatiList.size() > 0 && !rifDocumentoInBabel) {
+            for (MultipartFile allegato : allegatiList) {
+                JSONObject jsonAllegato = new JSONObject();
+                jsonAllegato.put("nome_file", allegato.getOriginalFilename());
+                jsonAllegato.put("mime_type", allegato.getContentType());
+                jsonAllegato.put("da_convertire", !allegato.getContentType().equals(SupportedMimeTypes.PDF.toString()));
+                Integer idAzienda = postgresConnectionManager.getIdAzienda(codiceAzienda);
+                MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
+                String uuidAllegato = mongo.put(allegato.getInputStream(), allegato.getOriginalFilename(), "/temp/generazione_documenti_da_ext/" + UUID.randomUUID(), false);
+                jsonAllegato.put("uuid_file", uuidAllegato);
+                jsonAllegato.put("principale", false);
+                jsonAllegati.add(jsonAllegato);
+            }
         }
 
         // ottenimento id struttura in argo
@@ -784,13 +1690,14 @@ public class RaccoltaSempliceCustomController {
             for (PersonaRS persona : persone) {
                 boolean isInserted = createCoinvolto(conn, persona, idRaccolta);
                 if (!isInserted) {
+                    conn.rollback();
                     throw new Http500ResponseException("500", "errore nella creazione delle persone");
                 }
-//            }
-                conn.commit();
-                // ritorno il riferimento del gddoc riferito alla RS appena creata
-                result = String.format("%s/%d", raccolta.getNumeroRegistrazione(), raccolta.getAnnoRegistrazione());
             }
+            conn.commit();
+            // ritorno il riferimento del gddoc riferito alla RS appena creata
+            result = String.format("%s/%d", raccolta.getNumeroRegistrazione(), raccolta.getAnnoRegistrazione());
+
             return result;
         }
     }
@@ -1316,20 +2223,25 @@ public class RaccoltaSempliceCustomController {
 
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
         dbConnection.setDefaultColumnMappings(RaccoltaManager.mapSottoDocumenti());
-        List<Sottodocumento> documento = new ArrayList<Sottodocumento>();
+        List<Sottodocumento> documenti = new ArrayList<Sottodocumento>();
 
         try ( Connection conn = (Connection) dbConnection.open()) {
 
             Query query = conn.createQuery(RaccoltaManager.queryInfoSottoDocumenti(id));
-            documento = (List<Sottodocumento>) query.executeAndFetch(Sottodocumento.class);
-            String extension = documento.get(0).getEstensione();
-            String fileName = documento.get(0).getNomeOriginale() + "." + extension;
+            documenti = (List<Sottodocumento>) query.executeAndFetch(Sottodocumento.class);
+            String extension = documenti.get(0).getEstensione();
+            String fileName;
+            if (!documenti.get(0).getNomeOriginale().contains("." + extension)) {
+                fileName = documenti.get(0).getNomeOriginale() + "." + extension;
+            } else {
+                fileName = documenti.get(0).getNomeOriginale();
+            }
             File file = new File(System.getProperty("java.io.tmpdir"), fileName);
             Integer idAzienda = postgresConnectionManager.getIdAzienda(codiceAzienda);
             MongoWrapper mongoWrapper = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
             InputStream is = null;
             DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(file));
-            is = mongoWrapper.get(documento.get(0).getUuidMongo());
+            is = mongoWrapper.get(documenti.get(0).getUuidMongo());
             if (is == null) {
                 throw new MongoException("File non trovato");
             }
