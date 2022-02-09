@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package it.bologna.ausl.internauta.service.schedulers;
+package it.bologna.ausl.internauta.service.schedulers.workers;
 
 import it.bologna.ausl.internauta.service.schedulers.managers.InviaNotificaAttivitaSospeseWorkerManager;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
