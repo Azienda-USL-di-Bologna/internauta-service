@@ -120,7 +120,7 @@ public class MailController {
                         mongoWrapper = shpeckUtils.getMongoWrapperFromUuid(uuid);
 
                     } else {
-                        mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAziendaRepository.getId());
+                        mongoWrapper = mongoConnectionManager.getRepositoryWrapperByIdAzienda(idAziendaRepository.getId());
 
                     }
                     if (mongoWrapper == null) {

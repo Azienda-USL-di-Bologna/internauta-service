@@ -42,7 +42,8 @@ public class ReporitoryConnectionManager {
 
     private Map<String, AziendaParametriJson> aziendeParametriJson;
 
-    private final Map<Integer, MongoWrapper> connections = new HashMap<>();
+    private final Map<Integer, MongoWrapper> connectionsByIdAzienda = new HashMap<>();
+    private final Map<String, MongoWrapper> connectionsByCodiceAzienda = new HashMap<>();
     private MinIOWrapper minIOWrapper = null;
     private Boolean mongoAndMinIOActive = null;
 
@@ -89,7 +90,8 @@ public class ReporitoryConnectionManager {
             String minIODBPassword = (String) minIOConfig.get("DBPassword");
             String mongoUrl = mongoParams.getConnectionString();
             MongoWrapper m = MongoWrapper.getWrapper(mongoAndMinIOActive, mongoUrl, minIODBDriver, minIODBUrl, minIODBUsername, minIODBPassword, azienda.getCodice(), objectMapper);
-            connections.put(azienda.getId(), m);
+            connectionsByIdAzienda.put(azienda.getId(), m);
+            connectionsByCodiceAzienda.put(azienda.getCodice(), m);
         }
     }
 
@@ -102,8 +104,12 @@ public class ReporitoryConnectionManager {
         minIOWrapper = new MinIOWrapper(minIODBDriver, minIODBUrl, minIODBUsername, minIODBPassword, maxPoolSize, objectMapper);
     }
 
-    public MongoWrapper getRepositoryWrapper(Integer idAzienda) {
-        return connections.get(idAzienda);
+    public MongoWrapper getRepositoryWrapperByIdAzienda(Integer idAzienda) {
+        return connectionsByIdAzienda.get(idAzienda);
+    }
+    
+    public MongoWrapper getRepositoryWrapperByCodiceAzienda(String codiceAzienda) {
+        return connectionsByCodiceAzienda.get(codiceAzienda);
     }
 
     public MinIOWrapper getMinIOWrapper() {
