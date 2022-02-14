@@ -3,16 +3,16 @@ package it.bologna.ausl.internauta.service.utils;
 import it.bologna.ausl.estrattore.ExtractorResult;
 import it.bologna.ausl.estrattore.exception.ExtractorException;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
+import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.scripta.AllegatoException;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.scripta.Allegato;
-import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
@@ -23,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
@@ -35,6 +36,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -44,15 +47,13 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class ScriptaUtils {
-
+    private static final Logger LOG = LoggerFactory.getLogger(ScriptaUtils.class);
+    
     @Autowired
     private MessageRepository messageRepository;
 
     @Autowired
     AllegatoRepository allegatoRepository;
-
-    @Autowired
-    DettaglioAllegatoRepository dettaglioAllegatoRepository;
 
     @Autowired
     private PecRepository pecRepository;
@@ -135,40 +136,23 @@ public class ScriptaUtils {
                 nomeDelFile);
 
         HashMap<String, Object> mappaHashAllegati = new HashMap();
-        int numeroAllegato
-                = doc.getAllegati() != null
-                ? doc.getAllegati().size() : 0;
+        int numeroAllegato  = doc.getAllegati() != null ? doc.getAllegati().size() : 0;
 
         if (extractionResultAll != null) {
             for (ExtractorResult er : extractionResultAll) {
                 numeroAllegato++;
                 try {
                     File file = new File(er.getPath());
-                    MinIOWrapperFileInfo putFileOnMongo = putFileOnMinIO(file, doc.getIdAzienda().getCodice(), doc.getId().toString(),
-                            er.getFileName(), null, true);
-                    Allegato nuovoAllegato = buildNewAllegato(doc, er.getFileName());
-                    nuovoAllegato.setOrdinale(numeroAllegato);
-                    Integer intSize = new Long(er.getSize()).intValue();
-                    nuovoAllegato = allegatoRepository.save(nuovoAllegato);
-
-                    DettaglioAllegato dettaglioAllegato = buildNewDettaglioAllegato(
-                            nuovoAllegato,
-                            file,
-                            er.getFileName(),
-                            er.getMimeType(),
-                            intSize,
-                            putFileOnMongo);
-
-                    dettaglioAllegato = dettaglioAllegatoRepository.save(dettaglioAllegato);
-                    List<DettaglioAllegato> dettagliAllegatiList = new ArrayList();
-                    dettagliAllegatiList.add(dettaglioAllegato);
-                    nuovoAllegato.setDettagliAllegatiList(dettagliAllegatiList);
-
+                    Allegato padre = null;
                     if (er.getPadre() != null) {
-                        Allegato padre = (Allegato) mappaHashAllegati.get(er.getPadre());
-                        nuovoAllegato.setIdAllegatoPadre(padre);
+                        padre = (Allegato) mappaHashAllegati.get(er.getPadre());
                     }
-                    nuovoAllegato = allegatoRepository.save(nuovoAllegato);
+                    Allegato nuovoAllegato = buildAndSaveAllegato(
+                            nomeDelFile,
+                            doc,
+                            file,
+                            numeroAllegato,
+                            padre);
 
                     mappaHashAllegati.put(er.getHash(), nuovoAllegato);
 
@@ -180,30 +164,14 @@ public class ScriptaUtils {
             }
         } else {
             try {
-                MinIOWrapperFileInfo putFileOnMinIO = putFileOnMinIO(tmp, doc.getIdAzienda().getCodice(), doc.getId().toString(),
-                        nomeDelFile, null, true);
-                Allegato nuovoAllegato = buildNewAllegato(doc, nomeDelFile);
-                numeroAllegato = doc.getAllegati() != null ? doc.getAllegati().size() + 1: 1;
-                nuovoAllegato.setOrdinale(numeroAllegato);
-                Integer intSize = new Long(Files.size(tmp.toPath())).intValue();
-                nuovoAllegato = allegatoRepository.save(nuovoAllegato);
-                
-                DettaglioAllegato dettaglioAllegato = buildNewDettaglioAllegato(
-                        nuovoAllegato,
-                        tmp,
-                        nomeDelFile,
-                        FileUtilities.getMimeTypeFromPath(tmp.getAbsolutePath()),
-                        intSize,
-                        putFileOnMinIO);
-
-                dettaglioAllegato = dettaglioAllegatoRepository.save(dettaglioAllegato);
-                List<DettaglioAllegato> dettagliAllegatiList = new ArrayList();
-                dettagliAllegatiList.add(dettaglioAllegato);
-                nuovoAllegato.setDettagliAllegatiList(dettagliAllegatiList);
-                nuovoAllegato = allegatoRepository.save(nuovoAllegato);
-                mappaHashAllegati.put(putFileOnMinIO.getMd5(), nuovoAllegato);
+                Allegato nuovoAllegato = buildAndSaveAllegato(
+                            nomeDelFile,
+                            doc,
+                            tmp,
+                            numeroAllegato + 1,
+                            null);
                 allegatiDaTornare.add(nuovoAllegato);
-                doc.getAllegati().addAll(allegatiDaTornare);
+//                doc.getAllegati().addAll(allegatiDaTornare);
             } catch (Throwable e) {
                 FileUtilities.svuotaCartella(folderToSave.getAbsolutePath());
                 throw e;
@@ -213,6 +181,55 @@ public class ScriptaUtils {
         tmp.delete();
         allegatoInputStream.close();
         return allegatiDaTornare;
+    }
+    
+    /**
+     * Questa funzione si occupa di creare un nuovo allegato con il suo dettaglio originale
+     * lo mette su minio e lo salva sul db.
+     * @param nomeDelFile
+     * @param doc
+     * @param file
+     * @param numeroAllegato
+     * @param allegatoPadre
+     * @return
+     * @throws MinIOWrapperException
+     * @throws IOException
+     * @throws FileNotFoundException
+     * @throws NoSuchAlgorithmException
+     * @throws UnsupportedEncodingException
+     * @throws MimeTypeException
+     * @throws Http500ResponseException
+     * @throws AllegatoException
+     * @throws NoSuchMethodException
+     * @throws IllegalAccessException
+     * @throws IllegalArgumentException
+     * @throws InvocationTargetException 
+     */
+    private Allegato buildAndSaveAllegato(
+            String nomeDelFile,
+            Doc doc,
+            File file,
+            Integer numeroAllegato,
+            Allegato allegatoPadre) throws MinIOWrapperException, IOException, FileNotFoundException, NoSuchAlgorithmException, UnsupportedEncodingException, MimeTypeException, AllegatoException {
+        MinIOWrapperFileInfo putFileOnMinIO = putFileOnMinIO(file, doc.getIdAzienda().getCodice(), doc.getId().toString(), nomeDelFile, null, true);
+        Allegato nuovoAllegato = buildNewAllegato(doc, nomeDelFile);
+        nuovoAllegato.setOrdinale(numeroAllegato);
+        Integer intSize = new Long(Files.size(file.toPath())).intValue();
+
+        Allegato.DettaglioAllegato dettaglioAllegato = buildNewDettaglioAllegato(
+                nuovoAllegato,
+                file,
+                nomeDelFile,
+                FileUtilities.getMimeTypeFromPath(file.getAbsolutePath()),
+                intSize,
+                putFileOnMinIO);
+
+        Allegato.DettagliAllegato dettagliAllegato = new Allegato.DettagliAllegato();
+        nuovoAllegato.setDettagli(dettagliAllegato);
+        addDettaglioAllegato(dettagliAllegato, dettaglioAllegato, Allegato.DettagliAllegato.TipoDettaglioAllegato.ORIGINALE);
+        nuovoAllegato.setIdAllegatoPadre(allegatoPadre);
+
+        return allegatoRepository.save(nuovoAllegato);
     }
 
     public Allegato buildNewAllegato(Doc doc, String originalFileName) {
@@ -232,13 +249,48 @@ public class ScriptaUtils {
         return allegato;
     }
 
-    public DettaglioAllegato buildNewDettaglioAllegato(Allegato allegato,
+    
+    /**
+     * Aggiunge ai DettagliAllegato il DettaglioAllegato passato. 
+     * Se la chiave (il tipo di dettaglio allegato) esiste già lancia eccezione
+     * @param dettagli
+     * @param dettaglioAllegato
+     * @param tipoDettaglioAllegato
+     * @throws it.bologna.ausl.internauta.service.exceptions.scripta.AllegatoException
+     */
+    public void addDettaglioAllegato(
+            Allegato.DettagliAllegato dettagli, 
+            Allegato.DettaglioAllegato dettaglioAllegato,
+            Allegato.DettagliAllegato.TipoDettaglioAllegato tipoDettaglioAllegato) throws AllegatoException {
+        Allegato.DettaglioAllegato dettaglioAllegatoTemp;
+        try {
+            dettaglioAllegatoTemp = dettagli.getDettaglioAllegato(tipoDettaglioAllegato);
+        } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+            LOG.info("errore nel recuperare il dettaglio allegato", ex);
+            throw new AllegatoException("errore nel recuperare il dettaglio allegato", ex);
+        }
+        if (dettaglioAllegatoTemp != null) {
+            LOG.info("Il dettaglio allegato che si vuole aggiungere è già presente");
+            throw new AllegatoException("Il dettaglio allegato che si vuole aggiungere è già presente");
+        }
+        try {
+            dettagli.setDettaglioAllegato(dettaglioAllegato, tipoDettaglioAllegato);
+        } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+            LOG.info("errore nel settare il dettaglio allegato", ex);
+            throw new AllegatoException("errore nel settare il dettaglio allegato", ex);
+        }
+    }
+    
+    public Allegato.DettaglioAllegato buildNewDettaglioAllegato(
+            Allegato allegato,
             File file,
             String fileNameWithExtension,
             String mimeType,
-            Integer size, MinIOWrapperFileInfo minioFileInfo) throws IOException, FileNotFoundException, NoSuchAlgorithmException, UnsupportedEncodingException, MimeTypeException {
+            Integer size, 
+            MinIOWrapperFileInfo minioFileInfo
+    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, UnsupportedEncodingException, MimeTypeException {
 
-        DettaglioAllegato dettaglioAllegato = new DettaglioAllegato();
+        Allegato.DettaglioAllegato dettaglioAllegato = new Allegato.DettaglioAllegato();
         dettaglioAllegato.setHashMd5(minioFileInfo.getMd5());
 
 //        dettaglioAllegato.setHashSha256(FileUtilities.getHashFromFile(fileInputStream, "SHA-256"));
@@ -246,12 +298,9 @@ public class ScriptaUtils {
             dettaglioAllegato.setHashSha256(org.apache.commons.codec.digest.DigestUtils.sha256Hex(is));
         }
         dettaglioAllegato.setNome(FilenameUtils.getBaseName(fileNameWithExtension));
-        dettaglioAllegato.setIdAllegato(allegato);
         dettaglioAllegato.setEstensione(FilenameUtils.getExtension(fileNameWithExtension));
         dettaglioAllegato.setDimensioneByte(size);
-        dettaglioAllegato.setIdRepository(
-                minioFileInfo.getFileId());
-        dettaglioAllegato.setCaratteristica(DettaglioAllegato.TipoDettaglioAllegato.ORIGINALE);
+        dettaglioAllegato.setIdRepository(minioFileInfo.getFileId());
         dettaglioAllegato.setMimeType(mimeType);
         return dettaglioAllegato;
     }
@@ -317,10 +366,6 @@ public class ScriptaUtils {
             }
         }
         return allegatoDaTornare;
-    }
-
-    public void getDettaglioAllegatoByTipo() {
-
     }
 
 }
