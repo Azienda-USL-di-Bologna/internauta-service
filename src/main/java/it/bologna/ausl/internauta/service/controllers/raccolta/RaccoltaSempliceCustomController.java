@@ -1,12 +1,10 @@
 package it.bologna.ausl.internauta.service.controllers.raccolta;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
 import com.mongodb.MongoException;
 import it.bologna.ausl.documentgenerator.exceptions.Http400ResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.HttpInternautaResponseException;
 import it.bologna.ausl.documentgenerator.exceptions.Sql2oSelectException;
-import it.bologna.ausl.documentgenerator.utils.AziendaParamsManager;
 import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedMimeTypes;
 import it.bologna.ausl.documentgenerator.utils.GeneratorUtils.SupportedSignatureType;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
@@ -69,7 +67,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
@@ -83,13 +81,12 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.util.UUID;
-import java.util.logging.Level;
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.springframework.util.StreamUtils;
 
 /**
@@ -112,6 +109,9 @@ public class RaccoltaSempliceCustomController {
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+
+    @Autowired
+    private ReporitoryConnectionManager reporitoryConnectionManager;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -1640,9 +1640,13 @@ public class RaccoltaSempliceCustomController {
                 jsonAllegato.put("mime_type", allegato.getContentType());
                 jsonAllegato.put("da_convertire", !allegato.getContentType().equals(SupportedMimeTypes.PDF.toString()));
                 Integer idAzienda = postgresConnectionManager.getIdAzienda(codiceAzienda);
-                MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
-                String uuidAllegato = mongo.put(allegato.getInputStream(), allegato.getOriginalFilename(), "/temp/generazione_documenti_da_ext/" + UUID.randomUUID(), false);
-                jsonAllegato.put("uuid_file", uuidAllegato);
+//                MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
+                File tmp = new File("/temp/generazione_documenti_da_ext/" + UUID.randomUUID());
+                FileUtils.copyInputStreamToFile(allegato.getInputStream(), tmp);
+
+                MinIOWrapperFileInfo savedFile = minIOWrapper.put(tmp, codiceAzienda, "/temp/generazione_documenti_da_ext/" + UUID.randomUUID(), allegato.getOriginalFilename(), null, true, UUID.randomUUID().toString(), null);
+//                String uuidAllegato = mongo.put(allegato.getInputStream(), allegato.getOriginalFilename(), "/temp/generazione_documenti_da_ext/" + UUID.randomUUID(), false);
+                jsonAllegato.put("uuid_file", savedFile.getMongoUuid());
                 jsonAllegato.put("principale", false);
                 jsonAllegati.add(jsonAllegato);
             }
@@ -1885,7 +1889,9 @@ public class RaccoltaSempliceCustomController {
 
     public void insertSottoDocumenti(Connection conn, org.json.simple.JSONArray jsonAllegati, RaccoltaNew r) throws Http500ResponseException {
         Integer idAzienda = postgresConnectionManager.getIdAzienda(r.getCodiceAzienda());
-        MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
+//        MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
+
+        MinIOWrapper minIOWrapper = this.reporitoryConnectionManager.getMinIOWrapper();
 
         List<String> idSottoDocumenti = new ArrayList<>();
 
@@ -1908,13 +1914,15 @@ public class RaccoltaSempliceCustomController {
                 sd.setNome(filename);
                 sd.setUuidMongoOriginale(uuid);
                 sd.setMimetypeFileOriginale(mimetype);
-                sd.setDimensioneOriginale(mongo.getSizeByUuid(uuid));
+                MinIOWrapperFileInfo fileInfo = minIOWrapper.getFileInfoByUuid(uuid);
+                sd.setDimensioneOriginale(Long.valueOf(fileInfo.getSize()));
 
                 sd.setConvertibilePdf(daConvertire ? -1 : 0);
                 sd.setCodice("babel_suite_allegati_" + sd.getGuid());
                 sd.setTipo("allegati");
 
-                mongo.move(uuid, "/RS/Documenti/" + r.getAnnoRegistrazione() + "/" + r.getNumeroRegistrazione() + "/" + sd.getNome());
+                minIOWrapper.renameByFileId(fileInfo.getFileId(), "/RS/Documenti/" + r.getAnnoRegistrazione() + "/" + r.getNumeroRegistrazione() + "/" + sd.getNome());
+//                mongo.move(uuid, "/RS/Documenti/" + r.getAnnoRegistrazione() + "/" + r.getNumeroRegistrazione() + "/" + sd.getNome());
 
                 String sql = "INSERT INTO gd.sotto_documenti "
                         + "(id_sottodocumento, id_gddoc, nome_sottodocumento, "
