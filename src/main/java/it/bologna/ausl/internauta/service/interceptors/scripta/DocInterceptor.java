@@ -15,6 +15,7 @@ import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QMezzo;
@@ -130,7 +131,8 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                                 throw new AbortSaveInterceptorException("Azienda non riconosciuta");
                             }
                             doc.setIdAzienda(azienda);
-
+                            doc.setTipologia(DocDetailInterface.TipologiaDoc.PROTOCOLLO_IN_ENTRATA);
+                   
                             if (!userInfoService.userHasPermissionOnAzienda(
                                     Permessi.Predicati.REDIGE,
                                     user,
