@@ -148,7 +148,7 @@ public class ScriptaUtils {
                         padre = (Allegato) mappaHashAllegati.get(er.getPadre());
                     }
                     Allegato nuovoAllegato = buildAndSaveAllegato(
-                            nomeDelFile,
+                            er.getFileName(),
                             doc,
                             file,
                             numeroAllegato,
