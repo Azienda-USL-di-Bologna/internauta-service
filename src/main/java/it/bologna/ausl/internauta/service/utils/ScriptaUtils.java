@@ -1,7 +1,7 @@
 package it.bologna.ausl.internauta.service.utils;
 
 import it.bologna.ausl.estrattore.ExtractorResult;
-import it.bologna.ausl.estrattoremaven.exception.ExtractorException;
+import it.bologna.ausl.estrattore.exception.ExtractorException;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
@@ -95,7 +95,7 @@ public class ScriptaUtils {
         } else {
             throw new FileNotFoundException("Passato file null ");
         }
-        
+
         return allegatiDaTornare;
     }
 
@@ -117,9 +117,9 @@ public class ScriptaUtils {
             String nomeDelFile,
             Doc doc,
             File folderToSave) throws ExtractorException, IOException, Throwable {
-        
+
         List<Allegato> allegatiDaTornare = new ArrayList<Allegato>();
-                String separatoreDiSiStema = System.getProperty("file.separator");
+        String separatoreDiSiStema = System.getProperty("file.separator");
         CharSequence daRimpiazzare = separatoreDiSiStema;
         CharSequence sostituto = "\\" + separatoreDiSiStema;
         nomeDelFile = nomeDelFile.replace(daRimpiazzare, sostituto);
@@ -183,11 +183,11 @@ public class ScriptaUtils {
                 MinIOWrapperFileInfo putFileOnMinIO = putFileOnMinIO(tmp, doc.getIdAzienda().getCodice(), doc.getId().toString(),
                         nomeDelFile, null, true);
                 Allegato nuovoAllegato = buildNewAllegato(doc, nomeDelFile);
-                numeroAllegato = doc.getAllegati() != null ? doc.getAllegati().size() + 1: 1;
+                numeroAllegato = doc.getAllegati() != null ? doc.getAllegati().size() + 1 : 1;
                 nuovoAllegato.setOrdinale(numeroAllegato);
                 Integer intSize = new Long(Files.size(tmp.toPath())).intValue();
                 nuovoAllegato = allegatoRepository.save(nuovoAllegato);
-                
+
                 DettaglioAllegato dettaglioAllegato = buildNewDettaglioAllegato(
                         nuovoAllegato,
                         tmp,
@@ -209,7 +209,7 @@ public class ScriptaUtils {
                 throw e;
             }
         }
-        
+
         tmp.delete();
         allegatoInputStream.close();
         return allegatiDaTornare;
@@ -242,7 +242,7 @@ public class ScriptaUtils {
         dettaglioAllegato.setHashMd5(minioFileInfo.getMd5());
 
 //        dettaglioAllegato.setHashSha256(FileUtilities.getHashFromFile(fileInputStream, "SHA-256"));
-        try(InputStream is = new FileInputStream(file)){
+        try ( InputStream is = new FileInputStream(file)) {
             dettaglioAllegato.setHashSha256(org.apache.commons.codec.digest.DigestUtils.sha256Hex(is));
         }
         dettaglioAllegato.setNome(FilenameUtils.getBaseName(fileNameWithExtension));

@@ -7,6 +7,7 @@ import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioCon
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
@@ -29,4 +30,6 @@ public interface DettaglioContattoRepository extends
     public DettaglioContatto findByIdContattoAndIdContattoEsterno(Contatto idContatto, Contatto idContattoEsterno);
 
     public DettaglioContatto findByIdContattoAndTipo(Contatto idContatto, String tipo);
+
+    public List<DettaglioContatto> findByIdContatto(Contatto idContatto);
 }

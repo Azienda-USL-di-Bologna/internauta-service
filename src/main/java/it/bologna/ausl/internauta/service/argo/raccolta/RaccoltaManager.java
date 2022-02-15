@@ -267,4 +267,28 @@ public class RaccoltaManager {
 
         return query;
     }
+
+    public static String queryRaccoltaSempliceFromCFPiva(String cf, String piva, String from, int pageRows, int pageNumber) {
+        String query = "select count(r.id) OVER() as rows, r.id, r.id_gddoc, r.id_gddoc_associato, r.codice, "
+                + "r.applicazione_chiamante, r.additional_data, r.creatore, r.oggetto, r.id_struttura_responsabile_internauta, "
+                + "r.id_struttura_responsabile_argo, r.descrizione_struttura, r.stato, r.storico, r.tipo_documento, r.create_time "
+                + "from gd.coinvolti c, gd.coinvolti_raccolte cr, gd.raccolte r "
+                + "where c.id = cr.id_coinvolto "
+                + "and r.id = cr.id_raccolta "
+                + cf
+                + piva
+                + from
+                + "and r.create_time::date <= :to "
+                + "order by r.create_time desc "
+                + "LIMIT " + pageRows + " OFFSET " + pageNumber + " ";
+
+        return query;
+    }
+
+    public static String queryNomeGddoc(String nome) {
+        String query = "SELECT id_gddoc from gd.gddocs "
+                + " WHERE nome_gddoc ilike '%" + nome
+                + "%' ";
+        return query;
+    }
 }

@@ -79,12 +79,13 @@ public class PersonaRS {
     }
 
     public void createDescrizione() {
-        if(tipologia.equals(Tipologia.GIURIDICA))
+        if (tipologia.equals(Tipologia.GIURIDICA)) {
             this.descrizione = this.ragioneSociale;
-        else
+        } else {
             this.descrizione = this.nome + " " + this.cognome;
+        }
     }
-    
+
     public String getCf() {
         return cf;
     }
@@ -213,6 +214,12 @@ public class PersonaRS {
         this.provincia = provincia;
     }
 
+    public void checkTipologia() {
+        if (tipologia == null) {
+            tipologia = Tipologia.FISICA;
+        }
+    }
+
     public String getNazione() {
         return nazione;
     }
@@ -244,7 +251,7 @@ public class PersonaRS {
         contatto.setProtocontatto(isProtocontatto);
         contatto.setIdAziende(new Integer[]{idAzienda});
         contatto.setDescrizione(p.getDescrizione());
-        if (p.getPartitaIva()== null) {
+        if (p.getPartitaIva() == null) {
             contatto.setTipo(Contatto.TipoContatto.PERSONA_FISICA);
         } else {
             contatto.setPartitaIva(p.getPartitaIva());
@@ -259,7 +266,7 @@ public class PersonaRS {
         contatto.setRagioneSociale(p.getRagioneSociale());
 
         // mail
-        if (p.getMail()!= null && !p.getMail().isEmpty()) {
+        if (p.getMail() != null && !p.getMail().isEmpty()) {
             DettaglioContatto dettaglioContatto = new DettaglioContatto();
             dettaglioContatto.setDescrizione(p.getMail());
             dettaglioContatto.setEliminato(false);
