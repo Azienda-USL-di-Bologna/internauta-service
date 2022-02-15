@@ -16,7 +16,7 @@ import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepositoryCustomImpl;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrTrasformazioniRepository;
 import it.bologna.ausl.internauta.service.ribaltone.ImportaDaCSV;
-import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -1330,7 +1330,7 @@ public class BaborgUtils {
                 try {
                     mapWriter.close();
                     if (!tipo.equals("STRUTTURA")) {
-                        MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAzienda);
+                        MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapperByIdAzienda(idAzienda);
                         uuid = mongoWrapper.put(csvErrorFile, csvErrorFile.getName(), "/importazioniCSV/csv_error_GRU", true);
                     }
 
@@ -1341,7 +1341,7 @@ public class BaborgUtils {
             if (mapErrorWriter != null) {
                 try {
                     mapErrorWriter.close();
-                    MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAzienda);
+                    MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapperByIdAzienda(idAzienda);
                     uuid = mongoWrapper.put(csvErrorFile2, csvErrorFile2.getName(), "/importazioniCSV/csv_error_GRU", true);
 
                 } catch (IOException ex) {

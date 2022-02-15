@@ -9,7 +9,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ParametroAziendeRepository;
 import it.bologna.ausl.internauta.service.schedulers.workers.InviaNotificaAttivitaSospeseWorker;
 import it.bologna.ausl.internauta.service.schedulers.workers.handlers.ParametroAziendeInvioMailNotificaAttivitaHandler;
-import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import java.text.ParseException;

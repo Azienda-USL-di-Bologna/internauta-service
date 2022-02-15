@@ -33,7 +33,7 @@ import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContatto
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.MasterChefUtils;
-import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.internauta.service.utils.rubrica.CreatoreJsonPermessiContatto;
 import it.bologna.ausl.internauta.service.utils.rubrica.SelectedContactsUtils;
 import it.bologna.ausl.minio.manager.MinIOWrapper;

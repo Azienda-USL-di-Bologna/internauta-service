@@ -44,7 +44,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
-import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.QPec;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;

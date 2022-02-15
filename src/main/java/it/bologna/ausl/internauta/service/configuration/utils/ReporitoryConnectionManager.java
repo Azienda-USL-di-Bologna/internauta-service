@@ -6,7 +6,7 @@ import com.mongodb.MongoException;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
@@ -42,16 +42,17 @@ public class ReporitoryConnectionManager {
 
     private Map<String, AziendaParametriJson> aziendeParametriJson;
 
-    private final Map<Integer, MongoWrapper> connections = new HashMap<>();
+    private final Map<Integer, MongoWrapper> connectionsByIdAzienda = new HashMap<>();
+    private final Map<String, MongoWrapper> connectionsByCodiceAzienda = new HashMap<>();
     private MinIOWrapper minIOWrapper = null;
     private Boolean mongoAndMinIOActive = null;
 
     @PostConstruct
     public void init() throws UnknownHostException, IOException, MongoException, MongoWrapperException, ObjectNotFoundException {
         List<ParametroAziende> parameters = parametriAziende.getParameters(
-                InternautaConstants.Configurazione.ParametriAzienda.minIOConfig.toString());
+                ParametriAziendeReader.ParametriAzienda.minIOConfig.toString());
         if (parameters == null || parameters.isEmpty() || parameters.size() > 1) {
-            throw new ObjectNotFoundException("il parametro " + InternautaConstants.Configurazione.ParametriAzienda.minIOConfig.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
+            throw new ObjectNotFoundException("il parametro " + ParametriAziendeReader.ParametriAzienda.minIOConfig.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
         }
         minIOConfig = parametriAziende.getValue(parameters.get(0), new TypeReference<Map<String, Object>>() {
         });
@@ -77,10 +78,10 @@ public class ReporitoryConnectionManager {
             AziendaParametriJson parametriAzienda = aziendeParametriJson.get(azienda.getCodice());
             AziendaParametriJson.MongoParams mongoParams = parametriAzienda.getMongoParams();
             List<ParametroAziende> parameters = parametriAziende.getParameters(
-                    InternautaConstants.Configurazione.ParametriAzienda.mongoAndMinIOActive.toString(),
+                    ParametriAziendeReader.ParametriAzienda.mongoAndMinIOActive.toString(),
                     new Integer[]{azienda.getId()});
             if (parameters == null || parameters.isEmpty() || parameters.size() > 1) {
-                throw new ObjectNotFoundException("il parametro " + InternautaConstants.Configurazione.ParametriAzienda.mongoAndMinIOActive.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
+                throw new ObjectNotFoundException("il parametro " + ParametriAziendeReader.ParametriAzienda.mongoAndMinIOActive.toString() + " non è stato trovato nei parametri_aziende, oppure è presente più volte per la stessa azienda");
             }
             this.mongoAndMinIOActive = parametriAziende.getValue(parameters.get(0), Boolean.class);
             String minIODBDriver = (String) minIOConfig.get("DBDriver");
@@ -89,7 +90,8 @@ public class ReporitoryConnectionManager {
             String minIODBPassword = (String) minIOConfig.get("DBPassword");
             String mongoUrl = mongoParams.getConnectionString();
             MongoWrapper m = MongoWrapper.getWrapper(mongoAndMinIOActive, mongoUrl, minIODBDriver, minIODBUrl, minIODBUsername, minIODBPassword, azienda.getCodice(), objectMapper);
-            connections.put(azienda.getId(), m);
+            connectionsByIdAzienda.put(azienda.getId(), m);
+            connectionsByCodiceAzienda.put(azienda.getCodice(), m);
         }
     }
 
@@ -102,8 +104,12 @@ public class ReporitoryConnectionManager {
         minIOWrapper = new MinIOWrapper(minIODBDriver, minIODBUrl, minIODBUsername, minIODBPassword, maxPoolSize, objectMapper);
     }
 
-    public MongoWrapper getRepositoryWrapper(Integer idAzienda) {
-        return connections.get(idAzienda);
+    public MongoWrapper getRepositoryWrapperByIdAzienda(Integer idAzienda) {
+        return connectionsByIdAzienda.get(idAzienda);
+    }
+    
+    public MongoWrapper getRepositoryWrapperByCodiceAzienda(String codiceAzienda) {
+        return connectionsByCodiceAzienda.get(codiceAzienda);
     }
 
     public MinIOWrapper getMinIOWrapper() {

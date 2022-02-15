@@ -36,7 +36,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;

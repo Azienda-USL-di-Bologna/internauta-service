@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.argo.utils.gd.FascicoloUtils;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
-import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,7 +143,7 @@ public class SAIUtils {
         Map<String,  Map<String, Object>> mappaPecFascicoli;
         try {
             mappaPecFascicoli = parametriAziendeReader.getValue(
-                    parametriAziendeReader.getParameters("fascicoliSAI", new Integer[]{idAzienda}).get(0),
+                    parametriAziendeReader.getParameters(ParametriAziendeReader.ParametriAzienda.fascicoliSAI.toString(), new Integer[]{idAzienda}).get(0),
                     new TypeReference<Map<String,  Map<String, Object>>>() {
             });
         } catch (Exception ex) {
