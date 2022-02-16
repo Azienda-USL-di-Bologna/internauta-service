@@ -221,12 +221,6 @@ public class PersonaRS {
         this.provincia = provincia;
     }
 
-    public void checkTipologia() {
-        if (tipologia == null) {
-            tipologia = Tipologia.FISICA;
-        }
-    }
-
     public String getNazione() {
         return nazione;
     }
