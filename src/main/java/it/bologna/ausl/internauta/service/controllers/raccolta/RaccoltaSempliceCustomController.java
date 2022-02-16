@@ -601,6 +601,18 @@ public class RaccoltaSempliceCustomController {
 
                 tipologia = (String) jsonProperties.get("tipologia");
 
+                if (tipologia == null || (cf == null && pIva == null)) {
+                    if (cf != null && cf.trim().equals("") && pIva != null && pIva.trim().equals("")) {
+                        throw new Http400ResponseException("400", "Tipologia necessaria");
+                    }
+                }
+
+                if (tipologia == null && pIva != null) {
+                    tipologia = "GIURIDICA";
+                } else {
+                    tipologia = "FISICA";
+                }
+
                 ragioneSociale = (String) jsonProperties.get("ragione_sociale");
 
                 cap = (String) jsonProperties.get("cap");
@@ -621,6 +633,10 @@ public class RaccoltaSempliceCustomController {
 
                 provenienza = (String) jsonProperties.get("provenienza");
 
+                if (provenienza == null) {
+                    provenienza = "InternautaBridge";
+                }
+
                 List<Contatto> listaContatto = new ArrayList();
 
                 if (tipologia.equals("FISICA") && cf != null) {
@@ -628,11 +644,6 @@ public class RaccoltaSempliceCustomController {
                 }
                 if (tipologia.equals("GIURIDICA") && pIva != null) {
                     listaContatto = contattoRepository.findByPartitaIva(pIva);
-                }
-                if (tipologia == null || (cf == null && pIva == null)) {
-                    if (cf != null && cf.trim().equals("") && pIva != null && pIva.trim().equals("")) {
-                        throw new Http400ResponseException("400", "Tipologia necessaria");
-                    }
                 }
 
                 Contatto contatto = new Contatto();
