@@ -19,16 +19,16 @@ import org.sql2o.Sql2o;
 public class PostgresConnectionManager {
 
     @Autowired
-    AziendaRepository aziendaRepository;
+    private AziendaRepository aziendaRepository;
 
     private List<AziendaParams> aziendaParamsList = null;
     private final Map<String, Sql2o> dbConnectionMap = new HashMap<>();
     @Value("${spring.datasource.driver-class-name}")
-    String driverClass;
+    private String driverClass;
     @Value("${sql20.datasource.min-idle-size}")
-    Integer sql2oMinIdleSize;
+    private Integer sql2oMinIdleSize;
     @Value("${sql20.datasource.max-pool-size}")
-    Integer sql2oMaxPoolSize;
+    private Integer sql2oMaxPoolSize;
 
     @PostConstruct
     public void init() {

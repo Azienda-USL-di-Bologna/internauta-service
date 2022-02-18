@@ -222,7 +222,7 @@ public class BaborgCustomController {
             HttpServletResponse response,
             HttpServletRequest request) throws FileNotFoundException {
 
-        MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAzienda);
+        MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapperByIdAzienda(idAzienda);
         InputStream is = null;
 //        String fileName = String.format("%s_%d_%s.csv", uuid, idAzienda, UUID.randomUUID().toString());
 //        File csvFile = new File(System.getProperty("java.io.tmpdir"), fileName);

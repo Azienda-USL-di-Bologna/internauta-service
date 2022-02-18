@@ -4,15 +4,17 @@ import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEn
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,11 +40,7 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     AllegatoRepository allegatoRepository;
-    
-    @Autowired
-    DettaglioAllegatoRepository dettaglioAllegatoRepository;
-    
-    
+   
     @Autowired
     @Qualifier(value = "customRepositoryEntityMap")
     protected Map<String, NextSdrQueryDslRepository> customRepositoryEntityMap;
@@ -52,6 +50,8 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
         return Allegato.class;
     }
 
+    
+            
 //    @Override
 //    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
 //        Allegato allegato = (Allegato) entity;
@@ -87,4 +87,50 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
 //        }
 //        super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
 //    }
+
+    
+    /**
+     * TODO: Quando faccio un update di un allegato potrebbe essere che ho cancellato il dettaglio allegato.
+     * Devo capire quale ho cancellato per poterlo cancellare anche dal repository
+     * @param entity
+     * @param beforeUpdateEntityApplier
+     * @param additionalData
+     * @param request
+     * @param mainEntity
+     * @param projectionClass
+     * @return
+     * @throws AbortSaveInterceptorException 
+     */
+    @Override
+    public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        
+        return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        Allegato allegato = (Allegato) entity;
+        Allegato.DettagliAllegato dettagli = allegato.getDettagli();
+        if (dettagli != null) {
+            //TODO: in caso di fallimento quando si hanno piu dettagli allegati se uno fallisce bisogna fare l'undelete degli altri
+            MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+            try {
+                Set<String> data = (Set) super.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.DettagliAllegatiDaEliminare);
+                if (data == null){
+                    data = new HashSet();
+                    super.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.DettagliAllegatiDaEliminare, data);
+                }
+
+                for (Allegato.DettagliAllegato.TipoDettaglioAllegato tipoDettaglioAllegato : Allegato.DettagliAllegato.TipoDettaglioAllegato.values()) { 
+                    Allegato.DettaglioAllegato dettaglioAllegato = allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato);
+                    if (dettaglioAllegato != null) {
+                        data.add(dettaglioAllegato.getIdRepository());
+                    }
+                }                      
+            } catch (Exception ex) {
+                LOGGER.error("errore nell'eliminazione del file su minIO", ex);
+                throw new AbortSaveInterceptorException("errore nell'eliminazione del file su minIO", ex);
+            }
+        }
+    }
 }
