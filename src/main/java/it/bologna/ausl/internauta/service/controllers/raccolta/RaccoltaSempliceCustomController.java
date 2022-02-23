@@ -1900,7 +1900,7 @@ public class RaccoltaSempliceCustomController {
 
     public void insertSottoDocumenti(Connection conn, org.json.simple.JSONArray jsonAllegati, RaccoltaNew r) throws Http500ResponseException {
         Integer idAzienda = postgresConnectionManager.getIdAzienda(r.getCodiceAzienda());
-//        MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
+        MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapperByIdAzienda(idAzienda);
 
         MinIOWrapper minIOWrapper = this.reporitoryConnectionManager.getMinIOWrapper();
 
@@ -2257,7 +2257,7 @@ public class RaccoltaSempliceCustomController {
             }
             File file = new File(System.getProperty("java.io.tmpdir"), fileName);
             Integer idAzienda = postgresConnectionManager.getIdAzienda(codiceAzienda);
-            MongoWrapper mongoWrapper = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
+            MongoWrapper mongoWrapper = aziendeConnectionManager.getRepositoryWrapperByIdAzienda(idAzienda);
             InputStream is = null;
             DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(file));
             is = mongoWrapper.get(documenti.get(0).getUuidMongo());

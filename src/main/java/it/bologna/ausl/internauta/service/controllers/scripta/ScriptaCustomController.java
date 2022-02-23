@@ -8,7 +8,7 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
-import it.bologna.ausl.internauta.service.utils.ParametriAziendeReader;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
@@ -34,7 +34,6 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,10 +55,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
+//import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -71,13 +68,10 @@ import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
-import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
-import it.bologna.ausl.model.entities.scripta.DettaglioAllegato.TipoDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
 import it.bologna.ausl.model.entities.scripta.Registro;
 import it.bologna.ausl.model.entities.scripta.RegistroDoc;
-import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithDettagliAllegatiListAndIdAllegatoPadre;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
@@ -98,6 +92,9 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
+import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
+import java.lang.reflect.InvocationTargetException;
+import java.util.logging.Level;
 
 /**
  *
@@ -132,9 +129,6 @@ public class ScriptaCustomController {
     private PecRepository pecRepository;
 
     @Autowired
-    private PersonaRepository personaRepository;
-
-    @Autowired
     private ScriptaUtils scriptaUtils;
 
     @Autowired
@@ -149,14 +143,11 @@ public class ScriptaCustomController {
     @Autowired
     private AllegatoRepository allegatoRepository;
 
-    @Autowired
-    private DettaglioAllegatoRepository dettaglioAllegatoRepository;
+//    @Autowired
+//    private DettaglioAllegatoRepository dettaglioAllegatoRepository;
 
     @Autowired
     private ProjectionFactory projectionFactory;
-
-    @Autowired
-    private StrutturaRepository strutturaRepository;
 
     @Autowired
     private AziendaRepository aziendaRepository;
@@ -219,7 +210,7 @@ public class ScriptaCustomController {
         }
         if (tuttiAllegati != null) {
             Stream<Allegato> stream = StreamSupport.stream(tuttiAllegati.spliterator(), false);
-            return ResponseEntity.ok(stream.map(a -> projectionFactory.createProjection(AllegatoWithDettagliAllegatiListAndIdAllegatoPadre.class, a)).collect(Collectors.toList()));
+            return ResponseEntity.ok(stream.map(a -> projectionFactory.createProjection(AllegatoWithIdAllegatoPadre.class, a)).collect(Collectors.toList()));
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -228,23 +219,40 @@ public class ScriptaCustomController {
      * Effettua l'upload sul client dello stream del file richiesto
      *
      * @param idAllegato
+     * @param tipoDettaglioAllegato
      * @param response
      * @param request
      * @throws IOException
      * @throws MinIOWrapperException
      *
      */
-    @RequestMapping(value = "dettaglioallegato/{idDettaglioAllegato}/download", method = RequestMethod.GET)
+    @RequestMapping(value = "allegato/{idAllegato}/{tipoDettaglioAllegato}/download", method = RequestMethod.GET)
     public void downloadAttachment(
-            @PathVariable(required = true) Integer idDettaglioAllegato,
+            @PathVariable(required = true) Integer idAllegato,
+            @PathVariable(required = true) Allegato.DettagliAllegato.TipoDettaglioAllegato tipoDettaglioAllegato,
             HttpServletResponse response,
             HttpServletRequest request
-    ) throws IOException, MinIOWrapperException {
-        LOG.info("downloadAllegato", idDettaglioAllegato);
+    ) throws IOException, MinIOWrapperException, Http500ResponseException {
+        LOG.info("downloadAllegato", idAllegato, tipoDettaglioAllegato);
+//        TipoDettaglioAllegato tipoDettaglioAllegatoEnum = TipoDettaglioAllegato.valueOf(tipoDettaglioAllegato);
         //TODO si deve instanziare il rest controller engine e poi devi prendere il dettaglio (aggiungere interceptor per vedere se l'utente puo scaricare il file)
-        DettaglioAllegato dettaglioAllegato = dettaglioAllegatoRepository.getOne(idDettaglioAllegato);
+        Allegato allegato = allegatoRepository.getById(idAllegato);
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        if (dettaglioAllegato != null) {
+        if (allegato != null) {
+            Allegato.DettagliAllegato dettagli = allegato.getDettagli();
+            Allegato.DettaglioAllegato dettaglioAllegato;
+            try {
+                dettaglioAllegato = dettagli.getDettaglioAllegato(tipoDettaglioAllegato);
+            } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+                LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
+                throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
+            }
+            
+            if (dettaglioAllegato == null) {
+                LOG.info("il dettaglio allegato richiesto non è stato tovato");
+                throw new Http500ResponseException("2", "il dettaglio allegato richiesto non è stato tovato");
+            }
+            
             StreamUtils.copy(minIOWrapper.getByFileId(dettaglioAllegato.getIdRepository()), response.getOutputStream());
         }
         response.flushBuffer();
@@ -285,13 +293,13 @@ public class ScriptaCustomController {
                         if (i > 0) {
                             s = "_" + Integer.toString(i);
                         }
-                        zos.putNextEntry(new ZipEntry((String) allegato.getNome() + s + "." + allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getEstensione()));
+                        zos.putNextEntry(new ZipEntry((String) allegato.getNome() + s + "." + allegato.getDettagli().getOriginale().getEstensione()));
                         in_error = false;
                     } catch (ZipException ex) {
                         i++;
                     }
                 }
-                StreamUtils.copy((InputStream) minIOWrapper.getByFileId(allegato.getDettaglioByTipoDettaglioAllegato(TipoDettaglioAllegato.ORIGINALE).getIdRepository()), zos);
+                StreamUtils.copy((InputStream) minIOWrapper.getByFileId(allegato.getDettagli().getOriginale().getIdRepository()), zos);
             }
             response.flushBuffer();
         } finally {
@@ -364,10 +372,16 @@ public class ScriptaCustomController {
         return parametersMap;
     }
 
-    private MultipartFile getMultiPartFromAllegato(Allegato allegato, TipoDettaglioAllegato tipoDettaglioAllegato) throws MinIOWrapperException, IOException {
+    private MultipartFile getMultiPartFromAllegato(Allegato allegato, Allegato.DettagliAllegato.TipoDettaglioAllegato tipoDettaglioAllegato) throws MinIOWrapperException, IOException, Http500ResponseException {
         MultipartFile multipartDaTornare = null;
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        DettaglioAllegato dettaglioAllegatoRichiesto = allegato.getDettaglioByTipoDettaglioAllegato(tipoDettaglioAllegato);
+        Allegato.DettaglioAllegato dettaglioAllegatoRichiesto;
+        try {
+            dettaglioAllegatoRichiesto = allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato);
+        } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+            LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
+            throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
+        }
         InputStream allegatoIS = minIOWrapper.getByFileId(dettaglioAllegatoRichiesto.getIdRepository()
         );
         String nomeFileConEstensione = allegato.getNome()
@@ -381,23 +395,23 @@ public class ScriptaCustomController {
         return multipartDaTornare;
     }
 
-    private MultipartFile manageAndReturnAllegatoPrincipaleMultipart(Doc doc) throws MinIOWrapperException, IOException {
+    private MultipartFile manageAndReturnAllegatoPrincipaleMultipart(Doc doc) throws MinIOWrapperException, IOException, Http500ResponseException {
         Allegato allegatoPrincipale = scriptaUtils.getAllegatoPrincipale(doc);
         MultipartFile multipartPrincipale = null;
         if (allegatoPrincipale != null) {
-            multipartPrincipale = getMultiPartFromAllegato(allegatoPrincipale, TipoDettaglioAllegato.ORIGINALE);
+            multipartPrincipale = getMultiPartFromAllegato(allegatoPrincipale, Allegato.DettagliAllegato.TipoDettaglioAllegato.ORIGINALE);
         }
         return multipartPrincipale;
     }
 
-    private List<MultipartFile> manageAndReturnAllegatiNonPrincipaliMultiPartList(Doc doc) throws MinIOWrapperException, IOException {
+    private List<MultipartFile> manageAndReturnAllegatiNonPrincipaliMultiPartList(Doc doc) throws MinIOWrapperException, IOException, Http500ResponseException {
         List<MultipartFile> multipartList = new ArrayList();
         List<Allegato> allegati = doc.getAllegati();
         for (Allegato allegato : allegati) {
             if (!allegato.getPrincipale()) {
                 //devo prendere gli 'ORIGINALI' NON FIGLI
                 MultipartFile multipart = getMultiPartFromAllegato(allegato,
-                        TipoDettaglioAllegato.ORIGINALE);
+                        Allegato.DettagliAllegato.TipoDettaglioAllegato.ORIGINALE);
                 multipartList.add(multipart);
             }
         }

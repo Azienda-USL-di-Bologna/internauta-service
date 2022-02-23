@@ -9,7 +9,7 @@ import it.bologna.ausl.model.entities.scripta.ArchivioDiInteresse;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.AttoreDoc;
-import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
+//import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
@@ -41,7 +41,6 @@ import it.bologna.ausl.model.entities.scripta.QArchivioDiInteresse;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.QAttoreDoc;
-import it.bologna.ausl.model.entities.scripta.QDettaglioAllegato;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
 import it.bologna.ausl.model.entities.scripta.QFrequenzaUtilizzoArchivio;
@@ -117,18 +116,18 @@ public class ScriptaBaseController extends BaseCrudController {
         return ResponseEntity.ok(resource);
     }
     
-    @RequestMapping(value = {"dettaglioAllegato", "dettaglioAllegato/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> dettaglioAllegato(
-            @QuerydslPredicate(root = DettaglioAllegato.class) Predicate predicate,
-            Pageable pageable,
-            @RequestParam(required = false) String projection,
-            @PathVariable(required = false) Integer id,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
-
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDettaglioAllegato.dettaglioAllegato, DettaglioAllegato.class);
-        return ResponseEntity.ok(resource);
-    }
+//    @RequestMapping(value = {"dettaglioAllegato", "dettaglioAllegato/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    public ResponseEntity<?> dettaglioAllegato(
+//            @QuerydslPredicate(root = DettaglioAllegato.class) Predicate predicate,
+//            Pageable pageable,
+//            @RequestParam(required = false) String projection,
+//            @PathVariable(required = false) Integer id,
+//            HttpServletRequest request,
+//            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+//
+//        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDettaglioAllegato.dettaglioAllegato, DettaglioAllegato.class);
+//        return ResponseEntity.ok(resource);
+//    }
     
     @RequestMapping(value = {"related", "related/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> related(

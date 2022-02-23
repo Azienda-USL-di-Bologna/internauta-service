@@ -776,7 +776,7 @@ public class ShpeckUtils {
                             messageRepository.save(message);
                         }
                     }
-                    MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(this.getIdAziendaRepository(message));
+                    MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapperByIdAzienda(this.getIdAziendaRepository(message));
                     InputStream is = null;
                     try (DataOutputStream dataOs = new DataOutputStream(new FileOutputStream(emlFile))) {
                         try {
@@ -789,7 +789,7 @@ public class ShpeckUtils {
                             Integer idAziendaRepository = this.getIdAziendaRepository(message);
                             try {
                                 if (idAziendaRepository != null) {
-                                    mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAziendaRepository);
+                                    mongoWrapper = mongoConnectionManager.getRepositoryWrapperByIdAzienda(idAziendaRepository);
                                     is = mongoWrapper.get(message.getUuidRepository());
                                     if (is == null) {
                                         throw new MongoException("File non trovato!!");
@@ -824,7 +824,7 @@ public class ShpeckUtils {
     public MongoWrapper getMongoWrapperFromUuid(String uuid) {
         List<Azienda> allAziende = aziendaRepository.findAll();
         for (Azienda azienda : allAziende) {
-            MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(azienda.getId());
+            MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapperByIdAzienda(azienda.getId());
             try {
                 if (mongoWrapper.getFileName(uuid) != null) {
                     return mongoWrapper;
@@ -940,7 +940,7 @@ public class ShpeckUtils {
 
         boolean res = false;
 
-        MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapper(idAzienda);
+        MongoWrapper mongoWrapper = mongoConnectionManager.getRepositoryWrapperByIdAzienda(idAzienda);
         InputStream is = null;
         try {
             is = mongoWrapper.get(uuidRepository);
