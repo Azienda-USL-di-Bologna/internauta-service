@@ -144,8 +144,9 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
                                 log.info("Persona " + persona.getInt("id") + " già avvisata");
 
-                                if(!personeAvvisate.contains(persona.getInt("id")))
+                                if (!personeAvvisate.contains(persona.getInt("id"))) {
                                     personeAvvisate.add(persona.getInt("id"));
+                                }
 
                             }
                         } catch (java.text.ParseException ex) {
@@ -334,7 +335,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         try {
             Azienda azienda = getAziendaById(idAziendaUrl);
             JSONObject parametriAziendaJSON = new JSONObject(azienda.getParametri());
-            log.info("parametriAziendaJSON: " + parametriAziendaJSON.toString(4));
+            //log.info("parametriAziendaJSON: " + parametriAziendaJSON.toString(4));
             indirizzo = (String) parametriAziendaJSON.get("basePath") + "/scrivania/attivita";
         } catch (Throwable ex) {
             log.error("ERRRORE: Impossibile recuperare l'url di login", ex);
@@ -422,19 +423,19 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
     private boolean isValidEmailAddres(String mailAddres) {
         return internautaUtils.isValidEmailAddress(mailAddres);
     }
-    
-    private int getJSONArrayElementIndex(JSONArray array, JSONObject object, String chiaveDiVerifica){
+
+    private int getJSONArrayElementIndex(JSONArray array, JSONObject object, String chiaveDiVerifica) {
         int index = -1;
-        for(int i=0; i < array.length(); i++){
+        for (int i = 0; i < array.length(); i++) {
             JSONObject element = (JSONObject) array.get(i);
-            if(element.get(chiaveDiVerifica).equals(object.get(chiaveDiVerifica))){
+            if (element.get(chiaveDiVerifica).equals(object.get(chiaveDiVerifica))) {
                 return i;
             }
         }
         return index;
     }
-    
-    private boolean containsJSONArrayThisObject(JSONArray array, JSONObject object, String chiaveDiVerifica){
+
+    private boolean containsJSONArrayThisObject(JSONArray array, JSONObject object, String chiaveDiVerifica) {
         return getJSONArrayElementIndex(array, object, chiaveDiVerifica) > -1;
     }
 
@@ -444,21 +445,19 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         ParametroAziende pA = parametroAziendeRepository.findOne(
                 QParametroAziende.parametroAziende.nome.eq("personeNotificate")
         ).get();
-        
-        log.info("Persone notificate pre aggiornamento: " + personeAvvisateJSON.toString());
-        
+
+        //log.info("Persone notificate pre aggiornamento: " + personeAvvisateJSON.toString());
         JSONObject parametroAziendaValorePersoneNotificate = new JSONObject(pA.getValore());
         JSONArray personeNotificateJsnArray = (JSONArray) parametroAziendaValorePersoneNotificate.get("persone");
-        if(!containsJSONArrayThisObject(personeNotificateJsnArray, personaAvvisata, "id")){
+        if (!containsJSONArrayThisObject(personeNotificateJsnArray, personaAvvisata, "id")) {
             personeNotificateJsnArray.put(personaAvvisata);
-        }
-        else{
+        } else {
             int index = getJSONArrayElementIndex(personeNotificateJsnArray, personaAvvisata, "id");
             personeNotificateJsnArray.put(index, personaAvvisata);
         }
 
         personeAvvisateJSON.put("persone", personeNotificateJsnArray);
-        log.info("Persone notificate post aggiornamento: " + personeAvvisateJSON.toString());
+        //log.info("Persone notificate post aggiornamento: " + personeAvvisateJSON.toString());
 //        boolean found = false;
 
 //        for (int i : pA.getIdAziende()) {
@@ -476,7 +475,6 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 //            temp2[temp.length] = a.getId();
 //            pA.setIdAziende(temp2);
 //        }
-
         pA.setValore(personeAvvisateJSON.toString());
         parametroAziendeRepository.saveAndFlush(pA);
 
@@ -510,9 +508,9 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
             log.error("ERRORE: la mail NON e' stata inviata!");
             throw new Throwable("Invio mail fallito");
         } else {
-
             log.info("Mail INVIATA!");
         }
+
     }
 
     private void verificaAndInvia(Integer idPersona, Azienda azienda) throws Exception {
@@ -561,8 +559,9 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
                     JSONObject personaAvvisataJSON = new JSONObject(personaAvvisata);
 
-                    if(!personeAvvisate.contains(persona.getId()))
+                    if (!personeAvvisate.contains(persona.getId())) {
                         personeAvvisate.add(persona.getId());
+                    }
 
                     personeAvvisateJArray.put(personaAvvisataJSON);
 
