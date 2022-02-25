@@ -156,10 +156,8 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
                 parametroAziende = loadParametroAziende();
 
             }
-            System.out.println("ok");
-            idPersoneAvvisate = worker.loadPersoneNotificate(aziendaRepository.getById(idAziende[i]));
-            log.info("Persone avvisate per azienda " + idAziende[i].toString() + ": " + idPersoneAvvisate.size());
         }
+        log.info("Cliclo delle aziende terminato");
     }
 
     private boolean isInAziendeAttive(String idAzienda) {
