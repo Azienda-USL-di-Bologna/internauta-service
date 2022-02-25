@@ -21,6 +21,7 @@ public interface ImpostazioniApplicazioniRepository extends
         JpaRepository<ImpostazioniApplicazioni, String> {
 
     @Query(value = "select * from  configurazione.impostazioni_applicazioni\n"
-            + "ia where cast(impostazioni_visualizzazione as text) ilike '%scrivania.emailToNotify%' ", nativeQuery = true)
-    public List<ImpostazioniApplicazioni> getEmailToNotify(Integer azienda);
+            + "ia where cast(impostazioni_visualizzazione as text) ilike '%scrivania.emailToNotify%'  and "
+            + " id_applicazione = 'scrivania' ", nativeQuery = true)
+    public List<ImpostazioniApplicazioni> getEmailToNotify();
 }
