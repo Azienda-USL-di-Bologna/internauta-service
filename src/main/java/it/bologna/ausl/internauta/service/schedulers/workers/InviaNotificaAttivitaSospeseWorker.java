@@ -25,6 +25,7 @@ import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.text.SimpleDateFormat;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -89,11 +90,13 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
     private String personeAvvisateString;
 
-    private String personeAvvisateWithDate = "";
+    private JSONObject personeAvvisateJSON = new JSONObject();
 
-    private List<Long> personeAvvisate = new ArrayList();
+    private JSONArray personeAvvisateJArray = new JSONArray();
 
-    private List<Map<Integer, String>> listEmailToNotify = new ArrayList();
+    private List<Integer> personeAvvisate = new ArrayList();
+
+    private Map<Integer, String> listEmailToNotify = new HashMap<>();
 
     private static final Logger log = LoggerFactory
             .getLogger(InviaNotificaAttivitaSospeseWorker.class);
@@ -108,45 +111,56 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         return thatLocalDate.isEqual(TODAY);
     }
 
-    public List<Long> loadPersoneNotificate(Azienda azienda) {
+    public List<Integer> loadPersoneNotificate(Azienda azienda) {
         Integer[] arrayAziende = new Integer[]{azienda.getId()};
         ParametroAziende pA = parametroAziendeRepository.findOne(
                 QParametroAziende.parametroAziende.nome.eq("personeNotificate")
-                        .and(QParametroAziende.parametroAziende.idAziende.in(arrayAziende))
         ).get();
 
         personeAvvisateString = pA.getValore();
 
         if (personeAvvisateString != null && !personeAvvisateString.replace("{", "").replace("}", "").isEmpty()) {
 
-            JSONParser parser = new JSONParser();
+            personeAvvisateJSON = new JSONObject(personeAvvisateString);
 
-            try {
-                JSONObject json = (JSONObject) parser.parse(personeAvvisateString);
+            if (personeAvvisateJSON.has("persone")) {
 
-                if (json.has("persone")) {
+                JSONArray jsonPersone = (JSONArray) personeAvvisateJSON.get("persone");
 
-                    JSONArray jsonPersone = (JSONArray) json.get("persone");
+                for (int i = 0; i < jsonPersone.length(); i++) {
 
-                    for (Object elm : jsonPersone) {
+                    JSONObject persona = (JSONObject) jsonPersone.get(i);
 
-                        JSONObject persona = (JSONObject) elm;
+                    SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 
-                        Date lastUpdate = (Date) persona.get("version");
+                    String dateString = (String) persona.get("version");
 
-                        if (isToday(lastUpdate)) {
+                    if (dateString != null && !dateString.isEmpty()) {
 
-                            personeAvvisate.add(persona.getLong("id"));
+                        try {
+                            Date lastUpdate = formatter.parse(dateString);
 
+                            if (isToday(lastUpdate)) {
+
+                                log.info("Persona " + persona.getInt("id") + " già avvisata");
+
+                                if (!personeAvvisate.contains(persona.getInt("id"))) {
+                                    personeAvvisate.add(persona.getInt("id"));
+                                }
+
+                            }
+                        } catch (java.text.ParseException ex) {
+                            log.error("La persona " + persona.get("id") + " non ha la version: la avviso");
                         }
-                    }
-                }
 
-            } catch (ParseException ex) {
-                log.error("Errore nel parsing delle persone notificate");
+                    }
+
+                }
             }
 
         }
+        log.info("Numero di persone avvisate pre run: " + personeAvvisate.size());
+        log.info("personeAvvisateJArray size: " + personeAvvisateJArray.length());
         return personeAvvisate;
     }
 
@@ -155,19 +169,19 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
     private List<Applicazione> listaApplicazioni;
     private ParametroAziendeInvioMailNotificaAttivitaHandler handler;
 
-//    public void setParameter(List<Integer> idPersoneAvvisate, ParametroAziendeInvioMailNotificaAttivitaHandler handler) {
-//
-//        this.idPersoneAvvisate = idPersoneAvvisate;
+    public void setParameter(ParametroAziendeInvioMailNotificaAttivitaHandler handler) {
+//        //this.idPersoneAvvisate = idPersoneAvvisate;
 //        //this.idAzienda = idAzienda;
-//        this.handler = handler;
-//    }
+        this.handler = handler;
+    }
+
     private void loadAziende() {
         log.info("Load aziende");
         listaAziende = aziendaRepository.findAll();
     }
 
     private void loadApplicazioni() {
-        log.info("Load aplicazioni");
+        log.info("Load applicazioni");
         listaApplicazioni = applicazioneRepository.findAll();
     }
 
@@ -183,9 +197,11 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
     private void loadEmailToNotify(Integer idAzienda) {
 
-        List<ImpostazioniApplicazioni> listEmail = impostazioniApplicazioniRepository.getEmailToNotify(idAzienda);
+        List<ImpostazioniApplicazioni> listEmail = impostazioniApplicazioniRepository.getEmailToNotify();
 
         JSONParser parser = new JSONParser();
+
+        log.info("Load emailToNotify...");
 
         for (ImpostazioniApplicazioni iA : listEmail) {
             Map<Integer, String> tempMap = new HashMap();
@@ -200,10 +216,11 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
             String mail = (String) json.get("scrivania.emailToNotify");
 
-            tempMap.put(iA.getIdPersona().getId(), mail);
+            listEmailToNotify.put(iA.getIdPersona().getId(), mail);
 
-            listEmailToNotify.add(tempMap);
         }
+
+        log.info("Numero persone con parametro mailToNotify: " + listEmailToNotify.size());
     }
 
     private String getNomeAzienda(Integer idAzienda) {
@@ -306,7 +323,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
             JSONObject mailParams = (JSONObject) parametriAziendaJSON.get("mailParams");
             mittente = (String) mailParams.get("mailFrom");
         } catch (Throwable ex) {
-            log.error("ERRRORE: Impossibile recuperare il parametro del mittente", ex);
+            log.error("ERRORE: Impossibile recuperare il parametro del mittente", ex);
         }
 
         return mittente;
@@ -318,7 +335,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         try {
             Azienda azienda = getAziendaById(idAziendaUrl);
             JSONObject parametriAziendaJSON = new JSONObject(azienda.getParametri());
-            System.out.println("parametriAziendaJSON: " + parametriAziendaJSON.toString(4));
+            //log.info("parametriAziendaJSON: " + parametriAziendaJSON.toString(4));
             indirizzo = (String) parametriAziendaJSON.get("basePath") + "/scrivania/attivita";
         } catch (Throwable ex) {
             log.error("ERRRORE: Impossibile recuperare l'url di login", ex);
@@ -407,20 +424,58 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         return internautaUtils.isValidEmailAddress(mailAddres);
     }
 
-    private void updatePersoneAvvisate(Azienda a) {
+    private int getJSONArrayElementIndex(JSONArray array, JSONObject object, String chiaveDiVerifica) {
+        int index = -1;
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject element = (JSONObject) array.get(i);
+            if (element.get(chiaveDiVerifica).equals(object.get(chiaveDiVerifica))) {
+                return i;
+            }
+        }
+        return index;
+    }
 
-        Integer[] arrayAzienda = new Integer[]{a.getId()};
+    private boolean containsJSONArrayThisObject(JSONArray array, JSONObject object, String chiaveDiVerifica) {
+        return getJSONArrayElementIndex(array, object, chiaveDiVerifica) > -1;
+    }
+
+    private void updatePersoneAvvisate(JSONObject personaAvvisata) {
+
+        //Integer[] arrayAzienda = new Integer[]{a.getId()};
         ParametroAziende pA = parametroAziendeRepository.findOne(
                 QParametroAziende.parametroAziende.nome.eq("personeNotificate")
-                        .and(QParametroAziende.parametroAziende.idAziende.in(arrayAzienda))
         ).get();
 
-        if (personeAvvisateWithDate.endsWith(",")) {
-            personeAvvisateWithDate = personeAvvisateWithDate.substring(0, personeAvvisateWithDate.length() - 1);
+        //log.info("Persone notificate pre aggiornamento: " + personeAvvisateJSON.toString());
+        JSONObject parametroAziendaValorePersoneNotificate = new JSONObject(pA.getValore());
+        JSONArray personeNotificateJsnArray = (JSONArray) parametroAziendaValorePersoneNotificate.get("persone");
+        if (!containsJSONArrayThisObject(personeNotificateJsnArray, personaAvvisata, "id")) {
+            personeNotificateJsnArray.put(personaAvvisata);
+        } else {
+            int index = getJSONArrayElementIndex(personeNotificateJsnArray, personaAvvisata, "id");
+            personeNotificateJsnArray.put(index, personaAvvisata);
         }
-        personeAvvisateWithDate = "{\"persone\":[" + personeAvvisateWithDate + "]}";
 
-        pA.setValore(personeAvvisateWithDate);
+        personeAvvisateJSON.put("persone", personeNotificateJsnArray);
+        //log.info("Persone notificate post aggiornamento: " + personeAvvisateJSON.toString());
+//        boolean found = false;
+
+//        for (int i : pA.getIdAziende()) {
+//            if (a.getId() == i) {
+//                found = true;
+//                break;
+//            }
+//        }
+//        if (found == false) {
+//            Integer[] temp = pA.getIdAziende();
+//            Integer[] temp2 = new Integer[temp.length + 1];
+//            for (int i = 0; i < temp.length; i++) {
+//                temp2[i] = temp[i];
+//            }
+//            temp2[temp.length] = a.getId();
+//            pA.setIdAziende(temp2);
+//        }
+        pA.setValore(personeAvvisateJSON.toString());
         parametroAziendeRepository.saveAndFlush(pA);
 
     }
@@ -437,24 +492,25 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
     }
 
-    private void preparaMessaggioAndInvia(Persona persona, Utente utenteAziendale, List<Attivita> attivitaSuScrivania, String mail) throws Exception {
+    private void preparaMessaggioAndInvia(Persona persona, Utente utenteAziendale, List<Attivita> attivitaSuScrivania, String mail) throws Exception, Throwable {
         // preparo il messaggio
         String body = preparaBodyMessaggio(persona, attivitaSuScrivania);
         System.out.println(body);
         log.info("Preparo il messaggio da ");
         ArrayList<String> destinatari = new ArrayList<String>();
-        destinatari.add(utenteAziendale.getEmails()[0]);
+        destinatari.add(mail);
         log.info("Invio la mail...");
         Boolean sendMail = simpleMailSenderUtility.sendMail(handler.getIdAzienda(),
-                mail, "Nuove attività su Scrivania",
+                getMailMittente(), "Nuove attività su Scrivania",
                 destinatari, body,
                 null, null, null, null);
         if (!sendMail) {
             log.error("ERRORE: la mail NON e' stata inviata!");
+            throw new Throwable("Invio mail fallito");
         } else {
-
             log.info("Mail INVIATA!");
         }
+
     }
 
     private void verificaAndInvia(Integer idPersona, Azienda azienda) throws Exception {
@@ -485,25 +541,35 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
             log.info("Verifico se posso proseguire");
             if (attivitaSuScrivania != null && attivitaSuScrivania.size() > 0) {
                 try {
-                    for (Map<Integer, String> map : listEmailToNotify) {
-                        if (map.containsKey(persona.getId())) {
 
-                            String mail = map.get(persona.getId());
+                    String mail = listEmailToNotify.get(persona.getId());
 
-                            preparaMessaggioAndInvia(persona, utenteAziendale, attivitaSuScrivania, mail);
+                    try {
+                        preparaMessaggioAndInvia(persona, utenteAziendale, attivitaSuScrivania, mail);
 
-                            SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-
-                            Date date = new Date();
-
-                            String personaAvvisata = "{ \"id\": " + persona.getId() + ", \"version\":\"" + formatter.format(date) + "\" },";
-
-                            personeAvvisateWithDate = personeAvvisateWithDate + personaAvvisata;
-
-                            updatePersoneAvvisate(azienda);
-
-                        }
+                    } catch (Throwable t) {
+                        log.error("Errore: non sono riuscito ad inviare la mail a " + mail + " per la persona " + persona.getDescrizione(), t);
                     }
+
+                    SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+
+                    Date date = new Date();
+
+                    String personaAvvisata = "{ \"id\": " + persona.getId() + ", \"version\":\"" + formatter.format(date) + "\" }";
+
+                    JSONObject personaAvvisataJSON = new JSONObject(personaAvvisata);
+
+                    if (!personeAvvisate.contains(persona.getId())) {
+                        personeAvvisate.add(persona.getId());
+                    }
+
+                    personeAvvisateJArray.put(personaAvvisataJSON);
+
+                    log.info("Avvisata persona:" + personaAvvisata + " inserita in personaAvvisataJSON");
+
+                    log.info("personeAvvisateJArray size: " + personeAvvisateJArray.length());
+
+                    updatePersoneAvvisate(personaAvvisataJSON);
 
                 } catch (Exception e) {
 
@@ -517,7 +583,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
             }
 
         } else {
-            log.info("Gia' avvisato, skippo");
+            log.info("Persona " + idPersona + " già avvisata, la salto");
         }
 
     }
@@ -526,7 +592,8 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
     public void run() {
         // preparo una collection di aziende per trovare subito la descrizione in seguito
         log.info("Run...");
-        log.info("parametri: " + handler.getIdAzienda().toString() + " " + idPersoneAvvisate.size());
+        personeAvvisate = new ArrayList<Integer>();
+        log.info("parametri: " + handler.getIdAzienda().toString());
         loadAziende();
         loadApplicazioni();
 
@@ -537,18 +604,11 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         // cerca le persone attive con un utente attivo nell'azienda
         log.info("Cerco le persone con  un utente in azienda " + handler.getIdAzienda());
         List<Integer> personeAttiveConUtentiAttiviSuAzienda = new ArrayList<>();
-        for (Map<Integer, String> map : listEmailToNotify) {
-
-            Set<Integer> keySet = map.keySet();
-
-            for (Iterator<Integer> iterator = keySet.iterator(); iterator.hasNext();) {
-
-                Integer tempId = iterator.next();
-                personeAttiveConUtentiAttiviSuAzienda.add(tempId);
-            }
-
+        Set<Integer> keySet = listEmailToNotify.keySet();
+        Iterator<Integer> iterator = keySet.iterator();
+        while (iterator.hasNext()) {
+            personeAttiveConUtentiAttiviSuAzienda.add(iterator.next());
         }
-
         log.info("Trovate " + personeAttiveConUtentiAttiviSuAzienda.size());
         // cicla le persone
         for (Integer idPersona : personeAttiveConUtentiAttiviSuAzienda) {
@@ -562,7 +622,6 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
             }
         }
         log.info("Ciclo finito su " + handler.getIdAzienda());
-        log.info("Persone avvisate " + idPersoneAvvisate);
         log.info("Aggiorno il parametro su handler");
         updateAndFlushParametroAziende();
     }

@@ -1640,7 +1640,7 @@ public class RaccoltaSempliceCustomController {
                 jsonAllegato.put("mime_type", allegato.getContentType());
                 jsonAllegato.put("da_convertire", !allegato.getContentType().equals(SupportedMimeTypes.PDF.toString()));
                 Integer idAzienda = postgresConnectionManager.getIdAzienda(codiceAzienda);
-                MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapper(idAzienda);
+                MongoWrapper mongo = aziendeConnectionManager.getRepositoryWrapperByIdAzienda(idAzienda);
                 String uuidAllegato = mongo.put(allegato.getInputStream(), allegato.getOriginalFilename(), "/temp/generazione_documenti_da_ext/" + UUID.randomUUID(), false);
                 jsonAllegato.put("uuid_file", uuidAllegato);
                 jsonAllegato.put("principale", false);
