@@ -346,7 +346,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
     private String preparaBodyMessaggioHTML(Persona persona, List<Attivita> attivitaSuScrivania) throws Exception {
         String url = recuperaIndirizzoLogin(persona);
         String tabellaFormattataAttività = preparaListaAttivitaDaMostrareHTML(attivitaSuScrivania);
-        String body = "<p>Buongiorno, hai delle nuove attività sulla Scrivania di Babel.</p><br>"
+        String body = "<p>Buongiorno, hai delle attività sulla Scrivania di Babel.</p><br>"
                 + "<p>Clicca <a href=\"" + url + "\">qui</a> per accedere alla Scrivania e consultarle<br><br><br>"
                 + "<p>Ecco la lista delle ultime " + attivitaSuScrivania.size() + " attività:</p><br><br><br>";
         body += tabellaFormattataAttività;
@@ -359,7 +359,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
     private String preparaBodyMessaggio(Persona persona, List<Attivita> attivitaSuScrivania) throws Exception {
         String url = recuperaIndirizzoLogin(persona);
         String tabellaFormattataAttività = preparaListaAttivitaDaMostrareWithStringUtils(attivitaSuScrivania);
-        String body = "Buongiorno, hai delle nuove attività sulla Scrivania di Babel.\n"
+        String body = "Buongiorno, hai delle attività sulla Scrivania di Babel.\n"
                 + "Clicca qui per accedere alla Scrivania e consultarle\n\n"
                 + url + "\n\n\n"
                 + "Ecco la lista delle ultime " + attivitaSuScrivania.size() + " attività:\n\n\n";
@@ -501,7 +501,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         destinatari.add(mail);
         log.info("Invio la mail...");
         Boolean sendMail = simpleMailSenderUtility.sendMail(handler.getIdAzienda(),
-                getMailMittente(), "Nuove attività su Scrivania",
+                getMailMittente(), "Attivita' su Scrivania",
                 destinatari, body,
                 null, null, null, null);
         if (!sendMail) {
