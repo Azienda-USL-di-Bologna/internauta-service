@@ -71,7 +71,8 @@ public class SimpleMailSenderUtility {
 
             Properties prop = System.getProperties();
             prop.put("mail.smtp.host", smtpServer);                                 //optional, defined in SMTPTransport
-
+            prop.put("mail.smtp.timeout", 3000);
+            prop.put("mail.smtp.connectiontimeout", 3000);
             if (StringUtils.isEmpty(username) && StringUtils.isEmpty(password)) {
                 prop.put("mail.smtp.auth", "false");
             } else {
@@ -140,7 +141,7 @@ public class SimpleMailSenderUtility {
                 //                            .ofPattern("dd/MM/yyyy - HH:mm")
                 //                            .format(zonedDateTime);             //  esempio 11/03/2020 - 10.44
                 msg.setSubject(Subject);
-                // content 
+                // content
                 if (attachments != null && attachments.length > 0) {
                     Multipart multipart = new MimeMultipart();
 

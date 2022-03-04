@@ -44,7 +44,7 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
 
     private final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
 
-    private List<Long> idPersoneAvvisate = new ArrayList<>();
+    private List<Integer> idPersoneAvvisate = new ArrayList<>();
 
     private static final Logger log = LoggerFactory
             .getLogger(InviaNotificaAttivitaSospeseWorkerManager.class);
@@ -80,9 +80,9 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
         String valore = parametroAziende.getValore();
         if (valore != null && !valore.trim().equalsIgnoreCase("")) {
             JSONObject datiTutteAziende = new JSONObject(valore);
-            Set<String> keySet = datiTutteAziende.keySet();
+            //Set<String> keySet = datiTutteAziende.keySet();
 
-            for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext();) {
+            for (Iterator<String> iterator = datiTutteAziende.keys(); iterator.hasNext();) {
                 String key = iterator.next();
                 JSONObject datiUltimoGiroAzienda = (JSONObject) datiTutteAziende.get(key);
                 String lastExecutionString = (String) datiUltimoGiroAzienda.get("lastExecution");
@@ -147,7 +147,7 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
                 System.out.println("No");
                 // esegui il worker
                 log.info("Setto parametri worker");
-                //worker.setParameter(idPersoneAvvisate, handler);
+                worker.setParameter(handler);
                 log.info("Runno per azienda " + handler.getIdAzienda().toString());
                 worker.run();
                 log.info("Mestiere finito su azienda " + handler.getIdAzienda().toString());
@@ -156,10 +156,8 @@ public class InviaNotificaAttivitaSospeseWorkerManager implements Runnable {
                 parametroAziende = loadParametroAziende();
 
             }
-            System.out.println("ok");
-            idPersoneAvvisate = worker.loadPersoneNotificate(aziendaRepository.getById(idAziende[i]));
-            log.info("Persone avvisate per azienda " + idAziende[i].toString() + ": " + idPersoneAvvisate.size());
         }
+        log.info("Cliclo delle aziende terminato");
     }
 
     private boolean isInAziendeAttive(String idAzienda) {
