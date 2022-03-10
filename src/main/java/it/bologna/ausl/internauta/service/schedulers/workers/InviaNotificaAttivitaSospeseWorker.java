@@ -25,9 +25,7 @@ import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.text.SimpleDateFormat;
-import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -37,7 +35,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -113,6 +110,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
     public List<Integer> loadPersoneNotificate(Azienda azienda) {
         Integer[] arrayAziende = new Integer[]{azienda.getId()};
+        //To do: da usare il modulo parametersManager
         ParametroAziende pA = parametroAziendeRepository.findOne(
                 QParametroAziende.parametroAziende.nome.eq("personeNotificate")
         ).get();
@@ -457,24 +455,6 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         }
 
         personeAvvisateJSON.put("persone", personeNotificateJsnArray);
-        //log.info("Persone notificate post aggiornamento: " + personeAvvisateJSON.toString());
-//        boolean found = false;
-
-//        for (int i : pA.getIdAziende()) {
-//            if (a.getId() == i) {
-//                found = true;
-//                break;
-//            }
-//        }
-//        if (found == false) {
-//            Integer[] temp = pA.getIdAziende();
-//            Integer[] temp2 = new Integer[temp.length + 1];
-//            for (int i = 0; i < temp.length; i++) {
-//                temp2[i] = temp[i];
-//            }
-//            temp2[temp.length] = a.getId();
-//            pA.setIdAziende(temp2);
-//        }
         pA.setValore(personeAvvisateJSON.toString());
         parametroAziendeRepository.saveAndFlush(pA);
 
