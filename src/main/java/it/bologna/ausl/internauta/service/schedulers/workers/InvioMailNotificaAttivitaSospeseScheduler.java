@@ -31,13 +31,8 @@ public class InvioMailNotificaAttivitaSospeseScheduler {
     private static final Logger log = LoggerFactory.getLogger(InvioMailNotificaAttivitaSospeseScheduler.class);
 
     @Autowired
-    private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
-
-    @Autowired
     InviaNotificaAttivitaSospeseWorkerManager manager;
 
-    @Autowired
-    private BeanFactory beanFactory;
 
     @Scheduled(cron = "${internauta.scheduled.invio-mail-notifica-attivita-sospese.scheduled-chron-exp}",
             zone = "Europe/Rome")
@@ -52,9 +47,6 @@ public class InvioMailNotificaAttivitaSospeseScheduler {
     }
 
     public void schedulaInvioMailNotificaAttivitaSospese() {
-//        InviaNotificaAttivitaSospeseWorkerManager worker = beanFactory
-//                .getBean(InviaNotificaAttivitaSospeseWorkerManager.class);
-//        worker.run();
         manager.run();
     }
 

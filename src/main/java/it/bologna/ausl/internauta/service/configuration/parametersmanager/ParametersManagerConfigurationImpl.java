@@ -20,8 +20,8 @@ public class ParametersManagerConfigurationImpl extends ParametersManagerConfigu
     private AziendaRepository aziendaRepository;
     
     @Override
-    public Map<String, Integer> getCodiceAziendaIdAziendaMap() {
-        Map<String, Integer> codiceAziendaIdAziendaMap = new HashMap();
+    public Map<String, Object> getCodiceAziendaIdAziendaMap() {
+        Map<String, Object> codiceAziendaIdAziendaMap = new HashMap();
         List<Azienda> aziende = aziendaRepository.findAll();
         aziende.stream().forEach(a -> codiceAziendaIdAziendaMap.put(a.getCodice(), a.getId()));
         return codiceAziendaIdAziendaMap;
