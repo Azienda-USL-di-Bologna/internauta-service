@@ -47,18 +47,18 @@ public class ConfigurazioneBaseController extends BaseCrudController {
     public RestControllerEngine getRestControllerEngine() {
         return restControllerEngine;
     }
-    @RequestMapping(value = {"parametroaziende", "parametroaziende/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> parametroaziende(
-            @QuerydslPredicate(root = ParametroAziende.class) Predicate predicate,
-            Pageable pageable,
-            @RequestParam(required = false) String projection,
-            @PathVariable(required = false) Integer id,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
-
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QParametroAziende.parametroAziende, ParametroAziende.class);
-        return ResponseEntity.ok(resource);
-    }
+//    @RequestMapping(value = {"parametroaziende", "parametroaziende/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    public ResponseEntity<?> parametroaziende(
+//            @QuerydslPredicate(root = ParametroAziende.class) Predicate predicate,
+//            Pageable pageable,
+//            @RequestParam(required = false) String projection,
+//            @PathVariable(required = false) Integer id,
+//            HttpServletRequest request,
+//            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+//
+//        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QParametroAziende.parametroAziende, ParametroAziende.class);
+//        return ResponseEntity.ok(resource);
+//    }
 
     /*
      *
