@@ -10,7 +10,6 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.QArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
@@ -30,7 +29,7 @@ import org.springframework.stereotype.Component;
  * La visibilità degli archivi è più semplice della visibilità dei documenti.
  * Non abbiamo qui permessi di "non piena visibilità".
  * Anche il cosiddetto "permesso di transito" nell'archivio permette di vedere
- * tutto di quell'archivio, il blocco sta solo nel contenuto dello stesso.
+ * tutto di quell'archivio, il blocco riguarda solo il contenuto dello stesso.
  * 
  * L'ArchivioDetail viene usata quando si vogliono trovare tutti gli archivi,
  * neri compresi. Gli archivi neri sono sempre trovabili a meno che non siano
@@ -108,7 +107,7 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
                         archivioDetail.dataCreazione.eq(permessoArchivio.dataCreazione)
                     );
             BooleanExpression personaConPermesso = 
-                    archivioDetail.riservato.eq(Expressions.FALSE)
+                    archivioDetail.riservato.eq(Expressions.FALSE).and(archivioDetail.livello.eq(1))
                     .or(archivioDetail.permessiArchivioList.any().id.eq(queryPersonaConPermesso));
 //            BooleanExpression mieBozze = 
 //                    archivioDetail.stato.eq(Archivio.StatoArchivio.BOZZA.toString())
