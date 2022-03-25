@@ -1655,7 +1655,7 @@ public class RaccoltaSempliceCustomController {
                 File tmp = new File("/temp/generazione_documenti_da_ext/" + UUID.randomUUID());
                 FileUtils.copyInputStreamToFile(allegato.getInputStream(), tmp);
 
-                MinIOWrapperFileInfo savedFile = minIOWrapper.put(tmp, codiceAzienda, "/temp/generazione_documenti_da_ext/" + UUID.randomUUID(), allegato.getOriginalFilename(), null, true, UUID.randomUUID().toString(), null);
+                MinIOWrapperFileInfo savedFile = minIOWrapper.putWithBucket(tmp, codiceAzienda, "/temp/generazione_documenti_da_ext/" + UUID.randomUUID(), allegato.getOriginalFilename(), null, true, UUID.randomUUID().toString(), null);
 //                String uuidAllegato = mongo.put(allegato.getInputStream(), allegato.getOriginalFilename(), "/temp/generazione_documenti_da_ext/" + UUID.randomUUID(), false);
                 jsonAllegato.put("uuid_file", savedFile.getMongoUuid());
                 jsonAllegato.put("principale", false);
