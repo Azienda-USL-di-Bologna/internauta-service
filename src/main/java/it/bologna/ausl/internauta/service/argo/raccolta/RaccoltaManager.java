@@ -9,6 +9,13 @@ import java.util.Map;
  */
 public class RaccoltaManager {
 
+    public static String queryNomeGddoc(String nome) {
+        String query = "SELECT id_gddoc from gd.gddocs "
+                + " WHERE nome_gddoc ilike '%" + nome
+                + "%' ";
+        return query;
+    }
+
     public static String queryRaccoltaSemplice(int pageRows, int pageNumber) {
         String query = "SELECT count(r.id) OVER() as rows, r.id, r.id_gddoc "
                 + ", r.id_gddoc_associato, r.codice "
@@ -21,6 +28,23 @@ public class RaccoltaManager {
                 + ", r.create_time "
                 + " FROM gd.raccolte r "
                 + "WHERE r.create_time::date >= :from "
+                + "and r.create_time::date <= :to "
+                + "order by r.create_time desc "
+                + "LIMIT " + pageRows + " OFFSET " + pageNumber + " ";
+
+        return query;
+    }
+
+    public static String queryRaccoltaSempliceFromCFPiva(String cf, String piva, String from, int pageRows, int pageNumber) {
+        String query = "select count(r.id) OVER() as rows, r.id, r.id_gddoc, r.id_gddoc_associato, r.codice, "
+                + "r.applicazione_chiamante, r.additional_data, r.creatore, r.oggetto, r.id_struttura_responsabile_internauta, "
+                + "r.id_struttura_responsabile_argo, r.descrizione_struttura, r.stato, r.storico, r.tipo_documento, r.create_time "
+                + "from gd.coinvolti c, gd.coinvolti_raccolte cr, gd.raccolte r "
+                + "where c.id = cr.id_coinvolto "
+                + "and r.id = cr.id_raccolta "
+                + cf
+                + piva
+                + from
                 + "and r.create_time::date <= :to "
                 + "order by r.create_time desc "
                 + "LIMIT " + pageRows + " OFFSET " + pageNumber + " ";
@@ -209,7 +233,7 @@ public class RaccoltaManager {
             if (strToFind.matches("(\\d+/\\d) | (\\d+\\-\\d+/\\d+) | (\\d+\\-\\d+\\-\\d+/\\d)")) {
                 whereCondition = "where f.numerazione_gerarchica = '" + strToFind + "' "; // In questo caso uso l'uguale
             } else {
-                whereCondition = "where f.numerazione_gerarchica like ('" + strToFind + "%')"; // In questo caso si vuole l'"inizia con"
+                whereCondition = "where f.numerazione_gerarchica like ('%" + strToFind + "%')"; // In questo caso si vuole l'"inizia con"
             }
         } else {
             whereCondition = "where f.nome_fascicolo ilike ('%" + strToFind + "%')";
@@ -258,13 +282,12 @@ public class RaccoltaManager {
                 + "FROM procton.documenti d, gd.gddocs g "
                 + "WHERE g.id_oggetto_origine = 'babel_suite_' || d.guid_documento "
                 + "AND protocollo is not null "
-                + "AND  '[{\"u\":\"" + idUtente + "\"}]'::jsonb<@d.utenti_vedenti_json "
                 + (numero != null ? "AND d.protocollo = lpad('" + numero + "', 7, '0') " : "")
                 + (anno != null ? "AND d.anno_protocollo = " + anno + " " : "")
                 + "AND d.annullato = 0 "
                 + (oggetto != null ? "AND d.oggetto ilike '%" + oggetto + "%'" : "")
                 + "ORDER BY d.data_protocollo desc nulls last, d.data_documento desc limit 300";
-
+// + "AND  '[{\"u\":\"" + idUtente + "\"}]'::jsonb<@d.utenti_vedenti_json "
         return query;
     }
 }
