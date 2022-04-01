@@ -22,7 +22,6 @@ import it.bologna.ausl.model.entities.baborg.AttributiStruttura;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.IdpEntityId;
 import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
-import it.bologna.ausl.model.entities.baborg.Massimario;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.PecProvider;
@@ -32,18 +31,15 @@ import it.bologna.ausl.model.entities.baborg.PermessoBaborg;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QAttributiStruttura;
 import it.bologna.ausl.model.entities.baborg.QImportazioniOrganigramma;
-import it.bologna.ausl.model.entities.baborg.QMassimario;
 import it.bologna.ausl.model.entities.baborg.QPecAzienda;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.QTipologiaStruttura;
-import it.bologna.ausl.model.entities.baborg.QTitolo;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.TipoPermesso;
 import it.bologna.ausl.model.entities.baborg.TipologiaStruttura;
-import it.bologna.ausl.model.entities.baborg.Titolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.nextsw.common.controller.BaseCrudController;
@@ -370,33 +366,6 @@ public class BaborgBaseController extends BaseCrudController {
         return ResponseEntity.ok(resource);
     }
 
-    @RequestMapping(value = {"massimario", "massimario/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-//    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> massimario(
-            @QuerydslPredicate(root = Massimario.class) Predicate predicate,
-            Pageable pageable,
-            @RequestParam(required = false) String projection,
-            @PathVariable(required = false) Integer id,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
-
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMassimario.massimario, Massimario.class);
-        return ResponseEntity.ok(resource);
-    }
-
-    @RequestMapping(value = {"titolo", "titolo/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-//    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> titolo(
-            @QuerydslPredicate(root = Titolo.class) Predicate predicate,
-            Pageable pageable,
-            @RequestParam(required = false) String projection,
-            @PathVariable(required = false) Integer id,
-            HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
-
-        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QTitolo.titolo, Titolo.class);
-        return ResponseEntity.ok(resource);
-    }
 
     @RequestMapping(value = {"importazioniorganigramma", "importazioniorganigramma/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> importazioniorganigramma(

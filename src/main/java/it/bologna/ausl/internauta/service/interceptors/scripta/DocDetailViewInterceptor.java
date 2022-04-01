@@ -116,6 +116,7 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
     private BooleanExpression safetyFilters() {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Utente user = authenticatedSessionData.getUser();
+        Utente realUser = authenticatedSessionData.getRealUser();
         Persona persona = user.getIdPersona();
         QDocDetailView qdocdetailview = QDocDetailView.docDetailView;
         BooleanExpression filter = Expressions.TRUE.eq(true);
