@@ -53,9 +53,15 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.argo.raccolta.RaccoltaManager;
+import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDetailRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 //import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
@@ -92,9 +98,17 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
+import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
 import java.lang.reflect.InvocationTargetException;
 import java.util.logging.Level;
+import org.json.simple.JSONArray;
+import org.sql2o.Connection;
+import org.sql2o.Query;
+import org.sql2o.Sql2o;
 
 /**
  *
@@ -114,10 +128,25 @@ public class ScriptaCustomController {
     private CachedEntities cachedEntities;
 
     @Autowired
+    private ArchivioRepository archivioRepository;
+
+    @Autowired
+    private ArchivioDetailRepository archivioDetailRepository;
+
+    @Autowired
     private NonCachedEntities nonCachedEntities;
 
     @Autowired
+    private PostgresConnectionManager postgresConnectionManager;
+
+    @Autowired
+    private UtenteRepository utenteRepository;
+
+    @Autowired
     private DocRepository docRepository;
+
+    @Autowired
+    private PersonaRepository personaRepository;
 
     @Autowired
     private DocDetailRepository docDetailRepository;
@@ -145,7 +174,6 @@ public class ScriptaCustomController {
 
 //    @Autowired
 //    private DettaglioAllegatoRepository dettaglioAllegatoRepository;
-
     @Autowired
     private ProjectionFactory projectionFactory;
 
@@ -247,12 +275,12 @@ public class ScriptaCustomController {
                 LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
                 throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
             }
-            
+
             if (dettaglioAllegato == null) {
                 LOG.info("il dettaglio allegato richiesto non è stato tovato");
                 throw new Http500ResponseException("2", "il dettaglio allegato richiesto non è stato tovato");
             }
-            
+
             StreamUtils.copy(minIOWrapper.getByFileId(dettaglioAllegato.getIdRepository()), response.getOutputStream());
         }
         response.flushBuffer();
@@ -534,7 +562,7 @@ public class ScriptaCustomController {
             Map<String, Object> AoCC = new HashMap();
             AoCC.put("tipo", destinatario.getTipo().toString());
             // TODO:
-            //mettere gli assegnatari quando si avranno sul db 
+            //mettere gli assegnatari quando si avranno sul db
             //dal contatto devo beccare la struttura
             //recuperare cf della persona dal contatto
             //da sistemare quando si potranno mettere in interfaccia
@@ -573,6 +601,37 @@ public class ScriptaCustomController {
 //            hashString = "0" + hashString;
 //        }
         return hashString;
+    }
+
+    @RequestMapping(value = "getResponsabili", method = RequestMethod.GET)
+    public JSONObject getResponsabili(@RequestParam("id") String idArchivio) throws Http500ResponseException {
+        JSONObject json = new JSONObject();
+        JSONArray jsonArray = new JSONArray();
+        Archivio archivio = archivioRepository.getById(Integer.parseInt(idArchivio));
+        ArchivioDetail dettaglio = archivioDetailRepository.getById(Integer.parseInt(idArchivio));
+        Persona personaResponsabile = dettaglio.getIdPersonaResponsabile();
+        Integer[] idVicari = dettaglio.getIdVicari();
+        List<Persona> listVicari = new ArrayList();
+        for (Integer id : idVicari) {
+            Optional<Persona> p = personaRepository.findById(id);
+            listVicari.add(p.get());
+        }
+        json.put("descrizione", personaResponsabile.getDescrizione());
+        json.put("ruolo", "Responsabile");
+        json.put("id", personaResponsabile.getId());
+        json.put("struttura", dettaglio.getIdStruttura().getNome());
+        jsonArray.add(json);
+        for (Persona vic : listVicari) {
+            json = new JSONObject();
+            json.put("descrizione", vic.getDescrizione());
+            json.put("ruolo", "Vicario");
+            json.put("id", vic.getId());
+            json.put("struttura", dettaglio.getIdStruttura().getNome());
+            jsonArray.add(json);
+        }
+        JSONObject jsonReturn = new JSONObject();
+        jsonReturn.put("responsabili", jsonArray);
+        return jsonReturn;
     }
 
     @RequestMapping(value = "eliminaProposta", method = RequestMethod.POST)
@@ -621,7 +680,7 @@ public class ScriptaCustomController {
 
         Call call = client.newCall(request);
         HashMap readValue = null;
-        try (Response response = call.execute();) {
+        try ( Response response = call.execute();) {
             int responseCode = response.code();
             if (response.isSuccessful()) {
                 readValue = objectMapper.readValue(response.body().string(), HashMap.class);
