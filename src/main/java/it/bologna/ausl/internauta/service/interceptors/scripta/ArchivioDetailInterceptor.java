@@ -8,16 +8,21 @@ import static com.querydsl.jpa.JPAExpressions.select;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
+import it.bologna.ausl.model.entities.scripta.ArchivioDiInteresse;
 import it.bologna.ausl.model.entities.scripta.QArchivioDetail;
+import it.bologna.ausl.model.entities.scripta.QArchivioDiInteresse;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -54,6 +59,9 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     UserInfoService userInfoService;
+    
+    @Autowired
+    ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
     @Override
     public Class getTargetEntityClass() {
@@ -62,7 +70,50 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        Utente user = authenticatedSessionData.getUser();
+        Persona persona = user.getIdPersona();
+        ArchivioDiInteresse archivioDiInteresse = null;
         initialPredicate = safetyFilters().and(initialPredicate);
+        
+        Boolean safetyFiltersNonNecessari = false; // Ci sono dei casi in cui non voglio aggiungere filtri di sicurezza. Questi casi sono quelli in cui l'utente vuole vedere archivi che ha già usato e sono in archiviDiInteresse
+        
+        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                switch (operationRequested) {
+                    case VisualizzaTabPreferiti:
+                        safetyFiltersNonNecessari = true;
+                        archivioDiInteresse = getArchivioDiInteresse(persona);
+                        if (archivioDiInteresse != null) {
+                            Integer[] idArchiviPreferiti = archivioDiInteresse.getIdArchiviPreferiti();
+                            initialPredicate = getFilterDiInteresse(idArchiviPreferiti).and(initialPredicate);
+                        }
+                        break;
+                    case VisualizzaTabFrequenti:
+                        safetyFiltersNonNecessari = true;
+                        archivioDiInteresse = getArchivioDiInteresse(persona);
+                        if (archivioDiInteresse != null) {
+                            Integer[] idArchiviFrequenti = archivioDiInteresse.getIdArchiviFrequenti();
+                            initialPredicate = getFilterDiInteresse(idArchiviFrequenti).and(initialPredicate);
+                        }
+                        break;
+                    case VisualizzaTabRecenti:
+                        safetyFiltersNonNecessari = true;
+                        archivioDiInteresse = getArchivioDiInteresse(persona);
+                        if (archivioDiInteresse != null) {
+                            Integer[] idArchiviRecenti = archivioDiInteresse.getIdArchiviRecenti();
+                            initialPredicate = getFilterDiInteresse(idArchiviRecenti).and(initialPredicate);
+                        }
+                        break;
+                }
+            }
+        }
+        
+        if (!safetyFiltersNonNecessari) {
+            initialPredicate = safetyFilters().and(initialPredicate);
+        }
+        
         return initialPredicate;
     }
 
@@ -120,5 +171,35 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
         }
 
         return filter;
+    }
+    
+    /**
+     * Data una persona ritorna il suo ArchivioDiInteresse
+     * @param persona
+     * @return 
+     */
+    private ArchivioDiInteresse getArchivioDiInteresse(Persona persona) {
+        ArchivioDiInteresse archivioDiInteresse = null;
+        QArchivioDiInteresse qArchivioDiInteresse = QArchivioDiInteresse.archivioDiInteresse;
+        BooleanExpression filter = qArchivioDiInteresse.idPersona.id.eq(persona.getId());
+        Optional<ArchivioDiInteresse> res = archivioDiInteresseRepository.findOne(filter);
+        if (res.isPresent()) {
+            archivioDiInteresse = res.get();
+        }
+        return archivioDiInteresse;
+    }
+    
+    /**
+     * Torno il filtro sugli id di interesse
+     * @param idArchiviDiInteresse
+     * @return 
+     */
+    private BooleanExpression getFilterDiInteresse(Integer[] idArchiviDiInteresse) {
+        QArchivioDetail qArchivioDetail = QArchivioDetail.archivioDetail;
+        if (idArchiviDiInteresse != null && idArchiviDiInteresse.length > 0) {
+            return qArchivioDetail.id.in(idArchiviDiInteresse);
+        } else {
+            return Expressions.TRUE.eq(false); // Non ho interessi. Quindi non troverò nulla.
+        }
     }
 }
