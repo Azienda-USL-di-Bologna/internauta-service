@@ -15,6 +15,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
+import it.bologna.ausl.model.entities.rubrica.ContattoInterface;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.nextsw.common.annotations.NextSdrInterceptor;
@@ -42,16 +43,19 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(DettaglioContattoInterceptor.class);
 
     @Autowired
-    ContattoRepository contattoRepository;
+    private ContattoRepository contattoRepository;
 
     @Autowired
-    UserInfoService userInfoService;
+    private UserInfoService userInfoService;
 
     @Autowired
-    KrintRubricaService krintRubricaService;
+    private KrintRubricaService krintRubricaService;
 
     @Autowired
-    ContattoInterceptor contattoInterceptor;
+    private ContattoInterceptor contattoInterceptor;
+    
+    @Autowired
+    private RubricaInterceptorUtils rubricaInterceptorUtils;
     
     @Autowired
     private KrintUtils krintUtils;
@@ -120,7 +124,7 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
                 throw new AbortLoadInterceptorException("Errore nel caricamento delle persone di cui si è segretario dalla BlackBox", ex);
             }
             personeDiCuiVedoIProtoconattiList.add(loggedUser.getIdPersona());
-            initialPredicate = contattoInterceptor.addFilterVisibilita(initialPredicate, QDettaglioContatto.dettaglioContatto.idContatto, personeDiCuiVedoIProtoconattiList);
+            initialPredicate = rubricaInterceptorUtils.addFilterVisibilita(authenticatedSessionData, initialPredicate, Contatto.class, personeDiCuiVedoIProtoconattiList);
         }
 
         return initialPredicate;
