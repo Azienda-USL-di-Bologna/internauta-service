@@ -66,4 +66,16 @@ public class ArchivioProjectionUtils {
         return !(permessiArchivi.iterator().hasNext());
     }
 
+    public Boolean getIsArchivioNero(Archivio archivio) throws BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = authenticatedSessionData.getPerson();
+        BooleanExpression filter = QPermessoArchivio.permessoArchivio.idArchivioDetail.id.eq(archivio.getId())
+                .and(QPermessoArchivio.permessoArchivio.idPersona.id.eq(persona.getId()))
+                .and(QPermessoArchivio.permessoArchivio.idAzienda.id.eq((archivio.getIdAzienda().getId())))
+                .and(QPermessoArchivio.permessoArchivio.dataCreazione.eq(archivio.getDataCreazione()));
+        PermessoArchivio pA = new PermessoArchivio();
+        Iterable<PermessoArchivio> permessiArchivi = permessoArchivioRepository.findAll(filter);
+        return !(permessiArchivi.iterator().hasNext());
+    }
+
 }
