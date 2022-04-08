@@ -37,10 +37,10 @@ import org.springframework.stereotype.Component;
 public class DocDetailInterceptorUtils {
     
     @Autowired
-    InternautaUtils internautaUtils;
+    private InternautaUtils internautaUtils;
     
     @Autowired
-    UserInfoService userInfoService;
+    private UserInfoService userInfoService;
     
     /**
      * La variabile threadlocal filterDescriptor è una mappa. Le sue chiavi sono
