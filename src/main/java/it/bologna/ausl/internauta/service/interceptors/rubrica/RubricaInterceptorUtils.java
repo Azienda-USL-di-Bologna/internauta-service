@@ -7,6 +7,7 @@ package it.bologna.ausl.internauta.service.interceptors.rubrica;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.CaseFormat;
+import com.querydsl.core.types.EntityPath;
 import com.querydsl.core.types.Path;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -30,6 +31,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.ContattoInterface;
+import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.QContatto;
 import it.bologna.ausl.model.entities.rubrica.views.ContattoConDettaglioPrincipale;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
@@ -83,13 +85,31 @@ public class RubricaInterceptorUtils {
     public Predicate addFilterVisibilita(
                 AuthenticatedSessionData authenticatedSessionData, 
                 Predicate initialPredicate, 
-                Class<? extends ContattoInterface> contattoClass, 
+                Class<? extends ContattoInterface> contattoClass,
+                Boolean isDettaglioContatto,
                 List<Persona> personeDiCuiVedoIProtoconattiList) throws AbortLoadInterceptorException {
-        
+        LOGGER.info("authenticatedSessionData");
+        LOGGER.info(authenticatedSessionData.getPerson().getDescrizione());
+        LOGGER.info(authenticatedSessionData.getUser().getUsername());
+        LOGGER.info("initialPredicate");
+        LOGGER.info(initialPredicate.toString());
+        LOGGER.info(contattoClass.getCanonicalName());
+        LOGGER.info("personeDiCuiVedoIProtoconattiList");
+        for (Persona persona : personeDiCuiVedoIProtoconattiList) {
+            LOGGER.info(persona.getDescrizione());
+            
+        }
+                
         Utente loggedUser = authenticatedSessionData.getUser();
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(loggedUser.getIdPersona());
-        PathBuilder<ContattoInterface> contatto = getQObjectFromClass(contattoClass);
+        PathBuilder<?> contatto;
         // QUESTO E' IL FILTRO PER FAR SI CHE UNO VEDA SOLO I CONTATTI DELLE SUE AZIENDE
+        if (isDettaglioContatto) {
+            contatto = getQObjectFromClass(DettaglioContatto.class);    
+            contatto = contatto.get("idContatto");
+        } else {
+            contatto = getQObjectFromClass(contattoClass);
+        }
         BooleanExpression permessoAziendaleFilter = contatto.get("idAziende",Integer[].class).isNull().or(
                 Expressions.booleanTemplate("tools.array_overlap({0}, tools.string_to_integer_array({1}, ','))=true",
                         contatto.get("idAziende",Integer[].class), org.apache.commons.lang3.StringUtils.join(aziendePersona.stream().map(a -> a.getId()).collect(Collectors.toList()), ",")
@@ -157,9 +177,10 @@ public class RubricaInterceptorUtils {
         initialPredicate = addFilterVisibilita(
                 authenticatedSessionData,
                 initialPredicate,  
-                tipoContattoIgnoto,  
+                tipoContattoIgnoto,
+                false,
                 personeDiCuiVedoIProtoconattiList);
-        PathBuilder<ContattoInterface> qContatto = getQObjectFromClass(tipoContattoIgnoto);
+        PathBuilder<?> qContatto = getQObjectFromClass(tipoContattoIgnoto);
         // CONTOLLIAMO EVENTUALI ADDITIONAL DATA.
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
@@ -217,7 +238,7 @@ public class RubricaInterceptorUtils {
         return initialPredicate;
     }
 
-    PathBuilder<ContattoInterface> getQObjectFromClass(Class<? extends ContattoInterface> targetEntityClass) {
+    PathBuilder<?> getQObjectFromClass(Class<?> targetEntityClass) {
         
         return new PathBuilder(targetEntityClass, CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_CAMEL,targetEntityClass.getSimpleName()));
     }
