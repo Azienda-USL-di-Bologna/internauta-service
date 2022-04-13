@@ -76,6 +76,7 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
                 for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                     switch (operationRequested) {
                         case CercaAncheInContatto:
+                            LOGGER.info("sono dentro CercaAncheInContatto");
                             stringDaCercare = additionalData.get(InternautaConstants.AdditionalData.Keys.CercaAncheInContatto.toString());
                             BooleanExpression booleanTemplateDettaglioContatto = Expressions.booleanTemplate(
                                     String.format("FUNCTION('fts_match', italian, {0}, '%s')= true", stringDaCercare.replace("'", "''")),
@@ -94,7 +95,7 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
                             break;
 
                         case CercaAncheInContattoNoTScol:
-
+                            LOGGER.info("sono dentro CercaAncheInContattoNoTScol");
                             stringDaCercare = additionalData.get(InternautaConstants.AdditionalData.Keys.CercaAncheInContattoNoTScol.toString());
                             String stringheDaCercare[] = stringDaCercare.split(" ");
                             BooleanExpression primoPredicate = QDettaglioContatto.dettaglioContatto.descrizione.containsIgnoreCase(stringheDaCercare[0]);
@@ -113,6 +114,7 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
                     }
                 }
             }
+            LOGGER.info("sono fuori dallo switch");
             // Se la chiamata viene fatta direttamente sui dettagli contatti mi assicuro che siano dettagli di contatti che l'utente può vedere.           
             // AGGIUNGO I FILTRI DI SICUREZZA PER GARANTIRE CHE L'UTENTE NON VEDA CONTATTI CHE NON PUO' VEDERE
             List<Persona> personeDiCuiVedoIProtoconattiList;
