@@ -85,7 +85,18 @@ public class RubricaInterceptorUtils {
                 Predicate initialPredicate, 
                 Class<? extends ContattoInterface> contattoClass, 
                 List<Persona> personeDiCuiVedoIProtoconattiList) throws AbortLoadInterceptorException {
-        
+        LOGGER.info("authenticatedSessionData");
+        LOGGER.info(authenticatedSessionData.getPerson().getDescrizione());
+        LOGGER.info(authenticatedSessionData.getUser().getUsername());
+        LOGGER.info("initialPredicate");
+        LOGGER.info(initialPredicate.toString());
+        LOGGER.info(contattoClass.getCanonicalName());
+        LOGGER.info("personeDiCuiVedoIProtoconattiList");
+        for (Persona persona : personeDiCuiVedoIProtoconattiList) {
+            LOGGER.info(persona.getDescrizione());
+            
+        }
+                
         Utente loggedUser = authenticatedSessionData.getUser();
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(loggedUser.getIdPersona());
         PathBuilder<ContattoInterface> contatto = getQObjectFromClass(contattoClass);
