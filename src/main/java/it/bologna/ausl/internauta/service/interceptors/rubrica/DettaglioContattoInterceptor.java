@@ -126,7 +126,8 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
                 throw new AbortLoadInterceptorException("Errore nel caricamento delle persone di cui si è segretario dalla BlackBox", ex);
             }
             personeDiCuiVedoIProtoconattiList.add(loggedUser.getIdPersona());
-            initialPredicate = rubricaInterceptorUtils.addFilterVisibilita(authenticatedSessionData, initialPredicate, Contatto.class, personeDiCuiVedoIProtoconattiList);
+//            QDettaglioContatto dettaglioContatto = QDettaglioContatto.dettaglioContatto;
+            initialPredicate = rubricaInterceptorUtils.addFilterVisibilita(authenticatedSessionData, initialPredicate, Contatto.class, true, personeDiCuiVedoIProtoconattiList);
         }
 
         return initialPredicate;
