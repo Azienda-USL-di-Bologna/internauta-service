@@ -15,7 +15,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 @NextSdrRepository(repositoryPath = "${scripta.mapping.url.root}/archiviodetail", defaultProjection = ArchivioDetailWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "archiviodetail", path = "archiviodetail", exported = false, excerptProjection = ArchivioDetailWithPlainFields.class)
 public interface ArchivioDetailRepository extends
-        NextSdrQueryDslRepository<ArchivioDetail, Integer, QArchivioDetail>, 
+        NextSdrQueryDslRepository<ArchivioDetail, Integer, QArchivioDetail>,
         JpaRepository<ArchivioDetail, Integer> {
 
 }

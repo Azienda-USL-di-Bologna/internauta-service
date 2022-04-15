@@ -15,6 +15,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
+import it.bologna.ausl.model.entities.rubrica.ContattoInterface;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.nextsw.common.annotations.NextSdrInterceptor;
@@ -42,16 +43,19 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(DettaglioContattoInterceptor.class);
 
     @Autowired
-    ContattoRepository contattoRepository;
+    private ContattoRepository contattoRepository;
 
     @Autowired
-    UserInfoService userInfoService;
+    private UserInfoService userInfoService;
 
     @Autowired
-    KrintRubricaService krintRubricaService;
+    private KrintRubricaService krintRubricaService;
 
     @Autowired
-    ContattoInterceptor contattoInterceptor;
+    private ContattoInterceptor contattoInterceptor;
+    
+    @Autowired
+    private RubricaInterceptorUtils rubricaInterceptorUtils;
     
     @Autowired
     private KrintUtils krintUtils;
@@ -72,6 +76,7 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
                 for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                     switch (operationRequested) {
                         case CercaAncheInContatto:
+                            LOGGER.info("sono dentro CercaAncheInContatto");
                             stringDaCercare = additionalData.get(InternautaConstants.AdditionalData.Keys.CercaAncheInContatto.toString());
                             BooleanExpression booleanTemplateDettaglioContatto = Expressions.booleanTemplate(
                                     String.format("FUNCTION('fts_match', italian, {0}, '%s')= true", stringDaCercare.replace("'", "''")),
@@ -90,7 +95,7 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
                             break;
 
                         case CercaAncheInContattoNoTScol:
-
+                            LOGGER.info("sono dentro CercaAncheInContattoNoTScol");
                             stringDaCercare = additionalData.get(InternautaConstants.AdditionalData.Keys.CercaAncheInContattoNoTScol.toString());
                             String stringheDaCercare[] = stringDaCercare.split(" ");
                             BooleanExpression primoPredicate = QDettaglioContatto.dettaglioContatto.descrizione.containsIgnoreCase(stringheDaCercare[0]);
@@ -109,6 +114,7 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
                     }
                 }
             }
+            LOGGER.info("sono fuori dallo switch");
             // Se la chiamata viene fatta direttamente sui dettagli contatti mi assicuro che siano dettagli di contatti che l'utente può vedere.           
             // AGGIUNGO I FILTRI DI SICUREZZA PER GARANTIRE CHE L'UTENTE NON VEDA CONTATTI CHE NON PUO' VEDERE
             List<Persona> personeDiCuiVedoIProtoconattiList;
@@ -120,7 +126,8 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
                 throw new AbortLoadInterceptorException("Errore nel caricamento delle persone di cui si è segretario dalla BlackBox", ex);
             }
             personeDiCuiVedoIProtoconattiList.add(loggedUser.getIdPersona());
-            initialPredicate = contattoInterceptor.addFilterVisibilita(initialPredicate, QDettaglioContatto.dettaglioContatto.idContatto, personeDiCuiVedoIProtoconattiList);
+//            QDettaglioContatto dettaglioContatto = QDettaglioContatto.dettaglioContatto;
+            initialPredicate = rubricaInterceptorUtils.addFilterVisibilita(authenticatedSessionData, initialPredicate, Contatto.class, true, personeDiCuiVedoIProtoconattiList);
         }
 
         return initialPredicate;

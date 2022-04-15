@@ -10,9 +10,12 @@ import org.springframework.data.rest.core.config.Projection;
  * @author Salo
  */
 @Projection(name = "CustomArchivioDetailWithIdAziendaAndIdPersonaCreazioneAndIdPersonaResponsabileAndIdStrutturaAndIdVicari", types = it.bologna.ausl.model.entities.scripta.ArchivioDetail.class)
-public interface CustomArchivioDetailWithIdAziendaAndIdPersonaCreazioneAndIdPersonaResponsabileAndIdStrutturaAndIdVicari extends ArchivioDetailWithIdAziendaAndIdPersonaCreazioneAndIdPersonaResponsabileAndIdStruttura{
+public interface CustomArchivioDetailWithIdAziendaAndIdPersonaCreazioneAndIdPersonaResponsabileAndIdStrutturaAndIdVicari extends ArchivioDetailWithIdAziendaAndIdPersonaCreazioneAndIdPersonaResponsabileAndIdStruttura {
 
     @Value("#{@scriptaProjectionUtils.getDescrizionePersonaVicarioList(target)}")
     public List<String> getDescrizionePersonaVicarioList();
-    
+
+    @Value("#{@archivioProjectionUtils.getIsArchivioNero(target)}")
+    public Boolean getIsArchivioNero();
+
 }

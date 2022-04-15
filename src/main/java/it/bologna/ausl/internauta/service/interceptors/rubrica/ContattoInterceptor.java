@@ -5,10 +5,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -21,7 +19,6 @@ import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepositor
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -36,10 +33,8 @@ import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -83,6 +78,9 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     private KrintUtils krintUtils;
+    
+    @Autowired
+    private RubricaInterceptorUtils rubricaInterceptorUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -92,130 +90,12 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        Utente loggedUser = authenticatedSessionData.getUser();
-        List<Persona> personeDiCuiVedoIProtoconattiList;
-        try {
-            personeDiCuiVedoIProtoconattiList = userInfoService
-                    .getPersoneDiStruttureDiCuiPersonaIsSegretario(getAuthenticatedUserProperties().getPerson());
-        } catch (BlackBoxPermissionException ex) {
-            LOGGER.error(ex.toString());
-            throw new AbortLoadInterceptorException("Errore nel caricamento delle persone di cui si è segretario dalla BlackBox", ex);
-        }
-        personeDiCuiVedoIProtoconattiList.add(loggedUser.getIdPersona());
+        List<Persona> personeDiCuiVedoIProtoconattiList = rubricaInterceptorUtils.personeDiCuiVedoIProtocontatti(authenticatedSessionData) ;
 
         // AGGIUNGO I FILTRI DI SICUREZZA PER GARANTIRE CHE L'UTENTE NON VEDA CONTATTI CHE NON PUO' VEDERE
-        initialPredicate = addFilterVisibilita(initialPredicate, QContatto.contatto, personeDiCuiVedoIProtoconattiList);
-
-        // CONTOLLIAMO EVENTUALI ADDITIONAL DATA.
-        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
-        if (operationsRequested != null && !operationsRequested.isEmpty()) {
-            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
-                switch (operationRequested) {
-                    // QUESTO E' IL FILTRO CHE RIGUARDA I PROTOCONTATTI E I CONTATTI DA VERIFICARE
-                    // Serve a mettere in OR i due booleani (cosa che dal front-end non si può fare))
-                    case FilterContattiDaVerificareOProtocontatti:
-                        LOGGER.info("Devo cercare i PROTOCONTATTI "
-                                + "creati dalle persone che fanno parte "
-                                + "delle strutture di cui AuthenticatedUser e' responsabile...");
-
-                        if (personeDiCuiVedoIProtoconattiList != null && personeDiCuiVedoIProtoconattiList.size() > 0) {
-                            LOGGER.info("Trovate "
-                                    + personeDiCuiVedoIProtoconattiList.size()
-                                    + " persone: aggiungo una AND condition "
-                                    + "all' initialPredicate...");
-                            BooleanExpression daVerfificareOrProtocontattoVisbile
-                                    = QContatto.contatto.daVerificare.eq(true).or(
-                                            QContatto.contatto.protocontatto.eq(true)
-                                                    .and(QContatto.contatto.idPersonaCreazione
-                                                            .in(personeDiCuiVedoIProtoconattiList)));
-                            initialPredicate = (daVerfificareOrProtocontattoVisbile).and(initialPredicate);
-                        } else {
-                            LOGGER.info("AuthenticatedUser non e' segretario "
-                                    + "oppure non ci sono persone nelle "
-                                    + "strutture di cui lui e' segretario");
-                        }
-
-                        break;
-                    case CercaContattiCustomFilterPico:
-                        String cercaAncheGruppiString = additionalData.get(InternautaConstants.AdditionalData.Keys.cercaAncheGruppi.toString());
-                        boolean cercaAncheGruppi = false;
-                        if (cercaAncheGruppiString != null) {
-                            cercaAncheGruppi = Boolean.parseBoolean(cercaAncheGruppiString);
-                        }
-                        BooleanExpression picoCustomFilter
-                                = QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.ESTERNO.toString()).or(
-                                        ((QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.PERSONA.toString())
-                                                .or(QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.STRUTTURA.toString())))
-                                                .and(
-                                                        QContatto.contatto.tipo.eq(Contatto.TipoContatto.ORGANIGRAMMA.toString())
-                                                ))
-                                );
-                        if (cercaAncheGruppi) {
-                            picoCustomFilter = picoCustomFilter.or(QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.GRUPPO.toString()));
-//                            picoCustomFilter = (QContatto.contatto.categoria.eq(Contatto.CategoriaContatto.GRUPPO.toString()));
-                        }
-                        initialPredicate = (picoCustomFilter).and(initialPredicate);
-                        break;
-                }
-            }
-        }
-        LOGGER.info("query: " + initialPredicate.toString());
-        return initialPredicate;
-    }
-
-    public List<Integer> getIdContattiRiservatiVisbili() throws AbortLoadInterceptorException {
-        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        List<PermessoEntitaStoredProcedure> contattiWithStandardPermissions;
-        try {
-            List<Object> struttureUtente = userInfoService.getUtenteStrutturaList(authenticatedSessionData.getUser(), true).stream().map(us -> us.getIdStruttura()).collect(Collectors.toList());
-            contattiWithStandardPermissions = permissionManager.getPermissionsOfSubjectAdvanced(
-                    authenticatedSessionData.getPerson(),
-                    null,
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ACCESSO.toString()}),
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.RUBRICA.toString()}),
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.CONTATTO.toString()}), true, null, null, struttureUtente, BlackBoxConstants.Direzione.PRESENTE);
-        } catch (BlackBoxPermissionException ex) {
-            LOGGER.error("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
-            throw new AbortLoadInterceptorException("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
-        }
-
-        return contattiWithStandardPermissions
-                .stream()
-                .map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList());
-    }
-
-    public Predicate addFilterVisibilita(Predicate initialPredicate, QContatto contatto, List<Persona> personeDiCuiVedoIProtoconattiList) throws AbortLoadInterceptorException {
-        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-        Utente loggedUser = authenticatedSessionData.getUser();
-        List<Azienda> aziendePersona = userInfoService.getAziendePersona(loggedUser.getIdPersona());
-
-        // QUESTO E' IL FILTRO PER FAR SI CHE UNO VEDA SOLO I CONTATTI DELLE SUE AZIENDE
-        BooleanExpression permessoAziendaleFilter = contatto.idAziende.isNull().or(
-                Expressions.booleanTemplate("tools.array_overlap({0}, tools.string_to_integer_array({1}, ','))=true",
-                        contatto.idAziende, org.apache.commons.lang3.StringUtils.join(aziendePersona.stream().map(a -> a.getId()).collect(Collectors.toList()), ",")
-                ).or(
-                        Expressions.booleanTemplate("cardinality({0}) = 0",
-                                contatto.idAziende
-                        )
-                ));
-        initialPredicate = permessoAziendaleFilter.and(initialPredicate);
-
-        // QUESTO E' IL FILTRO PER FAR SI CHE UNO VEDA SOLO I CONTATTI RISERVATI SU CUI HA UN PERMESSO UTENTE
-        List<Integer> idContattiRiservatiVisbili = getIdContattiRiservatiVisbili();
-        BooleanExpression contactFilter = contatto.id.in(idContattiRiservatiVisbili)
-                .or(contatto.idPersonaCreazione.id.eq(loggedUser.getIdPersona().getId())
-                        .or(contatto.riservato.eq(false)));
-        initialPredicate = contactFilter.and(initialPredicate);
-
-        // QUESTO E' IL FILTRO PER I PROTOCONTATTI. Un protocontatto lo può vedeere solo un CA/CI o le persone dentro personeDiCuiVedoIProtoconattiList
-        BooleanExpression sonoCAoCI = (userInfoService.isCI(loggedUser) || userInfoService.isCA(loggedUser)) ? Expressions.TRUE : Expressions.FALSE;
-        BooleanExpression protocontattoFilters = contatto.protocontatto.eq(false)
-                .or(contatto.idPersonaCreazione.in(personeDiCuiVedoIProtoconattiList)
-                        .or(sonoCAoCI.isTrue()));
-        initialPredicate = protocontattoFilters.and(initialPredicate);
-
-        return initialPredicate;
-    }
+        
+        return rubricaInterceptorUtils.addFiltriPerContattiChePossoVedere(authenticatedSessionData, personeDiCuiVedoIProtoconattiList,initialPredicate,additionalData,request,mainEntity,projectionClass,getTargetEntityClass());
+    }   
 
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
