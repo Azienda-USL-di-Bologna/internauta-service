@@ -209,12 +209,12 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             EmlData emlData = new EmlData(res);
             
             if (emlSource != EmlSource.DRAFT && emlSource != EmlSource.OUTBOX) {
-                int attNumber = (int) Arrays.stream(res.getAttachments())
+                int attNumber = (int) Arrays.stream(emlData.getAttachments())
                         .filter(a -> {
                             LOG.info(a.toString());
                             return a.getForHtmlAttribute() == false;
                         }).count();
-                res.setRealAttachmentNumber(attNumber);
+                emlData.setRealAttachmentNumber(attNumber);
                 Message m = messageRepository.getOne(idMessage);
                 if (m != null) {
                     if (m.getAttachmentsNumber() != attNumber) {
@@ -227,7 +227,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     
                 }
             } else {
-                res.setRealAttachmentNumber(res.getAttachments().length);
+                emlData.setRealAttachmentNumber(res.getAttachments().length);
             }
             return new ResponseEntity(emlData, HttpStatus.OK);
         } catch (Exception ex) {
