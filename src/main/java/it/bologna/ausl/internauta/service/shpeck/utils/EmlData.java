@@ -31,6 +31,7 @@ public class EmlData extends EmlHandlerResult {
     
     private Message message;
 
+    
     public Message getMessage() {
         return message;
     }
