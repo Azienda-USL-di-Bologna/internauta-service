@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.argo.bollovirtuale;
 
 import java.util.HashMap;
@@ -33,7 +28,7 @@ public class BolloVirtualeManager {
                 + "JOIN procton.documenti pd ON bv.guid_oggetto_origine = pd.guid_documento\n"
                 + "LEFT JOIN procton.attori pa ON pd.id_documento = pa.id_documento AND id_task = 'I2ZsZ+9S7tNClAhkd>Rq'\n"
                 + "LEFT JOIN procton.utenti pu ON pa.id_utente = pu.id_utente\n"
-                + "LEFT JOIN bds_tools.attori a ON a.id_oggetto = pd.guid_documento AND id_step = 'REDAZIONE'\n"
+                + "LEFT JOIN bds_tools.attori a ON a.id_oggetto = pd.guid_documento AND a.id_step = 'REDAZIONE'\n"
                 + "LEFT JOIN procton.utenti ub ON ub.id_utente = a.id_utente\n"
                 + "LEFT JOIN procton.strutture s ON s.id_struttura = pd.id_struttura\n" 
                 + "WHERE pd.protocollo IS NOT null\n"
