@@ -80,7 +80,10 @@ public class InternautaConstants {
             CreateDocPerMessageRegistration,
             VisualizzaTabIFirmario,
             VisualizzaTabIFirmato,
-            VisualizzaTabRegistrazioni
+            VisualizzaTabRegistrazioni,
+            VisualizzaTabPreferiti,
+            VisualizzaTabFrequenti,
+            VisualizzaTabRecenti
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {

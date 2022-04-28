@@ -15,8 +15,11 @@ import org.springframework.data.rest.core.config.Projection;
  * @author Salo
  */
 @Projection(name = "CustomArchivioDetailViewWithIdAziendaAndIdPersonaCreazioneAndIdPersonaResponsabileAndIdStrutturaAndIdVicari", types = it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView.class)
-public interface CustomArchivioDetailViewWithIdAziendaAndIdPersonaCreazioneAndIdPersonaResponsabileAndIdStrutturaAndIdVicari extends ArchivioDetailViewWithIdAziendaAndIdPersonaCreazioneAndIdPersonaResponsabileAndIdStruttura{
-    
+public interface CustomArchivioDetailViewWithIdAziendaAndIdPersonaCreazioneAndIdPersonaResponsabileAndIdStrutturaAndIdVicari extends ArchivioDetailViewWithIdAziendaAndIdPersonaCreazioneAndIdPersonaResponsabileAndIdStruttura {
+
     @Value("#{@scriptaProjectionUtils.getDescrizionePersonaVicarioList(target)}")
     public List<String> getDescrizionePersonaVicarioList();
+
+    @Value("#{@archivioProjectionUtils.getIsArchivioNeroView(target)}")
+    public Boolean getIsArchivioNeroView();
 }

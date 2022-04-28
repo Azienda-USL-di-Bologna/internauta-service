@@ -49,6 +49,7 @@ public class IssueWrapper {
     final String UTENTE_AFFLITTO = "Utente afflitto (username)";
     final String UTENTE_SEGNALANTE = "Utente segnalante (username)";
     final String AZIENDA = "Azienda";
+    final String STRUTTURA_UTENTTE = "Struttura Utente";
     final String DATA_MAIL_SEGNALAZIONE = "Data mail segnalazione";
 
     // VALUES
@@ -117,7 +118,10 @@ public class IssueWrapper {
             //DATA MAIL SEGNALAZIONE
             array.put(getNewJsonCustomFieldParamFromRedmine(DATA_MAIL_SEGNALAZIONE.toString(),
                     new SimpleDateFormat("yyyy-MM-dd").format(new Date()).toString()));
-
+            //STRUTTURA UTENTTE
+            array.put(getNewJsonCustomFieldParamFromRedmine(STRUTTURA_UTENTTE.toString(),
+                    segnalazione.getStruttura()));
+            
             return array;
         } catch (RedmineException ex) {
             throw ex;
