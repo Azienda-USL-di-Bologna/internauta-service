@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.interceptors.configurazione;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -13,22 +8,19 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.utils.firma.data.remota.FirmaRemotaInformation;
-import it.bologna.ausl.internauta.utils.firma.data.remota.FirmaRemotaInformation.FirmaRemotaProviders;
 import it.bologna.ausl.internauta.utils.firma.data.remota.UserInformation;
 import it.bologna.ausl.internauta.utils.firma.data.remota.arubasignservice.ArubaUserInformation;
 import it.bologna.ausl.internauta.utils.firma.remota.controllers.FirmaRemotaRestController;
 import it.bologna.ausl.internauta.utils.firma.remota.exceptions.FirmaRemotaConfigurationException;
 import it.bologna.ausl.internauta.utils.firma.remota.exceptions.http.FirmaRemotaHttpException;
-import it.bologna.ausl.internauta.utils.firma.remota.exceptions.http.InvalidCredentialException;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.configurazione.FirmePersona;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.firma.DominioAruba;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
-import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.ArrayList;
@@ -204,6 +196,10 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
         JSONObject jsonCredential = (JSONObject) jsonAruba.get("ArubaCredentialProxyAdminInfo");
         Boolean isCredentialProxyActive = Boolean.valueOf(jsonCredential.get("active").toString());
         return isCredentialProxyActive;
+    }
+    
+    private String getHostId(DominioAruba.DominiAruba dominio) {
+        return null;
     }
 
     /*
