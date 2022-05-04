@@ -222,8 +222,17 @@ public class ShpeckUtils {
                 if (Objects.equals(hideRecipients, Boolean.TRUE)) {
                     LOG.info("Hide recipients is true, building mime message for each recipient.");
                     for (String address : to) {
-                        mimeMessage = buildMimeMessage(from, new String[]{address}, cc, body, subject, listAttachments,
-                                emlAttachments, hostname, draftMessage);
+                        ArrayList<EmlHandlerAttachment> listAttachmentCopy = new ArrayList<>();
+                        for (EmlHandlerAttachment emlHandlerAttachment : listAttachments) {
+                            listAttachmentCopy.add(emlHandlerAttachment.clone());
+                        }
+                        ArrayList<EmlHandlerAttachment> emlAttachmentsCopy = new ArrayList<>();
+                        for (EmlHandlerAttachment emlHandlerAttachment : emlAttachments) {
+                            emlAttachmentsCopy.add(emlHandlerAttachment.clone());
+                        }
+
+                        mimeMessage = buildMimeMessage(from, new String[]{address}, cc, body, subject, listAttachmentCopy,
+                                emlAttachmentsCopy, hostname, draftMessage);
                         mimeMessagesList.add(mimeMessage);
                     }
                     LOG.info("Mime messages generated correctly!");
@@ -635,8 +644,8 @@ public class ShpeckUtils {
             }
         }
     }
-    
-        /**
+
+    /**
      * Aggiunge il tag di in registrazione
      *
      * @param pec la pec che sta inviado la mail
@@ -669,7 +678,6 @@ public class ShpeckUtils {
             }
         }
     }
-    
 
     public List<MessageTag> getMessageTagList(Pec pec, Message messageToTag, String tagName) {
         LOG.info("Getting tag to apply...");
