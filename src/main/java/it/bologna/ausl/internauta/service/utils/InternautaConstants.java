@@ -49,8 +49,7 @@ public class InternautaConstants {
             CercaAncheInContattoNoTScol,
             cercaAncheGruppi, 
             idMessage, 
-            codiceAzienda,
-            password
+            codiceAzienda
         }
 
         public enum OperationsRequested {

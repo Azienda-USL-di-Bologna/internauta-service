@@ -93,7 +93,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
                     case UpdateProfiloFirma:
-                        String password = additionalData.getOrDefault(InternautaConstants.AdditionalData.Keys.password.toString(), null);
+                        String password = firmePersona.getPassword();
                         List<FirmePersona> firmePersonaOldList = new ArrayList();
                         try {
                             beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
@@ -109,22 +109,41 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                                 FirmePersona.AdditionalData firmaPersonaAdditionalData = firmePersona.getAdditionalData();
                                 try {
                                     if (!StringUtils.hasText(firmaPersonaAdditionalData.getHostId())) {
-                                        String hostId = getHostId(firmePersona.getTramite(), firmePersona.getAdditionalData());
+                                        String hostId = getHostId(firmePersona.getTramite(), firmaPersonaAdditionalData);
                                         firmaPersonaAdditionalData.setHostId(hostId);
                                     }
                                 } catch (FirmaRemotaHttpException | FirmaRemotaConfigurationException ex) {
                                     throw new AbortSaveInterceptorException("errore nel reperire l'hostId associato al dominio", ex);
                                 }
                                 UserInformation userInfo = createUserInformation(firmePersona.getTramite(), firmaPersonaAdditionalData, password);
-                                Boolean haveCredentialsBeenSet;
-                                try {
-                                    haveCredentialsBeenSet = setCredential(firmePersona, userInfo);
-                                    if (haveCredentialsBeenSet) {
-                                        LOGGER.info("The user's credentials have been set correctly into Aruba Credential Proxy");
+                                if (StringUtils.hasText(password)) {
+                                    Boolean haveCredentialsBeenSet;
+                                    try {
+                                        haveCredentialsBeenSet = setCredential(firmePersona, userInfo);
+                                        if (haveCredentialsBeenSet) {
+                                            LOGGER.info("The user's credentials have been set correctly into Aruba Credential Proxy");
+                                            firmaPersonaAdditionalData.setSavedCredential(true);
+                                        }
+                                    } catch (Exception ex) {
+                                        String errorMessage = "Errore credenziali errate";
+                                        LOGGER.error(errorMessage, ex);
+                                        throw new AbortSaveInterceptorException(errorMessage, ex);
                                     }
-                                } catch (Exception ex) {
-                                    LOGGER.error("Errore credenziali errate", ex);
-                                    throw new AbortSaveInterceptorException("errore credenziali non corrette", ex);
+                                } else {
+                                    Boolean haveCredentialBeenRemoved;
+                                    try {
+                                        haveCredentialBeenRemoved = removeCredential(firmePersona, userInfo);
+                                        if (haveCredentialBeenRemoved) {
+                                            firmaPersonaAdditionalData.setSavedCredential(false);
+                                            LOGGER.info("The user's credentials have been removed correctly from Aruba Credential Proxy");
+                                        } else {
+                                            LOGGER.warn("The user's credentials haven't been removed correctly from Aruba Credential Proxy");
+                                        }
+                                    } catch (Exception ex) {
+                                        String errorMessage = "Errore eliminazione credenziali";
+                                        LOGGER.error(errorMessage, ex);
+                                        throw new AbortSaveInterceptorException(errorMessage, ex);
+                                    }
                                 }
                             }
                         }
@@ -241,7 +260,8 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
         try {
             areCredentialSet = firmaRemotaRestController.setCredential(userInformation, additionalData.getHostId());
         } catch (Exception ex) {
-            String errorMessage = String.format("eccezione nel settaggio delle credenziali per l'hostId %s e username %s", additionalData.getHostId(), userInformation.getUsername());
+            String errorMessage = String.format("eccezione nel settaggio delle credenziali per l'hostId %s e username %s", 
+                    additionalData.getHostId(), userInformation.getUsername());
             LOGGER.error(errorMessage, ex);
             throw new FirmaModuleException(errorMessage, ex);
         }
