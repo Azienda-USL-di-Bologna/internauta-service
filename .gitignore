@@ -8,3 +8,4 @@ src/main/resources/downloader/DOWNLOADER_BABEL.crt
 src/main/resources/downloader/DOWNLOADER_TEST.crt
 jshell.history
 logs/
+src/main/resources/downloader/Internauta_Downloader_Encryption_Public_Key_Test.pem
