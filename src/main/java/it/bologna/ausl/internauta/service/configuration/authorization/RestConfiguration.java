@@ -53,11 +53,26 @@ public class RestConfiguration {
         configLogin.addAllowedMethod(HttpMethod.OPTIONS);
         configLogin.addAllowedMethod(HttpMethod.GET);
         configLogin.addAllowedMethod(HttpMethod.POST);
+        
+        CorsConfiguration configFirma = new CorsConfiguration();
+        configFirma.setAllowCredentials(true);
+        configFirma.setAllowedOrigins(allowedOriginList);
+        configFirma.addAllowedHeader("application");
+        configFirma.addAllowedHeader("authorization");
+        configFirma.addAllowedHeader("content-type");
+        configFirma.addAllowedMethod(HttpMethod.OPTIONS);
+        configFirma.addAllowedMethod(HttpMethod.GET);
+//        configFirma.addAllowedMethod(HttpMethod.PUT);
+//        configFirma.addAllowedMethod(HttpMethod.PATCH);
+        configFirma.addAllowedMethod(HttpMethod.POST);
+//        configFirma.addAllowedMethod(HttpMethod.DELETE);
 
         source.registerCorsConfiguration("/internauta-api/login/**", configLogin);
         source.registerCorsConfiguration("/internauta-api/logout", configLogin);
         source.registerCorsConfiguration("/internauta-api/endpoint/login", configLogin);
         source.registerCorsConfiguration("/internauta-api/resources/**", configResources);
+        source.registerCorsConfiguration("/firma-api/**", configFirma);
+        
         return new CorsFilter(source);
     }
 }

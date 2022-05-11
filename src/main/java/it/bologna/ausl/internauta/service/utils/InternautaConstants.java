@@ -83,7 +83,8 @@ public class InternautaConstants {
             VisualizzaTabRegistrazioni,
             VisualizzaTabPreferiti,
             VisualizzaTabFrequenti,
-            VisualizzaTabRecenti
+            VisualizzaTabRecenti,
+            UpdateProfiloFirma
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {

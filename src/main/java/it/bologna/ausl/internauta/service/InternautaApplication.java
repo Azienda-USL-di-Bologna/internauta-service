@@ -22,7 +22,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories(value =  {
         "it.bologna.ausl.internauta.service.repositories", 
         "it.bologna.ausl.blackbox.repositories", 
-        "it.bologna.ausl.internauta.utils.parameters.manager.repositories"
+        "it.bologna.ausl.internauta.utils.parameters.manager.repositories",
+        "it.bologna.ausl.internauta.utils.firma.repositories"
 },
 //        repositoryBaseClass = NextQuerydslJpaPredicateExecutorImpl.class
         repositoryFactoryBeanClass = CustomJpaRepositoryFactoryBean.class
