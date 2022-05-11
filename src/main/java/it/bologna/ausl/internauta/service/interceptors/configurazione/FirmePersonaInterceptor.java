@@ -201,7 +201,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
     * Creazione delle informazioni utente per il Provider Aruba
     * prende in input il json con gli additionaldata che vengono dall'oggetto firmapersona
      */
-    private UserInformation createUserInformation(FirmePersona.TramiteFirma tramiteFirma, FirmePersona.AdditionalData additionalData, String password) {
+    public UserInformation createUserInformation(FirmePersona.TramiteFirma tramiteFirma, FirmePersona.AdditionalData additionalData, String password) {
         UserInformation userInfo = null;
         switch (tramiteFirma) {
             case ARUBA:
