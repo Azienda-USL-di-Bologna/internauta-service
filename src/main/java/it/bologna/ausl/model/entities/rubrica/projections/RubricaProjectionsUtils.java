@@ -55,7 +55,7 @@ public class RubricaProjectionsUtils {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(RubricaProjectionsUtils.class);
     
-    private String getElencoCodiciAziendeAttualiPersona(Persona persona) {
+    public String getElencoCodiciAziendeAttualiPersona(Persona persona) {
         String codiciAziende = "";
         List<Utente> utenteList = persona.getUtenteList();
         if (utenteList != null) {
