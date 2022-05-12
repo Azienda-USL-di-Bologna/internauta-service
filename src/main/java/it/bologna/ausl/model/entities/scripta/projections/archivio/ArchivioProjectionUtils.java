@@ -10,7 +10,9 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
+import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
@@ -105,7 +107,7 @@ public class ArchivioProjectionUtils {
         return codiciAziende;
     }
     
-    public List<PermessoEntitaStoredProcedure> getPermessi(Archivio archivio) throws BlackBoxPermissionException{
+    public List<PermessoEntitaStoredProcedure> getPermessi(Archivio archivio) throws BlackBoxPermissionException {
         List<String> predicati = new ArrayList<>();
         predicati.add("VISUALIZZA");
         predicati.add("MODIFICA");
@@ -129,6 +131,17 @@ public class ArchivioProjectionUtils {
                 } else if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.persone.toString())) {
                     Persona personaSoggetto = personaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
                     permessoEntitaStoredProcedure.getSoggetto().setDescrizione(personaSoggetto.getDescrizione() + " [ " + getElencoCodiciAziendeAttualiPersona(personaSoggetto) + " ]");
+                }
+
+                for (CategoriaPermessiStoredProcedure categoriaPermessiStoredProcedure : permessoEntitaStoredProcedure.getCategorie()) {
+                    for (PermessoStoredProcedure permessoStoredProcedure : categoriaPermessiStoredProcedure.getPermessi()) {
+                        if (permessoStoredProcedure.getEntitaVeicolante() != null && permessoStoredProcedure.getEntitaVeicolante().getIdProvenienza() != null) {
+                            Struttura strutturaVeicolante = strutturaRepository.findById(
+                                    permessoStoredProcedure.getEntitaVeicolante().getIdProvenienza()).get();
+                            permessoStoredProcedure.getEntitaVeicolante().setDescrizione(strutturaVeicolante.getNome()
+                                    + " [ " + strutturaVeicolante.getIdAzienda().getNome() + (strutturaVeicolante.getCodice() != null ? " - " + strutturaVeicolante.getCodice() : "") + " ]");
+                        }
+                    }
                 }
             }
         }
