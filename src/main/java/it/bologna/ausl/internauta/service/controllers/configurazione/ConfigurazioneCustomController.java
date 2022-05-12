@@ -11,6 +11,7 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ImpostazioniApplicazioniRepository;
+import it.bologna.ausl.internauta.service.utils.CacheableFunctions;
 import it.bologna.ausl.internauta.utils.parameters.manager.repositories.ParametroAziendeRepository;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -22,6 +23,7 @@ import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +56,9 @@ public class ConfigurazioneCustomController {
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    private CacheableFunctions cacheableFunctions;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -136,5 +141,16 @@ public class ConfigurazioneCustomController {
 //            res.add(intimusUtils.buildShowMessageParams(activeMessage));
 //        }
         return new ResponseEntity(res, HttpStatus.OK);
+    }
+    
+    /**
+     * 
+     * @return
+     * @throws BlackBoxPermissionException 
+     */
+    @RequestMapping(value = "firmaRemotaProviders", method = RequestMethod.GET)
+    public ResponseEntity<Set<String>> getFirmaRemotaProviders() throws BlackBoxPermissionException {
+        
+        return new ResponseEntity(cacheableFunctions.getFirmaRemotaProvidersInfo(), HttpStatus.OK);
     }
 }

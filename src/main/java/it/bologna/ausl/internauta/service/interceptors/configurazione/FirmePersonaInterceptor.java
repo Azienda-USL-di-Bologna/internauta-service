@@ -11,6 +11,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.firma.data.remota.FirmaRemotaInformation;
 import it.bologna.ausl.internauta.utils.firma.data.remota.UserInformation;
 import it.bologna.ausl.internauta.utils.firma.data.remota.arubasignservice.ArubaUserInformation;
+import it.bologna.ausl.internauta.utils.firma.data.remota.infocertsignservice.InfocertUserInformation;
 import it.bologna.ausl.internauta.utils.firma.remota.controllers.FirmaRemotaArubaController;
 import it.bologna.ausl.internauta.utils.firma.remota.controllers.FirmaRemotaRestController;
 import it.bologna.ausl.internauta.utils.firma.remota.exceptions.FirmaRemotaConfigurationException;
@@ -121,7 +122,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                                     try {
                                         haveCredentialsBeenSet = setCredential(firmePersona, userInfo);
                                         if (haveCredentialsBeenSet) {
-                                            LOGGER.info("The user's credentials have been set correctly into Aruba Credential Proxy");
+                                            LOGGER.info("The user's credentials have been set correctly into Credential Proxy");
                                             firmaPersonaAdditionalData.setSavedCredential(true);
                                         }
                                     } catch (Exception ex) {
@@ -135,9 +136,9 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                                         haveCredentialBeenRemoved = removeCredential(firmePersona, userInfo);
                                         if (haveCredentialBeenRemoved) {
                                             firmaPersonaAdditionalData.setSavedCredential(false);
-                                            LOGGER.info("The user's credentials have been removed correctly from Aruba Credential Proxy");
+                                            LOGGER.info("The user's credentials have been removed correctly from Credential Proxy");
                                         } else {
-                                            LOGGER.warn("The user's credentials haven't been removed correctly from Aruba Credential Proxy");
+                                            LOGGER.warn("The user's credentials haven't been removed correctly from Credential Proxy");
                                         }
                                     } catch (Exception ex) {
                                         String errorMessage = "Errore eliminazione credenziali";
@@ -225,7 +226,19 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                 userInfo = arubaUserInfo;
                 break;
             case INFOCERT:
-                //TODO: la implementa Geiar
+                InfocertUserInformation infocertUserInfo = new InfocertUserInformation();
+                infocertUserInfo.setUsername(additionalData.getUsername());
+                String modalita = additionalData.getAutenticazione();
+                switch (modalita) {
+                    case "OTP":
+                        infocertUserInfo.setModalitaFirma(InfocertUserInformation.ModalitaFirma.OTP);
+                        infocertUserInfo.setPassword(password);
+                        break;
+                    case "AUTO":
+                        infocertUserInfo.setModalitaFirma(InfocertUserInformation.ModalitaFirma.AUTOMATICA);
+                        break;
+                }
+                userInfo = infocertUserInfo;
                 break;
         }
         return userInfo;
@@ -238,7 +251,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                 hostId = firmaRemotaArubaController.getHostIdFromDominio(DominioAruba.DominiAruba.valueOf(additionalData.getDominio()));
                 break;
             case INFOCERT:
-                //TODO: la implementa Geiar
+                hostId = additionalData.getHostId();
                 break;
         }
         return hostId;
