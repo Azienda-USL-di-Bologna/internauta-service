@@ -5,7 +5,9 @@
  */
 package it.bologna.ausl.model.entities.scripta.projections.archivio;
 
+import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.scripta.projections.generated.ArchivioWithIdAziendaAndIdMassimarioAndIdTitolo;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
@@ -18,4 +20,7 @@ public interface CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo extends A
 
     @Value("#{@archivioProjectionUtils.getIsArchivioNero(target)}")
     public Boolean getIsArchivioNero();
+    
+    @Value("#{@archivioProjectionUtils.getPermessi(target)}")
+    public List<PermessoEntitaStoredProcedure> getPermessi();
 }

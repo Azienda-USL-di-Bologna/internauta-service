@@ -53,7 +53,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.internauta.service.argo.raccolta.RaccoltaManager;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
@@ -98,17 +97,11 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
-import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
 import java.lang.reflect.InvocationTargetException;
-import java.util.logging.Level;
 import org.json.simple.JSONArray;
-import org.sql2o.Connection;
-import org.sql2o.Query;
-import org.sql2o.Sql2o;
 
 /**
  *
@@ -172,8 +165,6 @@ public class ScriptaCustomController {
     @Autowired
     private AllegatoRepository allegatoRepository;
 
-//    @Autowired
-//    private DettaglioAllegatoRepository dettaglioAllegatoRepository;
     @Autowired
     private ProjectionFactory projectionFactory;
 
