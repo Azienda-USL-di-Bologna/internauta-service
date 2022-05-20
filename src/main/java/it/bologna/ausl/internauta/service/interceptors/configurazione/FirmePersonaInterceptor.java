@@ -208,9 +208,6 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                 InfocertUserInformation infocertUserInfo = new InfocertUserInformation();
                 infocertUserInfo.setUsername(additionalData.getUsername());
                 String modalita = additionalData.getAutenticazione();
-                // Imposto di default savedCredential a FALSE, poi nel caso in cui verrà memorizzata anche la password
-                // ci penserà l'interceptor ad impostarlo a TRUE.
-                additionalData.setSavedCredential(Boolean.FALSE);
                 switch (modalita) {
                     case "OTP":
                         infocertUserInfo.setModalitaFirma(InfocertUserInformation.ModalitaFirma.OTP);
