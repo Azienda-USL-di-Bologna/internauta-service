@@ -86,7 +86,8 @@ public class InternautaConstants {
             VisualizzaTabFrequenti,
             VisualizzaTabRecenti,
             UpdateProfiloFirma,
-            FilterBitPermessoMinimo
+            FilterBitPermessoMinimo,
+            FilterForRegisteredPDD
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {

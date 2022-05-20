@@ -1,15 +1,17 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.SubQueryExpression;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import static com.querydsl.jpa.JPAExpressions.select;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
-import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Persona; 
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
 import it.bologna.ausl.model.entities.scripta.views.QDocDetailView;
@@ -17,11 +19,12 @@ import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
+import java.util.stream.Collectors; 
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,8 +64,45 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+
+        QDocDetailView qdoclistView = QDocDetailView.docDetailView;
+        
         initialPredicate = safetyFilters().and(initialPredicate);
 //        initialPredicate = docDetailInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc").and(initialPredicate);
+
+        InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+
+        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                switch (operationRequested) {
+                    case FilterForRegisteredPDD:
+                        SubQueryExpression<Integer> queryPDDNumeroRegistrazioneNotNullAndNotPDD = 
+                            select(qdoclistView.id)
+                            .from(qdoclistView)
+                            .where(
+                                qdoclistView.tipologia.in(
+                                    Arrays.asList(new String[]{
+                                        DocDetailView.TipologiaDoc.DELIBERA.toString(),
+                                        DocDetailView.TipologiaDoc.DETERMINA.toString(),
+                                        DocDetailView.TipologiaDoc.PROTOCOLLO_IN_ENTRATA.toString(),
+                                        DocDetailView.TipologiaDoc.PROTOCOLLO_IN_USCITA.toString()
+                                    })),
+                                qdoclistView.numeroRegistrazione.isNotNull()
+                            );
+                        BooleanExpression filter =  qdoclistView.tipologia.in(
+                            Arrays.asList(new String[]{
+                                DocDetailView.TipologiaDoc.DOCUMENT_PEC.toString(),
+                                DocDetailView.TipologiaDoc.DOCUMENT_REGISTRO.toString(),
+                                DocDetailView.TipologiaDoc.DOCUMENT_UTENTE.toString()
+                            })
+                        ).or(qdoclistView.id.in(queryPDDNumeroRegistrazioneNotNullAndNotPDD));
+                        initialPredicate = filter.and(initialPredicate);
+                        break;
+                }
+            }
+        }
+        
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
