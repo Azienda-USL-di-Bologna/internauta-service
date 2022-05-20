@@ -1,14 +1,9 @@
 package it.bologna.ausl.internauta.service.interceptors.configurazione;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.exceptions.FirmaModuleException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
-import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.utils.firma.data.remota.FirmaRemotaInformation;
 import it.bologna.ausl.internauta.utils.firma.data.remota.UserInformation;
 import it.bologna.ausl.internauta.utils.firma.data.remota.arubasignservice.ArubaUserInformation;
 import it.bologna.ausl.internauta.utils.firma.data.remota.infocertsignservice.InfocertUserInformation;
@@ -16,11 +11,7 @@ import it.bologna.ausl.internauta.utils.firma.remota.controllers.FirmaRemotaArub
 import it.bologna.ausl.internauta.utils.firma.remota.controllers.FirmaRemotaRestController;
 import it.bologna.ausl.internauta.utils.firma.remota.exceptions.FirmaRemotaConfigurationException;
 import it.bologna.ausl.internauta.utils.firma.remota.exceptions.http.FirmaRemotaHttpException;
-import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
-import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.FirmePersona;
-import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.firma.DominioAruba;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
@@ -29,10 +20,7 @@ import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,19 +38,10 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(AziendaInterceptor.class);
 
     @Autowired
-    private ParametriAziendeReader parametriAziendeReader;
-
-    @Autowired
-    private PersonaRepository personaRepository;
-
-    @Autowired
     private FirmaRemotaRestController firmaRemotaRestController;
     
     @Autowired
     private FirmaRemotaArubaController firmaRemotaArubaController;
-    
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Override
     public Class getTargetEntityClass() {
@@ -229,12 +208,16 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                 InfocertUserInformation infocertUserInfo = new InfocertUserInformation();
                 infocertUserInfo.setUsername(additionalData.getUsername());
                 String modalita = additionalData.getAutenticazione();
+                // Imposto di default savedCredential a FALSE, poi nel caso in cui verrà memorizzata anche la password
+                // ci penserà l'interceptor ad impostarlo a TRUE.
+                additionalData.setSavedCredential(Boolean.FALSE);
                 switch (modalita) {
                     case "OTP":
                         infocertUserInfo.setModalitaFirma(InfocertUserInformation.ModalitaFirma.OTP);
                         infocertUserInfo.setPassword(password);
                         break;
                     case "AUTO":
+                    case "AUTOMATICA":
                         infocertUserInfo.setModalitaFirma(InfocertUserInformation.ModalitaFirma.AUTOMATICA);
                         break;
                 }
