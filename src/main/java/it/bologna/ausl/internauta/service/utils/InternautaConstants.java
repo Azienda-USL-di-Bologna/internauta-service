@@ -50,7 +50,8 @@ public class InternautaConstants {
             cercaAncheGruppi, 
             idMessage, 
             codiceAzienda,
-            BitPermessoMinimo
+            BitPermessoMinimo,
+            idArchivio
         }
 
         public enum OperationsRequested {
@@ -87,7 +88,7 @@ public class InternautaConstants {
             VisualizzaTabRecenti,
             UpdateProfiloFirma,
             FilterBitPermessoMinimo,
-            FilterForRegisteredPDD
+            FilterForArchiviContent
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {

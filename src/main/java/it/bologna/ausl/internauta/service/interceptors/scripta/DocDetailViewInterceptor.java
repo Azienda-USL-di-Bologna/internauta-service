@@ -65,43 +65,21 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
 
-        QDocDetailView qdoclistView = QDocDetailView.docDetailView;
+//        QDocDetailView qdoclistView = QDocDetailView.docDetailView;
         
         initialPredicate = safetyFilters().and(initialPredicate);
 //        initialPredicate = docDetailInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc").and(initialPredicate);
 
-        InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+//        InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
 
-        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
-        if (operationsRequested != null && !operationsRequested.isEmpty()) {
-            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
-                switch (operationRequested) {
-                    case FilterForRegisteredPDD:
-                        SubQueryExpression<Integer> queryPDDNumeroRegistrazioneNotNullAndNotPDD = 
-                            select(qdoclistView.id)
-                            .from(qdoclistView)
-                            .where(
-                                qdoclistView.tipologia.in(
-                                    Arrays.asList(new String[]{
-                                        DocDetailView.TipologiaDoc.DELIBERA.toString(),
-                                        DocDetailView.TipologiaDoc.DETERMINA.toString(),
-                                        DocDetailView.TipologiaDoc.PROTOCOLLO_IN_ENTRATA.toString(),
-                                        DocDetailView.TipologiaDoc.PROTOCOLLO_IN_USCITA.toString()
-                                    })),
-                                qdoclistView.numeroRegistrazione.isNotNull()
-                            );
-                        BooleanExpression filter =  qdoclistView.tipologia.in(
-                            Arrays.asList(new String[]{
-                                DocDetailView.TipologiaDoc.DOCUMENT_PEC.toString(),
-                                DocDetailView.TipologiaDoc.DOCUMENT_REGISTRO.toString(),
-                                DocDetailView.TipologiaDoc.DOCUMENT_UTENTE.toString()
-                            })
-                        ).or(qdoclistView.id.in(queryPDDNumeroRegistrazioneNotNullAndNotPDD));
-                        initialPredicate = filter.and(initialPredicate);
-                        break;
-                }
-            }
-        }
+//        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+//        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+//            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+//                switch (operationRequested) {
+//                    
+//                }
+//            }
+//        }
         
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }

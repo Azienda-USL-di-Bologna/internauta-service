@@ -10,6 +10,7 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
@@ -17,8 +18,10 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.DocDetail;
+import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
+import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
@@ -64,6 +67,9 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
     PersonaVedenteRepository personaVedenteRepository;
     
     @Autowired
+    PermessoArchivioRepository permessoArchivioRepository;
+    
+    @Autowired
     InternautaUtils internautaUtils;
     
     @Autowired
@@ -78,11 +84,12 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
         Utente user = authenticatedSessionData.getUser();
         Persona persona = user.getIdPersona();
         QDocDetail qdoclist = QDocDetail.docDetail;
-  
-        initialPredicate = safetyFilters().and(initialPredicate);
-        
+        Boolean addSafetyFilters =true;
+                                          
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
+        
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
+           
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
                     case VisualizzaTabIFirmario:
@@ -109,8 +116,44 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         }
                         initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
                         break;
+                    case FilterForArchiviContent:
+                        //I remove te security filters for this case since I am filtering with permesso of persona
+                        addSafetyFilters = false;
+                        // Check if we are filtering on an Archive the user can see with a minimum permission of VISUALIZZA
+                        Integer idArchivio = Integer.parseInt(additionalData.get(AdditionalData.Keys.idArchivio.toString()));
+                        
+                        QPermessoArchivio permessoArchivio = QPermessoArchivio.permessoArchivio;
+                        BooleanExpression filterUserhasPermission = permessoArchivio.idArchivioDetail.id.eq(idArchivio).and(
+                                permessoArchivio.idPersona.id.eq(persona.getId()).and(
+                                permessoArchivio.bit.goe(PermessoArchivio.DecimalePredicato.VISUALIZZA.getValue()))
+                        );
+                        Optional<PermessoArchivio> findOne = permessoArchivioRepository.findOne(filterUserhasPermission);
+                        
+                        if(!findOne.isPresent()){
+                            throw new AbortLoadInterceptorException("Persona senza permesso su Archivio");
+                        }
+                        
+                        initialPredicate = qdoclist.tipologia.notIn(
+                            Arrays.asList(new String[]{
+                                DocDetail.TipologiaDoc.DELIBERA.toString(),
+                                DocDetail.TipologiaDoc.DETERMINA.toString(),
+                                DocDetail.TipologiaDoc.PROTOCOLLO_IN_ENTRATA.toString(),
+                                DocDetail.TipologiaDoc.PROTOCOLLO_IN_USCITA.toString()
+                            })).or(qdoclist.numeroRegistrazione.isNotNull()).and(initialPredicate);
+                        Integer[] idArchivi = new Integer[]{idArchivio};
+                        BooleanExpression archivioFilter = Expressions.booleanTemplate(
+                    String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idArchivi, ","), "integer[]", "&&"),
+                    qdoclist.idArchivi
+            );  
+                        initialPredicate =  archivioFilter.and(initialPredicate);
+                        break;
+
                 }
             }
+        }
+        
+        if(addSafetyFilters){
+            initialPredicate = safetyFilters().and(initialPredicate);
         }
         
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass);
