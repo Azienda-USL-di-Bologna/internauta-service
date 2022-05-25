@@ -697,7 +697,7 @@ public class ScriptaCustomController {
         return new ResponseEntity(readValue, HttpStatus.OK);
     }
 
-<<<<<<< HEAD
+
     @RequestMapping(value = "numeraArchivio", method = RequestMethod.POST)
     public Object numeraArchivio(@RequestParam("idArchivio") Integer idArchivio,
             @RequestParam("projection") String projection,
@@ -731,8 +731,6 @@ public class ScriptaCustomController {
         return projectedObject;
     }
 
-=======
-    
    
     @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
     public ResponseEntity<?> calcolaPermessiEspliciti(
@@ -743,5 +741,4 @@ public class ScriptaCustomController {
         
         return new ResponseEntity("", HttpStatus.OK);
     }
->>>>>>> gedi_permessi
 }
