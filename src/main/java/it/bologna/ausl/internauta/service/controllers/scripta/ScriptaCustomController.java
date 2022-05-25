@@ -600,36 +600,37 @@ public class ScriptaCustomController {
         return hashString;
     }
 
-    @RequestMapping(value = "getResponsabili", method = RequestMethod.GET)
-    public JSONObject getResponsabili(@RequestParam("id") String idArchivio) throws Http500ResponseException {
-        JSONObject json = new JSONObject();
-        JSONArray jsonArray = new JSONArray();
-        Archivio archivio = archivioRepository.getById(Integer.parseInt(idArchivio));
-        ArchivioDetail dettaglio = archivioDetailRepository.getById(Integer.parseInt(idArchivio));
-        Persona personaResponsabile = dettaglio.getIdPersonaResponsabile();
-        Integer[] idVicari = dettaglio.getIdVicari();
-        List<Persona> listVicari = new ArrayList();
-        for (Integer id : idVicari) {
-            Optional<Persona> p = personaRepository.findById(id);
-            listVicari.add(p.get());
-        }
-        json.put("descrizione", personaResponsabile.getDescrizione());
-        json.put("ruolo", "Responsabile");
-        json.put("id", personaResponsabile.getId());
-        json.put("struttura", dettaglio.getIdStruttura().getNome());
-        jsonArray.add(json);
-        for (Persona vic : listVicari) {
-            json = new JSONObject();
-            json.put("descrizione", vic.getDescrizione());
-            json.put("ruolo", "Vicario");
-            json.put("id", vic.getId());
-            json.put("struttura", dettaglio.getIdStruttura().getNome());
-            jsonArray.add(json);
-        }
-        JSONObject jsonReturn = new JSONObject();
-        jsonReturn.put("responsabili", jsonArray);
-        return jsonReturn;
-    }
+    // SE arrivi qui e vedi che è passato il1 15 giugno 2022 cancella sto metodo commentato
+//    @RequestMapping(value = "getResponsabili", method = RequestMethod.GET)
+//    public JSONObject getResponsabili(@RequestParam("id") String idArchivio) throws Http500ResponseException {
+//        JSONObject json = new JSONObject();
+//        JSONArray jsonArray = new JSONArray();
+//        Archivio archivio = archivioRepository.getById(Integer.parseInt(idArchivio));
+//        ArchivioDetail dettaglio = archivioDetailRepository.getById(Integer.parseInt(idArchivio));
+//        Persona personaResponsabile = dettaglio.getIdPersonaResponsabile();
+//        Integer[] idVicari = dettaglio.getIdVicari();
+//        List<Persona> listVicari = new ArrayList();
+//        for (Integer id : idVicari) {
+//            Optional<Persona> p = personaRepository.findById(id);
+//            listVicari.add(p.get());
+//        }
+//        json.put("descrizione", personaResponsabile.getDescrizione());
+//        json.put("ruolo", "Responsabile");
+//        json.put("id", personaResponsabile.getId());
+//        json.put("struttura", dettaglio.getIdStruttura().getNome());
+//        jsonArray.add(json);
+//        for (Persona vic : listVicari) {
+//            json = new JSONObject();
+//            json.put("descrizione", vic.getDescrizione());
+//            json.put("ruolo", "Vicario");
+//            json.put("id", vic.getId());
+//            json.put("struttura", dettaglio.getIdStruttura().getNome());
+//            jsonArray.add(json);
+//        }
+//        JSONObject jsonReturn = new JSONObject();
+//        jsonReturn.put("responsabili", jsonArray);
+//        return jsonReturn;
+//    }
 
     @RequestMapping(value = "eliminaProposta", method = RequestMethod.POST)
     public ResponseEntity<?> eliminaProposta(
@@ -696,6 +697,7 @@ public class ScriptaCustomController {
         return new ResponseEntity(readValue, HttpStatus.OK);
     }
 
+<<<<<<< HEAD
     @RequestMapping(value = "numeraArchivio", method = RequestMethod.POST)
     public Object numeraArchivio(@RequestParam("idArchivio") Integer idArchivio,
             @RequestParam("projection") String projection,
@@ -729,4 +731,17 @@ public class ScriptaCustomController {
         return projectedObject;
     }
 
+=======
+    
+   
+    @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
+    public ResponseEntity<?> calcolaPermessiEspliciti(
+            @RequestParam("idArchivio") Integer idArchivio,
+            HttpServletRequest request) {
+        
+        archivioRepository.calcolaPermessiEspliciti(idArchivio);
+        
+        return new ResponseEntity("", HttpStatus.OK);
+    }
+>>>>>>> gedi_permessi
 }
