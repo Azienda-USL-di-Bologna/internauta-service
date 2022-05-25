@@ -88,7 +88,8 @@ public class InternautaConstants {
             VisualizzaTabRecenti,
             UpdateProfiloFirma,
             FilterBitPermessoMinimo,
-            FilterForArchiviContent
+            FilterForArchiviContent,
+            FilterBitGOEModifica
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
