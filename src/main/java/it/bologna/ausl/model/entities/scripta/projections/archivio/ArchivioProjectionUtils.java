@@ -130,7 +130,7 @@ public class ArchivioProjectionUtils {
                     );
                 } else if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.persone.toString())) {
                     Persona personaSoggetto = personaRepository.findById(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza()).get();
-                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(personaSoggetto.getDescrizione() + " [ " + getElencoCodiciAziendeAttualiPersona(personaSoggetto) + " ]");
+                    permessoEntitaStoredProcedure.getSoggetto().setDescrizione(personaSoggetto.getDescrizione());
                 }
 
                 for (CategoriaPermessiStoredProcedure categoriaPermessiStoredProcedure : permessoEntitaStoredProcedure.getCategorie()) {

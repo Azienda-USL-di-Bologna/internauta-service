@@ -7,7 +7,9 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
-
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
+import org.springframework.data.repository.query.Param;
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
  * nome tutto in minuscolo
@@ -17,4 +19,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ArchivioRepository extends
         NextSdrQueryDslRepository<Archivio, Integer, QArchivio>,
         JpaRepository<Archivio, Integer> {
+
+    @Query(value = "select * from scripta.numera_archivio(?1);",
+            nativeQuery = true)
+    public Integer numeraArchivio(Integer idArchivio);
+    
+    @Procedure("permessi.calcola_permessi_espliciti")
+    public void calcolaPermessiEspliciti(
+        @Param("id_archivio") Integer idArchivio
+    );
 }

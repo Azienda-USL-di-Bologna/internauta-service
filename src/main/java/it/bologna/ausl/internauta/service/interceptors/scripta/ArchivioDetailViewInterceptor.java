@@ -6,9 +6,10 @@ import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView;
 import it.bologna.ausl.model.entities.scripta.views.QArchivioDetailView;
 import it.nextsw.common.annotations.NextSdrInterceptor;
@@ -55,7 +56,27 @@ public class ArchivioDetailViewInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        QArchivioDetailView archivioDetailView = QArchivioDetailView.archivioDetailView;        
         initialPredicate = safetyFilters().and(initialPredicate);
+                
+        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = 
+                InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                switch (operationRequested) {
+                    case FilterBitPermessoMinimo:
+                        String bit = additionalData.get(InternautaConstants.AdditionalData.Keys.BitPermessoMinimo.toString());
+                        BooleanExpression filter = archivioDetailView.bit.goe(Integer.parseInt(bit));
+                        initialPredicate = filter.and(initialPredicate);
+                        break;
+                    case FilterBitGOEModifica:
+                        BooleanExpression bitFilter = archivioDetailView.bit.goe(PermessoArchivio.DecimalePredicato.MODIFICA.getValue());
+                        initialPredicate = bitFilter.and(initialPredicate);
+                        break;
+                }
+            }
+        }
+        
         return initialPredicate;
     }
 

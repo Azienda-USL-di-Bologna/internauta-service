@@ -8,7 +8,6 @@ package it.bologna.ausl.model.entities.scripta.projections;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetailInterface;
 import it.bologna.ausl.model.entities.scripta.Related;
-import it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;

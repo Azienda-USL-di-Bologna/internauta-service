@@ -53,6 +53,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
@@ -100,7 +101,9 @@ import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailReposito
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
+import it.nextsw.common.controller.RestControllerEngine;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Calendar;
 import org.json.simple.JSONArray;
 
 /**
@@ -179,6 +182,9 @@ public class ScriptaCustomController {
 
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+
+    @Autowired
+    private RestControllerEngineImpl restControllerEngine;
 
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -594,36 +600,37 @@ public class ScriptaCustomController {
         return hashString;
     }
 
-    @RequestMapping(value = "getResponsabili", method = RequestMethod.GET)
-    public JSONObject getResponsabili(@RequestParam("id") String idArchivio) throws Http500ResponseException {
-        JSONObject json = new JSONObject();
-        JSONArray jsonArray = new JSONArray();
-        Archivio archivio = archivioRepository.getById(Integer.parseInt(idArchivio));
-        ArchivioDetail dettaglio = archivioDetailRepository.getById(Integer.parseInt(idArchivio));
-        Persona personaResponsabile = dettaglio.getIdPersonaResponsabile();
-        Integer[] idVicari = dettaglio.getIdVicari();
-        List<Persona> listVicari = new ArrayList();
-        for (Integer id : idVicari) {
-            Optional<Persona> p = personaRepository.findById(id);
-            listVicari.add(p.get());
-        }
-        json.put("descrizione", personaResponsabile.getDescrizione());
-        json.put("ruolo", "Responsabile");
-        json.put("id", personaResponsabile.getId());
-        json.put("struttura", dettaglio.getIdStruttura().getNome());
-        jsonArray.add(json);
-        for (Persona vic : listVicari) {
-            json = new JSONObject();
-            json.put("descrizione", vic.getDescrizione());
-            json.put("ruolo", "Vicario");
-            json.put("id", vic.getId());
-            json.put("struttura", dettaglio.getIdStruttura().getNome());
-            jsonArray.add(json);
-        }
-        JSONObject jsonReturn = new JSONObject();
-        jsonReturn.put("responsabili", jsonArray);
-        return jsonReturn;
-    }
+    // SE arrivi qui e vedi che è passato il1 15 giugno 2022 cancella sto metodo commentato
+//    @RequestMapping(value = "getResponsabili", method = RequestMethod.GET)
+//    public JSONObject getResponsabili(@RequestParam("id") String idArchivio) throws Http500ResponseException {
+//        JSONObject json = new JSONObject();
+//        JSONArray jsonArray = new JSONArray();
+//        Archivio archivio = archivioRepository.getById(Integer.parseInt(idArchivio));
+//        ArchivioDetail dettaglio = archivioDetailRepository.getById(Integer.parseInt(idArchivio));
+//        Persona personaResponsabile = dettaglio.getIdPersonaResponsabile();
+//        Integer[] idVicari = dettaglio.getIdVicari();
+//        List<Persona> listVicari = new ArrayList();
+//        for (Integer id : idVicari) {
+//            Optional<Persona> p = personaRepository.findById(id);
+//            listVicari.add(p.get());
+//        }
+//        json.put("descrizione", personaResponsabile.getDescrizione());
+//        json.put("ruolo", "Responsabile");
+//        json.put("id", personaResponsabile.getId());
+//        json.put("struttura", dettaglio.getIdStruttura().getNome());
+//        jsonArray.add(json);
+//        for (Persona vic : listVicari) {
+//            json = new JSONObject();
+//            json.put("descrizione", vic.getDescrizione());
+//            json.put("ruolo", "Vicario");
+//            json.put("id", vic.getId());
+//            json.put("struttura", dettaglio.getIdStruttura().getNome());
+//            jsonArray.add(json);
+//        }
+//        JSONObject jsonReturn = new JSONObject();
+//        jsonReturn.put("responsabili", jsonArray);
+//        return jsonReturn;
+//    }
 
     @RequestMapping(value = "eliminaProposta", method = RequestMethod.POST)
     public ResponseEntity<?> eliminaProposta(
@@ -671,7 +678,7 @@ public class ScriptaCustomController {
 
         Call call = client.newCall(request);
         HashMap readValue = null;
-        try ( Response response = call.execute();) {
+        try (Response response = call.execute();) {
             int responseCode = response.code();
             if (response.isSuccessful()) {
                 readValue = objectMapper.readValue(response.body().string(), HashMap.class);
@@ -690,4 +697,48 @@ public class ScriptaCustomController {
         return new ResponseEntity(readValue, HttpStatus.OK);
     }
 
+
+    @RequestMapping(value = "numeraArchivio", method = RequestMethod.POST)
+    public Object numeraArchivio(@RequestParam("idArchivio") Integer idArchivio,
+            @RequestParam("projection") String projection,
+            HttpServletRequest request) throws HttpInternautaResponseException,
+            Throwable {
+        log.info("numeraArchivio" + idArchivio);
+
+        // Numero l'archivio
+        Archivio archivioToSave = archivioRepository.getById(idArchivio);
+        log.info("Numero archivio...");
+        Integer numeroGenerato = archivioRepository.numeraArchivio(idArchivio);
+        log.info("Numerato " + numeroGenerato);
+        //DA QUESTO MOMENTO I DATI DI NUMERO, ANNO, NUMERAZIONE GER. SONO GIA' SALVATI SUL DB
+        // Ricarico i dati
+        log.info("Reload...");
+        archivioToSave = archivioRepository.getById(idArchivio);
+        log.info("Numero: " + archivioToSave.getNumero());
+        log.info("Anno: " + archivioToSave.getAnno());
+        log.info("Numerazione Gerarchica: " + archivioToSave.getNumerazioneGerarchica());
+
+        // Ritorno la projection coi dati aggiornati
+        log.info("Recupero projection by name " + projection);
+        Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+        projectionsInterceptorLauncher.setRequestParams(null, request);
+        log.info("Chiamo la facrtory della projection...");
+        Object projectedObject = projectionFactory.createProjection(
+                projectionClass, archivioToSave
+        );
+
+        log.info("Ritorno la projectionCreata");
+        return projectedObject;
+    }
+
+   
+    @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
+    public ResponseEntity<?> calcolaPermessiEspliciti(
+            @RequestParam("idArchivio") Integer idArchivio,
+            HttpServletRequest request) {
+        
+        archivioRepository.calcolaPermessiEspliciti(idArchivio);
+        
+        return new ResponseEntity("", HttpStatus.OK);
+    }
 }
