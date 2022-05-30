@@ -72,7 +72,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
-                    case UpdateProfiloFirma:
+                    case UpdateProfiloFirma: 
                         String password = firmePersona.getPassword();
                         List<FirmePersona> firmePersonaOldList = new ArrayList();
                         try {
@@ -109,22 +109,37 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                                         LOGGER.error(errorMessage, ex);
                                         throw new AbortSaveInterceptorException(errorMessage, ex);
                                     }
-                                } else {
-                                    Boolean haveCredentialBeenRemoved;
-                                    try {
-                                        haveCredentialBeenRemoved = removeCredential(firmePersona, userInfo);
-                                        if (haveCredentialBeenRemoved) {
-                                            firmaPersonaAdditionalData.setSavedCredential(false);
-                                            LOGGER.info("The user's credentials have been removed correctly from Credential Proxy");
-                                        } else {
-                                            LOGGER.warn("The user's credentials haven't been removed correctly from Credential Proxy");
-                                        }
-                                    } catch (Exception ex) {
-                                        String errorMessage = "Errore eliminazione credenziali";
-                                        LOGGER.error(errorMessage, ex);
-                                        throw new AbortSaveInterceptorException(errorMessage, ex);
-                                    }
                                 }
+                            }
+                        }
+                    break;
+                    case RemovePassword:
+                        if (firmePersona.getTipo() == FirmePersona.TipoFirma.REMOTA) {
+                                // prendo l'azienda della persona e vedo nei parametri aziende se è attivo il credential proxy
+//                                Azienda azienda = getAziendaFromUser();
+                            FirmePersona.AdditionalData firmaPersonaAdditionalData = firmePersona.getAdditionalData();
+                            try {
+                                if (!StringUtils.hasText(firmaPersonaAdditionalData.getHostId())) {
+                                    String hostId = getHostId(firmePersona.getTramite(), firmaPersonaAdditionalData);
+                                    firmaPersonaAdditionalData.setHostId(hostId);
+                                }
+                            } catch (FirmaRemotaHttpException | FirmaRemotaConfigurationException ex) {
+                                throw new AbortSaveInterceptorException("errore nel reperire l'hostId associato al dominio", ex);
+                            }
+                            UserInformation userInfo = createUserInformation(firmePersona.getTramite(), firmaPersonaAdditionalData, "");
+                            Boolean haveCredentialBeenRemoved;
+                            try {
+                                haveCredentialBeenRemoved = removeCredential(firmePersona, userInfo);
+                                if (haveCredentialBeenRemoved) {
+                                    firmaPersonaAdditionalData.setSavedCredential(false);
+                                    LOGGER.info("The user's credentials have been removed correctly from Credential Proxy");
+                                } else {
+                                    LOGGER.warn("The user's credentials haven't been removed correctly from Credential Proxy");
+                                }
+                            } catch (Exception ex) {
+                                String errorMessage = "Errore eliminazione credenziali";
+                                LOGGER.error(errorMessage, ex);
+                                throw new AbortSaveInterceptorException(errorMessage, ex);
                             }
                         }
                     break;

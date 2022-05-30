@@ -89,7 +89,8 @@ public class InternautaConstants {
             UpdateProfiloFirma,
             FilterBitPermessoMinimo,
             FilterForArchiviContent,
-            FilterBitGOEModifica
+            FilterBitGOEModifica,
+            RemovePassword
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
