@@ -165,7 +165,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
     public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         LOGGER.info("in: beforeUpdateEntityInterceptor di FirmePersona");
         FirmePersona firmePersona = (FirmePersona) entity;
-        if (firmePersona.getAdditionalData().getAutenticazione() != null && firmePersona.getTipo() == FirmePersona.TipoFirma.REMOTA) {
+        if (firmePersona.getAdditionalData() != null && firmePersona.getAdditionalData().getAutenticazione() != null && firmePersona.getTipo() == FirmePersona.TipoFirma.REMOTA) {
             // prendo l'azienda della persona e vedo nei parametri aziende se è attivo il credential proxy
 //            Azienda azienda = getAziendaFromUser();
             try {
