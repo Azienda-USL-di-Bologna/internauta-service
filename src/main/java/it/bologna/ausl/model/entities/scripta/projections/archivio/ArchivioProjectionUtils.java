@@ -118,7 +118,7 @@ public class ArchivioProjectionUtils {
         List<String> tipi = new ArrayList<>();
         tipi.add("ARCHIVIO");
         List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = new ArrayList<>();
-        subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(archivio, predicati, ambiti, tipi, Boolean.FALSE);
+        subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(archivio, predicati, ambiti, tipi, Boolean.TRUE);
         if (subjectsWithPermissionsOnObject != null) {
             for (PermessoEntitaStoredProcedure permessoEntitaStoredProcedure : subjectsWithPermissionsOnObject) {
                 if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.strutture.toString())) {
