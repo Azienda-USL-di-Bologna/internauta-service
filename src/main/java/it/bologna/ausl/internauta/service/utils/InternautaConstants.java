@@ -49,7 +49,9 @@ public class InternautaConstants {
             CercaAncheInContattoNoTScol,
             cercaAncheGruppi, 
             idMessage, 
-            codiceAzienda
+            codiceAzienda,
+            BitPermessoMinimo,
+            idArchivio
         }
 
         public enum OperationsRequested {
@@ -80,7 +82,14 @@ public class InternautaConstants {
             CreateDocPerMessageRegistration,
             VisualizzaTabIFirmario,
             VisualizzaTabIFirmato,
-            VisualizzaTabRegistrazioni
+            VisualizzaTabRegistrazioni,
+            VisualizzaTabPreferiti,
+            VisualizzaTabFrequenti,
+            VisualizzaTabRecenti,
+            UpdateProfiloFirma,
+            FilterBitPermessoMinimo,
+            FilterForArchiviContent,
+            FilterBitGOEModifica
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {

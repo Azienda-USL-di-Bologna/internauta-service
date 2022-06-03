@@ -19,6 +19,9 @@ public class ToolsUtils {
         String body = "*** Riepilogo Segnalazione Utente ***\n\n";
         body += "Numero: " + (numeroSegnalazione != null ? numeroSegnalazione.toString() : "[DA ELABORARE]") + "\n";
         body += "Azienda: " + segnalazioneUtente.getAzienda() + "\n";
+        if (segnalazioneUtente.getStruttura()!= null) {
+            body += "Struttura: "+ segnalazioneUtente.getStruttura() + "\n";
+        }
         body += "Cognome: " + segnalazioneUtente.getCognome() + "\n";
         body += "Nome: " + segnalazioneUtente.getNome() + "\n";
         body += "IdBabel: " + segnalazioneUtente.getUsername() + "\n";

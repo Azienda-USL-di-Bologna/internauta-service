@@ -88,6 +88,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagReposito
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxLiteRepository;
+import it.bologna.ausl.internauta.service.shpeck.utils.EmlData;
 import it.bologna.ausl.internauta.service.shpeck.utils.ManageMessageRegistrationUtils;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
@@ -205,24 +206,30 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         try {
 //            httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.test, "gdml");
             EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
+            EmlData emlData = new EmlData(res);
+            
             if (emlSource != EmlSource.DRAFT && emlSource != EmlSource.OUTBOX) {
-                int attNumber = (int) Arrays.stream(res.getAttachments())
+                int attNumber = (int) Arrays.stream(emlData.getAttachments())
                         .filter(a -> {
                             LOG.info(a.toString());
                             return a.getForHtmlAttribute() == false;
                         }).count();
-                res.setRealAttachmentNumber(attNumber);
+                emlData.setRealAttachmentNumber(attNumber);
                 Message m = messageRepository.getOne(idMessage);
                 if (m != null) {
                     if (m.getAttachmentsNumber() != attNumber) {
                         m.setAttachmentsNumber(attNumber);
-                        messageRepository.save(m);
+                        Message savedMessage = messageRepository.save(m);
+                        emlData.setMessage(savedMessage);
+                    } else {
+                        emlData.setMessage(m);
                     }
+                    
                 }
             } else {
-                res.setRealAttachmentNumber(res.getAttachments().length);
+                emlData.setRealAttachmentNumber(res.getAttachments().length);
             }
-            return new ResponseEntity(res, HttpStatus.OK);
+            return new ResponseEntity(emlData, HttpStatus.OK);
         } catch (Exception ex) {
             LOG.error("errore nella creazione del file eml", ex);
             throw new Http500ResponseException("1", "errore nella creazione del file eml", ex);

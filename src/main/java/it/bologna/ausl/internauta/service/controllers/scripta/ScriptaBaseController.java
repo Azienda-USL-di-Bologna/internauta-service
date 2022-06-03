@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.DocDetail;
 import it.bologna.ausl.model.entities.scripta.FrequenzaUtilizzoArchivio;
+import it.bologna.ausl.model.entities.scripta.Massimario;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
@@ -44,6 +45,7 @@ import it.bologna.ausl.model.entities.scripta.QAttoreDoc;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
 import it.bologna.ausl.model.entities.scripta.QFrequenzaUtilizzoArchivio;
+import it.bologna.ausl.model.entities.scripta.QMassimario;
 import it.bologna.ausl.model.entities.scripta.views.QDocDetailView;
 import it.bologna.ausl.model.entities.scripta.QMezzo;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
@@ -51,9 +53,11 @@ import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QRelated;
 import it.bologna.ausl.model.entities.scripta.QSmistamento;
 import it.bologna.ausl.model.entities.scripta.QSpedizione;
+import it.bologna.ausl.model.entities.scripta.QTitolo;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Smistamento;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
+import it.bologna.ausl.model.entities.scripta.Titolo;
 import it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView;
 import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
 import it.bologna.ausl.model.entities.scripta.views.QArchivioDetailView;
@@ -115,7 +119,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAllegato.allegato, Allegato.class);
         return ResponseEntity.ok(resource);
     }
-    
+
 //    @RequestMapping(value = {"dettaglioAllegato", "dettaglioAllegato/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 //    public ResponseEntity<?> dettaglioAllegato(
 //            @QuerydslPredicate(root = DettaglioAllegato.class) Predicate predicate,
@@ -128,7 +132,7 @@ public class ScriptaBaseController extends BaseCrudController {
 //        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDettaglioAllegato.dettaglioAllegato, DettaglioAllegato.class);
 //        return ResponseEntity.ok(resource);
 //    }
-    
+//    
     @RequestMapping(value = {"related", "related/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> related(
             @QuerydslPredicate(root = Related.class) Predicate predicate,
@@ -167,7 +171,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QSpedizione.spedizione, Spedizione.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"docdetail", "docdetail/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> docdetail(
             @QuerydslPredicate(root = DocDetail.class) Predicate predicate,
@@ -180,7 +184,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDocDetail.docDetail, DocDetail.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"personavedente", "personavedente/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> personavedente(
             @QuerydslPredicate(root = PersonaVedente.class) Predicate predicate,
@@ -193,7 +197,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPersonaVedente.personaVedente, PersonaVedente.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"docdetailview", "docdetailview/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> docdetailview(
             @QuerydslPredicate(root = DocDetailView.class) Predicate predicate,
@@ -206,7 +210,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDocDetailView.docDetailView, DocDetailView.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"archivio", "archivio/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> archivio(
             @QuerydslPredicate(root = Archivio.class) Predicate predicate,
@@ -219,7 +223,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivio.archivio, Archivio.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"archiviodoc", "archiviodoc/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> archiviodoc(
             @QuerydslPredicate(root = ArchivioDoc.class) Predicate predicate,
@@ -232,7 +236,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivioDoc.archivioDoc, ArchivioDoc.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"attorearchivio", "attorearchivio/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> attorearchivio(
             @QuerydslPredicate(root = AttoreArchivio.class) Predicate predicate,
@@ -245,7 +249,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAttoreArchivio.attoreArchivio, AttoreArchivio.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"attoredoc", "attoredoc/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> attoredoc(
             @QuerydslPredicate(root = AttoreDoc.class) Predicate predicate,
@@ -258,7 +262,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAttoreDoc.attoreDoc, AttoreDoc.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"archiviodiinteresse", "archiviodiinteresse/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> archiviodiinteresse(
             @QuerydslPredicate(root = ArchivioDiInteresse.class) Predicate predicate,
@@ -271,7 +275,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivioDiInteresse.archivioDiInteresse, ArchivioDiInteresse.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"frequenzautilizzoarchivio", "frequenzautilizzoarchivio/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> frequenzautilizzoarchivio(
             @QuerydslPredicate(root = FrequenzaUtilizzoArchivio.class) Predicate predicate,
@@ -284,7 +288,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QFrequenzaUtilizzoArchivio.frequenzaUtilizzoArchivio, FrequenzaUtilizzoArchivio.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"archiviodetail", "archiviodetail/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> archiviodetail(
             @QuerydslPredicate(root = ArchivioDetail.class) Predicate predicate,
@@ -297,7 +301,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivioDetail.archivioDetail, ArchivioDetail.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"permessoarchivio", "permessoarchivio/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> permessoarchivio(
             @QuerydslPredicate(root = PermessoArchivio.class) Predicate predicate,
@@ -310,7 +314,7 @@ public class ScriptaBaseController extends BaseCrudController {
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPermessoArchivio.permessoArchivio, PermessoArchivio.class);
         return ResponseEntity.ok(resource);
     }
-    
+
     @RequestMapping(value = {"archiviodetailview", "archiviodetailview/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> archiviodetailview(
             @QuerydslPredicate(root = ArchivioDetailView.class) Predicate predicate,
@@ -321,6 +325,34 @@ public class ScriptaBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivioDetailView.archivioDetailView, ArchivioDetailView.class);
+        return ResponseEntity.ok(resource);
+    }
+
+    @RequestMapping(value = {"massimario", "massimario/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> massimario(
+            @QuerydslPredicate(root = Massimario.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMassimario.massimario, Massimario.class);
+        return ResponseEntity.ok(resource);
+    }
+
+    @RequestMapping(value = {"titolo", "titolo/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> titolo(
+            @QuerydslPredicate(root = Titolo.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QTitolo.titolo, Titolo.class);
         return ResponseEntity.ok(resource);
     }
 }
