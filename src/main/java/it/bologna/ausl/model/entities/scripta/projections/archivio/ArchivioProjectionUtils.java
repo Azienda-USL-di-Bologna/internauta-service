@@ -25,6 +25,7 @@ import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -136,10 +137,16 @@ public class ArchivioProjectionUtils {
                 for (CategoriaPermessiStoredProcedure categoriaPermessiStoredProcedure : permessoEntitaStoredProcedure.getCategorie()) {
                     for (PermessoStoredProcedure permessoStoredProcedure : categoriaPermessiStoredProcedure.getPermessi()) {
                         if (permessoStoredProcedure.getEntitaVeicolante() != null && permessoStoredProcedure.getEntitaVeicolante().getIdProvenienza() != null) {
-                            Struttura strutturaVeicolante = strutturaRepository.findById(
-                                    permessoStoredProcedure.getEntitaVeicolante().getIdProvenienza()).get();
-                            permessoStoredProcedure.getEntitaVeicolante().setDescrizione(strutturaVeicolante.getNome()
+                            Optional<Struttura> strutturaVeicolanteOptional = 
+                                    strutturaRepository.findById(
+                                    permessoStoredProcedure.getEntitaVeicolante().getIdProvenienza());
+                            if (strutturaVeicolanteOptional!=null && strutturaVeicolanteOptional.isPresent()){
+                                Struttura strutturaVeicolante = strutturaVeicolanteOptional.get();
+                                permessoStoredProcedure.getEntitaVeicolante().setDescrizione(strutturaVeicolante.getNome()
                                     + " [ " + strutturaVeicolante.getIdAzienda().getNome() + (strutturaVeicolante.getCodice() != null ? " - " + strutturaVeicolante.getCodice() : "") + " ]");
+                            } 
+                            
+                            
                         }
                     }
                 }
