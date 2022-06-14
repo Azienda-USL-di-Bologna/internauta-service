@@ -1620,7 +1620,43 @@ public class ImportaDaCSV {
                         }
                     }
                     //cazzo di Ferrarra di merda
-                    if (!controlloZeroUno || !codiceEnteEndsWith) {
+                    if (!controlloZeroUno ) {
+                        if (appDiretto == null) {
+                            //non ho quella matricola nella mappa
+                            //creo tutti i contenuti della matricola nuova
+                            appDiretto = new HashMap();
+                            List<Map<String, Object>> periodoCasellato = new ArrayList<>();
+                            Map<String, Object> periodoDaCasellare = new HashMap();
+                            Integer idCasellaInt = Integer.parseInt(idCasella);
+                            periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                            periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                            periodoDaCasellare.put("riga", mapReader.getLineNumber());
+                            periodoCasellato.add(periodoDaCasellare);
+                            appDiretto.put(idCasellaInt, periodoCasellato);
+                            appartenentiDiretti.put(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), appDiretto);
+                        } else {
+                            Boolean afferenzaDiretta = false;
+
+                            List<Map<String, Object>> periodoCasellato = appDiretto.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
+                            if (periodoCasellato == null) {
+                                periodoCasellato = new ArrayList<>();
+                                Map<String, Object> periodoDaCasellare = new HashMap();
+                                periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                periodoDaCasellare.put("riga", mapReader.getLineNumber());
+                                periodoCasellato.add(periodoDaCasellare);
+                                appDiretto.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
+                            } else {
+
+                                Map<String, Object> periodoDaCasellare = new HashMap();
+                                periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                periodoDaCasellare.put("riga", mapReader.getLineNumber());
+                                periodoCasellato.add(periodoDaCasellare);
+                            }
+                        }
+                    } else if (!codiceEnteEndsWith && controlloZeroUno)
+                    {
                         if (appDiretto == null) {
                             //non ho quella matricola nella mappa
                             //creo tutti i contenuti della matricola nuova
