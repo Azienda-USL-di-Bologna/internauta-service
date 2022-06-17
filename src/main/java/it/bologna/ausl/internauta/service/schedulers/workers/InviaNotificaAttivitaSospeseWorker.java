@@ -22,6 +22,7 @@ import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
@@ -103,44 +104,42 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         return thatLocalDate.isEqual(TODAY);
     }
 
-    public List<Integer> loadPersoneNotificate(Azienda azienda) {
+    public Boolean isAttivitaFromLastExecutionEnabled(Azienda azienda) {
         Integer[] arrayAziende = new Integer[]{azienda.getId()};
-        //To do: da usare il modulo parametersManager
+        ParametroAziende pA = parametroAziendeRepository.findOne(
+                QParametroAziende.parametroAziende.nome.eq("attivitaFromLastExecution")
+                        .and(QParametroAziende.parametroAziende.idAziende.in(arrayAziende))
+        ).get();
+        if (pA == null) {
+            return false;
+        }
+        String isEnabled = pA.getValore();
+        return Boolean.parseBoolean(isEnabled);
+    }
+
+    public List<Integer> loadPersoneNotificate(Azienda azienda) {
+
         ParametroAziende pA = parametroAziendeRepository.findOne(
                 QParametroAziende.parametroAziende.nome.eq("personeNotificate")
         ).get();
 
         personeAvvisateString = pA.getValore();
-
         if (personeAvvisateString != null && !personeAvvisateString.replace("{", "").replace("}", "").isEmpty()) {
-
             personeAvvisateJSON = new JSONObject(personeAvvisateString);
-
             if (personeAvvisateJSON.has("persone")) {
-
-                JSONArray jsonPersone = (JSONArray) personeAvvisateJSON.get("persone");
-
-                for (int i = 0; i < jsonPersone.length(); i++) {
-
-                    JSONObject persona = (JSONObject) jsonPersone.get(i);
-
+                personeAvvisateJArray = (JSONArray) personeAvvisateJSON.get("persone");
+                for (int i = 0; i < personeAvvisateJArray.length(); i++) {
+                    JSONObject persona = (JSONObject) personeAvvisateJArray.get(i);
                     SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-
                     String dateString = (String) persona.get("version");
-
                     if (dateString != null && !dateString.isEmpty()) {
-
                         try {
                             Date lastUpdate = formatter.parse(dateString);
-
                             if (isToday(lastUpdate)) {
-
                                 log.info("Persona " + persona.getInt("id") + " già avvisata");
-
                                 if (!personeAvvisate.contains(persona.getInt("id"))) {
                                     personeAvvisate.add(persona.getInt("id"));
                                 }
-
                             }
                         } catch (java.text.ParseException ex) {
                             log.error("La persona " + persona.get("id") + " non ha la version: la avviso");
@@ -153,7 +152,6 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
         }
         log.info("Numero di persone avvisate pre run: " + personeAvvisate.size());
-        log.info("personeAvvisateJArray size: " + personeAvvisateJArray.length());
         return personeAvvisate;
     }
 
@@ -363,9 +361,22 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         return body;
     }
 
-    private List<Attivita> getAttivitaSuScrivania(Integer idPersona) {
+    private List<Attivita> getAttivitaSuScrivania(Integer idPersona, Azienda azienda) {
         log.info("Chiamo attivitaRepository.getLatestFiftyAttivitaInScrivaniaByIdPersona(" + idPersona + ") ....");
-        return attivitaRepository.getLatestFiftyAttivitaInScrivaniaByIdPersona(idPersona);
+        if (isAttivitaFromLastExecutionEnabled(azienda)) {
+            JSONObject tempJSON = new JSONObject();
+            tempJSON.put("id", idPersona);
+            int index = getJSONArrayElementIndex(personeAvvisateJArray, tempJSON, "id");
+            if (index == -1) {
+                return attivitaRepository.getLatestFiftyAttivitaInScrivaniaByIdPersona(idPersona);
+            } else {
+                JSONObject persona = personeAvvisateJArray.getJSONObject(index);
+                ZonedDateTime dataAttivita = ZonedDateTime.parse((String) persona.get("version"));
+                return attivitaRepository.getLatestAttivitaSinceNotificationByIdPersona(idPersona, dataAttivita);
+            }
+        } else {
+            return attivitaRepository.getLatestFiftyAttivitaInScrivaniaByIdPersona(idPersona);
+        }
     }
 
     private boolean hasUserEmail(Utente utente) {
@@ -511,7 +522,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
             //      cerca attività su scrivania
             log.info("Cerco le attivita'...");
-            List<Attivita> attivitaSuScrivania = getAttivitaSuScrivania(idPersona);
+            List<Attivita> attivitaSuScrivania = getAttivitaSuScrivania(idPersona, azienda);
             //      se count(attività) > 0
             log.info("Verifico se posso proseguire");
             if (attivitaSuScrivania != null && attivitaSuScrivania.size() > 0) {
@@ -538,11 +549,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
                         personeAvvisate.add(persona.getId());
                     }
 
-                    personeAvvisateJArray.put(personaAvvisataJSON);
-
                     log.info("Avvisata persona:" + personaAvvisata + " inserita in personaAvvisataJSON");
-
-                    log.info("personeAvvisateJArray size: " + personeAvvisateJArray.length());
 
                     updatePersoneAvvisate(personaAvvisataJSON);
 
