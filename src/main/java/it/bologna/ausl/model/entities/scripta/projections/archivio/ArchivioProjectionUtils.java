@@ -116,6 +116,7 @@ public class ArchivioProjectionUtils {
         predicati.add("BLOCCO");
         predicati.add("VICARIO");
         predicati.add("RESPONSABILE");
+        predicati.add("NON_PROPAGATO");
         List<String> ambiti = new ArrayList<>();
         ambiti.add("SCRIPTA");
         List<String> tipi = new ArrayList<>();
