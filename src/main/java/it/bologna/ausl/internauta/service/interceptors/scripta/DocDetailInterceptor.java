@@ -85,9 +85,9 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
         Persona persona = user.getIdPersona();
         QDocDetail qdoclist = QDocDetail.docDetail;
         Boolean addSafetyFilters =true;
-                                          
+
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
-        
+
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
            
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
