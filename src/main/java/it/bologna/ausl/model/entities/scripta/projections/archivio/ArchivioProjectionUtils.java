@@ -156,4 +156,19 @@ public class ArchivioProjectionUtils {
         }
         return subjectsWithPermissionsOnObject;
     }
+    
+    /**
+     * Dato un archivio torno la lista dei PermessoArchivio che ci sono sull'arhciviodetail corrispondente
+     * @param archivio
+     * @return
+     */
+    public List<PermessoArchivio> getPermessiEspliciti(Archivio archivio) {
+        BooleanExpression filter = QPermessoArchivio.permessoArchivio.idArchivioDetail.id.eq(archivio.getId())
+                .and(QPermessoArchivio.permessoArchivio.idAzienda.id.eq((archivio.getIdAzienda().getId())))
+                .and(QPermessoArchivio.permessoArchivio.dataCreazione.eq(archivio.getDataCreazione()));
+        Iterable<PermessoArchivio> permessiArchivio = permessoArchivioRepository.findAll(filter);
+        List<PermessoArchivio> res = new ArrayList<>();
+        permessiArchivio.forEach(res::add);
+        return res;
+    }
 }
