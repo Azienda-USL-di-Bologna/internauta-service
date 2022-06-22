@@ -290,4 +290,5 @@ public class RaccoltaManager {
 // + "AND  '[{\"u\":\"" + idUtente + "\"}]'::jsonb<@d.utenti_vedenti_json "
         return query;
     }
+
 }
