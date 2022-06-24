@@ -41,19 +41,19 @@ public class ArchivioProjectionUtils {
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-    
+
     @Autowired
     private PermissionManager permissionManager;
-    
+
     @Autowired
     private StrutturaRepository strutturaRepository;
-    
+
     @Autowired
     private PersonaRepository personaRepository;
-     
+
     @Autowired
     private UtenteRepository utenteRepository;
-    
+
     @Autowired
     private AziendaRepository aziendaRepository;
 
@@ -92,7 +92,7 @@ public class ArchivioProjectionUtils {
         Iterable<PermessoArchivio> permessiArchivi = permessoArchivioRepository.findAll(filter);
         return !(permessiArchivi.iterator().hasNext());
     }
-    
+
     public String getElencoCodiciAziendeAttualiPersona(Persona persona) {
         String codiciAziende = "";
         List<Utente> utenteList = persona.getUtenteList();
@@ -107,19 +107,22 @@ public class ArchivioProjectionUtils {
         }
         return codiciAziende;
     }
-    
+
     public List<PermessoEntitaStoredProcedure> getPermessi(Archivio archivio) throws BlackBoxPermissionException {
         List<String> predicati = new ArrayList<>();
         predicati.add("VISUALIZZA");
         predicati.add("MODIFICA");
         predicati.add("ELIMINA");
         predicati.add("BLOCCO");
+        predicati.add("VICARIO");
+        predicati.add("RESPONSABILE");
+        predicati.add("NON_PROPAGATO");
         List<String> ambiti = new ArrayList<>();
         ambiti.add("SCRIPTA");
         List<String> tipi = new ArrayList<>();
         tipi.add("ARCHIVIO");
         List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = new ArrayList<>();
-        subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(archivio, predicati, ambiti, tipi, Boolean.FALSE,Boolean.TRUE);
+        subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(archivio, predicati, ambiti, tipi, Boolean.FALSE, Boolean.TRUE);
         if (subjectsWithPermissionsOnObject != null) {
             for (PermessoEntitaStoredProcedure permessoEntitaStoredProcedure : subjectsWithPermissionsOnObject) {
                 if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.strutture.toString())) {
@@ -137,21 +140,35 @@ public class ArchivioProjectionUtils {
                 for (CategoriaPermessiStoredProcedure categoriaPermessiStoredProcedure : permessoEntitaStoredProcedure.getCategorie()) {
                     for (PermessoStoredProcedure permessoStoredProcedure : categoriaPermessiStoredProcedure.getPermessi()) {
                         if (permessoStoredProcedure.getEntitaVeicolante() != null && permessoStoredProcedure.getEntitaVeicolante().getIdProvenienza() != null) {
-                            Optional<Struttura> strutturaVeicolanteOptional = 
-                                    strutturaRepository.findById(
-                                    permessoStoredProcedure.getEntitaVeicolante().getIdProvenienza());
-                            if (strutturaVeicolanteOptional!=null && strutturaVeicolanteOptional.isPresent()){
+                            Optional<Struttura> strutturaVeicolanteOptional
+                                    = strutturaRepository.findById(
+                                            permessoStoredProcedure.getEntitaVeicolante().getIdProvenienza());
+                            if (strutturaVeicolanteOptional != null && strutturaVeicolanteOptional.isPresent()) {
                                 Struttura strutturaVeicolante = strutturaVeicolanteOptional.get();
                                 permessoStoredProcedure.getEntitaVeicolante().setDescrizione(strutturaVeicolante.getNome()
-                                    + " [ " + strutturaVeicolante.getIdAzienda().getNome() + (strutturaVeicolante.getCodice() != null ? " - " + strutturaVeicolante.getCodice() : "") + " ]");
-                            } 
-                            
-                            
+                                        + " [ " + strutturaVeicolante.getIdAzienda().getNome() + (strutturaVeicolante.getCodice() != null ? " - " + strutturaVeicolante.getCodice() : "") + " ]");
+                            }
+
                         }
                     }
                 }
             }
         }
         return subjectsWithPermissionsOnObject;
+    }
+    
+    /**
+     * Dato un archivio torno la lista dei PermessoArchivio che ci sono sull'arhciviodetail corrispondente
+     * @param archivio
+     * @return
+     */
+    public List<PermessoArchivio> getPermessiEspliciti(Archivio archivio) {
+        BooleanExpression filter = QPermessoArchivio.permessoArchivio.idArchivioDetail.id.eq(archivio.getId())
+                .and(QPermessoArchivio.permessoArchivio.idAzienda.id.eq((archivio.getIdAzienda().getId())))
+                .and(QPermessoArchivio.permessoArchivio.dataCreazione.eq(archivio.getDataCreazione()));
+        Iterable<PermessoArchivio> permessiArchivio = permessoArchivioRepository.findAll(filter);
+        List<PermessoArchivio> res = new ArrayList<>();
+        permessiArchivio.forEach(res::add);
+        return res;
     }
 }
