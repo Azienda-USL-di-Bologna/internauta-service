@@ -133,7 +133,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                                     Arrays.asList(new Pec[]{pec}),
                                     Arrays.asList(new String[]{Predicati.SPEDISCE.toString(), Predicati.SPEDISCE_PRINCIPALE.toString()}),
                                     Arrays.asList(new String[]{Ambiti.PECG.toString()}),
-                                    Arrays.asList(new String[]{Tipi.PEC.toString()}), false);
+                                    Arrays.asList(new String[]{Tipi.PEC.toString()}), false,false);
                             if (subjectsWithPermissionsOnObject == null) {
                                 initialPredicate = Expressions.FALSE.eq(true);
                             } else {
