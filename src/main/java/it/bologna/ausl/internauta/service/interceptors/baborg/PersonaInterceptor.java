@@ -82,7 +82,7 @@ public class PersonaInterceptor extends InternautaBaseInterceptor {
                                 Arrays.asList(new Pec[]{pec}),
                                 Arrays.asList(new String[]{Predicati.ELIMINA.toString(), Predicati.LEGGE.toString(), Predicati.RISPONDE.toString()}),
                                 Arrays.asList(new String[]{Ambiti.PECG.toString()}),
-                                Arrays.asList(new String[]{Tipi.PEC.toString()}), false);
+                                Arrays.asList(new String[]{Tipi.PEC.toString()}), false,false);
                             if (subjectsWithPermissionsOnObject == null){
                                 initialPredicate = Expressions.FALSE.eq(true);
                             }
