@@ -162,7 +162,7 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),
-                    false);
+                    false,false);
 
             // Come detto, qui ciclo il permessone e capisco quali permessi eliminare in modo che poi vengano spoenti dalla balckbox
             if (oggettoneListStrutturePec != null) {
@@ -186,7 +186,7 @@ public class PecAziendaInterceptor extends InternautaBaseInterceptor {
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString(), InternautaConstants.Permessi.Predicati.ELIMINA.toString()}),
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}),
-                    false);
+                    false,false);
 
             if (oggettoneListGestoriPec != null) {
                 for (int i = 0; i < oggettoneListGestoriPec.size(); i++) {
