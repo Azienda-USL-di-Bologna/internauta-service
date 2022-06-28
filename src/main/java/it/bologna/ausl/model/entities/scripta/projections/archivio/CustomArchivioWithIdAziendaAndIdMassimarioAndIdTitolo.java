@@ -1,8 +1,8 @@
 package it.bologna.ausl.model.entities.scripta.projections.archivio;
 
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
-import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
-import it.bologna.ausl.model.entities.scripta.projections.generated.ArchivioWithIdAziendaAndIdMassimarioAndIdTitolo;
+import it.bologna.ausl.model.entities.scripta.projections.generated.ArchivioWithAttoriListAndIdAziendaAndIdMassimarioAndIdTitolo;
+import it.bologna.ausl.model.entities.scripta.projections.generated.PermessoArchivioWithPlainFields;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
@@ -12,7 +12,7 @@ import org.springframework.data.rest.core.config.Projection;
  * @author Matteo Next
  */
 @Projection(name = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo", types = it.bologna.ausl.model.entities.scripta.Archivio.class)
-public interface CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo extends ArchivioWithIdAziendaAndIdMassimarioAndIdTitolo {
+public interface CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo extends ArchivioWithAttoriListAndIdAziendaAndIdMassimarioAndIdTitolo {
 
     @Value("#{@archivioProjectionUtils.getIsArchivioNero(target)}")
     public Boolean getIsArchivioNero();
@@ -21,5 +21,5 @@ public interface CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo extends A
     public List<PermessoEntitaStoredProcedure> getPermessi();
     
     @Value("#{@archivioProjectionUtils.getPermessiEspliciti(target)}")
-    public List<PermessoArchivio> getPermessiEspliciti();
+    public List<PermessoArchivioWithPlainFields> getPermessiEspliciti();
 }
