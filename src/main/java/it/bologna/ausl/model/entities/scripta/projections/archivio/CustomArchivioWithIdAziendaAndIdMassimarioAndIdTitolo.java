@@ -1,11 +1,7 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.model.entities.scripta.projections.archivio;
 
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.projections.generated.ArchivioWithIdAziendaAndIdMassimarioAndIdTitolo;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,4 +19,7 @@ public interface CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo extends A
     
     @Value("#{@archivioProjectionUtils.getPermessi(target)}")
     public List<PermessoEntitaStoredProcedure> getPermessi();
+    
+    @Value("#{@archivioProjectionUtils.getPermessiEspliciti(target)}")
+    public List<PermessoArchivio> getPermessiEspliciti();
 }
