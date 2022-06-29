@@ -116,13 +116,15 @@ public class ArchivioProjectionUtils {
 
     public List<PermessoEntitaStoredProcedure> getPermessi(Archivio archivio) throws BlackBoxPermissionException {
         List<String> predicati = new ArrayList<>();
-        predicati.add("VISUALIZZA");
-        predicati.add("MODIFICA");
-        predicati.add("ELIMINA");
-        predicati.add("BLOCCO");
-        predicati.add("VICARIO");
-        predicati.add("RESPONSABILE");
-        predicati.add("NON_PROPAGATO");
+        predicati.add("PASSAGGIO"); // 1
+        predicati.add("VISUALIZZA"); // 2
+        predicati.add("MODIFICA"); // 4
+        predicati.add("ELIMINA"); // 8
+        predicati.add("VICARIO"); // 16
+        predicati.add("REPONSABILE_PROPOSTO"); // 32
+        predicati.add("RESPONSABILE"); // 64
+        predicati.add("NON_PROPAGATO"); // E' un permesso che blocca il permesso in id_permesso_bloccato
+        predicati.add("BLOCCO"); // E' un permesso negativo. Se ad esempio un utente riceve un permesso da struttura ma non si vuole che veda l'archivio allora basta dargli questo permesso
         List<String> ambiti = new ArrayList<>();
         ambiti.add("SCRIPTA");
         List<String> tipi = new ArrayList<>();
