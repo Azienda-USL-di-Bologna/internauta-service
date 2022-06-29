@@ -96,7 +96,7 @@ public class ScriptaUtils {
         } else {
             throw new FileNotFoundException("Passato file null ");
         }
-        
+
         return allegatiDaTornare;
     }
 
@@ -118,9 +118,9 @@ public class ScriptaUtils {
             String nomeDelFile,
             Doc doc,
             File folderToSave) throws ExtractorException, IOException, Throwable {
-        
+
         List<Allegato> allegatiDaTornare = new ArrayList<Allegato>();
-                String separatoreDiSiStema = System.getProperty("file.separator");
+        String separatoreDiSiStema = System.getProperty("file.separator");
         CharSequence daRimpiazzare = separatoreDiSiStema;
         CharSequence sostituto = "\\" + separatoreDiSiStema;
         nomeDelFile = nomeDelFile.replace(daRimpiazzare, sostituto);
@@ -177,7 +177,7 @@ public class ScriptaUtils {
                 throw e;
             }
         }
-        
+
         tmp.delete();
         allegatoInputStream.close();
         return allegatiDaTornare;
@@ -294,7 +294,7 @@ public class ScriptaUtils {
         dettaglioAllegato.setHashMd5(minioFileInfo.getMd5());
 
 //        dettaglioAllegato.setHashSha256(FileUtilities.getHashFromFile(fileInputStream, "SHA-256"));
-        try(InputStream is = new FileInputStream(file)){
+        try ( InputStream is = new FileInputStream(file)) {
             dettaglioAllegato.setHashSha256(org.apache.commons.codec.digest.DigestUtils.sha256Hex(is));
         }
         dettaglioAllegato.setNome(FilenameUtils.getBaseName(fileNameWithExtension));

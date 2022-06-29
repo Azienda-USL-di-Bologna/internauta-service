@@ -291,7 +291,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                                     Arrays.asList(new Pec[]{pec}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ELIMINA.toString(), InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString()}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false,false);
                         } catch (BlackBoxPermissionException ex) {
                             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
@@ -336,7 +336,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                                     Arrays.asList(new Pec[]{pec}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ELIMINA.toString(), InternautaConstants.Permessi.Predicati.LEGGE.toString(), InternautaConstants.Permessi.Predicati.RISPONDE.toString()}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false,false);
                         } catch (BlackBoxPermissionException ex) {
                             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
@@ -377,7 +377,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                                     Arrays.asList(new Pec[]{pec}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.SPEDISCE.toString(), InternautaConstants.Permessi.Predicati.SPEDISCE_PRINCIPALE.toString()}),
                                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.PECG.toString()}),
-                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false);
+                                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.PEC.toString()}), false,false);
                         } catch (BlackBoxPermissionException ex) {
                             LOGGER.error("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);
                             throw new AbortLoadInterceptorException("Errore nel caricamento dei permessi PEC dalla BlackBox", ex);

@@ -85,9 +85,9 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
         Persona persona = user.getIdPersona();
         QDocDetail qdoclist = QDocDetail.docDetail;
         Boolean addSafetyFilters =true;
-                                          
+
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
-        
+
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
            
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
@@ -129,7 +129,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         );
                         Optional<PermessoArchivio> findOne = permessoArchivioRepository.findOne(filterUserhasPermission);
                         
-                        if(!findOne.isPresent()){
+                        if (!findOne.isPresent()) {
                             throw new AbortLoadInterceptorException("Persona senza permesso su Archivio");
                         }
                         

@@ -1669,16 +1669,16 @@ public class BaborgUtils {
             // Update nello storico importazioni. esito: OK e Data Fine: Data.now
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Ok", csv_error_link);
         } catch (BaborgCSVBloccanteException e) {
-            System.out.println(e.getMessage());
+            log.error("errore bloccante", e);
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Errore Bloccante", e.getMessage());
         } catch (BaborgCSVAnomaliaException e) {
-            System.out.println(e.getMessage());
+            log.error("errore anomalia", e);
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Anomalia", e.getMessage());
         } catch (BaborgCSVBloccanteRigheException e) {
-            System.out.println(e.getMessage());
+            log.error("errore bloccante righe", e);
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Bloccante Righe", e.getMessage());
         } catch (Throwable e) {
-            System.out.println(e.getMessage());
+            log.error("errore generico", e);
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Errore", null);
         }
 

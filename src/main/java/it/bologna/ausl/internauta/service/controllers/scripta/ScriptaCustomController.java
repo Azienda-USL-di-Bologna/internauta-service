@@ -699,6 +699,7 @@ public class ScriptaCustomController {
 
 
     @RequestMapping(value = "numeraArchivio", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
     public Object numeraArchivio(@RequestParam("idArchivio") Integer idArchivio,
             @RequestParam("projection") String projection,
             HttpServletRequest request) throws HttpInternautaResponseException,
@@ -706,14 +707,14 @@ public class ScriptaCustomController {
         log.info("numeraArchivio" + idArchivio);
 
         // Numero l'archivio
-        Archivio archivioToSave = archivioRepository.getById(idArchivio);
+        //Archivio archivioToSave = archivioRepository.getById(idArchivio);
         log.info("Numero archivio...");
         Integer numeroGenerato = archivioRepository.numeraArchivio(idArchivio);
         log.info("Numerato " + numeroGenerato);
         //DA QUESTO MOMENTO I DATI DI NUMERO, ANNO, NUMERAZIONE GER. SONO GIA' SALVATI SUL DB
         // Ricarico i dati
         log.info("Reload...");
-        archivioToSave = archivioRepository.getById(idArchivio);
+        Archivio archivioToSave = archivioRepository.getById(idArchivio);
         log.info("Numero: " + archivioToSave.getNumero());
         log.info("Anno: " + archivioToSave.getAnno());
         log.info("Numerazione Gerarchica: " + archivioToSave.getNumerazioneGerarchica());
