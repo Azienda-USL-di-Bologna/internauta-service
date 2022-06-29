@@ -129,7 +129,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         );
                         Optional<PermessoArchivio> findOne = permessoArchivioRepository.findOne(filterUserhasPermission);
                         
-                        if(!findOne.isPresent()){
+                        if (!findOne.isPresent()) {
                             throw new AbortLoadInterceptorException("Persona senza permesso su Archivio");
                         }
                         
