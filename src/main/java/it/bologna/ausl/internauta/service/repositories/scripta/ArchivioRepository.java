@@ -20,7 +20,7 @@ public interface ArchivioRepository extends
         NextSdrQueryDslRepository<Archivio, Integer, QArchivio>,
         JpaRepository<Archivio, Integer> {
 
-    @Query(value = "select * from scripta.numera_archivio(?1);",
+    @Query(value = "select * from scripta.numerazione_archivio(?1);",
             nativeQuery = true)
     public Integer numeraArchivio(Integer idArchivio);
     
