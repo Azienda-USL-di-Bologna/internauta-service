@@ -699,6 +699,7 @@ public class ScriptaCustomController {
 
 
     @RequestMapping(value = "numeraArchivio", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
     public Object numeraArchivio(@RequestParam("idArchivio") Integer idArchivio,
             @RequestParam("projection") String projection,
             HttpServletRequest request) throws HttpInternautaResponseException,
