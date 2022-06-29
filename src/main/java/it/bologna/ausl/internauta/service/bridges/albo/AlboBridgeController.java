@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
@@ -41,7 +42,7 @@ public class AlboBridgeController implements ControllerHandledExceptions {
 
     private final String RELATE_FILENAME_TEMPLATE = "relata_[numeroPubblicazione]_[annoPubblicazione]_[registro][numeroRegistro]_[annoRegistro].pdf";
     private final String RELATE_TEMPLATE_NAME = "[codiceAzienda]_relata.xhtml";
-    private final String RELATE_MINIO_PATH = "relate";
+    private final String RELATE_MINIO_PATH = "/relate";
     private final String RELATE_BUCKET_NAME = "albi";
 
     private final boolean gediInternauta = false;
@@ -192,7 +193,7 @@ public class AlboBridgeController implements ControllerHandledExceptions {
 
     /**
      * Crea la relata e la salva nel repository delle relate (bucket "albi" path logico "relate")
-     * @param azienda il codice azienda (es, 105, 106, 109, ecc.)
+     * @param codiceAzienda il codice azienda (es, 105, 106, 109, ecc.)
      * @param titolo il titolo della relata (es. RELATA DI PUBBLICAZIONE, RELATA DI PUBBLICAZIONE PROFILO DEL COMMITTENTE, ecc.)
      * @param intestazione intestazione della relata (es.Registrazione Albo n. [numero] del [anno])
      * @param corpo il corpo delle relata (es. Si attesta che l'atto indicato in oggetto viene pubblicato all'Albo...)
@@ -209,12 +210,12 @@ public class AlboBridgeController implements ControllerHandledExceptions {
      */
     @RequestMapping(value = {"makeAndSaveRelata"}, method = RequestMethod.GET)
     public String makeAndSaveRelata(
-            @RequestParam(required = true) String azienda,
+            @RequestParam(required = true) String codiceAzienda,
             @RequestParam(required = true) String titolo,
             @RequestParam(required = true) String intestazione,
             @RequestParam(required = true) String corpo,
             @RequestParam(required = true) String registro,
-            @RequestParam(required = true) String numeroRegistro,
+            @RequestParam(required = true) Integer numeroRegistro,
             @RequestParam(required = true) String annoRegistro,
             @RequestParam(required = true) String oggetto,
             @RequestParam(required = true) String numeroPubblicazione,
@@ -224,23 +225,26 @@ public class AlboBridgeController implements ControllerHandledExceptions {
 
         try {
             // leggo i parametri del masterchef aziendale
-            Azienda aziendaObj = cachedEntities.getAziendaFromCodice(azienda);
+            Azienda aziendaObj = cachedEntities.getAziendaFromCodice(codiceAzienda);
             AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, aziendaObj.getParametri());
             AziendaParametriJson.MasterChefParmas masterchefParams = aziendaParametriJson.getMasterchefParams();
 
             // calcolo il nome del template della relata (c'è un template per ogni azienda)
-            String templateNameRelata = RELATE_TEMPLATE_NAME.replace("[codiceAzienda]", azienda);
+            String templateNameRelata = RELATE_TEMPLATE_NAME.replace("[codiceAzienda]", codiceAzienda);
 
+            // aggiungo gli zeri davanti al numero registro
+            String numeroRegistroZeroPadded = String.format("%07d", numeroRegistro);
+            
             // creo il json con i dati per la relata da passare al masterchef
             Map<String, String> templateData = new HashMap();
             templateData.put("titolo", titolo);
             templateData.put("intestazione", intestazione);
             templateData.put("corpo", corpo);
             templateData.put("registro", registro);
-            templateData.put("numero_registro", numeroRegistro);
+            templateData.put("numero_registro", numeroRegistroZeroPadded);
             templateData.put("anno_registro", annoRegistro);
             templateData.put("oggetto", oggetto);
-
+            
             // creo i parametri per il job
             MasterChefUtils.MasterchefJobDescriptor masterchefJobDescriptor = masterChefUtils.buildReporterMasterchefJob(templateNameRelata, templateData, null, null);
 
@@ -257,11 +261,11 @@ public class AlboBridgeController implements ControllerHandledExceptions {
                                             .replace("[numeroPubblicazione]", numeroPubblicazione)
                                             .replace("[annoPubblicazione]", annoPubblicazione)
                                             .replace("[registro]", registro)
-                                            .replace("[numeroRegistro]", numeroRegistro)
+                                            .replace("[numeroRegistro]", numeroRegistroZeroPadded)
                                             .replace("[annoRegistro]", annoRegistro);
 
                 // carico la relata nel posto giusto
-                MinIOWrapperFileInfo relataFileInfo = minIOWrapper.putWithBucket(minIOWrapper.getByUuid(relataUuid), azienda, RELATE_MINIO_PATH, relataFileName, null, true, RELATE_BUCKET_NAME);
+                MinIOWrapperFileInfo relataFileInfo = minIOWrapper.putWithBucket(minIOWrapper.getByUuid(relataUuid), codiceAzienda, RELATE_MINIO_PATH, relataFileName, null, false, UUID.randomUUID().toString(), RELATE_BUCKET_NAME);
                 String codiceRelata = relataFileInfo.getFileName();
 
                 // torno il nome delle relata che sarà il codice per poterla poi reperire (il nome è univoco all'interno dello stesso path)
