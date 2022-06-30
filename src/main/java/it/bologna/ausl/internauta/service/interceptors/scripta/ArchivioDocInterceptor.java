@@ -89,7 +89,7 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
             if (tipologiePDD.contains(idDoc.getTipologia())) {
                 List<ArchivioDoc> archiviDocList = idDoc.getArchiviDocList();
                 boolean esisteAltraArchiviazioneNonEliminata = archiviDocList.stream().anyMatch(ad -> {
-                    return ad.getId().equals(archivioDoc.getId()) && ad.getDataEliminazione() == null;
+                    return !ad.getId().equals(archivioDoc.getId()) && ad.getDataEliminazione() == null;
                 });
                 if (!esisteAltraArchiviazioneNonEliminata) {
                     throw new AbortSaveInterceptorException("Il documento non ha altre fasciolazioni attive");
