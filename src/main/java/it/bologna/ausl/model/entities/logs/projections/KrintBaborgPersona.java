@@ -20,7 +20,7 @@ public interface KrintBaborgPersona{
         
     // TODO da definire
     // permessi sulla persona o permessi divisi per azienda
-    @Value("#{@userInfoService.getPermessiKrint(target)}")
-    Map<String, Object> getPermessi();   
+//    @Value("#{@userInfoService.getPermessiKrint(target)}")
+//    Map<String, Object> getPermessi();   
   
 }
