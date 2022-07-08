@@ -43,16 +43,10 @@ public class DettaglioContattoInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(DettaglioContattoInterceptor.class);
 
     @Autowired
-    private ContattoRepository contattoRepository;
-
-    @Autowired
     private UserInfoService userInfoService;
 
     @Autowired
     private KrintRubricaService krintRubricaService;
-
-    @Autowired
-    private ContattoInterceptor contattoInterceptor;
     
     @Autowired
     private RubricaInterceptorUtils rubricaInterceptorUtils;

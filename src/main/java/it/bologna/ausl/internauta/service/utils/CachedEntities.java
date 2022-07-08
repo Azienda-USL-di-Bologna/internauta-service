@@ -105,6 +105,17 @@ public class CachedEntities {
         }
     }
     
+    @Cacheable(value = "aziendaFromCodiceRegioneAndCodice__ribaltorg__", key = "{#codiceRegioneAzienda}")
+    public Azienda getAziendaFromCodiceRegioneAndCodice(String codiceRegioneAzienda) {
+        BooleanExpression filter = QAzienda.azienda.codiceRegione.concat(QAzienda.azienda.codice).eq(codiceRegioneAzienda);
+        Optional<Azienda> azienda = aziendaRepository.findOne(filter);
+        if (azienda.isPresent()) {
+            return azienda.get();
+        } else {
+            return null;
+        }
+    }
+    
     @Cacheable(value = "aziendaFromNome__ribaltorg__", key = "{#nome}")
     public Azienda getAziendaFromNome(String nome) {
         BooleanExpression filter = QAzienda.azienda.nome.eq(nome);
