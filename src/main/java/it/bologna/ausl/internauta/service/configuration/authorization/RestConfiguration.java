@@ -17,13 +17,13 @@ import org.springframework.web.filter.CorsFilter;
  */
 @Configuration
 public class RestConfiguration {
-
+    
     @Value("${cors.allowed.origins}")
     private String allowedOriginsString;
-
+    
     @Bean
     public CorsFilter corsFilter() {
-
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration configResources = new CorsConfiguration();
 //        configResources.setAllowCredentials(false); // con la versione 2.4.2 di spring se settato a true vanno per forza settati anche gli allowed orgin a qualcosa diversa da *
@@ -45,11 +45,12 @@ public class RestConfiguration {
         configResources.addAllowedMethod(HttpMethod.PATCH);
         configResources.addAllowedMethod(HttpMethod.POST);
         configResources.addAllowedMethod(HttpMethod.DELETE);
-
+        
         CorsConfiguration configLogin = new CorsConfiguration();
         configLogin.setAllowCredentials(true);
         configLogin.setAllowedOrigins(allowedOriginList);
         configLogin.addAllowedHeader("*");
+        configLogin.addExposedHeader("Location");
         configLogin.addAllowedMethod(HttpMethod.OPTIONS);
         configLogin.addAllowedMethod(HttpMethod.GET);
         configLogin.addAllowedMethod(HttpMethod.POST);
