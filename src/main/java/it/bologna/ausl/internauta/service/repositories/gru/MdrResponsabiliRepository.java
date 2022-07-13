@@ -38,7 +38,7 @@ public interface MdrResponsabiliRepository extends
     
     @Procedure("gru.count_multidefinictions_respo_byidazienda")
     public Integer countMultiReponsabilePerStruttura(
-            @Param("codice_ente_par") Integer codiceEnte,
+            @Param("codice_ente_par") String codiceEnte,
             @Param("id_casella_par")Integer idCasella,
             @Param("datafi_par") String datafine,
             @Param("datain_par") String datainizio

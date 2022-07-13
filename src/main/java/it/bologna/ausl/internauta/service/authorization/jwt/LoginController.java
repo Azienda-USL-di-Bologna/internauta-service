@@ -42,6 +42,7 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 import org.springframework.web.bind.annotation.RequestParam;
 import it.bologna.ausl.model.entities.baborg.projections.utente.UtenteLoginCustom;
+import org.apache.commons.codec.digest.DigestUtils;
 
 /**
  *
@@ -216,8 +217,18 @@ public class LoginController {
         if (utente == null) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
-        if (!PasswordHashUtils.validatePassword(userLogin.password, utente.getPasswordHash())) {
-            return new ResponseEntity(HttpStatus.FORBIDDEN);
+        
+        if (utente.getIdAzienda().getCodice().equals("050109")){
+            String md5DaCalcolare = userLogin.username + "/" + userLogin.password;
+            if (!DigestUtils.md5Hex(md5DaCalcolare).toUpperCase().equals(utente.getPasswordHash().toUpperCase())){
+                return new ResponseEntity(HttpStatus.FORBIDDEN);
+            }
+            
+        } else {    
+            
+            if (!PasswordHashUtils.validatePassword(userLogin.password, utente.getPasswordHash())) {
+                return new ResponseEntity(HttpStatus.FORBIDDEN);
+            }
         }
 
         //userInfoService.getRuoliRemoveCache(utente);

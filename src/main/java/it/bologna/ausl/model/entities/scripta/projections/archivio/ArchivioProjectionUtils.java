@@ -22,11 +22,14 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
+import it.bologna.ausl.model.entities.scripta.projections.generated.PermessoArchivioWithPlainFields;
 import it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -38,6 +41,9 @@ public class ArchivioProjectionUtils {
 
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
+    
+    @Autowired
+    private ProjectionFactory projectionFactory;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
@@ -110,13 +116,15 @@ public class ArchivioProjectionUtils {
 
     public List<PermessoEntitaStoredProcedure> getPermessi(Archivio archivio) throws BlackBoxPermissionException {
         List<String> predicati = new ArrayList<>();
-        predicati.add("VISUALIZZA");
-        predicati.add("MODIFICA");
-        predicati.add("ELIMINA");
-        predicati.add("BLOCCO");
-        predicati.add("VICARIO");
-        predicati.add("RESPONSABILE");
-        predicati.add("NON_PROPAGATO");
+        predicati.add("PASSAGGIO"); // 1
+        predicati.add("VISUALIZZA"); // 2
+        predicati.add("MODIFICA"); // 4
+        predicati.add("ELIMINA"); // 8
+        predicati.add("VICARIO"); // 16
+        predicati.add("REPONSABILE_PROPOSTO"); // 32
+        predicati.add("RESPONSABILE"); // 64
+        predicati.add("NON_PROPAGATO"); // E' un permesso che blocca il permesso in id_permesso_bloccato
+        predicati.add("BLOCCO"); // E' un permesso negativo. Se ad esempio un utente riceve un permesso da struttura ma non si vuole che veda l'archivio allora basta dargli questo permesso
         List<String> ambiti = new ArrayList<>();
         ambiti.add("SCRIPTA");
         List<String> tipi = new ArrayList<>();
@@ -162,13 +170,19 @@ public class ArchivioProjectionUtils {
      * @param archivio
      * @return
      */
-    public List<PermessoArchivio> getPermessiEspliciti(Archivio archivio) {
+    public List<PermessoArchivioWithPlainFields> getPermessiEspliciti(Archivio archivio) {
         BooleanExpression filter = QPermessoArchivio.permessoArchivio.idArchivioDetail.id.eq(archivio.getId())
                 .and(QPermessoArchivio.permessoArchivio.idAzienda.id.eq((archivio.getIdAzienda().getId())))
                 .and(QPermessoArchivio.permessoArchivio.dataCreazione.eq(archivio.getDataCreazione()));
         Iterable<PermessoArchivio> permessiArchivio = permessoArchivioRepository.findAll(filter);
-        List<PermessoArchivio> res = new ArrayList<>();
-        permessiArchivio.forEach(res::add);
+        List<PermessoArchivio> permessiArchiviList = new ArrayList<>();
+        permessiArchivio.forEach(permessiArchiviList::add);
+        List<PermessoArchivioWithPlainFields> res = null;
+        if (permessiArchiviList != null && !permessiArchiviList.isEmpty()) {
+            res = permessiArchiviList.stream().map(pa -> {
+                return projectionFactory.createProjection(PermessoArchivioWithPlainFields.class, pa);                
+            }).collect(Collectors.toList());
+        }
         return res;
     }
 }
