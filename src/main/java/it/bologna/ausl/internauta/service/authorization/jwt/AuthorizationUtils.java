@@ -237,6 +237,14 @@ public class AuthorizationUtils {
             aziendaRealUser = cachedEntities.getAziendaFromPath(path);
         }
 
+        if (aziendaRealUser == null && idAzienda != null) {
+            aziendaRealUser = cachedEntities.getAzienda(Integer.parseInt(idAzienda));
+        } else if (aziendaRealUser == null && idAzienda == null) {
+            String errorMessage = "impossibile stabilire aziendaRealUser";
+            logger.error(errorMessage);
+            throw new ObjectNotFoundException(errorMessage);
+        }
+
         Utente impersonatedUser;
         boolean isSD = false;
         Azienda aziendaImpersonatedUser = (idAzienda == null || aziendaRealUser.getId() == Integer.parseInt(idAzienda)
