@@ -550,16 +550,62 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         // Build body mail da inviare all'utente
         String bodyUser = toolsUtils.buildMailForUser(bodyCustomerSupport, numeroNuovaSegnalazione);
         List<String> replyToUsers = Arrays.asList(fromName);
+        
         try {
-            sendMail(utente.getIdAzienda().getId(), nameCustomerSupport, subject, to, bodyCustomerSupport, null, null, segnalazioneUtente.getAllegati(), replyToUsers);
+            sendMail(
+                    utente.getIdAzienda().getId(), 
+                    nameCustomerSupport, 
+                    subject, 
+                    to, 
+                    bodyCustomerSupport, 
+                    null, 
+                    null, 
+                    segnalazioneUtente.getAllegati(), 
+                    replyToUsers
+            );
         } catch (IOException ex) {
             return new ResponseEntity("Errore durante l'invio della mail al servizio assistenza.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
+        
         try {
             List<String> toUser = Arrays.asList(fromName);
-            sendMail(utente.getIdAzienda().getId(), nameCustomerSupport, subject, toUser, bodyUser, null, null, null, null);
+            sendMail(
+                    utente.getIdAzienda().getId(), 
+                    nameCustomerSupport, 
+                    subject, 
+                    toUser, 
+                    bodyUser, 
+                    null, 
+                    null, 
+                    null, 
+                    null
+            );
         } catch (IOException ex) {
             return new ResponseEntity("Errore durante l'invio della mail all'utente.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        
+        if (segnalazioneUtente.getTipologiaSegnalazione().equals("CORREZIONE_DOCUMENTALE")) {
+            try {
+                List<String> toAutorizzatore = Arrays.asList(segnalazioneUtente.getEmailAutorizzatore());
+                String introPerAutorizzatore = "Questa è una segnalazione di richiesta modifica da parte dell'utente " + 
+                        utente.getIdPersona().getDescrizione() + ".\nVedi sotto il dettaglio e rispondi alla mail per autorizzare babelcare a procedere\n\n";
+                bodyCustomerSupport = introPerAutorizzatore + bodyCustomerSupport;
+                List<String> replyToBabelcare = Arrays.asList("babel.care@ausl.bologna.it");
+                
+                sendMail(
+                        utente.getIdAzienda().getId(), 
+                        nameCustomerSupport, 
+                        subject, 
+                        toAutorizzatore, 
+                        bodyCustomerSupport, 
+                        null, 
+                        null, 
+                        segnalazioneUtente.getAllegati(), 
+                        replyToBabelcare
+                );
+            } catch (IOException ex) {
+                return new ResponseEntity("Errore durante l'invio della mail all'autorizzatore.", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         }
 
         return new ResponseEntity("Successfully sent!", HttpStatus.OK);
