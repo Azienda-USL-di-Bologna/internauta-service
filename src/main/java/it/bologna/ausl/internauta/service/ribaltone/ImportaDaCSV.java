@@ -57,7 +57,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -263,7 +262,7 @@ public class ImportaDaCSV {
         return headers;
     }
 
-    private static CellProcessor[] getProcessorsError(String tipo, Number codiceAzienda) {
+    private static CellProcessor[] getProcessorsError(String tipo, String codiceAzienda) {
         CellProcessor[] cellProcessor = null;
 
         final String codiceEnteRegex = "^(" + codiceAzienda + ")[0-9]*";
@@ -575,7 +574,7 @@ public class ImportaDaCSV {
      * it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteRigheException
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = BaborgCSVAnomaliaException.class, propagation = Propagation.REQUIRES_NEW)
-    public String csvTransactionalReadDeleteInsert(MultipartFile file, String tipo, Integer codiceAzienda, Integer idAzienda) throws BaborgCSVBloccanteException, BaborgCSVAnomaliaException, MongoWrapperException, BaborgCSVBloccanteRigheException {
+    public String csvTransactionalReadDeleteInsert(MultipartFile file, String tipo, String codiceAzienda, Integer idAzienda) throws BaborgCSVBloccanteException, BaborgCSVAnomaliaException, MongoWrapperException, BaborgCSVBloccanteRigheException {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
         String nameCsv = sdf.format(timestamp) + "_Error_" + tipo + ".csv";
@@ -714,12 +713,12 @@ public class ImportaDaCSV {
                         }
 
                         //Codice Ente 
-                        Integer codiceEnte = checkCodiceEnte(appartenentiMap, mapError, codiceAzienda);
+                        String codiceEnte = checkCodiceEnte(appartenentiMap, mapError, codiceAzienda);
                         anomalia = anomalia ? anomalia : codiceEnte.equals("");
                         mA.setCodiceEnte(codiceEnte);
 
 //                      TIPO_APPARTENENZA bloccante
-                        anomali = checkTipoAppatenenza(appartenentiMap, mapError, idCasella, datain, datafi, controlloZeroUno, codiceEnte, appartenentiDiretti, appartenentiFunzionali, mapReader, righeAnomaleFunzionali, righeAnomaleDirette);
+                        anomali = checkTipoAppatenenza(appartenentiMap, mapError, idCasella, datain, datafi, controlloZeroUno, appartenentiDiretti, appartenentiFunzionali, mapReader, righeAnomaleFunzionali, righeAnomaleDirette);
                         anomalia = anomalia ? anomalia : anomali;
 
 //                      DataAssunzione bloccante
@@ -775,7 +774,7 @@ public class ImportaDaCSV {
                             MdrAppartenenti mA = new MdrAppartenenti();
                             mA.setIdAzienda(azienda);
 //                      "codice_ente",
-                            mA.setCodiceEnte(!appMapWithErrorAndAnomalia.get("codice_ente").toString().equals("") ? Integer.parseInt(appMapWithErrorAndAnomalia.get("codice_ente").toString()) : null);
+                            mA.setCodiceEnte(!appMapWithErrorAndAnomalia.get("codice_ente").toString().equals("") ? appMapWithErrorAndAnomalia.get("codice_ente").toString() : null);
 //                      "codice_matricola",
                             mA.setCodiceMatricola(!appMapWithErrorAndAnomalia.get("codice_matricola").toString().equals("") ? Integer.parseInt(appMapWithErrorAndAnomalia.get("codice_matricola").toString()) : null);
 //                      "cognome",
@@ -866,7 +865,7 @@ public class ImportaDaCSV {
                         
                         mAn.setIdAzienda(azienda);
                         //Codice Ente 
-                        Integer codiceEnte = checkCodiceEnte(anagraficaMap, mapError, codiceAzienda);
+                        String codiceEnte = checkCodiceEnte(anagraficaMap, mapError, codiceAzienda);
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : codiceEnte.equals("");
                         mAn.setCodiceEnte(codiceEnte);
                         if (anomaliaRiga){
@@ -990,7 +989,7 @@ public class ImportaDaCSV {
 //                        nRigheAnomale = tipoR == null ? nRigheAnomale++ : nRigheAnomale;
 
 //                      CODICE ENTE
-                        Integer CodiceEnte = checkCodiceEnte(responsabiliMap, mapError, codiceAzienda);
+                        String CodiceEnte = checkCodiceEnte(responsabiliMap, mapError, codiceAzienda);
                         mR.setCodiceEnte(CodiceEnte);
                         anomalia = Objects.equals(CodiceEnte, codiceAzienda) ? true : anomalia;
                         anomaliaRiga = Objects.equals(CodiceEnte, codiceAzienda) ? true : anomaliaRiga;
@@ -1044,7 +1043,7 @@ public class ImportaDaCSV {
                             bloccante=true;
                             nRigheAnomale++;
                             log.error("Importa CSV --Struttura-- errore alla righa:" + mapReader.getLineNumber() + " Errore bloccante su data inizio vuota");
-                            if (mapError.get("ERRORE")==null || mapError.get("ERRORE").toString().trim() == "" ){
+                            if (mapError.get("ERRORE")==null || "".equals(mapError.get("ERRORE").toString().trim()) ){
                                 mapError.put("ERRORE","la data di inizio è vuota");
                             }else{
                                 mapError.put("ERRORE",mapError.get("ERRORE").toString()+", la data di inizio è vuota");
@@ -1082,10 +1081,10 @@ public class ImportaDaCSV {
                             mS.setTipoLegame(strutturaMap.get("tipo_legame").toString());
                         }
 
-                        Integer codiceEnte = checkCodiceEnte(strutturaMap, mapError, codiceAzienda);
+                        String codiceEnte = checkCodiceEnte(strutturaMap, mapError, codiceAzienda);
                         mS.setCodiceEnte(codiceEnte);
-                        anomali = codiceEnte == codiceAzienda ? true : anomali;
-                        nRigheAnomale = codiceEnte == codiceAzienda ? nRigheAnomale++ : nRigheAnomale;
+                        anomali = codiceEnte.equals(codiceAzienda) ? true : anomali;
+                        nRigheAnomale = codiceEnte.equals(codiceAzienda) ? nRigheAnomale++ : nRigheAnomale;
                         mS.setIdAzienda(azienda);
                         em.persist(mS);
                         //mdrStrutturaRepository.save(mS);
@@ -1238,10 +1237,10 @@ public class ImportaDaCSV {
                         nRigheAnomale = buono ? nRigheAnomale++ : nRigheAnomale;
 
 //                      CODICE ENTE
-                        Integer codiceEnte = checkCodiceEnte(trasformazioniMap, mapError, codiceAzienda);
+                        String codiceEnte = checkCodiceEnte(trasformazioniMap, mapError, codiceAzienda);
                         mT.setCodiceEnte(codiceEnte);
-                        anomalia = codiceEnte == codiceAzienda ? true : anomalia;
-                        nRigheAnomale = codiceEnte == codiceAzienda ? nRigheAnomale++ : nRigheAnomale;
+                        anomalia = codiceEnte.equals(codiceAzienda) ? true : anomalia;
+                        nRigheAnomale = codiceEnte.equals(codiceAzienda) ? nRigheAnomale++ : nRigheAnomale;
 
 //                      MOTIVO
                         if (trasformazioniMap.get("motivo") == null
@@ -1508,15 +1507,19 @@ public class ImportaDaCSV {
         return false;
     }
 
-    private Integer checkCodiceEnte(Map<String, Object> xmap, Map<String, Object> mapError, Integer codiceAzienda) {
+    private String checkCodiceEnte(Map<String, Object> xmap, Map<String, Object> mapError, String codiceAzienda) {
         if (xmap.get("codice_ente") == null || xmap.get("codice_ente").toString().trim().equals("") || xmap.get("codice_ente") == "") {
             mapError.put("codice_ente", "");
             mapError.put("ERRORE", mapError.get("Errore") + "codice ente assente,");
             mapError.put("Anomalia", "true");
             return codiceAzienda;
         } else {
+            if (xmap.get("codice_ente").toString().length()<= 3 ){
+                mapError.put("ERRORE", mapError.get("Errore") + "codice ente troppo corto,");
+                mapError.put("Anomalia", "true");
+            }
             mapError.put("codice_ente", xmap.get("codice_ente"));
-            return Integer.parseInt(xmap.get("codice_ente").toString());
+            return xmap.get("codice_ente").toString();
         }
     }
 
@@ -1527,7 +1530,6 @@ public class ImportaDaCSV {
             ZonedDateTime datain,
             ZonedDateTime datafi,
             Boolean controlloZeroUno,
-            Integer codiceEnte,
             Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti,
             Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali,
             ICsvMapReader mapReader,
@@ -1543,12 +1545,11 @@ public class ImportaDaCSV {
 
         } else {
             mapError.put("tipo_appartenenza", appartenentiMap.get("tipo_appartenenza"));
-//                            mA.setTipoAppartenenza(appartenentiMap.get("tipo_appartenenza").toString());
             if (appartenentiMap.get("codice_ente") != null && !appartenentiMap.get("codice_ente").toString().trim().equals("") && appartenentiMap.get("codice_ente") != "") {
                 boolean codiceEnteEndsWith = appartenentiMap.get("codice_ente").toString().endsWith("01");
                 if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")) {
                     Map<Integer, List<Map<String, Object>>> appDiretto = appartenentiDiretti.get(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
-
+                    //controlloZeroUno true controlla solo le afferenze degli gli appartententi che hanno codice ente che finisce con 01
                     if (codiceEnteEndsWith && controlloZeroUno) {
 
                         if (appDiretto == null) {
@@ -1620,8 +1621,44 @@ public class ImportaDaCSV {
                         }
                     }
                     //cazzo di Ferrarra di merda
-                    if (!controlloZeroUno || !codiceEnteEndsWith) {
+                    if (!controlloZeroUno ) {
                         if (appDiretto == null) {
+                            //non ho quella matricola nella mappa
+                            //creo tutti i contenuti della matricola nuova
+                            appDiretto = new HashMap();
+                            List<Map<String, Object>> periodoCasellato = new ArrayList<>();
+                            Map<String, Object> periodoDaCasellare = new HashMap();
+                            Integer idCasellaInt = Integer.parseInt(idCasella);
+                            periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                            periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                            periodoDaCasellare.put("riga", mapReader.getLineNumber());
+                            periodoCasellato.add(periodoDaCasellare);
+                            appDiretto.put(idCasellaInt, periodoCasellato);
+                            appartenentiDiretti.put(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), appDiretto);
+                        } else {
+                            Boolean afferenzaDiretta = false;
+
+                            List<Map<String, Object>> periodoCasellato = appDiretto.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
+                            if (periodoCasellato == null) {
+                                periodoCasellato = new ArrayList<>();
+                                Map<String, Object> periodoDaCasellare = new HashMap();
+                                periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                periodoDaCasellare.put("riga", mapReader.getLineNumber());
+                                periodoCasellato.add(periodoDaCasellare);
+                                appDiretto.put(Integer.parseInt(appartenentiMap.get("id_casella").toString()), periodoCasellato);
+                            } else {
+
+                                Map<String, Object> periodoDaCasellare = new HashMap();
+                                periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
+                                periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
+                                periodoDaCasellare.put("riga", mapReader.getLineNumber());
+                                periodoCasellato.add(periodoDaCasellare);
+                            }
+                        }
+                    } else if (!codiceEnteEndsWith && !controlloZeroUno){
+                        //caso in cui non finisco per 01 ma ho il controllo 01 attivo il periodo
+                            if (appDiretto == null) {
                             //non ho quella matricola nella mappa
                             //creo tutti i contenuti della matricola nuova
                             appDiretto = new HashMap();

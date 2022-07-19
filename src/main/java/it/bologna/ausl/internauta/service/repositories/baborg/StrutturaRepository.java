@@ -1,22 +1,17 @@
 package it.bologna.ausl.internauta.service.repositories.baborg;
 
 import it.bologna.ausl.model.entities.baborg.QStruttura;
-import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import javax.persistence.EntityManager;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
-import org.springframework.data.repository.query.Param;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso

@@ -55,7 +55,7 @@ public class RubricaProjectionsUtils {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(RubricaProjectionsUtils.class);
     
-    private String getElencoCodiciAziendeAttualiPersona(Persona persona) {
+    public String getElencoCodiciAziendeAttualiPersona(Persona persona) {
         String codiciAziende = "";
         List<Utente> utenteList = persona.getUtenteList();
         if (utenteList != null) {
@@ -80,7 +80,7 @@ public class RubricaProjectionsUtils {
         tipi.add("CONTATTO");
 
         List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = new ArrayList<>();
-        subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(contatto, predicati, ambiti, tipi, Boolean.FALSE);
+        subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(contatto, predicati, ambiti, tipi, Boolean.FALSE,Boolean.FALSE);
         if (subjectsWithPermissionsOnObject != null) {
             for (PermessoEntitaStoredProcedure permessoEntitaStoredProcedure : subjectsWithPermissionsOnObject) {
                 if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.strutture.toString())) {

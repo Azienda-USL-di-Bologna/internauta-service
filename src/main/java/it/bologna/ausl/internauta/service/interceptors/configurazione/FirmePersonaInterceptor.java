@@ -1,25 +1,17 @@
 package it.bologna.ausl.internauta.service.interceptors.configurazione;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.exceptions.FirmaModuleException;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.interceptors.baborg.AziendaInterceptor;
-import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.utils.firma.data.remota.FirmaRemotaInformation;
 import it.bologna.ausl.internauta.utils.firma.data.remota.UserInformation;
 import it.bologna.ausl.internauta.utils.firma.data.remota.arubasignservice.ArubaUserInformation;
+import it.bologna.ausl.internauta.utils.firma.data.remota.infocertsignservice.InfocertUserInformation;
 import it.bologna.ausl.internauta.utils.firma.remota.controllers.FirmaRemotaArubaController;
 import it.bologna.ausl.internauta.utils.firma.remota.controllers.FirmaRemotaRestController;
 import it.bologna.ausl.internauta.utils.firma.remota.exceptions.FirmaRemotaConfigurationException;
 import it.bologna.ausl.internauta.utils.firma.remota.exceptions.http.FirmaRemotaHttpException;
-import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
-import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.FirmePersona;
-import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.firma.DominioAruba;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
@@ -28,10 +20,7 @@ import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,19 +38,10 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(AziendaInterceptor.class);
 
     @Autowired
-    private ParametriAziendeReader parametriAziendeReader;
-
-    @Autowired
-    private PersonaRepository personaRepository;
-
-    @Autowired
     private FirmaRemotaRestController firmaRemotaRestController;
     
     @Autowired
     private FirmaRemotaArubaController firmaRemotaArubaController;
-    
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Override
     public Class getTargetEntityClass() {
@@ -92,7 +72,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
-                    case UpdateProfiloFirma:
+                    case UpdateProfiloFirma: 
                         String password = firmePersona.getPassword();
                         List<FirmePersona> firmePersonaOldList = new ArrayList();
                         try {
@@ -121,7 +101,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                                     try {
                                         haveCredentialsBeenSet = setCredential(firmePersona, userInfo);
                                         if (haveCredentialsBeenSet) {
-                                            LOGGER.info("The user's credentials have been set correctly into Aruba Credential Proxy");
+                                            LOGGER.info("The user's credentials have been set correctly into Credential Proxy");
                                             firmaPersonaAdditionalData.setSavedCredential(true);
                                         }
                                     } catch (Exception ex) {
@@ -129,22 +109,37 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                                         LOGGER.error(errorMessage, ex);
                                         throw new AbortSaveInterceptorException(errorMessage, ex);
                                     }
-                                } else {
-                                    Boolean haveCredentialBeenRemoved;
-                                    try {
-                                        haveCredentialBeenRemoved = removeCredential(firmePersona, userInfo);
-                                        if (haveCredentialBeenRemoved) {
-                                            firmaPersonaAdditionalData.setSavedCredential(false);
-                                            LOGGER.info("The user's credentials have been removed correctly from Aruba Credential Proxy");
-                                        } else {
-                                            LOGGER.warn("The user's credentials haven't been removed correctly from Aruba Credential Proxy");
-                                        }
-                                    } catch (Exception ex) {
-                                        String errorMessage = "Errore eliminazione credenziali";
-                                        LOGGER.error(errorMessage, ex);
-                                        throw new AbortSaveInterceptorException(errorMessage, ex);
-                                    }
                                 }
+                            }
+                        }
+                    break;
+                    case RemovePassword:
+                        if (firmePersona.getTipo() == FirmePersona.TipoFirma.REMOTA) {
+                                // prendo l'azienda della persona e vedo nei parametri aziende se è attivo il credential proxy
+//                                Azienda azienda = getAziendaFromUser();
+                            FirmePersona.AdditionalData firmaPersonaAdditionalData = firmePersona.getAdditionalData();
+                            try {
+                                if (!StringUtils.hasText(firmaPersonaAdditionalData.getHostId())) {
+                                    String hostId = getHostId(firmePersona.getTramite(), firmaPersonaAdditionalData);
+                                    firmaPersonaAdditionalData.setHostId(hostId);
+                                }
+                            } catch (FirmaRemotaHttpException | FirmaRemotaConfigurationException ex) {
+                                throw new AbortSaveInterceptorException("errore nel reperire l'hostId associato al dominio", ex);
+                            }
+                            UserInformation userInfo = createUserInformation(firmePersona.getTramite(), firmaPersonaAdditionalData, "");
+                            Boolean haveCredentialBeenRemoved;
+                            try {
+                                haveCredentialBeenRemoved = removeCredential(firmePersona, userInfo);
+                                if (haveCredentialBeenRemoved) {
+                                    firmaPersonaAdditionalData.setSavedCredential(false);
+                                    LOGGER.info("The user's credentials have been removed correctly from Credential Proxy");
+                                } else {
+                                    LOGGER.warn("The user's credentials haven't been removed correctly from Credential Proxy");
+                                }
+                            } catch (Exception ex) {
+                                String errorMessage = "Errore eliminazione credenziali";
+                                LOGGER.error(errorMessage, ex);
+                                throw new AbortSaveInterceptorException(errorMessage, ex);
                             }
                         }
                     break;
@@ -170,7 +165,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
     public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         LOGGER.info("in: beforeUpdateEntityInterceptor di FirmePersona");
         FirmePersona firmePersona = (FirmePersona) entity;
-        if (firmePersona.getAdditionalData().getAutenticazione() != null && firmePersona.getTipo() == FirmePersona.TipoFirma.REMOTA) {
+        if (firmePersona.getAdditionalData() != null && firmePersona.getAdditionalData().getAutenticazione() != null && firmePersona.getTipo() == FirmePersona.TipoFirma.REMOTA) {
             // prendo l'azienda della persona e vedo nei parametri aziende se è attivo il credential proxy
 //            Azienda azienda = getAziendaFromUser();
             try {
@@ -225,7 +220,20 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                 userInfo = arubaUserInfo;
                 break;
             case INFOCERT:
-                //TODO: la implementa Geiar
+                InfocertUserInformation infocertUserInfo = new InfocertUserInformation();
+                infocertUserInfo.setUsername(additionalData.getUsername());
+                String modalita = additionalData.getAutenticazione();
+                switch (modalita) {
+                    case "OTP":
+                        infocertUserInfo.setModalitaFirma(InfocertUserInformation.ModalitaFirma.OTP);
+                        infocertUserInfo.setPassword(password);
+                        break;
+                    case "AUTO":
+                    case "AUTOMATICA":
+                        infocertUserInfo.setModalitaFirma(InfocertUserInformation.ModalitaFirma.AUTOMATICA);
+                        break;
+                }
+                userInfo = infocertUserInfo;
                 break;
         }
         return userInfo;
@@ -238,7 +246,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                 hostId = firmaRemotaArubaController.getHostIdFromDominio(DominioAruba.DominiAruba.valueOf(additionalData.getDominio()));
                 break;
             case INFOCERT:
-                //TODO: la implementa Geiar
+                hostId = additionalData.getHostId();
                 break;
         }
         return hostId;

@@ -27,6 +27,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Ambiti.PECG;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Tipi.PEC;
@@ -42,6 +43,8 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.projections.archivio.ArchivioProjectionUtils;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -125,6 +128,12 @@ public class PermessiCustomController implements ControllerHandledExceptions {
     
     @Autowired
     private KrintUtils krintUtils;
+    
+    @Autowired
+    private ArchivioProjectionUtils archivioProjectionUtils;
+    
+    @Autowired
+    private ArchivioRepository archivioRepository;
 
     /**
      * E' il controller base.Riceve una lista di PermessoEntitaStoredProcedure e
@@ -556,4 +565,14 @@ public class PermessiCustomController implements ControllerHandledExceptions {
             });
         });
     }
+    
+    @RequestMapping(value = "getPermessiArchivio", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List> getPermessiArchivio(
+            @RequestParam("idArchivio") Integer idArchivio
+    ) throws BlackBoxPermissionException, AuthorizationException {
+        Archivio archivio = archivioRepository.getById(idArchivio);
+        List<PermessoEntitaStoredProcedure> permessi = archivioProjectionUtils.getPermessi(archivio);
+        return new ResponseEntity(permessi, HttpStatus.OK);
+    }
+    
 }
