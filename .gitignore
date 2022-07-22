@@ -7,5 +7,8 @@ downloader/Internauta_Downloader_Encription_Private_Key_Test.pk8
 src/main/resources/downloader/DOWNLOADER_BABEL.crt
 src/main/resources/downloader/DOWNLOADER_TEST.crt
 jshell.history
-logs/
+/logs/
 src/main/resources/downloader/Internauta_Downloader_Encryption_Public_Key_Test.pem
+DOWNLOADER_TEST.p12
+src/main/resources/downloader/Internauta_Downloader_Encription_Private_Key.pk8
+src/main/resources/downloader/Internauta_Downloader_Encription_Private_Key_Test.pk8

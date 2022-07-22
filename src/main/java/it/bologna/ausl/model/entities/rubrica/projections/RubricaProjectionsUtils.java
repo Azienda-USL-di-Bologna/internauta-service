@@ -80,7 +80,7 @@ public class RubricaProjectionsUtils {
         tipi.add("CONTATTO");
 
         List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = new ArrayList<>();
-        subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(contatto, predicati, ambiti, tipi, Boolean.FALSE);
+        subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(contatto, predicati, ambiti, tipi, Boolean.FALSE,Boolean.FALSE);
         if (subjectsWithPermissionsOnObject != null) {
             for (PermessoEntitaStoredProcedure permessoEntitaStoredProcedure : subjectsWithPermissionsOnObject) {
                 if (permessoEntitaStoredProcedure.getSoggetto().getTable().equals(Entita.TabelleTipiEntita.strutture.toString())) {

@@ -53,13 +53,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
+import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDetailRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 //import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
@@ -97,11 +94,10 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.model.entities.scripta.Archivio;
-import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
 import java.lang.reflect.InvocationTargetException;
-import org.json.simple.JSONArray;
 
 /**
  *
@@ -113,9 +109,9 @@ public class ScriptaCustomController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ScriptaCustomController.class);
 
-    private MinIOWrapperFileInfo savedFileOnRepository = null;
+//    private MinIOWrapperFileInfo savedFileOnRepository = null;
     private List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
-    private List<Allegato> savedFilesOnInternauta = new ArrayList();
+//    private List<Allegato> savedFilesOnInternauta = new ArrayList();
 
     @Autowired
     private CachedEntities cachedEntities;
@@ -123,23 +119,26 @@ public class ScriptaCustomController {
     @Autowired
     private ArchivioRepository archivioRepository;
 
-    @Autowired
-    private ArchivioDetailRepository archivioDetailRepository;
+//    @Autowired
+//    private ArchivioDetailRepository archivioDetailRepository;
 
     @Autowired
     private NonCachedEntities nonCachedEntities;
 
-    @Autowired
-    private PostgresConnectionManager postgresConnectionManager;
-
-    @Autowired
-    private UtenteRepository utenteRepository;
+//    @Autowired
+//    private PostgresConnectionManager postgresConnectionManager;
+//
+//    @Autowired
+//    private UtenteRepository utenteRepository;
 
     @Autowired
     private DocRepository docRepository;
 
+//    @Autowired
+//    private PersonaRepository personaRepository;
+    
     @Autowired
-    private PersonaRepository personaRepository;
+    private PermessoArchivioRepository permessoArchivioRepository;
 
     @Autowired
     private DocDetailRepository docDetailRepository;
@@ -179,6 +178,9 @@ public class ScriptaCustomController {
 
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+
+    @Autowired
+    private RestControllerEngineImpl restControllerEngine;
 
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -594,36 +596,37 @@ public class ScriptaCustomController {
         return hashString;
     }
 
-    @RequestMapping(value = "getResponsabili", method = RequestMethod.GET)
-    public JSONObject getResponsabili(@RequestParam("id") String idArchivio) throws Http500ResponseException {
-        JSONObject json = new JSONObject();
-        JSONArray jsonArray = new JSONArray();
-        Archivio archivio = archivioRepository.getById(Integer.parseInt(idArchivio));
-        ArchivioDetail dettaglio = archivioDetailRepository.getById(Integer.parseInt(idArchivio));
-        Persona personaResponsabile = dettaglio.getIdPersonaResponsabile();
-        Integer[] idVicari = dettaglio.getIdVicari();
-        List<Persona> listVicari = new ArrayList();
-        for (Integer id : idVicari) {
-            Optional<Persona> p = personaRepository.findById(id);
-            listVicari.add(p.get());
-        }
-        json.put("descrizione", personaResponsabile.getDescrizione());
-        json.put("ruolo", "Responsabile");
-        json.put("id", personaResponsabile.getId());
-        json.put("struttura", dettaglio.getIdStruttura().getNome());
-        jsonArray.add(json);
-        for (Persona vic : listVicari) {
-            json = new JSONObject();
-            json.put("descrizione", vic.getDescrizione());
-            json.put("ruolo", "Vicario");
-            json.put("id", vic.getId());
-            json.put("struttura", dettaglio.getIdStruttura().getNome());
-            jsonArray.add(json);
-        }
-        JSONObject jsonReturn = new JSONObject();
-        jsonReturn.put("responsabili", jsonArray);
-        return jsonReturn;
-    }
+    // SE arrivi qui e vedi che è passato il1 15 giugno 2022 cancella sto metodo commentato
+//    @RequestMapping(value = "getResponsabili", method = RequestMethod.GET)
+//    public JSONObject getResponsabili(@RequestParam("id") String idArchivio) throws Http500ResponseException {
+//        JSONObject json = new JSONObject();
+//        JSONArray jsonArray = new JSONArray();
+//        Archivio archivio = archivioRepository.getById(Integer.parseInt(idArchivio));
+//        ArchivioDetail dettaglio = archivioDetailRepository.getById(Integer.parseInt(idArchivio));
+//        Persona personaResponsabile = dettaglio.getIdPersonaResponsabile();
+//        Integer[] idVicari = dettaglio.getIdVicari();
+//        List<Persona> listVicari = new ArrayList();
+//        for (Integer id : idVicari) {
+//            Optional<Persona> p = personaRepository.findById(id);
+//            listVicari.add(p.get());
+//        }
+//        json.put("descrizione", personaResponsabile.getDescrizione());
+//        json.put("ruolo", "Responsabile");
+//        json.put("id", personaResponsabile.getId());
+//        json.put("struttura", dettaglio.getIdStruttura().getNome());
+//        jsonArray.add(json);
+//        for (Persona vic : listVicari) {
+//            json = new JSONObject();
+//            json.put("descrizione", vic.getDescrizione());
+//            json.put("ruolo", "Vicario");
+//            json.put("id", vic.getId());
+//            json.put("struttura", dettaglio.getIdStruttura().getNome());
+//            jsonArray.add(json);
+//        }
+//        JSONObject jsonReturn = new JSONObject();
+//        jsonReturn.put("responsabili", jsonArray);
+//        return jsonReturn;
+//    }
 
     @RequestMapping(value = "eliminaProposta", method = RequestMethod.POST)
     public ResponseEntity<?> eliminaProposta(
@@ -671,7 +674,7 @@ public class ScriptaCustomController {
 
         Call call = client.newCall(request);
         HashMap readValue = null;
-        try ( Response response = call.execute();) {
+        try (Response response = call.execute();) {
             int responseCode = response.code();
             if (response.isSuccessful()) {
                 readValue = objectMapper.readValue(response.body().string(), HashMap.class);
@@ -690,4 +693,77 @@ public class ScriptaCustomController {
         return new ResponseEntity(readValue, HttpStatus.OK);
     }
 
+
+    @RequestMapping(value = "numeraArchivio", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
+    public Object numeraArchivio(@RequestParam("idArchivio") Integer idArchivio,
+            @RequestParam("projection") String projection,
+            HttpServletRequest request) throws HttpInternautaResponseException,
+            Throwable {
+        log.info("numeraArchivio" + idArchivio);
+
+        // Numero l'archivio
+        //Archivio archivioToSave = archivioRepository.getById(idArchivio);
+        log.info("Numero archivio...");
+        Integer numeroGenerato = archivioRepository.numeraArchivio(idArchivio);
+        log.info("Numerato " + numeroGenerato);
+        //DA QUESTO MOMENTO I DATI DI NUMERO, ANNO, NUMERAZIONE GER. SONO GIA' SALVATI SUL DB
+        // Ricarico i dati
+        log.info("Reload...");
+        Archivio archivioToSave = archivioRepository.getById(idArchivio);
+        log.info("Numero: " + archivioToSave.getNumero());
+        log.info("Anno: " + archivioToSave.getAnno());
+        log.info("Numerazione Gerarchica: " + archivioToSave.getNumerazioneGerarchica());
+
+        // Ritorno la projection coi dati aggiornati
+        log.info("Recupero projection by name " + projection);
+        Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+        projectionsInterceptorLauncher.setRequestParams(null, request);
+        log.info("Chiamo la facrtory della projection...");
+        Object projectedObject = projectionFactory.createProjection(
+                projectionClass, archivioToSave
+        );
+
+        log.info("Ritorno la projectionCreata");
+        return projectedObject;
+    }
+
+   
+    /**
+     * Dato un archivio chiama la store procedure che calcola i permessi espliciti dello stesso
+     * @param idArchivio
+     * @param request
+     * @return 
+     */
+    @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
+    public ResponseEntity<?> calcolaPermessiEspliciti(
+            @RequestParam("idArchivio") Integer idArchivio,
+            HttpServletRequest request) {
+        
+        archivioRepository.calcolaPermessiEspliciti(idArchivio);
+        
+        return new ResponseEntity("", HttpStatus.OK);
+    }
+    
+    /**
+     * Dato l'idEsterno di un Doc, la funzione torna una lista contentente gli idPersona di tutti coloro che hanno un permesso
+     * con bit >= di minBit negli archivi in cui il doc è archiviato
+     * @param idEsterno
+     * @param minBit
+     * @param response
+     * @param request
+     * @return 
+     */
+    @RequestMapping(value = "getIdPersoneConPermessoSuArchiviazioniDelDocByIdEsterno/{idEsterno}/{minBit}", method = RequestMethod.GET)
+    public ResponseEntity<?> getIdPersoneConPermessoSuArchiviazioniDelDocByIdEsterno(
+            @PathVariable(required = true) String idEsterno,
+            @PathVariable(required = false) Integer minBit,
+            HttpServletResponse response,
+            HttpServletRequest request) {
+        if (minBit == null) {
+            minBit = 0;
+        }
+        List<Integer> idPersone = permessoArchivioRepository.getIdPersoneConPermessoSuArchiviazioniDelDocByIdEsterno(idEsterno, minBit);
+        return new ResponseEntity(idPersone, HttpStatus.OK);
+    }
 }

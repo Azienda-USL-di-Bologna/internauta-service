@@ -6,10 +6,9 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.PermessoArch
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
@@ -21,4 +20,15 @@ public interface PermessoArchivioRepository extends
         NextSdrQueryDslRepository<PermessoArchivio, Integer, QPermessoArchivio>, 
         JpaRepository<PermessoArchivio, Integer> {
 
+    
+     @Query(value = "SELECT pa.id_persona " +
+            "FROM scripta.docs d " +
+            "JOIN scripta.archivi_docs ad ON ad.id_doc = d.id " +
+            "JOIN scripta.archivi a ON a.id = ad.id_archivio " +
+            "JOIN scripta.permessi_archivi pa ON pa.id_archivio_detail = a.id AND pa.id_azienda = a.id_azienda AND pa.data_creazione = a.data_creazione " +
+            "WHERE id_esterno = ?1 " +
+            "AND ad.data_eliminazione IS NULL " +
+            "AND bit >= ?2 ",
+            nativeQuery = true)
+    public List<Integer> getIdPersoneConPermessoSuArchiviazioniDelDocByIdEsterno(String idEsterno, Integer minBit);
 }
