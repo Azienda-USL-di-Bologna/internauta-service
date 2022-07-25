@@ -211,6 +211,8 @@ public class AuthorizationUtils {
 
         ResponseEntity res;
 
+        logger.info("CF= " + ssoFieldValue);
+
         if (fromInternetLogin == null) {
             fromInternetLogin = fromInternet(request);
         }
@@ -227,8 +229,13 @@ public class AuthorizationUtils {
                 }
             }
             Persona realPerson = cachedEntities.getPersonaFromCodiceFiscale(ssoFieldValue);
+            //realPerson è NULL logger
+
             if (realPerson != null) {
                 aziendaRealUser = cachedEntities.getAzienda(realPerson.getIdAziendaDefault().getId());
+                logger.info("aziendaRealUser: " + aziendaRealUser.getCodice());
+            } else {
+                logger.info("realUser is NULL");
             }
         } else {
             if (StringUtils.isEmpty(path)) {
@@ -251,6 +258,8 @@ public class AuthorizationUtils {
                 ? aziendaRealUser
                 : cachedEntities.getAzienda(Integer.parseInt(idAzienda)));
 
+        logger.info("aziendaRealUser: " + aziendaRealUser.getCodice());
+        logger.info("parametri: " + aziendaRealUser.getParametri());
         //userInfoService.loadAziendaByPathRemoveCache(path);
         AziendaParametriJson aziendaRealUserParams = AziendaParametriJson.parse(objectMapper, aziendaRealUser.getParametri());
         //AziendaParametriJson aziendaImpersonatedUserParams = AziendaParametriJson.parse(objectMapper, aziendaImpersonatedUser.getParametri());
