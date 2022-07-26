@@ -124,7 +124,7 @@ public class AWSCognitoUtils {
         try {
             log.info("azienda: " + azienda);
             log.info("hostname: " + hostname);
-            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, cf, null, applicazione, true, true);
+            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, cf, null, applicazione, false, true, true);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             log.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);

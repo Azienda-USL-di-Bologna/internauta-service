@@ -207,7 +207,7 @@ public class AuthorizationUtils {
      * @throws BlackBoxPermissionException
      * @throws it.bologna.ausl.internauta.service.exceptions.SSOException
      */
-    public ResponseEntity generateResponseEntityFromSAML(String idAzienda, String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione, Boolean fromInternetLogin, Boolean writeUserAccess) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException, SSOException {
+    public ResponseEntity generateResponseEntityFromSAML(String idAzienda, String path, String secretKey, HttpServletRequest request, String ssoFieldValue, String utenteImpersonatoStr, String applicazione, Boolean fromInternetLogin, Boolean writeUserAccess, Boolean readAziendaFromPersona) throws IOException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException, SSOException {
 
         ResponseEntity res;
 
@@ -220,7 +220,7 @@ public class AuthorizationUtils {
 //        logger.info("path: " + objectMapper.writeValueAsString(path));
 //        logger.info("fromInternet: " + fromInternetLogin);
         Azienda aziendaRealUser = null;
-        if (fromInternetLogin) {
+        if (fromInternetLogin || readAziendaFromPersona) {
             if (StringUtils.isEmpty(ssoFieldValue)) {
                 if (!StringUtils.isEmpty(request.getAttribute("CodiceFiscale"))) {
                     ssoFieldValue = request.getAttribute("CodiceFiscale").toString();
