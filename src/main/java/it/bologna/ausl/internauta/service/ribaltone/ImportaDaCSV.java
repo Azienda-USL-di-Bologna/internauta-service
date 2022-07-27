@@ -57,7 +57,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -719,7 +718,7 @@ public class ImportaDaCSV {
                         mA.setCodiceEnte(codiceEnte);
 
 //                      TIPO_APPARTENENZA bloccante
-                        anomali = checkTipoAppatenenza(appartenentiMap, mapError, idCasella, datain, datafi, controlloZeroUno, codiceEnte, appartenentiDiretti, appartenentiFunzionali, mapReader, righeAnomaleFunzionali, righeAnomaleDirette);
+                        anomali = checkTipoAppatenenza(appartenentiMap, mapError, idCasella, datain, datafi, controlloZeroUno, appartenentiDiretti, appartenentiFunzionali, mapReader, righeAnomaleFunzionali, righeAnomaleDirette);
                         anomalia = anomalia ? anomalia : anomali;
 
 //                      DataAssunzione bloccante
@@ -1515,6 +1514,10 @@ public class ImportaDaCSV {
             mapError.put("Anomalia", "true");
             return codiceAzienda;
         } else {
+            if (xmap.get("codice_ente").toString().length()<= 3 ){
+                mapError.put("ERRORE", mapError.get("Errore") + "codice ente troppo corto,");
+                mapError.put("Anomalia", "true");
+            }
             mapError.put("codice_ente", xmap.get("codice_ente"));
             return xmap.get("codice_ente").toString();
         }
@@ -1527,7 +1530,6 @@ public class ImportaDaCSV {
             ZonedDateTime datain,
             ZonedDateTime datafi,
             Boolean controlloZeroUno,
-            String codiceEnte,
             Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti,
             Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali,
             ICsvMapReader mapReader,
@@ -1543,12 +1545,11 @@ public class ImportaDaCSV {
 
         } else {
             mapError.put("tipo_appartenenza", appartenentiMap.get("tipo_appartenenza"));
-//                            mA.setTipoAppartenenza(appartenentiMap.get("tipo_appartenenza").toString());
             if (appartenentiMap.get("codice_ente") != null && !appartenentiMap.get("codice_ente").toString().trim().equals("") && appartenentiMap.get("codice_ente") != "") {
                 boolean codiceEnteEndsWith = appartenentiMap.get("codice_ente").toString().endsWith("01");
                 if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")) {
                     Map<Integer, List<Map<String, Object>>> appDiretto = appartenentiDiretti.get(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
-
+                    //controlloZeroUno true controlla solo le afferenze degli gli appartententi che hanno codice ente che finisce con 01
                     if (codiceEnteEndsWith && controlloZeroUno) {
 
                         if (appDiretto == null) {
@@ -1655,9 +1656,9 @@ public class ImportaDaCSV {
                                 periodoCasellato.add(periodoDaCasellare);
                             }
                         }
-                    } else if (!codiceEnteEndsWith && controlloZeroUno)
-                    {
-                        if (appDiretto == null) {
+                    } else if (!codiceEnteEndsWith && !controlloZeroUno){
+                        //caso in cui non finisco per 01 ma ho il controllo 01 attivo il periodo
+                            if (appDiretto == null) {
                             //non ho quella matricola nella mappa
                             //creo tutti i contenuti della matricola nuova
                             appDiretto = new HashMap();
