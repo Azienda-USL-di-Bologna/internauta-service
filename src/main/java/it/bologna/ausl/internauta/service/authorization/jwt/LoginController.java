@@ -8,6 +8,9 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
+import it.bologna.ausl.internauta.service.authorization.cognito.AWSCognitoUtils;
+import it.bologna.ausl.internauta.service.authorization.cognito.AwsCognitoJwtParserUtils;
+import it.bologna.ausl.internauta.service.authorization.cognito.CognitoJWT;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.SSOException;
@@ -42,6 +45,7 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 import org.springframework.web.bind.annotation.RequestParam;
 import it.bologna.ausl.model.entities.baborg.projections.utente.UtenteLoginCustom;
+import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.digest.DigestUtils;
 
 /**
@@ -61,6 +65,7 @@ public class LoginController {
     private final String AZIENDA = "azienda";
     private final String PASS_TOKEN = "passToken";
     private final String NEW_USER_ACCESS = "newUserAccess";
+    private final String COGNITO_CODE = "code";
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -73,6 +78,9 @@ public class LoginController {
 
     @Value("${jwt.saml.enabled:false}")
     private boolean samlEnabled;
+
+    @Value("${jwt.cognito.enabled:false}")
+    private boolean cognitoEnabled;
 
     @Autowired
     private AuthorizationUtils authorizationUtils;
@@ -97,7 +105,22 @@ public class LoginController {
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
-    
+
+    @Autowired
+    private AWSCognitoUtils cognitoUtils;
+
+    @Autowired
+    private AwsCognitoJwtParserUtils cognitoJwtParserUtils;
+
+    @Value("${jwt.cognito.domain}")
+    private String cognitoDomain;
+
+    @Value("${jwt.cognito.client_id}")
+    private String clientID;
+
+    @Value("${jwt.cognito.redirect_uri}")
+    private String redirectURI;
+
     @RequestMapping(value = "${internauta.security.passtoken-path}", method = RequestMethod.GET)
     public ResponseEntity<String> passTokenGenerator() throws BlackBoxPermissionException {
 
@@ -217,15 +240,15 @@ public class LoginController {
         if (utente == null) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
-        
-        if (utente.getIdAzienda().getCodice().equals("050109")){
+
+        if (utente.getIdAzienda().getCodice().equals("050109")) {
             String md5DaCalcolare = userLogin.username + "/" + userLogin.password;
-            if (!DigestUtils.md5Hex(md5DaCalcolare).toUpperCase().equals(utente.getPasswordHash().toUpperCase())){
+            if (!DigestUtils.md5Hex(md5DaCalcolare).toUpperCase().equals(utente.getPasswordHash().toUpperCase())) {
                 return new ResponseEntity(HttpStatus.FORBIDDEN);
             }
-            
-        } else {    
-            
+
+        } else {
+
             if (!PasswordHashUtils.validatePassword(userLogin.password, utente.getPasswordHash())) {
                 return new ResponseEntity(HttpStatus.FORBIDDEN);
             }
@@ -272,22 +295,18 @@ public class LoginController {
             boolean isCA = userInfoService.isCA(utenteReale);
             boolean isAvatarato = permessiAvatar != null && !permessiAvatar.isEmpty() && permessiAvatar.contains(utente.getId());
 
-            
-            if (
-                    !isSD && 
-                    ((isCI || isCA) && isSDImpersonato) &&
-                    !isCI && 
-                    // se sei CA puoi cambiare utente solo se l'utente è parte dei un'azienda di cui sei CA
-                    (!isCA || !authorizationUtils.isCAOfAziendaUtenteImpersonato(utenteReale, utente)) && 
-                    !isAvatarato) {
+            if (!isSD
+                    && ((isCI || isCA) && isSDImpersonato)
+                    && !isCI
+                    && // se sei CA puoi cambiare utente solo se l'utente è parte dei un'azienda di cui sei CA
+                    (!isCA || !authorizationUtils.isCAOfAziendaUtenteImpersonato(utenteReale, utente))
+                    && !isAvatarato) {
                 return new ResponseEntity("Non puoi cambiare utente!", HttpStatus.UNAUTHORIZED);
             }
 
             utente.setUtenteReale(utenteReale);
             realUserId = String.valueOf(utenteReale.getId());
         }
-
-        
 
         Integer idSessionLog = authorizationUtils.createIdSessionLog().getId();
         String idSessionLogString = String.valueOf(idSessionLog);
@@ -310,9 +329,9 @@ public class LoginController {
                 .compact();
 
         authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application, false);
-        
+
         UtenteLoginCustom utenteWithPersona = factory.createProjection(UtenteLoginCustom.class, utente);
-        
+
 //        utente.setPasswordHash(null);
         return new ResponseEntity(
                 new LoginResponse(
@@ -324,13 +343,15 @@ public class LoginController {
 
     @RequestMapping(value = "${security.login.path}", method = RequestMethod.GET)
 //    @Transactional(rollbackFor = Throwable.class)
-    public ResponseEntity<LoginResponse> loginGET(HttpServletRequest request) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, ClassNotFoundException {
+    public ResponseEntity<LoginResponse> loginGET(HttpServletRequest request, HttpServletResponse response) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, ClassNotFoundException, Exception {
 
         String impersonateUser = request.getParameter(IMPERSONATE_USER);
         String applicazione = request.getParameter(APPLICATION);
         String azienda = request.getParameter(AZIENDA);
         String passToken = request.getParameter(PASS_TOKEN);
         String newUserAccessString = request.getParameter(NEW_USER_ACCESS);
+        String cognitoCode = request.getParameter(COGNITO_CODE);
+        String hostname = commonUtils.getHostname(request);
 
         logger.info("impersonate user: " + impersonateUser);
         logger.info("applicazione: " + applicazione);
@@ -340,11 +361,22 @@ public class LoginController {
 
         //LOGIN SAML
         if (!samlEnabled) {
-            return new ResponseEntity("SAML authentication not enabled", HttpStatus.UNPROCESSABLE_ENTITY);
+            if (cognitoEnabled) {
+                if (cognitoCode != null && !cognitoCode.equals("")) {
+                    logger.info("cognito_code: " + cognitoCode);
+                    // TODO: validate JWT
+                    CognitoJWT cognitoJWT = cognitoUtils.getCognitoJWT(cognitoCode);
+                    String codiceFiscaleRealUser = cognitoJwtParserUtils.getClaim(cognitoJWT.getIdToken(), "custom:codice_fiscale");
+                    logger.info("codice_fiscale_utente_richiesto: " + codiceFiscaleRealUser);
+                    return cognitoUtils.login(azienda, hostname, secretKey, request, applicazione, codiceFiscaleRealUser);
+                } else {
+                    return cognitoUtils.callCognitoUI();
+
+                }
+            }
+            return new ResponseEntity("SAML and COGNITO authentication not enabled", HttpStatus.UNPROCESSABLE_ENTITY);
         }
         logger.debug("SAML Authentication is enabled");
-
-        String hostname = commonUtils.getHostname(request);
 
         String ssoFieldValue = null;
         Boolean fromInternet = null;
@@ -384,7 +416,7 @@ public class LoginController {
         try {
             writeUserAccess = Boolean.valueOf(newUserAccessString) && applicazione.equals(Applicazioni.scrivania.toString()) && StringUtils.isEmpty(impersonateUser);
             logger.info("writeUserAccess: " + writeUserAccess);
-            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet, writeUserAccess);
+            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet, writeUserAccess, false);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);

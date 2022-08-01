@@ -1514,6 +1514,10 @@ public class ImportaDaCSV {
             mapError.put("Anomalia", "true");
             return codiceAzienda;
         } else {
+            if (xmap.get("codice_ente").toString().length()<= 3 ){
+                mapError.put("ERRORE", mapError.get("Errore") + "codice ente troppo corto,");
+                mapError.put("Anomalia", "true");
+            }
             mapError.put("codice_ente", xmap.get("codice_ente"));
             return xmap.get("codice_ente").toString();
         }

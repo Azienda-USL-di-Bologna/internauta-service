@@ -51,7 +51,7 @@ public class AuthenticationEndpoint {
 
     @Value("classpath:BABEL_PROD.crt")
     private Resource fileResourceProd;
-    
+
     @Value("classpath:INTERNAUTA_ACCESS_TEST.crt")
     private Resource internautaAccessTestPK;
 
@@ -66,7 +66,7 @@ public class AuthenticationEndpoint {
 
     @Autowired
     CommonUtils commonUtils;
-    
+
     @Autowired
     ObjectMapper objectMapper;
 
@@ -82,7 +82,7 @@ public class AuthenticationEndpoint {
         if (endpointObject.jws == null || endpointObject.applicazione == null) {
             throw new ServletException("Invalid jwt");
         }
-                
+
 //        String headerBase64 = endpointObject.jws.split("[.]")[0];
 //
 //        if ("".equals(headerBase64) || headerBase64 == null) {
@@ -144,7 +144,7 @@ public class AuthenticationEndpoint {
 
         String hostname = commonUtils.getHostname(request);
         logger.info("fromInternetLogin: " + fromInternetLogin);
-        return authorizationUtils.generateResponseEntityFromSAML(idAzienda, hostname, secretKey, request, realUser, impersonatedUser, endpointObject.applicazione, fromInternetLogin, false);
+        return authorizationUtils.generateResponseEntityFromSAML(idAzienda, hostname, secretKey, request, realUser, impersonatedUser, endpointObject.applicazione, fromInternetLogin, false, false);
     }
 
     @SuppressWarnings("unused")
