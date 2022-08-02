@@ -31,7 +31,9 @@ import it.bologna.ausl.internauta.service.repositories.scrivania.RichiestaSmartW
 import it.bologna.ausl.internauta.service.utils.redmine.factories.MiddleMineManagerFactory;
 import it.bologna.ausl.internauta.service.utils.redmine.middlemine.communications.MiddleMineNewIssueManager;
 import it.bologna.ausl.internauta.service.utils.redmine.middlemine.communications.MiddleMineNewIssueResponseManager;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.forms.Segnalazione;
 import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
 import java.net.InetAddress;
@@ -90,6 +92,9 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     private UtenteRepository utenteRepository;
     @Autowired
     private RichiestaSmartWorkingRepository richiestaSmartWorkingRepository;
+    
+    @Autowired
+    ParametriAziendeReader parametriAziende;
 
     @Value("${redmine-test-mode}")
     boolean redmineTestMode;
@@ -584,7 +589,8 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             return new ResponseEntity("Errore durante l'invio della mail all'utente.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
         
-        if (segnalazioneUtente.getTipologiaSegnalazione().equals("CORREZIONE_DOCUMENTALE")) {
+         String tipologiaSegnalazione = segnalazioneUtente.getTipologiaSegnalazione();
+        if (StringUtils.hasText(tipologiaSegnalazione) && tipologiaSegnalazione.equals("CORREZIONE_DOCUMENTALE")) {
             try {
                 List<String> toAutorizzatore = Arrays.asList(segnalazioneUtente.getEmailAutorizzatore());
                 String introPerAutorizzatore = "Questa è una segnalazione di richiesta modifica da parte dell'utente " + 
