@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -73,6 +74,8 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
         boolean isCA = userInfoService.isCA(utente);
         boolean isCI = userInfoService.isCI(utente);
         boolean isSD = userInfoService.isSD(utente);
+        
+        List<Integer> doNotInclude = new ArrayList<Integer>();
 
         String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
         ZonedDateTime dataRiferimento;
@@ -81,12 +84,22 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
         } else {
             dataRiferimento = ZonedDateTime.now();
         }
+        String keyToDoNotInclude = InternautaConstants.AdditionalData.Keys.doNotInclude.toString();
+        if (additionalData != null && additionalData.containsKey(keyToDoNotInclude)) {
+//            String [] doNotIncludeString = additionalData.get(keyToDoNotInclude).toString().split(";");
+            for (String field : additionalData.get(keyToDoNotInclude).toString().split(";")){
+                doNotInclude.add(Integer.parseInt(field));
+            }
+        }
         BooleanExpression filter = qStoricoRelazione.attivaDal.loe(dataRiferimento)
                 .and((qStoricoRelazione.attivaAl.isNull()).or(qStoricoRelazione.attivaAl.goe(dataRiferimento)));
         initialPredicate = filter.and(initialPredicate);
 
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
-
+        if (doNotInclude.size() > 0) {
+            BooleanExpression customFilter = QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.notIn(doNotInclude);
+            initialPredicate = customFilter.and(initialPredicate);
+        }
         if (operationsRequested == null || operationsRequested.isEmpty()) {
             initialPredicate = filter.and(initialPredicate);
         } else {
