@@ -9,11 +9,13 @@ import it.bologna.ausl.internauta.service.utils.redmine.managers.RedmineProjectM
 import it.bologna.ausl.internauta.service.utils.redmine.managers.RedmineTrackerManager;
 import it.bologna.ausl.middelmine.interfaces.ParametersManagerInterface;
 import it.bologna.ausl.model.entities.forms.Segnalazione;
+import it.bologna.ausl.model.entities.scrivania.AutorizzatoreModificheDocumentali;
 import java.text.SimpleDateFormat;
 import java.text.DateFormat;
 import java.util.Date;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -51,6 +53,8 @@ public class IssueWrapper {
     final String AZIENDA = "Azienda";
     final String STRUTTURA_UTENTTE = "Struttura Utente";
     final String DATA_MAIL_SEGNALAZIONE = "Data mail segnalazione";
+    final String TIPOLOGIA_SEGNALAZIONE = "Tipologia Segnalazione";
+    final String AUTORIZZATORE = "Autorizzatore";
 
     // VALUES
     final String ATTIVITA_SUPPORTO_VALUE = "Attività Supporto";
@@ -121,6 +125,26 @@ public class IssueWrapper {
             //STRUTTURA UTENTTE
             array.put(getNewJsonCustomFieldParamFromRedmine(STRUTTURA_UTENTTE.toString(),
                     segnalazione.getStruttura()));
+            
+            String tipologiaSegnalazione = segnalazione.getTipologiaSegnalazione();
+            if (StringUtils.hasText(tipologiaSegnalazione)) {
+                switch (segnalazione.getTipologiaSegnalazione()) {
+                    case "FORMAZIONE":
+                        array.put(getNewJsonCustomFieldParamFromRedmine(TIPOLOGIA_SEGNALAZIONE, "Formazione"));
+                        break;
+                    case "MALFUNZIONAMENTO":
+                        array.put(getNewJsonCustomFieldParamFromRedmine(TIPOLOGIA_SEGNALAZIONE, "Malfunzionamento"));
+                        break;
+                    case "CORREZIONE_DOCUMENTALE":
+                        array.put(getNewJsonCustomFieldParamFromRedmine(TIPOLOGIA_SEGNALAZIONE, "Modifica"));
+
+                        String descrizioneAutorizzaotore = segnalazione.getDescrizioneAutorizzatore() + " (" + segnalazione.getEmailAutorizzatore()+ ")";
+                        array.put(getNewJsonCustomFieldParamFromRedmine(AUTORIZZATORE, descrizioneAutorizzaotore));
+                        break;
+                    default:
+                        throw new AssertionError();
+                }
+            }
             
             return array;
         } catch (RedmineException ex) {

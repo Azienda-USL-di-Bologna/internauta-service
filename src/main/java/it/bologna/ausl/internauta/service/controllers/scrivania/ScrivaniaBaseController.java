@@ -4,9 +4,11 @@ import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
+import it.bologna.ausl.model.entities.scrivania.AutorizzatoreModificheDocumentali;
 import it.bologna.ausl.model.entities.scrivania.Menu;
 import it.bologna.ausl.model.entities.scrivania.QAttivita;
 import it.bologna.ausl.model.entities.scrivania.QAttivitaFatta;
+import it.bologna.ausl.model.entities.scrivania.QAutorizzatoreModificheDocumentali;
 import it.bologna.ausl.model.entities.scrivania.QMenu;
 import it.bologna.ausl.model.entities.scrivania.QRichiestaSmartWorking;
 import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
@@ -91,6 +93,19 @@ public class ScrivaniaBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRichiestaSmartWorking.richiestaSmartWorking, RichiestaSmartWorking.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"autorizzatoremodifichedocumentali", "autorizzatoremodifichedocumentali/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> autorizzatoremodifichedocumentali(
+            @QuerydslPredicate(root = AutorizzatoreModificheDocumentali.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAutorizzatoreModificheDocumentali.autorizzatoreModificheDocumentali, AutorizzatoreModificheDocumentali.class);
         return ResponseEntity.ok(resource);
     }
 }
