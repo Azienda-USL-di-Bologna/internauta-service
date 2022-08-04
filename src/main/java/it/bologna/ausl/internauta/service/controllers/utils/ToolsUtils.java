@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.controllers.utils;
 import it.bologna.ausl.model.entities.forms.Segnalazione;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -25,12 +26,33 @@ public class ToolsUtils {
         body += "Cognome: " + segnalazioneUtente.getCognome() + "\n";
         body += "Nome: " + segnalazioneUtente.getNome() + "\n";
         body += "IdBabel: " + segnalazioneUtente.getUsername() + "\n";
+        String tipologiaSegnalazione = segnalazioneUtente.getTipologiaSegnalazione();
+        if (StringUtils.hasText(tipologiaSegnalazione)) {
+            switch (segnalazioneUtente.getTipologiaSegnalazione()) {
+                case "FORMAZIONE":
+                    body += "Tipo Segnalazione: " + "Formazione" + "\n";
+                    break;
+                case "MALFUNZIONAMENTO":
+                    body += "Tipo Segnalazione: " + "Malfunzionamento" + "\n";
+                    break;
+                case "CORREZIONE_DOCUMENTALE":
+                    body += "Tipo Segnalazione: " + "Modifica" + "\n";
+
+                    String descrizioneAutorizzaotore = segnalazioneUtente.getDescrizioneAutorizzatore() + " (" + segnalazioneUtente.getEmailAutorizzatore()+ ")";
+                    body += "Autorizzatore: " + descrizioneAutorizzaotore + "\n";
+                    break;
+                default:
+                    throw new AssertionError();
+            }
+        }
         body += "Telefono: " + segnalazioneUtente.getTelefono() + "\n";
         body += "Mail: " + segnalazioneUtente.getMail() + "\n\n";
+        
         body += "Oggetto: " + segnalazioneUtente.getOggetto() + "\n";
         body += "Data e ora: " + DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss").format(LocalDateTime.now()) + "\n\n";
+        
         body += "Descrizione del problema:\n" + segnalazioneUtente.getDescrizione() + "\n\n";
-
+        
         if (segnalazioneUtente.getAllegati() != null) {
             body += "Allegati:\n";
             MultipartFile[] allegati = segnalazioneUtente.getAllegati();

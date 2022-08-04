@@ -589,7 +589,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             return new ResponseEntity("Errore durante l'invio della mail all'utente.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
         
-         String tipologiaSegnalazione = segnalazioneUtente.getTipologiaSegnalazione();
+        String tipologiaSegnalazione = segnalazioneUtente.getTipologiaSegnalazione();
         if (StringUtils.hasText(tipologiaSegnalazione) && tipologiaSegnalazione.equals("CORREZIONE_DOCUMENTALE")) {
             try {
                 List<String> toAutorizzatore = Arrays.asList(segnalazioneUtente.getEmailAutorizzatore());
