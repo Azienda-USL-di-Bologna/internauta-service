@@ -52,12 +52,14 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import java.io.FileNotFoundException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.commons.codec.digest.MessageDigestAlgorithms;
+import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.http.MediaType;
 
 /**
@@ -128,6 +130,14 @@ public class SAIController implements ControllerHandledExceptions {
 
         Boolean doIHaveToKrint = true;
         
+        List<String> invalidAddresses = getInvalidAddresses(to);
+        invalidAddresses.addAll(getInvalidAddresses(cc));
+        
+        if (!invalidAddresses.isEmpty()) {
+           String errorMessage = String.format("ci sono degli indirizzi errati: %s", Arrays.toString(invalidAddresses.toArray()));
+            LOG.error("errore indirizzi 400-004 - " + errorMessage);
+           throw new Http400ResponseException("400-004", errorMessage); 
+        }
         
 //        String hashFromBytes = FileUtilities.getHashFromBytes(MessageDigestAlgorithms.SHA_256, attachments[0].getBytes());
 //        System.out.println(hashFromBytes);
@@ -306,6 +316,18 @@ public class SAIController implements ControllerHandledExceptions {
             if (found) {
                 res = m.getIdOutbox();
                 break;
+            }
+        }
+        return res;
+    }
+    
+    private List<String> getInvalidAddresses(String[] addresses) {
+        List res = new ArrayList();
+        if (addresses != null) {
+            for (String address : addresses) {
+                if (!EmailValidator.getInstance().isValid(address)) {
+                    res.add(address);
+                }
             }
         }
         return res;
