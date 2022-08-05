@@ -77,6 +77,7 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
 
         String filterComboValue = null;
         ZonedDateTime dataRiferimento = null;
+        List<Integer> doNotInclude = new ArrayList<Integer>();
         if (additionalData != null && additionalData.containsKey(FILTER_COMBO)) {
             filterComboValue = additionalData.get(FILTER_COMBO);
         }
@@ -84,12 +85,23 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
         if (additionalData != null && additionalData.containsKey(key)) {
             dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS);
         }
+        String keyToDoNotInclude = InternautaConstants.AdditionalData.Keys.doNotInclude.toString();
+        if (additionalData != null && additionalData.containsKey(keyToDoNotInclude)) {
+//            String [] doNotIncludeString = additionalData.get(keyToDoNotInclude).toString().split(";");
+            for (String field : additionalData.get(keyToDoNotInclude).toString().split(";")){
+                doNotInclude.add(Integer.parseInt(field));
+            }
+        }
 
         if (filterComboValue != null) {
             BooleanExpression customFilter = QUtenteStruttura.utenteStruttura.idUtente.idPersona.cognome
                     .concat(" ")
                     .concat(QUtenteStruttura.utenteStruttura.idUtente.idPersona.nome)
                     .containsIgnoreCase(filterComboValue);
+            initialPredicate = customFilter.and(initialPredicate);
+        }
+        if (doNotInclude.size() > 0) {
+            BooleanExpression customFilter = QUtenteStruttura.utenteStruttura.idUtente.idPersona.id.notIn(doNotInclude);
             initialPredicate = customFilter.and(initialPredicate);
         }
         if (dataRiferimento != null && !dataRiferimento.toLocalDate().isEqual(LocalDate.now())) {
