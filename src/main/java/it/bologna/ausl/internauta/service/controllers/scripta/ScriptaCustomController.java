@@ -58,7 +58,6 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
-//import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -96,8 +95,10 @@ import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
 import java.lang.reflect.InvocationTargetException;
+import org.springframework.web.bind.annotation.RequestPart;
 
 /**
  *
@@ -190,17 +191,28 @@ public class ScriptaCustomController {
 
     private static final Logger log = LoggerFactory.getLogger(ScriptaCustomController.class);
 
+    /**
+     * Controller chiamato dal PEIS per salvare una lista di allegati
+     * @param request
+     * @param idDoc
+     * @param numeroProposta
+     * @param files
+     * @return
+     * @throws MinIOWrapperException
+     * @throws NoSuchAlgorithmException
+     * @throws Throwable 
+     */
     @RequestMapping(value = "saveAllegato", method = RequestMethod.POST)
     public ResponseEntity<?> saveAllegato(
             HttpServletRequest request,
             @RequestParam("idDoc") Integer idDoc,
             @RequestParam("numeroProposta") String numeroProposta,
             @RequestParam("files") List<MultipartFile> files) throws MinIOWrapperException, NoSuchAlgorithmException, Throwable {
-        projectionsInterceptorLauncher.setRequestParams(null, request);
+        projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         Iterable<Allegato> tuttiAllegati = null;
         try {
-            Optional<Doc> optionalDoc = docRepository.findById(idDoc);
+            Optional<Doc> optionalDoc = docRepository.findById(idDoc); // Cerco il doc su cui mettere gli allegati
             Doc doc = null;
             if (!optionalDoc.isPresent()) {
                 throw new Http500ResponseException("1", "documento non trovato");
@@ -208,18 +220,12 @@ public class ScriptaCustomController {
                 doc = optionalDoc.get();
             }
 
-//            List<Allegato> allegati = doc.getAllegati();
-//            Integer numeroOrdine = null;
-//            if (allegati == null || allegati.isEmpty()) {
-//                numeroOrdine = 0;
-//            } else {
-//                numeroOrdine = doc.getAllegati().size();
-//            }
+            // Ciclo i files passati e poi vado a gestirli
             for (MultipartFile file : files) {
-
-                scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename());
-
+                scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename(), false);
             }
+            
+            // Carico tutti gli allegati del documento perché i voglio tornare al client
             tuttiAllegati = allegatoRepository.findAll(QAllegato.allegato.idDoc.id.eq(idDoc));
         } catch (Exception e) {
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
@@ -765,5 +771,48 @@ public class ScriptaCustomController {
         }
         List<Integer> idPersone = permessoArchivioRepository.getIdPersoneConPermessoSuArchiviazioniDelDocByIdEsterno(idEsterno, minBit);
         return new ResponseEntity(idPersone, HttpStatus.OK);
+    }
+    
+
+    /**
+     * Servlet chiamata quando l'utente vuole caricare dei file su un archivio
+     * @param request
+     * @param files
+     * @param idArchivio 
+     * @return  
+     * @throws java.io.IOException  
+     * @throws java.io.FileNotFoundException  
+     * @throws java.security.NoSuchAlgorithmException  
+     */
+    @RequestMapping(value = "uploadDocument", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
+    public ResponseEntity<?> uploadDocument(
+            HttpServletRequest request,
+            @RequestPart("files") MultipartFile[] files,
+            @RequestParam("idArchivio") int idArchivio
+    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
+        projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
+        Archivio archivio = archivioRepository.findById(idArchivio).get();
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+        
+//        List<Doc> docCaricati = new ArrayList();
+        try {
+            for (MultipartFile file : files) {
+                Doc doc = new  Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
+                doc = docRepository.save(doc);
+//                docCaricati.add(doc);
+                scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename(), true);
+            }
+        } catch (Exception e) {
+            if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
+                for (MinIOWrapperFileInfo minIOWrapperFileInfo : savedFilesOnRepository) {
+                    minIOWrapper.removeByFileId(minIOWrapperFileInfo.getFileId(), false);
+                }
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+        
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 }
