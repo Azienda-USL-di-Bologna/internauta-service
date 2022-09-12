@@ -62,6 +62,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
