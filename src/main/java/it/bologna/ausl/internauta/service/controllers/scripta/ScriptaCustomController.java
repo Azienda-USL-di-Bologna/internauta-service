@@ -54,10 +54,15 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
+import it.bologna.ausl.internauta.service.controllers.scrivania.ScrivaniaBaseController;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRepository;
 //import it.bologna.ausl.internauta.service.repositories.scripta.DettaglioAllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
@@ -96,7 +101,9 @@ import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
+import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.lang.reflect.InvocationTargetException;
 
 /**
@@ -169,15 +176,30 @@ public class ScriptaCustomController {
 
     @Autowired
     private AziendaRepository aziendaRepository;
+    
+    @Autowired
+    private PersonaRepository personaRepository;
+    
+    @Autowired
+    private AttoreArchivioRepository attoreArchivioRepository;
+    
+    @Autowired
+    private StrutturaRepository strutturaRepository;
 
     @Autowired
     private GeneratePE generatePE;
 
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private ScrivaniaBaseController scrivaniaBaseController;
 
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+    
+    @Autowired
+    private ApplicazioneRepository applicazioneRepository;
 
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
@@ -766,4 +788,45 @@ public class ScriptaCustomController {
         List<Integer> idPersone = permessoArchivioRepository.getIdPersoneConPermessoSuArchiviazioniDelDocByIdEsterno(idEsterno, minBit);
         return new ResponseEntity(idPersone, HttpStatus.OK);
     }
+    
+    /**
+     * Questa funzione si occupa di proporre la responsabilità di un docuemnto
+     *
+//     * @return 
+//     */
+//    @RequestMapping(value = "proponiResponsabile", method = RequestMethod.POST)
+//    public ResponseEntity<?> proponiResponsabile(
+//            @RequestParam("id_archivio") Integer idArchivio,
+//            @RequestParam("id_persona_attore") Integer idPersonaAttore,
+//            @RequestParam("id_struttura_attore") Integer idStrutturaAttore) {
+//        AttoreArchivio attoreResponsabileProposto = new AttoreArchivio();
+//        Archivio archivio = archivioRepository.getById(idArchivio);
+//        attoreResponsabileProposto.setIdArchivio(archivio);
+//        Persona persona = personaRepository.getById(idPersonaAttore);
+//        attoreResponsabileProposto.setIdPersona(persona);
+//        Struttura struttura = strutturaRepository.getById(idStrutturaAttore);
+//        attoreResponsabileProposto.setIdStruttura(struttura);
+//        attoreResponsabileProposto.setDataInserimentoRiga(ZonedDateTime.now());
+//        attoreResponsabileProposto.setRuolo(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO);
+//        attoreArchivioRepository.save(attoreResponsabileProposto);
+//        /* dopo aver salvato l'attore, ricalcolo i permessi dell'archivio*/
+//        archivioRepository.calcolaPermessiEspliciti(idArchivio);
+//        Attivita attivita = new Attivita();
+//        attivita.setIdAzienda(struttura.getIdAzienda());
+//        attivita.setIdPersona(persona);
+//        Applicazione applicazione = applicazioneRepository.getById("gediInt");
+//        attivita.setIdApplicazione(applicazione);
+//        attivita.setTipo("notifica");
+//        attivita.setOggetto("Fascicolo: " + archivio.getOggetto() + " - " + archivio.getNumerazioneGerarchica());
+//        attivita.setDescrizione("Proposta responsabilità");
+//        JSONObject json = new JSONObject();
+////        json.put("url", )
+////        attivita.setUrls();
+////        scrivaniaBaseController.attivita(predicate, pageable, EliminaPropostaDaEdiUrl, idArchivio, request, EliminaPropostaDaEdiUrl);
+//        return new ResponseEntity(null, HttpStatus.OK);
+//    }
+//    
+    
+    
+    
 }
