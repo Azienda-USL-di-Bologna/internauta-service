@@ -54,10 +54,15 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
+import it.bologna.ausl.internauta.service.controllers.scrivania.ScrivaniaBaseController;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroDocRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -97,6 +102,7 @@ import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioR
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
+import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.lang.reflect.InvocationTargetException;
 import org.springframework.web.bind.annotation.RequestPart;
 
@@ -170,15 +176,30 @@ public class ScriptaCustomController {
 
     @Autowired
     private AziendaRepository aziendaRepository;
+    
+    @Autowired
+    private PersonaRepository personaRepository;
+    
+    @Autowired
+    private AttoreArchivioRepository attoreArchivioRepository;
+    
+    @Autowired
+    private StrutturaRepository strutturaRepository;
 
     @Autowired
     private GeneratePE generatePE;
 
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private ScrivaniaBaseController scrivaniaBaseController;
 
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+    
+    @Autowired
+    private ApplicazioneRepository applicazioneRepository;
 
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
