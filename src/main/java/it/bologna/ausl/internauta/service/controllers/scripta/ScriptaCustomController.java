@@ -758,16 +758,16 @@ public class ScriptaCustomController {
    
     /**
      * Dato un archivio chiama la store procedure che calcola i permessi espliciti dello stesso
-     * @param idArchivio
+     * @param idArchivioRadice
      * @param request
      * @return 
      */
     @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
     public ResponseEntity<?> calcolaPermessiEspliciti(
-            @RequestParam("idArchivio") Integer idArchivio,
+            @RequestParam("idArchivioRadice") Integer idArchivioRadice,
             HttpServletRequest request) {
         
-        archivioRepository.calcolaPermessiEspliciti(idArchivio);
+        archivioRepository.calcolaPermessiEspliciti(idArchivioRadice);
         
         return new ResponseEntity("", HttpStatus.OK);
     }
