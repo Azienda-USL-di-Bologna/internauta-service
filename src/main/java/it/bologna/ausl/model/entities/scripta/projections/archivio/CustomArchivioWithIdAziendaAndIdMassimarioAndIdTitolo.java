@@ -25,5 +25,6 @@ public interface CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo extends A
     public List<PermessoArchivioWithPlainFields> getPermessiEspliciti();
     
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getAttoriList', 'AttoreArchivioWithIdPersonaAndIdStruttura')}")
+    @Override
     public List<AttoreArchivioWithIdPersonaAndIdStruttura> getAttoriList();
 }

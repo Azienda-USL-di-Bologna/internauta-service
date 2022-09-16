@@ -24,8 +24,13 @@ public interface ArchivioRepository extends
             nativeQuery = true)
     public Integer numeraArchivio(Integer idArchivio);
     
-    @Procedure("permessi.calcola_permessi_espliciti")
+//    @Procedure("permessi.calcola_permessi_espliciti")
+//    public void calcolaPermessiEspliciti(
+//        @Param("id_archivio") Integer idArchivio
+//    );
+    @Query(value = "select permessi.calcola_permessi_espliciti(a.id) from scripta.archivi a where id_archivio_radice = ?1",
+            nativeQuery = true)
     public void calcolaPermessiEspliciti(
-        @Param("id_archivio") Integer idArchivio
+        Integer idArchivioRadice
     );
 }

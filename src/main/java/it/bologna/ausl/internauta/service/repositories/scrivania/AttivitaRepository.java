@@ -9,6 +9,7 @@ import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.time.ZonedDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 /**
@@ -33,5 +34,12 @@ public interface AttivitaRepository extends
             + "and data >= ?2 "
             + "order by id desc limit 50 ", nativeQuery = true)
     public List<Attivita> getLatestAttivitaSinceNotificationByIdPersona(Integer idPersona, ZonedDateTime dataAttivita);
+    
+    @Modifying
+    @Query(value= "delete from scrivania.attivita "
+            + "where id_persona = ?1 "
+            + "and oggetto_esterno = ?2 "
+            + "and tipo_oggetto_esterno = ?3 ", nativeQuery = true )
+    public void deleteByAttoreArchivio(Integer idPersona, String oggettoEsterno, String tipoOggettoEsterno);
 
 }

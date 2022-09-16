@@ -1,7 +1,5 @@
 package it.bologna.ausl.internauta.service.baborg.utils;
 
-import com.querydsl.core.types.dsl.BooleanExpression;
-import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVAnomaliaException;
 import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteException;
@@ -21,34 +19,13 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.configurazione.Applicazione;
-import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
-import it.bologna.ausl.model.entities.gru.MdrAppartenenti;
-import it.bologna.ausl.model.entities.gru.MdrResponsabili;
-import it.bologna.ausl.model.entities.gru.MdrStruttura;
-import it.bologna.ausl.model.entities.gru.MdrTrasformazioni;
-import it.bologna.ausl.model.entities.gru.QMdrAppartenenti;
-import it.bologna.ausl.model.entities.gru.QMdrResponsabili;
-import it.bologna.ausl.model.entities.gru.QMdrStruttura;
-import it.bologna.ausl.model.entities.gru.QMdrTrasformazioni;
-import it.bologna.ausl.mongowrapper.MongoWrapper;
 import it.bologna.ausl.mongowrapper.exceptions.MongoWrapperException;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.sql.Timestamp;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,17 +36,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.supercsv.cellprocessor.ift.CellProcessor;
 import org.supercsv.prefs.CsvPreference;
 import org.supercsv.cellprocessor.Optional;
-import org.supercsv.cellprocessor.constraint.StrRegEx;
-import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.CsvMapWriter;
-import org.supercsv.io.ICsvMapReader;
-import org.supercsv.io.ICsvMapWriter;
 
 /**
  *
@@ -166,11 +138,12 @@ public class BaborgUtils {
         csvFile.deleteOnExit();
         CsvPreference SEMICOLON_DELIMITED = new CsvPreference.Builder('"', ';', "\r\n").build();
         Map<String, Object> row = new HashMap<>();
-        try (CsvMapWriter mapWriter = new CsvMapWriter(new FileWriter(csvFile), SEMICOLON_DELIMITED)) {
 
-            mapWriter.writeHeader(headersGenerator(tipo));
+        try ( CsvMapWriter mapWriter = new CsvMapWriter(new FileWriter(csvFile), SEMICOLON_DELIMITED)) {
+            String[] headersTipo = headersGenerator(tipo);
+            CellProcessor[] processorsTipo = getProcessors(tipo);
+            mapWriter.writeHeader(headersTipo);
             for (Map<String, Object> elemento : elementi) {
-                //.equals potrebbe essere un problema
                 row.putAll(elemento);
                 if (elemento.get("datain") != null && !elemento.get("datain").toString().trim().equals("")) {
                     if (Timestamp.class.isAssignableFrom(elemento.get("datain").getClass())) {
@@ -208,24 +181,17 @@ public class BaborgUtils {
                     }
                 }
 
-                mapWriter.write(row, headersGenerator(tipo), getProcessors(tipo));
+                mapWriter.write(row, headersTipo, processorsTipo);
                 row.clear();
             }
 
         } catch (Exception e) {
-            log.error("ho fallito miseramente",e);
+            log.error("ho fallito miseramente", e);
             System.out.println("e" + e);
             return null;
         }
         return csvFile;
 
-    }
-
-    private static LocalDateTime convertDateToLocaleDateTime(Date dateToConvert) {
-        if (dateToConvert == null) {
-            return null;
-        }
-        return new java.sql.Timestamp(dateToConvert.getTime()).toLocalDateTime();
     }
 
     /**
@@ -315,81 +281,6 @@ public class BaborgUtils {
         return cellProcessor;
     }
 
-    private static CellProcessor[] getProcessorsError(String tipo, Number codiceAzienda) {
-        CellProcessor[] cellProcessor = null;
-
-        final String codiceEnteRegex = "^(" + codiceAzienda + ")[0-9]*";
-        StrRegEx.registerMessage(codiceEnteRegex, "must be a valid codice ente");
-
-        switch (tipo) {
-            case "APPARTENENTI":
-                final CellProcessor[] processorsAPPARTENENTI = new CellProcessor[]{
-                    // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
-                    new Optional(), // codice_ente
-                    new Optional(), // codice_matricola Non Bloccante
-                    new Optional(), // cognome Bloccante
-                    new Optional(), // nome Bloccante
-                    new Optional(), // codice_fiscale bloccante
-                    new Optional(), // id_casella bloccante
-                    new Optional(), // datain bloccante
-                    new Optional(), // datafi
-                    new Optional(), // tipo_appartenenza bloccante
-                    new Optional(), // username
-                    new Optional(), // data_assunzione bloccante
-                    new Optional(), // data_adimissione
-                    new Optional() // errore
-                };
-                cellProcessor = processorsAPPARTENENTI;
-                break;
-            case "RESPONSABILI":
-                final CellProcessor[] processorsRESPONSABILI = new CellProcessor[]{
-                    // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
-                    new Optional(), // codice_ente
-                    new Optional(), // codice_matricola bloccante
-                    new Optional(), // id_casella bloccante
-                    new Optional(), // datain bloccante
-                    new Optional(), // datafi
-                    new Optional(), // tipo bloccante
-                    new Optional() // errore
-                };
-                cellProcessor = processorsRESPONSABILI;
-                break;
-            case "TRASFORMAZIONI":
-                CellProcessor[] processorsTRASFORMAZIONI = new CellProcessor[]{
-                    new Optional(), // progressivo_riga
-                    new Optional(), // id_casella_partenza
-                    new Optional(), // id_casellla_arrivo
-                    new Optional(), // data_trasformazione
-                    new Optional(), // motivo
-                    new Optional(), // datain_partenza
-                    new Optional(), // dataora_oper
-                    new Optional(), // codice_ente
-                    new Optional() // errore
-                };
-                cellProcessor = processorsTRASFORMAZIONI;
-                break;
-
-            case "STRUTTURA":
-                final CellProcessor[] processorsSTRUTTURA = new CellProcessor[]{
-                    new Optional(), // id_casella
-                    new Optional(), // id_padre
-                    new Optional(), // descrizione
-                    new Optional(), // datain
-                    new Optional(), // datafi
-                    new Optional(), // tipo_legame
-                    // new NotNull(new StrRegEx(codiceEnteRegex, new ParseInt())), // codice_ente
-                    new Optional(), // codice_ente
-                    new Optional() // errore
-                };
-                cellProcessor = processorsSTRUTTURA;
-                break;
-            default:
-                System.out.println("non dovrebbe essere altro tipo di tabella");
-                break;
-        }
-        return cellProcessor;
-    }
-
     private static String[] headersGenerator(String tipo) {
         log.info("sto generando l'header del tipo" + tipo);
         String[] headers = null;
@@ -422,50 +313,6 @@ public class BaborgUtils {
         return headers;
     }
 
-    private static String[] headersErrorGenerator(String tipo) {
-        String[] headers = null;
-        switch (tipo) {
-            case "APPARTENENTI":
-                headers = new String[]{"codice_ente", "codice_matricola", "cognome",
-                    "nome", "codice_fiscale", "id_casella", "datain", "datafi", "tipo_appartenenza",
-                    "username", "data_assunzione", "data_dimissione", "ERRORE"};
-                break;
-            case "RESPONSABILI":
-                headers = new String[]{"codice_ente", "codice_matricola",
-                    "id_casella", "datain", "datafi", "tipo", "ERRORE"};
-                break;
-            case "STRUTTURA":
-                headers = new String[]{"id_casella", "id_padre", "descrizione",
-                    "datain", "datafi", "tipo_legame", "codice_ente", "ERRORE"};
-                break;
-            case "TRASFORMAZIONI":
-                headers = new String[]{"progressivo_riga", "id_casella_partenza", "id_casella_arrivo", "data_trasformazione",
-                    "motivo", "datain_partenza", "dataora_oper", "codice_ente", "ERRORE"};
-                break;
-            default:
-                System.out.println("non dovrebbe essere");
-                break;
-        }
-        return headers;
-    }
-
-    private boolean controllaEstremi(ZonedDateTime dataStrutturaInizio, ZonedDateTime dataStrutturaFine, ZonedDateTime dataAppartenenteInizio, ZonedDateTime dataAppartenenteFine) {
-        if (dataAppartenenteFine == null) {
-            dataAppartenenteFine = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
-        }
-        if (dataStrutturaFine == null) {
-            dataStrutturaFine = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
-        }
-        if (dataStrutturaFine.compareTo(dataAppartenenteFine) < 0) {
-            return false;
-        }
-        if (dataStrutturaInizio.compareTo(dataAppartenenteInizio) > 0) {
-            return false;
-        }
-
-        return true;
-    }
-
     @Transactional(rollbackFor = Throwable.class)
     public ImportazioniOrganigramma updateEsitoImportazioneOrganigramma(ImportazioniOrganigramma newRowInserted, String esito, String csv_error_link) {
         // Update nello storico importazioni. esito: Errore o Ok
@@ -482,10 +329,7 @@ public class BaborgUtils {
     @Transactional(rollbackFor = Throwable.class)
     public ImportazioniOrganigramma insertNewRowImportazioneOrganigrama(Integer idUser, String idAzienda, String tipo, String codiceAzienda, String fileName, Persona person, ImportazioniOrganigramma newRowInserted) {
 //        ImportazioniOrganigramma newRowInserted = null;
-
         int idAziendaInt = Integer.parseInt(idAzienda);
-        int idAziendaCodice = Integer.parseInt(codiceAzienda);
-
         java.util.Optional<Azienda> azienda = aziendaRepository.findById(idAziendaInt);
         if (azienda.isPresent()) {
             ImportazioniOrganigramma newRowInCorso = new ImportazioniOrganigramma();
@@ -512,12 +356,9 @@ public class BaborgUtils {
         BaborgUtils bean = beanFactory.getBean(BaborgUtils.class);
         ImportaDaCSV importaDaCSVBeanSave = beanFactory.getBean(ImportaDaCSV.class);
 
-
         try {
-
-//            String csv_error_link = bean.csvTransactionalReadDeleteInsert(file, tipo, idAziendaCodice, idAziendaInt);
-            String csv_error_link = importaDaCSVBeanSave.csvTransactionalReadDeleteInsert(file, tipo, codiceAzienda, idAziendaInt);
             // Update nello storico importazioni. esito: OK e Data Fine: Data.now
+            String csv_error_link = importaDaCSVBeanSave.csvTransactionalReadDeleteInsert(file, tipo, codiceAzienda, idAziendaInt);
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Ok", csv_error_link);
         } catch (BaborgCSVBloccanteException e) {
             log.error("errore bloccante", e);
@@ -528,170 +369,10 @@ public class BaborgUtils {
         } catch (BaborgCSVBloccanteRigheException e) {
             log.error("errore bloccante righe", e);
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Bloccante Righe", e.getMessage());
-        } catch (Throwable e) {
+        } catch (MongoWrapperException e) {
             log.error("errore generico", e);
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Errore", null);
         }
-
         return res;
-    }
-
-    /**
-     * non usata ATTENZIONE gli elementi devono essere ordinati per datain ASC
-     *
-     * @param elementi lista di padri/elementi/strutture con datain e data fi
-     * @param dataInizio data di inizio del figlio
-     * @param dataFine data di fine del figlio
-     * @return true se il figlio rispetta l'arco temporale del o dei padri nel
-     * caso in cui il padre sia spezzato ma continuo
-     */
-    public Boolean arco_old(List<Map<String, Object>> elementi, ZonedDateTime dataInizio, ZonedDateTime dataFine) {
-        if (elementi.isEmpty()) {
-            return false;
-        }
-        Map<String, Object> elemento = elementi.get(0);
-        if (formattattore(elemento.get("datain")).equals(dataInizio) || formattattore(elemento.get("datain")).isBefore(dataInizio)) {
-            if (elemento.get("datafi") == null) {
-                return true;
-            } else if (dataFine != null) {
-                if (formattattore(elemento.get("datafi")).equals(dataFine) || formattattore(elemento.get("datafi")).isAfter(dataFine)) {
-                    return true;
-                } else {
-                    elementi.remove(0);
-                    return arcoBool(elementi, formattattore(elemento.get("datafi")).plusDays(1), dataFine);
-                }
-            } else {
-                elementi.remove(0);
-                return arcoBool(elementi, formattattore(elemento.get("datafi")).plusDays(1), dataFine);
-            }
-        } else {
-            elementi.remove(0);
-            return arcoBool(elementi, dataInizio, dataFine);
-        }
-    }
-
-    private List<Integer> arco(List<Map<String, Object>> elementi, ZonedDateTime dataInizio, ZonedDateTime dataFine) {
-        List<Integer> lista = new ArrayList<>();
-        if (!elementi.isEmpty()) {
-            for (Map<String, Object> elemento : elementi) {
-                if (overlap(formattattore(elemento.get("datain")), formattattore(elemento.get("datafi")), dataInizio, dataFine)) {
-                    lista.add(Integer.parseInt(elemento.get("riga").toString()));
-                }
-            }
-        }
-        return lista;
-    }
-
-    /**
-     *
-     * @param elementi lista fi elementi da controllare se hanno un periodo in
-     * comune con il periodo passato
-     * @param dataInizio inizio intervallo
-     * @param dataFine fine intervallo
-     * @return true se gli intervalli si sovrappongono con l'intervallo passato
-     * false se non si sovrappongo
-     */
-    public Boolean arcoBool(List<Map<String, Object>> elementi, ZonedDateTime dataInizio, ZonedDateTime dataFine) {
-        if (elementi.isEmpty()) {
-            return false;
-        }
-        return elementi.stream().anyMatch(elemento -> overlap(formattattore(elemento.get("datain")), formattattore(elemento.get("datafi")), dataInizio, dataFine));
-    }
-
-    /**
-     *
-     * @param dataInizioA data di inizio del periodo A da controllare
-     * @param dataFineA data di fine del periodo da A controllare
-     * @param dataInizioB data di inizio del periodo B che potrebbe coincidere
-     * con A
-     * @param dataFineB data di fine del periodo B che potrebbe coincidere con A
-     * @return true se si sovrappongono false se non si sovrappongono
-     */
-    public Boolean overlap(ZonedDateTime dataInizioA, ZonedDateTime dataFineA, ZonedDateTime dataInizioB, ZonedDateTime dataFineB) {
-
-        if (dataFineA == null) {
-            dataFineA = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
-        }
-        if (dataFineB == null) {
-            dataFineB = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
-        }
-        return (dataInizioA.compareTo(dataFineB) <= 0 && dataFineA.compareTo(dataInizioB) >= 0) && dataInizioA.compareTo(dataInizioB) <= 0;
-    }
-
-    private Map<String, ZonedDateTime> maxMin(List<Map<String, Object>> elementi) {
-        HashMap<String, ZonedDateTime> maxmin = new HashMap<>();
-        ZonedDateTime min = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
-        ZonedDateTime max = ZonedDateTime.of(LocalDateTime.MIN, ZoneId.systemDefault());
-
-        for (Map<String, Object> map1 : elementi) {
-            if (min.compareTo(formattattore(map1.get("datain").toString())) > 0) {
-                min = formattattore(map1.get("datain").toString());
-            }
-            if (map1.get("datafi") == null) {
-                max = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
-            } else if (max.compareTo(formattattore(map1.get("datafi").toString())) < 0) {
-                max = formattattore(map1.get("datafi").toString());
-            }
-
-        }
-        maxmin.put("max", max);
-        maxmin.put("min", min);
-        return maxmin;
-    }
-
-    /**
-     *
-     * @param o
-     * @param formatoDestinazione
-     * @return
-     * @throws ParseException
-     */
-    public ZonedDateTime formattattore(Object o) {
-        if (o != null) {
-            try {
-                // String format = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-//                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(o.toString()).toInstant();
-                return LocalDate.parse(o.toString(), DateTimeFormatter.ofPattern("dd/MM/yyyy")).atStartOfDay(ZoneId.systemDefault());
-            } catch (Exception e) {
-
-            }
-            try {
-
-                // String format = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                Instant toInstant = new SimpleDateFormat("dd/MM/yy").parse(o.toString()).toInstant();
-                return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
-            } catch (ParseException e) {
-                //non Ã¨ stato parsato
-            }
-            try {
-                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(o.toString()).toInstant();
-                return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
-            } catch (ParseException e) {
-                //non Ã¨ stato parsato
-            }
-            try {
-                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(o.toString()).toInstant();
-                return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
-            } catch (ParseException e) {
-                //non Ã¨ stato parsato
-            }
-
-            try {
-                String time = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(time).toInstant();
-                return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
-            } catch (ParseException e) {
-                //non Ã¨ stato parsato
-            }
-            try {
-                String time = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(time).toInstant();
-                return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
-            } catch (ParseException e) {
-                //non Ã¨ stato parsato
-            }
-
-        }
-        return null;
     }
 }
