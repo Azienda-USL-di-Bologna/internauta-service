@@ -209,7 +209,7 @@ public class ScriptaUtils {
                     Allegato nuovoAllegato = buildAndSaveAllegato(
                             er.getFileName(),
                             doc,
-                            codiceAzienda + (index > 1 ? "t": ""),
+                            codiceAzienda + (fileEstrattiSuTemp && index > 1 ? "t": ""),
                             file,
                             numeroAllegato,
                             padre,

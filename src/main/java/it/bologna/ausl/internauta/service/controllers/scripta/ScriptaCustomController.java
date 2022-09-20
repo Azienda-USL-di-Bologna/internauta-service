@@ -61,6 +61,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
@@ -99,10 +100,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
+import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
+import java.io.File;
+import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
 import org.springframework.web.bind.annotation.RequestPart;
 
@@ -125,6 +132,12 @@ public class ScriptaCustomController {
 
     @Autowired
     private ArchivioRepository archivioRepository;
+    
+    @Autowired
+    private ArchivioDocRepository archivioDocRepository;
+    
+    @Autowired
+    private MessageRepository messageRepository;
 
 //    @Autowired
 //    private ArchivioDetailRepository archivioDetailRepository;
@@ -178,13 +191,7 @@ public class ScriptaCustomController {
     private AziendaRepository aziendaRepository;
     
     @Autowired
-    private PersonaRepository personaRepository;
-    
-    @Autowired
-    private AttoreArchivioRepository attoreArchivioRepository;
-    
-    @Autowired
-    private StrutturaRepository strutturaRepository;
+    private ShpeckUtils shpeckUtils;
 
     @Autowired
     private GeneratePE generatePE;
@@ -833,6 +840,59 @@ public class ScriptaCustomController {
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+        
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+    
+
+    @RequestMapping(value = "archiveMessage/{idMessage}/{idArchivio}", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
+    public ResponseEntity<?> archiveMessage(
+            HttpServletRequest request,
+            @PathVariable(required = true) Integer idMessage,
+            @PathVariable(required = true) Integer idArchivio
+    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
+        projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
+        
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+
+        Archivio archivio = archivioRepository.findById(idArchivio).get();
+        Message message = messageRepository.findById(idMessage).get();
+        
+        // TODO: Chiedere a claudio se è acettabile che se manca ancora l'idrepostitory all'utente do errore con messaggio "rirpova tra qualche minuto"
+        // Se non è acetabile allora l'eml lo salvaiamo senza id repository
+        
+        Doc doc = message.getIdDoc();
+       
+        if (doc == null) {
+            File downloadEml = shpeckUtils.downloadEml(ShpeckUtils.EmlSource.MESSAGE, idMessage);
+            MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+            
+            doc = new  Doc(downloadEml.getName(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
+            doc = docRepository.save(doc);
+            message.setIdDoc(doc);
+            messageRepository.save(message);
+            
+            try {
+                // Non duplichiamo l'eml 
+                scriptaUtils.creaAndAllegaAllegati(doc, new FileInputStream(downloadEml), downloadEml.getName(), true);
+            } catch (Exception e) {
+                if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
+                    for (MinIOWrapperFileInfo minIOWrapperFileInfo : savedFilesOnRepository) {
+                        minIOWrapper.removeByFileId(minIOWrapperFileInfo.getFileId(), false);
+                    }
+                }
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+        } 
+        
+        ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, authenticatedUserProperties.getPerson());
+        archivioDocRepository.save(archiviazione);
+        
+        
+        AdditionalDataArchiviation additionalDataArchiviation = // Vedere le classi
+        
+        shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalData, user, true); // TODO: Devo mettere il tag di archiviaizone
         
         return ResponseEntity.status(HttpStatus.OK).build();
     }
