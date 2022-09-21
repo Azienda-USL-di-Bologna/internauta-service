@@ -110,7 +110,7 @@ public class DocDetailInterceptorUtils {
     }
     
     private void buildUrlComplete(DocDetailInterface doc, Persona persona, AuthenticatedSessionData authenticatedSessionData) throws IOException {
-        if (doc.getCommandType() == DocDetail.CommandType.URL) {
+        if (doc.getCommandType() == DocDetail.CommandType.URL && doc.getOpenCommand() != null) {
             doc.setUrlComplete(
                 internautaUtils.getUrl(
                     authenticatedSessionData, 
