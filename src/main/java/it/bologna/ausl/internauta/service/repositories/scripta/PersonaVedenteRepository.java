@@ -7,6 +7,7 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
@@ -17,5 +18,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PersonaVedenteRepository extends
         NextSdrQueryDslRepository<PersonaVedente, Long, QPersonaVedente>, 
         JpaRepository<PersonaVedente, Long> {
-
+    
+    @Query(value = "select scripta.aggiungi_persone_vedenti_su_doc_da_permessi_archivi(?1)", nativeQuery = true)
+    public void aggiungiPersoneVedentiSuDocDaPermessiArchivi(
+        Integer idDoc
+    );
 }

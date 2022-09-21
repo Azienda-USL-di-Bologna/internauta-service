@@ -578,6 +578,11 @@ public class ShpeckUtils {
         return tagged;
     }
 
+    
+    public void SetArchiviationTag(Pec pec, Message messageToTag, AdditionalDataArchiviation additionalDataArchiviation, Utente utente, boolean krint) throws JsonProcessingException {
+        SetArchiviationTag(pec, messageToTag, additionalDataArchiviation, utente, krint, false);
+    }
+    
     /**
      * Aggiunge il tag di fascicolazione
      *
@@ -587,17 +592,26 @@ public class ShpeckUtils {
      * @param utente l'utente sta inserendo il tag. Se il tag esiste già, se
      * l'utente viene passato sul tag è diverso, viene aggiornato
      * @param krint se si vuole kritnare l'operazione
+     * @param archiviazioneInternauta
      * @throws JsonProcessingException
      */
-    public void SetArchiviationTag(Pec pec, Message messageToTag, AdditionalDataArchiviation additionalDataArchiviation, Utente utente, boolean krint) throws JsonProcessingException {
+    public void SetArchiviationTag(Pec pec, Message messageToTag, AdditionalDataArchiviation additionalDataArchiviation, Utente utente, boolean krint, boolean archiviazioneInternauta) throws JsonProcessingException {
         boolean toTag = true;
         List<MessageTag> messageTagList = getMessageTagList(pec, messageToTag, SystemTagName.archived.toString());
         if (!messageTagList.isEmpty()) {
             if (StringUtils.hasText(messageTagList.get(0).getAdditionalData())) {
                 List<AdditionalData> additionalData = AdditionalData.fromJsonString(objectMapper, messageTagList.get(0).getAdditionalData());
-                boolean additionalDataAlreadyExits = additionalData.stream().anyMatch(a
+                boolean additionalDataAlreadyExits = false;
+                if (archiviazioneInternauta) {
+                    additionalDataAlreadyExits = additionalData.stream().anyMatch(a
+                        -> ((AdditionalDataArchiviation) a).getIdArchivio() != null && 
+                           ((AdditionalDataArchiviation) a).getIdArchivio().getId().equals(additionalDataArchiviation.getIdArchivio().getId())
+                    );
+                } else {
+                    additionalDataAlreadyExits = additionalData.stream().anyMatch(a
                         -> ((AdditionalDataArchiviation) a).getIdFascicolo().getId().equals(additionalDataArchiviation.getIdFascicolo().getId())
                         && ((AdditionalDataArchiviation) a).getIdGdDoc().getId().equals(additionalDataArchiviation.getIdGdDoc().getId()));
+                }
                 if (additionalDataAlreadyExits) {
                     toTag = false;
                 }
