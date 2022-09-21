@@ -316,6 +316,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             if (struttura.getUfficio() && struttura.getIdStrutturaPadre() == null) {
                 krintBaborgService.writeUfficioCreation(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_CREATION);
             }
+            
         }
         return entity; //To change body of generated methods, choose Tools | Templates.
     }

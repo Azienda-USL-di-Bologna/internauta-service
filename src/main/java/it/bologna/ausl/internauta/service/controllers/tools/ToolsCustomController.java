@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 //import per mandare mail 
 import com.sun.mail.smtp.SMTPTransport;
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.utils.ToolsUtils;
 import it.bologna.ausl.internauta.service.exceptions.SendMailException;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
@@ -31,7 +32,10 @@ import it.bologna.ausl.internauta.service.repositories.scrivania.RichiestaSmartW
 import it.bologna.ausl.internauta.service.utils.redmine.factories.MiddleMineManagerFactory;
 import it.bologna.ausl.internauta.service.utils.redmine.middlemine.communications.MiddleMineNewIssueManager;
 import it.bologna.ausl.internauta.service.utils.redmine.middlemine.communications.MiddleMineNewIssueResponseManager;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
+import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.forms.Segnalazione;
 import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
 import java.net.InetAddress;
@@ -63,6 +67,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -90,6 +95,11 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     private UtenteRepository utenteRepository;
     @Autowired
     private RichiestaSmartWorkingRepository richiestaSmartWorkingRepository;
+    @Autowired
+    private ReporitoryConnectionManager aziendeConnectionManager;
+    
+    @Autowired
+    ParametriAziendeReader parametriAziende;
 
     @Value("${redmine-test-mode}")
     boolean redmineTestMode;
@@ -550,16 +560,63 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         // Build body mail da inviare all'utente
         String bodyUser = toolsUtils.buildMailForUser(bodyCustomerSupport, numeroNuovaSegnalazione);
         List<String> replyToUsers = Arrays.asList(fromName);
+        
         try {
-            sendMail(utente.getIdAzienda().getId(), nameCustomerSupport, subject, to, bodyCustomerSupport, null, null, segnalazioneUtente.getAllegati(), replyToUsers);
+            sendMail(
+                    utente.getIdAzienda().getId(), 
+                    nameCustomerSupport, 
+                    subject, 
+                    to, 
+                    bodyCustomerSupport, 
+                    null, 
+                    null, 
+                    segnalazioneUtente.getAllegati(), 
+                    replyToUsers
+            );
         } catch (IOException ex) {
             return new ResponseEntity("Errore durante l'invio della mail al servizio assistenza.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
+        
         try {
             List<String> toUser = Arrays.asList(fromName);
-            sendMail(utente.getIdAzienda().getId(), nameCustomerSupport, subject, toUser, bodyUser, null, null, null, null);
+            sendMail(
+                    utente.getIdAzienda().getId(), 
+                    nameCustomerSupport, 
+                    subject, 
+                    toUser, 
+                    bodyUser, 
+                    null, 
+                    null, 
+                    null, 
+                    null
+            );
         } catch (IOException ex) {
             return new ResponseEntity("Errore durante l'invio della mail all'utente.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        
+        String tipologiaSegnalazione = segnalazioneUtente.getTipologiaSegnalazione();
+        if (StringUtils.hasText(tipologiaSegnalazione) && tipologiaSegnalazione.equals("CORREZIONE_DOCUMENTALE")) {
+            try {
+                List<String> toAutorizzatore = Arrays.asList(segnalazioneUtente.getEmailAutorizzatore());
+                String introPerAutorizzatore = "Questa è una segnalazione di richiesta modifica da parte dell'utente " + 
+                        utente.getIdPersona().getDescrizione() + ".\nVedi sotto il dettaglio e rispondi alla mail per autorizzare babelcare a procedere\n\n";
+                bodyCustomerSupport = introPerAutorizzatore + bodyCustomerSupport;
+                List<String> replyToBabelcare = Arrays.asList("babel.care@ausl.bologna.it");
+                
+                sendMail(
+                        utente.getIdAzienda().getId(), 
+                        nameCustomerSupport, 
+                        subject, 
+                        toAutorizzatore, 
+                        bodyCustomerSupport, 
+                        null, 
+                        null, 
+                        segnalazioneUtente.getAllegati(), 
+                        replyToBabelcare
+                );
+            } catch (IOException ex) {
+                return new ResponseEntity("Errore durante l'invio della mail all'autorizzatore.", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         }
 
         return new ResponseEntity("Successfully sent!", HttpStatus.OK);

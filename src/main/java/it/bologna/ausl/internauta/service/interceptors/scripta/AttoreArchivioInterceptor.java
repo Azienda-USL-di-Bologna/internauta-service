@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.interceptors.scripta;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
+import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.nextsw.common.annotations.NextSdrInterceptor;
@@ -31,6 +32,9 @@ public class AttoreArchivioInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     private KrintUtils krintUtils;
+    
+    @Autowired
+    private AttivitaRepository attivitaRepository;
     
     @Override
     public Class getTargetEntityClass() {
@@ -74,7 +78,19 @@ public class AttoreArchivioInterceptor extends InternautaBaseInterceptor {
             }
         }
         
+        
+        
         super.beforeDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        AttoreArchivio attoreArchivio = (AttoreArchivio) entity;
+        if (attoreArchivio.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO)) {
+            attivitaRepository.deleteByAttoreArchivio(attoreArchivio.getIdPersona().getId(), attoreArchivio.getIdArchivio().getId().toString(), "ArchivioInternauta");
+        }
+        
+        super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
     
     

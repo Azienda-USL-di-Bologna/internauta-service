@@ -1289,43 +1289,13 @@ public class RaccoltaSempliceCustomController {
 
             if (documentoBabel != null) {
                 Query queryGddocs = conn.createQuery(RaccoltaManager.queryNomeGddoc(documentoBabel));
-
-                List<String> listGddocs = queryGddocs.executeAndFetch(String.class);
-
-                int countId = 0;
-                Boolean firstTime = true;
-
-                for (String idG : listGddocs) {
-                    if (query == "") {
-                        query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE  (id_gddoc_associato = '" + idG + "' ";
-                        countId++;
-                        firstTime = false;
-                        if (listGddocs.size() == 1) {
-                            query = query + ") ";
-                            break;
-                        }
-                    } else {
-                        if (firstTime && listGddocs.size() == 1) {
-                            query = query + " and id_gddoc_associato = '" + idG + "' ";
-                            countId++;
-                        }
-                        if (firstTime && listGddocs.size() > 1) {
-                            query = query + " and ( id_gddoc_associato = '" + idG + "' ";
-                            countId++;
-                        }
-                        if (countId == listGddocs.size() - 1) {
-                            //log.info("Sono all'ultimo");
-                            query = query + " or id_gddoc_associato = '" + idG + "' ) ";
-                            countId++;
-                        }
-                        if (!firstTime && countId < listGddocs.size() - 1) {
-                            //log.info(("Non sono all'ultimo"))
-                            query = query + " or id_gddoc_associato = '" + idG + "' ";
-                            countId++;
-                        }
-                        firstTime = false;
-                    }
+                //List<String> listGddocs = queryGddocs.executeAndFetch(String.class);
+                if (query == "") {
+                    query = "SELECT count(r.id) OVER() as rows, r.* from gd.raccolte r WHERE (id_gddoc_associato IN ( " + RaccoltaManager.queryNomeGddoc(documentoBabel) + " ) ";
+                } else {
+                    query = query + " and (id_gddoc_associato IN ( " + RaccoltaManager.queryNomeGddoc(documentoBabel) + " ) ";
                 }
+
             }
             if (query.equals("")) {
                 return null;

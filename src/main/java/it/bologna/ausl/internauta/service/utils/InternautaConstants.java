@@ -51,7 +51,8 @@ public class InternautaConstants {
             idMessage, 
             codiceAzienda,
             BitPermessoMinimo,
-            idArchivio
+            idArchivio,
+            doNotInclude
         }
 
         public enum OperationsRequested {
