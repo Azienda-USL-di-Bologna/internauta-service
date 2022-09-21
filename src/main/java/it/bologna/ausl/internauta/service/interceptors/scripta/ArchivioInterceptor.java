@@ -32,8 +32,13 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
-        Archivio archivio = (Archivio) entity;
-        archivioRepository.calcolaPermessiEspliciti(archivio.getIdArchivioRadice().getId());
+        Archivio archivio = (Archivio) entity;    
+        Integer idArchivio = archivio.getId();
+        //caso in cui sono un figlio di un archivio
+        if (archivio.getIdArchivioRadice() != null){
+            idArchivio=archivio.getIdArchivioRadice().getId();
+        }
+        archivioRepository.calcolaPermessiEspliciti(idArchivio);
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
