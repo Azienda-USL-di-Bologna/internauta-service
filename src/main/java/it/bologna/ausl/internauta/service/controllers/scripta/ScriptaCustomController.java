@@ -102,13 +102,16 @@ import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
+import it.bologna.ausl.internauta.service.repositories.shpeck.MessageDocRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
+import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
+import it.bologna.ausl.model.entities.shpeck.MessageInterface;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import java.io.File;
@@ -141,6 +144,9 @@ public class ScriptaCustomController {
     
     @Autowired
     private MessageRepository messageRepository;
+    
+    @Autowired
+    private MessageDocRepository messageDocRepository;
     
     @Autowired
     private ScriptaArchiviUtils scriptaArchiviUtils;
@@ -905,11 +911,18 @@ public class ScriptaCustomController {
         }
         
         
-        /* 
-            Ora vedo se il doc già esiste ( lo becco attaccato al message. )
-            Se non esiste allora dovrò crearlo e quindi dovrò creare i vari allegati.
-        */  
-        Doc doc = message.getIdDoc();
+        /*
+        Ora vedo se il doc già esiste ( lo becco dentro messages_docs. )
+        Se non esiste allora dovrò crearlo e quindi dovrò creare i vari allegati.
+         */
+        Doc doc = null;
+        List<MessageDoc> messageDocList = message.getMessageDocList().stream().filter(md -> md.getScope().equals(MessageDoc.ScopeMessageDoc.ARCHIVIAZIONE)).collect(Collectors.toList());
+        for (MessageDoc md : messageDocList) {
+            if (md.getIdDoc().getIdAzienda().getId().equals(azienda.getId())) {
+                doc = md.getIdDoc();
+                break;
+            }
+        }
        
         if (doc == null) {
             File downloadEml = shpeckUtils.downloadEml(ShpeckUtils.EmlSource.MESSAGE, idMessage);
@@ -917,8 +930,14 @@ public class ScriptaCustomController {
             
             doc = new  Doc("Pec_" + message.getId().toString(), persona, archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString());
             doc = docRepository.save(doc);
-            message.setIdDoc(doc);
-            messageRepository.save(message);
+            MessageDoc.TipoMessageDoc tipo = null;
+            if (message.getInOut().equals(MessageInterface.InOut.IN)) {
+                tipo = MessageDoc.TipoMessageDoc.IN;
+            } else {
+                tipo = MessageDoc.TipoMessageDoc.OUT;
+            }
+            MessageDoc md = new MessageDoc(message, doc, tipo, MessageDoc.ScopeMessageDoc.ARCHIVIAZIONE);
+            messageDocRepository.save(md);
             
             try {
                 scriptaUtils.creaAndAllegaAllegati(doc, new FileInputStream(downloadEml), "Pec_" + message.getId().toString(), true, true, message.getUuidRepository()); // downloadEml.getName()
