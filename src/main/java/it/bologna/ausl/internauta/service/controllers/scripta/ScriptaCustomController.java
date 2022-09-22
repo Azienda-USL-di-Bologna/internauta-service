@@ -151,6 +151,9 @@ public class ScriptaCustomController {
     @Autowired
     private ScriptaArchiviUtils scriptaArchiviUtils;
     
+    @Autowired
+    private ScriptaCopyUtils scriptaCopyUtils;
+    
 
 //    @Autowired
 //    private ArchivioDetailRepository archivioDetailRepository;
@@ -966,5 +969,19 @@ public class ScriptaCustomController {
         personaVedenteRepository.aggiungiPersoneVedentiSuDocDaPermessiArchivi(doc.getId());
         
         return ResponseEntity.status(HttpStatus.OK).build();
+    }
+    
+    
+    @RequestMapping(value = "copiaArchiviazioni", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
+    public ResponseEntity<?> copiaArchiviazioni(
+            HttpServletRequest request,
+            @RequestParam(name = "guidDocumentoOrigine", required = true) String guidDocumentoOrigine,
+            @RequestParam(name = "guidDocumentoDestinazione", required = true) String guidDocumentoDestinazione
+    ) throws BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Doc docOrigine = docRepository.findByIdEsterno(guidDocumentoOrigine);
+        Doc docDestinazione = docRepository.findByIdEsterno(guidDocumentoDestinazione);
+        return new ResponseEntity(scriptaCopyUtils.copiaArchiviazioni(docOrigine, docDestinazione, authenticatedUserProperties.getPerson()), HttpStatus.OK);
     }
 }
