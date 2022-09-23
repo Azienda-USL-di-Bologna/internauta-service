@@ -117,6 +117,7 @@ import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 
 /**
@@ -976,12 +977,11 @@ public class ScriptaCustomController {
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> copiaArchiviazioni(
             HttpServletRequest request,
-            @RequestParam(name = "guidDocumentoOrigine", required = true) String guidDocumentoOrigine,
-            @RequestParam(name = "guidDocumentoDestinazione", required = true) String guidDocumentoDestinazione
+            @RequestBody Map<String, String> requestData
     ) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Doc docOrigine = docRepository.findByIdEsterno(guidDocumentoOrigine);
-        Doc docDestinazione = docRepository.findByIdEsterno(guidDocumentoDestinazione);
+        Doc docOrigine = docRepository.findByIdEsterno(requestData.get("guidDocumentoOrigine"));
+        Doc docDestinazione = docRepository.findByIdEsterno(requestData.get("guidDocumentoDestinazione"));
         return new ResponseEntity(scriptaCopyUtils.copiaArchiviazioni(docOrigine, docDestinazione, authenticatedUserProperties.getPerson()), HttpStatus.OK);
     }
 }
