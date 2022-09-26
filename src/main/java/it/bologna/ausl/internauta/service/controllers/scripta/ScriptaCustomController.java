@@ -980,8 +980,9 @@ public class ScriptaCustomController {
             @RequestBody Map<String, String> requestData
     ) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Doc docOrigine = docRepository.findByIdEsterno(requestData.get("guidDocumentoOrigine"));
         Doc docDestinazione = docRepository.findByIdEsterno(requestData.get("guidDocumentoDestinazione"));
-        return new ResponseEntity(scriptaCopyUtils.copiaArchiviazioni(docOrigine, docDestinazione, authenticatedUserProperties.getPerson()), HttpStatus.OK);
+        return new ResponseEntity(scriptaCopyUtils.copiaArchiviazioni(docOrigine, docDestinazione, persona), HttpStatus.OK);
     }
 }
