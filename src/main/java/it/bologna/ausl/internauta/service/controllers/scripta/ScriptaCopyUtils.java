@@ -48,13 +48,13 @@ public class ScriptaCopyUtils {
                             ArchivioDoc newArchivioDoc = new ArchivioDoc(archivio, docDestinazione, persona);
                             archivioDocRepository.save(newArchivioDoc);
                         } else {
-                            archiviIter.add(scriptaArchiviUtils.getNomeArchivioPerVisualizzazioneDiSicurezzaClassifica(archivio));
+                            archiviIter.add(scriptaArchiviUtils.getNomeCompletoArchivioPerVisualizzazioneDiSicurezzaClassica(archivio));
                         }
                     } else {
-                        archiviChiusi.add(scriptaArchiviUtils.getNomeArchivioPerVisualizzazioneDiSicurezzaClassifica(archivio));
+                        archiviChiusi.add(scriptaArchiviUtils.getNomeCompletoArchivioPerVisualizzazioneDiSicurezzaClassica(archivio));
                     }
                 } else {
-                    archiviSenzaPermesso.add(scriptaArchiviUtils.getNomeArchivioPerVisualizzazioneDiSicurezzaClassifica(archivio));
+                    archiviSenzaPermesso.add(scriptaArchiviUtils.getNomeCompletoArchivioPerVisualizzazioneDiSicurezzaClassica(archivio));
                 }
             }
         }

@@ -95,8 +95,11 @@ public class DocDetailInterceptorUtils {
                 && !fnPienaVisibilita.apply(doc, persona)) {
             
             doc.setFirmatari(null);
-            doc.setFascicolazioni(null);
-            doc.setFascicolazioniTscol(null);
+//            doc.setFascicolazioni(null);
+//            doc.setFascicolazioniTscol(null);
+//            doc.setIdArchivi(null);
+//            doc.setIdArchiviAntenati(null);
+            doc.setArchiviDocList(null);
             doc.setTscol(null);
             
             if (doc.getRiservato()) {

@@ -1,13 +1,12 @@
 package it.bologna.ausl.model.entities.scripta.projections;
 
-import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaArchiviUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetailInterface;
-import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
-import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.Related;
-import it.bologna.ausl.model.entities.scripta.projections.generated.ArchivioDocWithIdArchivioAndIdPersonaArchiviazione;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +33,10 @@ public class ScriptaProjectionUtils {
     
     @Autowired
     protected ProjectionFactory projectionFactory;
+    
+    @Autowired
+    private ScriptaArchiviUtils scriptaArchiviUtils;
+    
 
     public List<CustomRelatedWithSpedizioneList> filterRelatedWithSpedizioneList(List<Related> related, String tipo) {
         List<CustomRelatedWithSpedizioneList> res = null;
@@ -68,26 +71,12 @@ public class ScriptaProjectionUtils {
     }
     
     /**
-     * A partire da un idDoc, restituisco la lista delle sue archiviazioni
-     * @param idDoc
+     * Restituisco l'oggetto dell'archivio per la visualizzazione generica.
+     * In caso di aziendaparlante l'oggetto è stirnga vuota
+     * Altrimenti è l'oggetto della radice
      * @return 
      */
-    public List<ArchivioDocWithIdArchivioAndIdPersonaArchiviazione> getArchiviDocList(Integer idDoc){
-        List<ArchivioDocWithIdArchivioAndIdPersonaArchiviazione> res = null;
-        BooleanExpression filter = QArchivioDoc.archivioDoc.idDoc.id.eq(idDoc);
-        Iterable<ArchivioDoc> archiviDocIterable = archivioDocRepository.findAll(filter);
-        
-        if (archiviDocIterable != null) {
-            List<ArchivioDoc> archiviDoc = new ArrayList<>();
-            archiviDocIterable.forEach(archiviDoc::add);
-            
-            if (archiviDoc != null && !archiviDoc.isEmpty()) {
-                res = archiviDoc.stream().map(archivioDoc -> {
-                    return projectionFactory.createProjection(ArchivioDocWithIdArchivioAndIdPersonaArchiviazione.class, archivioDoc);                
-                }).collect(Collectors.toList());
-            }
-        }
-        
-        return res;
+    public String getOggettoArchivioPerVisualizzazioneDiSicurezzaClassica(Archivio archivio){
+        return scriptaArchiviUtils.getOggettoArchivioPerVisualizzazioneDiSicurezzaClassica(archivio);
     }
 }
