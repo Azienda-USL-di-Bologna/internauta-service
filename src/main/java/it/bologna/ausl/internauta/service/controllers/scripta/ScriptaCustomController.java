@@ -184,7 +184,7 @@ public class ScriptaCustomController {
     private RegistroDocRepository registroDocRepository;
     
     @Autowired
-    PersonaRepository personaRepository;
+    private PersonaRepository personaRepository;
 
     @Autowired
     private PecRepository pecRepository;
@@ -202,7 +202,7 @@ public class ScriptaCustomController {
     private ParametriAziendeReader parametriAziende;
     
     @Autowired
-    UserInfoService userInfoService;
+    private UserInfoService userInfoService;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
@@ -842,21 +842,31 @@ public class ScriptaCustomController {
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> uploadDocument(
             HttpServletRequest request,
-            @RequestPart("files") MultipartFile[] files,
+            @RequestPart("documents") MultipartFile[] files,
             @RequestParam("idArchivio") int idArchivio
     ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
+        
         projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
         Archivio archivio = archivioRepository.findById(idArchivio).get();
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         
-//        List<Doc> docCaricati = new ArrayList();
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.MODIFICA)) {
+            throw new Http403ResponseException("3", "Utente senza permesso di modificare l'archivio");
+        }
+        
+        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+
         try {
             for (MultipartFile file : files) {
                 Doc doc = new  Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
                 doc = docRepository.save(doc);
-//                docCaricati.add(doc);
                 scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename(), true);
+
+                //archvivio il document
+                ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
+                ArchivioDoc save = archivioDocRepository.save(archiviazione);
+                
             }
         } catch (Exception e) {
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
@@ -866,7 +876,7 @@ public class ScriptaCustomController {
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        
+        //
         return ResponseEntity.status(HttpStatus.OK).build();
     }
     
