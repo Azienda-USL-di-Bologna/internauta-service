@@ -63,6 +63,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
@@ -176,6 +177,9 @@ public class ScriptaCustomController {
     
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
+    
+    @Autowired
+    private ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
     @Autowired
     private DocDetailRepository docDetailRepository;
@@ -224,9 +228,6 @@ public class ScriptaCustomController {
 
     @Autowired
     private ObjectMapper objectMapper;
-    
-    @Autowired
-    private ScrivaniaBaseController scrivaniaBaseController;
 
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
@@ -866,7 +867,7 @@ public class ScriptaCustomController {
                 //archvivio il document
                 ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
-                
+                archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
             }
         } catch (Exception e) {
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
@@ -969,6 +970,7 @@ public class ScriptaCustomController {
         // Ora che o il doc lo archivio
         ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
         archivioDocRepository.save(archiviazione);
+        archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
         
         // Ora aggiungo il tag di archiviazione sul message
         AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), persona.getDescrizione());
@@ -994,5 +996,16 @@ public class ScriptaCustomController {
         Doc docOrigine = docRepository.findByIdEsterno(requestData.get("guidDocumentoOrigine"));
         Doc docDestinazione = docRepository.findByIdEsterno(requestData.get("guidDocumentoDestinazione"));
         return new ResponseEntity(scriptaCopyUtils.copiaArchiviazioni(docOrigine, docDestinazione, persona), HttpStatus.OK);
+    }
+    
+    
+    @RequestMapping(value = "aggiungiArchivioRecente", method = RequestMethod.POST)
+    public ResponseEntity<?> aggiungiArchivioRecente(
+            @RequestParam("idArchivioRadice") Integer idArchivioRadice,
+            HttpServletRequest request) throws BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        archivioDiInteresseRepository.aggiungiArchivioRecente(idArchivioRadice, persona.getId());
+        return new ResponseEntity("", HttpStatus.OK);
     }
 }
