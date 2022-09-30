@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.configurazione.Applicazio
 import it.bologna.ausl.internauta.service.repositories.logs.OperazioneKrinRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroRepository;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QAzienda;
@@ -22,11 +23,11 @@ import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
-import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
-import it.bologna.ausl.model.entities.permessi.projections.PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded;
 import it.bologna.ausl.model.entities.scripta.QRegistro;
 import it.bologna.ausl.model.entities.scripta.Registro;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -83,6 +84,9 @@ public class CachedEntities {
 
     @Autowired
     private PredicatoAmbitoRepository predicatoAmbitoRepository;
+    
+    @Autowired
+    private ParametriAziendeReader parametriAziende;
 
     @Cacheable(value = "azienda", key = "{#id}")
     public Azienda getAzienda(Integer id) {
@@ -266,5 +270,10 @@ public class CachedEntities {
         } else {
             return null;
         }
+    }
+    
+    @Cacheable(value = "getParameters", key = "{#nome, #idAzienda}")
+    public List<ParametroAziende> getParameters(String nome, Integer idAzienda) {
+        return parametriAziende.getParameters(nome, new Integer[]{idAzienda});
     }
 }

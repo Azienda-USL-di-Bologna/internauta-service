@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.interceptors.scripta;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -41,6 +42,9 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     PermessoArchivioRepository permessoArchivioRepository;
+    
+    @Autowired
+    ArchivioDiInteresseRepository archivioDiInteresseRepository;
     
     @Override
     public Class getTargetEntityClass() {
@@ -111,5 +115,17 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
         }
         
         return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        Utente user = authenticatedSessionData.getUser();
+        Persona persona = user.getIdPersona();
+        
+        ArchivioDoc archivioDoc = (ArchivioDoc) entity;
+        archivioDiInteresseRepository.aggiungiArchivioRecente(archivioDoc.getIdArchivio().getIdArchivioRadice().getId(), persona.getId());
+        
+        return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
     }
 }
