@@ -95,8 +95,11 @@ public class DocDetailInterceptorUtils {
                 && !fnPienaVisibilita.apply(doc, persona)) {
             
             doc.setFirmatari(null);
-            doc.setFascicolazioni(null);
-            doc.setFascicolazioniTscol(null);
+//            doc.setFascicolazioni(null);
+//            doc.setFascicolazioniTscol(null);
+//            doc.setIdArchivi(null);
+//            doc.setIdArchiviAntenati(null);
+            doc.setArchiviDocList(null);
             doc.setTscol(null);
             
             if (doc.getRiservato()) {
@@ -110,7 +113,7 @@ public class DocDetailInterceptorUtils {
     }
     
     private void buildUrlComplete(DocDetailInterface doc, Persona persona, AuthenticatedSessionData authenticatedSessionData) throws IOException {
-        if (doc.getCommandType() == DocDetail.CommandType.URL) {
+        if (doc.getCommandType() == DocDetail.CommandType.URL && doc.getOpenCommand() != null) {
             doc.setUrlComplete(
                 internautaUtils.getUrl(
                     authenticatedSessionData, 

@@ -17,4 +17,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface DocRepository extends
         NextSdrQueryDslRepository<Doc, Integer, QDoc>,
         JpaRepository<Doc, Integer> {
+    
+    public Doc findByIdEsterno(String idEsterno);
 }
