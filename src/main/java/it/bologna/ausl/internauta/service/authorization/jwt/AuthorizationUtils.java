@@ -12,7 +12,6 @@ import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.SSOException;
 import it.bologna.ausl.internauta.service.utils.CacheUtilities;
-import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.CounterRepository;
 import it.bologna.ausl.internauta.service.repositories.tools.UserAccessRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -69,37 +68,34 @@ public class AuthorizationUtils {
     private final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
 
     @Value("${internauta.mode}")
-    String serviceMode;
+    private String serviceMode;
 
     @Autowired
-    UserAccessRepository userAccessRepository;
+    private UserAccessRepository userAccessRepository;
 
     @Autowired
-    UtenteRepository utenteRepository;
+    private UserInfoService userInfoService;
 
     @Autowired
-    UserInfoService userInfoService;
+    private CachedEntities cachedEntities;
 
     @Autowired
-    CachedEntities cachedEntities;
-
-    @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     @Value("${jwt.expires-seconds}")
     private Integer tokenExpireSeconds;
 
     @Autowired
-    CounterRepository counterRepository;
+    private CounterRepository counterRepository;
 
     @Autowired
-    ProjectionFactory factory;
+    private ProjectionFactory factory;
 
     @Autowired
-    HttpSessionData httpSessionData;
+    private HttpSessionData httpSessionData;
 
     @Autowired
-    CacheUtilities cacheUtilities;
+    private CacheUtilities cacheUtilities;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizationUtils.class);
 

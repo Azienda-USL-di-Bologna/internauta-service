@@ -355,7 +355,7 @@ public class IntimusUtils {
                     Struttura struttura = strutturaRepository.findById(idStruttura).get();
 //                    Struttura struttura = em.find(Struttura.class, idStruttura);
                     for (UtenteStruttura utenteStruttura: struttura.getUtenteStrutturaList()) {
-                        Integer idPersona = cachedEntities.getPersonaFromIdUtente(utenteStruttura.getIdUtente().getId()).getId();
+                        Integer idPersona = userInfoService.getPersonaFromIdUtente(utenteStruttura.getIdUtente().getId()).getId();
                         // Integer[] idAziende = new Integer[] {cachedEntities.getAziendaFromIdUtente(utenteStruttura.getIdUtente().getId()).getId()};
                         DestObject destObject = new DestObject(idPersona, null, apps, true);
                         addDestIfNotExist(dests, destObject);
