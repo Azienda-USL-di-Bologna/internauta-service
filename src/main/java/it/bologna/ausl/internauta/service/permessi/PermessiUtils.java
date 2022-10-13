@@ -15,6 +15,7 @@ import javax.persistence.Table;
 import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
@@ -33,8 +34,11 @@ public class PermessiUtils {
     @PersistenceContext
     private EntityManager entityManager;
     
+//    @Autowired
+//    private PermessiUtils permessiUtils;
+    
     @Autowired
-    private PermessiUtils permessiUtils;
+    private BeanFactory beanFactory;
     
     /**
      * Preparo una mappa con la lista della classi delle entità
@@ -79,6 +83,7 @@ public class PermessiUtils {
      * @return 
      */
     private List<PermessoEntitaStoredProcedure> setDescriptions(List<PermessoEntitaStoredProcedure> oggettonePermessiList, String entitaCoinvolta, String additionalDataParamSoggetto, String additionalDataParamOggetto) {
+        PermessiUtils permessiUtils = beanFactory.getBean(PermessiUtils.class);
         for (PermessoEntitaStoredProcedure oggettonePermessi : oggettonePermessiList) {
             if (entitaCoinvolta.equals("soggetto") || entitaCoinvolta.equals("soggetto_oggetto")) {
                 EntitaStoredProcedure soggetto = oggettonePermessi.getSoggetto();

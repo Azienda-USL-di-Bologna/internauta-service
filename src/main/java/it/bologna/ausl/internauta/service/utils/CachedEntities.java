@@ -2,8 +2,6 @@ package it.bologna.ausl.internauta.service.utils;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
-import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.RuoloRepository;
@@ -11,7 +9,6 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.OperazioneKrinRepository;
-import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -23,8 +20,6 @@ import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
-import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
-import it.bologna.ausl.model.entities.permessi.projections.PredicatiAmbitiWithPredicatoAndPredicatiAmbitiImplicitiExpanded;
 import it.bologna.ausl.model.entities.scripta.QRegistro;
 import it.bologna.ausl.model.entities.scripta.Registro;
 import java.util.Optional;
@@ -77,12 +72,6 @@ public class CachedEntities {
 
     @Autowired
     private UtenteRepository utenteRepository;
-
-    @Autowired
-    private UserInfoService userInfoService;
-
-    @Autowired
-    private PredicatoAmbitoRepository predicatoAmbitoRepository;
 
     @Cacheable(value = "azienda", key = "{#id}")
     public Azienda getAzienda(Integer id) {
@@ -185,19 +174,7 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "personaFromUtente__ribaltorg__", key = "{#utente.getId()}")
-    public Persona getPersonaFromUtente(Utente utente) throws BlackBoxPermissionException {
-        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
-        Persona persona = getPersona(refreshedUtente.getIdPersona().getId());
-//        Optional<Persona> personaOp = personaRepository.findById(utente.getIdPersona().getId());
-        if (persona != null) {
-//            persona.setApplicazione(utente.getIdPersona().getApplicazione());
-            persona.setPermessiPec(userInfoService.getPermessiPec(utente));
-            return persona;
-        } else {
-            return null;
-        }
-    }
+
 
     @Cacheable(value = "persona__ribaltorg__", key = "{#id}")
     public Persona getPersona(Integer id) {
@@ -222,10 +199,7 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "personaFromIdUtente__ribaltorg__", key = "{#idUtente}")
-    public Persona getPersonaFromIdUtente(Integer idUtente) throws BlackBoxPermissionException {
-        return getPersonaFromUtente(getUtente(idUtente));
-    }
+
 
     @Cacheable(value = "utente__ribaltorg__", key = "{#id}")
     public Utente getUtente(Integer id) {
