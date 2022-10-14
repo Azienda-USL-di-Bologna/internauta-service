@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service;
 
+import it.bologna.ausl.internauta.service.masterjobs.MasterjobdsThreadsManager;
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import it.bologna.ausl.internauta.service.schedulers.LogoutManager;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
@@ -37,19 +38,25 @@ public class InternautaApplication {
     private static final Logger log = LoggerFactory.getLogger(InternautaApplication.class);
 
     @Autowired
-    MessageSenderManager messageSenderManager;
+    private MessageSenderManager messageSenderManager;
     
     @Autowired
-    FascicolatoreOutboxGediLocaleManager fascicolatoreOutboxGediLocaleManager;
+    private FascicolatoreOutboxGediLocaleManager fascicolatoreOutboxGediLocaleManager;
 
     @Autowired
-    LogoutManager logoutManager;
+    private LogoutManager logoutManager;
 
     @Autowired
-    ShutdownThread shutdownThread;
+    private ShutdownThread shutdownThread;
+
+    @Autowired
+    private MasterjobdsThreadsManager masterjobdsThreadsManager;
 
     @Value("${internauta.scheduled-thread-pool-executor.active}")
-    Boolean poolExecutorActive;
+    private Boolean poolExecutorActive;
+    
+    @Value("${masterjobs.active}")
+    private Boolean masterjobsActive;
 
     public static void main(String[] args) {
 //        System.setProperty("user.timezone", "Europe/Rome");
@@ -92,6 +99,9 @@ public class InternautaApplication {
                 log.info("impostazione ShutdownHook terminata con successo.");
             } else {
                 log.info("scheduled-thread-pool-executor not active");
+            }
+            if (masterjobsActive) {
+                masterjobdsThreadsManager.scheduleThreads();
             }
         };
     }

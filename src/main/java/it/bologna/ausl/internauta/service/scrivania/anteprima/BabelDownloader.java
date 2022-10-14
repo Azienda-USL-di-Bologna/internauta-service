@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.scrivania.anteprima;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.TokenBasedAuthentication;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
@@ -38,6 +39,9 @@ public class BabelDownloader {
     @Autowired
     private CachedEntities cachedEntities;
     
+    @Autowired
+    private UserInfoService userInfoService;
+    
     @Value("${babelsuite.webapi.babeldownloader.url}")
     private String babelDownloaderUrl;
 
@@ -66,7 +70,7 @@ public class BabelDownloader {
     
     public BabelDownloaderRequestBody createRquestBody(String guid, String tipologia) throws BlackBoxPermissionException {
         Utente loggedUser = getLoggedUser();
-        Persona persona = cachedEntities.getPersonaFromUtente(loggedUser);
+        Persona persona = userInfoService.getPersonaFromUtente(loggedUser);
         return new BabelDownloaderRequestBody(guid, BabelDownloaderRequestBody.Tipologia.valueOf(tipologia), persona.getCodiceFiscale());
     }
     

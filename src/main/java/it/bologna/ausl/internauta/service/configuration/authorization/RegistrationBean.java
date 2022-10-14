@@ -33,7 +33,7 @@ public class RegistrationBean {
     private String secretKey;
 
     @Autowired
-    AuthorizationUtils authorizationUtils;
+    private AuthorizationUtils authorizationUtils;
 
     @Bean
     public FilterRegistrationBean jwtFilter() throws CertificateException, IOException {
