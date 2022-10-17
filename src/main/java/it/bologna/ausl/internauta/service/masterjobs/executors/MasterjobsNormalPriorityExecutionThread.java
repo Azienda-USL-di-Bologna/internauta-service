@@ -21,7 +21,7 @@ public class MasterjobsNormalPriorityExecutionThread extends MasterjobsExecution
     private static final Logger log = LoggerFactory.getLogger(MasterjobsNormalPriorityExecutionThread.class);
 
     @Override
-    protected String getName() {
+    public String getExecutorName() {
         return "NormalPriorityExecutor";
     }
     

@@ -11,6 +11,7 @@ import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.masterjobs.Job;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
@@ -93,6 +94,10 @@ private static final Logger log = LoggerFactory.getLogger(MasterjobsQueuer.class
             log.error(errorMessage, ex);
             throw new MasterjobsQueuingException(errorMessage, ex);
         }
+    }
+    
+    public void queue(Worker worker, String objectId, String objectType, String appId, Boolean waitForObject, Set.SetPriority priority) throws MasterjobsQueuingException {
+        queue(Arrays.asList(worker), objectId, objectType, appId, waitForObject, priority);
     }
     
     /**

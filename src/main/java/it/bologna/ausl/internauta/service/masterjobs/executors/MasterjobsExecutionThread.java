@@ -149,31 +149,53 @@ public abstract class MasterjobsExecutionThread implements Runnable, MasterjobsE
         return this;
     }
     
+    /**
+     * da implementare con l'esecuzione dei job vera e propria
+     * @throws MasterjobsInterruptException 
+     */
     public abstract void runExecutor() throws MasterjobsInterruptException;
     
-        
-//    @PostConstruct
-    protected void init() {
-//        redisTemplate.opsForHash().put(activeThreadsSetName, getName(), log);
+    /**
+     * inserisce il riferimento del thread nella mappa dei threads attivi
+     */
+    protected void insertInActiveThreadsSet() {
+        redisTemplate.opsForHash().put(activeThreadsSetName, String.valueOf(Thread.currentThread().getId()), getUniqueName());
+    }
+    
+    /**
+     * rimuove il riferimento del thread nella mappa dei threads attivi
+     */
+    protected void removeFromActiveThreadsSet() {
+        redisTemplate.opsForHash().delete(activeThreadsSetName, String.valueOf(Thread.currentThread().getId()));
     }
     
     @Override
     @Transactional
     public void run() {
-        init();
-        try {
-            log.info(String.format("executor %s started", getName()));
-            self.buildWorkQueue();
-            this.runExecutor();
-        }  catch (MasterjobsInterruptException ex) {
-            if (ex.getInterruptType() == MasterjobsInterruptException.InterruptType.STOP){
-                return;
+        while (!stopped && !paused) {
+            insertInActiveThreadsSet();
+            try {
+                log.info(String.format("executor %s started", getUniqueName()));
+                self.buildWorkQueue();
+                this.runExecutor();
+            } catch (MasterjobsInterruptException ex) {
+                if (ex.getInterruptType() == MasterjobsInterruptException.InterruptType.PAUSE) {
+                    removeFromActiveThreadsSet();
+                    while (paused) {
+                        try {
+                            Thread.sleep(5000);
+                            checkStop();
+                        } catch (InterruptedException | MasterjobsInterruptException subEx) {
+                        }
+                    }
+                }
+            } catch (Throwable ex) {
+                log.error("fatal error", ex);
+                // TODO: vedere cosa fare
             }
-        } catch (Throwable ex) {
-            log.error("fatal error", ex);
-            // TODO: vedere cosa fare
         }
-        log.info(String.format("executor %s ended", getName()));
+        removeFromActiveThreadsSet();
+        log.info(String.format("executor %s ended", getUniqueName()));
     }
     
     public void stop() {
@@ -188,11 +210,14 @@ public abstract class MasterjobsExecutionThread implements Runnable, MasterjobsE
         this.paused= false;
     }
     
-    protected abstract String getName();
+    protected abstract String getExecutorName();
+    
+    protected String getUniqueName() {
+        return getExecutorName() + "_" + Thread.currentThread().getName();
+    }
     
     protected void buildWorkQueue() {
-        String threadName = getName() + "_" + Thread.currentThread().getName();
-        this.workQueue = this.workQueue.replace("[thread_name]", threadName);
+        this.workQueue = this.workQueue.replace("[thread_name]", getUniqueName());
     }
     
     protected void checkStop() throws MasterjobsInterruptException {
@@ -208,7 +233,6 @@ public abstract class MasterjobsExecutionThread implements Runnable, MasterjobsE
             }
             throw new MasterjobsInterruptException(MasterjobsInterruptException.InterruptType.PAUSE);
         }
-            
     }
     
     public void manageQueue(Set.SetPriority priority) throws MasterjobsReadQueueTimeout, MasterjobsExecutionThreadsException, MasterjobsInterruptException {

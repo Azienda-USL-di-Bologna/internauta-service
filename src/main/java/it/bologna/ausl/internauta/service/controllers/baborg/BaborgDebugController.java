@@ -65,7 +65,10 @@ import org.hibernate.ReplicationMode;
 import org.hibernate.Session;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.projection.ProjectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.Propagation;
@@ -125,6 +128,13 @@ public class BaborgDebugController {
     @Autowired
     MasterjobsObjectsFactory masterjobsObjectsFactory;
 
+    @Autowired
+    @Qualifier(value = "redisMaterjobs")
+    protected RedisTemplate redisTemplate;
+    
+    @Value("${masterjobs.manager.redis-active-threads-set-name}")
+    private String activeThreadsSetName;
+    
     @RequestMapping(value = "ping", method = RequestMethod.GET)
     public String ping() {
         return "pong";
@@ -248,33 +258,19 @@ public class BaborgDebugController {
     @RequestMapping(value = "test3", method = RequestMethod.GET)
     @Transactional(rollbackFor = Throwable.class)
     public void test3(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException {
-        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-        try {
-            transactionTemplate.execute(action -> {
-                ObjectStatus o1 = new ObjectStatus();
-                o1.setObjectId("1");
-                o1.setState(ObjectStatus.ObjectState.IDLE);
-                entityManager.persist(o1);
-                ObjectStatus o2 = new ObjectStatus();
-                o2.setObjectId("1");
-                o2.setState(ObjectStatus.ObjectState.IDLE);
-                entityManager.persist(o2);
-                return o1;
-            });
-        } catch (Throwable transactionException) {
-            transactionException.printStackTrace();
+        Map entries = redisTemplate.opsForHash().entries(activeThreadsSetName);
+        for (Thread t : Thread.getAllStackTraces().keySet()) {
+            if (entries.containsKey(String.valueOf(t.getId()))) {
+                String tName = (String) entries.get(t.getId());
+                
+            }
         }
-        ObjectStatus o3 = new ObjectStatus();
-        o3.setObjectId("3");
-        o3.setState(ObjectStatus.ObjectState.IDLE);
-        entityManager.persist(o3);
-        
     }
     
     @RequestMapping(value = "test4", method = RequestMethod.GET)
     @Transactional(rollbackFor = Throwable.class)
     public void test4(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException {
-        MasterjobsQueuer bean = beanFactory.getBean(MasterjobsQueuer.class);
+        MasterjobsQueuer mjQueuer = beanFactory.getBean(MasterjobsQueuer.class);
 
         FooWorker worker1 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(1, "p1", false), false);
         FooWorker worker2 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(2, "p2", false), false);
@@ -288,35 +284,35 @@ public class BaborgDebugController {
         FooWorker worker0 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(0, "p3", false), false);
         Applicazione applicazione = cachedEntities.getApplicazione("procton");
         boolean wait = true;
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker4, worker5, worker6), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGH);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker4, worker5, worker6), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGH);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker4, worker5, worker6), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGH);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker4, worker5, worker6), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGH);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
     }
     
     private void test() {

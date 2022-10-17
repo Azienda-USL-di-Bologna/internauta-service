@@ -13,7 +13,6 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.data.redis.connection.RedisListCommands;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
@@ -25,7 +24,7 @@ public class MasterjobsWaitQueueExecutionThread extends MasterjobsExecutionThrea
     private static final Logger log = LoggerFactory.getLogger(MasterjobsWaitQueueExecutionThread.class);
 
     @Override
-    protected String getName() {
+    public String getExecutorName() {
         return "WaitQueueManager";
     }
     
