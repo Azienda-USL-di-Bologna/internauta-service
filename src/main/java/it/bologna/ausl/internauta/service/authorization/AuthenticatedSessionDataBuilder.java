@@ -21,17 +21,17 @@ public class AuthenticatedSessionDataBuilder {
     protected final ThreadLocal<TokenBasedAuthentication> threadLocalAuthentication = new ThreadLocal();
 
     @Autowired
-    private CachedEntities cachedEntities;
+    private UserInfoService userInfoService;
     
     public AuthenticatedSessionData getAuthenticatedUserProperties() throws BlackBoxPermissionException {
         setAuthentication();
         Utente user = (Utente) threadLocalAuthentication.get().getPrincipal();
         Utente realUser = (Utente) threadLocalAuthentication.get().getRealUser();
         int idSessionLog = threadLocalAuthentication.get().getIdSessionLog();
-        Persona person = cachedEntities.getPersonaFromUtente(user);
+        Persona person = userInfoService.getPersonaFromUtente(user);
         Persona realPerson = null;
         if (realUser != null) {
-            realPerson = cachedEntities.getPersonaFromUtente(realUser);
+            realPerson = userInfoService.getPersonaFromUtente(realUser);
         }
         Applicazione.Applicazioni applicazione =  threadLocalAuthentication.get().getApplicazione();
         String token =  threadLocalAuthentication.get().getToken();

@@ -55,16 +55,15 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.sql2o.Connection;
 import org.sql2o.Sql2o;
-import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgAzienda;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
-import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.stream.Stream;
 import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgUtenteStruttura;
+import org.springframework.beans.factory.BeanFactory;
 
 /**
  * Service per la creazione dell'oggetto UserInfoOld TODO: descrivere la
@@ -74,51 +73,54 @@ import it.bologna.ausl.model.entities.logs.projections.KrintBaborgUtenteStruttur
 public class UserInfoService {
 
     @Autowired
-    AziendaRepository aziendaRepository;
+    private AziendaRepository aziendaRepository;
 
     @Autowired
-    PersonaRepository personaRepository;
+    private PersonaRepository personaRepository;
 
     @Autowired
-    UtenteRepository utenteRepository;
+    private UtenteRepository utenteRepository;
 
     @Autowired
-    StrutturaRepository strutturaRepository;
+    private StrutturaRepository strutturaRepository;
 
     @Autowired
-    UtenteStrutturaRepository utenteStrutturaRepository;
+    private UtenteStrutturaRepository utenteStrutturaRepository;
 
     @Autowired
-    RuoloRepository ruoloRepository;
+    private RuoloRepository ruoloRepository;
 
     @Autowired
-    ProjectionFactory factory;
+    private ProjectionFactory factory;
 
     @Autowired
-    PermissionManager permissionManager;
+    private PermissionManager permissionManager;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     @Autowired
-    CachedEntities cachedEntities;
+    private CachedEntities cachedEntities;
 
     @Autowired
-    PostgresConnectionManager postgresConnectionManager;
+    private PostgresConnectionManager postgresConnectionManager;
 
     @Autowired
-    ParametriAziendeReader parametriAziende;
+    private ParametriAziendeReader parametriAziende;
     
     @Autowired
     private PermessiUtils permessiUtils;
 
     /**
-     * E' necessario mettere in autowired la stessa UserInfoService per poter
-     * usare le funzioni cacheable. Se una funzione cacheable non viene chiamata
-     * così: userInfoService.nomeFunzione() non verrà usata come cacheable
+     * E' necessario  per poter usare le funzioni cacheable. 
+     * Se una funzione cacheable non viene chiamata così dal bean ottenuto con questa funzione
+     * non verrà usata come cacheable
      */
     @Autowired
-    UserInfoService userInfoService;
+    private BeanFactory beanFactory;
+    private UserInfoService getUserInfoServiceBean() {
+        return this.beanFactory.getBean(UserInfoService.class);
+    }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserInfoService.class);
 
@@ -545,7 +547,7 @@ public class UserInfoService {
     }
 
     public List<Integer> getIdAziendaListDovePersonaHaRuolo(Persona persona, CodiciRuolo nomeBreveRuolo) {
-        Map<String, Map<String, List<String>>> ruoliUtentiPersona = userInfoService.getRuoliUtentiPersona(persona, true);
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = getUserInfoServiceBean().getRuoliUtentiPersona(persona, true);
         if (ruoliUtentiPersona.containsKey(nomeBreveRuolo.toString())) {
             Map<String, List<String>> listaModuliDelRuolo = ruoliUtentiPersona.get(nomeBreveRuolo.toString());
             if (listaModuliDelRuolo.containsKey(Ruolo.ModuliRuolo.GENERALE.toString())) {
@@ -845,7 +847,7 @@ public class UserInfoService {
      */
 //    @Cacheable(value = "getPermessiDiFlussoByIdUtente__ribaltorg__", key = "{#utente.getId()}")
     public List<Permesso> getPermessiDiFlussoByIdUtente(Utente utente) throws BlackBoxPermissionException {
-        return userInfoService.getPermessiDiFlussoByIdUtente(utente, null, null, null);
+        return getUserInfoServiceBean().getPermessiDiFlussoByIdUtente(utente, null, null, null);
     }
 
     @Cacheable(value = "getPermessiDiFlussoByIdUtente__ribaltorg__", key = "{#utente.getId(), #dataPermesso != null? #dataPermesso.toLocalDate().toEpochDay(): 'null', #estraiStorico, #idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null'}")
@@ -982,6 +984,25 @@ public class UserInfoService {
 
     }
 
+    @Cacheable(value = "personaFromUtente__ribaltorg__", key = "{#utente.getId()}")
+    public Persona getPersonaFromUtente(Utente utente) throws BlackBoxPermissionException {
+        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
+        Persona persona = cachedEntities.getPersona(refreshedUtente.getIdPersona().getId());
+//        Optional<Persona> personaOp = personaRepository.findById(utente.getIdPersona().getId());
+        if (persona != null) {
+//            persona.setApplicazione(utente.getIdPersona().getApplicazione());
+            persona.setPermessiPec(getUserInfoServiceBean().getPermessiPec(utente));
+            return persona;
+        } else {
+            return null;
+        }
+    }
+    
+    @Cacheable(value = "personaFromIdUtente__ribaltorg__", key = "{#idUtente}")
+    public Persona getPersonaFromIdUtente(Integer idUtente) throws BlackBoxPermissionException {
+        return getPersonaFromUtente(cachedEntities.getUtente(idUtente));
+    }
+    
     public Map<Integer, List<String>> getPermessiPec(Utente utente) throws BlackBoxPermissionException {
         return getPermessiPec(utente.getIdPersona());
     }
@@ -1174,6 +1195,7 @@ public class UserInfoService {
         // TODO: da implementare
         Map<String, Object> result = new HashMap<>();
 
+        UserInfoService userInfoService = getUserInfoServiceBean();
         // permessi PEC. Chiave: l'id della casella, valore: la lista di permessi per quella casella
         result.put(InternautaConstants.Krint.PermessiKey.permessiPec.toString(), userInfoService.getPermessiPec(persona));
         result.put(InternautaConstants.Krint.PermessiKey.permessiFlusso.toString(), userInfoService.getPredicatiDiFlussoByCodiceAzienda(persona));
@@ -1244,7 +1266,7 @@ public class UserInfoService {
 
     public List<Integer> getIdStruttureConPermessoSegreteriaByPersona(Persona persona) throws BlackBoxPermissionException {
         List<Integer> idStruttureConPermessoSegreteria = new ArrayList<>();
-        Map<String, List<PermessoEntitaStoredProcedure>> permessiDiFlussoByPersona = userInfoService.getPermessiDiFlussoByPersona(persona);
+        Map<String, List<PermessoEntitaStoredProcedure>> permessiDiFlussoByPersona = getUserInfoServiceBean().getPermessiDiFlussoByPersona(persona);
         for (Map.Entry<String, List<PermessoEntitaStoredProcedure>> entry : permessiDiFlussoByPersona.entrySet()) {
             String key = entry.getKey();
             System.out.println(key);

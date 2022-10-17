@@ -10,6 +10,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Persona; 
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.scripta.DocDetail;
 import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
 import it.bologna.ausl.model.entities.scripta.views.QDocDetailView;
 import it.nextsw.common.annotations.NextSdrInterceptor;
@@ -176,6 +177,12 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
             filter = qdocdetailview.idAzienda.id.in(listaIdAziendaUtenteAttivo)
                     .and(qdocdetailview.idAziendaDoc.id.in(listaIdAziendaUtenteAttivo)); // Filtro 2
             filter = filter.and(filtroOsservatore.or(filtroStandard));
+            
+            if(!userInfoService.isCA(user) && !userInfoService.isCI(user) ) {
+                filter = qdocdetailview.tipologia.ne(
+                    DocDetail.TipologiaDoc.DOCUMENT_REGISTRO.toString()
+                ).and(filter);
+            }
         }
 
         return filter;

@@ -78,12 +78,6 @@ public class CachedEntities {
 
     @Autowired
     private UtenteRepository utenteRepository;
-
-    @Autowired
-    private UserInfoService userInfoService;
-
-    @Autowired
-    private PredicatoAmbitoRepository predicatoAmbitoRepository;
     
     @Autowired
     private ParametriAziendeReader parametriAziende;
@@ -189,20 +183,6 @@ public class CachedEntities {
         }
     }
 
-    @Cacheable(value = "personaFromUtente__ribaltorg__", key = "{#utente.getId()}")
-    public Persona getPersonaFromUtente(Utente utente) throws BlackBoxPermissionException {
-        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
-        Persona persona = getPersona(refreshedUtente.getIdPersona().getId());
-//        Optional<Persona> personaOp = personaRepository.findById(utente.getIdPersona().getId());
-        if (persona != null) {
-//            persona.setApplicazione(utente.getIdPersona().getApplicazione());
-            persona.setPermessiPec(userInfoService.getPermessiPec(utente));
-            return persona;
-        } else {
-            return null;
-        }
-    }
-
     @Cacheable(value = "persona__ribaltorg__", key = "{#id}")
     public Persona getPersona(Integer id) {
         Optional<Persona> persona = personaRepository.findById(id);
@@ -224,11 +204,6 @@ public class CachedEntities {
         } else {
             return null;
         }
-    }
-
-    @Cacheable(value = "personaFromIdUtente__ribaltorg__", key = "{#idUtente}")
-    public Persona getPersonaFromIdUtente(Integer idUtente) throws BlackBoxPermissionException {
-        return getPersonaFromUtente(getUtente(idUtente));
     }
 
     @Cacheable(value = "utente__ribaltorg__", key = "{#id}")

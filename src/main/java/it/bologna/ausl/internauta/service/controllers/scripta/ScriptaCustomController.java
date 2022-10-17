@@ -857,11 +857,12 @@ public class ScriptaCustomController {
         }
         
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-
+        List<Integer> idDocList = new ArrayList();
         try {
             for (MultipartFile file : files) {
                 Doc doc = new  Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
                 doc = docRepository.save(doc);
+                idDocList.add(doc.getId());
                 scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename(), true);
 
                 //archvivio il document
@@ -877,8 +878,8 @@ public class ScriptaCustomController {
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        //
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return new ResponseEntity(idDocList, HttpStatus.OK);
+        //return ResponseEntity.status(HttpStatus.OK).build();
     }
     
 
