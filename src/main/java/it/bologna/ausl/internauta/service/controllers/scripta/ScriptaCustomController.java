@@ -55,7 +55,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
-import it.bologna.ausl.internauta.service.controllers.scrivania.ScrivaniaBaseController;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
@@ -132,7 +131,7 @@ public class ScriptaCustomController {
     private static final Logger LOG = LoggerFactory.getLogger(ScriptaCustomController.class);
 
 //    private MinIOWrapperFileInfo savedFileOnRepository = null;
-    private List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
+    private final List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
 //    private List<Allegato> savedFilesOnInternauta = new ArrayList();
 
     @Autowired
@@ -155,25 +154,12 @@ public class ScriptaCustomController {
     
     @Autowired
     private ScriptaCopyUtils scriptaCopyUtils;
-    
-
-//    @Autowired
-//    private ArchivioDetailRepository archivioDetailRepository;
 
     @Autowired
     private NonCachedEntities nonCachedEntities;
-
-//    @Autowired
-//    private PostgresConnectionManager postgresConnectionManager;
-//
-//    @Autowired
-//    private UtenteRepository utenteRepository;
-
+    
     @Autowired
     private DocRepository docRepository;
-
-//    @Autowired
-//    private PersonaRepository personaRepository;
     
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
@@ -231,9 +217,6 @@ public class ScriptaCustomController {
 
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
-    
-    @Autowired
-    private ApplicazioneRepository applicazioneRepository;
 
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
@@ -306,43 +289,76 @@ public class ScriptaCustomController {
      * @param request
      * @throws IOException
      * @throws MinIOWrapperException
-     *
+     * @throws it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
+     * @throws it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException
      */
-    @RequestMapping(value = "allegato/{idAllegato}/{tipoDettaglioAllegato}/download", method = RequestMethod.GET)
-    public void downloadAttachment(
-            @PathVariable(required = true) Integer idAllegato,
-            @PathVariable(required = true) Allegato.DettagliAllegato.TipoDettaglioAllegato tipoDettaglioAllegato,
-            HttpServletResponse response,
-            HttpServletRequest request
-    ) throws IOException, MinIOWrapperException, Http500ResponseException {
-        LOG.info("downloadAllegato", idAllegato, tipoDettaglioAllegato);
-//        TipoDettaglioAllegato tipoDettaglioAllegatoEnum = TipoDettaglioAllegato.valueOf(tipoDettaglioAllegato);
-        //TODO si deve instanziare il rest controller engine e poi devi prendere il dettaglio (aggiungere interceptor per vedere se l'utente puo scaricare il file)
-        Allegato allegato = allegatoRepository.getById(idAllegato);
-        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        if (allegato != null) {
-            Allegato.DettagliAllegato dettagli = allegato.getDettagli();
-            Allegato.DettaglioAllegato dettaglioAllegato;
-            try {
-                dettaglioAllegato = dettagli.getDettaglioAllegato(tipoDettaglioAllegato);
-            } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-                LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
-                throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
-            }
-
-            if (dettaglioAllegato == null) {
-                LOG.info("il dettaglio allegato richiesto non è stato tovato");
-                throw new Http500ResponseException("2", "il dettaglio allegato richiesto non è stato tovato");
-            }
-
-            StreamUtils.copy(minIOWrapper.getByFileId(dettaglioAllegato.getIdRepository()), response.getOutputStream());
-        }
-        response.flushBuffer();
-    }
+//    @RequestMapping(value = "allegato/{idAllegato}/{tipoDettaglioAllegato}/download", method = RequestMethod.GET)
+//    public void downloadAttachment(
+//            @PathVariable(required = true) Integer idAllegato,
+//            @PathVariable(required = true) Allegato.DettagliAllegato.TipoDettaglioAllegato tipoDettaglioAllegato,
+//            HttpServletResponse response,
+//            HttpServletRequest request
+//    ) throws IOException, MinIOWrapperException, Http500ResponseException, Http404ResponseException {
+//        LOG.info("downloadAllegato", idAllegato, tipoDettaglioAllegato);
+//        Allegato allegato = allegatoRepository.getById(idAllegato);
+//        if (allegato != null) {
+//            
+//            // TODO: L'utente ha diritto di vedere l'allegato in questione?
+//            
+//            
+//            Allegato.DettagliAllegato dettagli = allegato.getDettagli();
+//            Allegato.DettaglioAllegato dettaglioAllegato;
+//            
+//            try {
+//                dettaglioAllegato = dettagli.getDettaglioAllegato(tipoDettaglioAllegato);
+//            } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+//                LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
+//                throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
+//            }
+//
+//            if (dettaglioAllegato == null) {
+//                if (tipoDettaglioAllegato.equals(Allegato.DettagliAllegato.TipoDettaglioAllegato.CONVERTITO)) {
+//                    // File mai convertito, lo converto e lo scarico
+//                    InputStream file = downloadOriginaleAndConvertToPdf(allegato, null);
+//                    StreamUtils.copy(file, response.getOutputStream());
+//                } else {
+//                    throw new Http404ResponseException("4", "Dettaglio allegato richiesto non tovato. Sembra non essere mai esistito");
+//                }
+//            } else {
+//                String idRepository = dettaglioAllegato.getIdRepository();
+//                MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+//                InputStream file = minIOWrapper.getByFileId(idRepository);
+//                
+//                if (file == null) {
+//                    switch (tipoDettaglioAllegato) {
+//                        case CONVERTITO:
+//                            // File convertito ma scaduto, lo converto e lo scarico
+//                            file = downloadOriginaleAndConvertToPdf(allegato, idRepository);
+//                            StreamUtils.copy(file, response.getOutputStream());
+//                            break;
+//                        case ORIGINALE:
+//                            // File scaduto, lo riestraggo e lo scarico
+//                            file = downloadAttachment(allegato);
+//                            StreamUtils.copy(file, response.getOutputStream());
+//                            break;
+//                        default:
+//                            // Il file riciesto non è ne l'orginale ne il convertito. E' impossibile dunque recuperarlo.
+//                            throw new Http404ResponseException("3", "Dettaglio allegato richiesto non tovato");
+//                    }
+//                } else {
+//                    StreamUtils.copy(file, response.getOutputStream());
+//                }
+//                    
+//            }
+//        } else {
+//            throw new Http404ResponseException("2", "Allegato richiesto non tovato");
+//        }
+//        response.flushBuffer();
+//    }
 
     /**
      * Effettua l'upload sul client dello stream dello zip contenente gli
-     * allegati del doc richiesto
+     * allegati originale del doc richiesto
      *
      * @param idDoc
      * @param response
