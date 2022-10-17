@@ -114,6 +114,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                             List<Integer> idAziendaOSoMOS = Stream.concat(codiceAziendaListDoveSonoOS.stream(), codiceAziendaListDoveSonoMOS.stream()).collect(Collectors.toList());
                             initialPredicate = qdoclist.idAzienda.id.in(idAziendaOSoMOS).and(initialPredicate);
                         }
+                        
                         initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
                         break;
                     case FilterForArchiviContent:
@@ -145,15 +146,19 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                     String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idArchivi, ","), "integer[]", "&&"),
                     qdoclist.idArchivi
             );  
+                        
                         initialPredicate =  archivioFilter.and(initialPredicate);
+                        
                         break;
 
                 }
+                
             }
         }
         
         if(addSafetyFilters){
             initialPredicate = safetyFilters().and(initialPredicate);
+            
         }
         
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass);
@@ -218,8 +223,8 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
         BooleanExpression filter = Expressions.TRUE.eq(true);
 
         if (!userInfoService.isSD(user)) { // Filtro 1
-            String[] visLimFields = {"firmatari", "fascicolazioni", "fascicolazioniTscol", "tscol"};
-            String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "fascicolazioni", "fascicolazioniTscol"};
+            String[] visLimFields = {"firmatari", "idArchivi", "tscol"};
+            String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "idArchivi"};
             List<Integer> listaIdAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getId()).collect(Collectors.toList());
             List<Integer> listaIdAziendaOsservatore = userInfoService.getListaIdAziendaOsservatore(persona);
             Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
@@ -280,7 +285,14 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
 
             filter = qdoclist.idAzienda.id.in(listaIdAziendaUtenteAttivo); // Filtro 2
             filter = filter.and(filtroOsservatore.or(filtroStandard));
+            
+            if(!userInfoService.isCA(user) && !userInfoService.isCI(user) ) {
+                filter = qdoclist.tipologia.ne(
+                    DocDetail.TipologiaDoc.DOCUMENT_REGISTRO.toString()
+                ).and(filter);
+            }
         }
+            
 
         return filter;
     }

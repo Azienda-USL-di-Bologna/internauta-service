@@ -63,6 +63,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
@@ -176,6 +177,9 @@ public class ScriptaCustomController {
     
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
+    
+    @Autowired
+    private ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
     @Autowired
     private DocDetailRepository docDetailRepository;
@@ -184,7 +188,7 @@ public class ScriptaCustomController {
     private RegistroDocRepository registroDocRepository;
     
     @Autowired
-    PersonaRepository personaRepository;
+    private PersonaRepository personaRepository;
 
     @Autowired
     private PecRepository pecRepository;
@@ -202,7 +206,7 @@ public class ScriptaCustomController {
     private ParametriAziendeReader parametriAziende;
     
     @Autowired
-    UserInfoService userInfoService;
+    private UserInfoService userInfoService;
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
@@ -224,9 +228,6 @@ public class ScriptaCustomController {
 
     @Autowired
     private ObjectMapper objectMapper;
-    
-    @Autowired
-    private ScrivaniaBaseController scrivaniaBaseController;
 
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
@@ -842,21 +843,32 @@ public class ScriptaCustomController {
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> uploadDocument(
             HttpServletRequest request,
-            @RequestPart("files") MultipartFile[] files,
+            @RequestPart("documents") MultipartFile[] files,
             @RequestParam("idArchivio") int idArchivio
     ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
+        
         projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
         Archivio archivio = archivioRepository.findById(idArchivio).get();
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         
-//        List<Doc> docCaricati = new ArrayList();
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.MODIFICA)) {
+            throw new Http403ResponseException("3", "Utente senza permesso di modificare l'archivio");
+        }
+        
+        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+        List<Integer> idDocList = new ArrayList();
         try {
             for (MultipartFile file : files) {
                 Doc doc = new  Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
                 doc = docRepository.save(doc);
-//                docCaricati.add(doc);
+                idDocList.add(doc.getId());
                 scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename(), true);
+
+                //archvivio il document
+                ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
+                ArchivioDoc save = archivioDocRepository.save(archiviazione);
+                archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
             }
         } catch (Exception e) {
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
@@ -866,8 +878,8 @@ public class ScriptaCustomController {
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return new ResponseEntity(idDocList, HttpStatus.OK);
+        //return ResponseEntity.status(HttpStatus.OK).build();
     }
     
 
@@ -959,6 +971,7 @@ public class ScriptaCustomController {
         // Ora che o il doc lo archivio
         ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
         archivioDocRepository.save(archiviazione);
+        archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
         
         // Ora aggiungo il tag di archiviazione sul message
         AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), persona.getDescrizione());
@@ -980,8 +993,20 @@ public class ScriptaCustomController {
             @RequestBody Map<String, String> requestData
     ) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Doc docOrigine = docRepository.findByIdEsterno(requestData.get("guidDocumentoOrigine"));
         Doc docDestinazione = docRepository.findByIdEsterno(requestData.get("guidDocumentoDestinazione"));
-        return new ResponseEntity(scriptaCopyUtils.copiaArchiviazioni(docOrigine, docDestinazione, authenticatedUserProperties.getPerson()), HttpStatus.OK);
+        return new ResponseEntity(scriptaCopyUtils.copiaArchiviazioni(docOrigine, docDestinazione, persona), HttpStatus.OK);
+    }
+    
+    
+    @RequestMapping(value = "aggiungiArchivioRecente", method = RequestMethod.POST)
+    public ResponseEntity<?> aggiungiArchivioRecente(
+            @RequestParam("idArchivioRadice") Integer idArchivioRadice,
+            HttpServletRequest request) throws BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        archivioDiInteresseRepository.aggiungiArchivioRecente(idArchivioRadice, persona.getId());
+        return new ResponseEntity("", HttpStatus.OK);
     }
 }

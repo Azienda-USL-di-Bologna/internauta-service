@@ -7,6 +7,7 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
@@ -17,4 +18,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ArchivioDiInteresseRepository extends
         NextSdrQueryDslRepository<ArchivioDiInteresse, Integer, QArchivioDiInteresse>,
         JpaRepository<ArchivioDiInteresse, Integer> {
+    
+    @Query(value = "select scripta.aggiungi_archivio_recente(?1, ?2)", nativeQuery = true)
+    public void aggiungiArchivioRecente(
+        Integer idArchivio,
+        Integer idPersona
+    );
 }

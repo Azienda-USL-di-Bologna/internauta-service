@@ -7,6 +7,7 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,11 +31,12 @@ public class ScriptaCopyUtils {
     @Autowired
     private ArchivioDocRepository archivioDocRepository;
     
-    public Map<String, String> copiaArchiviazioni(Doc docOrgine, Doc docDestinazione, Persona persona) {
-        
+    public Map<String, List<String>> copiaArchiviazioni(Doc docOrgine, Doc docDestinazione, Persona persona) {
         List<ArchivioDoc> archiviazioniOrigine = docOrgine.getArchiviDocList();
-        Map<String, String> infoArchiviNonCopiati = new HashMap();
-        
+        Map<String, List<String>> infoArchiviNonCopiati = new HashMap();
+        List<String> archiviChiusi = new ArrayList();
+        List<String> archiviIter = new ArrayList();
+        List<String> archiviSenzaPermesso = new ArrayList();
         for (ArchivioDoc archiviazioneOrgine : archiviazioniOrigine) {
             Archivio archivio = archiviazioneOrgine.getIdArchivio();
             // Se è eliminata faccio finta che non ci sia, non deve essere informato l'utente
@@ -46,16 +48,19 @@ public class ScriptaCopyUtils {
                             ArchivioDoc newArchivioDoc = new ArchivioDoc(archivio, docDestinazione, persona);
                             archivioDocRepository.save(newArchivioDoc);
                         } else {
-                            infoArchiviNonCopiati.put(MotivazioneEsclusione.ARCHIVI_ITER.toString(), scriptaArchiviUtils.getNomeArchivioPerVisualizzazioneDiSicurezzaClassifica(archivio));
+                            archiviIter.add(scriptaArchiviUtils.getNomeCompletoArchivioPerVisualizzazioneDiSicurezzaClassica(archivio));
                         }
                     } else {
-                        infoArchiviNonCopiati.put(MotivazioneEsclusione.ARCHIVI_CHIUSI.toString(), scriptaArchiviUtils.getNomeArchivioPerVisualizzazioneDiSicurezzaClassifica(archivio));
+                        archiviChiusi.add(scriptaArchiviUtils.getNomeCompletoArchivioPerVisualizzazioneDiSicurezzaClassica(archivio));
                     }
                 } else {
-                    infoArchiviNonCopiati.put(MotivazioneEsclusione.SENZA_PERMESSO.toString(), scriptaArchiviUtils.getNomeArchivioPerVisualizzazioneDiSicurezzaClassifica(archivio));
+                    archiviSenzaPermesso.add(scriptaArchiviUtils.getNomeCompletoArchivioPerVisualizzazioneDiSicurezzaClassica(archivio));
                 }
             }
         }
+        infoArchiviNonCopiati.put(MotivazioneEsclusione.ARCHIVI_ITER.toString(), archiviIter);
+        infoArchiviNonCopiati.put(MotivazioneEsclusione.ARCHIVI_CHIUSI.toString(), archiviChiusi);
+        infoArchiviNonCopiati.put(MotivazioneEsclusione.SENZA_PERMESSO.toString(), archiviSenzaPermesso);
         return infoArchiviNonCopiati;
     }
 }

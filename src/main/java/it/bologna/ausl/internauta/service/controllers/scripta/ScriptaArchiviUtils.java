@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.scripta.Archivio;
@@ -24,7 +25,11 @@ public class ScriptaArchiviUtils {
     private PermessoArchivioRepository permessoArchivioRepository;
     
     @Autowired
+    private CachedEntities cachedEntities;
+    
+    @Autowired
     private ParametriAziendeReader parametriAziende;
+    
     
     /**
      * Restituisce true se la persona ha ALMENO il permesso sull'archivio
@@ -40,13 +45,23 @@ public class ScriptaArchiviUtils {
     }
     
     /**
-     * Torna il nome dell'archivio così composto: [numerazione gerarchica] oggetto dell'archivio radice.
-     * In caso di azienda con facicoliParlanti il nome sarà solo: [numerazione gerarchica]
+     * Torna il nome dell'archivio così composto: [numerazione gerarchica] oggetto dell'archivio radice.In caso di azienda con facicoliParlanti il nome sarà solo: [numerazione gerarchica]
+     * @param archivio
+     * @return 
      */
-    public String getNomeArchivioPerVisualizzazioneDiSicurezzaClassifica(Archivio archivio) {
-        List<ParametroAziende> fascicoliParlanti = parametriAziende.getParameters("fascicoliParlanti", new Integer[]{archivio.getIdAzienda().getId()});
+    public String getNomeCompletoArchivioPerVisualizzazioneDiSicurezzaClassica(Archivio archivio) {
+        return "[" + archivio.getNumerazioneGerarchica() + "] " + getOggettoArchivioPerVisualizzazioneDiSicurezzaClassica(archivio);
+    }
+    
+    /**
+     * Torna l'oggetto dell'archivio radice. Torna solo null se azienda con fascioli parlanti
+     * @param archivio
+     * @return 
+     */
+    public String getOggettoArchivioPerVisualizzazioneDiSicurezzaClassica(Archivio archivio) {
+        List<ParametroAziende> fascicoliParlanti = cachedEntities.getParameters("fascicoliParlanti", archivio.getIdAzienda().getId());
         if (fascicoliParlanti != null && !fascicoliParlanti.isEmpty() && parametriAziende.getValue(fascicoliParlanti.get(0), Boolean.class)) {
-            return "[" + archivio.getNumerazioneGerarchica() + "]";
+            return "";
         } else {
             Archivio archivioRadice = null;
             if (archivio.getLivello().equals(1)) {
@@ -54,7 +69,7 @@ public class ScriptaArchiviUtils {
             } else {
                 archivioRadice = archivio.getIdArchivioRadice();
             }
-            return "[" + archivio.getNumerazioneGerarchica() + "] " + archivioRadice.getOggetto();
+            return archivioRadice.getOggetto();
         }
     }
 }
