@@ -1,11 +1,15 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+import it.bologna.ausl.internauta.service.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsQueuingException;
+import it.bologna.ausl.internauta.service.masterjobs.workers.MasterjobsQueuer;
+import it.bologna.ausl.internauta.service.masterjobs.workers.calcoloPermessiArchivio.CalcoloPermessiArchivioWorker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.calcoloPermessiArchivio.CalcoloPermessiArchivioWorkerData;
 import it.bologna.ausl.internauta.service.repositories.scripta.MassimarioRepository;
-import it.bologna.ausl.model.entities.baborg.PecAzienda;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.Archivio;
-import it.bologna.ausl.model.entities.scripta.Massimario;
 import it.bologna.ausl.model.entities.scripta.Titolo;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
@@ -31,10 +35,13 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArchivioInterceptor.class);
     
     @Autowired
-    private ArchivioRepository archivioRepository;
+    private MassimarioRepository massimarioRepository;
     
     @Autowired
-    private MassimarioRepository massimarioRepository;
+    private MasterjobsQueuer mjQueuer;
+
+    @Autowired
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
     
     @Override
     public Class getTargetEntityClass() {
@@ -49,8 +56,15 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         if (archivio.getIdArchivioRadice() != null){
             idArchivio=archivio.getIdArchivioRadice().getId();
         }
-        archivioRepository.calcolaPermessiEspliciti(idArchivio);
-        return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+        //archivioRepository.calcolaPermessiEspliciti(idArchivio);
+        Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+        CalcoloPermessiArchivioWorker worker = masterjobsObjectsFactory.getWorker(CalcoloPermessiArchivioWorker.class, new CalcoloPermessiArchivioWorkerData(idArchivio), false);
+        try {
+            mjQueuer.queue(worker,idArchivio.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
+        } catch (MasterjobsQueuingException ex) {
+            return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
+        }
+        return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
 
     @Override

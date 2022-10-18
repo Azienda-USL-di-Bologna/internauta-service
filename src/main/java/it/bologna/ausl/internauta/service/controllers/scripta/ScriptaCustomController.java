@@ -55,9 +55,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
-import it.bologna.ausl.internauta.service.controllers.scrivania.ScrivaniaBaseController;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
+import it.bologna.ausl.internauta.service.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsQueuingException;
+import it.bologna.ausl.internauta.service.masterjobs.workers.MasterjobsQueuer;
+import it.bologna.ausl.internauta.service.masterjobs.workers.calcoloPermessiArchivio.CalcoloPermessiArchivioWorker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.calcoloPermessiArchivio.CalcoloPermessiArchivioWorkerData;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -106,6 +110,7 @@ import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRep
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageDocRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
+import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
@@ -155,25 +160,12 @@ public class ScriptaCustomController {
     
     @Autowired
     private ScriptaCopyUtils scriptaCopyUtils;
-    
-
-//    @Autowired
-//    private ArchivioDetailRepository archivioDetailRepository;
 
     @Autowired
     private NonCachedEntities nonCachedEntities;
 
-//    @Autowired
-//    private PostgresConnectionManager postgresConnectionManager;
-//
-//    @Autowired
-//    private UtenteRepository utenteRepository;
-
     @Autowired
     private DocRepository docRepository;
-
-//    @Autowired
-//    private PersonaRepository personaRepository;
     
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
@@ -231,9 +223,7 @@ public class ScriptaCustomController {
 
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
-    
-    @Autowired
-    private ApplicazioneRepository applicazioneRepository;
+
 
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
@@ -244,6 +234,12 @@ public class ScriptaCustomController {
     @Value("${babelsuite.webapi.eliminapropostadaedi.method}")
     private String eliminaPropostaDaEdiMethod;
 
+    @Autowired
+    private MasterjobsQueuer mjQueuer;
+
+    @Autowired
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
+    
     private static final Logger log = LoggerFactory.getLogger(ScriptaCustomController.class);
 
     /**
@@ -795,14 +791,17 @@ public class ScriptaCustomController {
      * @param idArchivioRadice
      * @param request
      * @return 
+     * @throws it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsQueuingException 
      */
     @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
     public ResponseEntity<?> calcolaPermessiEspliciti(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
-            HttpServletRequest request) {
+            HttpServletRequest request) throws MasterjobsQueuingException {
         
-        archivioRepository.calcolaPermessiEspliciti(idArchivioRadice);
-        
+        Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+        //archivioRepository.calcolaPermessiEspliciti(idArchivioRadice);
+        CalcoloPermessiArchivioWorker worker = masterjobsObjectsFactory.getWorker(CalcoloPermessiArchivioWorker.class, new CalcoloPermessiArchivioWorkerData(idArchivioRadice), false);
+        mjQueuer.queue(worker,idArchivioRadice.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
         return new ResponseEntity("", HttpStatus.OK);
     }
     

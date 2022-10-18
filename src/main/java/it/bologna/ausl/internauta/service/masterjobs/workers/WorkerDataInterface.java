@@ -10,7 +10,7 @@ import java.util.Map;
  *
  * @author gdm
  */
-public interface WorkerDataInterface {
+public interface WorkerDataInterface {    
     public static <T extends WorkerDataInterface> T parseFromJobData(ObjectMapper objectMapper, Map<String, Object> jobData) throws MasterjobsParsingException {
         if (jobData != null) {
             String className = (String) jobData.get(getClassNameKey());
@@ -28,5 +28,5 @@ public interface WorkerDataInterface {
     
     public default Map<String, Object> toJobData(ObjectMapper objectMapper) {
         return objectMapper.convertValue(this, new TypeReference<Map<String, Object>>(){});
-    }
+    } 
 }
