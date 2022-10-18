@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package it.bologna.ausl.internauta.service.masterjobs.workers.calcoloPermessiArchivio;
+package it.bologna.ausl.internauta.service.masterjobs.workers.calcolopermessiarchivio;
 
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.service.masterjobs.workers.Worker;

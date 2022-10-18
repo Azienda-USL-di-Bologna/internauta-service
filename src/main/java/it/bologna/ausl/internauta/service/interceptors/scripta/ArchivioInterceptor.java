@@ -4,8 +4,8 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.service.masterjobs.workers.MasterjobsQueuer;
-import it.bologna.ausl.internauta.service.masterjobs.workers.calcoloPermessiArchivio.CalcoloPermessiArchivioWorker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.calcoloPermessiArchivio.CalcoloPermessiArchivioWorkerData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.calcolopermessiarchivio.CalcoloPermessiArchivioWorker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.calcolopermessiarchivio.CalcoloPermessiArchivioWorkerData;
 import it.bologna.ausl.internauta.service.repositories.scripta.MassimarioRepository;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.masterjobs.Set;
@@ -17,7 +17,6 @@ import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
