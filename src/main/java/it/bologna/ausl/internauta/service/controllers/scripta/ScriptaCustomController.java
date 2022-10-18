@@ -292,69 +292,69 @@ public class ScriptaCustomController {
      * @throws it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
      * @throws it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException
      */
-//    @RequestMapping(value = "allegato/{idAllegato}/{tipoDettaglioAllegato}/download", method = RequestMethod.GET)
-//    public void downloadAttachment(
-//            @PathVariable(required = true) Integer idAllegato,
-//            @PathVariable(required = true) Allegato.DettagliAllegato.TipoDettaglioAllegato tipoDettaglioAllegato,
-//            HttpServletResponse response,
-//            HttpServletRequest request
-//    ) throws IOException, MinIOWrapperException, Http500ResponseException, Http404ResponseException {
-//        LOG.info("downloadAllegato", idAllegato, tipoDettaglioAllegato);
-//        Allegato allegato = allegatoRepository.getById(idAllegato);
-//        if (allegato != null) {
-//            
-//            // TODO: L'utente ha diritto di vedere l'allegato in questione?
-//            
-//            
-//            Allegato.DettagliAllegato dettagli = allegato.getDettagli();
-//            Allegato.DettaglioAllegato dettaglioAllegato;
-//            
-//            try {
-//                dettaglioAllegato = dettagli.getDettaglioAllegato(tipoDettaglioAllegato);
-//            } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-//                LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
-//                throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
-//            }
-//
-//            if (dettaglioAllegato == null) {
-//                if (tipoDettaglioAllegato.equals(Allegato.DettagliAllegato.TipoDettaglioAllegato.CONVERTITO)) {
-//                    // File mai convertito, lo converto e lo scarico
-//                    InputStream file = downloadOriginaleAndConvertToPdf(allegato, null);
-//                    StreamUtils.copy(file, response.getOutputStream());
-//                } else {
-//                    throw new Http404ResponseException("4", "Dettaglio allegato richiesto non tovato. Sembra non essere mai esistito");
-//                }
-//            } else {
-//                String idRepository = dettaglioAllegato.getIdRepository();
-//                MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-//                InputStream file = minIOWrapper.getByFileId(idRepository);
-//                
-//                if (file == null) {
-//                    switch (tipoDettaglioAllegato) {
-//                        case CONVERTITO:
-//                            // File convertito ma scaduto, lo converto e lo scarico
-//                            file = downloadOriginaleAndConvertToPdf(allegato, idRepository);
-//                            StreamUtils.copy(file, response.getOutputStream());
-//                            break;
-//                        case ORIGINALE:
-//                            // File scaduto, lo riestraggo e lo scarico
-//                            file = downloadAttachment(allegato);
-//                            StreamUtils.copy(file, response.getOutputStream());
-//                            break;
-//                        default:
-//                            // Il file riciesto non è ne l'orginale ne il convertito. E' impossibile dunque recuperarlo.
-//                            throw new Http404ResponseException("3", "Dettaglio allegato richiesto non tovato");
-//                    }
-//                } else {
-//                    StreamUtils.copy(file, response.getOutputStream());
-//                }
-//                    
-//            }
-//        } else {
-//            throw new Http404ResponseException("2", "Allegato richiesto non tovato");
-//        }
-//        response.flushBuffer();
-//    }
+    @RequestMapping(value = "allegato/{idAllegato}/{tipoDettaglioAllegato}/download", method = RequestMethod.GET)
+    public void downloadAttachment(
+            @PathVariable(required = true) Integer idAllegato,
+            @PathVariable(required = true) Allegato.DettagliAllegato.TipoDettaglioAllegato tipoDettaglioAllegato,
+            HttpServletResponse response,
+            HttpServletRequest request
+    ) throws IOException, MinIOWrapperException, Http500ResponseException, Http404ResponseException {
+        LOG.info("downloadAllegato", idAllegato, tipoDettaglioAllegato);
+        Allegato allegato = allegatoRepository.getById(idAllegato);
+        if (allegato != null) {
+            
+            // TODO: L'utente ha diritto di vedere l'allegato in questione?
+            
+            
+            Allegato.DettagliAllegato dettagli = allegato.getDettagli();
+            Allegato.DettaglioAllegato dettaglioAllegato;
+            
+            try {
+                dettaglioAllegato = dettagli.getDettaglioAllegato(tipoDettaglioAllegato);
+            } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+                LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
+                throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
+            }
+
+            if (dettaglioAllegato == null) {
+                if (tipoDettaglioAllegato.equals(Allegato.DettagliAllegato.TipoDettaglioAllegato.CONVERTITO)) {
+                    // File mai convertito, lo converto e lo scarico
+                    InputStream file = downloadOriginalAndConvertToPdf(allegato, null);
+                    StreamUtils.copy(file, response.getOutputStream());
+                } else {
+                    throw new Http404ResponseException("4", "Dettaglio allegato richiesto non tovato. Sembra non essere mai esistito");
+                }
+            } else {
+                String idRepository = dettaglioAllegato.getIdRepository();
+                MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+                InputStream file = minIOWrapper.getByFileId(idRepository);
+                
+                if (file == null) {
+                    switch (tipoDettaglioAllegato) {
+                        case CONVERTITO:
+                            // File convertito ma scaduto, lo converto e lo scarico
+                            file = downloadOriginalAndConvertToPdf(allegato, idRepository);
+                            StreamUtils.copy(file, response.getOutputStream());
+                            break;
+                        case ORIGINALE:
+                            // File scaduto, lo riestraggo e lo scarico
+                            file = downloadOriginalAttachment(allegato);
+                            StreamUtils.copy(file, response.getOutputStream());
+                            break;
+                        default:
+                            // Il file riciesto non è ne l'orginale ne il convertito. E' impossibile dunque recuperarlo.
+                            throw new Http404ResponseException("3", "Dettaglio allegato richiesto non tovato");
+                    }
+                } else {
+                    StreamUtils.copy(file, response.getOutputStream());
+                }
+                    
+            }
+        } else {
+            throw new Http404ResponseException("2", "Allegato richiesto non tovato");
+        }
+        response.flushBuffer();
+    }
 
     /**
      * Effettua l'upload sul client dello stream dello zip contenente gli
