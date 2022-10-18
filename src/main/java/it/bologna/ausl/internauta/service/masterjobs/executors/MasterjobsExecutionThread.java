@@ -252,7 +252,8 @@ public abstract class MasterjobsExecutionThread implements Runnable, MasterjobsE
     
 //    @Transactional
     public void readFromQueueAndManageJobs(String queue) throws MasterjobsReadQueueTimeout, MasterjobsExecutionThreadsException {
-        String queueDataString = (String) redisTemplate.opsForList().move(queue, RedisListCommands.Direction.LEFT, 
+        String queueDataString = (String) redisTemplate.opsForList().move(
+            queue, RedisListCommands.Direction.LEFT, 
             this.workQueue, RedisListCommands.Direction.RIGHT, 
             this.queueReadTimeoutMillis, TimeUnit.MILLISECONDS);
         //log.info(String.format("readed: %s", queueDataString));
@@ -306,6 +307,10 @@ public abstract class MasterjobsExecutionThread implements Runnable, MasterjobsE
                     * se il set ha il wait, vuol dire che avrò la riga in object_status, per cui la setto in errore,
                     * poi setto in errore anche il job
                     */
+                    if (objectStatus != null) {
+                        objectStatus.setState(ObjectStatus.ObjectState.ERROR);
+                    }
+                    
                     if (set != null && set.getWaitObject()) {
                         self.setInError(null, objectStatus);
                     }
@@ -336,10 +341,10 @@ public abstract class MasterjobsExecutionThread implements Runnable, MasterjobsE
             for (Long jobId : queueData.getJobs()) {
                 Job job = this.getJob(jobId);
                 if (job != null) {
-                    Map<String, Object> data = job.getData();
-                    WorkerDataInterface workerData = WorkerDataInterface.parseFromJobData(objectMapper, data);
-                    Worker worker = masterjobsObjectsFactory.getWorker(job.getName(), workerData, job.getDeferred());
                     try {
+                        Map<String, Object> data = job.getData();
+                        WorkerDataInterface workerData = WorkerDataInterface.parseFromJobData(objectMapper, data);
+                        Worker worker = masterjobsObjectsFactory.getWorker(job.getName(), workerData, job.getDeferred());
                         WorkerResult res = worker.doWork();
                         self.deleteJob(job);
                         jobsCompleted.add(job.getId());
