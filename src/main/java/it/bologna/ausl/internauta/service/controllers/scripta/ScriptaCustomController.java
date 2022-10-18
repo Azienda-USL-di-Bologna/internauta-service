@@ -60,8 +60,8 @@ import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseExcepti
 import it.bologna.ausl.internauta.service.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.service.masterjobs.workers.MasterjobsQueuer;
-import it.bologna.ausl.internauta.service.masterjobs.workers.calcoloPermessiArchivio.CalcoloPermessiArchivioWorker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.calcoloPermessiArchivio.CalcoloPermessiArchivioWorkerData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.calcolopermessiarchivio.CalcoloPermessiArchivioWorker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.calcolopermessiarchivio.CalcoloPermessiArchivioWorkerData;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;

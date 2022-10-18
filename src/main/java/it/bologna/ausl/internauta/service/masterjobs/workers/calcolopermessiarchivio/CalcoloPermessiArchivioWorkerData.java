@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.masterjobs.workers.calcoloPermessiArchivio;
+package it.bologna.ausl.internauta.service.masterjobs.workers.calcolopermessiarchivio;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerData;
