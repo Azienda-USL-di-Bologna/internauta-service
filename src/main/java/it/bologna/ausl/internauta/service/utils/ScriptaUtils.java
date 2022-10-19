@@ -80,7 +80,7 @@ public class ScriptaUtils {
     
     public List<Allegato> creaAndAllegaAllegati(Doc doc, InputStream allegatoInputStream, String fileName, boolean fileEstrattiSuTemp) 
             throws MinIOWrapperException, IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
-        return creaAndAllegaAllegati(doc, allegatoInputStream, fileName, fileEstrattiSuTemp, false, null, false);
+        return creaAndAllegaAllegati(doc, allegatoInputStream, fileName, fileEstrattiSuTemp, false, null, false, null);
     }
     
     /**
@@ -125,7 +125,7 @@ public class ScriptaUtils {
             CharSequence sostituto = "\\" + separatoreDiSiStema;
             fileName = fileName.replace(daRimpiazzare, sostituto);
 
-            File tmp = File.createTempFile("Allegato_", FilenameUtils.getExtension(fileName)); 
+            File tmp = File.createTempFile("Allegato_", FilenameUtils.getExtension(fileName));  //TODO: Chiedi a gdm, va bene che qui mette solo l'estensione? a me pare strano
             FileUtils.copyInputStreamToFile(allegatoInputStream, tmp);
 
             ArrayList<ExtractorResult> extractionResultAll = FileUtilities.estraiTuttoDalFile(folderToSave, tmp, fileName);

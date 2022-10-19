@@ -1,24 +1,43 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
+import it.bologna.ausl.internauta.service.configuration.utils.HttpClientManager;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.Http501ResponseException;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
+import it.bologna.ausl.model.entities.baborg.projections.azienda.AziendaProjectionUtils;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
-import java.io.File;
+import it.bologna.ausl.model.entities.tools.SupportedFile;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.apache.commons.io.IOUtils;
+import org.apache.tika.mime.MimeTypeException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -38,7 +57,22 @@ public class ScriptaDownloadUtils {
     private ScriptaUtils scriptaUtils;
     
     @Autowired
-    AllegatoRepository allegatoRepository;
+    private AllegatoRepository allegatoRepository;
+    
+    @Autowired
+    private HttpClientManager httpClientManager;
+    
+    @Autowired
+    private CachedEntities cachedEntities;
+    
+    @Value("${firmasemplice.pdf-convert.url}")
+    private String pdfConvertUrl;
+    
+    @Autowired
+    private AziendaProjectionUtils aziendaProjectionUtils;
+    
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
     
     /**
      * Torna in inputStream l'allegato richiesto nel suo dettaglio orginale. 
@@ -97,8 +131,16 @@ public class ScriptaDownloadUtils {
         return null;
     }
     
-    
-    private InputStream convertToPdf(Allegato allegato, InputStream fileToConvert, String idRepositoryScadutoDelConvertito) throws MinIOWrapperException {
+    /**
+     * 
+     * @param allegato
+     * @param fileToConvert
+     * @param idRepositoryScadutoDelConvertito
+     * @return
+     * @throws MinIOWrapperException 
+     */
+    private InputStream convertToPdf(Allegato allegato, InputStream fileToConvert, String idRepositoryScadutoDelConvertito) 
+            throws MinIOWrapperException, IOException, UnsupportedEncodingException, MimeTypeException, Http500ResponseException, BlackBoxPermissionException, Http501ResponseException {
         // Eseguo la select for update
         Allegato allegatoForUpdate = selectForUpdateAllegato(allegato);
         
@@ -107,17 +149,41 @@ public class ScriptaDownloadUtils {
         Allegato.DettagliAllegato dettagliForUpdate = allegatoForUpdate.getDettagli();
         Allegato.DettaglioAllegato convertitoForUpdate = dettagliForUpdate.getConvertito();
         
-        if (convertitoForUpdate != null && !convertitoForUpdate.getIdRepository().equals(idRepositoryScadutoPdf)) {
+        if (convertitoForUpdate != null && !convertitoForUpdate.getIdRepository().equals(idRepositoryScadutoDelConvertito)) {
             MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
             return minIOWrapper.getByFileId(convertitoForUpdate.getIdRepository());
         }
         
         // Il convertito nuovo non c'è già. sta a me crearlo e aggiornare i dati dell'allegato
         // Devo intanto vedere se il file è convertibile
-        
-        File tmp = File.createTempFile("AllegatoToConvert_", FilenameUtils.getExtension(allegato.getNome())); 
-        FileUtils.copyInputStreamToFile(fileToConvert, tmp);
-        FilenameUtils.getExtension(fileNameWithExtension)
+        if (isConvertibile(fileToConvert)) {
+            // Costruisco la chiamata per convertire il file es url: https://babel.ausl.bologna.it/firmasemplice/PdfConvert
+            AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+            String baseUrl = aziendaProjectionUtils.getBaseUrl(authenticatedSessionData.getUser().getIdAzienda());
+            String urlFirmaSemplicePdfConvert = baseUrl + pdfConvertUrl;  // TODO: chiedere a gdm, Va bene fatto così?
+            
+            OkHttpClient httpClient = httpClientManager.getHttpClient(Duration.ofMinutes(10));
+            String mimeType = FileUtilities.getMimeTypeFromInputStream(fileToConvert);
+            
+            // TODO: chiedere a gdm, Va bene fatto così?
+            okhttp3.RequestBody requestBody = new MultipartBody.Builder()
+                        .addFormDataPart("file", allegato.getNome(), okhttp3.RequestBody.create(MediaType.parse(mimeType), IOUtils.toByteArray(fileToConvert)))
+                        .build();
+            
+            Response response = httpClient.newCall(
+                    new Request.Builder()
+                        .url(urlFirmaSemplicePdfConvert)
+                        .post(requestBody).build()).execute();
+            
+            if (response.isSuccessful() && response.body() != null) {
+                return response.body().byteStream();
+            } else {
+                throw new Http500ResponseException("10", "Errore nella conversione in pdf");
+            }
+        } else {
+            // TODO: Generare segnaposto
+            throw new Http501ResponseException("11", "Generazione segnaposto non implementata");
+        }
     }
     
     /**
@@ -139,7 +205,6 @@ public class ScriptaDownloadUtils {
         }
     }
     
-    
     /**
      * Faccio la select for update di un allegato. In modo da mettermi in coda su di esso.
      * @param allegato
@@ -156,6 +221,25 @@ public class ScriptaDownloadUtils {
             .fetchOne();
         
         return allegatoForUpdate;
+    }
+    
+    /**
+     * Trona true se il file passato come InputStream è convertibile in pdf
+     * @param file
+     * @return
+     * @throws IOException
+     * @throws UnsupportedEncodingException
+     * @throws MimeTypeException 
+     */
+    private boolean isConvertibile(InputStream file) throws IOException, UnsupportedEncodingException, MimeTypeException, Http500ResponseException {
+        String mimeType = FileUtilities.getMimeTypeFromInputStream(file);
+        Map<String, SupportedFile> supportedFiles = cachedEntities.getSupportedFiles();
+        SupportedFile f = supportedFiles.get(mimeType);
+        if (f != null) {
+            return f.getConvertibilePdf();
+        } else {
+            throw new Http500ResponseException("9", "MimeType non previsto");
+        }
     }
     
     /**

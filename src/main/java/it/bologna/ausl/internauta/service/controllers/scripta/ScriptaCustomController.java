@@ -52,6 +52,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
@@ -60,7 +61,6 @@ import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseExcepti
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
@@ -110,6 +110,8 @@ import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
+import it.bologna.ausl.model.entities.scripta.PersonaVedente;
+import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
 import it.bologna.ausl.model.entities.shpeck.MessageInterface;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
@@ -220,7 +222,10 @@ public class ScriptaCustomController {
 
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
-
+    
+    @Autowired
+    ScriptaDownloadUtils scriptaDownloadUtils;
+    
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
 
@@ -292,19 +297,27 @@ public class ScriptaCustomController {
      * @throws it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
      * @throws it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException
      */
+    @Transactional
     @RequestMapping(value = "allegato/{idAllegato}/{tipoDettaglioAllegato}/download", method = RequestMethod.GET)
     public void downloadAttachment(
             @PathVariable(required = true) Integer idAllegato,
             @PathVariable(required = true) Allegato.DettagliAllegato.TipoDettaglioAllegato tipoDettaglioAllegato,
             HttpServletResponse response,
             HttpServletRequest request
-    ) throws IOException, MinIOWrapperException, Http500ResponseException, Http404ResponseException {
+    ) throws IOException, MinIOWrapperException, Http500ResponseException, Http404ResponseException, Throwable {
         LOG.info("downloadAllegato", idAllegato, tipoDettaglioAllegato);
         Allegato allegato = allegatoRepository.getById(idAllegato);
         if (allegato != null) {
             
-            // TODO: L'utente ha diritto di vedere l'allegato in questione?
-            
+            // L'utente ha diritto di vedere l'allegato in questione?
+            AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+            Persona person = authenticatedSessionData.getPerson();
+            QPersonaVedente qPersonaVedente = QPersonaVedente.personaVedente;
+            BooleanExpression filter = qPersonaVedente.idPersona.id.eq(person.getId()).and(qPersonaVedente.pienaVisibilita.eq(Boolean.TRUE).and(qPersonaVedente.idDocDetail.id.eq(allegato.getIdDoc().getId())));
+            Optional<PersonaVedente> personaVedente = personaVedenteRepository.findOne(filter);
+            if (!personaVedente.isPresent()) {
+                throw new Http403ResponseException("0", "L'utente non ha piena visibilità sul documento dell'allegato. Non può quindi vederlo");
+            }
             
             Allegato.DettagliAllegato dettagli = allegato.getDettagli();
             Allegato.DettaglioAllegato dettaglioAllegato;
@@ -319,7 +332,7 @@ public class ScriptaCustomController {
             if (dettaglioAllegato == null) {
                 if (tipoDettaglioAllegato.equals(Allegato.DettagliAllegato.TipoDettaglioAllegato.CONVERTITO)) {
                     // File mai convertito, lo converto e lo scarico
-                    InputStream file = downloadOriginalAndConvertToPdf(allegato, null);
+                    InputStream file = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, null);
                     StreamUtils.copy(file, response.getOutputStream());
                 } else {
                     throw new Http404ResponseException("4", "Dettaglio allegato richiesto non tovato. Sembra non essere mai esistito");
@@ -333,12 +346,12 @@ public class ScriptaCustomController {
                     switch (tipoDettaglioAllegato) {
                         case CONVERTITO:
                             // File convertito ma scaduto, lo converto e lo scarico
-                            file = downloadOriginalAndConvertToPdf(allegato, idRepository);
+                            file = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, idRepository);
                             StreamUtils.copy(file, response.getOutputStream());
                             break;
                         case ORIGINALE:
                             // File scaduto, lo riestraggo e lo scarico
-                            file = downloadOriginalAttachment(allegato);
+                            file = scriptaDownloadUtils.downloadOriginalAttachment(allegato);
                             StreamUtils.copy(file, response.getOutputStream());
                             break;
                         default:
@@ -972,7 +985,7 @@ public class ScriptaCustomController {
             messageDocRepository.save(md);
             
             try {
-                scriptaUtils.creaAndAllegaAllegati(doc, new FileInputStream(downloadEml), "Pec_" + message.getId().toString(), true, true, message.getUuidRepository()); // downloadEml.getName()
+                scriptaUtils.creaAndAllegaAllegati(doc, new FileInputStream(downloadEml), "Pec_" + message.getId().toString(), true, true, message.getUuidRepository(), false, null); // downloadEml.getName()
             } catch (Exception e) {
                 if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
                     for (MinIOWrapperFileInfo minIOWrapperFileInfo : savedFilesOnRepository) {
