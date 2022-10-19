@@ -3,6 +3,7 @@ package it.bologna.ausl.model.entities.baborg.projections.struttura;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaUnificataRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
@@ -49,6 +50,9 @@ public class StrutturaProjectionUtils {
     
     @Autowired
     protected StrutturaUnificataRepository strutturaUnificataRepository;
+    
+    @Autowired
+    protected BaborgUtils baborgUtils;
     
     public List<PermessoEntitaStoredProcedure> getStruttureConnesseAUfficio(Struttura struttura) throws BlackBoxPermissionException {
 
@@ -103,27 +107,7 @@ public class StrutturaProjectionUtils {
      */
     public List<StrutturaUnificataCustom> getFusioni(Struttura struttura) {
         ZonedDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimentoZoned().truncatedTo(ChronoUnit.DAYS);
-        if (dataRiferimento == null) {
-            dataRiferimento = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS);
-        }
-        QStrutturaUnificata qStrutturaUnificata = QStrutturaUnificata.strutturaUnificata;
-        BooleanExpression filtraFusioni = 
-                qStrutturaUnificata.dataAttivazione.loe(dataRiferimento)
-                .and((qStrutturaUnificata.dataDisattivazione.isNull()).or(qStrutturaUnificata.dataDisattivazione.goe(dataRiferimento)))
-                .and(qStrutturaUnificata.dataAccensioneAttivazione.isNotNull())
-                .and(qStrutturaUnificata.tipoOperazione.eq("FUSIONE"))
-                .and(qStrutturaUnificata.idStrutturaSorgente.id.eq(struttura.getId())
-                        .or(qStrutturaUnificata.idStrutturaDestinazione.id.eq(struttura.getId())));
-        Iterable<StrutturaUnificata> fusioniStruttura = strutturaUnificataRepository.findAll(filtraFusioni);
         
-        List<StrutturaUnificataCustom> fusioniStrutturaCustom = new ArrayList();
-        
-        if (fusioniStruttura != null) {
-            for (StrutturaUnificata s : fusioniStruttura) {
-                fusioniStrutturaCustom.add(projectionFactory.createProjection(StrutturaUnificataCustom.class, s));
-            }
-        }
-
-        return fusioniStrutturaCustom;
+        return baborgUtils.getFusioni(struttura, dataRiferimento);
     }
 }
