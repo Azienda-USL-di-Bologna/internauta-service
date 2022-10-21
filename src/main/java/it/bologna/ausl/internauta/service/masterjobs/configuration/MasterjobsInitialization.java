@@ -1,7 +1,9 @@
 package it.bologna.ausl.internauta.service.masterjobs.configuration;
 
+import it.bologna.ausl.internauta.service.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MaterjobsConfigurationException;
 import it.bologna.ausl.internauta.service.masterjobs.workers.Worker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorker;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -33,18 +35,20 @@ public class MasterjobsInitialization {
     public Map<String, Class<? extends Worker>> workerMap() throws MaterjobsConfigurationException {
         Map<String, Class<? extends Worker>> workerMap = new HashMap();
         
-        Set<Class<? extends Worker>> workersSet = new Reflections(Worker.class.getPackage().getName()).getSubTypesOf(Worker.class);
+        Set<Class<?>> workersSet = new Reflections(Worker.class.getPackage().getName()).getTypesAnnotatedWith(MasterjobsWorker.class);
+//        Set<Class<? extends Worker>> workersSet = (Set<Class<? extends Worker>>)typesAnnotatedWith;
         
-        for (Class<? extends Worker> workerClass : workersSet) {
+        for (Class<?> workerClass : workersSet) {
+            Class<? extends Worker> workerClassCasted = (Class<? extends Worker>) workerClass;
             Worker workerInstance;
             try {
-                workerInstance = beanFactory.getBean(workerClass);
+                workerInstance = beanFactory.getBean(workerClassCasted);
             } catch (Exception ex) {
                 String errorMessage = "errore nella creazione della mappa dei worker";
                 log.error("errore nella creazione della mappa dei worker", ex);
                 throw new MaterjobsConfigurationException(errorMessage);
             }
-            workerMap.put(workerInstance.getName(), workerClass);
+            workerMap.put(workerInstance.getName(), workerClassCasted);
         }
         
         return workerMap;

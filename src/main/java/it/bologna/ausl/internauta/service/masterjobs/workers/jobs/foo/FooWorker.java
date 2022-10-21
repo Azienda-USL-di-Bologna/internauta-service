@@ -1,26 +1,20 @@
-package it.bologna.ausl.internauta.service.masterjobs.workers.foo;
+package it.bologna.ausl.internauta.service.masterjobs.workers.jobs.foo;
 
+import it.bologna.ausl.internauta.service.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsWorkerException;
-import it.bologna.ausl.internauta.service.masterjobs.workers.Worker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerData;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerDataInterface;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerResult;
-import it.bologna.ausl.model.entities.masterjobs.ObjectStatus;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerResult;
 import javax.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
 
 /**
  *
  * @author gdm
  */
-@Component
-@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class FooWorker extends Worker {
+@MasterjobsWorker
+public class FooWorker extends JobWorker {
     private static final Logger log = LoggerFactory.getLogger(FooWorker.class);
     private String name = "Foo";
 
@@ -33,7 +27,7 @@ public class FooWorker extends Worker {
     }
     
     @Override
-    public WorkerResult doRealWork() throws MasterjobsWorkerException {
+    public JobWorkerResult doRealWork() throws MasterjobsWorkerException {
         log.info("sono in doWork()");
 //        ObjectStatus o3 = new ObjectStatus();
 //        FooWorkerData data = (FooWorkerData) getData();

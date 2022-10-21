@@ -11,12 +11,12 @@ import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.service.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.service.masterjobs.MasterjobsQueueData;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsQueuingException;
-import it.bologna.ausl.internauta.service.masterjobs.workers.MasterjobsQueuer;
-import it.bologna.ausl.internauta.service.masterjobs.workers.Worker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerData;
-import it.bologna.ausl.internauta.service.masterjobs.workers.foo.FooWorker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.foo.FooWorkerData;
-import it.bologna.ausl.internauta.service.masterjobs.workers.foo.FooWorkerDeferredData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.foo.FooWorker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.foo.FooWorkerData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.foo.FooWorkerDeferredData;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
@@ -271,7 +271,7 @@ public class BaborgDebugController {
     @RequestMapping(value = "test4", method = RequestMethod.GET)
     @Transactional(rollbackFor = Throwable.class)
     public void test4(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException {
-        MasterjobsQueuer mjQueuer = beanFactory.getBean(MasterjobsQueuer.class);
+        MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
 
         Service find = entityManager.find(Service.class, 1l);
         System.out.println(find);

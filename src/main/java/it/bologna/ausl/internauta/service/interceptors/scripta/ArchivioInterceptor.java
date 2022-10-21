@@ -3,9 +3,9 @@ package it.bologna.ausl.internauta.service.interceptors.scripta;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsQueuingException;
-import it.bologna.ausl.internauta.service.masterjobs.workers.MasterjobsQueuer;
-import it.bologna.ausl.internauta.service.masterjobs.workers.calcolopermessiarchivio.CalcoloPermessiArchivioWorker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.calcolopermessiarchivio.CalcoloPermessiArchivioWorkerData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorkerData;
 import it.bologna.ausl.internauta.service.repositories.scripta.MassimarioRepository;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.masterjobs.Set;
@@ -37,7 +37,7 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
     private MassimarioRepository massimarioRepository;
     
     @Autowired
-    private MasterjobsQueuer mjQueuer;
+    private MasterjobsJobsQueuer mjQueuer;
 
     @Autowired
     private MasterjobsObjectsFactory masterjobsObjectsFactory;
@@ -57,7 +57,7 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         }
         //archivioRepository.calcolaPermessiEspliciti(idArchivio);
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
-        CalcoloPermessiArchivioWorker worker = masterjobsObjectsFactory.getWorker(CalcoloPermessiArchivioWorker.class, new CalcoloPermessiArchivioWorkerData(idArchivio), false);
+        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(CalcoloPermessiArchivioJobWorker.class, new CalcoloPermessiArchivioJobWorkerData(idArchivio), false);
         try {
             mjQueuer.queue(worker,idArchivio.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
         } catch (MasterjobsQueuingException ex) {

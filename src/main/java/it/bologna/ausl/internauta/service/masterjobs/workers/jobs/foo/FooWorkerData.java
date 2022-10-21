@@ -1,7 +1,7 @@
-package it.bologna.ausl.internauta.service.masterjobs.workers.foo;
+package it.bologna.ausl.internauta.service.masterjobs.workers.jobs.foo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerData;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author gdm
  */
-public class FooWorkerData extends WorkerData {
+public class FooWorkerData extends JobWorkerData {
     @JsonIgnore
     private static final Logger log = LoggerFactory.getLogger(FooWorkerData.class);
     

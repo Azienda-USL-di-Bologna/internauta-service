@@ -1,9 +1,9 @@
-package it.bologna.ausl.internauta.service.masterjobs.workers;
+package it.bologna.ausl.internauta.service.masterjobs.workers.jobs;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsParsingException;
-import static it.bologna.ausl.internauta.service.masterjobs.workers.WorkerData.getClassNameKey;
+import static it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerData.getClassNameKey;
 import java.util.Map;
 
 /**
@@ -14,9 +14,9 @@ import java.util.Map;
     use = JsonTypeInfo.Id.CLASS,
     include = JsonTypeInfo.As.PROPERTY,
     property = "@class")
-public abstract class WorkerDeferredData implements WorkerDataInterface {
+public abstract class JobWorkerDeferredData implements JobWorkerDataInterface {
 
-    public abstract WorkerData toWorkerData();
+    public abstract JobWorkerData toWorkerData();
     
 
 }

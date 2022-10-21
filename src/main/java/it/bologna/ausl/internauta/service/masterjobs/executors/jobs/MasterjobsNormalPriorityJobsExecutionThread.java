@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.masterjobs.executors;
+package it.bologna.ausl.internauta.service.masterjobs.executors.jobs;
 
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsExecutionThreadsException;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsInterruptException;
@@ -17,8 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class MasterjobsNormalPriorityExecutionThread extends MasterjobsExecutionThread {
-    private static final Logger log = LoggerFactory.getLogger(MasterjobsNormalPriorityExecutionThread.class);
+public class MasterjobsNormalPriorityJobsExecutionThread extends MasterjobsJobsExecutionThread {
+    private static final Logger log = LoggerFactory.getLogger(MasterjobsNormalPriorityJobsExecutionThread.class);
 
     @Override
     public String getExecutorName() {

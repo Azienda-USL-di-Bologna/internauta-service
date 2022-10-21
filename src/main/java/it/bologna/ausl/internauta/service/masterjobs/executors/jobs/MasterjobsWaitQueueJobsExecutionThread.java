@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.masterjobs.executors;
+package it.bologna.ausl.internauta.service.masterjobs.executors.jobs;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import it.bologna.ausl.internauta.service.masterjobs.MasterjobsQueueData;
@@ -20,8 +20,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class MasterjobsWaitQueueExecutionThread extends MasterjobsExecutionThread {
-    private static final Logger log = LoggerFactory.getLogger(MasterjobsWaitQueueExecutionThread.class);
+public class MasterjobsWaitQueueJobsExecutionThread extends MasterjobsJobsExecutionThread {
+    private static final Logger log = LoggerFactory.getLogger(MasterjobsWaitQueueJobsExecutionThread.class);
 
     @Override
     public String getExecutorName() {

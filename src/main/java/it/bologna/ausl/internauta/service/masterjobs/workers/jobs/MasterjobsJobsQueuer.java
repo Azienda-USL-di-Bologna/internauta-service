@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.masterjobs.workers;
+package it.bologna.ausl.internauta.service.masterjobs.workers.jobs;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,8 +36,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Classe che permette di accodare dei job per l'esecuzione dal parte del Masterjobs
  */
 @Component
-public class MasterjobsQueuer {
-private static final Logger log = LoggerFactory.getLogger(MasterjobsQueuer.class);
+public class MasterjobsJobsQueuer {
+private static final Logger log = LoggerFactory.getLogger(MasterjobsJobsQueuer.class);
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -79,7 +79,7 @@ private static final Logger log = LoggerFactory.getLogger(MasterjobsQueuer.class
      * @param priority la priortà con il quale il job deve essere eseguito
      * @throws MasterjobsQueuingException nel caso ci sia un errore nell'inserimento in coda
      */
-    public void queue(List<Worker> workers, String objectId, String objectType, String appId, Boolean waitForObject, Set.SetPriority priority) throws MasterjobsQueuingException {
+    public void queue(List<JobWorker> workers, String objectId, String objectType, String appId, Boolean waitForObject, Set.SetPriority priority) throws MasterjobsQueuingException {
 //        MasterjobsQueuer self = beanFactory.getBean(MasterjobsQueuer.class);
 //        MasterjobsQueueData queueData = self.insertInDatabase(workers, objectId, objectType, appId, waitForObject, priority);
 //        transactionTemplate = new TransactionTemplate(transactionManager);
@@ -96,7 +96,7 @@ private static final Logger log = LoggerFactory.getLogger(MasterjobsQueuer.class
         }
     }
     
-    public void queue(Worker worker, String objectId, String objectType, String appId, Boolean waitForObject, Set.SetPriority priority) throws MasterjobsQueuingException {
+    public void queue(JobWorker worker, String objectId, String objectType, String appId, Boolean waitForObject, Set.SetPriority priority) throws MasterjobsQueuingException {
         queue(Arrays.asList(worker), objectId, objectType, appId, waitForObject, priority);
     }
     
@@ -123,7 +123,7 @@ private static final Logger log = LoggerFactory.getLogger(MasterjobsQueuer.class
      * @return 
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Throwable.class)
-    public MasterjobsQueueData insertInDatabase(List<Worker> workers, String objectId, String objectType, String appId, Boolean waitForObject, Set.SetPriority priority) {
+    public MasterjobsQueueData insertInDatabase(List<JobWorker> workers, String objectId, String objectType, String appId, Boolean waitForObject, Set.SetPriority priority) {
 
         Set set = new Set();
         if (objectId != null)
@@ -141,10 +141,10 @@ private static final Logger log = LoggerFactory.getLogger(MasterjobsQueuer.class
         entityManager.persist(set);
         
         List<Job> jobs = new ArrayList<>(); 
-        for (Worker worker : workers) {
+        for (JobWorker worker : workers) {
             Job job = new Job();
             job.setDeferred(worker.isDeferred());
-            WorkerDataInterface workerData = worker.getData();
+            JobWorkerDataInterface workerData = worker.getData();
             if (workerData != null)
                 job.setData(workerData.toJobData(objectMapper));
             job.setName(worker.getName());

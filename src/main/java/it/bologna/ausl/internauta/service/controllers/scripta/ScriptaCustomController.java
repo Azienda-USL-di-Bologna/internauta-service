@@ -59,9 +59,9 @@ import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseExcepti
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsQueuingException;
-import it.bologna.ausl.internauta.service.masterjobs.workers.MasterjobsQueuer;
-import it.bologna.ausl.internauta.service.masterjobs.workers.calcolopermessiarchivio.CalcoloPermessiArchivioWorker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.calcolopermessiarchivio.CalcoloPermessiArchivioWorkerData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorkerData;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -234,7 +234,7 @@ public class ScriptaCustomController {
     private String eliminaPropostaDaEdiMethod;
 
     @Autowired
-    private MasterjobsQueuer mjQueuer;
+    private MasterjobsJobsQueuer mjQueuer;
 
     @Autowired
     private MasterjobsObjectsFactory masterjobsObjectsFactory;
@@ -799,7 +799,7 @@ public class ScriptaCustomController {
         
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
         //archivioRepository.calcolaPermessiEspliciti(idArchivioRadice);
-        CalcoloPermessiArchivioWorker worker = masterjobsObjectsFactory.getWorker(CalcoloPermessiArchivioWorker.class, new CalcoloPermessiArchivioWorkerData(idArchivioRadice), false);
+        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(CalcoloPermessiArchivioJobWorker.class, new CalcoloPermessiArchivioJobWorkerData(idArchivioRadice), false);
         mjQueuer.queue(worker,idArchivioRadice.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
         return new ResponseEntity("", HttpStatus.OK);
     }

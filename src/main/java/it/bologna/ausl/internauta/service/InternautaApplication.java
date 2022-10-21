@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service;
 
-import it.bologna.ausl.internauta.service.masterjobs.MasterjobdsThreadsManager;
+import it.bologna.ausl.internauta.service.masterjobs.MasterjobsThreadsManager;
+import it.bologna.ausl.internauta.service.masterjobs.executors.services.MasterjobsServicesExecutionScheduler;
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import it.bologna.ausl.internauta.service.schedulers.LogoutManager;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
@@ -50,7 +51,7 @@ public class InternautaApplication {
     private ShutdownThread shutdownThread;
 
     @Autowired
-    private MasterjobdsThreadsManager masterjobdsThreadsManager;
+    private MasterjobsThreadsManager masterjobdsThreadsManager;
 
     @Value("${internauta.scheduled-thread-pool-executor.active}")
     private Boolean poolExecutorActive;

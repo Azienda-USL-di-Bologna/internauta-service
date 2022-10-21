@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.masterjobs.executors;
+package it.bologna.ausl.internauta.service.masterjobs.executors.jobs;
 
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsInterruptException;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsReadQueueTimeout;
@@ -15,37 +15,48 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class MasterjobsHighestPriorityExecutionThread extends MasterjobsExecutionThread {
-    private static final Logger log = LoggerFactory.getLogger(MasterjobsHighestPriorityExecutionThread.class);
-    
+public class MasterjobsHighPriorityJobsExecutionThread extends MasterjobsJobsExecutionThread {
+    private static final Logger log = LoggerFactory.getLogger(MasterjobsHighPriorityJobsExecutionThread.class);
+
     @Override
     public String getExecutorName() {
-        return "HighestPriorityExecutor";
+        return "HighPriorityExecutor";
     }
     
     @Override
     public void runExecutor() throws MasterjobsInterruptException {
-        Set.SetPriority priority = Set.SetPriority.HIGHEST;
+        Set.SetPriority priority = Set.SetPriority.HIGH;
         while (true) {
             try {
                 self.manageQueue(priority);
-                priority = Set.SetPriority.HIGHEST;
+                switch (priority) {
+                    case HIGHEST:
+                        priority = Set.SetPriority.HIGH;
+                        break;
+                    case NORMAL:
+                    case HIGH:
+                        priority = Set.SetPriority.HIGHEST;
+                }
+//                self.manageQueue(priority);
+                //self.manageNormalQueue();
                 Thread.sleep(super.sleepMillis);
             } catch (MasterjobsInterruptException ex) {
                 throw ex;
             } catch (MasterjobsReadQueueTimeout ex) {
                 String queue = ex.getQueue();
-                if (queue.equals(inQueueHighest)) {
-                    priority = Set.SetPriority.HIGH;
-                } else if (queue.equals(inQueueHigh)) {
+                if (queue.equals(inQueueHigh)) {
+                    priority = Set.SetPriority.HIGHEST;
+                } else if (queue.equals(inQueueHighest)) {
                     priority = Set.SetPriority.NORMAL;
                 } else { // normal
-                    priority = Set.SetPriority.HIGHEST;
+                    priority = Set.SetPriority.HIGH;
                 }
             } catch (Exception ex) {
                 log.error("execution error, moving next...", ex);
             }
         }
+        
     }
+
     
 }

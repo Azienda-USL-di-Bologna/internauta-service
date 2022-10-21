@@ -1,8 +1,8 @@
-package it.bologna.ausl.internauta.service.masterjobs.workers.foo;
+package it.bologna.ausl.internauta.service.masterjobs.workers.jobs.foo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerData;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerDeferredData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerDeferredData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author gdm
  */
-public class FooWorkerDeferredData extends WorkerDeferredData {
+public class FooWorkerDeferredData extends JobWorkerDeferredData {
     @JsonIgnore
     private static final Logger log = LoggerFactory.getLogger(FooWorkerDeferredData.class);
     
@@ -21,7 +21,7 @@ public class FooWorkerDeferredData extends WorkerDeferredData {
     }
     
     @Override
-    public WorkerData toWorkerData() {
+    public JobWorkerData toWorkerData() {
         FooWorkerData wd = new FooWorkerData();
         wd.setName("erano i deferred data");
         wd.setParams2("params 1 deferred");

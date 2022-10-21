@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.service.masterjobs.executors;
+package it.bologna.ausl.internauta.service.masterjobs.executors.jobs;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,9 +13,8 @@ import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsInterr
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsParsingException;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsReadQueueTimeout;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsWorkerException;
-import it.bologna.ausl.internauta.service.masterjobs.workers.Worker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerDataInterface;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerResult;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.masterjobs.Job;
 import it.bologna.ausl.model.entities.masterjobs.ObjectStatus;
@@ -43,13 +42,14 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerDataInterface;
 
 /**
  *
  * @author gdm
  */
-public abstract class MasterjobsExecutionThread implements Runnable, MasterjobsExecutionThreadBuilder {
-    private static final Logger log = LoggerFactory.getLogger(MasterjobsExecutionThread.class);
+public abstract class MasterjobsJobsExecutionThread implements Runnable, MasterjobsJobsExecutionThreadBuilder {
+    private static final Logger log = LoggerFactory.getLogger(MasterjobsJobsExecutionThread.class);
     
     @PersistenceContext
     protected EntityManager entityManager;
@@ -67,7 +67,7 @@ public abstract class MasterjobsExecutionThread implements Runnable, MasterjobsE
     @Autowired
     protected MasterjobsObjectsFactory masterjobsObjectsFactory;
     
-    protected MasterjobsExecutionThread self;
+    protected MasterjobsJobsExecutionThread self;
     
     protected String activeThreadsSetName;
     protected String inQueueNormal;
@@ -84,67 +84,67 @@ public abstract class MasterjobsExecutionThread implements Runnable, MasterjobsE
     protected boolean paused = false;
 
     @Override
-    public MasterjobsExecutionThread self(MasterjobsExecutionThread self) {
+    public MasterjobsJobsExecutionThread self(MasterjobsJobsExecutionThread self) {
         this.self = self;
         return this;
     }
     
     @Override
-    public MasterjobsExecutionThread activeThreadsSetName(String activeThreadsSetName) {
+    public MasterjobsJobsExecutionThread activeThreadsSetName(String activeThreadsSetName) {
         this.activeThreadsSetName = activeThreadsSetName;
         return this;
     }
     
     @Override
-    public MasterjobsExecutionThread inQueueNormal(String inQueueNormal) {
+    public MasterjobsJobsExecutionThread inQueueNormal(String inQueueNormal) {
         this.inQueueNormal = inQueueNormal;
         return this;
     }
     
     @Override
-    public MasterjobsExecutionThread inQueueHigh(String inQueueHigh) {
+    public MasterjobsJobsExecutionThread inQueueHigh(String inQueueHigh) {
         this.inQueueHigh = inQueueHigh;
         return this;
     }
     
     @Override
-    public MasterjobsExecutionThread inQueueHighest(String inQueueHighest) {
+    public MasterjobsJobsExecutionThread inQueueHighest(String inQueueHighest) {
         this.inQueueHighest = inQueueHighest;
         return this;
     }
 
     @Override
-    public MasterjobsExecutionThread workQueue(String workQueue) {
+    public MasterjobsJobsExecutionThread workQueue(String workQueue) {
         this.workQueue = workQueue;
         return this;
     }
     
     @Override
-    public MasterjobsExecutionThread errorQueue(String errorQueue) {
+    public MasterjobsJobsExecutionThread errorQueue(String errorQueue) {
         this.errorQueue = errorQueue;
         return this;
     }
 
     @Override
-    public MasterjobsExecutionThread waitQueue(String waitQueue) {
+    public MasterjobsJobsExecutionThread waitQueue(String waitQueue) {
         this.waitQueue = waitQueue;
         return this;
     }
 
     @Override
-    public MasterjobsExecutionThread outQueue(String outQueue) {
+    public MasterjobsJobsExecutionThread outQueue(String outQueue) {
         this.outQueue = outQueue;
         return this;
     }
 
     @Override
-    public MasterjobsExecutionThread sleepMillis(int sleepMillis) {
+    public MasterjobsJobsExecutionThread sleepMillis(int sleepMillis) {
         this.sleepMillis = sleepMillis;
         return this;
     }
 
     @Override
-    public MasterjobsExecutionThread queueReadTimeoutMillis(int queueReadTimeoutMillis) {
+    public MasterjobsJobsExecutionThread queueReadTimeoutMillis(int queueReadTimeoutMillis) {
         this.queueReadTimeoutMillis = queueReadTimeoutMillis;
         return this;
     }
@@ -343,9 +343,9 @@ public abstract class MasterjobsExecutionThread implements Runnable, MasterjobsE
                 if (job != null) {
                     try {
                         Map<String, Object> data = job.getData();
-                        WorkerDataInterface workerData = WorkerDataInterface.parseFromJobData(objectMapper, data);
-                        Worker worker = masterjobsObjectsFactory.getWorker(job.getName(), workerData, job.getDeferred());
-                        WorkerResult res = worker.doWork();
+                        JobWorkerDataInterface workerData = JobWorkerDataInterface.parseFromJobData(objectMapper, data);
+                        JobWorker worker = masterjobsObjectsFactory.getJobWorker(job.getName(), workerData, job.getDeferred());
+                        JobWorkerResult res = worker.doWork();
                         self.deleteJob(job);
                         jobsCompleted.add(job.getId());
                     } catch (Throwable ex) {
@@ -403,8 +403,8 @@ public abstract class MasterjobsExecutionThread implements Runnable, MasterjobsE
         QJob qJob = QJob.job;
         QSet qSet = QSet.set;
         QObjectStatus qObjectStatus = QObjectStatus.objectStatus;
-        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
-        
+        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager); 
+       
         Long setId = job.getSet().getId();
         
         // cancello il job dal database

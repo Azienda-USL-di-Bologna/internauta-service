@@ -3,11 +3,11 @@ package it.bologna.ausl.internauta.service.masterjobs;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsBadDataException;
-import it.bologna.ausl.internauta.service.masterjobs.executors.MasterjobsExecutionThread;
+import it.bologna.ausl.internauta.service.masterjobs.executors.jobs.MasterjobsJobsExecutionThread;
 import it.bologna.ausl.internauta.service.masterjobs.workers.Worker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerData;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerDataInterface;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerDeferredData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorker;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerData;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerDeferredData;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +17,8 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerDataInterface;
+import it.bologna.ausl.internauta.service.masterjobs.workers.services.ServiceWorker;
 
 /**
  *
@@ -78,7 +80,7 @@ public class MasterjobsObjectsFactory {
         return queueData;
     }
     
-    public <T extends MasterjobsExecutionThread> T getExecutionThreadObject(Class<T> classz) {
+    public <T extends MasterjobsJobsExecutionThread> T getJobsExecutionThreadObject(Class<T> classz) {
         T executionThreadObject = beanFactory.getBean(classz);
         executionThreadObject
             .activeThreadsSetName(activeThreadsSetName)
@@ -94,21 +96,54 @@ public class MasterjobsObjectsFactory {
         return executionThreadObject;
     }
     
-    public Worker getWorker(String name, WorkerDataInterface workerData, boolean deferred) {
-        Worker worker = getWorker(workerMap.get(name), workerData, deferred);
+     /**
+     * Torna un JobWorker del nome passato, costruito con i dati passati
+     * @param name il nome del JobWorker (quello che viene tornato dal metodo getName())
+     * @param workerData i dati del job (JobWorkerDeferredData se il job è deferred JobWorkerData se non lo è)
+     * @param deferred "true" se il job è deferred, "false" altrimenti
+     * @return un JobWorker con del nome passato, costruito con i dati passati
+     */
+    public JobWorker getJobWorker(String name, JobWorkerDataInterface workerData, boolean deferred) {
+        Class<? extends JobWorker> jobWorkerClass = (Class<? extends JobWorker>)workerMap.get(name);
+        JobWorker worker = getJobWorker(jobWorkerClass, workerData, deferred);
         return worker;
     }
     
-    public <T extends Worker> T getWorker(Class<T> workerClass, WorkerDataInterface workerData, boolean deferred) {
-        T worker = beanFactory.getBean(workerClass);
+    /**
+     * Torna un JobWorker della classe passata, costruito con i dati passati
+     * @param <T>
+     * @param jobWorkerClass la classe concreta del JobWorker desiderato
+     * @param workerData i dati del job (JobWorkerDeferredData se il job è deferred JobWorkerData se non lo è)
+     * @param deferred "true" se il job è deferred, "false" altrimenti
+     * @return un JobWorker della classe passata, costruito con i dati passati
+     */
+    public <T extends JobWorker> T getJobWorker(Class<T> jobWorkerClass, JobWorkerDataInterface workerData, boolean deferred) {
+        T worker = beanFactory.getBean(jobWorkerClass);
         if (deferred) {
-            worker.buildDeferred((WorkerDeferredData) workerData);
+            worker.buildDeferred((JobWorkerDeferredData) workerData);
         } else {
-            worker.build((WorkerData) workerData);
+            worker.build((JobWorkerData) workerData);
         }
         return worker;
     }
     
+    /**
+     * Torna un ServiceWorker del nome passato
+     * @param name il nome del ServiceWorker (quello che viene tornato dal metodo getName())
+     * @return un ServiceWorker del nome passato
+     */
+    public ServiceWorker getServiceWorker(String name) {
+        Class<? extends Worker> serviceWorkerClass = workerMap.get(name);
+        ServiceWorker serviceWorker = (ServiceWorker)beanFactory.getBean(serviceWorkerClass);
+        return serviceWorker;
+    }
+    
+    /**
+     * Torna il nome della coda relativa alla priorità passata
+     * @param setPriority la priorità
+     * @return il nome della coda relativa alla priorità passata
+     * @throws MasterjobsBadDataException 
+     */
     public String getQueueBySetPriority(Set.SetPriority setPriority) throws MasterjobsBadDataException {
         String destinationQueue;
         switch (setPriority) {

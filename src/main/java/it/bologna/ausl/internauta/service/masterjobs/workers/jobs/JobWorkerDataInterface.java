@@ -1,17 +1,17 @@
-package it.bologna.ausl.internauta.service.masterjobs.workers;
+package it.bologna.ausl.internauta.service.masterjobs.workers.jobs;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsParsingException;
-import static it.bologna.ausl.internauta.service.masterjobs.workers.WorkerData.getClassNameKey;
+import static it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerData.getClassNameKey;
 import java.util.Map;
 
 /**
  *
  * @author gdm
  */
-public interface WorkerDataInterface {    
-    public static <T extends WorkerDataInterface> T parseFromJobData(ObjectMapper objectMapper, Map<String, Object> jobData) throws MasterjobsParsingException {
+public interface JobWorkerDataInterface {    
+    public static <T extends JobWorkerDataInterface> T parseFromJobData(ObjectMapper objectMapper, Map<String, Object> jobData) throws MasterjobsParsingException {
         if (jobData != null) {
             String className = (String) jobData.get(getClassNameKey());
             Class<T> workerDataClass;
