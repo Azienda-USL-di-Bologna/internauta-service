@@ -1,7 +1,7 @@
 package it.bologna.ausl.internauta.service;
 
-import it.bologna.ausl.internauta.service.masterjobs.MasterjobsThreadsManager;
-import it.bologna.ausl.internauta.service.masterjobs.executors.services.MasterjobsServicesExecutionScheduler;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsThreadsManager;
+import it.bologna.ausl.internauta.utils.masterjobs.executors.services.MasterjobsServicesExecutionScheduler;
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import it.bologna.ausl.internauta.service.schedulers.LogoutManager;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;

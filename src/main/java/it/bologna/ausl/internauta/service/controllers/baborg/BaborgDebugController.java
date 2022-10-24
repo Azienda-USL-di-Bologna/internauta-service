@@ -8,15 +8,14 @@ import com.querydsl.core.types.dsl.NumberTemplate;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.internauta.service.masterjobs.MasterjobsObjectsFactory;
-import it.bologna.ausl.internauta.service.masterjobs.MasterjobsQueueData;
-import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsQueuingException;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.MasterjobsJobsQueuer;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerData;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.foo.FooWorker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.foo.FooWorkerData;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.foo.FooWorkerDeferredData;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsQueueData;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorkerDeferredData;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
@@ -24,6 +23,9 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
@@ -127,7 +129,7 @@ public class BaborgDebugController {
     BeanFactory beanFactory;
     
     @Autowired
-    MasterjobsObjectsFactory masterjobsObjectsFactory;
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
 
     @Autowired
     @Qualifier(value = "redisMaterjobs")
@@ -273,23 +275,23 @@ public class BaborgDebugController {
     public void test4(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException {
         MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
 
-        Service find = entityManager.find(Service.class, 1l);
-        System.out.println(find);
-//        FooWorker worker1 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(1, "p1", false), false);
-//        FooWorker worker2 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(2, "p2", false), false);
-//        FooWorker worker3 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(3, "p3", false), false);
-//        FooWorker worker4 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(4, "p3", false), false);
-//        FooWorker worker5 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(5, "p3", false), false);
-//        FooWorker worker6 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(6, "p3", false), false);
-//        FooWorker worker7 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(7, "p3", false), false);
-//        FooWorker worker8 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(8, "p3", false), false);
-//        FooWorker worker9 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(9, "p3", false), false);
-//        FooWorker worker0 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(0, "p3", false), false);
-//        Applicazione applicazione = cachedEntities.getApplicazione("procton");
-//        boolean wait = true;
-//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        Service find = entityManager.find(Service.class, 1l);
+//        System.out.println(find);
+        FooExternalWorker worker1 = masterjobsObjectsFactory.getJobWorker(FooExternalWorker.class, new FooExternalWorkerData(1, "p1", false), false);
+        FooWorker worker2 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(2, "p2", false), false);
+        FooWorker worker3 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(3, "p3", false), false);
+        FooWorker worker4 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(4, "p3", false), false);
+        FooWorker worker5 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(5, "p3", false), false);
+        FooWorker worker6 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(6, "p3", false), false);
+        FooWorker worker7 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(7, "p3", false), false);
+        FooWorker worker8 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(8, "p3", false), false);
+        FooWorker worker9 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(9, "p3", false), false);
+        FooWorker worker0 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(0, "p3", false), false);
+        Applicazione applicazione = cachedEntities.getApplicazione("procton");
+        boolean wait = true;
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);

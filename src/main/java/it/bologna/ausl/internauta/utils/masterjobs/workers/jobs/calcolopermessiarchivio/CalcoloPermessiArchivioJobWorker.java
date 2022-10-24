@@ -1,10 +1,9 @@
-package it.bologna.ausl.internauta.service.masterjobs.workers.jobs.calcolopermessiarchivio;
+package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio;
 
-import it.bologna.ausl.internauta.service.masterjobs.annotations.MasterjobsWorker;
-import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsWorkerException;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerResult;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.foo.FooWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,8 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @MasterjobsWorker
 public class CalcoloPermessiArchivioJobWorker extends JobWorker{
-    private static final Logger log = LoggerFactory.getLogger(FooWorker.class);
-    private String name = CalcoloPermessiArchivioJobWorker.class.getSimpleName();
+    private static final Logger log = LoggerFactory.getLogger(CalcoloPermessiArchivioJobWorker.class);
+    private final String name = CalcoloPermessiArchivioJobWorker.class.getSimpleName();
     
     @Autowired
     private ArchivioRepository archivioRepository;

@@ -1,9 +1,9 @@
-package it.bologna.ausl.internauta.service.masterjobs.workers.jobs.foo;
+package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal;
 
-import it.bologna.ausl.internauta.service.masterjobs.annotations.MasterjobsWorker;
-import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsWorkerException;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import javax.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,9 +14,9 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author gdm
  */
 @MasterjobsWorker
-public class FooWorker extends JobWorker {
-    private static final Logger log = LoggerFactory.getLogger(FooWorker.class);
-    private String name = "Foo";
+public class FooExternalWorker extends JobWorker {
+    private static final Logger log = LoggerFactory.getLogger(FooExternalWorker.class);
+    private String name = FooExternalWorker.class.getSimpleName();
 
     @Autowired
     private EntityManager em;
@@ -28,7 +28,7 @@ public class FooWorker extends JobWorker {
     
     @Override
     public JobWorkerResult doRealWork() throws MasterjobsWorkerException {
-        log.info("sono in doWork()");
+        log.info("sono in do doWork() di " + getName());
 //        ObjectStatus o3 = new ObjectStatus();
 //        FooWorkerData data = (FooWorkerData) getData();
 //        o3.setObjectId(data.getParams1().toString());

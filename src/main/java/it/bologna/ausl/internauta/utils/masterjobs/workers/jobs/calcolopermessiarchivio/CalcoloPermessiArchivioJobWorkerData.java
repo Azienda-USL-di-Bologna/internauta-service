@@ -1,7 +1,7 @@
-package it.bologna.ausl.internauta.service.masterjobs.workers.jobs.calcolopermessiarchivio;
+package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import it.bologna.ausl.internauta.service.masterjobs.workers.jobs.JobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +29,4 @@ public class CalcoloPermessiArchivioJobWorkerData extends JobWorkerData {
     public void setIdArchivio(Integer idArchivio) {
         this.idArchivio = idArchivio;
     }
-
-   
-
-    
 }
