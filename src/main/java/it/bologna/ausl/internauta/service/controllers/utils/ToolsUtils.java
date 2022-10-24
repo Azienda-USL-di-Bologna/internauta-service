@@ -1,10 +1,23 @@
 package it.bologna.ausl.internauta.service.controllers.utils;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
+import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
+import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
+import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
+import it.bologna.ausl.model.entities.baborg.projections.strutturaunificata.StrutturaUnificataCustom;
 import it.bologna.ausl.model.entities.forms.Segnalazione;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaUnificataRepository;
+import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithAttributiStrutturaAndIdAzienda;
+import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
 
 /**
  *
@@ -15,13 +28,37 @@ public class ToolsUtils {
     public ToolsUtils() {
     }
 
-    public String buildMailForCustomerSupport(Segnalazione segnalazioneUtente, Integer numeroSegnalazione) {
+    public String buildMailForCustomerSupport(Segnalazione segnalazioneUtente, Integer numeroSegnalazione, BaborgUtils baborgUtils) {
 
         String body = "*** Riepilogo Segnalazione Utente ***\n\n";
         body += "Numero: " + (numeroSegnalazione != null ? numeroSegnalazione.toString() : "[DA ELABORARE]") + "\n";
         body += "Azienda: " + segnalazioneUtente.getAzienda() + "\n";
         if (segnalazioneUtente.getStruttura()!= null) {
-            body += "Struttura: "+ segnalazioneUtente.getStruttura() + "\n";
+            body += "Struttura: "+ segnalazioneUtente.getStruttura().getNome() + "\n";
+            Struttura a = segnalazioneUtente.getStruttura();
+            List<Struttura> struttureUnificateList = a.getStruttureReplicheList();
+            List<StrutturaUnificataCustom> fusioni = baborgUtils.getFusioni(a, null);
+            List<StrutturaWithAttributiStrutturaAndIdAzienda> struttureFuse = new ArrayList<>();
+            for (StrutturaUnificataCustom strutturaWithPlainFields : fusioni) {
+                StrutturaWithAttributiStrutturaAndIdAzienda des = (StrutturaWithAttributiStrutturaAndIdAzienda) strutturaWithPlainFields.getIdStrutturaDestinazione();
+                StrutturaWithAttributiStrutturaAndIdAzienda sor = (StrutturaWithAttributiStrutturaAndIdAzienda) strutturaWithPlainFields.getIdStrutturaSorgente();
+                if (des.getId().equals(a.getId())){
+                    struttureFuse.add(sor);
+                }else if (sor.getId().equals(a.getId())){
+                    struttureFuse.add(des);
+                }
+            }
+            if ((struttureFuse != null && !struttureFuse.isEmpty()) || (fusioni != null && !fusioni.isEmpty())){
+                String labelStruttureUnificate = "Strutture unificate ad " + segnalazioneUtente.getStruttura().getNome() + ": ";
+                for (StrutturaWithAttributiStrutturaAndIdAzienda strutturaFusa : struttureFuse) {
+                    labelStruttureUnificate += strutturaFusa.getNome() + ", ";
+                }
+                for (Struttura struttura : struttureUnificateList){
+                    labelStruttureUnificate += struttura.getNome() + ", ";
+                }
+                body += labelStruttureUnificate.substring(0, labelStruttureUnificate.length() - 2) + "\n";
+                System.out.println(body);
+            } 
         }
         body += "Cognome: " + segnalazioneUtente.getCognome() + "\n";
         body += "Nome: " + segnalazioneUtente.getNome() + "\n";
