@@ -59,7 +59,7 @@ public class ManageMessageRegistrationUtils {
 
     @Autowired
     ObjectMapper objectMapper;
-    
+
     @Autowired
     ShpeckUtils shpeckUtils;
 
@@ -89,18 +89,14 @@ public class ManageMessageRegistrationUtils {
                 Persona persona = authenticatedUserProperties.getPerson();
                 AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), persona.getDescrizione());
                 additionalData.setIdUtente(utenteAdditionalData);
-                
+
             }
-            if(azienda != null){
+            if (azienda != null) {
                 AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
                 additionalData.setIdAzienda(aziendaAdditionalData);
             }
 //                makeAdditionalData(additionalData, authenticatedUserProperties, azienda);
-                
-                
-                
-                  
-            
+
             // recupero tutti i messaggi con l'uuid passato
             List<Message> messages = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(uuidMessage));
 
@@ -137,12 +133,16 @@ public class ManageMessageRegistrationUtils {
                 // leggo gli additional data del messaggio in stado di in registrazione
                 if (messageTagInRegistration != null && messageTagInRegistration.getAdditionalData() != null) {
                     try {
-                        AdditionalDataRegistration initialAdditionalData = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), new TypeReference<AdditionalDataRegistration>() {});
+                        AdditionalDataRegistration initialAdditionalData = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), new TypeReference<AdditionalDataRegistration>() {
+                        });
 
                         initialAdditionalDataArrayInRegistration.add(initialAdditionalData);
                     } catch (Throwable ex) {
+
+                        LOG.warn("Non riuscito a convertire in AdditionalDataRegistration il messaggio in stato in registrazione, probabilmente è una lista", ex);
 //                        initialAdditionalDataArrayInRegistration = (List<AdditionalDataRegistration>)AdditionalDataRegistration.fromJsonString(objectMapper, messageTagInRegistration.getAdditionalData());
-                        initialAdditionalDataArrayInRegistration = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), new TypeReference<List<AdditionalDataRegistration>>() {});
+                        initialAdditionalDataArrayInRegistration = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), new TypeReference<List<AdditionalDataRegistration>>() {
+                        });
                     }
                 }
                 // leggo gli additional data del messaggio in stato di registrati
@@ -151,7 +151,9 @@ public class ManageMessageRegistrationUtils {
                         AdditionalDataRegistration initialAdditionalData = objectMapper.readValue(messageTagRegistered.getAdditionalData(), AdditionalDataRegistration.class);
                         initialAdditionalDataArrayRegistered.add(initialAdditionalData);
                     } catch (Throwable ex) {
-                        initialAdditionalDataArrayRegistered = objectMapper.readValue(messageTagRegistered.getAdditionalData(),new TypeReference<List<AdditionalDataRegistration>>() {});
+                        LOG.warn("Non riuscito a convertire in AdditionalDataRegistration il messaggio in stato registrati, probabilmente è una lista", ex);
+                        initialAdditionalDataArrayRegistered = objectMapper.readValue(messageTagRegistered.getAdditionalData(), new TypeReference<List<AdditionalDataRegistration>>() {
+                        });
                     }
                 }
 
@@ -208,6 +210,7 @@ public class ManageMessageRegistrationUtils {
         if (azienda == null) {
             azienda = authenticatedUserProperties.getUser().getIdAzienda();
         }
+        LOG.info("Costruzione additional data, idAzienda: ", azienda.getId());
         Map<String, Object> idAziendaMap = new HashMap<>();
         idAziendaMap.put("id", azienda.getId());
         idAziendaMap.put("nome", azienda.getNome());
@@ -224,7 +227,7 @@ public class ManageMessageRegistrationUtils {
             List<AdditionalDataRegistration> initialAdditionalDataArrayInRegistration
     ) throws Exception {
         LOG.info("dentro ADD_IN_REGISTRATION per il messaggio con id: " + message.getId());
-        
+
         if (additionalData == null) {
             throw new Exception("add tag ADD_IN_REGISTRATION no additional data");
         } else {
@@ -306,7 +309,7 @@ public class ManageMessageRegistrationUtils {
 //                messageTagToAdd.setIdMessage(message);
 //                messageTagToAdd.setIdTag(tagRegistered);
 //            }
-            
+
 //            List<Integer> aziendePrecedentementeProtocollate = initialAdditionalDataArrayRegistered.stream()
 //                    .map(ad -> (Integer) ((Map<String, Object>) ad.get("idAzienda")).get("id")).collect(Collectors.toList());
             List<Integer> aziendePrecedentementeProtocollate = initialAdditionalDataArrayRegistered.stream()
@@ -322,8 +325,6 @@ public class ManageMessageRegistrationUtils {
 //            messageTagRespository.save(messageTagToAdd);
             shpeckUtils.SetRegistrationTag(message.getIdPec(), message, (AdditionalDataRegistration) additionalData, utente, true);
             removeInRegistration(messageTagInRegistration, initialAdditionalDataArrayInRegistration, additionalData);
-            
-            
 
             /* Spostamento folder.
              * Un messaggio viene spostato nella cartella protocollati qualora la sua PEC abbia nella sua aziendaList
