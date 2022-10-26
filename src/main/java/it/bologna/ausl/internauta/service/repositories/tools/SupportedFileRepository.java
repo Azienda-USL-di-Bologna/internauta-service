@@ -9,7 +9,7 @@ import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.math.BigInteger;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-@NextSdrRepository(repositoryPath = "${tools.mapping.url.root}/useraccess", defaultProjection = SupportedFileWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "${tools.mapping.url.root}/supportedfile", defaultProjection = SupportedFileWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "supportedfile", path = "supportedfile", exported = false, excerptProjection = SupportedFileWithPlainFields.class)
 public interface SupportedFileRepository extends
         NextSdrQueryDslRepository<SupportedFile, BigInteger, QSupportedFile>,
