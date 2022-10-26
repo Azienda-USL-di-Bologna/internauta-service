@@ -328,11 +328,15 @@ public class ScriptaCustomController {
                     LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
                     throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
                 }
+                
+                response.setHeader("X-Frame-Options", "sameorigin");
+                response.setHeader("Content-Disposition", ";filename=" + allegato.getNome() + ".pdf");
 
                 if (dettaglioAllegato == null) {
                     if (tipoDettaglioAllegato.equals(Allegato.DettagliAllegato.TipoDettaglioAllegato.CONVERTITO)) {
                         // File mai convertito, lo converto e lo scarico
                         try (InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, null)) {
+                            response.setHeader("Content-Type", "application/pdf");
                             StreamUtils.copy(fileConvertito, response.getOutputStream());
                         }
                     } else {
@@ -347,12 +351,14 @@ public class ScriptaCustomController {
                                 case CONVERTITO:
                                     // File convertito ma scaduto, lo converto e lo scarico
                                     try (InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, idRepository)) {
+                                        response.setHeader("Content-Type", "application/pdf");
                                         StreamUtils.copy(fileConvertito, response.getOutputStream());
                                     }
                                     break;
                                 case ORIGINALE:
                                     // File scaduto, lo riestraggo e lo scarico
                                     try (InputStream fileOrginale = scriptaDownloadUtils.downloadOriginalAttachment(allegato)) {
+                                        response.setHeader("Content-Type", allegato.getDettagli().getOriginale().getMimeType());
                                         StreamUtils.copy(fileOrginale, response.getOutputStream());
                                     }
                                     break;
@@ -361,6 +367,7 @@ public class ScriptaCustomController {
                                     throw new Http404ResponseException("3", "Dettaglio allegato richiesto non tovato");
                             }
                         } else {
+                            response.setHeader("Content-Type", allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato).getMimeType());
                             StreamUtils.copy(fileRichiesto, response.getOutputStream());
                         }
                     }
@@ -903,6 +910,8 @@ public class ScriptaCustomController {
                 ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
                 archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
+                
+                personaVedenteRepository.aggiungiPersoneVedentiSuDocDaPermessiArchivi(doc.getId());
             }
         } catch (Exception e) {
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
