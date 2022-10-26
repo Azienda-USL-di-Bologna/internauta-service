@@ -308,60 +308,65 @@ public class ScriptaCustomController {
         LOG.info("downloadAllegato", idAllegato, tipoDettaglioAllegato);
         Allegato allegato = allegatoRepository.getById(idAllegato);
         if (allegato != null) {
-            
-            // L'utente ha diritto di vedere l'allegato in questione?
-            AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-            Persona person = authenticatedSessionData.getPerson();
-            QPersonaVedente qPersonaVedente = QPersonaVedente.personaVedente;
-            BooleanExpression filter = qPersonaVedente.idPersona.id.eq(person.getId()).and(qPersonaVedente.pienaVisibilita.eq(Boolean.TRUE).and(qPersonaVedente.idDocDetail.id.eq(allegato.getIdDoc().getId())));
-            Optional<PersonaVedente> personaVedente = personaVedenteRepository.findOne(filter);
-            if (!personaVedente.isPresent()) {
-                throw new Http403ResponseException("0", "L'utente non ha piena visibilità sul documento dell'allegato. Non può quindi vederlo");
-            }
-            
-            Allegato.DettagliAllegato dettagli = allegato.getDettagli();
-            Allegato.DettaglioAllegato dettaglioAllegato;
-            
             try {
-                dettaglioAllegato = dettagli.getDettaglioAllegato(tipoDettaglioAllegato);
-            } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-                LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
-                throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
-            }
-
-            if (dettaglioAllegato == null) {
-                if (tipoDettaglioAllegato.equals(Allegato.DettagliAllegato.TipoDettaglioAllegato.CONVERTITO)) {
-                    // File mai convertito, lo converto e lo scarico
-                    InputStream file = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, null);
-                    StreamUtils.copy(file, response.getOutputStream());
-                } else {
-                    throw new Http404ResponseException("4", "Dettaglio allegato richiesto non tovato. Sembra non essere mai esistito");
+                // L'utente ha diritto di vedere l'allegato in questione?
+                AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+                Persona person = authenticatedSessionData.getPerson();
+                QPersonaVedente qPersonaVedente = QPersonaVedente.personaVedente;
+                BooleanExpression filter = qPersonaVedente.idPersona.id.eq(person.getId()).and(qPersonaVedente.pienaVisibilita.eq(Boolean.TRUE).and(qPersonaVedente.idDocDetail.id.eq(allegato.getIdDoc().getId())));
+                Optional<PersonaVedente> personaVedente = personaVedenteRepository.findOne(filter);
+                if (!personaVedente.isPresent()) {
+                    throw new Http403ResponseException("0", "L'utente non ha piena visibilità sul documento dell'allegato. Non può quindi vederlo");
                 }
-            } else {
-                String idRepository = dettaglioAllegato.getIdRepository();
-                MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-                InputStream file = minIOWrapper.getByFileId(idRepository);
-                
-                if (file == null) {
-                    switch (tipoDettaglioAllegato) {
-                        case CONVERTITO:
-                            // File convertito ma scaduto, lo converto e lo scarico
-                            file = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, idRepository);
-                            StreamUtils.copy(file, response.getOutputStream());
-                            break;
-                        case ORIGINALE:
-                            // File scaduto, lo riestraggo e lo scarico
-                            file = scriptaDownloadUtils.downloadOriginalAttachment(allegato);
-                            StreamUtils.copy(file, response.getOutputStream());
-                            break;
-                        default:
-                            // Il file riciesto non è ne l'orginale ne il convertito. E' impossibile dunque recuperarlo.
-                            throw new Http404ResponseException("3", "Dettaglio allegato richiesto non tovato");
+
+                Allegato.DettagliAllegato dettagli = allegato.getDettagli();
+                Allegato.DettaglioAllegato dettaglioAllegato;
+
+                try {
+                    dettaglioAllegato = dettagli.getDettaglioAllegato(tipoDettaglioAllegato);
+                } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+                    LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
+                    throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
+                }
+
+                if (dettaglioAllegato == null) {
+                    if (tipoDettaglioAllegato.equals(Allegato.DettagliAllegato.TipoDettaglioAllegato.CONVERTITO)) {
+                        // File mai convertito, lo converto e lo scarico
+                        try (InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, null)) {
+                            StreamUtils.copy(fileConvertito, response.getOutputStream());
+                        }
+                    } else {
+                        throw new Http404ResponseException("4", "Dettaglio allegato richiesto non tovato. Sembra non essere mai esistito");
                     }
                 } else {
-                    StreamUtils.copy(file, response.getOutputStream());
+                    String idRepository = dettaglioAllegato.getIdRepository();
+                    MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+                    try (InputStream fileRichiesto = minIOWrapper.getByFileId(idRepository)) {
+                        if (fileRichiesto == null) {
+                            switch (tipoDettaglioAllegato) {
+                                case CONVERTITO:
+                                    // File convertito ma scaduto, lo converto e lo scarico
+                                    try (InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, idRepository)) {
+                                        StreamUtils.copy(fileConvertito, response.getOutputStream());
+                                    }
+                                    break;
+                                case ORIGINALE:
+                                    // File scaduto, lo riestraggo e lo scarico
+                                    try (InputStream fileOrginale = scriptaDownloadUtils.downloadOriginalAttachment(allegato)) {
+                                        StreamUtils.copy(fileOrginale, response.getOutputStream());
+                                    }
+                                    break;
+                                default:
+                                    // Il file riciesto non è ne l'orginale ne il convertito. E' impossibile dunque recuperarlo.
+                                    throw new Http404ResponseException("3", "Dettaglio allegato richiesto non tovato");
+                            }
+                        } else {
+                            StreamUtils.copy(fileRichiesto, response.getOutputStream());
+                        }
+                    }
                 }
-                    
+            } finally {
+                scriptaDownloadUtils.svuotaTempFiles();
             }
         } else {
             throw new Http404ResponseException("2", "Allegato richiesto non tovato");
