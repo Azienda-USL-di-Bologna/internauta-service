@@ -8,6 +8,7 @@ import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBlocc
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ImportazioniOrganigrammaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaUnificataRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrAppartenentiRepository;
@@ -24,6 +25,7 @@ import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithAttributiStrutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.strutturaunificata.StrutturaUnificataCustom;
 import it.bologna.ausl.mongowrapper.exceptions.MongoWrapperException;
 import java.io.File;
@@ -121,6 +123,9 @@ public class BaborgUtils {
 
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    StrutturaRepository strutturaRepository;
 
     @Autowired
     ReporitoryConnectionManager mongoConnectionManager;
@@ -398,7 +403,7 @@ public class BaborgUtils {
      * @param struttura
      * @return 
      */
-    public List<StrutturaUnificataCustom> getFusioni(Struttura struttura, ZonedDateTime dataRiferimento) {
+    public List<StrutturaUnificataCustom> getUnificazione(Struttura struttura, ZonedDateTime dataRiferimento, String tipoUnificazione) {
         if (dataRiferimento == null) {
             dataRiferimento = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS);
         }else{
@@ -409,7 +414,7 @@ public class BaborgUtils {
                 qStrutturaUnificata.dataAttivazione.loe(dataRiferimento)
                 .and((qStrutturaUnificata.dataDisattivazione.isNull()).or(qStrutturaUnificata.dataDisattivazione.goe(dataRiferimento)))
                 .and(qStrutturaUnificata.dataAccensioneAttivazione.isNotNull())
-                .and(qStrutturaUnificata.tipoOperazione.eq("FUSIONE"))
+                .and(qStrutturaUnificata.tipoOperazione.eq(tipoUnificazione))
                 .and(qStrutturaUnificata.idStrutturaSorgente.id.eq(struttura.getId())
                         .or(qStrutturaUnificata.idStrutturaDestinazione.id.eq(struttura.getId())));
         Iterable<StrutturaUnificata> fusioniStruttura = strutturaUnificataRepository.findAll(filtraFusioni);
@@ -423,5 +428,33 @@ public class BaborgUtils {
         }
 
         return fusioniStrutturaCustom;
+    }
+    
+    /**
+     * 
+     * @param struttura
+     * @param dataRiferimento
+     * @param tipoUnificazione
+     * @return 
+     */
+    public List<Struttura> getStruttureUnificate(Struttura struttura, ZonedDateTime dataRiferimento, String tipoUnificazione){
+        List<StrutturaUnificataCustom> unificazione = getUnificazione(struttura, dataRiferimento, tipoUnificazione);
+        
+        List<Struttura> struttureReplicate = new ArrayList<>();
+        for (StrutturaUnificataCustom strutturaWithPlainFields : unificazione) {
+            StrutturaWithAttributiStrutturaAndIdAzienda des = (StrutturaWithAttributiStrutturaAndIdAzienda) strutturaWithPlainFields.getIdStrutturaDestinazione();
+            StrutturaWithAttributiStrutturaAndIdAzienda sor = (StrutturaWithAttributiStrutturaAndIdAzienda) strutturaWithPlainFields.getIdStrutturaSorgente();
+            Struttura toAdd = null;
+            if (des.getId().equals(struttura.getId())){
+                toAdd = strutturaRepository.getById(sor.getId());
+                
+            }else if (sor.getId().equals(struttura.getId())){
+                toAdd = strutturaRepository.getById(des.getId());
+            }
+            if (toAdd != null){
+                struttureReplicate.add(toAdd);
+            }
+        }
+        return struttureReplicate;
     }
 }

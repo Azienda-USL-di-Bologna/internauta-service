@@ -108,6 +108,6 @@ public class StrutturaProjectionUtils {
     public List<StrutturaUnificataCustom> getFusioni(Struttura struttura) {
         ZonedDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimentoZoned().truncatedTo(ChronoUnit.DAYS);
         
-        return baborgUtils.getFusioni(struttura, dataRiferimento);
+        return baborgUtils.getUnificazione(struttura, dataRiferimento, "FUSIONE");
     }
 }
