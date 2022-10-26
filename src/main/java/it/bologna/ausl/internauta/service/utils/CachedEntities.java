@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.configurazione.Applicazio
 import it.bologna.ausl.internauta.service.repositories.logs.OperazioneKrinRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroRepository;
+import it.bologna.ausl.internauta.service.repositories.tools.SupportedFileRepository;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -27,7 +28,10 @@ import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.QRegistro;
 import it.bologna.ausl.model.entities.scripta.Registro;
+import it.bologna.ausl.model.entities.tools.SupportedFile;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -81,6 +85,9 @@ public class CachedEntities {
     
     @Autowired
     private ParametriAziendeReader parametriAziende;
+    
+    @Autowired
+    private SupportedFileRepository supportedFileRepository;
 
     @Cacheable(value = "azienda", key = "{#id}")
     public Azienda getAzienda(Integer id) {
@@ -250,5 +257,16 @@ public class CachedEntities {
     @Cacheable(value = "getParameters", key = "{#nome, #idAzienda}")
     public List<ParametroAziende> getParameters(String nome, Integer idAzienda) {
         return parametriAziende.getParameters(nome, new Integer[]{idAzienda});
+    }
+    
+    
+    @Cacheable(value = "supportedFiles")
+    public Map<String, SupportedFile> getSupportedFiles() {
+        List<SupportedFile> all = supportedFileRepository.findAll();
+        Map<String, SupportedFile>  m = new HashMap();
+        for (SupportedFile f : all) {
+            m.put(f.getMimeType(), f);
+        }
+        return m;
     }
 }
