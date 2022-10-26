@@ -16,6 +16,7 @@ import java.util.List;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaUnificataRepository;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithAttributiStrutturaAndIdAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
 
@@ -36,25 +37,16 @@ public class ToolsUtils {
         if (segnalazioneUtente.getStruttura()!= null) {
             body += "Struttura: "+ segnalazioneUtente.getStruttura().getNome() + "\n";
             Struttura a = segnalazioneUtente.getStruttura();
-            List<Struttura> struttureUnificateList = a.getStruttureReplicheList();
-            List<StrutturaUnificataCustom> fusioni = baborgUtils.getFusioni(a, null);
-            List<StrutturaWithAttributiStrutturaAndIdAzienda> struttureFuse = new ArrayList<>();
-            for (StrutturaUnificataCustom strutturaWithPlainFields : fusioni) {
-                StrutturaWithAttributiStrutturaAndIdAzienda des = (StrutturaWithAttributiStrutturaAndIdAzienda) strutturaWithPlainFields.getIdStrutturaDestinazione();
-                StrutturaWithAttributiStrutturaAndIdAzienda sor = (StrutturaWithAttributiStrutturaAndIdAzienda) strutturaWithPlainFields.getIdStrutturaSorgente();
-                if (des.getId().equals(a.getId())){
-                    struttureFuse.add(sor);
-                }else if (sor.getId().equals(a.getId())){
-                    struttureFuse.add(des);
+            List<Struttura> struttureReplicate = baborgUtils.getStruttureUnificate(a, null, "REPLICA");
+            List<Struttura> struttureFuse = baborgUtils.getStruttureUnificate(a, null, "FUSIONE");
+            
+            if ((struttureReplicate != null && !struttureReplicate.isEmpty()) || (struttureFuse != null && !struttureFuse.isEmpty())){
+                String labelStruttureUnificate = "Altre strutture coinvolte: ";
+                for (Struttura s : struttureFuse) {
+                    labelStruttureUnificate += getStrutturaNameAndAzienda(s) + ", ";
                 }
-            }
-            if ((struttureFuse != null && !struttureFuse.isEmpty()) || (fusioni != null && !fusioni.isEmpty())){
-                String labelStruttureUnificate = "Strutture unificate ad " + segnalazioneUtente.getStruttura().getNome() + ": ";
-                for (StrutturaWithAttributiStrutturaAndIdAzienda strutturaFusa : struttureFuse) {
-                    labelStruttureUnificate += strutturaFusa.getNome() + ", ";
-                }
-                for (Struttura struttura : struttureUnificateList){
-                    labelStruttureUnificate += struttura.getNome() + ", ";
+                for (Struttura s : struttureReplicate) {
+                    labelStruttureUnificate += getStrutturaNameAndAzienda(s) + ", ";
                 }
                 body += labelStruttureUnificate.substring(0, labelStruttureUnificate.length() - 2) + "\n";
                 System.out.println(body);
@@ -131,5 +123,8 @@ public class ToolsUtils {
 
         return body;
     }
-
+    
+    public String getStrutturaNameAndAzienda(Struttura s){
+        return s.getNome() + "(" + s.getIdAzienda().getNome() + ")";
+    }
 }
