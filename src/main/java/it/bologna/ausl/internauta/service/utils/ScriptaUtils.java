@@ -77,9 +77,10 @@ public class ScriptaUtils {
         return doc;
     }
 
+    
     public List<Allegato> creaAndAllegaAllegati(Doc doc, InputStream allegatoInputStream, String fileName, boolean fileEstrattiSuTemp) 
             throws MinIOWrapperException, IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
-        return creaAndAllegaAllegati(doc, allegatoInputStream, fileName, fileEstrattiSuTemp, false, null);
+        return creaAndAllegaAllegati(doc, allegatoInputStream, fileName, fileEstrattiSuTemp, false, null, false, null);
     }
     
     /**
@@ -90,12 +91,15 @@ public class ScriptaUtils {
      * @param fileEstrattiSuTemp
      * @param skipInsertEstraibileInMinio
      * @param fileUuid
+     * @param doUpdate parametro usato qualora gli allegati già esistono ma ne va aggiornato l'idRepository, parametro usato per allegati dentro un contenitore
+     * @param mappaAllegatiToUpdate  chiave: md5, valore: allegato da aggiornare col nuovo idRepository sul dettaglio originale
      * @return
      * @throws MinIOWrapperException
      * @throws IOException
      * @throws FileNotFoundException
-     * @throws NoSuchAlgorithmException
-     * @throws Throwable 
+     * @throws NoSuchAlgorithmException 
+     * @throws it.bologna.ausl.estrattore.exception.ExtractorException 
+     * @throws org.apache.tika.mime.MimeTypeException 
      */
     public List<Allegato> creaAndAllegaAllegati(
             Doc doc, 
@@ -103,107 +107,127 @@ public class ScriptaUtils {
             String fileName,
             boolean fileEstrattiSuTemp,
             boolean skipInsertEstraibileInMinio,
-            String fileUuid
-    ) throws 
-            MinIOWrapperException, 
-            IOException, 
-            FileNotFoundException, 
-            NoSuchAlgorithmException, 
-            Throwable {
-        // Del file passato creerò uno o più allegati che poi tornerò al chiamante
-        List<Allegato> allegatiDaTornare = new ArrayList<>();
-        if (allegatoInputStream != null) {
-            File folderToSave = FileUtilities.getCartellaTemporanea("EstrazioneTemp" + doc.getId().toString() + "_" + UUID.randomUUID().toString());
-            try {
-                String separatoreDiSiStema = System.getProperty("file.separator");
-                CharSequence daRimpiazzare = separatoreDiSiStema;
-                CharSequence sostituto = "\\" + separatoreDiSiStema;
-                fileName = fileName.replace(daRimpiazzare, sostituto);
-
-                File tmp = File.createTempFile("Allegato_", FilenameUtils.getExtension(fileName)); 
-                FileUtils.copyInputStreamToFile(allegatoInputStream, tmp);
-
-                ArrayList<ExtractorResult> extractionResultAll = FileUtilities.estraiTuttoDalFile(folderToSave, tmp, fileName);
-
-                HashMap<String, Object> mappaHashAllegati = new HashMap();
-                int numeroAllegato  = doc.getAllegati() != null ? doc.getAllegati().size() : 0;
-
-                if (extractionResultAll != null) {
-                    String codiceAzienda = doc.getIdAzienda().getCodice();
-                    int index = 0;
-                    for (ExtractorResult er : extractionResultAll) {
-                        numeroAllegato++;
-                        index++;
-                        try {
-                            File file = new File(er.getPath());
-                            Allegato padre = null;
-                            if (er.getPadre() != null) {
-                                padre = (Allegato) mappaHashAllegati.get(er.getPadre());
-                            }
-                            MinIOWrapperFileInfo fileSuMinioInfo = null;
-                            if (!(skipInsertEstraibileInMinio && index == 1)) {
-                                fileSuMinioInfo = putFileOnMinIO(
-                                        file,
-                                        codiceAzienda + (fileEstrattiSuTemp && index > 1 ? "t": ""), 
-                                        doc.getId().toString(), 
-                                        er.getFileName(), 
-                                        null, 
-                                        true
-                                );
-                            } else {
-                                fileSuMinioInfo = getFileFromMinIO(fileUuid);
-                            }
-                            Allegato nuovoAllegato = buildAndSaveAllegato(
-                                    er.getFileName(),
-                                    doc,
-                                    file,
-                                    numeroAllegato,
-                                    padre,
-                                    er.getIsExtractable(),
-                                    fileSuMinioInfo);
-
-                            mappaHashAllegati.put(er.getHash(), nuovoAllegato);
-
-                            allegatiDaTornare.add(nuovoAllegato);
-                        } catch (Throwable e) {
-                            FileUtilities.svuotaCartella(folderToSave.getAbsolutePath());
-                            throw e;
-                        }
-                    }
-                } else {
-                    try {
-                        MinIOWrapperFileInfo fileSuMinioInfo = putFileOnMinIO(
-                                tmp,
-                                doc.getIdAzienda().getCodice(), 
-                                doc.getId().toString(), 
-                                fileName, 
-                                null, 
-                                true
-                        );
-                        Allegato nuovoAllegato = buildAndSaveAllegato(
-                                    fileName,
-                                    doc,
-                                    tmp,
-                                    numeroAllegato + 1,
-                                    null,
-                                    false,
-                                    fileSuMinioInfo);
-                        allegatiDaTornare.add(nuovoAllegato);
-                    } catch (Throwable e) {
-                        FileUtilities.svuotaCartella(folderToSave.getAbsolutePath());
-                        throw e;
-                    }
-                }
-                tmp.delete();
-                allegatoInputStream.close();
-                FileUtilities.svuotaCartella(folderToSave.getAbsolutePath());
-            } catch (Throwable ex) {
-                FileUtilities.svuotaCartella(folderToSave.getAbsolutePath());
-                throw ex;
-            }
-        } else {
+            String fileUuid,
+            boolean doUpdate,
+            HashMap<String, Allegato> mappaAllegatiToUpdate
+    ) throws MinIOWrapperException, IOException, FileNotFoundException, 
+            NoSuchAlgorithmException, ExtractorException, UnsupportedEncodingException, MimeTypeException, AllegatoException {
+        if (allegatoInputStream == null) {
             throw new FileNotFoundException("Passato file null ");
         }
+        
+        // Del file passato creerò uno o più allegati che poi tornerò al chiamante
+        List<Allegato> allegatiDaTornare = new ArrayList<>();
+        File folderToSave = FileUtilities.getCartellaTemporanea("EstrazioneTemp_" + doc.getId().toString() + "_" + UUID.randomUUID().toString());
+        
+        try {
+            String separatoreDiSiStema = System.getProperty("file.separator");
+            CharSequence daRimpiazzare = separatoreDiSiStema;
+            CharSequence sostituto = "\\" + separatoreDiSiStema;
+            fileName = fileName.replace(daRimpiazzare, sostituto);
+
+            File tmp = File.createTempFile("Allegato_", FilenameUtils.getExtension(fileName));
+            FileUtils.copyInputStreamToFile(allegatoInputStream, tmp);
+
+            ArrayList<ExtractorResult> extractionResultAll = FileUtilities.estraiTuttoDalFile(folderToSave, tmp, fileName);
+
+            HashMap<String, Object> mappaHashAllegati = new HashMap();
+            //HashMap<String, Object> mappaMd5Allegati = new HashMap();
+            int numeroAllegato  = doc.getAllegati() != null ? doc.getAllegati().size() : 0;
+
+            if (extractionResultAll != null) {
+                /* L'allegato è un contenitore. Devo quindi salvare sia lui che tutti i vari figli e nipoti etc
+                   Se skipInsertEstraibileInMinio è true allora il contenitore non va salavato su minio (salvo bug il motivo è che c'è già)
+                   Se doUpdate è true, allora non devo fare la insert degli allegati, in teoria già ci sono. Devo aggiornarli (in paritoclare l'idRepository)*/
+                String codiceAzienda = doc.getIdAzienda().getCodice();
+                int index = 0;
+                for (ExtractorResult er : extractionResultAll) {
+                    numeroAllegato++;
+                    index++;
+                    File file = new File(er.getPath());
+                    Allegato padre = null;
+                    if (er.getPadre() != null) {
+                        padre = (Allegato) mappaHashAllegati.get(er.getPadre());
+                    }
+                    MinIOWrapperFileInfo fileSuMinioInfo = null;
+                    boolean fileAlreadyPresent = false;
+                    if (skipInsertEstraibileInMinio && index == 1) {
+                        // Il contenitore è già su minio, mi prendo i suoi dati
+                        fileSuMinioInfo = getFileFromMinIO(fileUuid);
+                    } else {
+                        // Controllo se un file identico è già stato salavato (cioè il file contenitore contiene più volte lo stesso file). Se si non lo salvo di nuovo.
+                        if (mappaHashAllegati.get(er.getHash()) == null) {
+                            // Inserisco il file su minio
+                            fileSuMinioInfo = putFileOnMinIO(
+                                file,
+                                codiceAzienda + (fileEstrattiSuTemp && index > 1 ? "t": ""), 
+                                doc.getId().toString(), 
+                                er.getFileName(), 
+                                null, 
+                                true
+                            );
+                        } else {
+                            fileAlreadyPresent = true;
+                        }
+                    }
+                    
+                    if (!fileAlreadyPresent) {
+                        Allegato nuovoAllegato = null;
+                    
+                        if (doUpdate) {
+                            // In caso di doUpdate il contenitore lo scarto, inoltre non inserisco un 
+                            // nuovo allegato, ma aggiorno quello che trovo nella mappaAllegatiToUpdate tramite md5
+                            if (index > 1) {
+                                Allegato allegatoToUpdate = mappaAllegatiToUpdate.get(er.getMd5());
+                                Allegato.DettaglioAllegato originale = allegatoToUpdate.getDettagli().getOriginale();
+                                originale.setIdRepository(fileSuMinioInfo.getFileId());
+                                originale.setBucket(fileSuMinioInfo.getBucketName());
+                                nuovoAllegato = allegatoRepository.save(allegatoToUpdate);
+                            }
+                        } else {
+                            nuovoAllegato = buildAndSaveAllegato(
+                                er.getFileName(),
+                                doc,
+                                file,
+                                numeroAllegato,
+                                padre,
+                                er.getIsExtractable(),
+                                fileSuMinioInfo
+                            );
+                        }
+                        if (nuovoAllegato != null) {
+                            mappaHashAllegati.put(er.getHash(), nuovoAllegato);
+                            allegatiDaTornare.add(nuovoAllegato);
+                        }
+                    }
+                }
+            } else {
+                // Non è un allegato contenitore. Lo salvo semplicemente.
+                MinIOWrapperFileInfo fileSuMinioInfo = putFileOnMinIO(
+                    tmp,
+                    doc.getIdAzienda().getCodice(), 
+                    doc.getId().toString(), 
+                    fileName, 
+                    null, 
+                    true
+                );
+                Allegato nuovoAllegato = buildAndSaveAllegato(
+                    fileName,
+                    doc,
+                    tmp,
+                    numeroAllegato + 1,
+                    null,
+                    false,
+                    fileSuMinioInfo
+                );
+                allegatiDaTornare.add(nuovoAllegato);
+            }
+            tmp.delete(); // TODO: chiedi a gdm, queste due righe vanno nel finally?
+            allegatoInputStream.close();
+        } finally {
+            FileUtilities.svuotaCartella(folderToSave.getAbsolutePath());
+        }
+        
         return allegatiDaTornare;
     }
 
@@ -272,7 +296,8 @@ public class ScriptaUtils {
             Integer numeroAllegato,
             Allegato allegatoPadre,
             boolean isEstraibile,
-            MinIOWrapperFileInfo fileSuMinioInfo) throws MinIOWrapperException, IOException, FileNotFoundException, NoSuchAlgorithmException, UnsupportedEncodingException, MimeTypeException, AllegatoException {
+            MinIOWrapperFileInfo fileSuMinioInfo
+    ) throws MinIOWrapperException, IOException, FileNotFoundException, NoSuchAlgorithmException, UnsupportedEncodingException, MimeTypeException, AllegatoException {
         // Creo l'allegato
         Allegato nuovoAllegato = buildNewAllegato(doc, nomeDelFile);
         nuovoAllegato.setOrdinale(numeroAllegato);
@@ -285,7 +310,8 @@ public class ScriptaUtils {
                 nomeDelFile,
                 FileUtilities.getMimeTypeFromPath(file.getAbsolutePath()),
                 intSize,
-                fileSuMinioInfo);
+                fileSuMinioInfo
+        );
         Allegato.DettagliAllegato dettagliAllegato = new Allegato.DettagliAllegato();
         nuovoAllegato.setDettagli(dettagliAllegato);
         addDettaglioAllegato(dettagliAllegato, dettaglioAllegato, Allegato.DettagliAllegato.TipoDettaglioAllegato.ORIGINALE);
@@ -295,8 +321,7 @@ public class ScriptaUtils {
 
     public Allegato buildNewAllegato(Doc doc, String originalFileName) {
         List<Allegato> allegati = doc.getAllegati();
-        Integer numeroOrdine = !(allegati == null || allegati.isEmpty())
-                ? allegati.size() : 0;
+        Integer numeroOrdine = !(allegati == null || allegati.isEmpty()) ? allegati.size() : 0;
         numeroOrdine++;
         Allegato allegato = new Allegato();
         allegato.setNome(FilenameUtils.getBaseName(originalFileName));
@@ -359,14 +384,29 @@ public class ScriptaUtils {
             Integer size, 
             MinIOWrapperFileInfo minioFileInfo
     ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, UnsupportedEncodingException, MimeTypeException {
-
+        try ( InputStream is = new FileInputStream(file)) {
+            return buildNewDettaglioAllegato(
+                allegato,
+                is,
+                fileNameWithExtension,
+                mimeType,
+                size, 
+                minioFileInfo
+            );
+        }
+    }
+    
+    public Allegato.DettaglioAllegato buildNewDettaglioAllegato(
+            Allegato allegato,
+            InputStream file,
+            String fileNameWithExtension,
+            String mimeType,
+            Integer size, 
+            MinIOWrapperFileInfo minioFileInfo
+    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, UnsupportedEncodingException, MimeTypeException {
         Allegato.DettaglioAllegato dettaglioAllegato = new Allegato.DettaglioAllegato();
         dettaglioAllegato.setHashMd5(minioFileInfo.getMd5());
-
-//        dettaglioAllegato.setHashSha256(FileUtilities.getHashFromFile(fileInputStream, "SHA-256"));
-        try ( InputStream is = new FileInputStream(file)) {
-            dettaglioAllegato.setHashSha256(org.apache.commons.codec.digest.DigestUtils.sha256Hex(is));
-        }
+        dettaglioAllegato.setHashSha256(org.apache.commons.codec.digest.DigestUtils.sha256Hex(file));
         dettaglioAllegato.setNome(FilenameUtils.getBaseName(fileNameWithExtension));
         dettaglioAllegato.setEstensione(FilenameUtils.getExtension(fileNameWithExtension));
         dettaglioAllegato.setDimensioneByte(size);
