@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 //import per mandare mail 
 import com.sun.mail.smtp.SMTPTransport;
+import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.utils.ToolsUtils;
 import it.bologna.ausl.internauta.service.exceptions.SendMailException;
@@ -38,6 +39,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.forms.Segnalazione;
 import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
+import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDate;
@@ -96,10 +98,10 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     @Autowired
     private RichiestaSmartWorkingRepository richiestaSmartWorkingRepository;
     @Autowired
-    private ReporitoryConnectionManager aziendeConnectionManager;
+    private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
     
     @Autowired
-    ParametriAziendeReader parametriAziende;
+    private BaborgUtils baborgUtils;
 
     @Value("${redmine-test-mode}")
     boolean redmineTestMode;
@@ -525,7 +527,9 @@ public class ToolsCustomController implements ControllerHandledExceptions {
      */
     @RequestMapping(value = "/inviaSegnalazione", method = RequestMethod.POST)
     public ResponseEntity<?> inviaSegnalazione(@Valid @ModelAttribute() Segnalazione segnalazioneUtente,
-            BindingResult result) {
+            BindingResult result,
+            HttpServletRequest request) {
+        projectionsInterceptorLauncher.setRequestParams(null, request);
         if (result.hasErrors()) {
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
         }
@@ -556,7 +560,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 
         ToolsUtils toolsUtils = new ToolsUtils();
         // Build body mail da inviare al servizio assistenza
-        String bodyCustomerSupport = toolsUtils.buildMailForCustomerSupport(segnalazioneUtente, numeroNuovaSegnalazione);
+        String bodyCustomerSupport = toolsUtils.buildMailForCustomerSupport(segnalazioneUtente, numeroNuovaSegnalazione, baborgUtils);
         // Build body mail da inviare all'utente
         String bodyUser = toolsUtils.buildMailForUser(bodyCustomerSupport, numeroNuovaSegnalazione);
         List<String> replyToUsers = Arrays.asList(fromName);

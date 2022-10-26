@@ -1,12 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.baborg;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.querydsl.core.types.Expression;
-import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.core.types.dsl.NumberTemplate;
-import com.querydsl.jpa.impl.JPAQueryFactory;
-import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsQueueData;
@@ -19,7 +13,6 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooE
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositoryImpl;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
@@ -29,7 +22,6 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooE
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
-import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.utentestruttura.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
@@ -55,17 +47,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.persistence.Column;
 import javax.persistence.EntityManager;
 import javax.persistence.JoinColumn;
-import javax.persistence.LockModeType;
 import javax.servlet.http.HttpServletRequest;
-import org.hibernate.ReplicationMode;
-import org.hibernate.Session;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -135,7 +122,7 @@ public class BaborgDebugController {
     @Qualifier(value = "redisMaterjobs")
     protected RedisTemplate redisTemplate;
     
-    @Value("${masterjobs.manager.redis-active-threads-set-name}")
+    @Value("${masterjobs.manager.jobs-executor.redis-active-threads-set-name}")
     private String activeThreadsSetName;
     
     @RequestMapping(value = "ping", method = RequestMethod.GET)
