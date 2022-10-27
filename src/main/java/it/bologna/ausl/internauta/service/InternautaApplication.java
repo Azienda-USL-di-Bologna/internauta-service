@@ -1,10 +1,12 @@
 package it.bologna.ausl.internauta.service;
 
-import it.bologna.ausl.internauta.service.masterjobs.MasterjobdsThreadsManager;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsThreadsManager;
+import it.bologna.ausl.internauta.utils.masterjobs.executors.services.MasterjobsServicesExecutionScheduler;
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import it.bologna.ausl.internauta.service.schedulers.LogoutManager;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
 import it.bologna.ausl.internauta.service.schedulers.workers.ShutdownThread;
+import it.bologna.ausl.internauta.utils.masterjobs.executors.services.MasterjobsShutDownThread;
 import java.time.ZonedDateTime;
 import it.nextsw.common.repositories.CustomJpaRepositoryFactoryBean;
 import org.slf4j.Logger;
@@ -48,9 +50,12 @@ public class InternautaApplication {
 
     @Autowired
     private ShutdownThread shutdownThread;
+    
+    @Autowired
+    private MasterjobsShutDownThread masterjobsShutDownThread;
 
     @Autowired
-    private MasterjobdsThreadsManager masterjobdsThreadsManager;
+    private MasterjobsThreadsManager masterjobdsThreadsManager;
 
     @Value("${internauta.scheduled-thread-pool-executor.active}")
     private Boolean poolExecutorActive;
@@ -101,7 +106,12 @@ public class InternautaApplication {
                 log.info("scheduled-thread-pool-executor not active");
             }
             if (masterjobsActive) {
+                log.info("starting masterjobs...");
                 masterjobdsThreadsManager.scheduleThreads();
+                log.info("setting masterjobs ShutdownHook...");
+                Runtime.getRuntime().addShutdownHook(masterjobsShutDownThread);
+            } else {
+                log.info("masterjobs not active");
             }
         };
     }

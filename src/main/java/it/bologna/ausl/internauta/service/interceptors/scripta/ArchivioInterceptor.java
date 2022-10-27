@@ -1,11 +1,15 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorkerData;
 import it.bologna.ausl.internauta.service.repositories.scripta.MassimarioRepository;
-import it.bologna.ausl.model.entities.baborg.PecAzienda;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.Archivio;
-import it.bologna.ausl.model.entities.scripta.Massimario;
 import it.bologna.ausl.model.entities.scripta.Titolo;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
@@ -13,7 +17,6 @@ import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,10 +34,13 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArchivioInterceptor.class);
     
     @Autowired
-    private ArchivioRepository archivioRepository;
+    private MassimarioRepository massimarioRepository;
     
     @Autowired
-    private MassimarioRepository massimarioRepository;
+    private MasterjobsJobsQueuer mjQueuer;
+
+    @Autowired
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
     
     @Override
     public Class getTargetEntityClass() {
@@ -49,8 +55,15 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         if (archivio.getIdArchivioRadice() != null){
             idArchivio=archivio.getIdArchivioRadice().getId();
         }
-        archivioRepository.calcolaPermessiEspliciti(idArchivio);
-        return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+        //archivioRepository.calcolaPermessiEspliciti(idArchivio);
+        Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(CalcoloPermessiArchivioJobWorker.class, new CalcoloPermessiArchivioJobWorkerData(idArchivio), false);
+        try {
+            mjQueuer.queue(worker,idArchivio.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
+        } catch (MasterjobsQueuingException ex) {
+            return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
+        }
+        return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
 
     @Override
