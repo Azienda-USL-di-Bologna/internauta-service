@@ -1,8 +1,7 @@
-package it.bologna.ausl.internauta.service.masterjobs.workers.foo;
+package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerData;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -12,9 +11,9 @@ import org.slf4j.LoggerFactory;
  *
  * @author gdm
  */
-public class FooWorkerData extends WorkerData {
+public class FooExternalWorkerData extends JobWorkerData {
     @JsonIgnore
-    private static final Logger log = LoggerFactory.getLogger(FooWorkerData.class);
+    private static final Logger log = LoggerFactory.getLogger(FooExternalWorkerData.class);
     
     @JsonIgnore
     private String name = "Foo";
@@ -24,7 +23,7 @@ public class FooWorkerData extends WorkerData {
     private Boolean params3;
     private Map<String, Object> params4;
 
-    public FooWorkerData() {
+    public FooExternalWorkerData() {
         params1=1;
         params2="2";
         params3=true;
@@ -34,7 +33,7 @@ public class FooWorkerData extends WorkerData {
         params4.put("chiave3", false);
     }
 
-    public FooWorkerData(Integer params1, String params2, Boolean params3) {
+    public FooExternalWorkerData(Integer params1, String params2, Boolean params3) {
         this.params1=params1;
         this.params2=params2;
         this.params3=params3;

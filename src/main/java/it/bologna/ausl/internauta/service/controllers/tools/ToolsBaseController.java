@@ -2,7 +2,9 @@ package it.bologna.ausl.internauta.service.controllers.tools;
 
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
+import it.bologna.ausl.model.entities.tools.QSupportedFile;
 import it.bologna.ausl.model.entities.tools.QUserAccess;
+import it.bologna.ausl.model.entities.tools.SupportedFile;
 import it.bologna.ausl.model.entities.tools.UserAccess;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
@@ -47,6 +49,19 @@ public class ToolsBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QUserAccess.userAccess, UserAccess.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"supportedfile", "supportedfile/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> supportedfile(
+            @QuerydslPredicate(root = SupportedFile.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) BigInteger id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QSupportedFile.supportedFile, SupportedFile.class);
         return ResponseEntity.ok(resource);
     }
 }

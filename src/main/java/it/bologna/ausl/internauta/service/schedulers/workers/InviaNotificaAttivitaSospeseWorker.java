@@ -236,7 +236,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
     }
 
     private String preparaListaAttivitaDaMostrareHTML(List<Attivita> listaAttivita) {
-        final String format = "<tr>%-18s %-18s %-35s  %-35s %s</tr>";
+        final String format = "<tr>%-18s %-18s %-35s  %-70s %s</tr>";
         // Azienda, Data, Tipo, Provenienza, Oggetto attivita
         String tabella = "<table>";
         tabella += String.format(format, "<th>AZIENDA</th>", "<th>DATA</th>", "<th>TIPO</th>", "<th>PROVENIENZA</th>", "<th>OGGETTO</th>");
@@ -264,7 +264,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
                 + StringUtils.center("DATA", 14, " ")
                 + StringUtils.center("TIPO", 28, " ")
                 + StringUtils.center("PROVENIENZA", 30, " ")
-                + StringUtils.center("OGGETTO", 40, " ");
+                + StringUtils.center("OGGETTO", 100, " ");
         tabella += newLine;
         tabella += "\n";
         for (Attivita attivita : listaAttivita) {
@@ -279,7 +279,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
                     + StringUtils.center(data, 14, " ")
                     + StringUtils.center(tipo, 28, " ")
                     + StringUtils.center(StringUtils.abbreviate(provenienza, 28), 30, " ")
-                    + StringUtils.center(StringUtils.abbreviate(oggetto, 38), 40, " ");
+                    + StringUtils.center(oggetto, 100, " ");
 
             tabella += newLine;
         }

@@ -124,7 +124,7 @@ public class IssueWrapper {
                     new SimpleDateFormat("yyyy-MM-dd").format(new Date()).toString()));
             //STRUTTURA UTENTTE
             array.put(getNewJsonCustomFieldParamFromRedmine(STRUTTURA_UTENTTE.toString(),
-                    segnalazione.getStruttura()));
+                    segnalazione.getStruttura().getNome()));
             
             String tipologiaSegnalazione = segnalazione.getTipologiaSegnalazione();
             if (StringUtils.hasText(tipologiaSegnalazione)) {

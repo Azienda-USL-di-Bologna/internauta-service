@@ -1,33 +1,27 @@
 package it.bologna.ausl.internauta.service.controllers.baborg;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.querydsl.core.types.Expression;
-import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.core.types.dsl.NumberTemplate;
-import com.querydsl.jpa.impl.JPAQueryFactory;
-import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.internauta.service.masterjobs.MasterjobsObjectsFactory;
-import it.bologna.ausl.internauta.service.masterjobs.MasterjobsQueueData;
-import it.bologna.ausl.internauta.service.masterjobs.exceptions.MasterjobsQueuingException;
-import it.bologna.ausl.internauta.service.masterjobs.workers.MasterjobsQueuer;
-import it.bologna.ausl.internauta.service.masterjobs.workers.Worker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.WorkerData;
-import it.bologna.ausl.internauta.service.masterjobs.workers.foo.FooWorker;
-import it.bologna.ausl.internauta.service.masterjobs.workers.foo.FooWorkerData;
-import it.bologna.ausl.internauta.service.masterjobs.workers.foo.FooWorkerDeferredData;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsQueueData;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorkerDeferredData;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositoryImpl;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
-import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.utentestruttura.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
@@ -36,6 +30,7 @@ import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.masterjobs.Job;
 import it.bologna.ausl.model.entities.masterjobs.ObjectStatus;
 import it.bologna.ausl.model.entities.masterjobs.QSet;
+import it.bologna.ausl.model.entities.masterjobs.Service;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
@@ -52,20 +47,18 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.persistence.Column;
 import javax.persistence.EntityManager;
 import javax.persistence.JoinColumn;
-import javax.persistence.LockModeType;
 import javax.servlet.http.HttpServletRequest;
-import org.hibernate.ReplicationMode;
-import org.hibernate.Session;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.projection.ProjectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.Propagation;
@@ -123,8 +116,15 @@ public class BaborgDebugController {
     BeanFactory beanFactory;
     
     @Autowired
-    MasterjobsObjectsFactory masterjobsObjectsFactory;
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
 
+    @Autowired
+    @Qualifier(value = "redisMaterjobs")
+    protected RedisTemplate redisTemplate;
+    
+    @Value("${masterjobs.manager.jobs-executor.redis-active-threads-set-name}")
+    private String activeThreadsSetName;
+    
     @RequestMapping(value = "ping", method = RequestMethod.GET)
     public String ping() {
         return "pong";
@@ -248,75 +248,63 @@ public class BaborgDebugController {
     @RequestMapping(value = "test3", method = RequestMethod.GET)
     @Transactional(rollbackFor = Throwable.class)
     public void test3(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException {
-        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-        try {
-            transactionTemplate.execute(action -> {
-                ObjectStatus o1 = new ObjectStatus();
-                o1.setObjectId("1");
-                o1.setState(ObjectStatus.ObjectState.IDLE);
-                entityManager.persist(o1);
-                ObjectStatus o2 = new ObjectStatus();
-                o2.setObjectId("1");
-                o2.setState(ObjectStatus.ObjectState.IDLE);
-                entityManager.persist(o2);
-                return o1;
-            });
-        } catch (Throwable transactionException) {
-            transactionException.printStackTrace();
+        Map entries = redisTemplate.opsForHash().entries(activeThreadsSetName);
+        for (Thread t : Thread.getAllStackTraces().keySet()) {
+            if (entries.containsKey(String.valueOf(t.getId()))) {
+                String tName = (String) entries.get(t.getId());
+                
+            }
         }
-        ObjectStatus o3 = new ObjectStatus();
-        o3.setObjectId("3");
-        o3.setState(ObjectStatus.ObjectState.IDLE);
-        entityManager.persist(o3);
-        
     }
     
     @RequestMapping(value = "test4", method = RequestMethod.GET)
     @Transactional(rollbackFor = Throwable.class)
     public void test4(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException {
-        MasterjobsQueuer bean = beanFactory.getBean(MasterjobsQueuer.class);
+        MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
 
-        FooWorker worker1 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(1, "p1", false), false);
-        FooWorker worker2 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(2, "p2", false), false);
-        FooWorker worker3 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(3, "p3", false), false);
-        FooWorker worker4 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(4, "p3", false), false);
-        FooWorker worker5 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(5, "p3", false), false);
-        FooWorker worker6 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(6, "p3", false), false);
-        FooWorker worker7 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(7, "p3", false), false);
-        FooWorker worker8 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(8, "p3", false), false);
-        FooWorker worker9 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(9, "p3", false), false);
-        FooWorker worker0 = masterjobsObjectsFactory.getWorker(FooWorker.class, new FooWorkerData(0, "p3", false), false);
+//        Service find = entityManager.find(Service.class, 1l);
+//        System.out.println(find);
+        FooExternalWorker worker1 = masterjobsObjectsFactory.getJobWorker(FooExternalWorker.class, new FooExternalWorkerData(1, "p1", false), false);
+        FooWorker worker2 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(2, "p2", false), false);
+        FooWorker worker3 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(3, "p3", false), false);
+        FooWorker worker4 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(4, "p3", false), false);
+        FooWorker worker5 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(5, "p3", false), false);
+        FooWorker worker6 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(6, "p3", false), false);
+        FooWorker worker7 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(7, "p3", false), false);
+        FooWorker worker8 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(8, "p3", false), false);
+        FooWorker worker9 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(9, "p3", false), false);
+        FooWorker worker0 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(0, "p3", false), false);
         Applicazione applicazione = cachedEntities.getApplicazione("procton");
         boolean wait = true;
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker4, worker5, worker6), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGH);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        bean.queue(Arrays.asList(worker4, worker5, worker6), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGH);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
-        bean.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker4, worker5, worker6), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGH);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        mjQueuer.queue(Arrays.asList(worker4, worker5, worker6), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGH);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
+//        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
     }
     
     private void test() {
