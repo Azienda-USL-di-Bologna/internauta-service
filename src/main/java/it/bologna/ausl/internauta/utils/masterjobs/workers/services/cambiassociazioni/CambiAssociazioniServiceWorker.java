@@ -7,21 +7,17 @@ import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsRuntimeE
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.WorkerResult;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.managecambiassociazioni.ManageCambiAssociazioniJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.managecambiassociazioni.ManageCambiAssociazioniJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.ServiceWorker;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import java.sql.Connection;
 import java.sql.Statement;
-import javax.annotation.PostConstruct;
 import org.hibernate.Session;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  *
@@ -30,22 +26,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 @MasterjobsWorker
 public class CambiAssociazioniServiceWorker extends ServiceWorker {
     private static Logger log = LoggerFactory.getLogger(CambiAssociazioniServiceWorker.class);
-    private String name = CambiAssociazioniServiceWorker.class.getSimpleName();
 
     public static final String CAMBIAMENTI_ASSOCIAZIONI_NOTIFY = "cambiamenti_associazioni_notify";
+    
     private Session session;
 
-    @Autowired
-    private MasterjobsJobsQueuer masterjobsJobsQueuer;
-    
-    @Autowired
-    private MasterjobsObjectsFactory masterjobsObjectsFactory;
-    
-    @PostConstruct
-    public void init() throws MasterjobsQueuingException {
+    @Override
+    public void init(MasterjobsObjectsFactory masterjobsObjectsFactory, MasterjobsJobsQueuer masterjobsJobsQueuer) throws MasterjobsWorkerException {
+        super.init(masterjobsObjectsFactory, masterjobsJobsQueuer);
+        
         session = entityManager.unwrap(Session.class);
-        // all'avvio schedulo il job per recuperare il pregresso
-        scheduleManageCambiAssociazioniJob();
+        try {
+            // all'avvio schedulo il job per recuperare il pregresso
+            scheduleManageCambiAssociazioniJob();
+        } catch (MasterjobsQueuingException ex) {
+            String errorMessage = String.format("error executing first scheduleManageCambiAssociazioniJob");
+            log.error(errorMessage, ex);
+            throw new MasterjobsWorkerException(errorMessage, ex);
+        }
         session.doWork((Connection connection) -> {
             try {
                 try (Statement listenStatement = connection.createStatement()) {
@@ -63,13 +61,12 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
     
     @Override
     public String getName() {
-        return this.name;
+        return getClass().getSimpleName();
     }
     
     @Override
     public WorkerResult doWork() throws MasterjobsWorkerException {
         log.info(String.format("starting %s...", getName()));
-        log.info(name);
         session.doWork((Connection connection) -> {
             try {
                 PGConnection pgc;
