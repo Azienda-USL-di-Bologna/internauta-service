@@ -14,5 +14,5 @@ import java.util.Map;
  * @author mdonza
  */
 public interface MdrAppartenentiRepositoryCustom {
-    public Map<Integer, List<Map<String, Object>>> selectDateOnAppartenentiByIdAzienda(Integer idAzienda) throws SQLException;
+    public Map<String, List<Map<String, Object>>> selectDateOnAppartenentiByIdAzienda(Integer idAzienda) throws SQLException;
 }

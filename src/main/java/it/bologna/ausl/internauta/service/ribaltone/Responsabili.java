@@ -15,7 +15,7 @@ public class Responsabili {
 
     private static final Logger log = LoggerFactory.getLogger(Responsabili.class);
 
-    public static String checkCodiceMatricola(Map<String, Object> responsabiliMap, Map<String, Object> mapError, Map<Integer, List<Map<String, Object>>> selectDateOnAppartenentiByIdAzienda) {
+    public static String checkCodiceMatricola(Map<String, Object> responsabiliMap, Map<String, Object> mapError, Map<String, List<Map<String, Object>>> selectDateOnAppartenentiByIdAzienda) {
         if (responsabiliMap.get("codice_matricola") == null || responsabiliMap.get("codice_matricola").toString().trim().equals("") || responsabiliMap.get("codice_matricola") == "") {
             mapError.put("ERRORE", mapError.get("ERRORE") + " codice_matricola,");
             mapError.put("codice_matricola", "");
@@ -24,7 +24,7 @@ public class Responsabili {
         } else {
             mapError.put("codice_matricola", responsabiliMap.get("codice_matricola"));
             //responsabile presente tra gli autenti
-            if (!selectDateOnAppartenentiByIdAzienda.containsKey(Integer.parseInt(responsabiliMap.get("codice_matricola").toString()))) {
+            if (!selectDateOnAppartenentiByIdAzienda.containsKey(responsabiliMap.get("codice_matricola").toString())) {
                 mapError.put("ERRORE", mapError.get("ERRORE") + " codice_matricola non trovata nella tabella appartenenti,");
                 return "";
             }
