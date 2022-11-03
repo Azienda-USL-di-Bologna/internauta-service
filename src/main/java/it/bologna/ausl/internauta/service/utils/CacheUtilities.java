@@ -23,7 +23,7 @@ public class CacheUtilities {
 
     @Autowired
     @Qualifier(value = "redisCache")
-    private RedisTemplate redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
 
     public void cleanCachePermessiUtente(Integer idUtente) {
         Set<String> keys = redisTemplate.keys(prefixInternauta + PREFIX_PERMESSI + "::" + idUtente + "*");

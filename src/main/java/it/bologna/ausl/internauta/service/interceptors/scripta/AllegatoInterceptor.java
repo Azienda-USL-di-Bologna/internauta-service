@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
-import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
@@ -31,9 +30,6 @@ import org.springframework.stereotype.Component;
 public class AllegatoInterceptor extends InternautaBaseInterceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AllegatoInterceptor.class);
-
-    @Autowired
-    private RestControllerEngineImpl restControllerEngine;
     
     @Autowired
     ReporitoryConnectionManager aziendeConnectionManager;

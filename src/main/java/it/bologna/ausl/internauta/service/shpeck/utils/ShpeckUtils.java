@@ -97,9 +97,6 @@ public class ShpeckUtils {
     private ReporitoryConnectionManager mongoConnectionManager;
 
     @Autowired
-    ShpeckCacheableFunctions shpeckCacheableFunctions;
-
-    @Autowired
     private DraftRepository draftRepository;
 
     @Autowired

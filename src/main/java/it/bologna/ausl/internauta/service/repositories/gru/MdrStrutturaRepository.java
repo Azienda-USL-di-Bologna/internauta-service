@@ -8,8 +8,6 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.List;
 import java.util.Map;
-import org.codehaus.jackson.annotate.JsonSubTypes;
-import org.hibernate.annotations.Type;
 import org.json.JSONObject;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

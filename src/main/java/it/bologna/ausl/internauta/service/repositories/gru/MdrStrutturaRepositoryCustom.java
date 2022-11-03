@@ -6,7 +6,6 @@
 package it.bologna.ausl.internauta.service.repositories.gru;
 
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 

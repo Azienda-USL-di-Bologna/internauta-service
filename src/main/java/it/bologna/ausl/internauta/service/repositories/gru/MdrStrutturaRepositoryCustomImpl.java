@@ -2,15 +2,13 @@ package it.bologna.ausl.internauta.service.repositories.gru;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepositoryCustom;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
-import org.hibernate.jpa.TypedParameterValue;
-import org.hibernate.type.IntegerType;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

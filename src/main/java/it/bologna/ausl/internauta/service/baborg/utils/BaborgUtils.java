@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.baborg.utils;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVAnomaliaException;
 import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteException;
@@ -7,6 +8,8 @@ import it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBlocc
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ImportazioniOrganigrammaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaUnificataRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrAppartenentiRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrResponsabiliRepository;
@@ -18,7 +21,12 @@ import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReade
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.ImportazioniOrganigramma;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
+import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithAttributiStrutturaAndIdAzienda;
+import it.bologna.ausl.model.entities.baborg.projections.strutturaunificata.StrutturaUnificataCustom;
 import it.bologna.ausl.mongowrapper.exceptions.MongoWrapperException;
 import java.io.File;
 import java.io.FileWriter;
@@ -26,6 +34,8 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.supercsv.cellprocessor.ift.CellProcessor;
@@ -55,10 +66,16 @@ public class BaborgUtils {
     private static Map<String, Integer> map;
 
     @Autowired
-    MdrStrutturaRepositoryCustomImpl mdrStrutturaRepositoryCustomImpl;
+    private MdrStrutturaRepositoryCustomImpl mdrStrutturaRepositoryCustomImpl;
 
     @Autowired
-    ImportazioniOrganigrammaRepository importazioniOrganigrammaRepository;
+    private ImportazioniOrganigrammaRepository importazioniOrganigrammaRepository;
+    
+    @Autowired
+    private StrutturaUnificataRepository strutturaUnificataRepository;
+    
+    @Autowired
+    private ProjectionFactory projectionFactory;
 
     // inizializzazione mappa statica
     static {
@@ -106,6 +123,9 @@ public class BaborgUtils {
 
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    StrutturaRepository strutturaRepository;
 
     @Autowired
     ReporitoryConnectionManager mongoConnectionManager;
@@ -374,5 +394,67 @@ public class BaborgUtils {
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Errore", null);
         }
         return res;
+    }
+    
+     /**
+     * Metedo da chiamare per riempire il campo fusioni di una struttura.
+     * E' necessario che in additionalData ci sia la data per fargli prendere le
+     * fusioni attive in una certa data.
+     * @param struttura
+     * @return 
+     */
+    public List<StrutturaUnificataCustom> getUnificazione(Struttura struttura, ZonedDateTime dataRiferimento, String tipoUnificazione) {
+        if (dataRiferimento == null) {
+            dataRiferimento = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS);
+        }else{
+            dataRiferimento = dataRiferimento.truncatedTo(ChronoUnit.DAYS);
+        }
+        QStrutturaUnificata qStrutturaUnificata = QStrutturaUnificata.strutturaUnificata;
+        BooleanExpression filtraFusioni = 
+                qStrutturaUnificata.dataAttivazione.loe(dataRiferimento)
+                .and((qStrutturaUnificata.dataDisattivazione.isNull()).or(qStrutturaUnificata.dataDisattivazione.goe(dataRiferimento)))
+                .and(qStrutturaUnificata.dataAccensioneAttivazione.isNotNull())
+                .and(qStrutturaUnificata.tipoOperazione.eq(tipoUnificazione))
+                .and(qStrutturaUnificata.idStrutturaSorgente.id.eq(struttura.getId())
+                        .or(qStrutturaUnificata.idStrutturaDestinazione.id.eq(struttura.getId())));
+        Iterable<StrutturaUnificata> fusioniStruttura = strutturaUnificataRepository.findAll(filtraFusioni);
+        
+        List<StrutturaUnificataCustom> fusioniStrutturaCustom = new ArrayList();
+        
+        if (fusioniStruttura != null) {
+            for (StrutturaUnificata s : fusioniStruttura) {
+                fusioniStrutturaCustom.add(projectionFactory.createProjection(StrutturaUnificataCustom.class, s));
+            }
+        }
+
+        return fusioniStrutturaCustom;
+    }
+    
+    /**
+     * 
+     * @param struttura
+     * @param dataRiferimento
+     * @param tipoUnificazione
+     * @return 
+     */
+    public List<Struttura> getStruttureUnificate(Struttura struttura, ZonedDateTime dataRiferimento, String tipoUnificazione){
+        List<StrutturaUnificataCustom> unificazione = getUnificazione(struttura, dataRiferimento, tipoUnificazione);
+        
+        List<Struttura> struttureReplicate = new ArrayList<>();
+        for (StrutturaUnificataCustom strutturaWithPlainFields : unificazione) {
+            StrutturaWithAttributiStrutturaAndIdAzienda des = (StrutturaWithAttributiStrutturaAndIdAzienda) strutturaWithPlainFields.getIdStrutturaDestinazione();
+            StrutturaWithAttributiStrutturaAndIdAzienda sor = (StrutturaWithAttributiStrutturaAndIdAzienda) strutturaWithPlainFields.getIdStrutturaSorgente();
+            Struttura toAdd = null;
+            if (des.getId().equals(struttura.getId())){
+                toAdd = strutturaRepository.getById(sor.getId());
+                
+            }else if (sor.getId().equals(struttura.getId())){
+                toAdd = strutturaRepository.getById(des.getId());
+            }
+            if (toAdd != null){
+                struttureReplicate.add(toAdd);
+            }
+        }
+        return struttureReplicate;
     }
 }

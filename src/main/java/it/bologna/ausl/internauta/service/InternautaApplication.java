@@ -1,9 +1,12 @@
 package it.bologna.ausl.internauta.service;
 
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsThreadsManager;
+import it.bologna.ausl.internauta.utils.masterjobs.executors.services.MasterjobsServicesExecutionScheduler;
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import it.bologna.ausl.internauta.service.schedulers.LogoutManager;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
 import it.bologna.ausl.internauta.service.schedulers.workers.ShutdownThread;
+import it.bologna.ausl.internauta.utils.masterjobs.executors.services.MasterjobsShutDownThread;
 import java.time.ZonedDateTime;
 import it.nextsw.common.repositories.CustomJpaRepositoryFactoryBean;
 import org.slf4j.Logger;
@@ -37,19 +40,28 @@ public class InternautaApplication {
     private static final Logger log = LoggerFactory.getLogger(InternautaApplication.class);
 
     @Autowired
-    MessageSenderManager messageSenderManager;
+    private MessageSenderManager messageSenderManager;
     
     @Autowired
-    FascicolatoreOutboxGediLocaleManager fascicolatoreOutboxGediLocaleManager;
+    private FascicolatoreOutboxGediLocaleManager fascicolatoreOutboxGediLocaleManager;
 
     @Autowired
-    LogoutManager logoutManager;
+    private LogoutManager logoutManager;
 
     @Autowired
-    ShutdownThread shutdownThread;
+    private ShutdownThread shutdownThread;
+    
+    @Autowired
+    private MasterjobsShutDownThread masterjobsShutDownThread;
+
+    @Autowired
+    private MasterjobsThreadsManager masterjobdsThreadsManager;
 
     @Value("${internauta.scheduled-thread-pool-executor.active}")
-    Boolean poolExecutorActive;
+    private Boolean poolExecutorActive;
+    
+    @Value("${masterjobs.active}")
+    private Boolean masterjobsActive;
 
     public static void main(String[] args) {
 //        System.setProperty("user.timezone", "Europe/Rome");
@@ -92,6 +104,14 @@ public class InternautaApplication {
                 log.info("impostazione ShutdownHook terminata con successo.");
             } else {
                 log.info("scheduled-thread-pool-executor not active");
+            }
+            if (masterjobsActive) {
+                log.info("starting masterjobs...");
+                masterjobdsThreadsManager.scheduleThreads();
+                log.info("setting masterjobs ShutdownHook...");
+                Runtime.getRuntime().addShutdownHook(masterjobsShutDownThread);
+            } else {
+                log.info("masterjobs not active");
             }
         };
     }
