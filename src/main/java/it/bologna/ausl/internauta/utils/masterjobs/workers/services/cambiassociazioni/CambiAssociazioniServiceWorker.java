@@ -87,6 +87,7 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
                 throw new MasterjobsRuntimeExceptionWrapper(errorMessage, ex);
             }
         });
+        log.info(String.format("%s ended", getName()));
         return null;
     }
     
