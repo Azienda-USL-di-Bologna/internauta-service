@@ -12,12 +12,15 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.managecambiassoc
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.ServiceWorker;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.logging.Level;
 import org.hibernate.Session;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.TransactionDefinition;
 
 /**
  *
@@ -33,30 +36,39 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
 
     @Override
     public void init(MasterjobsObjectsFactory masterjobsObjectsFactory, MasterjobsJobsQueuer masterjobsJobsQueuer) throws MasterjobsWorkerException {
-        super.init(masterjobsObjectsFactory, masterjobsJobsQueuer);
-        
-        session = entityManager.unwrap(Session.class);
-        try {
-            // all'avvio schedulo il job per recuperare il pregresso
-            scheduleManageCambiAssociazioniJob();
-        } catch (MasterjobsQueuingException ex) {
-            String errorMessage = String.format("error executing first scheduleManageCambiAssociazioniJob");
-            log.error(errorMessage, ex);
-            throw new MasterjobsWorkerException(errorMessage, ex);
-        }
-        session.doWork((Connection connection) -> {
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        transactionTemplate.executeWithoutResult(a -> {
             try {
-                try (Statement listenStatement = connection.createStatement()) {
-                    log.info(String.format("executing LISTEN on %s", CAMBIAMENTI_ASSOCIAZIONI_NOTIFY));
-                    listenStatement.execute(String.format("LISTEN %s", CAMBIAMENTI_ASSOCIAZIONI_NOTIFY));
-                    log.info("LISTEN completed");
+                super.init(masterjobsObjectsFactory, masterjobsJobsQueuer);
+                
+                session = entityManager.unwrap(Session.class);
+                try {
+                    // all'avvio schedulo il job per recuperare il pregresso
+                    scheduleManageCambiAssociazioniJob();
+                } catch (MasterjobsQueuingException ex) {
+                    String errorMessage = String.format("error executing first scheduleManageCambiAssociazioniJob");
+                    log.error(errorMessage, ex);
+                    throw new MasterjobsWorkerException(errorMessage, ex);
                 }
-            } catch (Throwable ex) {
-                String errorMessage = String.format("error executing LISTEN %s", CAMBIAMENTI_ASSOCIAZIONI_NOTIFY);
-                log.error(errorMessage, ex);
-                throw new MasterjobsRuntimeExceptionWrapper(errorMessage, ex);
+                session.doWork((Connection connection) -> {
+                    try {
+                        try (Statement listenStatement = connection.createStatement()) {
+                            log.info(String.format("executing LISTEN on %s", CAMBIAMENTI_ASSOCIAZIONI_NOTIFY));
+                            listenStatement.execute(String.format("LISTEN %s", CAMBIAMENTI_ASSOCIAZIONI_NOTIFY));
+                            log.info("LISTEN completed");
+                        }
+                    } catch (Throwable ex) {
+                        String errorMessage = String.format("error executing LISTEN %s", CAMBIAMENTI_ASSOCIAZIONI_NOTIFY);
+                        log.error(errorMessage, ex);
+                        throw new MasterjobsRuntimeExceptionWrapper(errorMessage, ex);
+                    }
+                });
+            } catch (MasterjobsWorkerException ex) {
+                throw new MasterjobsRuntimeExceptionWrapper(ex);
             }
         });
+        
+        
     }
     
     @Override
@@ -72,6 +84,11 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
                 PGConnection pgc;
                 if (connection.isWrapperFor(PGConnection.class)) {
                     pgc = (PGConnection) connection.unwrap(PGConnection.class);
+                    
+                    Statement selectStatement = connection.createStatement();
+                    ResultSet rs = selectStatement.executeQuery("SELECT 1");
+                    rs.close();
+                    selectStatement.close();
                     
                     // attendo una notifica per 10 secondi poi termino. Il service viene poi rischedulato ogni 30 secondi
                     PGNotification notifications[] = pgc.getNotifications(10000);
