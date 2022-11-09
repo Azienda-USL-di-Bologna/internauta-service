@@ -50,18 +50,24 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Archivio archivio = (Archivio) entity;    
-        Integer idArchivio = archivio.getId();
+        Integer idArchivioRadice = archivio.getId();
         //caso in cui sono un figlio di un archivio
         if (archivio.getIdArchivioRadice() != null){
-            idArchivio=archivio.getIdArchivioRadice().getId();
+            idArchivioRadice = archivio.getIdArchivioRadice().getId();
         }
         //archivioRepository.calcolaPermessiEspliciti(idArchivio);
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
-        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(CalcoloPermessiArchivioJobWorker.class, new CalcoloPermessiArchivioJobWorkerData(idArchivio), false);
+        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
+                CalcoloPermessiArchivioJobWorker.class,
+                new CalcoloPermessiArchivioJobWorkerData(idArchivioRadice),
+                false
+        );
         try {
-            mjQueuer.queue(worker,idArchivio.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
+            mjQueuer.queue(worker, idArchivioRadice.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
         } catch (MasterjobsQueuingException ex) {
-            return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
+            String er = "Errore nella creazione del job CalcoloPermessiArchivio";
+            LOGGER.error(er);
+            throw new AbortSaveInterceptorException(er, ex);
         }
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
