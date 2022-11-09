@@ -1060,7 +1060,7 @@ public class ScriptaCustomController {
             @RequestParam("registroGiornaliero") JSONObject registroGiornaliero,
             HttpServletRequest request) throws BlackBoxPermissionException, Http500ResponseException {
        
-        
+        log.info("sono dentro il controller per archiviare i registri giornalieri in internauta");
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Azienda azienda = aziendaRepository.findByCodice((String) registroGiornaliero.get("codiceAzienda"));
@@ -1104,6 +1104,7 @@ public class ScriptaCustomController {
             throw new Http500ResponseException("1", "Non ho trovato il fascicolo speciale");
         }
         
+        log.info("Ho terminato l'archiviazione");
         return new ResponseEntity("", HttpStatus.OK);
     }
 }
