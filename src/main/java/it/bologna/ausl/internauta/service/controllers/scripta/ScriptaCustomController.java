@@ -106,11 +106,13 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageDocReposito
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.Archivio.TipoArchivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
+import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
 import it.bologna.ausl.model.entities.shpeck.MessageInterface;
@@ -1050,6 +1052,58 @@ public class ScriptaCustomController {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         archivioDiInteresseRepository.aggiungiArchivioRecente(idArchivioRadice, persona.getId());
+        return new ResponseEntity("", HttpStatus.OK);
+    }
+    
+    @RequestMapping(value = "archiviaRgInFascicoloSpeciale", method = RequestMethod.POST)
+    public ResponseEntity<?> archiviaRgInFascicoloSpeciale(
+            @RequestParam("registroGiornaliero") JSONObject registroGiornaliero,
+            HttpServletRequest request) throws BlackBoxPermissionException, Http500ResponseException {
+       
+        
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Azienda azienda = aziendaRepository.findByCodice((String) registroGiornaliero.get("codiceAzienda"));
+        
+        Doc doc = new Doc();
+        try {
+            doc.setIdEsterno((String) registroGiornaliero.get("id"));
+            doc.setTipologia((DocDetailInterface.TipologiaDoc) registroGiornaliero.get("codice_registro"));
+            doc.setDataCreazione((ZonedDateTime) registroGiornaliero.get("data_numerazione"));
+            doc.setIdAzienda(azienda);
+            doc = docRepository.save(doc);
+        } catch (Exception ex) {
+            // Forse esisteva già per via del cannone quindi lo recupero
+            doc = docRepository.findByIdEsterno((String) registroGiornaliero.get("id"));        
+            if (doc == null) {
+                throw new Http500ResponseException("2", "Documento non trovato. E non creabile");
+            }
+        }
+        
+        
+        Integer numeroSottoarchivioSpeciale = null;
+        switch((String) registroGiornaliero.get("codice_registro")) {
+            case "RGPICO" : numeroSottoarchivioSpeciale = 1;
+            case "RGDETE" : numeroSottoarchivioSpeciale = 2;
+            case "RGDELI" : numeroSottoarchivioSpeciale = 3;
+        }
+        QArchivio qArchivioSpeciale = QArchivio.archivio;
+        BooleanExpression filter = qArchivioSpeciale.tipo.eq("SPECIALE")
+                .and(qArchivioSpeciale.idAzienda.eq(azienda))
+                .and(qArchivioSpeciale.livello.eq(3))
+                .and(qArchivioSpeciale.numero.eq(numeroSottoarchivioSpeciale));
+        Optional<Archivio> archivioSpeciale = archivioRepository.findOne(filter);
+        if(archivioSpeciale.isPresent()) {
+            ArchivioDoc archivioDoc = new ArchivioDoc();
+            archivioDoc.setIdArchivio(archivioSpeciale.get());
+            archivioDoc.setIdDoc(doc);
+            Persona babelBDS = personaRepository.getById(1);
+            archivioDoc.setIdPersonaArchiviazione(babelBDS);
+            archivioDocRepository.save(archivioDoc);
+        } else {
+            throw new Http500ResponseException("1", "Non ho trovato il fascicolo speciale");
+        }
+        
         return new ResponseEntity("", HttpStatus.OK);
     }
 }
