@@ -497,9 +497,9 @@ public class ImportaDaCSV {
                         if (ImportaDaCSVUtils.checkDateFinisconoDopoInizio(datain, datafi)) {
                             anomalia = true;
                             if (mapError.get("ERRORE") != null) {
-                                mapError.put("ERRORE", mapError.get("ERRORE") + " questa riga non è valida perche la data di fine è precedente alla data di fine, ");
+                                mapError.put("ERRORE", mapError.get("ERRORE") + " questa riga non Ã¨ valida perche la data di fine Ã¨ precedente alla data di fine, ");
                             } else {
-                                mapError.put("ERRORE", "questa riga non è valida perche la data di fine è precedente alla data di fine,");
+                                mapError.put("ERRORE", "questa riga non Ã¨ valida perche la data di fine Ã¨ precedente alla data di fine,");
                             }
                         }
 
@@ -567,7 +567,7 @@ public class ImportaDaCSV {
 //                      "codice_ente",
                             mA.setCodiceEnte(!appMapWithErrorAndAnomalia.get("codice_ente").toString().equals("") ? appMapWithErrorAndAnomalia.get("codice_ente").toString() : null);
 //                      "codice_matricola",
-                            mA.setCodiceMatricola(!appMapWithErrorAndAnomalia.get("codice_matricola").toString().equals("") ? Integer.parseInt(appMapWithErrorAndAnomalia.get("codice_matricola").toString()) : null);
+                            mA.setCodiceMatricola(!appMapWithErrorAndAnomalia.get("codice_matricola").toString().equals("") ? appMapWithErrorAndAnomalia.get("codice_matricola").toString() : null);
 //                      "cognome",
                             mA.setCognome(!appMapWithErrorAndAnomalia.get("cognome").toString().equals("") ? appMapWithErrorAndAnomalia.get("cognome").toString() : null);
 //                      "nome",
@@ -632,7 +632,7 @@ public class ImportaDaCSV {
 //                      CODICE_MATRICOLA bloccante
                         anomali = Appartenenti.checkCodiceMatricola(anagraficaMap, mapError);
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
-                        mAn.setCodiceMatricola(Integer.parseInt(mapError.get("codice_matricola").toString()));
+                        mAn.setCodiceMatricola(mapError.get("codice_matricola").toString());
 
                         if (anagraficaMap.get("email") != null && !anagraficaMap.get("email").toString().trim().equals("") && anagraficaMap.get("email") != "") {
                             mAn.setEmail(anagraficaMap.get("email").toString());
@@ -685,7 +685,7 @@ public class ImportaDaCSV {
                     mdrResponsabiliRepository.deleteByIdAzienda(idAzienda);
                     //Reading with CsvMapReader
                     Map<String, Object> responsabiliMap = null;
-                    Map<Integer, List<Map<String, Object>>> selectDateOnAppartenentiByIdAzienda = mdrAppartenentiRepository.selectDateOnAppartenentiByIdAzienda(idAzienda);
+                    Map<String, List<Map<String, Object>>> selectDateOnAppartenentiByIdAzienda = mdrAppartenentiRepository.selectDateOnAppartenentiByIdAzienda(idAzienda);
                     Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
                     anomalia = false;
                     Boolean anomali = false;
@@ -706,7 +706,7 @@ public class ImportaDaCSV {
                             anomalia = true;
                             anomaliaRiga = true;
                         } else {
-                            mR.setCodiceMatricola(Integer.parseInt(codice_matricola));
+                            mR.setCodiceMatricola(codice_matricola);
 
                         }
 
@@ -758,9 +758,9 @@ public class ImportaDaCSV {
                             anomaliaRiga = true;
                             anomalia = true;
                             if (mapError.get("ERRORE") != null) {
-                                mapError.put("ERRORE", mapError.get("ERRORE") + "questa riga non è valida perche la data di fine è precedente alla data di fine,");
+                                mapError.put("ERRORE", mapError.get("ERRORE") + "questa riga non Ã¨ valida perche la data di fine Ã¨ precedente alla data di fine,");
                             } else {
-                                mapError.put("ERRORE", "questa riga non è valida perche la data di fine è precedente alla data di fine,");
+                                mapError.put("ERRORE", "questa riga non Ã¨ valida perche la data di fine Ã¨ precedente alla data di fine,");
                             }
                         }
 //TODO si possono usare le mappe anche qui
@@ -770,7 +770,7 @@ public class ImportaDaCSV {
                                 datainString) > 0) {
                             anomaliaRiga = true;
                             anomalia = true;
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " la struttura di questo responsabile è già assegnata ad un altro respondabile,");
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " la struttura di questo responsabile Ã¨ giÃ  assegnata ad un altro respondabile,");
                         }
 //                      TIPO bloccante
                         String tipoR = Responsabili.checkTipo(responsabiliMap, mapError);
@@ -831,9 +831,9 @@ public class ImportaDaCSV {
                             nRigheAnomale++;
 
                             if (mapError.get("ERRORE") == null || "".equals(mapError.get("ERRORE").toString().trim())) {
-                                mapError.put("ERRORE", "la data di inizio è vuota");
+                                mapError.put("ERRORE", "la data di inizio Ã¨ vuota");
                             } else {
-                                mapError.put("ERRORE", mapError.get("ERRORE").toString() + ", la data di inizio è vuota");
+                                mapError.put("ERRORE", mapError.get("ERRORE").toString() + ", la data di inizio Ã¨ vuota");
                             }
                         } else {
                             datain = ImportaDaCSVUtils.formattattore(strutturaMap.get("datain"));
@@ -988,7 +988,7 @@ public class ImportaDaCSV {
                         dataTrasformazione = dataTrasformazioneT == null ? false : dataTrasformazione;
                         mT.setDataTrasformazione(dataTrasformazioneT);
 //                       DATA IN PARTENZA DEVE ESISTERE SEMPRE
-//                       PER MOTIVO DI "X", "T","R" E "U" è LA DATA INIZIO DELLA CASELLA DI PARTENZA
+//                       PER MOTIVO DI "X", "T","R" E "U" Ã¨ LA DATA INIZIO DELLA CASELLA DI PARTENZA
 //                      AGGIUNGERE BOOLEANO TEMPI_CASELLA_OK
                         ZonedDateTime dataInPartenzaT = Trasformazioni.checkDataInPartenza(trasformazioniMap, mapError, mapReader);
                         bloccante = dataInPartenzaT == null ? true : bloccante;

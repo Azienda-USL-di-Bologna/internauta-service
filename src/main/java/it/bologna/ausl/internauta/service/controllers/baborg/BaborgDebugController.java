@@ -3,13 +3,9 @@ package it.bologna.ausl.internauta.service.controllers.baborg;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
-import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsQueueData;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorkerData;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorkerDeferredData;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
@@ -26,11 +22,6 @@ import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.utentestruttura.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
-import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
-import it.bologna.ausl.model.entities.masterjobs.Job;
-import it.bologna.ausl.model.entities.masterjobs.ObjectStatus;
-import it.bologna.ausl.model.entities.masterjobs.QSet;
-import it.bologna.ausl.model.entities.masterjobs.Service;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
@@ -38,7 +29,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.ZoneId;
@@ -52,15 +45,18 @@ import java.util.stream.Collectors;
 import javax.persistence.Column;
 import javax.persistence.EntityManager;
 import javax.persistence.JoinColumn;
+import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
+import org.hibernate.Session;
+import org.hibernate.jdbc.Work;
+import org.postgresql.PGConnection;
+import org.postgresql.PGNotification;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -103,7 +99,7 @@ public class BaborgDebugController {
     @Autowired
     ParametriAziendeReader parametriAziende;
     
-    @Autowired
+    @PersistenceContext
     EntityManager entityManager;
     
     @Autowired
@@ -246,15 +242,66 @@ public class BaborgDebugController {
     }
     
     @RequestMapping(value = "test3", method = RequestMethod.GET)
-    @Transactional(rollbackFor = Throwable.class)
+//    @Transactional(rollbackFor = Throwable.class, isolation = Isolation.READ_COMMITTED,propagation = Propagation.REQUIRES_NEW)
     public void test3(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException {
-        Map entries = redisTemplate.opsForHash().entries(activeThreadsSetName);
-        for (Thread t : Thread.getAllStackTraces().keySet()) {
-            if (entries.containsKey(String.valueOf(t.getId()))) {
-                String tName = (String) entries.get(t.getId());
-                
+        Session session = entityManager.unwrap(Session.class);
+        session.doWork(new Work() {
+            @Override
+            @Transactional(propagation = Propagation.REQUIRES_NEW)
+            public void execute(Connection connection) throws SQLException {
+                //add some statement if it's required
+
+    //            transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    //            transactionTemplate.executeWithoutResult(t -> {
+                    try {
+                        Statement listenStatement = connection.createStatement();
+                        listenStatement.execute("LISTEN mymessage");
+                        listenStatement.close();
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
             }
-        }
+        });
+        
+        session.doWork(new Work() {
+            @Override
+            @Transactional(propagation = Propagation.REQUIRES_NEW)
+            public void execute(Connection connection) throws SQLException {
+                while (true) {
+                    try {
+                        PGConnection pgc = null; 
+                        if (connection.isWrapperFor(PGConnection.class)) {
+                            pgc = (PGConnection) connection.unwrap(PGConnection.class);
+                        }
+                        // issue a dummy query to contact the backend
+                        // and receive any pending notifications.
+//                        Statement selectStatement = connection.createStatement();
+//                        ResultSet rs = selectStatement.executeQuery("SELECT 1");
+//                        rs.close();
+//                        selectStatement.close();
+                        //com.impossibl.postgres.api.jdbc.PGConnection
+                        System.out.println("mi metto in wait");
+                        PGNotification notifications[] = pgc.getNotifications(5000);
+                        System.out.println("mi sveglio");
+                        if (notifications != null)
+                        {
+                            for (PGNotification pgNotification : notifications)
+                            {
+                                System.out.println("Got notification: " + pgNotification.getName() +
+                                    " with payload: " + pgNotification.getParameter());
+                            }
+                        }
+
+                        // wait a while before checking again
+////                        Thread.sleep(500);
+                    } catch (Exception sqlException) {
+                        sqlException.printStackTrace();
+                    }
+                }
+            }
+        });
+        
+        
     }
     
     @RequestMapping(value = "test4", method = RequestMethod.GET)
