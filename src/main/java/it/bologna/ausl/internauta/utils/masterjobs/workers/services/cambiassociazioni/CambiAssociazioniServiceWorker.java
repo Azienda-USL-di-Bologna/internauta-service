@@ -1,12 +1,10 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.services.cambiassociazioni;
 
-import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsRuntimeExceptionWrapper;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.WorkerResult;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.managecambiassociazioni.ManageCambiAssociazioniJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.managecambiassociazioni.ManageCambiAssociazioniJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.ServiceWorker;
@@ -28,14 +26,10 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
     private static Logger log = LoggerFactory.getLogger(CambiAssociazioniServiceWorker.class);
 
     public static final String CAMBIAMENTI_ASSOCIAZIONI_NOTIFY = "cambiamenti_associazioni_notify";
-    
-    private Session session;
 
     @Override
-    public void init(MasterjobsObjectsFactory masterjobsObjectsFactory, MasterjobsJobsQueuer masterjobsJobsQueuer) throws MasterjobsWorkerException {
-        super.init(masterjobsObjectsFactory, masterjobsJobsQueuer);
-        
-        session = entityManager.unwrap(Session.class);
+    public void preWork() throws MasterjobsWorkerException {
+        Session session = entityManager.unwrap(Session.class);
         try {
             // all'avvio schedulo il job per recuperare il pregresso
             scheduleManageCambiAssociazioniJob();
@@ -67,18 +61,22 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
     @Override
     public WorkerResult doWork() throws MasterjobsWorkerException {
         log.info(String.format("starting %s...", getName()));
+        Session session = entityManager.unwrap(Session.class);
         session.doWork((Connection connection) -> {
             try {
                 PGConnection pgc;
-                if (connection.isWrapperFor(PGConnection.class)) {
-                    pgc = (PGConnection) connection.unwrap(PGConnection.class);
-                    
-                    // attendo una notifica per 10 secondi poi termino. Il service viene poi rischedulato ogni 30 secondi
-                    PGNotification notifications[] = pgc.getNotifications(10000);
+                while (!isStopped()) {
+                    if (connection.isWrapperFor(PGConnection.class)) {
+                        pgc = (PGConnection) connection.unwrap(PGConnection.class);
 
-                    if (notifications != null && notifications.length > 0) {
-                        log.info(String.format("received notification %s. Launching scheduleManageCambiAssociazioniJob...", CAMBIAMENTI_ASSOCIAZIONI_NOTIFY));
-                        scheduleManageCambiAssociazioniJob();
+                        // attendo una notifica per 10 secondi poi termino. Il service viene poi rischedulato ogni 30 secondi
+                        PGNotification notifications[] = pgc.getNotifications(10000);
+
+                        if (notifications != null && notifications.length > 0) {
+                            log.info(String.format("received notification: %s with paylod: %s", notifications[0].getName(), notifications[0].getParameter()));
+                            log.info("Launching scheduleManageCambiAssociazioniJob...");
+                            scheduleManageCambiAssociazioniJob();
+                        }
                     }
                 }
             } catch (Throwable ex) {
