@@ -360,7 +360,7 @@ public class LoginController {
         logger.info("is a new user access ?" + newUserAccessString);
 
         //LOGIN SAML
-        if (!samlEnabled) {
+        if (!samlEnabled && !StringUtils.hasText(passToken)) {
             if (cognitoEnabled) {
                 if (cognitoCode != null && !cognitoCode.equals("")) {
                     logger.info("cognito_code: " + cognitoCode);
