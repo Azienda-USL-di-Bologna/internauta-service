@@ -105,6 +105,12 @@ import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRep
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageDocRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorkerData;
+import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.Archivio.TipoArchivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
@@ -119,6 +125,7 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWith
 import it.bologna.ausl.model.entities.shpeck.MessageInterface;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -228,7 +235,14 @@ public class ScriptaCustomController {
     private RestControllerEngineImpl restControllerEngine;
     
     @Autowired
-    ScriptaDownloadUtils scriptaDownloadUtils;
+    private ScriptaDownloadUtils scriptaDownloadUtils;
+    
+    @Autowired
+    private MasterjobsJobsQueuer mjQueuer;
+
+    @Autowired
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
+    
     
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -844,9 +858,22 @@ public class ScriptaCustomController {
     @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
     public ResponseEntity<?> calcolaPermessiEspliciti(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
-            HttpServletRequest request) {
+            HttpServletRequest request) throws AbortSaveInterceptorException {
         
-        archivioRepository.calcolaPermessiEspliciti(idArchivioRadice);
+//        archivioRepository.calcolaPermessiEspliciti(idArchivioRadice);
+        Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
+                CalcoloPermessiArchivioJobWorker.class,
+                new CalcoloPermessiArchivioJobWorkerData(idArchivioRadice),
+                false
+        );
+        try {
+            mjQueuer.queue(worker, idArchivioRadice.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
+        } catch (MasterjobsQueuingException ex) {
+            String er = "Errore nella creazione del job CalcoloPermessiArchivio";
+            LOG.error(er);
+            throw new AbortSaveInterceptorException(er, ex);
+        }
         
         return new ResponseEntity("", HttpStatus.OK);
     }
