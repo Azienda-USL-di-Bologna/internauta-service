@@ -118,4 +118,15 @@ public class AdditionalDataParamsExtractor {
         }
         return true;
     }
+    
+    public Integer getIdVersamento() {
+        Map<String, String> additionalData = additionalDataUtils.getAdditionalData();
+        if (additionalData != null) {
+            String idVersamento = additionalData.get("idVersamento");
+            if (StringUtils.hasText(idVersamento)) {
+                return Integer.parseInt(idVersamento);
+            }
+        }
+        return null;
+    }
 }

@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
  * nome tutto in minuscolo
  */
-@NextSdrRepository(repositoryPath = "${scripta.mapping.url.root}/versamento", defaultProjection = VersamentoWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "${versatore.mapping.url.root}/versamento", defaultProjection = VersamentoWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "versamento", path = "versamento", exported = false, excerptProjection = VersamentoWithPlainFields.class)
 public interface VersamentoRepository extends
         NextSdrQueryDslRepository<Versamento, Integer, QVersamento>,
