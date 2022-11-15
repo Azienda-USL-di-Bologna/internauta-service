@@ -4,6 +4,7 @@
     <property name="ANALYTICS_LOG_FILE_NAME" value="internauta-analytics" />
     <property name="FIRMA_LOG_FILE_NAME" value="internauta-firma" />
     <property name="DOWNLOADER_LOG_FILE_NAME" value="internauta-downloader" />
+    <property name="MASTERJOBS_LOG_FILE_NAME" value="internauta-masterjobs" />
     <property name="LOG_DIR" value="./logs" />
     <property name="LOG_DIR_ARCHIVE" value="./logs/archive" />
     <property name="PATTERN" value="%cyan(%d{yyyy-MM-dd HH:mm:ss}) %magenta([%thread]) %highlight(%-5level) %green(%logger{35}) - %msg%n" />
@@ -67,6 +68,18 @@
             <fileNamePattern>${LOG_DIR_ARCHIVE}/${DOWNLOADER_LOG_FILE_NAME}_%d{yyyy-MM-dd}.log.gz</fileNamePattern>
         </rollingPolicy>
     </appender>
+    <appender name="masterjobs_file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${MASTERJOBS_LOG_FILE_NAME}.log</file>
+        <append>true</append>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>
+                ${PATTERN}
+            </Pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">                                         
+            <fileNamePattern>${LOG_DIR_ARCHIVE}/${MASTERJOBS_LOG_FILE_NAME}_%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+        </rollingPolicy>
+    </appender>
     <!-- additivity=false ensures analytics data only goes to the analytics log -->
     <logger name="*" level="info" additivity="false">
         <appender-ref ref="file"/>
@@ -79,6 +92,9 @@
     </logger>
     <logger name="it.bologna.ausl.internauta.utils.downloader" level="info" additivity="true">
         <appender-ref ref="downloader_file"/>
+    </logger>
+    <logger name="it.bologna.ausl.internauta.utils.masterjobs" level="info" additivity="true">
+        <appender-ref ref="masterjobs_file"/>
     </logger>
 
     <springProfile name="dev">

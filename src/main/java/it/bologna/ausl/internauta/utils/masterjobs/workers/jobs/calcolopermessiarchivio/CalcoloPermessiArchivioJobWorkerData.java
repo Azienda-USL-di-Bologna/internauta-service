@@ -19,7 +19,7 @@ public class CalcoloPermessiArchivioJobWorkerData extends JobWorkerData {
     }
 
     public CalcoloPermessiArchivioJobWorkerData(Integer idArchivio) {
-        this.idArchivio=idArchivio;
+        this.idArchivio = idArchivio;
     }
 
     public Integer getIdArchivio() {
