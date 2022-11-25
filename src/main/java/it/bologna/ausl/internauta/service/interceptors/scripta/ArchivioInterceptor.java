@@ -7,6 +7,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQu
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorkerData;
 import it.bologna.ausl.internauta.service.repositories.scripta.MassimarioRepository;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.Archivio;
@@ -17,6 +18,7 @@ import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,17 +59,24 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         }
         //archivioRepository.calcolaPermessiEspliciti(idArchivio);
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
-        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
-                CalcoloPermessiArchivioJobWorker.class,
-                new CalcoloPermessiArchivioJobWorkerData(idArchivioRadice),
-                false
-        );
+        CalcoloPermessiArchivioJobWorker worker;
+        try {
+            worker = masterjobsObjectsFactory.getJobWorker(
+                    CalcoloPermessiArchivioJobWorker.class,
+                    new CalcoloPermessiArchivioJobWorkerData(idArchivioRadice),
+                    false
+            );
+        } catch (MasterjobsWorkerException ex) {
+            String errorMessage = "Errore nella creazione del job CalcoloPermessiArchivio";
+            LOGGER.error(errorMessage);
+            throw new AbortSaveInterceptorException(errorMessage, ex);
+        }
         try {
             mjQueuer.queue(worker, idArchivioRadice.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
         } catch (MasterjobsQueuingException ex) {
-            String er = "Errore nella creazione del job CalcoloPermessiArchivio";
-            LOGGER.error(er);
-            throw new AbortSaveInterceptorException(er, ex);
+            String errorMessage = "Errore nell'accodamento del job CalcoloPermessiArchivio";
+            LOGGER.error(errorMessage);
+            throw new AbortSaveInterceptorException(errorMessage, ex);
         }
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }

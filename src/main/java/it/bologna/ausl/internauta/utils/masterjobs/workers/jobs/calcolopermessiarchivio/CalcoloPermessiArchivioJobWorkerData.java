@@ -29,4 +29,5 @@ public class CalcoloPermessiArchivioJobWorkerData extends JobWorkerData {
     public void setIdArchivio(Integer idArchivio) {
         this.idArchivio = idArchivio;
     }
+
 }

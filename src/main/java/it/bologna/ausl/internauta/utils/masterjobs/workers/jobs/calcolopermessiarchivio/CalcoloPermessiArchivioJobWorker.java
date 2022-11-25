@@ -28,9 +28,9 @@ public class CalcoloPermessiArchivioJobWorker extends JobWorker{
     
     @Override
     protected JobWorkerResult doRealWork() throws MasterjobsWorkerException {
-        log.info("sono inizio a lavorare");
+        log.info("Inizio job");
 
-        CalcoloPermessiArchivioJobWorkerData data = (CalcoloPermessiArchivioJobWorkerData) getData();
+        CalcoloPermessiArchivioJobWorkerData data = getWorkerData(CalcoloPermessiArchivioJobWorkerData.class);
         
         try {
             archivioRepository.calcolaPermessiEspliciti(data.getIdArchivio());
@@ -39,6 +39,8 @@ public class CalcoloPermessiArchivioJobWorker extends JobWorker{
            log.error(errore, ex);
            throw new MasterjobsWorkerException(errore, ex);
         }
+        
+
         
         return null;
          
