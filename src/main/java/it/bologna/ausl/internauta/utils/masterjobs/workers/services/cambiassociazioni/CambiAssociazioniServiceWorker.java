@@ -11,6 +11,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.services.ServiceWorke
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import java.sql.Connection;
 import java.sql.Statement;
+import java.time.ZonedDateTime;
 import org.hibernate.Session;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
@@ -89,10 +90,10 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
         return null;
     }
     
-    private void scheduleManageCambiAssociazioniJob() throws MasterjobsQueuingException {
+    private void scheduleManageCambiAssociazioniJob() throws MasterjobsQueuingException, MasterjobsWorkerException {
         log.info("queueing scheduleManageCambiAssociazioniJob...");
         ManageCambiAssociazioniJobWorker worker = masterjobsObjectsFactory.getJobWorker(
-                ManageCambiAssociazioniJobWorker.class, new ManageCambiAssociazioniJobWorkerData(), false);
+                ManageCambiAssociazioniJobWorker.class, new ManageCambiAssociazioniJobWorkerData(ZonedDateTime.now()), false);
         masterjobsJobsQueuer.queue(worker, null, null, null, false, Set.SetPriority.HIGH);
         log.info("scheduleManageCambiAssociazioniJob queued");
     }
