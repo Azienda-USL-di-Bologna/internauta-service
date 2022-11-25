@@ -105,6 +105,12 @@ import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRep
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageDocRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorkerData;
+import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.Archivio.TipoArchivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
@@ -119,6 +125,7 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWith
 import it.bologna.ausl.model.entities.shpeck.MessageInterface;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -228,7 +235,14 @@ public class ScriptaCustomController {
     private RestControllerEngineImpl restControllerEngine;
     
     @Autowired
-    ScriptaDownloadUtils scriptaDownloadUtils;
+    private ScriptaDownloadUtils scriptaDownloadUtils;
+    
+    @Autowired
+    private MasterjobsJobsQueuer mjQueuer;
+
+    @Autowired
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
+    
     
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -844,9 +858,22 @@ public class ScriptaCustomController {
     @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
     public ResponseEntity<?> calcolaPermessiEspliciti(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
-            HttpServletRequest request) {
+            HttpServletRequest request) throws AbortSaveInterceptorException {
         
-        archivioRepository.calcolaPermessiEspliciti(idArchivioRadice);
+//        archivioRepository.calcolaPermessiEspliciti(idArchivioRadice);
+        Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
+                CalcoloPermessiArchivioJobWorker.class,
+                new CalcoloPermessiArchivioJobWorkerData(idArchivioRadice),
+                false
+        );
+        try {
+            mjQueuer.queue(worker, idArchivioRadice.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
+        } catch (MasterjobsQueuingException ex) {
+            String er = "Errore nella creazione del job CalcoloPermessiArchivio";
+            LOG.error(er);
+            throw new AbortSaveInterceptorException(er, ex);
+        }
         
         return new ResponseEntity("", HttpStatus.OK);
     }
@@ -1088,8 +1115,11 @@ public class ScriptaCustomController {
         Integer numeroSottoarchivioSpeciale = null;
         switch((String) registroGiornaliero.get("codice_registro")) {
             case "RGPICO" : numeroSottoarchivioSpeciale = 1;
+            break;
             case "RGDETE" : numeroSottoarchivioSpeciale = 2;
+            break;
             case "RGDELI" : numeroSottoarchivioSpeciale = 3;
+            break;
         }
         QArchivio qArchivioSpeciale = QArchivio.archivio;
         BooleanExpression filter = qArchivioSpeciale.tipo.eq("SPECIALE")
@@ -1120,4 +1150,60 @@ public class ScriptaCustomController {
         log.info("Ho terminato l'archiviazione");
         return new ResponseEntity("", HttpStatus.OK);
     }
+    
+    @RequestMapping(value = "archiviaDeteDeliInFascicoloSpeciale", method = RequestMethod.POST)
+    public ResponseEntity<?> archiviaDeteDeliInFascicoloSpeciale(
+            @RequestBody Map<String,String> datiFascicolazione,
+            HttpServletRequest request) throws BlackBoxPermissionException, Http500ResponseException, JsonProcessingException {
+            
+            Azienda azienda = aziendaRepository.findByCodice(datiFascicolazione.get("codice_azienda"));
+            Integer anno = Integer.parseInt(datiFascicolazione.get("anno"));
+            log.info(String.format("si tratta di inserire una %s" ,datiFascicolazione.get("registro")));
+            Integer numeroSottoarchivioSpeciale = null;
+            switch((String) datiFascicolazione.get("registro")) {
+                case "DETE" : numeroSottoarchivioSpeciale = 2;
+                        break;
+                case "DELI" : numeroSottoarchivioSpeciale = 3;
+                        break;
+            }
+            log.info(String.format("invece metto nel fascicolo %s", numeroSottoarchivioSpeciale));
+            QArchivio qArchivioSpeciale = QArchivio.archivio;
+            BooleanExpression filter = qArchivioSpeciale.tipo.eq("SPECIALE")
+                .and(qArchivioSpeciale.idAzienda.eq(azienda))
+                .and(qArchivioSpeciale.livello.eq(2))
+                .and(qArchivioSpeciale.anno.eq(anno))
+                .and(qArchivioSpeciale.numero.eq(numeroSottoarchivioSpeciale));
+            Optional<Archivio> archivioSpeciale = archivioRepository.findOne(filter);
+            
+            Doc doc = new Doc();
+            try {
+                doc = docRepository.findByIdEsterno(datiFascicolazione.get("guid"));
+            } catch (Exception ex) {
+                throw new Http500ResponseException("2", "Documento non trovato.");
+            }
+            
+            if(archivioSpeciale.isPresent()) {
+            log.info("ho trovato il fascicolo speciale");
+            if(!archivioDocRepository.exists(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioSpeciale.get().getId()).and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))){
+                    log.info("non essite la fascicolazione quindi la eseguo");
+                    ArchivioDoc archivioDoc = new ArchivioDoc();
+                    archivioDoc.setIdArchivio(archivioSpeciale.get());
+                    archivioDoc.setIdDoc(doc);
+                    Persona babelBDS = personaRepository.getById(1);
+                    archivioDoc.setIdPersonaArchiviazione(babelBDS);
+                    archivioDocRepository.save(archivioDoc);
+                } else {
+                    log.warn(String.format("La fascicolazione di %s nel fascicolo speciale %s esiste già", doc.getId(), archivioSpeciale.get().getId()));
+                }
+
+            } else {
+                log.error("non ho trovato il fascicolo speciale");
+                throw new Http500ResponseException("1", "Non ho trovato il fascicolo speciale");
+            }
+
+        return new ResponseEntity("", HttpStatus.OK);
+    }
+    
+    
+    
 }

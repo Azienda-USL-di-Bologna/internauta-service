@@ -236,9 +236,9 @@ public class BaborgDebugController {
 //            System.out.println(parametriAziende.getValue(parameters2.get(0), Boolean.class));
 //        else 
 //            System.out.println("parameters2 empty");
-        Object struttureRuolo = storicoRelazioneRepository.getStruttureRuolo(256, 351272);
-        
-        return struttureRuolo;
+        MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
+        mjQueuer.relaunchJobsInError();
+        return null;
     }
     
     @RequestMapping(value = "test3", method = RequestMethod.GET)
@@ -308,27 +308,27 @@ public class BaborgDebugController {
     @Transactional(rollbackFor = Throwable.class)
     public void test4(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException {
         MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
-
+//        mjQueuer.relaunchJobsInError();
 //        Service find = entityManager.find(Service.class, 1l);
 //        System.out.println(find);
         FooExternalWorker worker1 = masterjobsObjectsFactory.getJobWorker(FooExternalWorker.class, new FooExternalWorkerData(1, "p1", false), false);
         FooWorker worker2 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(2, "p2", false), false);
         FooWorker worker3 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(3, "p3", false), false);
         FooWorker worker4 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(4, "p3", false), false);
-        FooWorker worker5 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(5, "p3", false), false);
-        FooWorker worker6 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(6, "p3", false), false);
-        FooWorker worker7 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(7, "p3", false), false);
-        FooWorker worker8 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(8, "p3", false), false);
-        FooWorker worker9 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(9, "p3", false), false);
-        FooWorker worker0 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(0, "p3", false), false);
+//        FooWorker worker5 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(5, "p3", false), false);
+//        FooWorker worker6 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(6, "p3", false), false);
+//        FooWorker worker7 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(7, "p3", false), false);
+//        FooWorker worker8 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(8, "p3", false), false);
+//        FooWorker worker9 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(9, "p3", false), false);
+//        FooWorker worker0 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(0, "p3", false), false);
         Applicazione applicazione = cachedEntities.getApplicazione("procton");
-        boolean wait = true;
-        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        boolean wait = true;
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t1", applicazione.getId(), true, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t1", applicazione.getId(), true, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t1", applicazione.getId(), false, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "2", "t2", applicazione.getId(), true, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "2", "t2", applicazione.getId(), true, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "2", "t2", applicazione.getId(), true, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);

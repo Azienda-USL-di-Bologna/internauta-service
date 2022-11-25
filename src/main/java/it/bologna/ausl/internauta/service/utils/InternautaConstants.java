@@ -36,19 +36,19 @@ public class InternautaConstants {
     public static class AdditionalData {
 
         public enum Keys {
-            OperationRequested, 
-            idPec, 
-            idAzienda, 
-            idStruttura, 
-            idPersona, 
-            idProvenienzaOggetto, 
-            dataRiferimento, 
-            ruoli, 
-            Merge, 
-            CercaAncheInContatto, 
+            OperationRequested,
+            idPec,
+            idAzienda,
+            idStruttura,
+            idPersona,
+            idProvenienzaOggetto,
+            dataRiferimento,
+            ruoli,
+            Merge,
+            CercaAncheInContatto,
             CercaAncheInContattoNoTScol,
-            cercaAncheGruppi, 
-            idMessage, 
+            cercaAncheGruppi,
+            idMessage,
             codiceAzienda,
             BitPermessoMinimo,
             idArchivio,
@@ -61,6 +61,7 @@ public class InternautaConstants {
             GetPermessiDiFlusso,
             GetPermessiStrutturePec,
             FilterPecPerPermissionOfSubject,
+            CloseArchivio,
             AddPermissionsOnPec,
             AddGestoriOnPec,
             LoadDataPerInterfacciaElencoPec,
@@ -117,7 +118,7 @@ public class InternautaConstants {
 
         public enum Keys {
             PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject, UtenteLogin, IdSessionLog,
-            KRINT_ROWS, KRINT_ERRORS, ContattoGruppoAppenaCreato, MEMORY_DEBUGGER_MESSAGE_SIZE,DettagliAllegatiDaEliminare
+            KRINT_ROWS, KRINT_ERRORS, ContattoGruppoAppenaCreato, MEMORY_DEBUGGER_MESSAGE_SIZE, DettagliAllegatiDaEliminare
         }
     }
 
