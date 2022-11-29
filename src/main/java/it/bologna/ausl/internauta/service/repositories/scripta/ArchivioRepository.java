@@ -41,7 +41,7 @@ public interface ArchivioRepository extends
 //    );
     @Query(value = "select permessi.calcola_permessi_espliciti(a.id) from scripta.archivi a where id_archivio_radice = ?1",
             nativeQuery = true)
-    public boolean calcolaPermessiEspliciti(
+    public void calcolaPermessiEspliciti(
             Integer idArchivioRadice
     );
 }
