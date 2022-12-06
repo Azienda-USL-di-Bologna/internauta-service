@@ -1,7 +1,6 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.managecambiassociazioni;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.sun.org.apache.xerces.internal.impl.xs.XSMessageFormatter;
 import it.bologna.ausl.blackbox.PermissionRepositoryAccess;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
@@ -12,11 +11,9 @@ import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerDataInterface;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorkerData;
-import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;
 import it.bologna.ausl.model.entities.baborg.CambiamentiAssociazione;
 import it.bologna.ausl.model.entities.baborg.QCambiamentiAssociazione;
 import java.time.LocalDate;
@@ -25,7 +22,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 import javax.persistence.Column;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +33,7 @@ import org.springframework.data.domain.Sort;
  * @author gdm
  */
 @MasterjobsWorker
-public class ManageCambiAssociazioniJobWorker extends JobWorker {
+public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssociazioniJobWorkerData> {
     private static final Logger log = LoggerFactory.getLogger(ManageCambiAssociazioniJobWorker.class);
 
     @Autowired
@@ -54,7 +50,7 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker {
     @Override
     public JobWorkerResult doRealWork() throws MasterjobsWorkerException {
         log.info(String.format("job %s started", getName()));
-        ManageCambiAssociazioniJobWorkerData data = getWorkerData(ManageCambiAssociazioniJobWorkerData.class);
+        ManageCambiAssociazioniJobWorkerData data = getWorkerData();
         Iterable<CambiamentiAssociazione> cambiamentiAssociazioni = cambiamentiAssociazioneRepository.findAll(
                 QCambiamentiAssociazione.cambiamentiAssociazione.fatto.eq(false).and(
                         QCambiamentiAssociazione.cambiamentiAssociazione.dataInserimentoRiga.loe(data.getDataRiferimento())), 

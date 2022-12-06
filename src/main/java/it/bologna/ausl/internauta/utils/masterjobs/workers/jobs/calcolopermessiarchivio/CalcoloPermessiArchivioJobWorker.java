@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author mido
  */
 @MasterjobsWorker
-public class CalcoloPermessiArchivioJobWorker extends JobWorker{
+public class CalcoloPermessiArchivioJobWorker extends JobWorker<CalcoloPermessiArchivioJobWorkerData>{
     private static final Logger log = LoggerFactory.getLogger(CalcoloPermessiArchivioJobWorker.class);
     private final String name = CalcoloPermessiArchivioJobWorker.class.getSimpleName();
     
@@ -30,7 +30,7 @@ public class CalcoloPermessiArchivioJobWorker extends JobWorker{
     protected JobWorkerResult doRealWork() throws MasterjobsWorkerException {
         log.info("Inizio job");
 
-        CalcoloPermessiArchivioJobWorkerData data = getWorkerData(CalcoloPermessiArchivioJobWorkerData.class);
+        CalcoloPermessiArchivioJobWorkerData data = getWorkerData();
         
         try {
             archivioRepository.calcolaPermessiEspliciti(data.getIdArchivio());
