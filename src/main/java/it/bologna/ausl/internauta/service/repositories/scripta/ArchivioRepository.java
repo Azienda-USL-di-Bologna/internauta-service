@@ -7,9 +7,11 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
@@ -27,13 +29,13 @@ public interface ArchivioRepository extends
 
     /**
      *
-     * @param idArchivio
-     * @param livello
+     * @param idArchivioradice
      * @param stato
      */
-    @Query(value = "select scripta.chiudi_riapri_archivio(?1, ?2, CAST(?3 as scripta.stato_archivio)) from scripta.archivi a limit 1",
-            nativeQuery = true)
-    public boolean chiudiRiapriArchivio(Integer idArchivio, Integer livello, String stato);
+    @Transactional
+    @Modifying
+    @Query(value = "update scripta.archivi set stato = ?1 where id_archivio_radice = ?2", nativeQuery = true)
+    public void chiudiRiapriArchivio(String stato, Integer idArchivioradice);
 
 //    @Procedure("permessi.calcola_permessi_espliciti")
 //    public void calcolaPermessiEspliciti(
