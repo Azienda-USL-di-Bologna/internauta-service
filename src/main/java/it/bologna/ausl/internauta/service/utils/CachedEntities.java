@@ -89,6 +89,15 @@ public class CachedEntities {
     @Autowired
     private SupportedFileRepository supportedFileRepository;
 
+    /**
+     * torna tutte le aziende
+     * @return 
+     */
+    @Cacheable(value = "aziende")
+    public List<Azienda> getAllAziende() {
+        return aziendaRepository.findAll();
+    }
+    
     @Cacheable(value = "azienda", key = "{#id}")
     public Azienda getAzienda(Integer id) {
         Optional<Azienda> azienda = aziendaRepository.findById(id);
