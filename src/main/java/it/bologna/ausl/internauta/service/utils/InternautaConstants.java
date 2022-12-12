@@ -25,11 +25,11 @@ public class InternautaConstants {
         }
 
         public enum Ambiti {
-            BABORG, PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA, DELEGATO, MATRINT
+            BABORG, PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA, DELEGATO, MATRINT, SCRIPTA
         }
 
         public enum Tipi {
-            DELEGA, FASCICOLO, PEC, FLUSSO, TEST, INCARICO, CONTATTO, UFFICIO
+            DELEGA, FASCICOLO, PEC, FLUSSO, TEST, INCARICO, CONTATTO, UFFICIO, ARCHIVIO
         }
     }
 

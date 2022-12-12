@@ -976,6 +976,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
                         rimuoviIdContattoAncestor,
                         request,
                         null,
+                        false,
                         repositoryKey,
                         false,
                         ContattoWithDettaglioContattoList.class.getSimpleName());

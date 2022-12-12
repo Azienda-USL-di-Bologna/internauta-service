@@ -147,7 +147,12 @@ public class RubricaInterceptorUtils {
                     null,
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.ACCESSO.toString()}),
                     Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.RUBRICA.toString()}),
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.CONTATTO.toString()}), true, null, null, struttureUtente, BlackBoxConstants.Direzione.PRESENTE);
+                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.CONTATTO.toString()}), 
+                    true, 
+                    null, 
+                    null, 
+                    struttureUtente, 
+                    BlackBoxConstants.Direzione.PRESENTE);
         } catch (BlackBoxPermissionException ex) {
             LOGGER.error("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
             throw new AbortLoadInterceptorException("Errore nel caricamento dei contatti accessibili dalla BlackBox", ex);
