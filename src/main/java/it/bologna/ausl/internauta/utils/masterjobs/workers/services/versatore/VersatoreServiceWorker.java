@@ -11,12 +11,10 @@ import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReade
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader.ParametriAzienda;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
-import java.util.Arrays;
+import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +71,8 @@ public class VersatoreServiceWorker extends ServiceWorker {
         
         // richiama il metodo del core per effettuare l'accodamento del mestiere di verrsamento
         VersatoreServiceCore versatoreServiceCore = new VersatoreServiceCore(masterjobsJobsQueuer, masterjobsObjectsFactory);
-        versatoreServiceCore.queueVersatoreJobs(aziendeAttiveConParametri, Applicazione.Applicazioni.scripta.toString());
+        versatoreServiceCore.queueVersatoreJobs(SessioneVersamento.AzioneVersamento.VERSAMENTO, 
+                aziendeAttiveConParametri, Applicazione.Applicazioni.scripta.toString());
         return null;
     }
 }
