@@ -97,7 +97,7 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity di Archivio", ex);
         }
         if (archivioOld.getIdTitolo() != null && (Integer.compare(archivioOld.getIdTitolo().getId(), archivio.getIdTitolo().getId()) != 0)) {
-            if (archivioOld.getIdMassimario().getId() != null && (Integer.compare(archivioOld.getIdMassimario().getId(), archivio.getIdMassimario().getId()) != 0)) {
+            if (archivioOld.getIdMassimario() != null && (Integer.compare(archivioOld.getIdMassimario().getId(), archivio.getIdMassimario().getId()) != 0)) {
                 List<Titolo> titoliMassimario = massimarioRepository.getById(archivioOld.getIdMassimario().getId()).getTitoli();
                 if (!titoliMassimario.contains(archivio.getIdTitolo())) {
                     archivio.setAnniTenuta(null);
