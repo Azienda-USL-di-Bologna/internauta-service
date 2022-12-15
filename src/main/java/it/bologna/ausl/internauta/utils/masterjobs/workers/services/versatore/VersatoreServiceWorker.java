@@ -18,15 +18,15 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  * @author gdm
  * 
- * Classe che implementa il servizio del versamento del versatore.
+ * Classe che implementa il servizio del versatore.
  * Si occupa di leggere i parametri da configurazione.parametri_azienda e richiamare il core del servizio 
  * (la parte in cui si accodano effettivamente i mestieri di versamento) che è definita nella classe VersatoreServiceCore
  */
 @MasterjobsWorker
-public class VersatoreVersaServiceWorker extends ServiceWorker {
-    private static Logger log = LoggerFactory.getLogger(VersatoreVersaServiceWorker.class);
+public class VersatoreServiceWorker extends ServiceWorker {
+    private static Logger log = LoggerFactory.getLogger(VersatoreServiceWorker.class);
     
-    private String name = VersatoreVersaServiceWorker.class.getSimpleName();
+    private String name = VersatoreServiceWorker.class.getSimpleName();
     
     @Autowired
     private CachedEntities cachedEntities;
@@ -44,10 +44,9 @@ public class VersatoreVersaServiceWorker extends ServiceWorker {
         
         Map<Integer, Map<String, Object>> aziendeAttiveConParametri = VersatoreServiceUtils.getAziendeAttiveConParametri(parametriAziendaReader, cachedEntities);
         
-        // richiama il metodo del core per effettuare l'accodamento del mestiere di verrsamento
+        // richiama il metodo del core per effettuare l'accodamento del mestiere di versamento
         VersatoreServiceCore versatoreServiceCore = new VersatoreServiceCore(masterjobsJobsQueuer, masterjobsObjectsFactory);
-        versatoreServiceCore.queueVersatoreJobs(SessioneVersamento.AzioneVersamento.VERSAMENTO, 
-                aziendeAttiveConParametri, Applicazione.Applicazioni.scripta.toString());
+        versatoreServiceCore.queueVersatoreJobs(aziendeAttiveConParametri, Applicazione.Applicazioni.scripta.toString());
         return null;
     }
 }
