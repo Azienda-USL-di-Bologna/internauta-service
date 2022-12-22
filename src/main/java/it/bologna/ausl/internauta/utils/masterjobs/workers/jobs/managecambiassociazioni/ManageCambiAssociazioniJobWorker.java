@@ -45,7 +45,7 @@ import org.springframework.data.domain.Sort;
  * @author utente
  */
 @MasterjobsWorker
-public class ManageCambiAssociazioniJobWorker extends JobWorker {
+public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssociazioniJobWorkerData> {
     private static final Logger log = LoggerFactory.getLogger(ManageCambiAssociazioniJobWorker.class);
 
     @Autowired
@@ -80,7 +80,7 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker {
         log.info(String.format("job %s started", getName()));
         
         /*Mi tiro su tutte le righe di cambiamento associazione che hanno una data di esecuzione minore di ora*/
-        ManageCambiAssociazioniJobWorkerData data = getWorkerData(ManageCambiAssociazioniJobWorkerData.class);
+        ManageCambiAssociazioniJobWorkerData data = getWorkerData();
         Iterable<CambiamentiAssociazione> cambiamentiAssociazioni = cambiamentiAssociazioneRepository.findAll(
                 QCambiamentiAssociazione.cambiamentiAssociazione.fatto.eq(false).and(
                         QCambiamentiAssociazione.cambiamentiAssociazione.dataEsecuzione.loe(data.getDataRiferimento())), 
