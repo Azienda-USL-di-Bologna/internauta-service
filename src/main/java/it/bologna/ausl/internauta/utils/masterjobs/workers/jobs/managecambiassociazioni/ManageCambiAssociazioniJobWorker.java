@@ -78,7 +78,7 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
     @Override
     public JobWorkerResult doRealWork() throws MasterjobsWorkerException {
         log.info(String.format("job %s started", getName()));
-        
+
         /*Mi tiro su tutte le righe di cambiamento associazione che hanno una data di esecuzione minore di ora*/
         ManageCambiAssociazioniJobWorkerData data = getWorkerData();
         Iterable<CambiamentiAssociazione> cambiamentiAssociazioni = cambiamentiAssociazioneRepository.findAll(
