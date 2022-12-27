@@ -13,14 +13,9 @@ import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioR
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi.CalcolaPersoneVedentiDaArchiviJobWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi.CalcolaPersoneVedentiDaArchiviJobWorkerData;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.baborg.CambiamentiAssociazione;
 import it.bologna.ausl.model.entities.baborg.QCambiamentiAssociazione;
@@ -86,7 +81,7 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
         if (cambiamentiAssociazioni != null) {
             Set<Integer> idUtenteSet = new HashSet();
             List<Integer> idCambiamentiAssociazioni = new ArrayList<>();
-            Set<Integer> archiviDaPermessizzare = new HashSet<>();
+            Set<Integer> idArchiviRadiceDaPermessizzare = new HashSet<>();
 
             /**
              * Ciclando sui cambaimenti associazione vado a recuperare un set di archivi che hanno bisogno del ricalcolo dei permessi
@@ -102,7 +97,7 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
                     /*Mi costruisco il soggetto per la richiesta alla BB*/
                     List<PermessoEntitaStoredProcedure> permessiPersonaSuArchivi = null ;
                     List<Integer> listIdPermessiSuArchivi = new ArrayList<>();
-                    Set<Integer> setIdPermessiSuArchivi = new HashSet<>();
+//                    Set<Integer> setIdPermessiSuArchivi = new HashSet<>();
 
                     try {
                         log.info(String.format("sto chiedendo alla blackbox i permessi per la riga %s", cambiamentiAssociazione.getId()));
@@ -149,92 +144,51 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
                     }
                     /*chiamo la storedprocedure per ritornare tutti gli archivi, voglio farlo anche se l'utente non è attivo*/
                     List<Integer> archiviDaPermessizzareUtente = new ArrayList<>();
-                       if (listIdPermessiSuArchivi != null && !listIdPermessiSuArchivi.isEmpty()) {
-                           
-                        try {
-                            String archiviString;
-                            archiviString = permessoArchivioRepository.getArchiviDaPermessizzareFromIdPermessi(utente.getIdPersona().getId(), utente.getIdAzienda().getId(), UtilityFunctions.getArrayString(objectMapper, listIdPermessiSuArchivi));
-                            if(archiviString != null && archiviString.contains(",") ) {
-                                for (String field : archiviString.split(","))
-                                archiviDaPermessizzareUtente.add(Integer.parseInt(field));
-                            } else if (archiviString != null && !archiviString.contains(",")){
-                                archiviDaPermessizzareUtente.add(Integer.parseInt(archiviString));
-                            }
-                            
+                    if (!listIdPermessiSuArchivi.isEmpty()) {
+                     try {
+                         String archiviString;
+                         archiviString = permessoArchivioRepository.getArchiviRadiceDaPermessizzareFromIdPermessi(utente.getIdPersona().getId(), utente.getIdAzienda().getId(), UtilityFunctions.getArrayString(objectMapper, listIdPermessiSuArchivi));
+                         if(archiviString != null && archiviString.contains(",") ) {
+                             for (String field : archiviString.split(","))
+                             archiviDaPermessizzareUtente.add(Integer.parseInt(field));
+                         } else if (archiviString != null && !archiviString.contains(",")){
+                             archiviDaPermessizzareUtente.add(Integer.parseInt(archiviString));
+                         }
 
-                        } catch (JsonProcessingException ex) {
-                            java.util.logging.Logger.getLogger(ManageCambiAssociazioniJobWorker.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                       }
-                       /*Metto tutti gli archivi all'interno della lista di tutti gli archivi da permessizzare di tutti gli utenti*/
-                       if (!archiviDaPermessizzareUtente.isEmpty()) {
-                           archiviDaPermessizzare.addAll(archiviDaPermessizzareUtente);
-                       }
+
+                     } catch (JsonProcessingException ex) {
+                         java.util.logging.Logger.getLogger(ManageCambiAssociazioniJobWorker.class.getName()).log(Level.SEVERE, null, ex);
+                     }
+                    }
+                    /*Metto tutti gli archivi all'interno della lista di tutti gli archivi da permessizzare di tutti gli utenti*/
+                    if (!archiviDaPermessizzareUtente.isEmpty()) {
+                        idArchiviRadiceDaPermessizzare.addAll(archiviDaPermessizzareUtente);
+                    }
                 }
                 idCambiamentiAssociazioni.add(cambiamentiAssociazione.getId());
             }
             
-            /* Ora ho il set archiviDaPermessizzare contenente tutti gli archivi per il quale inseriremo:
-                - I job per il ricalcolo dei permessi sull'archivio
+            /* Ora ho il set idArchiviRadiceDaPermessizzare contenente tutti gli archivi radice per il quale inseriremo:
+                - I job per il ricalcolo dei permessi sull'alberatura archivio
                 - Un job per il calcolo delle persone vedenti sui documenti contenuti nei vari archivi
             */
-            if (!archiviDaPermessizzare.isEmpty()) {
+            if (!idArchiviRadiceDaPermessizzare.isEmpty()) {
                 
-                log.info("Ciclo gli archivi per ricalcolarne i permessi");
+                log.info("Ciclo gli id Archivi Radice per ricalcolarne i permessi");
                 
-                for (Integer archivio : archiviDaPermessizzare) {
-                    CalcoloPermessiArchivioJobWorkerData calcoloPermessiArchivioJobWorkerData = new CalcoloPermessiArchivioJobWorkerData(archivio);
-                    CalcoloPermessiArchivioJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(
-                            CalcoloPermessiArchivioJobWorker.class, 
-                            calcoloPermessiArchivioJobWorkerData, 
-                            false);
-                  
-                    try {
-                        /**
-                         * NB: Questi job vengono inseriti con waitForObject a false. Ma viene messo l'ObjectID IDENTIFICATIVO_JOB
-                         * in modo che successivamente quando verra messo il JOB CalcolaPersoneVedentiDaArchivi, questo avrà
-                         * il waitForObject a TRUE sullo stesso identificativo. Così verranno calcolare le persone vedenti dei doc solo al termine del calcolo
-                         * dei permessi espliciti degli archivi.
-                         */
-                        super.masterjobsJobsQueuer.queue(
-                                jobWorker,
-                                IDENTIFICATIVO_JOB, // ObjectID 
-                                null, 
-                                null, 
-                                false, // waitForObject
-                                it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
-                        );
-                    } catch (MasterjobsQueuingException ex) {
-                        String errorMessage = String.format("Errore nell'accodamento di %s", CalcoloPermessiArchivioJobWorker.class.getSimpleName());
-                        log.error(errorMessage, ex);
-                        throw new MasterjobsWorkerException(errorMessage, ex);
-                    }
+                for (Integer idArchivioRadice : idArchiviRadiceDaPermessizzare) {
+                    /**
+                    * NB: Questi job vengono inseriti con waitForObject a false. Ma viene messo l'ObjectID IDENTIFICATIVO_JOB
+                    * in modo che successivamente quando verra messo il JOB CalcolaPersoneVedentiDaArchivi, questo avrà
+                    * il waitForObject a TRUE sullo stesso identificativo. Così verranno calcolare le persone vedenti dei doc solo al termine del calcolo
+                    * dei permessi espliciti degli archivi.
+                    */
+                    accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, IDENTIFICATIVO_JOB, null, null);
                 }
                 
                 log.info("Inserisco il job CalcolaPersoneVedentiDaArchivi");
                 
-                accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchivi(archiviDaPermessizzare, IDENTIFICATIVO_JOB, null, null);
-                
-//                CalcolaPersoneVedentiDaArchiviJobWorkerData calcolaPersoneVedentiDaArchiviJobWorkerData = new CalcolaPersoneVedentiDaArchiviJobWorkerData(archiviDaPermessizzare);
-//                CalcolaPersoneVedentiDaArchiviJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(
-//                        CalcolaPersoneVedentiDaArchiviJobWorker.class, 
-//                        calcolaPersoneVedentiDaArchiviJobWorkerData, 
-//                        false
-//                );
-//                try {
-//                    super.masterjobsJobsQueuer.queue(
-//                                jobWorker,
-//                                IDENTIFICATIVO_JOB, // ObjectID 
-//                                null, 
-//                                null, 
-//                                true, // waitForObject
-//                                it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
-//                        );
-//                } catch (MasterjobsQueuingException ex) {
-//                    String errorMessage = String.format("Errore nell'accodamento di %s", CalcolaPersoneVedentiDaArchiviJobWorker.class.getSimpleName());
-//                    log.error(errorMessage, ex);
-//                    throw new MasterjobsWorkerException(errorMessage, ex);
-//                }
+                accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(idArchiviRadiceDaPermessizzare, IDENTIFICATIVO_JOB, null, null);
             } else {
                 log.warn("Non ho trovato nessun archivio coinvolto dai cambiamenti associazione presi in esame");
             }

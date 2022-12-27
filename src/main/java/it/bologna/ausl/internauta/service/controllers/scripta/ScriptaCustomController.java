@@ -127,6 +127,7 @@ import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashSet;
 import java.util.Set;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -855,31 +856,17 @@ public class ScriptaCustomController {
      * @param idArchivioRadice
      * @param request
      * @return 
+     * @throws it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException 
      */
     @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
     public ResponseEntity<?> calcolaPermessiEspliciti(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
             HttpServletRequest request) throws MasterjobsWorkerException {
         
-//        archivioRepository.calcolaPermessiEspliciti(idArchivioRadice);
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
-        Set<Integer> archiviDaPermessizzare = archivioRepository.getSetAlberaturaArchivioRadice(idArchivioRadice);
-        accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, "scripta_archivio", applicazione);
-        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchivi(archiviDaPermessizzare, idArchivioRadice.toString(), "scripta_archivio", applicazione);
-
-//        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
-//                CalcoloPermessiArchivioJobWorker.class,
-//                new CalcoloPermessiArchivioJobWorkerData(idArchivioRadice),
-//                false
-//        );
-//        try {
-//            mjQueuer.queue(worker, idArchivioRadice.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
-//        } catch (MasterjobsQueuingException ex) {
-//            String er = "Errore nella creazione del job CalcoloPermessiArchivio";
-//            LOG.error(er);
-//            throw new AbortSaveInterceptorException(er, ex);
-//        }
-        
+        accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
+        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
+     
         return new ResponseEntity("", HttpStatus.OK);
     }
     

@@ -4,8 +4,8 @@ import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi.CalcolaPersoneVedentiDaArchiviJobWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi.CalcolaPersoneVedentiDaArchiviJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi.CalcolaPersoneVedentiDaArchiviRadiceJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi.CalcolaPersoneVedentiDaArchiviRadiceJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
@@ -54,7 +54,7 @@ public class AccodatoreVeloce {
         }
     }
     
-    public void accodaCalcolaPermessiArchivio(Integer idArchivioRadice, String objectType, Applicazione applicazione) throws MasterjobsWorkerException {
+    public void accodaCalcolaPermessiArchivio(Integer idArchivioRadice, String objectId, String objectType, Applicazione applicazione) throws MasterjobsWorkerException {
         CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
                     CalcoloPermessiArchivioJobWorker.class,
                     new CalcoloPermessiArchivioJobWorkerData(idArchivioRadice),
@@ -66,7 +66,7 @@ public class AccodatoreVeloce {
                     idArchivioRadice.toString(), 
                     objectType, 
                     applicazione.getId(), 
-                    true, 
+                    false, 
                     it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
             );
         } catch (MasterjobsQueuingException ex) {
@@ -76,11 +76,11 @@ public class AccodatoreVeloce {
         }
     }
     
-    public void accodaCalcolaPersoneVedentiDaArchivi(Set<Integer> archiviDaPermessizzare, String objectId, String objectType, Applicazione applicazione) throws MasterjobsWorkerException {
-        CalcolaPersoneVedentiDaArchiviJobWorkerData calcolaPersoneVedentiDaArchiviJobWorkerData = new CalcolaPersoneVedentiDaArchiviJobWorkerData(archiviDaPermessizzare);
-        CalcolaPersoneVedentiDaArchiviJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
-                CalcolaPersoneVedentiDaArchiviJobWorker.class, 
-                calcolaPersoneVedentiDaArchiviJobWorkerData, 
+    public void accodaCalcolaPersoneVedentiDaArchiviRadice(Set<Integer> idArchiviRadiceDaPermessizzare, String objectId, String objectType, Applicazione applicazione) throws MasterjobsWorkerException {
+        CalcolaPersoneVedentiDaArchiviRadiceJobWorkerData calcolaPersoneVedentiDaArchiviRadiceJobWorkerData = new CalcolaPersoneVedentiDaArchiviRadiceJobWorkerData(idArchiviRadiceDaPermessizzare);
+        CalcolaPersoneVedentiDaArchiviRadiceJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
+                CalcolaPersoneVedentiDaArchiviRadiceJobWorker.class, 
+                calcolaPersoneVedentiDaArchiviRadiceJobWorkerData, 
                 false
         );
         try {
@@ -93,7 +93,7 @@ public class AccodatoreVeloce {
                     it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
             );
         } catch (MasterjobsQueuingException ex) {
-            String errorMessage = String.format("Errore nell'accodamento di %s", CalcolaPersoneVedentiDaArchiviJobWorker.class.getSimpleName());
+            String errorMessage = String.format("Errore nell'accodamento di %s", CalcolaPersoneVedentiDaArchiviRadiceJobWorker.class.getSimpleName());
             log.error(errorMessage, ex);
             throw new MasterjobsWorkerException(errorMessage, ex);
         }
