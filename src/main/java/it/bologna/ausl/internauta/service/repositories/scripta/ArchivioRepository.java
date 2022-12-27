@@ -6,6 +6,7 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.ArchivioWith
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -44,6 +45,11 @@ public interface ArchivioRepository extends
     @Query(value = "select permessi.calcola_permessi_espliciti(a.id) from scripta.archivi a where id_archivio_radice = ?1",
             nativeQuery = true)
     public void calcolaPermessiEspliciti(
+            Integer idArchivioRadice
+    );
+    
+    @Query(value = "SELECT id FROM scripta.archivi a WHERE id_archivio_radice = ?1", nativeQuery = true)
+    public Set<Integer> getSetAlberaturaArchivioRadice(
             Integer idArchivioRadice
     );
 }

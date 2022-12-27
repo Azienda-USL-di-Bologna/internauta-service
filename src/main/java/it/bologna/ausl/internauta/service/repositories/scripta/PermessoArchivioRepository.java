@@ -31,9 +31,6 @@ public interface PermessoArchivioRepository extends
         NextSdrQueryDslRepository<PermessoArchivio, Integer, QPermessoArchivio>, 
         JpaRepository<PermessoArchivio, Integer> {
 
-    
-    
-    
      @Query(value = "SELECT pa.id_persona " +
             "FROM scripta.docs d " +
             "JOIN scripta.archivi_docs ad ON ad.id_doc = d.id " +
