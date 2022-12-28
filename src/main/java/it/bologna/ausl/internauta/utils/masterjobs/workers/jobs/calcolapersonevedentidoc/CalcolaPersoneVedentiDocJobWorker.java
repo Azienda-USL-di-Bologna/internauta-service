@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author gusgus
  */
 @MasterjobsWorker
-public class CalcolaPersoneVedentiDocJobWorker extends JobWorker<CalcolaPersoneVedentiDocJobWorkerData> {
+public class CalcolaPersoneVedentiDocJobWorker extends JobWorker<CalcolaPersoneVedentiDocJobWorkerData, JobWorkerResult> {
     private static final Logger log = LoggerFactory.getLogger(CalcolaPersoneVedentiDocJobWorker.class);
     private final String name = CalcolaPersoneVedentiDocJobWorker.class.getSimpleName();
     

@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author mido
  */
 @MasterjobsWorker
-public class CalcoloPermessiArchivioJobWorker extends JobWorker<CalcoloPermessiArchivioJobWorkerData>{
+public class CalcoloPermessiArchivioJobWorker extends JobWorker<CalcoloPermessiArchivioJobWorkerData, JobWorkerResult>{
     private static final Logger log = LoggerFactory.getLogger(CalcoloPermessiArchivioJobWorker.class);
     private final String name = CalcoloPermessiArchivioJobWorker.class.getSimpleName();
     

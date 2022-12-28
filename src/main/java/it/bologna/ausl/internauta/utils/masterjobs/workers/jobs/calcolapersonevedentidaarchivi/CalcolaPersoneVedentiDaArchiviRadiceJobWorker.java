@@ -16,15 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author gusgus
  */
 @MasterjobsWorker
-public class CalcolaPersoneVedentiDaArchiviRadiceJobWorker extends JobWorker<CalcolaPersoneVedentiDaArchiviRadiceJobWorkerData> {
+public class CalcolaPersoneVedentiDaArchiviRadiceJobWorker extends JobWorker<CalcolaPersoneVedentiDaArchiviRadiceJobWorkerData, JobWorkerResult> {
     private static final Logger log = LoggerFactory.getLogger(CalcolaPersoneVedentiDaArchiviRadiceJobWorker.class);
     private final String name = CalcolaPersoneVedentiDaArchiviRadiceJobWorker.class.getSimpleName();
     
     @Autowired
     private ArchivioDocRepository archivioDocRepository;
-    
-    @Autowired
-    private AccodatoreVeloce accodatoreVeloce;
 
     @Override
     public String getName() {
@@ -47,6 +44,7 @@ public class CalcolaPersoneVedentiDaArchiviRadiceJobWorker extends JobWorker<Cal
         }    
         
         if (idDocsDaArchivi != null) {
+            AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
             for (Integer idDoc : idDocsDaArchivi) {
                 accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);
             }
