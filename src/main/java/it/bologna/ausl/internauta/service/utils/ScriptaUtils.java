@@ -79,7 +79,7 @@ public class ScriptaUtils {
 
     
     public List<Allegato> creaAndAllegaAllegati(Doc doc, InputStream allegatoInputStream, String fileName, boolean fileEstrattiSuTemp) 
-            throws MinIOWrapperException, IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
+            throws MinIOWrapperException, IOException, FileNotFoundException, NoSuchAlgorithmException, ExtractorException, UnsupportedEncodingException, MimeTypeException, AllegatoException {
         return creaAndAllegaAllegati(doc, allegatoInputStream, fileName, fileEstrattiSuTemp, false, null, false, null);
     }
     
