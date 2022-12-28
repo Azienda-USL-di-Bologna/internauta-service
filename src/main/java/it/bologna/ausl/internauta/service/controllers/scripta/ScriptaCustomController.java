@@ -123,12 +123,10 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWith
 import it.bologna.ausl.model.entities.shpeck.MessageInterface;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
-import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
-import java.util.Set;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 
@@ -237,14 +235,10 @@ public class ScriptaCustomController {
     private ScriptaDownloadUtils scriptaDownloadUtils;
     
     @Autowired
-    private MasterjobsJobsQueuer mjQueuer;
+    private MasterjobsJobsQueuer masterjobsJobsQueuer;
 
     @Autowired
     private MasterjobsObjectsFactory masterjobsObjectsFactory;
-    
-    @Autowired
-    private AccodatoreVeloce accodatoreVeloce;
-    
     
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -864,6 +858,7 @@ public class ScriptaCustomController {
             HttpServletRequest request) throws MasterjobsWorkerException {
         
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
         accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
      
@@ -934,7 +929,7 @@ public class ScriptaCustomController {
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
                 archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
                 
-                // personaVedenteRepository.aggiungiPersoneVedentiSuDocDaPermessiArchivi(doc.getId());
+                AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
                 accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
             }
         } catch (Exception e) {
@@ -1047,7 +1042,7 @@ public class ScriptaCustomController {
         AdditionalDataArchiviation additionalDataArchiviation = new AdditionalDataArchiviation(utenteAdditionalData, aziendaAdditionalData, archivioAdditionalData, LocalDateTime.now());
         shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalDataArchiviation, utente, true, true);
         
-        // personaVedenteRepository.aggiungiPersoneVedentiSuDocDaPermessiArchivi(doc.getId());
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
         
         return ResponseEntity.status(HttpStatus.OK).build();

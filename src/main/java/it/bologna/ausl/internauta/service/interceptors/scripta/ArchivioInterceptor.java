@@ -4,7 +4,9 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.MassimarioRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.scripta.Archivio;
@@ -38,9 +40,12 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private ArchivioRepository archivioRepository;
-
+    
     @Autowired
-    private AccodatoreVeloce accodatoreVeloce;
+    private MasterjobsJobsQueuer masterjobsJobsQueuer;
+    
+    @Autowired
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
 
     @Override
     public Class getTargetEntityClass() {
@@ -56,6 +61,7 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
             idArchivioRadice = archivio.getIdArchivioRadice().getId();
         }
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         try {
             accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
             accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);

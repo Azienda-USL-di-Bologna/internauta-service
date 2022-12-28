@@ -38,10 +38,11 @@ import org.springframework.data.domain.Sort;
  * @author utente
  */
 @MasterjobsWorker
-public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssociazioniJobWorkerData> {
+public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssociazioniJobWorkerData, JobWorkerResult> {
     private static final Logger log = LoggerFactory.getLogger(ManageCambiAssociazioniJobWorker.class);
     
-    private final String IDENTIFICATIVO_JOB = "ManageCambiAssociazioniID";
+    private final String OBJECT_ID_JOB = "ManageCambiAssociazioniId";
+    private final String TYPE_JOB = "ManageCambiAssociazioniType";
 
     @Autowired
     private CambiamentiAssociazioneRepository cambiamentiAssociazioneRepository;
@@ -52,15 +53,19 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
     @Autowired
     private PermissionManager permissionManager;
     
-        
     @Autowired
-    PermessoArchivioRepository permessoArchivioRepository;
+    private PermessoArchivioRepository permessoArchivioRepository;
     
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
     
-    @Autowired
-    private AccodatoreVeloce accodatoreVeloce;
+//    @Autowired
+//    private AccodatoreVeloce accodatoreVeloce;
+//    @Autowired
+//    private BeanFactory beanFactory;
+//    private AccodatoreVeloce getAccodatoreVeloceBean() {
+//        return this.beanFactory.getBean(AccodatoreVeloce.class);
+//    }
     
     @Override
     public String getName() {
@@ -176,19 +181,21 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
                 
                 log.info("Ciclo gli id Archivi Radice per ricalcolarne i permessi");
                 
+                AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+                
                 for (Integer idArchivioRadice : idArchiviRadiceDaPermessizzare) {
                     /**
-                    * NB: Questi job vengono inseriti con waitForObject a false. Ma viene messo l'ObjectID IDENTIFICATIVO_JOB
+                    * NB: Questi job vengono inseriti con waitForObject a false. Ma viene messo l'ObjectID OBJECT_ID_JOB con type TYPE_JOB
                     * in modo che successivamente quando verra messo il JOB CalcolaPersoneVedentiDaArchivi, questo avrà
                     * il waitForObject a TRUE sullo stesso identificativo. Così verranno calcolare le persone vedenti dei doc solo al termine del calcolo
                     * dei permessi espliciti degli archivi.
                     */
-                    accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, IDENTIFICATIVO_JOB, null, null);
+                    accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, OBJECT_ID_JOB, TYPE_JOB, null);
                 }
                 
-                log.info("Inserisco il job CalcolaPersoneVedentiDaArchivi");
+                log.info("Inserisco il job CalcolaPersoneVedentiDaArchiviRadice");
                 
-                accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(idArchiviRadiceDaPermessizzare, IDENTIFICATIVO_JOB, null, null);
+                accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(idArchiviRadiceDaPermessizzare, OBJECT_ID_JOB, TYPE_JOB, null);
             } else {
                 log.warn("Non ho trovato nessun archivio coinvolto dai cambiamenti associazione presi in esame");
             }

@@ -14,23 +14,21 @@ import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 /**
  *
  * @author gusgus
  */
-@Component
 public class AccodatoreVeloce {
     private static final Logger log = LoggerFactory.getLogger(AccodatoreVeloce.class);
-    
-    @Autowired
-    private MasterjobsJobsQueuer masterjobsJobsQueuer;
-    
-    @Autowired
-    private MasterjobsObjectsFactory masterjobsObjectsFactory;
-    
+    private final MasterjobsJobsQueuer masterjobsJobsQueuer;
+    private final MasterjobsObjectsFactory masterjobsObjectsFactory;
+
+    public AccodatoreVeloce(MasterjobsJobsQueuer masterjobsJobsQueuer, MasterjobsObjectsFactory masterjobsObjectsFactory) {
+        this.masterjobsJobsQueuer = masterjobsJobsQueuer;
+        this.masterjobsObjectsFactory = masterjobsObjectsFactory;
+    }
+   
     public void accodaCalcolaPersoneVedentiDoc(Integer idDoc) throws MasterjobsWorkerException {
         CalcolaPersoneVedentiDocJobWorkerData calcolaPersoneVedentiDocJobWorkerData = new CalcolaPersoneVedentiDocJobWorkerData(idDoc);
         CalcolaPersoneVedentiDocJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
@@ -61,11 +59,13 @@ public class AccodatoreVeloce {
                     false
         );
         try {
+            String app = null;
+            if (applicazione != null) app = applicazione.getId();
             masterjobsJobsQueuer.queue(
                     worker, 
                     idArchivioRadice.toString(), 
                     objectType, 
-                    applicazione.getId(), 
+                    app, 
                     false, 
                     it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
             );
@@ -84,11 +84,13 @@ public class AccodatoreVeloce {
                 false
         );
         try {
+            String app = null;
+            if (applicazione != null) app = applicazione.getId();
             masterjobsJobsQueuer.queue(
                     jobWorker,
                     objectId, 
                     objectType, 
-                    applicazione.getId(), 
+                    app, 
                     true, // waitForObject
                     it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
             );
