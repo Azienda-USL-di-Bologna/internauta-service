@@ -45,7 +45,7 @@ import org.springframework.data.domain.Sort;
  * @author utente
  */
 @MasterjobsWorker
-public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssociazioniJobWorkerData> {
+public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssociazioniJobWorkerData, JobWorkerResult> {
     private static final Logger log = LoggerFactory.getLogger(ManageCambiAssociazioniJobWorker.class);
 
     @Autowired

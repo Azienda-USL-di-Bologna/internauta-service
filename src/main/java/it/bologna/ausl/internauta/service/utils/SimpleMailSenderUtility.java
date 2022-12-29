@@ -78,6 +78,10 @@ public class SimpleMailSenderUtility {
             } else {
                 prop.put("mail.smtp.auth", "true");
             }
+            
+            if (mailParams.getSslAuth() != null && mailParams.getSslAuth()) {
+                prop.put("mail.smtp.ssl.enable", "true");
+            }
 
             if (port != null && port != -1) {
                 prop.put("mail.smtp.port", port.toString());                        // default port 25
