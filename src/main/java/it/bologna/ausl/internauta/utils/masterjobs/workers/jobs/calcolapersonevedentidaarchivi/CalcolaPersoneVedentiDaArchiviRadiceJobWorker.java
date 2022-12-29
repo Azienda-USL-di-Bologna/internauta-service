@@ -41,9 +41,12 @@ public class CalcolaPersoneVedentiDaArchiviRadiceJobWorker extends JobWorker<Cal
            String errore = "Errore nel calcolo dei documenti su cui calcolare le persone vedenti";
            log.error(errore, ex);
            throw new MasterjobsWorkerException(errore, ex);
-        }    
+        }
+        
+        log.info("idDocsDaArchivi calcolati");
         
         if (idDocsDaArchivi != null) {
+            log.info("idDocsDaArchivi non e' null");
             AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
             for (Integer idDoc : idDocsDaArchivi) {
                 accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);

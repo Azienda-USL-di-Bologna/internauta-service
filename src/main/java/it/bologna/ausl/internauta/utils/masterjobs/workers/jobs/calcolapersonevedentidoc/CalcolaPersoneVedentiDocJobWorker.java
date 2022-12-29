@@ -31,6 +31,8 @@ public class CalcolaPersoneVedentiDocJobWorker extends JobWorker<CalcolaPersoneV
         log.info("Inizio job");
         
         CalcolaPersoneVedentiDocJobWorkerData data = getWorkerData();
+        
+        log.info("Calcolo persone vedenti del doc: " + data.getIdDoc().toString());
         personaVedenteRepository.calcolaPersoneVedenti(data.getIdDoc());
         
         return null;
