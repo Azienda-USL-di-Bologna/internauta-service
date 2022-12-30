@@ -69,7 +69,7 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException(ex);
         }
         
-        return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass);
+        return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity   , projectionClass);
     }
 
     @Override
@@ -95,12 +95,16 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
-                    case CloseArchivio:
+                    case CloseOrReopenArchive:
                         try {
-                        archivioRepository.chiudiRiapriArchivio(archivio.getStato().toString(), archivioOld.getId());
-                    } catch (Exception ex) {
-                        throw new AbortSaveInterceptorException("errore nel cambio di stato dell'archivio", ex);
-                    }
+                            if (!archivio.getStato().equals(Archivio.StatoArchivio.APERTO)) {
+                                archivioRepository.eliminaBozzeDaArchivioRadice(Archivio.StatoArchivio.BOZZA.toString(), archivioOld.getId());
+                            }
+                            archivioRepository.chiudiRiapriArchivioRadice(archivio.getStato().toString(), archivioOld.getId());
+                        } catch (Exception ex) {
+                            throw new AbortSaveInterceptorException("errore nel cambio di stato dell'archivio", ex);
+                        }
+                        break;
                 }
             }
         }

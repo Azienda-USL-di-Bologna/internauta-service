@@ -61,7 +61,7 @@ public class InternautaConstants {
             GetPermessiDiFlusso,
             GetPermessiStrutturePec,
             FilterPecPerPermissionOfSubject,
-            CloseArchivio,
+            CloseOrReopenArchive,
             AddPermissionsOnPec,
             AddGestoriOnPec,
             LoadDataPerInterfacciaElencoPec,

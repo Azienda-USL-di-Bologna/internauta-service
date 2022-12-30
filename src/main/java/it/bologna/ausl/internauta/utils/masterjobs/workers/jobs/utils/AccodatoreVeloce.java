@@ -63,7 +63,7 @@ public class AccodatoreVeloce {
             if (applicazione != null) app = applicazione.getId();
             masterjobsJobsQueuer.queue(
                     worker, 
-                    idArchivioRadice.toString(), 
+                    objectId, 
                     objectType, 
                     app, 
                     false, 

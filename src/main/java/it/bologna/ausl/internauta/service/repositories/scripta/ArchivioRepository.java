@@ -28,15 +28,16 @@ public interface ArchivioRepository extends
             nativeQuery = true)
     public Integer numeraArchivio(Integer idArchivio);
 
-    /**
-     *
-     * @param idArchivioradice
-     * @param stato
-     */
+
     @Transactional
     @Modifying
     @Query(value = "update scripta.archivi set stato = ?1 where id_archivio_radice = ?2", nativeQuery = true)
-    public void chiudiRiapriArchivio(String stato, Integer idArchivioradice);
+    public void chiudiRiapriArchivioRadice(String stato, Integer idArchivioRadice);
+    
+    @Transactional
+    @Modifying
+    @Query(value = "DELETE FROM scripta.archivi WHERE stato = ?1 AND id_archivio_radice = ?2", nativeQuery = true)
+    public void eliminaBozzeDaArchivioRadice(String stato, Integer idArchivioRadice);
 
 //    @Procedure("permessi.calcola_permessi_espliciti")
 //    public void calcolaPermessiEspliciti(

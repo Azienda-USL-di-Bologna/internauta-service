@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.persistence.Column;
+import javax.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +59,9 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
     
     @Autowired
     private ObjectMapper objectMapper;
+    
+//    @Autowired
+//    private EntityManager entityManager;
     
 //    @Autowired
 //    private AccodatoreVeloce accodatoreVeloce;

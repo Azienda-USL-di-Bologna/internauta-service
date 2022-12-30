@@ -37,7 +37,7 @@ public class CalcolaPersoneVedentiDaArchiviRadiceJobWorker extends JobWorker<Cal
         
         try {
             idDocsDaArchivi = archivioDocRepository.getIdDocsDaArchiviRadice(data.getidArchiviRadice());
-        } catch (Exception ex){
+        } catch (Exception ex) {
            String errore = "Errore nel calcolo dei documenti su cui calcolare le persone vedenti";
            log.error(errore, ex);
            throw new MasterjobsWorkerException(errore, ex);
