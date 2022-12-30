@@ -31,18 +31,16 @@ public class CalcoloPermessiArchivioJobWorker extends JobWorker<CalcoloPermessiA
         log.info("Inizio job");
 
         CalcoloPermessiArchivioJobWorkerData data = getWorkerData();
+        log.info("Calcolo permessi archivioRadice: " + data.getIdArchivio().toString());
         
         try {
             archivioRepository.calcolaPermessiEspliciti(data.getIdArchivio());
-        }catch (Exception ex){
-           String errore ="Errore nel calcolo dei permessi espliciti degli archivi";
+        } catch (Exception ex){
+           String errore = "Errore nel calcolo dei permessi espliciti degli archivi";
            log.error(errore, ex);
            throw new MasterjobsWorkerException(errore, ex);
         }
         
-
-        
         return null;
-         
     }
 }
