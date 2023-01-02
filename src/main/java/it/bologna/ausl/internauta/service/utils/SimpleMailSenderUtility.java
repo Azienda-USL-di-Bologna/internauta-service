@@ -153,9 +153,9 @@ public class SimpleMailSenderUtility {
                     // Body
                     MimeBodyPart messageBodyPart = new MimeBodyPart();
                     if (htmlBody)
-                        messageBodyPart.setText(body);
+                        messageBodyPart.setContent(body, "text/html; charset=UTF-8");
                     else
-                        messageBodyPart.setContent(body, "text/html");
+                        messageBodyPart.setText(body);
                     multipart.addBodyPart(messageBodyPart);
 
                     // Allegati
@@ -173,7 +173,7 @@ public class SimpleMailSenderUtility {
                     msg.setContent(multipart);
                 } else {
                     if (htmlBody)
-                        msg.setContent(body, "text/html");
+                        msg.setContent(body, "text/html; charset=UTF-8");
                     else
                         msg.setText(body);
                 }
