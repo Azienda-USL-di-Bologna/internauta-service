@@ -21,7 +21,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * Invia una mail leggendo i parametri aziendali
+ * Invia una mail leggendo i parametri aziendali e secondo i parametri specificati.
+ * Oggetto e testo sono creati a partire dal parametro aziendale attivitaMailSender nella tabella configurazione.parametri_aziende.
  * @author gdm
  */
 @MasterjobsWorker
