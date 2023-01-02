@@ -56,6 +56,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
+import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
@@ -106,14 +107,10 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageDocReposito
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
-import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorkerData;
-import it.bologna.ausl.model.entities.masterjobs.Set;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.scripta.Archivio;
-import it.bologna.ausl.model.entities.scripta.Archivio.TipoArchivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
@@ -126,11 +123,10 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWith
 import it.bologna.ausl.model.entities.shpeck.MessageInterface;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
-import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
-import org.joda.time.DateTime;
+import java.util.HashSet;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 
@@ -239,11 +235,10 @@ public class ScriptaCustomController {
     private ScriptaDownloadUtils scriptaDownloadUtils;
     
     @Autowired
-    private MasterjobsJobsQueuer mjQueuer;
+    private MasterjobsJobsQueuer masterjobsJobsQueuer;
 
     @Autowired
     private MasterjobsObjectsFactory masterjobsObjectsFactory;
-    
     
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -855,27 +850,18 @@ public class ScriptaCustomController {
      * @param idArchivioRadice
      * @param request
      * @return 
+     * @throws it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException 
      */
     @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
     public ResponseEntity<?> calcolaPermessiEspliciti(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
-            HttpServletRequest request) throws AbortSaveInterceptorException, MasterjobsWorkerException {
+            HttpServletRequest request) throws MasterjobsWorkerException {
         
-//        archivioRepository.calcolaPermessiEspliciti(idArchivioRadice);
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
-        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
-                CalcoloPermessiArchivioJobWorker.class,
-                new CalcoloPermessiArchivioJobWorkerData(idArchivioRadice),
-                false
-        );
-        try {
-            mjQueuer.queue(worker, idArchivioRadice.toString(), "scripta_archivio", applicazione.getId(), true, Set.SetPriority.HIGHEST);
-        } catch (MasterjobsQueuingException ex) {
-            String er = "Errore nella creazione del job CalcoloPermessiArchivio";
-            LOG.error(er);
-            throw new AbortSaveInterceptorException(er, ex);
-        }
-        
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+        accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
+        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
+     
         return new ResponseEntity("", HttpStatus.OK);
     }
     
@@ -918,7 +904,7 @@ public class ScriptaCustomController {
             HttpServletRequest request,
             @RequestPart("documents") MultipartFile[] files,
             @RequestParam("idArchivio") int idArchivio
-    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
+    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, MinIOWrapperException, Http403ResponseException, BlackBoxPermissionException {
         
         projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
         Archivio archivio = archivioRepository.findById(idArchivio).get();
@@ -943,7 +929,8 @@ public class ScriptaCustomController {
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
                 archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
                 
-                personaVedenteRepository.aggiungiPersoneVedentiSuDocDaPermessiArchivi(doc.getId());
+                AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+                accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
             }
         } catch (Exception e) {
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
@@ -964,7 +951,7 @@ public class ScriptaCustomController {
             HttpServletRequest request,
             @PathVariable(required = true) Integer idMessage,
             @PathVariable(required = true) Integer idArchivio
-    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
+    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, BlackBoxPermissionException, Http404ResponseException, Http403ResponseException, BadParamsException, MinIOWrapperException, Http500ResponseException, MasterjobsWorkerException {
         projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
         
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -1055,7 +1042,8 @@ public class ScriptaCustomController {
         AdditionalDataArchiviation additionalDataArchiviation = new AdditionalDataArchiviation(utenteAdditionalData, aziendaAdditionalData, archivioAdditionalData, LocalDateTime.now());
         shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalDataArchiviation, utente, true, true);
         
-        personaVedenteRepository.aggiungiPersoneVedentiSuDocDaPermessiArchivi(doc.getId());
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+        accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
         
         return ResponseEntity.status(HttpStatus.OK).build();
     }

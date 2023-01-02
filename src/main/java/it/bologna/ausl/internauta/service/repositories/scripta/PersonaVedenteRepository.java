@@ -19,8 +19,13 @@ public interface PersonaVedenteRepository extends
         NextSdrQueryDslRepository<PersonaVedente, Long, QPersonaVedente>, 
         JpaRepository<PersonaVedente, Long> {
     
-    @Query(value = "select scripta.aggiungi_persone_vedenti_su_doc_da_permessi_archivi(?1)", nativeQuery = true)
-    public void aggiungiPersoneVedentiSuDocDaPermessiArchivi(
+//    @Query(value = "select scripta.aggiungi_persone_vedenti_su_doc_da_permessi_archivi(?1)", nativeQuery = true)
+//    public void aggiungiPersoneVedentiSuDocDaPermessiArchivi(
+//        Integer idDoc
+//    );
+    
+    @Query(value = "SELECT scripta.calcola_persone_vedenti(?1)", nativeQuery = true)
+    public void calcolaPersoneVedenti(
         Integer idDoc
     );
 }

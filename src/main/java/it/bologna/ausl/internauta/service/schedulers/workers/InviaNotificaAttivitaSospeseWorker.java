@@ -493,7 +493,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         Boolean sendMail = simpleMailSenderUtility.sendMail(handler.getIdAzienda(),
                 getMailMittente(), "Attivita' su Scrivania",
                 destinatari, body,
-                null, null, null, null);
+                null, null, null, null, false);
         if (!sendMail) {
             log.error("ERRORE: la mail NON e' stata inviata!");
             throw new Throwable("Invio mail fallito");
