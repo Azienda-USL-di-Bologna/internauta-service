@@ -23,11 +23,11 @@ public class CalcolaPersoneVedentiDaArchiviRadiceJobWorkerData extends JobWorker
         this.idArchiviRadice = idArchiviRadice;
     }
 
-    public Set<Integer> getidArchiviRadice() {
+    public Set<Integer> getIdArchiviRadice() {
         return idArchiviRadice;
     }
 
-    public void setidArchiviRadice(Set<Integer> idArchiviRadice) {
+    public void setIdArchiviRadice(Set<Integer> idArchiviRadice) {
         this.idArchiviRadice = idArchiviRadice;
     }
 

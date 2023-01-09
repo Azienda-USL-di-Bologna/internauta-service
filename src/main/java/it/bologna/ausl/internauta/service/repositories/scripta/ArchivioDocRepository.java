@@ -21,10 +21,10 @@ public interface ArchivioDocRepository extends
         NextSdrQueryDslRepository<ArchivioDoc, Integer, QArchivioDoc>,
         JpaRepository<ArchivioDoc, Integer> {
     
-    @Query(value = "SELECT DISTINCT ad.id_doc " +
-                    " FROM scripta.archivi_docs ad " +
-                    " JOIN scripta.archivi a ON a.id = ad.id_archivio" +
-                    " WHERE a.id_archivio_radice = ANY (?1)",
-            nativeQuery = true)
-    public List<Integer> getIdDocsDaArchiviRadice(Set<Integer> idArchiviRadice);
+//    @Query(value = "SELECT DISTINCT ad.id_doc " +
+//                    " FROM scripta.archivi_docs ad " +
+//                    " JOIN scripta.archivi a ON a.id = ad.id_archivio" +
+//                    " WHERE a.id_archivio_radice = ANY (?1)",
+//            nativeQuery = true)
+//    public List<Integer> getIdDocsDaArchiviRadice(Set<Integer> idArchiviRadice);
 }
