@@ -10,6 +10,9 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQu
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.Massimario;
+import it.bologna.ausl.model.entities.scripta.QMassimario;
+import it.bologna.ausl.model.entities.scripta.QTitolo;
 import it.bologna.ausl.model.entities.scripta.Titolo;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
@@ -19,6 +22,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,15 +86,32 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         } catch (BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity di Archivio", ex);
         }
-        if (archivioOld.getIdTitolo() != null && (Integer.compare(archivioOld.getIdTitolo().getId(), archivio.getIdTitolo().getId()) != 0)) {
-            if (archivioOld.getIdMassimario() != null && (Integer.compare(archivioOld.getIdMassimario().getId(), archivio.getIdMassimario().getId()) != 0)) {
-                List<Titolo> titoliMassimario = massimarioRepository.getById(archivioOld.getIdMassimario().getId()).getTitoli();
-                if (!titoliMassimario.contains(archivio.getIdTitolo())) {
-                    archivio.setAnniTenuta(null);
-                    archivio.setIdMassimario(null);
-                }
+        
+        if (archivio.getIdTitolo() == null) {
+            archivio.setAnniTenuta(null);
+            archivio.setIdMassimario(null);
+        } else if (!archivioOld.getIdTitolo().getId().equals(archivio.getIdTitolo().getId()) && archivio.getIdMassimario() != null) {
+            // Devo verificare che il nuovo titolo sia associato al massimario
+            QMassimario qMassimario = QMassimario.massimario;
+            Optional<Massimario> findOne = massimarioRepository.findOne(
+                    qMassimario.titoli.contains(archivio.getIdTitolo())
+                            .and(qMassimario.id.eq(archivio.getIdMassimario().getId())));
+            if (!findOne.isPresent()) {
+                archivio.setAnniTenuta(null);
+                archivio.setIdMassimario(null);
             }
         }
+        
+//        if (archivioOld.getIdTitolo() != null && (Integer.compare(archivioOld.getIdTitolo().getId(), archivio.getIdTitolo().getId()) != 0)) {
+//            if (archivioOld.getIdMassimario() != null && (Integer.compare(archivioOld.getIdMassimario().getId(), archivio.getIdMassimario().getId()) != 0)) {
+//                List<Titolo> titoliMassimario = massimarioRepository.getById(archivioOld.getIdMassimario().getId()).getTitoli();
+//                if (!titoliMassimario.contains(archivio.getIdTitolo())) {
+//                    archivio.setAnniTenuta(null);
+//                    archivio.setIdMassimario(null);
+//                }
+//            }
+//        }
+        
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
