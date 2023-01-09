@@ -42,6 +42,8 @@ public interface PermessoArchivioRepository extends
             nativeQuery = true)
     public List<Integer> getIdPersoneConPermessoSuArchiviazioniDelDocByIdEsterno(String idEsterno, Integer minBit);
     
+
+    
     @Query(value="select * from scripta.get_archivi_radice_da_permessizzare_from_id_permessi(?1, ?2, ?3)", nativeQuery = true)
     public String getArchiviRadiceDaPermessizzareFromIdPermessi(Integer idPersona, Integer idAzienda, String idPermessi);
 }
