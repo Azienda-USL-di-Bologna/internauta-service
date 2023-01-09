@@ -90,7 +90,7 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         if (archivio.getIdTitolo() == null) {
             archivio.setAnniTenuta(null);
             archivio.setIdMassimario(null);
-        } else if (!archivioOld.getIdTitolo().getId().equals(archivio.getIdTitolo().getId()) && archivio.getIdMassimario() != null) {
+        } else if (archivioOld.getIdTitolo() != null && !archivioOld.getIdTitolo().getId().equals(archivio.getIdTitolo().getId()) && archivio.getIdMassimario() != null) {
             // Devo verificare che il nuovo titolo sia associato al massimario
             QMassimario qMassimario = QMassimario.massimario;
             Optional<Massimario> findOne = massimarioRepository.findOne(
