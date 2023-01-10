@@ -1,12 +1,11 @@
 package it.bologna.ausl.internauta.service;
 
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsThreadsManager;
-import it.bologna.ausl.internauta.utils.masterjobs.executors.services.MasterjobsServicesExecutionScheduler;
 import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import it.bologna.ausl.internauta.service.schedulers.LogoutManager;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
 import it.bologna.ausl.internauta.service.schedulers.workers.ShutdownThread;
-import it.bologna.ausl.internauta.utils.masterjobs.executors.services.MasterjobsShutDownThread;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsShutDownThread;
 import java.time.ZonedDateTime;
 import it.nextsw.common.repositories.CustomJpaRepositoryFactoryBean;
 import org.slf4j.Logger;
@@ -26,7 +25,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         "it.bologna.ausl.internauta.service.repositories", 
         "it.bologna.ausl.blackbox.repositories", 
         "it.bologna.ausl.internauta.utils.parameters.manager.repositories",
-        "it.bologna.ausl.internauta.utils.firma.repositories"
+        "it.bologna.ausl.internauta.utils.firma.repositories",
+        "it.bologna.ausl.internauta.utils.versatore.repositories",
 },
 //        repositoryBaseClass = NextQuerydslJpaPredicateExecutorImpl.class
         repositoryFactoryBeanClass = CustomJpaRepositoryFactoryBean.class
@@ -60,8 +60,11 @@ public class InternautaApplication {
     @Value("${internauta.scheduled-thread-pool-executor.active}")
     private Boolean poolExecutorActive;
     
-    @Value("${masterjobs.active}")
-    private Boolean masterjobsActive;
+    @Value("${masterjobs.manager.jobs-executor.active}")
+    private Boolean masterjobsJobsExecutorActive;
+    
+    @Value("${masterjobs.manager.service-executor.active}")
+    private Boolean masterjobsServiceExecutorActive;
 
     public static void main(String[] args) {
 //        System.setProperty("user.timezone", "Europe/Rome");
@@ -105,13 +108,24 @@ public class InternautaApplication {
             } else {
                 log.info("scheduled-thread-pool-executor not active");
             }
-            if (masterjobsActive) {
-                log.info("starting masterjobs...");
-                masterjobdsThreadsManager.scheduleThreads();
+            
+            if (masterjobsJobsExecutorActive) {
+                log.info("starting masterjobs jobs executors...");
+                masterjobdsThreadsManager.scheduleJobsExecutorThreads();
+            } else {
+                log.info("masterjobs jobs executor not active");
+            }
+
+            if (masterjobsServiceExecutorActive) {
+                log.info("starting masterjobs service executors...");
+                masterjobdsThreadsManager.scheduleServiceExecutorThreads();
+            } else {
+                log.info("masterjobs service executor not active");
+            }
+
+            if (masterjobsJobsExecutorActive || masterjobsServiceExecutorActive) {
                 log.info("setting masterjobs ShutdownHook...");
                 Runtime.getRuntime().addShutdownHook(masterjobsShutDownThread);
-            } else {
-                log.info("masterjobs not active");
             }
         };
     }

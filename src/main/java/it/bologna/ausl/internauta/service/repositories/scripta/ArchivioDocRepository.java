@@ -6,7 +6,10 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.ArchivioDocW
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.util.List;
+import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
@@ -17,4 +20,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ArchivioDocRepository extends
         NextSdrQueryDslRepository<ArchivioDoc, Integer, QArchivioDoc>,
         JpaRepository<ArchivioDoc, Integer> {
+    
+//    @Query(value = "SELECT DISTINCT ad.id_doc " +
+//                    " FROM scripta.archivi_docs ad " +
+//                    " JOIN scripta.archivi a ON a.id = ad.id_archivio" +
+//                    " WHERE a.id_archivio_radice = ANY (?1)",
+//            nativeQuery = true)
+//    public List<Integer> getIdDocsDaArchiviRadice(Set<Integer> idArchiviRadice);
 }

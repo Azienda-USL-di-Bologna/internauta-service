@@ -146,11 +146,15 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
         boolean isEliminato = (contatto.getEliminato() && (contattoOld.getEliminato() == false));
+        boolean isRiservatoChanged = (contatto.getRiservato() != (contattoOld.getRiservato()));
         boolean isModificato = isContactModified(contatto, contattoOld);
         if (krintUtils.doIHaveToKrint(request)) {
             if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)) {
                 if (isModificato) {
                     krintRubricaService.writeGroupUpdate(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_UPDATE);
+                }
+                if (isRiservatoChanged) {
+                    krintRubricaService.writeGroupRiservato(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_RISERVATO);
                 }
                 if (isEliminato) {
                     krintRubricaService.writeGroupDelete(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_DELETE);
@@ -158,6 +162,9 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             } else if (contatto.getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
                 if (isModificato) {
                     krintRubricaService.writeContactUpdate(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_UPDATE);
+                }
+                if (isRiservatoChanged) {
+                    krintRubricaService.writeGroupRiservato(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_RISERVATO);
                 }
                 if (isEliminato) {
                     krintRubricaService.writeContactDelete(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DELETE);

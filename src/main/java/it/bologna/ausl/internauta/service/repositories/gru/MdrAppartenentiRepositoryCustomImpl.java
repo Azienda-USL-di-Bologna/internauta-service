@@ -29,13 +29,13 @@ public class MdrAppartenentiRepositoryCustomImpl implements MdrAppartenentiRepos
     ObjectMapper objectMapper;
     
     @Override
-    public Map<Integer, List<Map<String, Object>>> selectDateOnAppartenentiByIdAzienda(Integer idAzienda) throws SQLException {
+    public Map<String, List<Map<String, Object>>> selectDateOnAppartenentiByIdAzienda(Integer idAzienda) throws SQLException {
         String queryString = "select * from gru.select_appartenenti_date("+ idAzienda +")";
         Query query = em.createNativeQuery(queryString);
         //query.setParameter ( 1 , new TypedParameterValue(IntegerType.INSTANCE, idAzienda));
 //        Object resultList = query.getResultList();
         Object resDB = query.getSingleResult();
-        Map<Integer, List<Map<String, Object>>> res = objectMapper.convertValue(resDB, new TypeReference<Map<Integer, List<Map<String, Object>>>>() { });
+        Map<String, List<Map<String, Object>>> res = objectMapper.convertValue(resDB, new TypeReference<Map<String, List<Map<String, Object>>>>() { });
         //NativeQueryTools nativeQueryTools = new NativeQueryTools(em);
         //List<Map<String, Object>> res = nativeQueryTools.asListOfMaps(resultList, nativeQueryTools.getColumnNameToIndexMap(queryString));
         return res;

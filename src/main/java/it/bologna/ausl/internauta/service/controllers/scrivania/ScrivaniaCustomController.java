@@ -106,7 +106,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
     private StrutturaRepository strutturaRepository;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     @Autowired
     protected CachedEntities cachedEntities;

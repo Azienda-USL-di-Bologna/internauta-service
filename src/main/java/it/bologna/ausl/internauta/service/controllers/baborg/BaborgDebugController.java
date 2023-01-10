@@ -2,35 +2,30 @@ package it.bologna.ausl.internauta.service.controllers.baborg;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
+import it.bologna.ausl.internauta.service.repositories.baborg.CambiamentiAssociazioneRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
-import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsQueueData;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorkerData;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorkerDeferredData;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.utils.jpa.natiquery.NativeQueryTools;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
+import it.bologna.ausl.model.entities.baborg.CambiamentiAssociazione;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.utentestruttura.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
-import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
-import it.bologna.ausl.model.entities.masterjobs.Job;
-import it.bologna.ausl.model.entities.masterjobs.ObjectStatus;
-import it.bologna.ausl.model.entities.masterjobs.QSet;
-import it.bologna.ausl.model.entities.masterjobs.Service;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
@@ -38,7 +33,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.ZoneId;
@@ -47,20 +44,24 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.persistence.Column;
 import javax.persistence.EntityManager;
 import javax.persistence.JoinColumn;
+import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
+import org.hibernate.Session;
+import org.hibernate.jdbc.Work;
+import org.postgresql.PGConnection;
+import org.postgresql.PGNotification;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -103,7 +104,7 @@ public class BaborgDebugController {
     @Autowired
     ParametriAziendeReader parametriAziende;
     
-    @Autowired
+    @PersistenceContext
     EntityManager entityManager;
     
     @Autowired
@@ -117,6 +118,9 @@ public class BaborgDebugController {
     
     @Autowired
     private MasterjobsObjectsFactory masterjobsObjectsFactory;
+    
+    @Autowired
+    private CambiamentiAssociazioneRepository cambiamentiAssociazioneRepository;
 
     @Autowired
     @Qualifier(value = "redisMaterjobs")
@@ -240,48 +244,53 @@ public class BaborgDebugController {
 //            System.out.println(parametriAziende.getValue(parameters2.get(0), Boolean.class));
 //        else 
 //            System.out.println("parameters2 empty");
-        Object struttureRuolo = storicoRelazioneRepository.getStruttureRuolo(256, 351272);
-        
-        return struttureRuolo;
+        MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
+        mjQueuer.relaunchJobsInError();
+        return null;
     }
     
     @RequestMapping(value = "test3", method = RequestMethod.GET)
-    @Transactional(rollbackFor = Throwable.class)
+//    @Transactional(rollbackFor = Throwable.class, isolation = Isolation.READ_COMMITTED,propagation = Propagation.REQUIRES_NEW)
     public void test3(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException {
-        Map entries = redisTemplate.opsForHash().entries(activeThreadsSetName);
-        for (Thread t : Thread.getAllStackTraces().keySet()) {
-            if (entries.containsKey(String.valueOf(t.getId()))) {
-                String tName = (String) entries.get(t.getId());
-                
-            }
-        }
+        String query = ""
+                + "select distinct u.id_persona, array_agg(distinct id_struttura) as strutture "
+                + " from baborg.cambiamenti_associazioni ca " +
+                "join baborg.utenti u " +
+                "on u.id = ca.id_utente " +
+                "group by id_persona order by id_persona";
+        List resultList = entityManager.createNativeQuery(query).getResultList();
+        NativeQueryTools nq = new NativeQueryTools(entityManager);
+        List listarisultati = nq.asListOfMaps(resultList, nq.getColumnNameToIndexMap(query));
+        System.out.println("pippo");
+        
+
     }
     
     @RequestMapping(value = "test4", method = RequestMethod.GET)
     @Transactional(rollbackFor = Throwable.class)
-    public void test4(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException {
+    public void test4(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
         MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
-
+//        mjQueuer.relaunchJobsInError();
 //        Service find = entityManager.find(Service.class, 1l);
 //        System.out.println(find);
         FooExternalWorker worker1 = masterjobsObjectsFactory.getJobWorker(FooExternalWorker.class, new FooExternalWorkerData(1, "p1", false), false);
         FooWorker worker2 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(2, "p2", false), false);
         FooWorker worker3 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(3, "p3", false), false);
         FooWorker worker4 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(4, "p3", false), false);
-        FooWorker worker5 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(5, "p3", false), false);
-        FooWorker worker6 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(6, "p3", false), false);
-        FooWorker worker7 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(7, "p3", false), false);
-        FooWorker worker8 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(8, "p3", false), false);
-        FooWorker worker9 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(9, "p3", false), false);
-        FooWorker worker0 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(0, "p3", false), false);
+//        FooWorker worker5 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(5, "p3", false), false);
+//        FooWorker worker6 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(6, "p3", false), false);
+//        FooWorker worker7 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(7, "p3", false), false);
+//        FooWorker worker8 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(8, "p3", false), false);
+//        FooWorker worker9 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(9, "p3", false), false);
+//        FooWorker worker0 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(0, "p3", false), false);
         Applicazione applicazione = cachedEntities.getApplicazione("procton");
-        boolean wait = true;
-        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
-//        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
+//        boolean wait = true;
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t1", applicazione.getId(), true, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t1", applicazione.getId(), true, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t1", applicazione.getId(), false, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "2", "t2", applicazione.getId(), true, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "2", "t2", applicazione.getId(), true, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "2", "t2", applicazione.getId(), true, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t2", applicazione.getId(), wait, Set.SetPriority.NORMAL);

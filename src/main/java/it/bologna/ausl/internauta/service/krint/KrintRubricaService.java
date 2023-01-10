@@ -271,6 +271,33 @@ public class KrintRubricaService {
        }
     }
     
+    public void writeGroupRiservato(Contatto contatto, OperazioneKrint.CodiceOperazione codiceOperazione){
+       try{
+           KrintRubricaGruppo krintRubricaGruppo = factory.createProjection(KrintRubricaGruppo.class, contatto);
+           String jsonKrintGruppo = objectMapper.writeValueAsString(krintRubricaGruppo);
+           String azione = contatto.getRiservato() == true ? "reso " : "reso non";
+
+           krintService.writeKrintRow(
+               contatto.getId().toString(),
+               Krint.TipoOggettoKrint.RUBRICA_GRUPPO,
+               azione,
+               jsonKrintGruppo,
+               null,
+               null,
+               null,
+               null,
+               codiceOperazione);
+
+       } catch (Exception ex){
+           Integer idOggetto = null;
+           try {
+               ex.printStackTrace();
+               idOggetto = contatto.getId();
+           } catch (Exception exa) {}
+           krintService.writeKrintError(idOggetto, "writeGroupRiservato", codiceOperazione);
+       }
+    }
+    
     public void writeContactDelete(Contatto contatto, OperazioneKrint.CodiceOperazione codiceOperazione){
        try{
            KrintRubricaContatto krintRubricaContatto = factory.createProjection(KrintRubricaContatto.class, contatto);
@@ -319,6 +346,33 @@ public class KrintRubricaService {
                idOggetto = contatto.getId();
            } catch (Exception exa) {}
            krintService.writeKrintError(idOggetto, "writeContactUpdate", codiceOperazione);
+       }
+    }
+    
+    public void writeContactRiservato(Contatto contatto, OperazioneKrint.CodiceOperazione codiceOperazione){
+       try{
+           KrintRubricaContatto krintRubricaContatto = factory.createProjection(KrintRubricaContatto.class, contatto);
+           String jsonKrintContact = objectMapper.writeValueAsString(krintRubricaContatto);
+           String azione = contatto.getRiservato() == true ? "reso " : "reso non";
+
+           krintService.writeKrintRow(
+               contatto.getId().toString(),
+               Krint.TipoOggettoKrint.RUBRICA_CONTATTO,
+               azione,
+               jsonKrintContact,
+               null,
+               null,
+               null,
+               null,
+               codiceOperazione);
+
+       } catch (Exception ex){
+           Integer idOggetto = null;
+           try {
+               ex.printStackTrace();
+               idOggetto = contatto.getId();
+           } catch (Exception exa) {}
+           krintService.writeKrintError(idOggetto, "writeContactRiservato", codiceOperazione);
        }
     }
     

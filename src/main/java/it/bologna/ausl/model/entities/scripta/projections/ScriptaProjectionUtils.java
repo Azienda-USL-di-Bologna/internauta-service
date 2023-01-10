@@ -1,14 +1,17 @@
 package it.bologna.ausl.model.entities.scripta.projections;
 
 import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaArchiviUtils;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
+import it.bologna.ausl.internauta.service.repositories.versatore.VersamentoAllegatoRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
-import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetailInterface;
 import it.bologna.ausl.model.entities.scripta.Related;
+import it.bologna.ausl.model.entities.versatore.QVersamentoAllegato;
+import it.bologna.ausl.model.entities.versatore.VersamentoAllegato;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +32,7 @@ public class ScriptaProjectionUtils {
     protected ProjectionFactory factory;
     
     @Autowired
-    private ArchivioDocRepository archivioDocRepository;
+    private VersamentoAllegatoRepository versamentoAllegatoRepository;
     
     @Autowired
     protected ProjectionFactory projectionFactory;
@@ -76,7 +79,17 @@ public class ScriptaProjectionUtils {
      * Altrimenti è l'oggetto della radice
      * @return 
      */
-    public String getOggettoArchivioPerVisualizzazioneDiSicurezzaClassica(Archivio archivio){
+    public String getOggettoArchivioPerVisualizzazioneDiSicurezzaClassica(Archivio archivio) {
         return scriptaArchiviUtils.getOggettoArchivioPerVisualizzazioneDiSicurezzaClassica(archivio);
+    }
+    
+    public VersamentoAllegato getVersamentoAllegatoByIdVersamento(Allegato allegato, Integer idVersamento) {
+        if (allegato != null && idVersamento != null) {
+            QVersamentoAllegato q = QVersamentoAllegato.versamentoAllegato;
+            Optional<VersamentoAllegato> v = versamentoAllegatoRepository.findOne(q.idVersamento.id.eq(idVersamento).and(q.idAllegato.id.eq(allegato.getId())));
+            if (v.isPresent())
+                return v.get();
+        }
+        return null;
     }
 }

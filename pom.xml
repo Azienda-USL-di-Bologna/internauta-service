@@ -261,6 +261,11 @@
             <artifactId>masterjobs</artifactId>
             <version>1.1</version>
         </dependency>
+        <dependency>
+            <groupId>it.bologna.ausl.internauta.utils</groupId>
+            <artifactId>versatore</artifactId>
+            <version>1.0</version>
+        </dependency>
         
         
         <!-- altri progetti -->

@@ -56,6 +56,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
+import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
@@ -105,12 +106,18 @@ import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRep
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageDocRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
+import it.bologna.ausl.model.entities.scripta.QArchivio;
+import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
 import it.bologna.ausl.model.entities.shpeck.MessageInterface;
@@ -119,6 +126,7 @@ import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashSet;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 
@@ -224,7 +232,13 @@ public class ScriptaCustomController {
     private RestControllerEngineImpl restControllerEngine;
     
     @Autowired
-    ScriptaDownloadUtils scriptaDownloadUtils;
+    private ScriptaDownloadUtils scriptaDownloadUtils;
+    
+    @Autowired
+    private MasterjobsJobsQueuer masterjobsJobsQueuer;
+
+    @Autowired
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
     
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -328,11 +342,15 @@ public class ScriptaCustomController {
                     LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
                     throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
                 }
+                
+                response.setHeader("X-Frame-Options", "sameorigin");
+                response.setHeader("Content-Disposition", ";filename=" + allegato.getNome() + ".pdf");
 
                 if (dettaglioAllegato == null) {
                     if (tipoDettaglioAllegato.equals(Allegato.DettagliAllegato.TipoDettaglioAllegato.CONVERTITO)) {
                         // File mai convertito, lo converto e lo scarico
                         try (InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, null)) {
+                            response.setHeader("Content-Type", "application/pdf");
                             StreamUtils.copy(fileConvertito, response.getOutputStream());
                         }
                     } else {
@@ -347,12 +365,14 @@ public class ScriptaCustomController {
                                 case CONVERTITO:
                                     // File convertito ma scaduto, lo converto e lo scarico
                                     try (InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, idRepository)) {
+                                        response.setHeader("Content-Type", "application/pdf");
                                         StreamUtils.copy(fileConvertito, response.getOutputStream());
                                     }
                                     break;
                                 case ORIGINALE:
                                     // File scaduto, lo riestraggo e lo scarico
                                     try (InputStream fileOrginale = scriptaDownloadUtils.downloadOriginalAttachment(allegato)) {
+                                        response.setHeader("Content-Type", allegato.getDettagli().getOriginale().getMimeType());
                                         StreamUtils.copy(fileOrginale, response.getOutputStream());
                                     }
                                     break;
@@ -361,6 +381,7 @@ public class ScriptaCustomController {
                                     throw new Http404ResponseException("3", "Dettaglio allegato richiesto non tovato");
                             }
                         } else {
+                            response.setHeader("Content-Type", allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato).getMimeType());
                             StreamUtils.copy(fileRichiesto, response.getOutputStream());
                         }
                     }
@@ -829,14 +850,18 @@ public class ScriptaCustomController {
      * @param idArchivioRadice
      * @param request
      * @return 
+     * @throws it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException 
      */
     @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
     public ResponseEntity<?> calcolaPermessiEspliciti(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
-            HttpServletRequest request) {
+            HttpServletRequest request) throws MasterjobsWorkerException {
         
-        archivioRepository.calcolaPermessiEspliciti(idArchivioRadice);
-        
+        Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+        accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
+        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
+     
         return new ResponseEntity("", HttpStatus.OK);
     }
     
@@ -879,7 +904,7 @@ public class ScriptaCustomController {
             HttpServletRequest request,
             @RequestPart("documents") MultipartFile[] files,
             @RequestParam("idArchivio") int idArchivio
-    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
+    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, MinIOWrapperException, Http403ResponseException, BlackBoxPermissionException {
         
         projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
         Archivio archivio = archivioRepository.findById(idArchivio).get();
@@ -903,6 +928,9 @@ public class ScriptaCustomController {
                 ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
                 archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
+                
+                AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+                accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
             }
         } catch (Exception e) {
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
@@ -923,7 +951,7 @@ public class ScriptaCustomController {
             HttpServletRequest request,
             @PathVariable(required = true) Integer idMessage,
             @PathVariable(required = true) Integer idArchivio
-    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, Throwable {
+    ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, BlackBoxPermissionException, Http404ResponseException, Http403ResponseException, BadParamsException, MinIOWrapperException, Http500ResponseException, MasterjobsWorkerException {
         projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
         
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -1014,7 +1042,8 @@ public class ScriptaCustomController {
         AdditionalDataArchiviation additionalDataArchiviation = new AdditionalDataArchiviation(utenteAdditionalData, aziendaAdditionalData, archivioAdditionalData, LocalDateTime.now());
         shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalDataArchiviation, utente, true, true);
         
-        personaVedenteRepository.aggiungiPersoneVedentiSuDocDaPermessiArchivi(doc.getId());
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+        accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
         
         return ResponseEntity.status(HttpStatus.OK).build();
     }
@@ -1043,4 +1072,127 @@ public class ScriptaCustomController {
         archivioDiInteresseRepository.aggiungiArchivioRecente(idArchivioRadice, persona.getId());
         return new ResponseEntity("", HttpStatus.OK);
     }
+    
+    @RequestMapping(value = "archiviaRgInFascicoloSpeciale", method = RequestMethod.POST)
+    public ResponseEntity<?> archiviaRgInFascicoloSpeciale(
+            @RequestBody Map<String,String> registroGiornaliero,
+            HttpServletRequest request) throws BlackBoxPermissionException, Http500ResponseException, JsonProcessingException {
+       
+        log.info("sono dentro il controller per archiviare i registri giornalieri in internauta");
+        log.info(objectMapper.writeValueAsString(registroGiornaliero));
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Azienda azienda = aziendaRepository.findByCodice(registroGiornaliero.get("codiceAzienda"));
+        Integer anno = Integer.parseInt(registroGiornaliero.get("anno"));
+
+        Doc doc = new Doc();
+        try {
+            doc.setIdEsterno((String) registroGiornaliero.get("id"));
+            doc.setTipologia(objectMapper.readValue(registroGiornaliero.get("codice_registro"), DocDetailInterface.TipologiaDoc.class));
+            doc.setIdAzienda(azienda);
+            doc = docRepository.save(doc);
+        } catch (Exception ex) {
+            log.error("errore nella creazione del doc internauta", ex);
+            // Forse esisteva già per via del cannone quindi lo recupero
+            doc = docRepository.findByIdEsterno((String) registroGiornaliero.get("id"));        
+            if (doc == null) {
+                throw new Http500ResponseException("2", "Documento non trovato. E non creabile");
+            }
+        }
+        
+        
+        Integer numeroSottoarchivioSpeciale = null;
+        switch((String) registroGiornaliero.get("codice_registro")) {
+            case "RGPICO" : numeroSottoarchivioSpeciale = 1;
+            break;
+            case "RGDETE" : numeroSottoarchivioSpeciale = 2;
+            break;
+            case "RGDELI" : numeroSottoarchivioSpeciale = 3;
+            break;
+        }
+        QArchivio qArchivioSpeciale = QArchivio.archivio;
+        BooleanExpression filter = qArchivioSpeciale.tipo.eq("SPECIALE")
+                .and(qArchivioSpeciale.idAzienda.eq(azienda))
+                .and(qArchivioSpeciale.livello.eq(3))
+                .and(qArchivioSpeciale.anno.eq(anno))
+                .and(qArchivioSpeciale.numero.eq(numeroSottoarchivioSpeciale));
+        Optional<Archivio> archivioSpeciale = archivioRepository.findOne(filter);
+        if(archivioSpeciale.isPresent()) {
+            log.info("ho trovato il fascicolo speciale");
+            if(!archivioDocRepository.exists(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioSpeciale.get().getId()).and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))){
+                log.info("non essite la fascicolazione quindi la eseguo");
+                ArchivioDoc archivioDoc = new ArchivioDoc();
+                archivioDoc.setIdArchivio(archivioSpeciale.get());
+                archivioDoc.setIdDoc(doc);
+                Persona babelBDS = personaRepository.getById(1);
+                archivioDoc.setIdPersonaArchiviazione(babelBDS);
+                archivioDocRepository.save(archivioDoc);
+            } else {
+                log.warn(String.format("La fascicolazione del registro %s nel fascicolo speciale %s esiste già", doc.getId(), archivioSpeciale.get().getId()));
+            }
+            
+        } else {
+            log.error("non ho trovato il fascicolo speciale");
+            throw new Http500ResponseException("1", "Non ho trovato il fascicolo speciale");
+        }
+        
+        log.info("Ho terminato l'archiviazione");
+        return new ResponseEntity("", HttpStatus.OK);
+    }
+    
+    @RequestMapping(value = "archiviaDeteDeliInFascicoloSpeciale", method = RequestMethod.POST)
+    public ResponseEntity<?> archiviaDeteDeliInFascicoloSpeciale(
+            @RequestBody Map<String,String> datiFascicolazione,
+            HttpServletRequest request) throws BlackBoxPermissionException, Http500ResponseException, JsonProcessingException {
+            
+            Azienda azienda = aziendaRepository.findByCodice(datiFascicolazione.get("codice_azienda"));
+            Integer anno = Integer.parseInt(datiFascicolazione.get("anno"));
+            log.info(String.format("si tratta di inserire una %s" ,datiFascicolazione.get("registro")));
+            Integer numeroSottoarchivioSpeciale = null;
+            switch((String) datiFascicolazione.get("registro")) {
+                case "DETE" : numeroSottoarchivioSpeciale = 2;
+                        break;
+                case "DELI" : numeroSottoarchivioSpeciale = 3;
+                        break;
+            }
+            log.info(String.format("invece metto nel fascicolo %s", numeroSottoarchivioSpeciale));
+            QArchivio qArchivioSpeciale = QArchivio.archivio;
+            BooleanExpression filter = qArchivioSpeciale.tipo.eq("SPECIALE")
+                .and(qArchivioSpeciale.idAzienda.eq(azienda))
+                .and(qArchivioSpeciale.livello.eq(2))
+                .and(qArchivioSpeciale.anno.eq(anno))
+                .and(qArchivioSpeciale.numero.eq(numeroSottoarchivioSpeciale));
+            Optional<Archivio> archivioSpeciale = archivioRepository.findOne(filter);
+            
+            Doc doc = new Doc();
+            try {
+                doc = docRepository.findByIdEsterno(datiFascicolazione.get("guid"));
+            } catch (Exception ex) {
+                throw new Http500ResponseException("2", "Documento non trovato.");
+            }
+            
+            if(archivioSpeciale.isPresent()) {
+            log.info("ho trovato il fascicolo speciale");
+            if(!archivioDocRepository.exists(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioSpeciale.get().getId()).and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))){
+                    log.info("non essite la fascicolazione quindi la eseguo");
+                    ArchivioDoc archivioDoc = new ArchivioDoc();
+                    archivioDoc.setIdArchivio(archivioSpeciale.get());
+                    archivioDoc.setIdDoc(doc);
+                    Persona babelBDS = personaRepository.getById(1);
+                    archivioDoc.setIdPersonaArchiviazione(babelBDS);
+                    archivioDocRepository.save(archivioDoc);
+                } else {
+                    log.warn(String.format("La fascicolazione di %s nel fascicolo speciale %s esiste già", doc.getId(), archivioSpeciale.get().getId()));
+                }
+
+            } else {
+                log.error("non ho trovato il fascicolo speciale");
+                throw new Http500ResponseException("1", "Non ho trovato il fascicolo speciale");
+            }
+
+        return new ResponseEntity("", HttpStatus.OK);
+    }
+    
+    
+    
 }
