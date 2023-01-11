@@ -58,7 +58,7 @@ public class LanciaTrasformatoreServiceWorker extends ServiceWorker {
             if (parameters != null && !parameters.isEmpty()) {
                 email = parametriAziende.getValue(parameters.get(0), new TypeReference<List<String>>() {}).get(0);
         }
-            ribaltoneDaLanciareRepository.sendNotifyInternauta(azienda.getCodice(), Boolean.TRUE, Boolean.TRUE, "Servizio notturno", email, user.getId());
+            ribaltoneDaLanciareRepository.sendNotifyInternauta(azienda.getCodice(), azienda.getRibaltaArgo(), azienda.getRibaltaInternauta(), "Servizio notturno", email, user.getId());
         }
         log.info(String.format("end %s...", getName()));
         return null;
