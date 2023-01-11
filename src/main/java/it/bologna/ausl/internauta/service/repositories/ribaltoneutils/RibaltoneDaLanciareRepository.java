@@ -28,11 +28,12 @@ public interface RibaltoneDaLanciareRepository extends
     value = "SELECT distinct on(id_azienda) id FROM ribaltone_utils.ribaltoni_da_lanciare order by id_azienda, data_inserimento_riga desc", nativeQuery = true)
     List<Integer> getUltimoStato();
     
-    @Query(value = "SELECT pg_notify('trasforma', 'AVEC_____'||?1||'_____'||?2||'_____'||?3||'_____'||?4)", nativeQuery = true)
-//    @Query(value = "NOTIFY trasforma,'AVEC_?1_?2_?3_?4'", nativeQuery = true)
+    @Query(value = "SELECT pg_notify('trasforma', 'AVEC_____'||?1||'_____'||?2||'_____'||?3||'_____'||?4||'_____'||?5||'_____'||?6)", nativeQuery = true)
     public void sendNotifyInternauta(
             @Param("codiceEnte") String codiceEnte, 
             @Param("ribaltaArgo") Boolean ribaltaArgo, 
             @Param("ribaltaInternauta") Boolean ribaltaInternauta,
-            @Param("note") String note);
+            @Param("note") String note,
+            @Param("email") String email,
+            @Param("idUtente") Integer idUtente);
 }
