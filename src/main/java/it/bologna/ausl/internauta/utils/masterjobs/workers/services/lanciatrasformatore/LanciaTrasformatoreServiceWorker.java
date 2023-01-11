@@ -38,9 +38,9 @@ public class LanciaTrasformatoreServiceWorker extends ServiceWorker {
         log.info(String.format("starting %s...", getName()));
         List<Azienda> allAziende = cachedEntities.getAllAziende();
         for (Azienda azienda : allAziende) {
-            ribaltoneDaLanciareRepository.sendNotifyInternauta(azienda.getCodice(), Boolean.TRUE, Boolean.TRUE, Boolean.TRUE);
-            
+            ribaltoneDaLanciareRepository.sendNotifyInternauta(azienda.getCodice(), Boolean.TRUE, Boolean.TRUE, "Servizio notturno");
         }
+        log.info(String.format("end %s...", getName()));
         return null;
     }
     
