@@ -149,31 +149,31 @@ public class ScriptaCustomController {
 
     @Autowired
     private ArchivioRepository archivioRepository;
-    
+
     @Autowired
     private ArchivioDocRepository archivioDocRepository;
-    
+
     @Autowired
     private MessageRepository messageRepository;
-    
+
     @Autowired
     private MessageDocRepository messageDocRepository;
-    
+
     @Autowired
     private ScriptaArchiviUtils scriptaArchiviUtils;
-    
+
     @Autowired
     private ScriptaCopyUtils scriptaCopyUtils;
 
     @Autowired
     private NonCachedEntities nonCachedEntities;
-    
+
     @Autowired
     private DocRepository docRepository;
-    
+
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
-    
+
     @Autowired
     private ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
@@ -182,13 +182,13 @@ public class ScriptaCustomController {
 
     @Autowired
     private RegistroDocRepository registroDocRepository;
-    
+
     @Autowired
     private PersonaRepository personaRepository;
 
     @Autowired
     private PecRepository pecRepository;
-    
+
     @Autowired
     private PersonaVedenteRepository personaVedenteRepository;
 
@@ -200,7 +200,7 @@ public class ScriptaCustomController {
 
     @Autowired
     private ParametriAziendeReader parametriAziende;
-    
+
     @Autowired
     private UserInfoService userInfoService;
 
@@ -215,7 +215,7 @@ public class ScriptaCustomController {
 
     @Autowired
     private AziendaRepository aziendaRepository;
-    
+
     @Autowired
     private ShpeckUtils shpeckUtils;
 
@@ -230,16 +230,16 @@ public class ScriptaCustomController {
 
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
-    
+
     @Autowired
     private ScriptaDownloadUtils scriptaDownloadUtils;
-    
+
     @Autowired
     private MasterjobsJobsQueuer masterjobsJobsQueuer;
 
     @Autowired
     private MasterjobsObjectsFactory masterjobsObjectsFactory;
-    
+
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
 
@@ -250,6 +250,7 @@ public class ScriptaCustomController {
 
     /**
      * Controller chiamato dal PEIS per salvare una lista di allegati
+     *
      * @param request
      * @param idDoc
      * @param numeroProposta
@@ -257,7 +258,7 @@ public class ScriptaCustomController {
      * @return
      * @throws MinIOWrapperException
      * @throws NoSuchAlgorithmException
-     * @throws Throwable 
+     * @throws Throwable
      */
     @RequestMapping(value = "saveAllegato", method = RequestMethod.POST)
     public ResponseEntity<?> saveAllegato(
@@ -281,7 +282,7 @@ public class ScriptaCustomController {
             for (MultipartFile file : files) {
                 scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename(), false);
             }
-            
+
             // Carico tutti gli allegati del documento perché i voglio tornare al client
             tuttiAllegati = allegatoRepository.findAll(QAllegato.allegato.idDoc.id.eq(idDoc));
         } catch (Exception e) {
@@ -308,8 +309,10 @@ public class ScriptaCustomController {
      * @param request
      * @throws IOException
      * @throws MinIOWrapperException
-     * @throws it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
-     * @throws it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException
+     * @throws
+     * it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException
+     * @throws
+     * it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException
      */
     @Transactional
     @RequestMapping(value = "allegato/{idAllegato}/{tipoDettaglioAllegato}/download", method = RequestMethod.GET)
@@ -342,14 +345,14 @@ public class ScriptaCustomController {
                     LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
                     throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
                 }
-                
+
                 response.setHeader("X-Frame-Options", "sameorigin");
                 response.setHeader("Content-Disposition", ";filename=" + allegato.getNome() + ".pdf");
 
                 if (dettaglioAllegato == null) {
                     if (tipoDettaglioAllegato.equals(Allegato.DettagliAllegato.TipoDettaglioAllegato.CONVERTITO)) {
                         // File mai convertito, lo converto e lo scarico
-                        try (InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, null)) {
+                        try ( InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, null)) {
                             response.setHeader("Content-Type", "application/pdf");
                             StreamUtils.copy(fileConvertito, response.getOutputStream());
                         }
@@ -359,23 +362,23 @@ public class ScriptaCustomController {
                 } else {
                     String idRepository = dettaglioAllegato.getIdRepository();
                     MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-                    try (InputStream fileRichiesto = minIOWrapper.getByFileId(idRepository)) {
+                    try ( InputStream fileRichiesto = minIOWrapper.getByFileId(idRepository)) {
                         if (fileRichiesto == null) {
                             switch (tipoDettaglioAllegato) {
                                 case CONVERTITO:
                                     // File convertito ma scaduto, lo converto e lo scarico
-                                    try (InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, idRepository)) {
-                                        response.setHeader("Content-Type", "application/pdf");
-                                        StreamUtils.copy(fileConvertito, response.getOutputStream());
-                                    }
-                                    break;
+                                    try ( InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, idRepository)) {
+                                    response.setHeader("Content-Type", "application/pdf");
+                                    StreamUtils.copy(fileConvertito, response.getOutputStream());
+                                }
+                                break;
                                 case ORIGINALE:
                                     // File scaduto, lo riestraggo e lo scarico
-                                    try (InputStream fileOrginale = scriptaDownloadUtils.downloadOriginalAttachment(allegato)) {
-                                        response.setHeader("Content-Type", allegato.getDettagli().getOriginale().getMimeType());
-                                        StreamUtils.copy(fileOrginale, response.getOutputStream());
-                                    }
-                                    break;
+                                    try ( InputStream fileOrginale = scriptaDownloadUtils.downloadOriginalAttachment(allegato)) {
+                                    response.setHeader("Content-Type", allegato.getDettagli().getOriginale().getMimeType());
+                                    StreamUtils.copy(fileOrginale, response.getOutputStream());
+                                }
+                                break;
                                 default:
                                     // Il file riciesto non è ne l'orginale ne il convertito. E' impossibile dunque recuperarlo.
                                     throw new Http404ResponseException("3", "Dettaglio allegato richiesto non tovato");
@@ -743,7 +746,6 @@ public class ScriptaCustomController {
 //        jsonReturn.put("responsabili", jsonArray);
 //        return jsonReturn;
 //    }
-
     @RequestMapping(value = "eliminaProposta", method = RequestMethod.POST)
     public ResponseEntity<?> eliminaProposta(
             @RequestParam("guid_doc") String guidDoc,
@@ -790,7 +792,7 @@ public class ScriptaCustomController {
 
         Call call = client.newCall(request);
         HashMap readValue = null;
-        try (Response response = call.execute();) {
+        try ( Response response = call.execute();) {
             int responseCode = response.code();
             if (response.isSuccessful()) {
                 readValue = objectMapper.readValue(response.body().string(), HashMap.class);
@@ -808,7 +810,6 @@ public class ScriptaCustomController {
 
         return new ResponseEntity(readValue, HttpStatus.OK);
     }
-
 
     @RequestMapping(value = "numeraArchivio", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
@@ -844,35 +845,39 @@ public class ScriptaCustomController {
         return projectedObject;
     }
 
-   
     /**
-     * Dato un archivio chiama la store procedure che calcola i permessi espliciti dello stesso
+     * Dato un archivio chiama la store procedure che calcola i permessi
+     * espliciti dello stesso
+     *
      * @param idArchivioRadice
      * @param request
-     * @return 
-     * @throws it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException 
+     * @return
+     * @throws
+     * it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException
      */
     @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
     public ResponseEntity<?> calcolaPermessiEspliciti(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
             HttpServletRequest request) throws MasterjobsWorkerException {
-        
+
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
         accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
-     
+
         return new ResponseEntity("", HttpStatus.OK);
     }
-    
+
     /**
-     * Dato l'idEsterno di un Doc, la funzione torna una lista contentente gli idPersona di tutti coloro che hanno un permesso
-     * con bit >= di minBit negli archivi in cui il doc è archiviato
+     * Dato l'idEsterno di un Doc, la funzione torna una lista contentente gli
+     * idPersona di tutti coloro che hanno un permesso con bit >= di minBit
+     * negli archivi in cui il doc è archiviato
+     *
      * @param idEsterno
      * @param minBit
      * @param response
      * @param request
-     * @return 
+     * @return
      */
     @RequestMapping(value = "getIdPersoneConPermessoSuArchiviazioniDelDocByIdEsterno/{idEsterno}/{minBit}", method = RequestMethod.GET)
     public ResponseEntity<?> getIdPersoneConPermessoSuArchiviazioniDelDocByIdEsterno(
@@ -886,17 +891,17 @@ public class ScriptaCustomController {
         List<Integer> idPersone = permessoArchivioRepository.getIdPersoneConPermessoSuArchiviazioniDelDocByIdEsterno(idEsterno, minBit);
         return new ResponseEntity(idPersone, HttpStatus.OK);
     }
-    
 
     /**
      * Servlet chiamata quando l'utente vuole caricare dei file su un archivio
+     *
      * @param request
      * @param files
-     * @param idArchivio 
-     * @return  
-     * @throws java.io.IOException  
-     * @throws java.io.FileNotFoundException  
-     * @throws java.security.NoSuchAlgorithmException  
+     * @param idArchivio
+     * @return
+     * @throws java.io.IOException
+     * @throws java.io.FileNotFoundException
+     * @throws java.security.NoSuchAlgorithmException
      */
     @RequestMapping(value = "uploadDocument", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
@@ -905,21 +910,21 @@ public class ScriptaCustomController {
             @RequestPart("documents") MultipartFile[] files,
             @RequestParam("idArchivio") int idArchivio
     ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, MinIOWrapperException, Http403ResponseException, BlackBoxPermissionException {
-        
+
         projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
         Archivio archivio = archivioRepository.findById(idArchivio).get();
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-        
+
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.MODIFICA)) {
             throw new Http403ResponseException("3", "Utente senza permesso di modificare l'archivio");
         }
-        
+
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         List<Integer> idDocList = new ArrayList();
         try {
             for (MultipartFile file : files) {
-                Doc doc = new  Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
+                Doc doc = new Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
                 doc = docRepository.save(doc);
                 idDocList.add(doc.getId());
                 scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename(), true);
@@ -928,7 +933,7 @@ public class ScriptaCustomController {
                 ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
                 archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
-                
+
                 AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
                 accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
             }
@@ -943,7 +948,6 @@ public class ScriptaCustomController {
         return new ResponseEntity(idDocList, HttpStatus.OK);
         //return ResponseEntity.status(HttpStatus.OK).build();
     }
-    
 
     @RequestMapping(value = "archiveMessage/{idMessage}/{idArchivio}", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
@@ -953,14 +957,14 @@ public class ScriptaCustomController {
             @PathVariable(required = true) Integer idArchivio
     ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, BlackBoxPermissionException, Http404ResponseException, Http403ResponseException, BadParamsException, MinIOWrapperException, Http500ResponseException, MasterjobsWorkerException {
         projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
-        
+
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Utente utente = authenticatedUserProperties.getUser();
         Archivio archivio = archivioRepository.findById(idArchivio).get();
         Message message = messageRepository.findById(idMessage).get();
         Azienda azienda = archivio.getIdAzienda();
-        
+
         // Controlli di sicurezza
         // 1
         // Se il messaggio non è archiviabile perché non ha ancora l'idRepository
@@ -968,7 +972,7 @@ public class ScriptaCustomController {
         if (message.getUuidRepository() == null) {
             throw new Http404ResponseException("1", "Messaggio senza idRepository");
         }
-        
+
         // 2
         // Controllo che l'utente abbia permessi nella casella pec del message
         Map<Integer, List<String>> permessiPec = userInfoService.getPermessiPec(persona);
@@ -981,14 +985,13 @@ public class ScriptaCustomController {
         } else {
             throw new Http403ResponseException("2", "Utente senza permessi sulla casella pec");
         }
-        
+
         // 3
         // Controllo che l'utente abbia almeno permesso di modifica sull'archivio
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.MODIFICA)) {
             throw new Http403ResponseException("3", "Utente senza permesso di modificare l'archivio");
         }
-        
-        
+
         /*
         Ora vedo se il doc già esiste ( lo becco dentro messages_docs. )
         Se non esiste allora dovrò crearlo e quindi dovrò creare i vari allegati.
@@ -1001,12 +1004,12 @@ public class ScriptaCustomController {
                 break;
             }
         }
-       
+
         if (doc == null) {
             File downloadEml = shpeckUtils.downloadEml(ShpeckUtils.EmlSource.MESSAGE, idMessage);
             MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-            
-            doc = new  Doc("Pec_" + message.getId().toString(), persona, archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString());
+
+            doc = new Doc("Pec_" + message.getId().toString(), persona, archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString());
             doc = docRepository.save(doc);
             MessageDoc.TipoMessageDoc tipo = null;
             if (message.getInOut().equals(MessageInterface.InOut.IN)) {
@@ -1016,7 +1019,7 @@ public class ScriptaCustomController {
             }
             MessageDoc md = new MessageDoc(message, doc, tipo, MessageDoc.ScopeMessageDoc.ARCHIVIAZIONE);
             messageDocRepository.save(md);
-            
+
             try {
                 scriptaUtils.creaAndAllegaAllegati(doc, new FileInputStream(downloadEml), "Pec_" + message.getId().toString(), true, true, message.getUuidRepository(), false, null); // downloadEml.getName()
             } catch (Exception e) {
@@ -1029,26 +1032,25 @@ public class ScriptaCustomController {
                 throw new Http500ResponseException("4", "Qualcosa è andato storto nelle creazione degli allegati");
             }
         }
-        
+
         // Ora che o il doc lo archivio
         ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
         archivioDocRepository.save(archiviazione);
         archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
-        
+
         // Ora aggiungo il tag di archiviazione sul message
         AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), persona.getDescrizione());
         AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
         AdditionalDataTagComponent.idArchivio archivioAdditionalData = new AdditionalDataTagComponent.idArchivio(archivio.getId(), archivio.getOggetto(), archivio.getNumerazioneGerarchica());
         AdditionalDataArchiviation additionalDataArchiviation = new AdditionalDataArchiviation(utenteAdditionalData, aziendaAdditionalData, archivioAdditionalData, LocalDateTime.now());
         shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalDataArchiviation, utente, true, true);
-        
+
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
-        
+
         return ResponseEntity.status(HttpStatus.OK).build();
     }
-    
-    
+
     @RequestMapping(value = "copiaArchiviazioni", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> copiaArchiviazioni(
@@ -1061,8 +1063,7 @@ public class ScriptaCustomController {
         Doc docDestinazione = docRepository.findByIdEsterno(requestData.get("guidDocumentoDestinazione"));
         return new ResponseEntity(scriptaCopyUtils.copiaArchiviazioni(docOrigine, docDestinazione, persona), HttpStatus.OK);
     }
-    
-    
+
     @RequestMapping(value = "aggiungiArchivioRecente", method = RequestMethod.POST)
     public ResponseEntity<?> aggiungiArchivioRecente(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
@@ -1072,12 +1073,12 @@ public class ScriptaCustomController {
         archivioDiInteresseRepository.aggiungiArchivioRecente(idArchivioRadice, persona.getId());
         return new ResponseEntity("", HttpStatus.OK);
     }
-    
+
     @RequestMapping(value = "archiviaRgInFascicoloSpeciale", method = RequestMethod.POST)
     public ResponseEntity<?> archiviaRgInFascicoloSpeciale(
-            @RequestBody Map<String,String> registroGiornaliero,
+            @RequestBody Map<String, String> registroGiornaliero,
             HttpServletRequest request) throws BlackBoxPermissionException, Http500ResponseException, JsonProcessingException {
-       
+
         log.info("sono dentro il controller per archiviare i registri giornalieri in internauta");
         log.info(objectMapper.writeValueAsString(registroGiornaliero));
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -1094,21 +1095,23 @@ public class ScriptaCustomController {
         } catch (Exception ex) {
             log.error("errore nella creazione del doc internauta", ex);
             // Forse esisteva già per via del cannone quindi lo recupero
-            doc = docRepository.findByIdEsterno((String) registroGiornaliero.get("id"));        
+            doc = docRepository.findByIdEsterno((String) registroGiornaliero.get("id"));
             if (doc == null) {
                 throw new Http500ResponseException("2", "Documento non trovato. E non creabile");
             }
         }
-        
-        
+
         Integer numeroSottoarchivioSpeciale = null;
-        switch((String) registroGiornaliero.get("codice_registro")) {
-            case "RGPICO" : numeroSottoarchivioSpeciale = 1;
-            break;
-            case "RGDETE" : numeroSottoarchivioSpeciale = 2;
-            break;
-            case "RGDELI" : numeroSottoarchivioSpeciale = 3;
-            break;
+        switch ((String) registroGiornaliero.get("codice_registro")) {
+            case "RGPICO":
+                numeroSottoarchivioSpeciale = 1;
+                break;
+            case "RGDETE":
+                numeroSottoarchivioSpeciale = 2;
+                break;
+            case "RGDELI":
+                numeroSottoarchivioSpeciale = 3;
+                break;
         }
         QArchivio qArchivioSpeciale = QArchivio.archivio;
         BooleanExpression filter = qArchivioSpeciale.tipo.eq("SPECIALE")
@@ -1117,9 +1120,9 @@ public class ScriptaCustomController {
                 .and(qArchivioSpeciale.anno.eq(anno))
                 .and(qArchivioSpeciale.numero.eq(numeroSottoarchivioSpeciale));
         Optional<Archivio> archivioSpeciale = archivioRepository.findOne(filter);
-        if(archivioSpeciale.isPresent()) {
+        if (archivioSpeciale.isPresent()) {
             log.info("ho trovato il fascicolo speciale");
-            if(!archivioDocRepository.exists(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioSpeciale.get().getId()).and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))){
+            if (!archivioDocRepository.exists(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioSpeciale.get().getId()).and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))) {
                 log.info("non essite la fascicolazione quindi la eseguo");
                 ArchivioDoc archivioDoc = new ArchivioDoc();
                 archivioDoc.setIdArchivio(archivioSpeciale.get());
@@ -1130,69 +1133,101 @@ public class ScriptaCustomController {
             } else {
                 log.warn(String.format("La fascicolazione del registro %s nel fascicolo speciale %s esiste già", doc.getId(), archivioSpeciale.get().getId()));
             }
-            
+
         } else {
             log.error("non ho trovato il fascicolo speciale");
             throw new Http500ResponseException("1", "Non ho trovato il fascicolo speciale");
         }
-        
+
         log.info("Ho terminato l'archiviazione");
         return new ResponseEntity("", HttpStatus.OK);
     }
-    
+
+    @RequestMapping(value = "archivioHasDoc", method = RequestMethod.POST)
+    public boolean archivioHasDoc(
+            @RequestParam("idArchivio") String idArchivio,
+            HttpServletRequest request) {
+        Integer idArchivioInt = Integer.parseInt(idArchivio);
+        Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
+        if (a.isPresent()) {
+            Archivio archivio = a.get();
+            List<ArchivioDoc> documenti = archivioDocRepository.findByIdArchivio(archivio);
+            if (documenti.size() > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    @RequestMapping(value = "deleteArchivio", method = RequestMethod.POST)
+    public ResponseEntity<?> deleteArchivio(
+            @RequestParam("idArchivio") String idArchivio,
+            HttpServletRequest request) {
+        Integer idArchivioInt = Integer.parseInt(idArchivio);
+        Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
+        if (a.isPresent()) {
+            Archivio entity = a.get();
+            archivioRepository.delete(entity);
+            return new ResponseEntity("", HttpStatus.OK);
+        }
+        return new ResponseEntity("", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @RequestMapping(value = "archiviaDeteDeliInFascicoloSpeciale", method = RequestMethod.POST)
     public ResponseEntity<?> archiviaDeteDeliInFascicoloSpeciale(
-            @RequestBody Map<String,String> datiFascicolazione,
+            @RequestBody Map<String, String> datiFascicolazione,
             HttpServletRequest request) throws BlackBoxPermissionException, Http500ResponseException, JsonProcessingException {
-            
-            Azienda azienda = aziendaRepository.findByCodice(datiFascicolazione.get("codice_azienda"));
-            Integer anno = Integer.parseInt(datiFascicolazione.get("anno"));
-            log.info(String.format("si tratta di inserire una %s" ,datiFascicolazione.get("registro")));
-            Integer numeroSottoarchivioSpeciale = null;
-            switch((String) datiFascicolazione.get("registro")) {
-                case "DETE" : numeroSottoarchivioSpeciale = 2;
-                        break;
-                case "DELI" : numeroSottoarchivioSpeciale = 3;
-                        break;
-            }
-            log.info(String.format("invece metto nel fascicolo %s", numeroSottoarchivioSpeciale));
-            QArchivio qArchivioSpeciale = QArchivio.archivio;
-            BooleanExpression filter = qArchivioSpeciale.tipo.eq("SPECIALE")
+
+        Azienda azienda = aziendaRepository.findByCodice(datiFascicolazione.get("codice_azienda"));
+        Integer anno = Integer.parseInt(datiFascicolazione.get("anno"));
+        log.info(String.format("si tratta di inserire una %s", datiFascicolazione.get("registro")));
+        Integer numeroSottoarchivioSpeciale = null;
+        switch ((String) datiFascicolazione.get("registro")) {
+            case "DETE":
+                numeroSottoarchivioSpeciale = 2;
+                break;
+            case "DELI":
+                numeroSottoarchivioSpeciale = 3;
+                break;
+        }
+        log.info(String.format("invece metto nel fascicolo %s", numeroSottoarchivioSpeciale));
+        QArchivio qArchivioSpeciale = QArchivio.archivio;
+        BooleanExpression filter = qArchivioSpeciale.tipo.eq("SPECIALE")
                 .and(qArchivioSpeciale.idAzienda.eq(azienda))
                 .and(qArchivioSpeciale.livello.eq(2))
                 .and(qArchivioSpeciale.anno.eq(anno))
                 .and(qArchivioSpeciale.numero.eq(numeroSottoarchivioSpeciale));
-            Optional<Archivio> archivioSpeciale = archivioRepository.findOne(filter);
-            
-            Doc doc = new Doc();
-            try {
-                doc = docRepository.findByIdEsterno(datiFascicolazione.get("guid"));
-            } catch (Exception ex) {
-                throw new Http500ResponseException("2", "Documento non trovato.");
-            }
-            
-            if(archivioSpeciale.isPresent()) {
-            log.info("ho trovato il fascicolo speciale");
-            if(!archivioDocRepository.exists(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioSpeciale.get().getId()).and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))){
-                    log.info("non essite la fascicolazione quindi la eseguo");
-                    ArchivioDoc archivioDoc = new ArchivioDoc();
-                    archivioDoc.setIdArchivio(archivioSpeciale.get());
-                    archivioDoc.setIdDoc(doc);
-                    Persona babelBDS = personaRepository.getById(1);
-                    archivioDoc.setIdPersonaArchiviazione(babelBDS);
-                    archivioDocRepository.save(archivioDoc);
-                } else {
-                    log.warn(String.format("La fascicolazione di %s nel fascicolo speciale %s esiste già", doc.getId(), archivioSpeciale.get().getId()));
-                }
+        Optional<Archivio> archivioSpeciale = archivioRepository.findOne(filter);
 
+        Doc doc = new Doc();
+        try {
+            doc = docRepository.findByIdEsterno(datiFascicolazione.get("guid"));
+        } catch (Exception ex) {
+            throw new Http500ResponseException("2", "Documento non trovato.");
+        }
+
+        if (archivioSpeciale.isPresent()) {
+            log.info("ho trovato il fascicolo speciale");
+            if (!archivioDocRepository.exists(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioSpeciale.get().getId()).and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))) {
+                log.info("non esite la fascicolazione quindi la eseguo");
+                ArchivioDoc archivioDoc = new ArchivioDoc();
+                archivioDoc.setIdArchivio(archivioSpeciale.get());
+                archivioDoc.setIdDoc(doc);
+                Persona babelBDS = personaRepository.getById(1);
+                archivioDoc.setIdPersonaArchiviazione(babelBDS);
+                archivioDocRepository.save(archivioDoc);
             } else {
-                log.error("non ho trovato il fascicolo speciale");
-                throw new Http500ResponseException("1", "Non ho trovato il fascicolo speciale");
+                log.warn(String.format("La fascicolazione di %s nel fascicolo speciale %s esiste già", doc.getId(), archivioSpeciale.get().getId()));
             }
+
+        } else {
+            log.error("non ho trovato il fascicolo speciale");
+            throw new Http500ResponseException("1", "Non ho trovato il fascicolo speciale");
+        }
 
         return new ResponseEntity("", HttpStatus.OK);
     }
-    
-    
-    
+
 }
