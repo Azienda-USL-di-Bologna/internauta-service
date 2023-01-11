@@ -172,6 +172,7 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
                     /*Metto tutti gli archivi all'interno della lista di tutti gli archivi da permessizzare di tutti gli utenti*/
                     if (!archiviDaPermessizzareUtente.isEmpty()) {
                         idArchiviRadiceDaPermessizzare.addAll(archiviDaPermessizzareUtente);
+                        log.info("size: " + idArchiviRadiceDaPermessizzare.size());
                     }
                 }
                 idCambiamentiAssociazioni.add(cambiamentiAssociazione.getId());

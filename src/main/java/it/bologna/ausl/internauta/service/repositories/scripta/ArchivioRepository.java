@@ -49,6 +49,12 @@ public interface ArchivioRepository extends
             Integer idArchivioRadice
     );
     
+    @Query(value = "select scripta.aggiorna_gerarchia_entita_archivio_radice(?1)",
+            nativeQuery = true)
+    public void calcolaGerarchiaArchivio(
+            Integer idArchivioRadice
+    );
+    
     @Query(value = "SELECT id FROM scripta.archivi a WHERE id_archivio_radice = ?1", nativeQuery = true)
     public Set<Integer> getSetAlberaturaArchivioRadice(
             Integer idArchivioRadice
