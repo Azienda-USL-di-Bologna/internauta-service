@@ -163,6 +163,7 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
      * @return
      * @throws AbortSaveInterceptorException 
      */
+    
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         
