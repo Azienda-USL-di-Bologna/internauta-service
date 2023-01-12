@@ -3,6 +3,8 @@ package it.bologna.ausl.internauta.service.interceptors.scripta;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.MezzoRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
@@ -14,6 +16,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
@@ -59,6 +62,12 @@ public class DocInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private AziendaRepository aziendaRepository;
+    
+    @Autowired
+    private KrintUtils krintUtils;
+    
+    @Autowired
+    private KrintScriptaService krintScriptaService;
 
     @Autowired
     ManageMessageRegistrationUtils manageMessageRegistrationUtils;
@@ -258,6 +267,9 @@ public class DocInterceptor extends InternautaBaseInterceptor {
             }
         } catch (Throwable ex) {
             throw new AbortSaveInterceptorException("Errore nell'allegare la pec", ex);
+        }
+        if (krintUtils.doIHaveToKrint(request)) {
+            krintScriptaService.writeDoc(doc, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_BY_DI);
         }
         return doc;
     }

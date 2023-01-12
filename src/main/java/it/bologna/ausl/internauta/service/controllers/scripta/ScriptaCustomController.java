@@ -59,6 +59,8 @@ import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEn
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
+import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -110,6 +112,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
@@ -239,6 +242,12 @@ public class ScriptaCustomController {
 
     @Autowired
     private MasterjobsObjectsFactory masterjobsObjectsFactory;
+    
+    @Autowired
+    private KrintUtils krintUtils;
+    
+    @Autowired
+    private KrintScriptaService krintScriptaService;
 
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -936,6 +945,9 @@ public class ScriptaCustomController {
 
                 AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
                 accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
+                if (krintUtils.doIHaveToKrint(request)) {
+                    krintScriptaService.writeArchivioDoc(save, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_LOAD);
+                }
             }
         } catch (Exception e) {
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
@@ -945,6 +957,7 @@ public class ScriptaCustomController {
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+        
         return new ResponseEntity(idDocList, HttpStatus.OK);
         //return ResponseEntity.status(HttpStatus.OK).build();
     }
