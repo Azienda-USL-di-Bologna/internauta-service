@@ -59,18 +59,7 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
     
     @Autowired
     private ObjectMapper objectMapper;
-    
-//    @Autowired
-//    private EntityManager entityManager;
-    
-//    @Autowired
-//    private AccodatoreVeloce accodatoreVeloce;
-//    @Autowired
-//    private BeanFactory beanFactory;
-//    private AccodatoreVeloce getAccodatoreVeloceBean() {
-//        return this.beanFactory.getBean(AccodatoreVeloce.class);
-//    }
-    
+   
     @Override
     public String getName() {
         return getClass().getSimpleName();

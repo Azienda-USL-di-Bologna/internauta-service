@@ -64,14 +64,15 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         if (archivio.getIdArchivioRadice() != null) {
             idArchivioRadice = archivio.getIdArchivioRadice().getId();
         }
-        Applicazione applicazione = cachedEntities.getApplicazione("scripta");
-        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-        try {
-            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
-            accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
-        } catch (MasterjobsWorkerException ex) {
-            throw new AbortSaveInterceptorException(ex);
-        }
+        // Non eseguo più qui il ricalcolo dei permessi perché la creazione di un archivio prevede il ricalcolo della gerarchia tramite CalcolaGerarchiaArchivioJobWorker che include il ricalcolo dei permessi
+//        Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+//        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+//        try {
+//            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
+//            accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
+//        } catch (MasterjobsWorkerException ex) {
+//            throw new AbortSaveInterceptorException(ex);
+//        }
         
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity   , projectionClass);
     }

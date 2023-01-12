@@ -5,6 +5,9 @@ import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerEx
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
+import java.util.Arrays;
+import java.util.HashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +43,10 @@ public class CalcolaGerarchiaArchivioJobWorker extends JobWorker<CalcolaGerarchi
            log.error(errore, ex);
            throw new MasterjobsWorkerException(errore, ex);
         }
-        
+        log.info("Gerarchia calcolata ora accodo il ricalcolo permessi archivi e il ricalcolo persone vedenti");
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+        accodatoreVeloce.accodaCalcolaPermessiArchivio(data.getIdArchivioRadice(), data.getIdArchivioRadice().toString(), "scripta_archivio", null);
+        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(data.getIdArchivioRadice())), data.getIdArchivioRadice().toString(), "scripta_archivio", null);
         return null;
     }
 }
