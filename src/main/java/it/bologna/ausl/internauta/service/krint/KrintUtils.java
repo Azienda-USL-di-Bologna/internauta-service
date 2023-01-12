@@ -39,6 +39,9 @@ public class KrintUtils {
     private PermissionRepositoryAccess permissionRepositoryAccess;
     
     @Autowired
+    private KrintScriptaService krintScriptaService;
+    
+    @Autowired
     ObjectMapper objectMapper;
 
     public Boolean doIHaveToKrint(HttpServletRequest request) {
@@ -142,6 +145,21 @@ public class KrintUtils {
                         }
                         krintBaborgService.writeUfficioUpdate(strutturaOggetto, cod, strutturaSoggetto);
                     }
+                    
+                    //controllo che si tratti di un permesso sugli archivi
+                    if (categoriaPermessiStoredProcedure.getTipo().equals(InternautaConstants.Permessi.Tipi.ARCHIVIO.toString())){
+                        if (permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.VISUALIZZA)
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.MODIFICA)
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.ELIMINA)
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.BLOCCO)){
+                            krintScriptaService.writePermessiArchivio(
+                                    permessoStoredProcedure.getOggetto().getIdProvenienza(), 
+                                    permessoStoredProcedure.getSoggetto(), 
+                                    permessoStoredProcedure.getPredicato(), 
+                                    OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_PERMESSI_UPDATE);
+                        }
+                    }
+                        
                 }
             }
         }
@@ -161,6 +179,20 @@ public class KrintUtils {
 
                         krintBaborgService.writeUfficioUpdate(strutturaOggetto, cod, strutturaSoggetto);
                     }
+                    
+                    //controllo che si tratti di un permesso sugli archivi
+                    if (categoriaPermessiStoredProcedure.getTipo().equals(InternautaConstants.Permessi.Tipi.ARCHIVIO.toString())){
+                        if (permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.VISUALIZZA)
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.MODIFICA)
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.ELIMINA)
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.BLOCCO)){
+                            krintScriptaService.writePermessiArchivio(
+                                    permessoStoredProcedure.getOggetto().getIdProvenienza(), 
+                                    permessoStoredProcedure.getSoggetto(), 
+                                    permessoStoredProcedure.getPredicato(), 
+                                    OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_PERMESSI_DELETE);
+                        }
+                    }
                 }
             }
         }
@@ -179,6 +211,20 @@ public class KrintUtils {
                         OperazioneKrint.CodiceOperazione cod = OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_STRUTTURE_CONNESSE_LIST_ADD;
 
                         krintBaborgService.writeUfficioUpdate(strutturaOggetto, cod, strutturaSoggetto);
+                    }
+                    
+                    //controllo che si tratti di un permesso sugli archivi
+                    if (categoriaPermessiStoredProcedure.getTipo().equals(InternautaConstants.Permessi.Tipi.ARCHIVIO.toString())){
+                        if (permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.VISUALIZZA)
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.MODIFICA)
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.ELIMINA)
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.BLOCCO)){
+                            krintScriptaService.writePermessiArchivio(
+                                    permessoStoredProcedure.getOggetto().getIdProvenienza(), 
+                                    permessoStoredProcedure.getSoggetto(), 
+                                    permessoStoredProcedure.getPredicato(), 
+                                    OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_PERMESSI_CREATION);
+                        }
                     }
                 }
             }

@@ -1,6 +1,8 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.MassimarioRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
@@ -9,6 +11,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerEx
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.Massimario;
 import it.bologna.ausl.model.entities.scripta.QMassimario;
@@ -50,6 +53,12 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     private MasterjobsObjectsFactory masterjobsObjectsFactory;
+    
+    @Autowired
+    private KrintScriptaService krintScriptaService;
+    
+    @Autowired
+    private KrintUtils krintUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -64,15 +73,18 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         if (archivio.getIdArchivioRadice() != null) {
             idArchivioRadice = archivio.getIdArchivioRadice().getId();
         }
-        // Non eseguo più qui il ricalcolo dei permessi perché la creazione di un archivio prevede il ricalcolo della gerarchia tramite CalcolaGerarchiaArchivioJobWorker che include il ricalcolo dei permessi
-//        Applicazione applicazione = cachedEntities.getApplicazione("scripta");
-//        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-//        try {
-//            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
-//            accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
-//        } catch (MasterjobsWorkerException ex) {
-//            throw new AbortSaveInterceptorException(ex);
-//        }
+
+//      Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+//      AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+//      try {
+//          accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
+//          accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
+//      } catch (MasterjobsWorkerException ex) {
+//          throw new AbortSaveInterceptorException(ex);
+//      }
+        if (krintUtils.doIHaveToKrint(request)) {
+            krintScriptaService.writeArchivioCreation(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION);
+        }
         
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity   , projectionClass);
     }
@@ -129,6 +141,38 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
                         break;
                 }
             }
+        }
+        boolean nomeIsChanged = archivio.getOggetto().equals(archivioOld.getOggetto());
+        boolean classificazioneIsChanged = archivio.getIdTitolo().getClassificazione().equals(archivioOld.getIdTitolo().getClassificazione());
+        boolean categoriaDocumentaleIsChanged = archivio.getIdMassimario().getId() == archivioOld.getIdMassimario().getId();
+        boolean conservazioneIsChanged = archivio.getAnniTenuta() == archivioOld.getAnniTenuta();
+        boolean tipoIsChanged = archivio.getTipo().toString().equals(archivioOld.getTipo().toString());
+        boolean riservatoIsChanged = archivio.getRiservato() == archivioOld.getRiservato();
+        boolean noteIsChanged = archivio.getNote().equals(archivioOld.getNote());
+        
+        if (krintUtils.doIHaveToKrint(request)) {
+            if (nomeIsChanged){
+                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOME_UPDATE);
+            }
+            if (classificazioneIsChanged){
+                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CLASSIFICAZIONE_UPDATE);
+            }
+            if (categoriaDocumentaleIsChanged){
+                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CATEGORIA_DOCUMENTALE_UPDATE);
+            }
+            if (conservazioneIsChanged){
+                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CONSERVAZIONE_UPDATE);
+            }
+            if (tipoIsChanged){
+                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_TIPO_UPDATE);
+            }
+            if (riservatoIsChanged){
+                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_RISERVATO_UPDATE);
+            }
+            if (noteIsChanged){
+                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOTE_UPDATE);
+            }
+            krintScriptaService.writeArchivioCreation(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION);
         }
         return super.beforeUpdateEntityInterceptor(archivio, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass);
     }
