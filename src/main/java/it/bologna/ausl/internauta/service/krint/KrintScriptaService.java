@@ -13,8 +13,11 @@ import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintScriptaArchivio;
 import it.bologna.ausl.model.entities.logs.projections.KrintScriptaAttoreArchivio;
+import it.bologna.ausl.model.entities.logs.projections.KrintScriptaDoc;
 import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
+import it.bologna.ausl.model.entities.scripta.Doc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Service;
@@ -282,6 +285,62 @@ public class KrintScriptaService {
                 idOggetto = archivio.getId();
             } catch (Exception exa) {}
             krintService.writeKrintError(idOggetto, "writePermessiArchivio", codiceOperazione);
+        }
+    }
+    
+    public void writeArchivioDoc(ArchivioDoc archivioDoc, OperazioneKrint.CodiceOperazione codiceOperazione) {
+        try {
+            // Informazioni oggetto
+            KrintScriptaDoc krintScriptaDoc = factory.createProjection(KrintScriptaDoc.class, archivioDoc.getIdDoc());
+            String jsonKrintDoc = objectMapper.writeValueAsString(krintScriptaDoc);
+            
+            // Informazioni oggetto contenitore
+            KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivioDoc.getIdArchivio());
+            String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
+            
+            krintService.writeKrintRow(
+                archivioDoc.getIdDoc().getId().toString(), // idOggetto
+                Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO_DOC, // tipoOggetto
+                archivioDoc.getIdDoc().getOggetto(), // descrizioneOggetto
+                jsonKrintDoc, // informazioniOggetto
+                archivioDoc.getIdArchivio().getId().toString(), // Da qui si ripete ma per il conenitore
+                Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
+                archivioDoc.getIdArchivio().getNumerazioneGerarchica(),
+                jsonKrintArchivio,
+                codiceOperazione);
+        } catch (Exception ex) {
+            Integer idOggetto = null;
+            try {
+                ex.printStackTrace();
+                idOggetto = archivioDoc.getIdDoc().getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeArchivioDoc", codiceOperazione);
+        }
+        
+        
+    }
+    public void writeDoc(Doc doc, OperazioneKrint.CodiceOperazione codiceOperazione) {
+        try {
+            // Informazioni oggetto
+           
+            
+            krintService.writeKrintRow(
+                doc.getId().toString(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                codiceOperazione);
+        } catch (Exception ex) {
+            Integer idOggetto = null;
+            try {
+                ex.printStackTrace();
+                idOggetto = doc.getId();
+            } catch (Exception exa) {}
+            krintService.writeKrintError(idOggetto, "writeDoc", codiceOperazione);
         }
     }
 }
