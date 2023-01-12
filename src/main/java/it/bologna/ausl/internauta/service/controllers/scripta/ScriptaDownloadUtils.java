@@ -330,7 +330,7 @@ public class ScriptaDownloadUtils {
                                "questo messaggio al cittadino.";
                 byte[] segnapostoBytes = createSegnapostoFile(text);
 //                InputStream input = new FileInputStream(segnapostoBytes);
-                File fileConvertito = File.createTempFile("Allegato_", FilenameUtils.getExtension(originale.getNome()));
+                File fileConvertito = File.createTempFile("Allegato_", FilenameUtils.getExtension(originale.getNome()) + ".pdf");
                 tempfiles.add(fileConvertito);
                 FileUtils.writeByteArrayToFile(fileConvertito, segnapostoBytes);
                 MinIOWrapperFileInfo info;
