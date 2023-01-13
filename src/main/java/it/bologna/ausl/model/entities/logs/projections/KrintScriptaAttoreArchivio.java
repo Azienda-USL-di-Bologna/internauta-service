@@ -11,6 +11,7 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "KrintScriptaAttoreArchivio", types = AttoreArchivio.class)
 public interface KrintScriptaAttoreArchivio{
     
+    @Value("#{target.getId()}")
     Integer getId();
     
 //    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getIdPersona', 'KrintBaborgPersona')}")

@@ -95,7 +95,12 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         Archivio archivio = (Archivio) entity;
         Archivio archivioOld;
         try {
-            archivioOld = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, Archivio.class);
+            archivioOld = new Archivio();
+            beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
+                Archivio archivioVecchio = (Archivio) oldEntity;
+                archivioOld.setIdTitolo(((Archivio) oldEntity).getIdTitolo());
+//                archivioOld.setIdMassimario(archivioVecchio.getIdMassimario());
+            });
         } catch (BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity di Archivio", ex);
         }
@@ -142,38 +147,43 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
-        boolean nomeIsChanged = archivio.getOggetto().equals(archivioOld.getOggetto());
-        boolean classificazioneIsChanged = archivio.getIdTitolo().getClassificazione().equals(archivioOld.getIdTitolo().getClassificazione());
-        boolean categoriaDocumentaleIsChanged = archivio.getIdMassimario().getId() == archivioOld.getIdMassimario().getId();
-        boolean conservazioneIsChanged = archivio.getAnniTenuta() == archivioOld.getAnniTenuta();
-        boolean tipoIsChanged = archivio.getTipo().toString().equals(archivioOld.getTipo().toString());
-        boolean riservatoIsChanged = archivio.getRiservato() == archivioOld.getRiservato();
-        boolean noteIsChanged = archivio.getNote().equals(archivioOld.getNote());
-        
-        if (krintUtils.doIHaveToKrint(request)) {
-            if (nomeIsChanged){
-                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOME_UPDATE);
+        try{
+            boolean nomeIsChanged = archivio.getOggetto().equals(archivioOld.getOggetto());
+            boolean classificazioneIsChanged = archivio.getIdTitolo().getClassificazione().equals(archivioOld.getIdTitolo().getClassificazione());
+            boolean categoriaDocumentaleIsChanged = archivio.getIdMassimario().getId() == archivioOld.getIdMassimario().getId();
+            boolean conservazioneIsChanged = archivio.getAnniTenuta() == archivioOld.getAnniTenuta();
+            boolean tipoIsChanged = archivio.getTipo().toString().equals(archivioOld.getTipo().toString());
+            boolean riservatoIsChanged = archivio.getRiservato() == archivioOld.getRiservato();
+            boolean noteIsChanged = archivio.getNote().equals(archivioOld.getNote());
+
+            if (krintUtils.doIHaveToKrint(request)) {
+                if (nomeIsChanged){
+                    krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOME_UPDATE);
+                }
+                if (classificazioneIsChanged){
+                    krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CLASSIFICAZIONE_UPDATE);
+                }
+                if (categoriaDocumentaleIsChanged){
+                    krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CATEGORIA_DOCUMENTALE_UPDATE);
+                }
+                if (conservazioneIsChanged){
+                    krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CONSERVAZIONE_UPDATE);
+                }
+                if (tipoIsChanged){
+                    krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_TIPO_UPDATE);
+                }
+                if (riservatoIsChanged){
+                    krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_RISERVATO_UPDATE);
+                }
+                if (noteIsChanged){
+                    krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOTE_UPDATE);
+                }
+
             }
-            if (classificazioneIsChanged){
-                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CLASSIFICAZIONE_UPDATE);
-            }
-            if (categoriaDocumentaleIsChanged){
-                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CATEGORIA_DOCUMENTALE_UPDATE);
-            }
-            if (conservazioneIsChanged){
-                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CONSERVAZIONE_UPDATE);
-            }
-            if (tipoIsChanged){
-                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_TIPO_UPDATE);
-            }
-            if (riservatoIsChanged){
-                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_RISERVATO_UPDATE);
-            }
-            if (noteIsChanged){
-                krintScriptaService.writeArchivioUpdate(archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOTE_UPDATE);
-            }
-            krintScriptaService.writeArchivioCreation(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION);
+        }catch (Exception ex) {
+            throw new AbortSaveInterceptorException("errore nel krintaggio del cambio dell'archivio", ex);
         }
+       
         return super.beforeUpdateEntityInterceptor(archivio, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass);
     }
 }

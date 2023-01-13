@@ -1,6 +1,8 @@
 package it.bologna.ausl.model.entities.logs.projections;
 
 import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.Massimario;
+import it.bologna.ausl.model.entities.scripta.Titolo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
 
@@ -20,11 +22,11 @@ public interface KrintScriptaArchivio{
     @Value("#{target.getNumerazioneGerarchica()}") 
     String getNumerazioneGerarchica();
     
-    @Value("#{target.getIdTitolo().getClassificazione()}") 
-    String getClassificazione();
+    @Value("#{target.getIdTitolo()}") 
+    Titolo getClassificazione();
     
-    @Value("#{target.getIdMassimario().getId()}") 
-    Integer getCategoriaDocumentale();
+    @Value("#{target.getIdMassimario()}") 
+    Massimario getCategoriaDocumentale();
     
     @Value("#{target.getAnniTenuta()}") 
     Integer getConservazione();
