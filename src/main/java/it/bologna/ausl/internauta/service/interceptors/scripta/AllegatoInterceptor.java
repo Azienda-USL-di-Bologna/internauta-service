@@ -112,7 +112,7 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Persona persona = authenticatedSessionData.getPerson();
         Boolean pienaVisibilitaUtente = pienaVisibilita(doc, persona);
-        if(pienaVisibilitaUtente) {
+        if (pienaVisibilitaUtente) {
             return entity;
         } else {
             throw new AbortLoadInterceptorException("non posso vedere gli allegati");

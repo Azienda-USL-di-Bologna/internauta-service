@@ -8,6 +8,7 @@ import it.bologna.ausl.internauta.utils.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.logs.Krint;
+import static it.bologna.ausl.model.entities.logs.Krint.TipoOggettoKrint.SCRIPTA_DOC;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
@@ -326,7 +327,7 @@ public class KrintScriptaService {
             
             krintService.writeKrintRow(
                 doc.getId().toString(),
-                null,
+                SCRIPTA_DOC,
                 null,
                 null,
                 null,

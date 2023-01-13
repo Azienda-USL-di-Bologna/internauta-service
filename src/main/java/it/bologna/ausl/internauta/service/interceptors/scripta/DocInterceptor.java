@@ -6,7 +6,10 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.AttoreDocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.MezzoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.internauta.service.shpeck.utils.ManageMessageRegistrationUtils;
@@ -15,8 +18,10 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.scripta.AttoreDoc;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
@@ -70,16 +75,25 @@ public class DocInterceptor extends InternautaBaseInterceptor {
     private KrintScriptaService krintScriptaService;
 
     @Autowired
-    ManageMessageRegistrationUtils manageMessageRegistrationUtils;
+    private ManageMessageRegistrationUtils manageMessageRegistrationUtils;
 
     @Autowired
-    ShpeckUtils shpeckUtils;
+    private ShpeckUtils shpeckUtils;
 
     @Autowired
-    ScriptaUtils scriptaUtils;
+    private ScriptaUtils scriptaUtils;
 
     @Autowired
-    UserInfoService userInfoService;
+    private UserInfoService userInfoService;
+    
+    @Autowired
+    private AttoreDocRepository attoreDocRepository;
+    
+    @Autowired
+    private PersonaVedenteRepository personaVedenteRepository;
+    
+    @Autowired
+    private PersonaRepository personaRepository;
 
     @Override
     public Class getTargetEntityClass() {
@@ -122,6 +136,8 @@ public class DocInterceptor extends InternautaBaseInterceptor {
         Doc doc = (Doc) entity;
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Utente user = authenticatedSessionData.getUser();
+        Persona persona = authenticatedSessionData.getPerson();
+        persona = personaRepository.getById(persona.getId());
 
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
@@ -237,6 +253,17 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                                     Logger.getLogger(DocInterceptor.class.getName()).log(Level.SEVERE, null, ex);
                                     throw new AbortSaveInterceptorException("Errore nella gestione del tag in registration");
                                 }
+                                
+                                List<AttoreDoc> attori = new ArrayList();
+                                AttoreDoc creatore = new AttoreDoc();
+                                creatore.setIdDoc(doc);
+                                creatore.setIdPersona(persona);
+                                creatore.setRuolo(AttoreDoc.RuoloAttoreDoc.RICEZIONE);
+                                attori.add(creatore);
+                                
+                                doc.setAttori(attori);
+                                
+                                
                             } else {
                                 throw new AbortSaveInterceptorException("Messaggio non trovato");
                             }
@@ -259,6 +286,7 @@ public class DocInterceptor extends InternautaBaseInterceptor {
             boolean mainEntity,
             Class projectionClass) throws AbortSaveInterceptorException {
         Doc doc = (Doc) entity;
+        personaVedenteRepository.calcolaPersoneVedenti(doc.getId());
         try {
             if (additionalDatacointainThisOperation(additionalData,
                     AdditionalData.OperationsRequested.CreateDocPerMessageRegistration)) {
