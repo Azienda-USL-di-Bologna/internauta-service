@@ -21,7 +21,7 @@ public class InternautaConstants {
     public static class Permessi {
 
         public enum Predicati {
-            CONNESSO, REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO, SEGR
+            CONNESSO, REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, VISUALIZZA, MODIFICA, BLOCCO, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO, SEGR
         }
 
         public enum Ambiti {
@@ -61,7 +61,7 @@ public class InternautaConstants {
             GetPermessiDiFlusso,
             GetPermessiStrutturePec,
             FilterPecPerPermissionOfSubject,
-            CloseArchivio,
+            CloseOrReopenArchive,
             AddPermissionsOnPec,
             AddGestoriOnPec,
             LoadDataPerInterfacciaElencoPec,

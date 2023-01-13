@@ -1,19 +1,33 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailViewRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.scripta.Allegato;
+import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
+import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +50,13 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     AllegatoRepository allegatoRepository;
-   
+
+    @Autowired
+    DocDetailViewRepository docDetailViewRepository;
+    
+    @Autowired
+    PersonaVedenteRepository personaVedenteRepository;
+    
     @Autowired
     @Qualifier(value = "customRepositoryEntityMap")
     protected Map<String, NextSdrQueryDslRepository> customRepositoryEntityMap;
@@ -83,7 +103,53 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
 //        }
 //        super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
 //    }
+    @Override
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        Allegato allegato = (Allegato) entity;
+        Doc doc = allegato.getIdDoc();
+//        DocDetailView ddv;
+//        ddv = docDetailViewRepository.getById(doc.getId());
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        Persona persona = authenticatedSessionData.getPerson();
+        Boolean pienaVisibilitaUtente = pienaVisibilita(doc, persona);
+        if(pienaVisibilitaUtente) {
+            return entity;
+        } else {
+            throw new AbortLoadInterceptorException("non posso vedere gli allegati");
+        }
+    }
 
+    @Override
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+       Collection<Object> entitiesAfter = null;
+       for (Object entity : entities) {
+        //Azienda azienda = (Azienda) entity;
+        entity = afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
+//        if(entity == null) {
+//            LOGGER.info("non ha il permesso per questo allegato");
+//        } else {
+//            entitiesAfter.add(entity);
+//           }
+       }
+        return entities;
+    }
+
+
+
+         /**
+     * Controlla se l'utente connesso ha pienaVisbilita: true nella colonna
+     * personeVedenti del doc passato.
+     *
+     * @param doc
+     * @return
+     */
+    private Boolean pienaVisibilita(Doc doc, Persona persona) {
+        Boolean hasPienaVisibilita = false;
+        
+        hasPienaVisibilita = personaVedenteRepository.hasPienaVisibìlita(doc.getId(), persona.getId());
+        
+        return hasPienaVisibilita;
+    }
     
     /**
      * TODO: Quando faccio un update di un allegato potrebbe essere che ho cancellato il dettaglio allegato.
@@ -97,6 +163,7 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
      * @return
      * @throws AbortSaveInterceptorException 
      */
+    
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         

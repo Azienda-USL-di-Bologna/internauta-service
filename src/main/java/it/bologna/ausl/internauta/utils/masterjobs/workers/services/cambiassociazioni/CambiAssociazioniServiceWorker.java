@@ -27,6 +27,7 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
     private static Logger log = LoggerFactory.getLogger(CambiAssociazioniServiceWorker.class);
 
     public static final String CAMBIAMENTI_ASSOCIAZIONI_NOTIFY = "cambiamenti_associazioni_notify";
+    private static final String CAMBIAMENTI_ASSOCIAZIONI_WORKER_ID = "cambiamenti_associazioni_worker_id";
 
     @Override
     public void preWork() throws MasterjobsWorkerException {
@@ -94,7 +95,7 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
         log.info("queueing scheduleManageCambiAssociazioniJob...");
         ManageCambiAssociazioniJobWorker worker = masterjobsObjectsFactory.getJobWorker(
                 ManageCambiAssociazioniJobWorker.class, new ManageCambiAssociazioniJobWorkerData(ZonedDateTime.now()), false);
-        masterjobsJobsQueuer.queue(worker, null, null, null, false, Set.SetPriority.HIGH);
+        masterjobsJobsQueuer.queue(worker, CAMBIAMENTI_ASSOCIAZIONI_WORKER_ID, null, null, true, Set.SetPriority.HIGH);
         log.info("scheduleManageCambiAssociazioniJob queued");
     }
 }

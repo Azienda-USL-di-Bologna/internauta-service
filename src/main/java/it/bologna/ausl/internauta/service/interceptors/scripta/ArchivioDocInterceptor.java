@@ -3,11 +3,14 @@ package it.bologna.ausl.internauta.service.interceptors.scripta;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
@@ -45,6 +48,12 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     ArchivioDiInteresseRepository archivioDiInteresseRepository;
+    
+    @Autowired
+    private KrintUtils krintUtils;
+    
+    @Autowired
+    private KrintScriptaService krintScriptaService;
     
     @Override
     public Class getTargetEntityClass() {
@@ -125,7 +134,9 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
         
         ArchivioDoc archivioDoc = (ArchivioDoc) entity;
         archivioDiInteresseRepository.aggiungiArchivioRecente(archivioDoc.getIdArchivio().getIdArchivioRadice().getId(), persona.getId());
-        
+        if (krintUtils.doIHaveToKrint(request)) {
+            krintScriptaService.writeArchivioDoc(archivioDoc, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_BY_ADI);
+        }
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
     }
 }

@@ -31,9 +31,6 @@ public interface PermessoArchivioRepository extends
         NextSdrQueryDslRepository<PermessoArchivio, Integer, QPermessoArchivio>, 
         JpaRepository<PermessoArchivio, Integer> {
 
-    
-    
-    
      @Query(value = "SELECT pa.id_persona " +
             "FROM scripta.docs d " +
             "JOIN scripta.archivi_docs ad ON ad.id_doc = d.id " +
@@ -45,6 +42,8 @@ public interface PermessoArchivioRepository extends
             nativeQuery = true)
     public List<Integer> getIdPersoneConPermessoSuArchiviazioniDelDocByIdEsterno(String idEsterno, Integer minBit);
     
-    @Query(value="select * from scripta.get_archivi_da_permessizzare_from_id_permessi(?1, ?2, ?3)", nativeQuery = true)
-    public String getArchiviDaPermessizzareFromIdPermessi(Integer idPersona, Integer idAzienda, String idPermessi);
+
+    
+    @Query(value="select * from scripta.get_archivi_radice_da_permessizzare_from_id_permessi(?1, ?2, ?3)", nativeQuery = true)
+    public String getArchiviRadiceDaPermessizzareFromIdPermessi(Integer idPersona, Integer idAzienda, String idPermessi);
 }

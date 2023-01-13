@@ -1,5 +1,21 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.FontFactory;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.BadPdfFormatException;
+import com.itextpdf.text.pdf.BaseFont;
+import com.itextpdf.text.pdf.ICC_Profile;
+import com.itextpdf.text.pdf.PdfAConformanceLevel;
+import com.itextpdf.text.pdf.PdfBoolean;
+import com.itextpdf.text.pdf.PdfDictionary;
+import com.itextpdf.text.pdf.PdfName;
+import com.itextpdf.text.pdf.PdfAWriter;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.estrattore.exception.ExtractorException;
@@ -25,9 +41,11 @@ import it.bologna.ausl.model.entities.baborg.projections.azienda.AziendaProjecti
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
 import it.bologna.ausl.model.entities.tools.SupportedFile;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -38,6 +56,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
 import okhttp3.MediaType;
@@ -47,6 +67,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -207,7 +228,7 @@ public class ScriptaDownloadUtils {
      * @throws MinIOWrapperException 
      */
     private InputStream convertToPdf(Allegato allegato, InputStream fileToConvert, String idRepositoryScadutoDelConvertito) 
-            throws Http500ResponseException, Http501ResponseException {
+            throws Http500ResponseException, Http501ResponseException, MinIOWrapperException, FileNotFoundException, NoSuchAlgorithmException, DocumentException {
         // Eseguo la select for update
         Allegato allegatoForUpdate = allegato;
         
@@ -285,7 +306,7 @@ public class ScriptaDownloadUtils {
                             );
                             
                             String mimeTypeConvertito = Detector.MEDIA_TYPE_APPLICATION_PDF.toString();
-                            allegatoForUpdate.getDettagli().setConvertito(scriptaUtils.buildNewDettaglioAllegato(allegato, fileConvertito, "convertito_" + allegato.getNome(), mimeTypeConvertito, info.getSize(), info));
+                            allegatoForUpdate.getDettagli().setConvertito(scriptaUtils.buildNewDettaglioAllegato(allegato, fileConvertito, "convertito_" + allegato.getNome() + ".pdf", mimeTypeConvertito, info.getSize(), info));
                             return new FileInputStream(fileConvertito);
                         } else {
                             throw new Http500ResponseException("13", "Non sono riuscito a convertire il file. Qualcosa è andato storto");
@@ -299,8 +320,35 @@ public class ScriptaDownloadUtils {
                     throw new Http500ResponseException("10", "Errore nella conversione in pdf");
                 }
             } else {
-                // TODO: Generare segnaposto
-                throw new Http501ResponseException("11", "Generazione segnaposto non implementata");
+                // Generazione segnaposto
+                String text = allegato.getNome() + "\n" +
+                               "Anteprima non disponibile.\n" +
+                               "Probabilmente il file non è convertibile in pdf ed è\n" +
+                               "necessario quindi scaricarlo.\n" +
+                               "Ai fini di una eventuale pubblicazione sull'Albo On\n" +
+                               "Line: questo file non sarà pubblicato e sarà mostrato\n" +
+                               "questo messaggio al cittadino.";
+                byte[] segnapostoBytes = createSegnapostoFile(text);
+//                InputStream input = new FileInputStream(segnapostoBytes);
+                File fileConvertito = File.createTempFile("Allegato_", FilenameUtils.getExtension(originale.getNome()) + ".pdf");
+                tempfiles.add(fileConvertito);
+                FileUtils.writeByteArrayToFile(fileConvertito, segnapostoBytes);
+                MinIOWrapperFileInfo info;
+                info = minIOWrapper.put(
+                        fileConvertito,
+                        allegatoForUpdate.getIdDoc().getIdAzienda().getCodice() + "t",
+                        allegatoForUpdate.getIdDoc().getId().toString(),
+                        "convertito_" + allegato.getNome(),
+                        null,
+                        false
+                );
+
+                String mimeTypeConvertito = Detector.MEDIA_TYPE_APPLICATION_PDF.toString();
+                allegatoForUpdate.getDettagli().setConvertito(scriptaUtils.buildNewDettaglioAllegato(allegato, fileConvertito, "convertito_" + allegato.getNome() + ".pdf", mimeTypeConvertito, info.getSize(), info));
+                return new FileInputStream(fileConvertito);
+
+ 
+//                throw new Http501ResponseException("11", "Generazione segnaposto non implementata");
             }
         } catch (IOException ex) {
             throw new Http500ResponseException("20", "IOException", ex);
@@ -330,16 +378,29 @@ public class ScriptaDownloadUtils {
      */
     public InputStream downloadOriginalAndConvertToPdf(Allegato allegato, String idRepositoryScadutoDelConvertito) 
             throws MinIOWrapperException, Http404ResponseException, HttpInternautaResponseException, NoSuchAlgorithmException, Http500ResponseException, FileNotFoundException, 
-            ExtractorException, UnsupportedEncodingException, MimeTypeException, AllegatoException, IOException {
+            ExtractorException, UnsupportedEncodingException, MimeTypeException, AllegatoException, IOException, DocumentException {
         try (InputStream originale = downloadOriginalAttachment(allegato)) {
             if (originale == null) {
                 throw new Http404ResponseException("5", "Il file originale dell'allegato richiesto non è stato trovato");
             } else {
                 transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-                InputStream res = transactionTemplate.execute(a -> {
-                     Allegato allegatoForUpdate = selectForUpdateAllegato(allegato);
+                InputStream res;
+                res = transactionTemplate.execute(a -> {
+                    Allegato allegatoForUpdate = selectForUpdateAllegato(allegato);
                     try {
-                        return convertToPdf(allegatoForUpdate, originale, idRepositoryScadutoDelConvertito);
+                        InputStream pdf = null;
+                        try {
+                            pdf = convertToPdf(allegatoForUpdate, originale, idRepositoryScadutoDelConvertito);
+                        } catch (MinIOWrapperException ex) {
+                            Logger.getLogger(ScriptaDownloadUtils.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(ScriptaDownloadUtils.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (NoSuchAlgorithmException ex) {
+                            Logger.getLogger(ScriptaDownloadUtils.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (DocumentException ex) {
+                            Logger.getLogger(ScriptaDownloadUtils.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                        return pdf;
                     } catch (Http500ResponseException | Http501ResponseException ex) {
                         throw new HttpResponseRuntimeException(ex);
                     }
@@ -428,6 +489,81 @@ public class ScriptaDownloadUtils {
             } catch (IOException ex) {
                 LOG.error("Errore nella cancellazione del file", ex);
             }
+        }
+    }
+    
+    public byte[] createSegnapostoFile(String text) throws IOException, BadPdfFormatException, DocumentException {
+       ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+        
+        
+        byte[] fontBytes;
+        byte[] imageBytes;
+        ICC_Profile icc;
+       
+        try(InputStream imageStream = classloader.getResourceAsStream("pdf/no_attach.jpg")) {
+            imageBytes =  IOUtils.toByteArray(imageStream);
+        }
+        
+        try(InputStream fontFileStream = classloader.getResourceAsStream("pdf/arial.ttf");) {
+            fontBytes = IOUtils.toByteArray(fontFileStream);
+        }
+        
+        try(InputStream iccStream = classloader.getResourceAsStream("pdf/AdobeRGB1998.icc");) {
+            icc = ICC_Profile.getInstance(iccStream);
+        }
+        
+        BaseFont timesbd = BaseFont.createFont("arial.ttf",BaseFont.WINANSI , BaseFont.EMBEDDED, true, fontBytes, null);
+//        timesbd.
+//        FontFactory.register(fontFilePath);
+//
+//        Font fontTest = FontFactory.getFont("Arial", BaseFont.WINANSI, BaseFont.EMBEDDED, 22);
+//        BaseFont timesbd = fontTest.getBaseFont();
+        Font BOLD = new Font(timesbd, 22);
+        Font NORMAL = new Font(timesbd, 22);
+
+        // creo il documento che rappresenta pdf
+        Document document = new Document();
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            PdfAWriter writer = PdfAWriter.getInstance(document, bos, PdfAConformanceLevel.PDF_A_1A);
+            document.open();
+
+            Paragraph p = new Paragraph(text, NORMAL);
+
+            p.setAlignment(Element.ALIGN_CENTER);
+            p.setLeading(1.0f, 1.0f);
+
+            // aggiungo il paragrafo al documento
+            document.add(p);
+
+            Rectangle dim = document.getPageSize();
+
+            // istanzio un'immagine con l'immagine da aggiungere con (com.itextpdf.text.Image)
+            Image img = Image.getInstance(imageBytes);
+
+            // imposto la posizione dell'immagine
+            img.setAbsolutePosition((dim.getLeft() + img.getWidth() + 50) / 2, (dim.getTop() - img.getHeight()) / 2);
+
+            // aggiungo l'immagine al documento
+            document.add(img);
+
+            PdfDictionary structureTreeRoot = new PdfDictionary();
+            structureTreeRoot.put(PdfName.TYPE, PdfName.STRUCTTREEROOT);
+            writer.getExtraCatalog().put(PdfName.STRUCTTREEROOT, structureTreeRoot);
+
+            PdfDictionary markInfo = new PdfDictionary(PdfName.MARKINFO);
+            markInfo.put(PdfName.MARKED, new PdfBoolean(true));
+            writer.getExtraCatalog().put(PdfName.MARKINFO, markInfo);
+
+            PdfDictionary l = new PdfDictionary(PdfName.LANG);
+            l.put(PdfName.LANG, new PdfBoolean("true"));
+            writer.getExtraCatalog().put(PdfName.LANG, l);
+
+            writer.setOutputIntents("Custom", "", "http://www.color.org", "sRGB IEC61966-2.1", icc);
+
+            writer.createXmpMetadata();
+            document.close();
+            writer.close();
+            return bos.toByteArray();
         }
     }
 }
