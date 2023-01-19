@@ -150,10 +150,10 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         try{
             boolean nomeIsChanged = archivio.getOggetto().equals(archivioOld.getOggetto());
             boolean classificazioneIsChanged = archivio.getIdTitolo().getClassificazione().equals(archivioOld.getIdTitolo().getClassificazione());
-            boolean categoriaDocumentaleIsChanged = archivio.getIdMassimario().getId() == archivioOld.getIdMassimario().getId();
-            boolean conservazioneIsChanged = archivio.getAnniTenuta() == archivioOld.getAnniTenuta();
+            boolean categoriaDocumentaleIsChanged = archivio.getIdMassimario().getId().equals(archivioOld.getIdMassimario().getId());
+            boolean conservazioneIsChanged = archivio.getAnniTenuta().equals(archivioOld.getAnniTenuta());
             boolean tipoIsChanged = archivio.getTipo().toString().equals(archivioOld.getTipo().toString());
-            boolean riservatoIsChanged = archivio.getRiservato() == archivioOld.getRiservato();
+            boolean riservatoIsChanged = archivio.getRiservato().equals(archivioOld.getRiservato());
             boolean noteIsChanged = archivio.getNote().equals(archivioOld.getNote());
 
             if (krintUtils.doIHaveToKrint(request)) {
