@@ -26,7 +26,7 @@ public class FascicoloGddocUtils {
 
     private static final Logger log = LoggerFactory.getLogger(FascicoloGddocUtils.class);
 
-    public void fascicolaGddoc(Integer idAzienda, Map<String, Object> gddoc, Map<String, Object> fascicolo) throws Exception {
+    public void fascicolaGddoc(Integer idAzienda, Map<String, Object> gddoc, Map<String, Object> fascicolo) throws FascicolazioneGddocException {
         String idFascicoloGddoc = IndeUtils.generateIndeID();
         String idFascicolo = (String) fascicolo.get("id_fascicolo");
         String idGddoc = (String) gddoc.get("id_gddoc");
@@ -47,11 +47,13 @@ public class FascicoloGddocUtils {
                     .addParameter("dataCreazione", dataCreazione);
             createQuery.executeUpdate();
         } catch (Exception ex) {
-            log.error(ex.toString());
-            log.error(ex.getMessage());
-            throw new FascicolazioneGddocException("Errore nella fascicolazione del gddoc\n"
-                    + "gddoc: " + gddoc.toString() + "\n"
-                    + "fascicolo: " + fascicolo.toString(), ex);
+            String errorMessage = "Errore nella fascicolazione del gddoc sul fascicolo";
+            log.error(errorMessage, ex);
+            log.error("fasicolo");
+            log.error(fascicolo.toString());
+            log.error("gddoc");
+            log.error(gddoc.toString());
+            throw new FascicolazioneGddocException(errorMessage, ex);
         }
     }
 
@@ -75,11 +77,13 @@ public class FascicoloGddocUtils {
                     .addParameter("id_fascicolo", idFascicolo)
                     .executeAndFetchTable().asList();
         } catch (Exception ex) {
-            log.error(ex.toString());
-            log.error(ex.getMessage());
-            throw new FascicolazioneGddocException("Errore nella verifica della fascicolazione\n"
-                    + "gddoc: " + gddoc.toString() + "\n"
-                    + "fascicolo: " + fascicolo.toString(), ex);
+            String errorMessage = "Errore nella verifica della fascicolazione";
+            log.error(errorMessage, ex);
+            log.error("fasicolo");
+            log.error(fascicolo.toString());
+            log.error("gddoc");
+            log.error(gddoc.toString());
+            throw new FascicolazioneGddocException(errorMessage, ex);
         }
 
         if (fascicolazioni == null) {
