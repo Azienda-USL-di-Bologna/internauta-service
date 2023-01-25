@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -41,9 +42,10 @@ public class RibaltoneUtilsCustomController {
 //        Persona persona = cachedEntities.getPersonaFromCodiceFiscale("RIBALTONE");
 //        Utente user = persona.getUtenteList().stream()
 //                    .filter(utente -> utente.getIdAzienda().getId().equals(azienda.getId())).findFirst().get();
+        if (StringUtils.hasText(ribaltoneDaLanciare.getNote())){ribaltoneDaLanciare.setNote("nessuna nota");}
         ribaltoneDaLanciareRepository.sendNotifyInternauta(ribaltoneDaLanciare.getCodiceAzienda(), 
-                ribaltoneDaLanciare.getRibaltaArgo(), 
-                ribaltoneDaLanciare.getRibaltaInternauta(), 
+                ribaltoneDaLanciare.getRibaltaArgo(),
+                ribaltoneDaLanciare.getRibaltaInternauta(),
                 ribaltoneDaLanciare.getNote(),
                 ribaltoneDaLanciare.getEmail(),
                 ribaltoneDaLanciare.getIdUtente().getId());
