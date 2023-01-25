@@ -1,7 +1,6 @@
 package it.bologna.ausl.internauta.service;
 
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsThreadsManager;
-import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import it.bologna.ausl.internauta.service.schedulers.LogoutManager;
 import it.bologna.ausl.internauta.service.schedulers.MessageSenderManager;
 import it.bologna.ausl.internauta.service.schedulers.workers.ShutdownThread;
@@ -41,9 +40,6 @@ public class InternautaApplication {
 
     @Autowired
     private MessageSenderManager messageSenderManager;
-    
-    @Autowired
-    private FascicolatoreOutboxGediLocaleManager fascicolatoreOutboxGediLocaleManager;
 
     @Autowired
     private LogoutManager logoutManager;
@@ -80,7 +76,6 @@ public class InternautaApplication {
                 log.info("schedulo i threads messageSender...");
                 try {
                     messageSenderManager.scheduleMessageSenderAtBoot(now);
-                    fascicolatoreOutboxGediLocaleManager.scheduleAutoFascicolazioneOutboxAtBoot();
                 } catch (Exception e) {
                     log.info("errore nella schedulazione threads messageSender", e);
                 }

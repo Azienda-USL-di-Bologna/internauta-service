@@ -1,19 +1,11 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.argo.utils.gd;
 
-import it.bologna.ausl.internauta.service.argo.raccolta.Fascicolo;
 import it.bologna.ausl.internauta.service.argo.utils.ArgoConnectionManager;
-import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.argo.utils.ArgoFetchingDataException;
 import it.bologna.ausl.internauta.service.exceptions.argo.utils.CreazioneFascicoloException;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -24,10 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.sql2o.Connection;
 import org.sql2o.Query;
-import org.sql2o.ResultSetHandler;
-import org.sql2o.Sql2o;
-import org.sql2o.data.Row;
-import org.sql2o.data.Table;
 
 /**
  *
@@ -63,7 +51,7 @@ public class FascicoloUtils {
         try (Connection connection = getConnection(idAzienda)) {
             Query query = connection.createQuery(queryString);
             List<Integer> list = query.executeAndFetch(Integer.class);
-            if (list.size() > 0) {
+            if (!list.isEmpty()) {
                 lastNumber = list.get(0);
             }
         } catch (Throwable t) {
@@ -80,7 +68,7 @@ public class FascicoloUtils {
         } catch (Throwable t) {
             throw new ArgoFetchingDataException("Errore nel retrieving dei daty", t);
         }
-        return asList != null && asList.size() > 0 ? asList : null;
+        return asList != null && !asList.isEmpty() ? asList : null;
     }
 
     public String getIdFascicoloByPatternInName(Integer idAzienda, String patternLike) throws Exception {
@@ -88,7 +76,7 @@ public class FascicoloUtils {
                 + "from gd.fascicoligd "
                 + "where nome_fascicolo like '%" + patternLike + "%';";
         List result = connectionManager.queryAndFetcth(query, idAzienda);
-        Map map = result != null && result.size() > 0 ? (Map) result.get(0) : null;
+        Map map = result != null && !result.isEmpty() ? (Map) result.get(0) : null;
         String idFascicolo = (String) map.get("id_fascicolo");
         log.info(idFascicolo);
         return idFascicolo;
@@ -100,17 +88,17 @@ public class FascicoloUtils {
                 + "where id_fascicolo_padre = '" + idFascicoloPadre + "' "
                 + "and nome_fascicolo like '%" + patternLike + "%';";
         List result = (List<Map<String, Object>>) queryAndFetcth(query, idAzienda);
-        Map fascicolo = result != null && result.size() > 0 ? (Map) result.get(0) : null;
+        Map fascicolo = result != null && !result.isEmpty() ? (Map) result.get(0) : null;
         return fascicolo;
     }
 
-    public Map<String, Object> getFascicoloByNumerazioneGerarchica(Integer idAzienda, String numerazioneGerarchica) throws Exception {
+    public Map<String, Object> getFascicoloByNumerazioneGerarchica(Integer idAzienda, String numerazioneGerarchica) throws FascicoloNotFoundException {
         Map fascicolo = null;
         try {
             String queryString = String.format(QUERY_FIND_FASCICOLO_BY_NUMERAZIONE_GERARCHICA, numerazioneGerarchica);
             log.info(queryString);
             List result = (List<Map<String, Object>>) queryAndFetcth(queryString, idAzienda);
-            fascicolo = result != null && result.size() > 0 ? (Map) result.get(0) : null;
+            fascicolo = result != null && !result.isEmpty() ? (Map) result.get(0) : null;
         } catch (Exception ex) {
             throw new FascicoloNotFoundException("Errore nel reperimento del fascicolo " + numerazioneGerarchica, ex);
         }

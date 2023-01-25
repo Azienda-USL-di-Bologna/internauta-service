@@ -1,17 +1,13 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.argo.utils.gd;
 
 import it.bologna.ausl.internauta.service.argo.utils.ArgoConnectionManager;
 import it.bologna.ausl.internauta.service.argo.utils.IndeUtils;
+import it.bologna.ausl.internauta.service.exceptions.argo.utils.ArgoConnectionException;
+import it.bologna.ausl.internauta.service.exceptions.sai.SottoDocumentoNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.sai.TooManyObjectsException;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +28,7 @@ public class SottoDocumentiUtils {
     @Autowired
     ArgoConnectionManager argoConnectionManager;
 
-    public List<String> getTableFieldsName(Integer idAzienda) throws Exception {
+    public List<String> getTableFieldsName(Integer idAzienda) throws ArgoConnectionException {
         List<String> fields = null;
         String query = "SELECT column_name\n"
                 + "  FROM information_schema.columns\n"
@@ -41,20 +37,18 @@ public class SottoDocumentiUtils {
         try (Connection connection = argoConnectionManager.getConnection(idAzienda)) {
             Query createQuery = connection.createQuery(query);
             fields = createQuery.executeAndFetch(String.class);
-        } catch (Exception e) {
-            throw new Exception("Errore nel reperire i nomi dei campi del sottodocumento", e);
         }
         return fields;
     }
 
-    private String getInsertQueryTemplateByIdAzienda(Integer idAzienda) throws Exception {
+    private String getInsertQueryTemplateByIdAzienda(Integer idAzienda) throws ArgoConnectionException {
         List<String> tableFieldsName = getTableFieldsName(idAzienda);
         String fields = "";
         String values = "";
         for (String field : tableFieldsName) {
 
-            fields += (fields != "" ? ", " : "") + field; // cioè se la string non è vuota accoda una virgola poi scrivi comunque il campo
-            values += (values != "" ? ", " : "") + ":" + field; // cioè se la string non è vuota accoda una virgola poi scrivi comunque il campo
+            fields += (!"".equals(fields) ? ", " : "") + field; // cioè se la string non è vuota accoda una virgola poi scrivi comunque il campo
+            values += (!"".equals(values) ? ", " : "") + ":" + field; // cioè se la string non è vuota accoda una virgola poi scrivi comunque il campo
         }
         return String.format("insert into gd.sotto_documenti (%s) values (%s);", fields, values);
     }
@@ -63,7 +57,7 @@ public class SottoDocumentiUtils {
             String idGddoc,
             MinIOWrapperFileInfo fileInfo,
             String tipoDocumento,
-            Integer idOutbox) throws Exception {
+            Integer idOutbox) throws ArgoConnectionException {
         Map sottoDocumento;
         String idSottoDocumento = IndeUtils.generateIndeID();
         try (Connection conn = argoConnectionManager.getConnection(idAzienda)) {
@@ -125,13 +119,13 @@ public class SottoDocumentiUtils {
      * @return il sottodocumento identificato dall'idOutbox passato nell'azienda passata, oppure null se non esiste.
      * @throws TooManyObjectsException se trova più di un sottodocumento
      */
-    public Map<String, Object> getSottoDocumentoByIdOutbox(Integer idAzienda, Integer idOutbox) throws Exception {
+    public Map<String, Object> getSottoDocumentoByIdOutbox(Integer idAzienda, Integer idOutbox) throws SottoDocumentoNotFoundException, TooManyObjectsException, ArgoConnectionException {
         List<Map<String, Object>> sottodocumenti;
         sottodocumenti = getSottoDocumentoByCodice(idAzienda, CODICE_SOTTODOCUMENTO_TEMPLATE.replace("[idOutbox]", String.valueOf(idOutbox.intValue())));
         if (sottodocumenti == null) {
             String errorMessage = String.format("La query di ricerca del sottodocumento ha tornato null, questo non dovrebbe accadere. IdAzienda %s, idOutbox: %s", idAzienda, idOutbox);
             log.error(errorMessage);
-            throw new Exception(errorMessage);
+            throw new SottoDocumentoNotFoundException(errorMessage);
         } else if (sottodocumenti.size() > 1) {
             String errorMessage = String.format("trovati %s sottodocumenti per l'azienda %s e id %s", sottodocumenti.size(), idAzienda, idOutbox);
             log.error(errorMessage);
@@ -143,7 +137,7 @@ public class SottoDocumentiUtils {
         }
     }
     
-    public List<Map<String, Object>> getSottoDocumentoByCodice(Integer idAzienda, String codice) throws Exception {
+    public List<Map<String, Object>> getSottoDocumentoByCodice(Integer idAzienda, String codice) throws ArgoConnectionException {
         String query = "select * from gd.sotto_documenti where codice_sottodocumento = :codice_sottodocumento";
         List<Map<String, Object>> sottodocumenti;
         try (Connection conn = argoConnectionManager.getConnection(idAzienda)) {
@@ -154,7 +148,7 @@ public class SottoDocumentiUtils {
         return sottodocumenti;
     }
     
-    private Map<String, Object> getSottoDocumentoByIdSottoDocumento(Integer idAzienda, String idSottoDocumento) throws Exception {
+    private Map<String, Object> getSottoDocumentoByIdSottoDocumento(Integer idAzienda, String idSottoDocumento) throws ArgoConnectionException {
         List results = argoConnectionManager.queryAndFetcth("select * from gd.sotto_documenti "
                 + "where id_sottodocumento = '" + idSottoDocumento + "'", idAzienda);
         return (Map<String, Object>) results.get(0);

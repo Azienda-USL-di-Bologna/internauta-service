@@ -24,7 +24,6 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.diagnostica.ReportRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.DraftRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
-import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckCacheableFunctions;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.model.entities.baborg.Pec;
@@ -49,7 +48,6 @@ import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.QPec;
-import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.diagnostica.Report;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
@@ -108,17 +106,6 @@ public class SAIController implements ControllerHandledExceptions {
     @Autowired
     private CachedEntities cachedEntities;
     
-    @Autowired
-    private FascicolatoreOutboxGediLocaleManager fascicolatoreOutboxGediLocaleManager;
-    
-    @Autowired
-    private ParametriAziendeReader parametriAziendeReader;
-
-    @RequestMapping(value = {"reschedule-fascicolatore-sai-jobs", "rescheduleFascicolatoreSaiJobs"}, method = RequestMethod.GET)
-    public void sendAndArchiveMail() throws Exception {
-        fascicolatoreOutboxGediLocaleManager.scheduleAutoFascicolazioneOutboxAtBoot();
-    }
-    
     // @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"send-and-archive-pec", "sendAndArchivePec"}, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> sendAndArchiveMail(
@@ -162,7 +149,7 @@ public class SAIController implements ControllerHandledExceptions {
                 LOG.warn("errore nel reperimento dell'hostname");
             }
 
-            AuthenticatedSessionData authenticatedUserProperties = null;
+            AuthenticatedSessionData authenticatedUserProperties;
             Utente user;
             Persona person;
             try {
@@ -217,23 +204,22 @@ public class SAIController implements ControllerHandledExceptions {
                 }
 
                 try {
-                        idOutBox = shpeckUtils.BuildAndSendMailMessage(
-                            ShpeckUtils.MailMessageOperation.SEND_MESSAGE,
-                            hostname,
-                            draft.getId(),
-                            pec.getId(),
-                            body,
-                            hideRecipients,
-                            subject,
-                            to,
-                            cc,
-                            attachments,
-                            null,
-                            null,
-                            null,
-                            user.getId(),
-                            doIHaveToKrint);
-
+                    idOutBox = shpeckUtils.BuildAndSendMailMessage(
+                        ShpeckUtils.MailMessageOperation.SEND_MESSAGE,
+                        hostname,
+                        draft.getId(),
+                        pec.getId(),
+                        body,
+                        hideRecipients,
+                        subject,
+                        to,
+                        cc,
+                        attachments,
+                        null,
+                        null,
+                        null,
+                        user.getId(),
+                        doIHaveToKrint);
                 } catch (IOException | EmlHandlerException | BadParamsException | MessagingException ex) {
                     throw new Http500ResponseException("500-004", "Errore nella creazione del messaggio mail", ex);
                 } catch (Http500ResponseException ex) {
