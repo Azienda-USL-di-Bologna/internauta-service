@@ -101,7 +101,9 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
             beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
                 Archivio archivioVecchio = (Archivio) oldEntity;
                 listArchivioOld.add(archivioVecchio);
-                archivioVecchio.getIdTitolo().getClassificazione();
+                if (archivioVecchio.getIdTitolo() != null) {
+                    archivioVecchio.getIdTitolo().getClassificazione();
+                }
                 //archivioOld.setIdTitolo(((Archivio) oldEntity).getIdTitolo());
                 //((Archivio) oldEntity).getIdTitolo().getNome();
 //                archivioOld.setIdMassimario(archivioVecchio.getIdMassimario());
@@ -160,7 +162,12 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
             } else {
                 nomeIsChanged = false;
             }
-            boolean classificazioneIsChanged = !(archivio.getIdTitolo().getId().equals(archivioOld.getIdTitolo().getId()));
+            boolean classificazioneIsChanged;
+            if (archivio.getIdTitolo() != null && archivioOld.getIdTitolo() != null) {
+                classificazioneIsChanged = !(archivio.getIdTitolo().getId().equals(archivioOld.getIdTitolo().getId()));
+            } else {
+                classificazioneIsChanged = false;
+            }
             boolean categoriaDocumentaleIsChanged;
             if (archivio.getIdMassimario() != null && archivioOld.getIdMassimario() != null) {
                 categoriaDocumentaleIsChanged = !(archivio.getIdMassimario().getId().equals(archivioOld.getIdMassimario().getId()));
