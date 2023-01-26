@@ -65,6 +65,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchiviRecentiRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
@@ -115,6 +116,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.Accodatore
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.ArchivioRecente;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
@@ -181,6 +183,9 @@ public class ScriptaCustomController {
     private ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
     @Autowired
+    private ArchiviRecentiRepository archiviRecentiRepository;
+
+    @Autowired
     private DocDetailRepository docDetailRepository;
 
     @Autowired
@@ -242,10 +247,10 @@ public class ScriptaCustomController {
 
     @Autowired
     private MasterjobsObjectsFactory masterjobsObjectsFactory;
-    
+
     @Autowired
     private KrintUtils krintUtils;
-    
+
     @Autowired
     private KrintScriptaService krintScriptaService;
 
@@ -957,7 +962,7 @@ public class ScriptaCustomController {
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        
+
         return new ResponseEntity(idDocList, HttpStatus.OK);
         //return ResponseEntity.status(HttpStatus.OK).build();
     }
@@ -1083,7 +1088,21 @@ public class ScriptaCustomController {
             HttpServletRequest request) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-        archivioDiInteresseRepository.aggiungiArchivioRecente(idArchivioRadice, persona.getId());
+        Archivio archivioRadice = archivioRepository.findById(idArchivioRadice).get();
+        ZonedDateTime data_recentezza = ZonedDateTime.now();
+        Optional<ArchivioRecente> archivio = archiviRecentiRepository.getArchivioFromPersonaAndArchivio(idArchivioRadice, persona.getId());
+        boolean isPresent = archivio.isPresent();
+        if (isPresent) {
+            ArchivioRecente archivioUpdate = archivio.get();
+            archivioUpdate.setDataRecentezza(data_recentezza);
+            archiviRecentiRepository.save(archivioUpdate);
+        } else {
+            ArchivioRecente archivioUpdate = new ArchivioRecente();
+            archivioUpdate.setIdArchivio(archivioRadice.getIdArchivioDetail());
+            archivioUpdate.setIdPersona(persona);
+            archivioUpdate.setDataRecentezza(data_recentezza);
+            archiviRecentiRepository.save(archivioUpdate);
+        }
         return new ResponseEntity("", HttpStatus.OK);
     }
 
