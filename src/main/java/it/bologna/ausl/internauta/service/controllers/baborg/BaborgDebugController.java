@@ -274,7 +274,7 @@ public class BaborgDebugController {
 //        Service find = entityManager.find(Service.class, 1l);
 //        System.out.println(find);
         FooExternalWorker worker1 = masterjobsObjectsFactory.getJobWorker(FooExternalWorker.class, new FooExternalWorkerData(1, "p1", false), false);
-//        FooWorker worker2 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(2, "p2", false), false);
+        FooWorker worker2 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(2, "p2", false), false, 60000);
 //        FooWorker worker3 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(3, "p3", false), false);
 //        FooWorker worker4 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(4, "p3", false), false);
 //        FooWorker worker5 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(5, "p3", false), false);
@@ -285,7 +285,7 @@ public class BaborgDebugController {
 //        FooWorker worker0 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(0, "p3", false), false);
         Applicazione applicazione = cachedEntities.getApplicazione("procton");
 //        boolean wait = true;
-        mjQueuer.queue(Arrays.asList(worker1), "1", "t1", applicazione.getId(), true, Set.SetPriority.NORMAL);
+        mjQueuer.queue(Arrays.asList(worker2, worker2, worker1, worker2), "1", "t1", applicazione.getId(), true, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t1", applicazione.getId(), true, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "1", "t1", applicazione.getId(), false, Set.SetPriority.NORMAL);
 //        mjQueuer.queue(Arrays.asList(worker1, worker2, worker3), "2", "t2", applicazione.getId(), true, Set.SetPriority.NORMAL);

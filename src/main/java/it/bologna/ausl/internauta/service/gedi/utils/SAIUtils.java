@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.argo.utils.gd.FascicoloUtils;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
-import it.bologna.ausl.internauta.service.schedulers.FascicolatoreOutboxGediLocaleManager;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -12,13 +11,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloPadreNotDefinedException;
-import it.bologna.ausl.internauta.service.repositories.tools.PendingJobRepository;
-import it.bologna.ausl.internauta.service.schedulers.workers.gedi.wrappers.FascicolatoreAutomaticoGediParams;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerInitializationException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fascicolatoresai.FascicolatoreSAIWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fascicolatoresai.FascicolatoreSAIWorkerData;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.tools.PendingJob;
-import java.math.BigInteger;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.masterjobs.Set;
+import it.bologna.ausl.model.entities.shpeck.Outbox;
 
 /**
  *
@@ -33,13 +37,13 @@ public class SAIUtils {
     private FascicoloUtils fascicoloUtils;
 
     @Autowired
-    private FascicolatoreOutboxGediLocaleManager fasicolatoreManager;
-
-    @Autowired
     private ParametriAziendeReader parametriAziendeReader;
     
     @Autowired
-    private PendingJobRepository pendingJobRepository;
+    private MasterjobsJobsQueuer masterjobsJobsQueuer; 
+    
+    @Autowired
+    private MasterjobsObjectsFactory masterjobsObjectsFactory; 
     
     @Autowired
     private ObjectMapper objectMapper;
@@ -102,23 +106,25 @@ public class SAIUtils {
         }
 
         String numerazioneFascicoloDestinazione = (String) fascicoloDestinazione.get("numerazione_gerarchica");
-        log.info("Accodo mestieri di fascicolazione outbox");
-        PendingJob pendingJob = createPendongJob(idOutbox, azienda, numerazioneFascicoloDestinazione, utente, persona);
-        fasicolatoreManager.scheduleAutoFascicolazioneOutbox(pendingJob);
+        log.info("Accodo jobs di fascicolazione outbox");
+        
+        FascicolatoreSAIWorker fascicolatoreSAIWorker = createFascicolatoreSAIWorker(
+                idOutbox, azienda.getId(), null, null, numerazioneFascicoloDestinazione, utente.getId(), persona.getId());
+        masterjobsJobsQueuer.queue(
+                fascicolatoreSAIWorker, 
+                idOutbox.toString(), 
+                Outbox.class.getSimpleName(), 
+                Applicazione.Applicazioni.sai.toString(), 
+                false, 
+                Set.SetPriority.NORMAL);
+
         return numerazioneFascicoloDestinazione;
     }
     
-    private PendingJob createPendongJob(Integer idOutbox,
-            Azienda azienda,
-            String numerazioneGerarchica,
-            Utente utente,
-            Persona persona) {
-        PendingJob pendingJob = new PendingJob();
-        pendingJob.setService(PendingJob.PendigJobsServices.FASCICOLATORE_SAI);
-        FascicolatoreAutomaticoGediParams params = new FascicolatoreAutomaticoGediParams(idOutbox, azienda.getId(), null, null, numerazioneGerarchica, utente.getId(), persona.getId());
-        Map<String, Object> data = objectMapper.convertValue(params, new TypeReference<Map<String, Object>>(){});
-        pendingJob.setData(data);
-        return pendingJobRepository.save(pendingJob);
+    private FascicolatoreSAIWorker createFascicolatoreSAIWorker(Integer idOutbox, Integer idAzienda, String cf, String mittente, String numerazioneGerarchica, Integer idUtente, Integer idPersona) throws MasterjobsWorkerException, MasterjobsWorkerInitializationException {
+         FascicolatoreSAIWorkerData fascicolatoreSAIWorkerData = new FascicolatoreSAIWorkerData(
+                idOutbox, idAzienda, cf, mittente, numerazioneGerarchica, idUtente, idPersona);
+        return masterjobsObjectsFactory.getJobWorker(FascicolatoreSAIWorker.class, fascicolatoreSAIWorkerData, false, 60000);
     }
 
     private Map<String, Object> createFascicoloDestinazione(Integer idAzienda, String codiceFiscale, Map<String, Object> fascicoloPadre) throws Exception {
