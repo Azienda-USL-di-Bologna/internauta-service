@@ -248,9 +248,10 @@ public class LoginController {
             }
 
         } else {
-
-            if (!PasswordHashUtils.validatePassword(userLogin.password, utente.getPasswordHash())) {
-                return new ResponseEntity(HttpStatus.FORBIDDEN);
+            if (userLogin.passToken == null) {
+                if (!PasswordHashUtils.validatePassword(userLogin.password, utente.getPasswordHash())) {
+                    return new ResponseEntity(HttpStatus.FORBIDDEN);
+                }
             }
         }
 
