@@ -42,7 +42,13 @@ public class RibaltoneUtilsCustomController {
 //        Persona persona = cachedEntities.getPersonaFromCodiceFiscale("RIBALTONE");
 //        Utente user = persona.getUtenteList().stream()
 //                    .filter(utente -> utente.getIdAzienda().getId().equals(azienda.getId())).findFirst().get();
-        if (StringUtils.hasText(ribaltoneDaLanciare.getNote())){ribaltoneDaLanciare.setNote("nessuna nota");}
+        if (!StringUtils.hasText(ribaltoneDaLanciare.getNote())){
+            ribaltoneDaLanciare.setNote("nessuna nota");
+        }else
+        {
+            ribaltoneDaLanciare.setNote(ribaltoneDaLanciare.getNote().replace("____", "----"));
+                    
+        }
         ribaltoneDaLanciareRepository.sendNotifyInternauta(ribaltoneDaLanciare.getCodiceAzienda(), 
                 ribaltoneDaLanciare.getRibaltaArgo(),
                 ribaltoneDaLanciare.getRibaltaInternauta(),
