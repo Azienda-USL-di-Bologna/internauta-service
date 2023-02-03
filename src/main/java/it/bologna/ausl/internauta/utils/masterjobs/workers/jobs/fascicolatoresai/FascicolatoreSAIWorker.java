@@ -8,23 +8,27 @@ import it.bologna.ausl.internauta.service.argo.utils.gd.GddocUtils;
 import it.bologna.ausl.internauta.service.argo.utils.gd.SottoDocumentiUtils;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.QOutbox;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +64,12 @@ public class FascicolatoreSAIWorker extends JobWorker<FascicolatoreSAIWorkerData
     @Autowired
     private ReporitoryConnectionManager aziendeConnectionManager;
     
+    @Autowired
+    private ParametriAziendeReader parametriAziendeReader;
+    
+    @Autowired
+    private DocRepository docRepository;
+    
     private Message message;
     
     @Override
@@ -71,7 +81,68 @@ public class FascicolatoreSAIWorker extends JobWorker<FascicolatoreSAIWorkerData
     public JobWorkerResult doRealWork() throws MasterjobsWorkerException {
         log.info(String.format("avvio %s", getName()));
         FascicolatoreSAIWorkerData workerData = getWorkerData();
+        
+        // Vedo se siamo passati all'utilizzo di gedi internauta
+        List<ParametroAziende> parameters = parametriAziendeReader.getParameters(
+                    ParametriAziendeReader.ParametriAzienda.usaGediInternauta.toString(),
+                    new Integer[]{workerData.getIdAzienda()}
+        );
+        if (parameters.size() == 1 && parametriAziendeReader.getValue(parameters.get(0), Boolean.class)) {
+            // Ok si usa gedi nuovo
+            doRealWorkPerNewGedi(workerData);
+        } else {
+            // Si usa gedi vecchio
+            doRealWorkPerOldGedi(workerData);
+        }
+        
+        
+        return null;
+    }
 
+    @Override
+    public boolean isExecutable() {
+        try {
+            loadMessageByIdOutbox();
+            return (message != null && isOutboxSent() && message.getUuidRepository() != null);
+        } catch (MasterjobsWorkerException ex) {
+            String errorMessage = "errore nel isExecutable(), lo considero false";
+            log.error(errorMessage, ex);
+            return false;
+        }
+    }
+    
+    private void doRealWorkPerNewGedi(FascicolatoreSAIWorkerData workerData) throws MasterjobsWorkerException {
+        try {
+            /*
+            dati di partenza
+            private Integer idOutbox;
+            private Integer idAzienda;
+            private String cf;
+            private String mittente;
+            private String numerazioneGerarchica;
+            private Integer idUtente;
+            private Integer idPersona;
+            */
+            loadMessageByIdOutbox(); // Carico il message e setto la proprietà message
+            String nome = message.getName();
+            
+            
+            // Cerco il doc e se non esiste lo creo
+            
+            // Cerco l'archiviazione e se non esiste la creo TODO: Secondo me posso dare per scaontato che non esiste
+            
+            // Cerco l'allegato e se non esiste lo creo TODO: Secondo me posso dare per scontato che non esiste
+            
+            // Inserisco il tag di archiviazione sul message (la fuznione da sola controlla che il tag non sia già presente)
+            
+        } catch (Exception ex) {
+            String errorMessage = "errore fascicolazione gedi internauta";
+            log.error(errorMessage, ex);
+            throw new MasterjobsWorkerException(errorMessage, ex);
+        }
+    }
+    
+    private void doRealWorkPerOldGedi(FascicolatoreSAIWorkerData workerData) throws MasterjobsWorkerException {
         try {
             loadMessageByIdOutbox();
             Map<String, Object> fascicolo = getFascicolo();
@@ -106,22 +177,9 @@ public class FascicolatoreSAIWorker extends JobWorker<FascicolatoreSAIWorkerData
             // le funzione che tagga ha già il controllo per non inserire il tag se questo è già presente
             insertArchiviationTag(fascicolo, gddoc);
         } catch (Exception ex) {
-            String errorMessage = "errore fascicolazione";
+            String errorMessage = "errore fascicolazione gedi vecchio";
             log.error(errorMessage, ex);
             throw new MasterjobsWorkerException(errorMessage, ex);
-        }
-        return null;
-    }
-
-    @Override
-    public boolean isExecutable() {
-        try {
-            loadMessageByIdOutbox();
-            return (message != null && isOutboxSent() && message.getUuidRepository() != null);
-        } catch (MasterjobsWorkerException ex) {
-            String errorMessage = "errore nel isExecutable(), lo considero false";
-            log.error(errorMessage, ex);
-            return false;
         }
     }
     

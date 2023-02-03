@@ -1068,6 +1068,10 @@ public class ScriptaCustomController {
 
         return ResponseEntity.status(HttpStatus.OK).build();
     }
+    
+    private void archiveMessage() {
+        
+    }
 
     @RequestMapping(value = "copiaArchiviazioni", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
