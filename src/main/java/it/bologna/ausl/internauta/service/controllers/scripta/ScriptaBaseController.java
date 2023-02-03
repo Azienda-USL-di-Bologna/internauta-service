@@ -359,9 +359,9 @@ public class ScriptaBaseController extends BaseCrudController {
         return ResponseEntity.ok(resource);
     }
 
-    @RequestMapping(value = {"archivirecenti", "archivirecenti/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = {"archiviorecente", "archiviorecente/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 //    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> archivirecenti(
+    public ResponseEntity<?> archiviorecente(
             @QuerydslPredicate(root = ArchivioRecente.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
