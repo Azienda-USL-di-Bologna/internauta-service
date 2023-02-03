@@ -7,14 +7,19 @@ import it.bologna.ausl.internauta.service.argo.utils.gd.FascicoloUtils;
 import it.bologna.ausl.internauta.service.argo.utils.gd.GddocUtils;
 import it.bologna.ausl.internauta.service.argo.utils.gd.SottoDocumentiUtils;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
+import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaArchiviUtils;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
-import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
@@ -22,6 +27,7 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.QOutbox;
@@ -68,7 +74,19 @@ public class FascicolatoreSAIWorker extends JobWorker<FascicolatoreSAIWorkerData
     private ParametriAziendeReader parametriAziendeReader;
     
     @Autowired
-    private DocRepository docRepository;
+    private ScriptaArchiviUtils scriptaArchiviUtils;
+    
+    @Autowired
+    private ArchivioRepository archivioRepository;
+    
+    @Autowired
+    private PersonaRepository personaRepository;
+    
+    @Autowired
+    private UtenteRepository utenteRepository;
+    
+    @Autowired
+    private AziendaRepository aziendaRepository;
     
     private Message message;
     
@@ -124,16 +142,15 @@ public class FascicolatoreSAIWorker extends JobWorker<FascicolatoreSAIWorkerData
             private Integer idPersona;
             */
             loadMessageByIdOutbox(); // Carico il message e setto la proprietà message
-            String nome = message.getName();
+            Archivio archivio = archivioRepository.findByNumerazioneGerarchica(getWorkerData().getNumerazioneGerarchica());
+            Persona persona = personaRepository.getById(getWorkerData().getIdPersona());
+            Utente utente = utenteRepository.getById(getWorkerData().getIdUtente());
+            Azienda azienda = aziendaRepository.getById(getWorkerData().getIdAzienda());
             
+            Integer idDoc = scriptaArchiviUtils.archiveMessage(message, archivio, persona, azienda, utente);
             
-            // Cerco il doc e se non esiste lo creo
-            
-            // Cerco l'archiviazione e se non esiste la creo TODO: Secondo me posso dare per scaontato che non esiste
-            
-            // Cerco l'allegato e se non esiste lo creo TODO: Secondo me posso dare per scontato che non esiste
-            
-            // Inserisco il tag di archiviazione sul message (la fuznione da sola controlla che il tag non sia già presente)
+            AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+            accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);
             
         } catch (Exception ex) {
             String errorMessage = "errore fascicolazione gedi internauta";

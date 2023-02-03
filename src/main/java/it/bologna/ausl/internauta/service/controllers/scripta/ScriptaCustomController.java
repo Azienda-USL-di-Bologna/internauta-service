@@ -983,94 +983,11 @@ public class ScriptaCustomController {
         Message message = messageRepository.findById(idMessage).get();
         Azienda azienda = archivio.getIdAzienda();
 
-        // Controlli di sicurezza
-        // 1
-        // Se il messaggio non è archiviabile perché non ha ancora l'idRepository
-        // Nel frontend l'icona è disattiva quindi qui non dovrei mai entrare.
-        if (message.getUuidRepository() == null) {
-            throw new Http404ResponseException("1", "Messaggio senza idRepository");
-        }
-
-        // 2
-        // Controllo che l'utente abbia permessi nella casella pec del message
-        Map<Integer, List<String>> permessiPec = userInfoService.getPermessiPec(persona);
-        if (!permessiPec.isEmpty()) {
-            List<Integer> pecList = new ArrayList();
-            pecList.addAll(permessiPec.keySet());
-            if (!pecList.contains(message.getIdPec().getId())) {
-                throw new Http403ResponseException("2", "Utente senza permessi sulla casella pec");
-            }
-        } else {
-            throw new Http403ResponseException("2", "Utente senza permessi sulla casella pec");
-        }
-
-        // 3
-        // Controllo che l'utente abbia almeno permesso di modifica sull'archivio
-        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.MODIFICA)) {
-            throw new Http403ResponseException("3", "Utente senza permesso di modificare l'archivio");
-        }
-
-        /*
-        Ora vedo se il doc già esiste ( lo becco dentro messages_docs. )
-        Se non esiste allora dovrò crearlo e quindi dovrò creare i vari allegati.
-         */
-        Doc doc = null;
-        List<MessageDoc> messageDocList = message.getMessageDocList().stream().filter(md -> md.getScope().equals(MessageDoc.ScopeMessageDoc.ARCHIVIAZIONE)).collect(Collectors.toList());
-        for (MessageDoc md : messageDocList) {
-            if (md.getIdDoc().getIdAzienda().getId().equals(azienda.getId())) {
-                doc = md.getIdDoc();
-                break;
-            }
-        }
-
-        if (doc == null) {
-            File downloadEml = shpeckUtils.downloadEml(ShpeckUtils.EmlSource.MESSAGE, idMessage);
-            MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-
-            doc = new Doc("Pec_" + message.getId().toString(), persona, archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString());
-            doc = docRepository.save(doc);
-            MessageDoc.TipoMessageDoc tipo = null;
-            if (message.getInOut().equals(MessageInterface.InOut.IN)) {
-                tipo = MessageDoc.TipoMessageDoc.IN;
-            } else {
-                tipo = MessageDoc.TipoMessageDoc.OUT;
-            }
-            MessageDoc md = new MessageDoc(message, doc, tipo, MessageDoc.ScopeMessageDoc.ARCHIVIAZIONE);
-            messageDocRepository.save(md);
-
-            try {
-                scriptaUtils.creaAndAllegaAllegati(doc, new FileInputStream(downloadEml), "Pec_" + message.getId().toString(), true, true, message.getUuidRepository(), false, null); // downloadEml.getName()
-            } catch (Exception e) {
-                if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
-                    for (MinIOWrapperFileInfo minIOWrapperFileInfo : savedFilesOnRepository) {
-                        minIOWrapper.removeByFileId(minIOWrapperFileInfo.getFileId(), false);
-                    }
-                }
-                e.printStackTrace();
-                throw new Http500ResponseException("4", "Qualcosa è andato storto nelle creazione degli allegati");
-            }
-        }
-
-        // Ora che o il doc lo archivio
-        ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
-        archivioDocRepository.save(archiviazione);
-        archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
-
-        // Ora aggiungo il tag di archiviazione sul message
-        AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), persona.getDescrizione());
-        AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
-        AdditionalDataTagComponent.idArchivio archivioAdditionalData = new AdditionalDataTagComponent.idArchivio(archivio.getId(), archivio.getOggetto(), archivio.getNumerazioneGerarchica());
-        AdditionalDataArchiviation additionalDataArchiviation = new AdditionalDataArchiviation(utenteAdditionalData, aziendaAdditionalData, archivioAdditionalData, LocalDateTime.now());
-        shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalDataArchiviation, utente, true, true);
-
+        Integer idDoc = scriptaArchiviUtils.archiveMessage(message, archivio, persona, azienda, utente);
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-        accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
-
-        return ResponseEntity.status(HttpStatus.OK).build();
-    }
-    
-    private void archiveMessage() {
+        accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);
         
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     @RequestMapping(value = "copiaArchiviazioni", method = RequestMethod.POST)
