@@ -65,7 +65,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchiviRecentiRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRecenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
@@ -183,7 +183,7 @@ public class ScriptaCustomController {
     private ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
     @Autowired
-    private ArchiviRecentiRepository archiviRecentiRepository;
+    private ArchivioRecenteRepository archivioRecenteRepository;
 
     @Autowired
     private DocDetailRepository docDetailRepository;
@@ -1084,24 +1084,24 @@ public class ScriptaCustomController {
 
     @RequestMapping(value = "aggiungiArchivioRecente", method = RequestMethod.POST)
     public ResponseEntity<?> aggiungiArchivioRecente(
-            @RequestParam("idArchivioRadice") Integer idArchivioRadice,
+            @RequestParam("idArchivio") Integer idArchivio,
             HttpServletRequest request) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-        Archivio archivioRadice = archivioRepository.findById(idArchivioRadice).get();
+        Archivio archivioRadice = archivioRepository.findById(idArchivio).get();
         ZonedDateTime data_recentezza = ZonedDateTime.now();
-        Optional<ArchivioRecente> archivio = archiviRecentiRepository.getArchivioFromPersonaAndArchivio(idArchivioRadice, persona.getId());
+        Optional<ArchivioRecente> archivio = archivioRecenteRepository.getArchivioFromPersonaAndArchivio(idArchivio, persona.getId());
         boolean isPresent = archivio.isPresent();
         if (isPresent) {
             ArchivioRecente archivioUpdate = archivio.get();
             archivioUpdate.setDataRecentezza(data_recentezza);
-            archiviRecentiRepository.save(archivioUpdate);
+            archivioRecenteRepository.save(archivioUpdate);
         } else {
             ArchivioRecente archivioUpdate = new ArchivioRecente();
             archivioUpdate.setIdArchivio(archivioRadice.getIdArchivioDetail());
             archivioUpdate.setIdPersona(persona);
             archivioUpdate.setDataRecentezza(data_recentezza);
-            archiviRecentiRepository.save(archivioUpdate);
+            archivioRecenteRepository.save(archivioUpdate);
         }
         return new ResponseEntity("", HttpStatus.OK);
     }
