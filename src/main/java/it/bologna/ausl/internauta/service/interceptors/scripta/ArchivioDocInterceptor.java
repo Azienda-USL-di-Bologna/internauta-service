@@ -5,7 +5,7 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchiviRecentiRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRecenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
@@ -53,7 +53,7 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
     ArchivioDiInteresseRepository archiviDiInteresseRepository;
 
     @Autowired
-    ArchiviRecentiRepository archiviRecentiRepository;
+    ArchivioRecenteRepository archivioRecenteRepository;
 
     @Autowired
     private KrintUtils krintUtils;
