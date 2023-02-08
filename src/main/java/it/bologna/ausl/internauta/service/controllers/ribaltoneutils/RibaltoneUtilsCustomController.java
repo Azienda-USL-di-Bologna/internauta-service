@@ -1,15 +1,15 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package it.bologna.ausl.internauta.service.controllers.ribaltoneutils;
 
-import it.bologna.ausl.internauta.service.repositories.ribaltoneutils.RibaltoneDaLanciareRepository;
-import it.bologna.ausl.internauta.service.utils.CachedEntities;
-import it.bologna.ausl.model.entities.baborg.Azienda;
-import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerInitializationException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.lanciatrasformatore.LanciaTrasformatoreJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.lanciatrasformatore.LanciaTrasformatoreJobWorkerData;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.ribaltoneutils.RibaltoneDaLanciare;
+import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,22 +26,19 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(value = "${ribaltoneutils.mapping.url.root}")
-public class RibaltoneUtilsCustomController {
+public class RibaltoneUtilsCustomController {   
     
     @Autowired
-    private RibaltoneDaLanciareRepository ribaltoneDaLanciareRepository;
+    MasterjobsObjectsFactory masterjobsObjectsFactory;
     
     @Autowired
-    private CachedEntities cachedEntities;
+    MasterjobsJobsQueuer masterjobsJobsQueuer;
 
     @RequestMapping(value = "lanciaTrasformatore", method = RequestMethod.POST)
     public ResponseEntity<?> lanciaTrasformatore(
             @RequestBody RibaltoneDaLanciare ribaltoneDaLanciare,
-            HttpServletRequest request) {
-//        Azienda azienda = cachedEntities.getAziendaFromCodice(ribaltoneDaLanciare.getCodiceAzienda());
-//        Persona persona = cachedEntities.getPersonaFromCodiceFiscale("RIBALTONE");
-//        Utente user = persona.getUtenteList().stream()
-//                    .filter(utente -> utente.getIdAzienda().getId().equals(azienda.getId())).findFirst().get();
+            HttpServletRequest request) throws IOException, MasterjobsWorkerInitializationException, MasterjobsQueuingException {
+        
         if (!StringUtils.hasText(ribaltoneDaLanciare.getNote())){
             ribaltoneDaLanciare.setNote("nessuna nota");
         }else
@@ -49,12 +46,20 @@ public class RibaltoneUtilsCustomController {
             ribaltoneDaLanciare.setNote(ribaltoneDaLanciare.getNote().replace("____", "----"));
                     
         }
-        ribaltoneDaLanciareRepository.sendNotifyInternauta(ribaltoneDaLanciare.getCodiceAzienda(), 
+       
+        LanciaTrasformatoreJobWorkerData lanciaTrasformatoreJobWorkerData = new LanciaTrasformatoreJobWorkerData(
+                ribaltoneDaLanciare.getIdAzienda().getId(), 
                 ribaltoneDaLanciare.getRibaltaArgo(),
-                ribaltoneDaLanciare.getRibaltaInternauta(),
-                ribaltoneDaLanciare.getNote(),
+                ribaltoneDaLanciare.getRibaltaInternauta(), 
                 ribaltoneDaLanciare.getEmail(),
-                ribaltoneDaLanciare.getIdUtente().getId());
+                ribaltoneDaLanciare.getFonteRibaltone(), 
+                ribaltoneDaLanciare.getTrasforma(),
+                ribaltoneDaLanciare.getIdUtente().getId(),
+                ribaltoneDaLanciare.getNote()
+        );
+        LanciaTrasformatoreJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(LanciaTrasformatoreJobWorker.class, lanciaTrasformatoreJobWorkerData, false);
+        masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.trasformatore.toString(), false, Set.SetPriority.NORMAL);
+        
         return new ResponseEntity("", HttpStatus.OK);
     }
     
