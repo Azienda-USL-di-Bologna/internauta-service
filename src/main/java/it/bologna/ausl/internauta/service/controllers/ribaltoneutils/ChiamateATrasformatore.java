@@ -39,7 +39,7 @@ public class ChiamateATrasformatore {
     @Autowired
     private ParametriAziendeReader parametriAziende;
 
-    public boolean lanciaTrasformatore(
+    public void lanciaTrasformatore(
             Integer idAzienda, 
             Boolean ribaltaArgo, 
             Boolean ribaltaInternauta, 
@@ -47,7 +47,7 @@ public class ChiamateATrasformatore {
             String fonteRibaltone, 
             Boolean trasforma,
             Integer IdUtente,
-            String note){
+            String note) throws Throwable{
         try {
             Azienda azienda = cachedEntities.getAzienda(idAzienda);
             String url = "";
@@ -87,17 +87,16 @@ public class ChiamateATrasformatore {
                 int responseCode = response.code();
                 if (response.isSuccessful()) {
                     readValue = objectMapper.readValue(response.body().string(), HashMap.class);
-    //                r.put(resp);
                     log.info("Chiamata a webapi Trasformatore effettuata con successo");
                 } else {
                     log.error("Errore nella chiamata al Trasformatore: " + responseCode + " " + response.message());
-                    return false;
+                    throw new Throwable("Errore nella chiamata al Trasformatore: " + responseCode + " " + response.message());
                 }
             }
-           
-            return true;
+
              }catch (Throwable t){
-                return false;
+                log.error("Errore nella chiamata al Trasformatore: ", t);
+                throw new Throwable("Errore nella chiamata al Trasformatore: ", t);
             }
     }
 
