@@ -113,7 +113,7 @@ public class KrintBaborgService {
                     jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgTipologiaStruttura);
                     break;
                 case BABORG_UFFICIO_NOME_UPDATE:
-                    Struttura strutturaOggetto = (Struttura) oggetto;
+                    Struttura strutturaOggetto = struttura;
                     idOggetto = strutturaOggetto.getId().toString();
                     descrizioneOggetto = strutturaOggetto.getNome();
                     tipoOggetto = Krint.TipoOggettoKrint.BABORG_UFFICIO;

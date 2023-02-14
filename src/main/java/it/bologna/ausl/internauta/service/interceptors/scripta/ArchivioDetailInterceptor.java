@@ -8,7 +8,7 @@ import static com.querydsl.jpa.JPAExpressions.select;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchiviRecentiRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRecenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -65,7 +65,7 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
     ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
     @Autowired
-    ArchiviRecentiRepository archiviRecentiRepository;
+    ArchivioRecenteRepository archivioRecenteRepository;
 
     @Override
     public Class getTargetEntityClass() {
