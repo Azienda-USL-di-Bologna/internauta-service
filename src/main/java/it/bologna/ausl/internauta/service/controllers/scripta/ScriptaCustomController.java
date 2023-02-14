@@ -54,7 +54,6 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
@@ -106,9 +105,7 @@ import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
-import it.bologna.ausl.internauta.service.repositories.shpeck.MessageDocRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
-import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
@@ -118,20 +115,17 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.ArchivioRecente;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
-import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
-import it.bologna.ausl.model.entities.shpeck.MessageInterface;
-import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
-import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
-import java.io.File;
-import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
+import javax.persistence.Entity;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 
@@ -160,10 +154,7 @@ public class ScriptaCustomController {
 
     @Autowired
     private MessageRepository messageRepository;
-
-    @Autowired
-    private MessageDocRepository messageDocRepository;
-
+    
     @Autowired
     private ScriptaArchiviUtils scriptaArchiviUtils;
 
@@ -196,6 +187,9 @@ public class ScriptaCustomController {
 
     @Autowired
     private PecRepository pecRepository;
+    
+    @PersistenceContext
+    private EntityManager em;
 
     @Autowired
     private PersonaVedenteRepository personaVedenteRepository;
@@ -210,9 +204,6 @@ public class ScriptaCustomController {
     private ParametriAziendeReader parametriAziende;
 
     @Autowired
-    private UserInfoService userInfoService;
-
-    @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     @Autowired
@@ -223,9 +214,6 @@ public class ScriptaCustomController {
 
     @Autowired
     private AziendaRepository aziendaRepository;
-
-    @Autowired
-    private ShpeckUtils shpeckUtils;
 
     @Autowired
     private GeneratePE generatePE;
@@ -940,6 +928,7 @@ public class ScriptaCustomController {
             for (MultipartFile file : files) {
                 Doc doc = new Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
                 doc = docRepository.save(doc);
+                em.refresh(doc);
                 idDocList.add(doc.getId());
                 scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename(), true);
 
@@ -947,7 +936,16 @@ public class ScriptaCustomController {
                 ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
                 archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
-
+                
+                PersonaVedente pv = new PersonaVedente();
+                pv.setIdAzienda(doc.getIdAzienda());
+                pv.setIdDocDetail(doc.getIdDocDetail());
+                pv.setIdPersona(persona);
+                pv.setDataCreazione(doc.getDataCreazione());
+                pv.setPienaVisibilita(Boolean.TRUE);
+                pv.setMioDocumento(Boolean.TRUE);
+                personaVedenteRepository.save(pv);
+                
                 AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
                 accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
                 if (krintUtils.doIHaveToKrint(request)) {
@@ -955,6 +953,7 @@ public class ScriptaCustomController {
                 }
             }
         } catch (Exception e) {
+            LOG.error("Errore nell'upload del doc",e);
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
                 for (MinIOWrapperFileInfo minIOWrapperFileInfo : savedFilesOnRepository) {
                     minIOWrapper.removeByFileId(minIOWrapperFileInfo.getFileId(), false);

@@ -5,29 +5,22 @@ import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnecti
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailViewRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Doc;
-import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,13 +40,7 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     ReporitoryConnectionManager aziendeConnectionManager;
-
-    @Autowired
-    AllegatoRepository allegatoRepository;
-
-    @Autowired
-    DocDetailViewRepository docDetailViewRepository;
-    
+ 
     @Autowired
     PersonaVedenteRepository personaVedenteRepository;
     
@@ -145,7 +132,8 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
      */
     private Boolean pienaVisibilita(Doc doc, Persona persona) {
         Boolean hasPienaVisibilita = false;
-        
+        LOGGER.info("id_doc"+doc.getId().toString());
+        LOGGER.info("id_persona"+persona.getId().toString());
         hasPienaVisibilita = personaVedenteRepository.hasPienaVisibìlita(doc.getId(), persona.getId());
         
         return hasPienaVisibilita;
