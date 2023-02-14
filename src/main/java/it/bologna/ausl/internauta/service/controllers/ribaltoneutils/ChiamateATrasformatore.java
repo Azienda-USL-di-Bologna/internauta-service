@@ -71,9 +71,9 @@ public class ChiamateATrasformatore {
                     okhttp3.MediaType.get("application/json; charset=utf-8"),
                     objectMapper.writeValueAsString(hm));
             OkHttpClient client = new OkHttpClient.Builder()
-                    .connectTimeout(60, TimeUnit.SECONDS) // connection timeout
-                    .writeTimeout(60, TimeUnit.SECONDS) // (probabilmente non serve, ma mettiamolo lo stesso)
-                    .readTimeout(60, TimeUnit.SECONDS) // socket timeout
+                    .connectTimeout(300, TimeUnit.SECONDS) // connection timeout
+                    .writeTimeout(300, TimeUnit.SECONDS) // (probabilmente non serve, ma mettiamolo lo stesso)
+                    .readTimeout(300, TimeUnit.SECONDS) // socket timeout
                     .build();
 
             Request request = new Request.Builder()
