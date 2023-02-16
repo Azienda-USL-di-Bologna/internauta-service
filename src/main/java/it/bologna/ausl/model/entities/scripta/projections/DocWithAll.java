@@ -15,8 +15,8 @@ import org.springframework.data.rest.core.config.Projection;
 public interface DocWithAll extends DocWithAllegatiAndCoinvoltiAndCompetentiAndIdAziendaAndIdPersonaCreazioneAndMittentiAndRegistroDocListAndRelated {
 
     @Override
-    @Value("#{@scriptaProjectionUtils.filterRelatedWithSpedizioneList(target.getRelated(), 'MITTENTE')}")
-    public List<CustomRelatedWithSpedizioneList> getMittenti();
+    @Value("#{@scriptaProjectionUtils.filterRelatedWithUltimaSpedizione(target.getRelated(), 'MITTENTE')}")
+    public List<CustomRelatedWithUltimaSpedizione> getMittenti();
 
     @Override
     @Value("#{@scriptaProjectionUtils.filterRelated(target.getRelated(), 'A')}")
