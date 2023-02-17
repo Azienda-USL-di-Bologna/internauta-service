@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-
 /**
  *
  * @author Mido
@@ -40,20 +39,23 @@ public class ChiamateATrasformatore {
     private ParametriAziendeReader parametriAziende;
 
     public void lanciaTrasformatore(
-            Integer idAzienda, 
-            Boolean ribaltaArgo, 
-            Boolean ribaltaInternauta, 
-            String email, 
-            String fonteRibaltone, 
+            Integer idAzienda,
+            Boolean ribaltaArgo,
+            Boolean ribaltaInternauta,
+            String email,
+            String fonteRibaltone,
             Boolean trasforma,
             Integer IdUtente,
-            String note) throws Throwable{
+            String note) throws Throwable {
+        String url = "";
+        Azienda azienda = null;
         try {
-            Azienda azienda = cachedEntities.getAzienda(idAzienda);
-            String url = "";
+            azienda = cachedEntities.getAzienda(idAzienda);
             List<ParametroAziende> parameters = parametriAziende.getParameters("urlTrasformatore", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
             if (parameters != null && !parameters.isEmpty()) {
-                url = parametriAziende.getValue(parameters.get(0), new TypeReference<String>(){});
+                url = parametriAziende.getValue(parameters.get(0), new TypeReference<String>() {
+                });
+
             }
             Map<String, Object> hm = new HashMap();
             hm.put("app", "avec");
@@ -83,7 +85,7 @@ public class ChiamateATrasformatore {
 
             Call call = client.newCall(request);
             HashMap readValue = null;
-            try ( Response response = call.execute();) {
+            try (Response response = call.execute();) {
                 int responseCode = response.code();
                 if (response.isSuccessful()) {
                     readValue = objectMapper.readValue(response.body().string(), HashMap.class);
@@ -94,10 +96,12 @@ public class ChiamateATrasformatore {
                 }
             }
 
-             }catch (Throwable t){
-                log.error("Errore nella chiamata al Trasformatore: ", t);
-                throw new Throwable("Errore nella chiamata al Trasformatore: ", t);
-            }
+        } catch (Throwable t) {
+            log.info("urlTrasformatore: " + url);
+            log.info("Codice azienda" + ((azienda != null) ? azienda.getCodice() : "") );
+            log.error("Errore nella chiamata al Trasformatore: ", t);
+            throw new Throwable("Errore nella chiamata al Trasformatore: ", t);
+        }
     }
 
 }
