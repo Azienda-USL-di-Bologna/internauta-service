@@ -21,34 +21,34 @@ public class InternautaConstants {
     public static class Permessi {
 
         public enum Predicati {
-            CONNESSO, REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO, SEGR
+            CONNESSO, REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, VISUALIZZA, MODIFICA, BLOCCO, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO, SEGR
         }
 
         public enum Ambiti {
-            BABORG, PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA, DELEGATO, MATRINT
+            BABORG, PECG, DETE, AVATAR, DELI, GEDI, PICO, TEST, INCARICO, ALBO, RUBRICA, DELEGATO, MATRINT, SCRIPTA
         }
 
         public enum Tipi {
-            DELEGA, FASCICOLO, PEC, FLUSSO, TEST, INCARICO, CONTATTO, UFFICIO
+            DELEGA, FASCICOLO, PEC, FLUSSO, TEST, INCARICO, CONTATTO, UFFICIO, ARCHIVIO
         }
     }
 
     public static class AdditionalData {
 
         public enum Keys {
-            OperationRequested, 
-            idPec, 
-            idAzienda, 
-            idStruttura, 
-            idPersona, 
-            idProvenienzaOggetto, 
-            dataRiferimento, 
-            ruoli, 
-            Merge, 
-            CercaAncheInContatto, 
+            OperationRequested,
+            idPec,
+            idAzienda,
+            idStruttura,
+            idPersona,
+            idProvenienzaOggetto,
+            dataRiferimento,
+            ruoli,
+            Merge,
+            CercaAncheInContatto,
             CercaAncheInContattoNoTScol,
-            cercaAncheGruppi, 
-            idMessage, 
+            cercaAncheGruppi,
+            idMessage,
             codiceAzienda,
             BitPermessoMinimo,
             idArchivio,
@@ -61,6 +61,7 @@ public class InternautaConstants {
             GetPermessiDiFlusso,
             GetPermessiStrutturePec,
             FilterPecPerPermissionOfSubject,
+            CloseOrReopenArchive,
             AddPermissionsOnPec,
             AddGestoriOnPec,
             LoadDataPerInterfacciaElencoPec,
@@ -117,7 +118,7 @@ public class InternautaConstants {
 
         public enum Keys {
             PersoneWithPecPermissions, ParametriAzienda, StruttureWithPecPermissions, PecOfSubject, UtenteLogin, IdSessionLog,
-            KRINT_ROWS, KRINT_ERRORS, ContattoGruppoAppenaCreato, MEMORY_DEBUGGER_MESSAGE_SIZE,DettagliAllegatiDaEliminare
+            KRINT_ROWS, KRINT_ERRORS, ContattoGruppoAppenaCreato, MEMORY_DEBUGGER_MESSAGE_SIZE, DettagliAllegatiDaEliminare
         }
     }
 

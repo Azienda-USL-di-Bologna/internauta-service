@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.controllers.ribaltoneutils;
 
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
+import it.bologna.ausl.internauta.service.repositories.ribaltoneutils.RibaltoneDaLanciareRepository;
 import it.bologna.ausl.model.entities.ribaltoneutils.QRibaltoneDaLanciare;
 import it.bologna.ausl.model.entities.ribaltoneutils.QStoricoAttivazione;
 import it.bologna.ausl.model.entities.ribaltoneutils.RibaltoneDaLanciare;
@@ -33,6 +34,9 @@ public class RibaltoneUtilsBaseController extends BaseCrudController {
     
     @Autowired
     private RestControllerEngineImpl restControllerEngine;
+    
+    @Autowired
+    private RibaltoneDaLanciareRepository ribaltoneDaLanciareRepository;
 
     @Override
     public RestControllerEngine getRestControllerEngine() {
@@ -64,7 +68,8 @@ public class RibaltoneUtilsBaseController extends BaseCrudController {
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
-
+        
+//        ribaltoneDaLanciareRepository.sendNotifyInternauta(azienda.getCodice(), Boolean.TRUE, Boolean.TRUE, "Servizio notturno");
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRibaltoneDaLanciare.ribaltoneDaLanciare, RibaltoneDaLanciare.class);
         return ResponseEntity.ok(resource);
     }

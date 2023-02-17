@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package it.bologna.ausl.internauta.service.argo.utils;
 
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
@@ -16,7 +11,6 @@ import org.springframework.stereotype.Component;
 import org.sql2o.Connection;
 import org.sql2o.Query;
 import org.sql2o.Sql2o;
-import org.sql2o.data.Row;
 import org.sql2o.data.Table;
 
 /**
@@ -41,7 +35,7 @@ public class ArgoConnectionManager {
         return dbConnection;
     }
 
-    public Connection getConnection(Integer idAzienda) throws Exception {
+    public Connection getConnection(Integer idAzienda) throws ArgoConnectionException {
         log.info("Retrieving connection for azienda id " + idAzienda);
         Sql2o dbConnection = getPosgresConnection(idAzienda);
         log.info("Returning open connection...");
@@ -91,7 +85,7 @@ public class ArgoConnectionManager {
 //        return asList != null && asList.size() > 0 ? asList : null;
 //    }
 
-    public List<Map<String, Object>> queryAndFetcth(String queryString, Integer idAzienda) throws Exception {
+    public List<Map<String, Object>> queryAndFetcth(String queryString, Integer idAzienda) throws ArgoConnectionException {
         List<Map<String, Object>> asList = null;
 
         try (Connection conn = getConnection(idAzienda)) {
@@ -107,7 +101,7 @@ public class ArgoConnectionManager {
         } catch (Throwable t) {
             throw new ArgoConnectionException("Errore nel retrieving dei dati", t);
         }
-        return asList != null && asList.size() > 0 ? asList : null;
+        return asList != null && !asList.isEmpty() ? asList : null;
     }
 
     private Query createQuery(Connection conn, String queryString) throws ArgoConnectionException {

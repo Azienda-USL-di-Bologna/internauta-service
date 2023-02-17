@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author mido
  */
 @MasterjobsWorker
-public class CalcoloPermessiArchivioJobWorker extends JobWorker{
+public class CalcoloPermessiArchivioJobWorker extends JobWorker<CalcoloPermessiArchivioJobWorkerData, JobWorkerResult>{
     private static final Logger log = LoggerFactory.getLogger(CalcoloPermessiArchivioJobWorker.class);
     private final String name = CalcoloPermessiArchivioJobWorker.class.getSimpleName();
     
@@ -28,19 +28,19 @@ public class CalcoloPermessiArchivioJobWorker extends JobWorker{
     
     @Override
     protected JobWorkerResult doRealWork() throws MasterjobsWorkerException {
-        log.info("sono inizio a lavorare");
+        log.info("Inizio job");
 
-        CalcoloPermessiArchivioJobWorkerData data = (CalcoloPermessiArchivioJobWorkerData) getData();
+        CalcoloPermessiArchivioJobWorkerData data = getWorkerData();
+        log.info("Calcolo permessi archivioRadice: " + data.getIdArchivio().toString());
         
         try {
             archivioRepository.calcolaPermessiEspliciti(data.getIdArchivio());
-        }catch (Exception ex){
-           String errore ="Errore nel calcolo dei permessi espliciti degli archivi";
+        } catch (Exception ex){
+           String errore = "Errore nel calcolo dei permessi espliciti degli archivi";
            log.error(errore, ex);
            throw new MasterjobsWorkerException(errore, ex);
         }
         
         return null;
-         
     }
 }

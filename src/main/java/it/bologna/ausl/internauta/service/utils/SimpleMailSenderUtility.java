@@ -19,6 +19,7 @@ import javax.activation.DataHandler;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
+import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
@@ -55,8 +56,9 @@ public class SimpleMailSenderUtility {
     private ObjectMapper objectMapper;
 
     public Boolean sendMail(
-            Integer idAzienda, String fromName, String Subject, List<String> To, String body,
-            List<String> cc, List<String> bcc, MultipartFile[] attachments, List<String> replyTo) throws IOException {
+            Integer idAzienda, String fromName, String subject, List<String> to, String body,
+            List<String> cc, List<String> bcc, List<MultipartFile> attachments, List<String> replyTo,
+            boolean htmlBody) throws IOException {
 
         Azienda azienda = cachedEntities.getAzienda(idAzienda);
         AziendaParametriJson aziendaParametri = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
@@ -66,17 +68,21 @@ public class SimpleMailSenderUtility {
             String smtpServer = mailParams.getMailServerSmtpUrl();
             Integer port = mailParams.getMailServerSmtpPort();
 
-            String username = null;
-            String password = null;
+            String username = mailParams.getUsername();
+            String password = mailParams.getPassword();
 
             Properties prop = System.getProperties();
             prop.put("mail.smtp.host", smtpServer);                                 //optional, defined in SMTPTransport
             prop.put("mail.smtp.timeout", 3000);
             prop.put("mail.smtp.connectiontimeout", 3000);
-            if (StringUtils.isEmpty(username) && StringUtils.isEmpty(password)) {
+            if (!StringUtils.hasLength(username)) {
                 prop.put("mail.smtp.auth", "false");
             } else {
                 prop.put("mail.smtp.auth", "true");
+            }
+            
+            if (mailParams.getSslAuth() != null && mailParams.getSslAuth()) {
+                prop.put("mail.smtp.ssl.enable", "true");
             }
 
             if (port != null && port != -1) {
@@ -84,8 +90,20 @@ public class SimpleMailSenderUtility {
             } else {
                 prop.put("mail.smtp.port", "25");
             }
-
-            Session session = Session.getInstance(prop, null);
+            
+            Session session = null;
+            
+            if (StringUtils.hasLength(username)) {
+                // Get the Session object and pass username and password
+                    session = Session.getInstance(prop, new javax.mail.Authenticator() {
+                        protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
+            } else {
+                session = Session.getInstance(prop, null);
+            }
+            
             Message msg = new MimeMessage(session);
 
             try {
@@ -103,9 +121,9 @@ public class SimpleMailSenderUtility {
                 }
 
                 // inserisco lista TO
-                if (To != null && !To.isEmpty()) {
+                if (to != null && !to.isEmpty()) {
                     String addressesTo = "";
-                    for (String toElement : To) {
+                    for (String toElement : to) {
                         addressesTo += toElement + ",";
                     }
                     addressesTo = addressesTo.substring(0, addressesTo.length() - 1);
@@ -140,14 +158,17 @@ public class SimpleMailSenderUtility {
                 //            String formattedDateTime = DateTimeFormatter
                 //                            .ofPattern("dd/MM/yyyy - HH:mm")
                 //                            .format(zonedDateTime);             //  esempio 11/03/2020 - 10.44
-                msg.setSubject(Subject);
+                msg.setSubject(subject);
                 // content
-                if (attachments != null && attachments.length > 0) {
+                if (attachments != null && !attachments.isEmpty()) {
                     Multipart multipart = new MimeMultipart();
 
                     // Body
                     MimeBodyPart messageBodyPart = new MimeBodyPart();
-                    messageBodyPart.setText(body);
+                    if (htmlBody)
+                        messageBodyPart.setContent(body, "text/html; charset=UTF-8");
+                    else
+                        messageBodyPart.setText(body);
                     multipart.addBodyPart(messageBodyPart);
 
                     // Allegati
@@ -164,7 +185,10 @@ public class SimpleMailSenderUtility {
                     }
                     msg.setContent(multipart);
                 } else {
-                    msg.setText(body);
+                    if (htmlBody)
+                        msg.setContent(body, "text/html; charset=UTF-8");
+                    else
+                        msg.setText(body);
                 }
 
                 // msg.setContent(body, "text/html; charset=utf-8");

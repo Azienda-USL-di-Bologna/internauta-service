@@ -7,6 +7,7 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.ArchivioDiInteresse;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.ArchivioRecente;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.AttoreDoc;
 //import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
@@ -40,6 +41,7 @@ import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.QArchivioDiInteresse;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.QArchivioRecente;
 import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.QAttoreDoc;
 import it.bologna.ausl.model.entities.scripta.QDoc;
@@ -132,7 +134,7 @@ public class ScriptaBaseController extends BaseCrudController {
 //        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDettaglioAllegato.dettaglioAllegato, DettaglioAllegato.class);
 //        return ResponseEntity.ok(resource);
 //    }
-//    
+//
     @RequestMapping(value = {"related", "related/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> related(
             @QuerydslPredicate(root = Related.class) Predicate predicate,
@@ -221,6 +223,7 @@ public class ScriptaBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivio.archivio, Archivio.class);
+
         return ResponseEntity.ok(resource);
     }
 
@@ -353,6 +356,20 @@ public class ScriptaBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QTitolo.titolo, Titolo.class);
+        return ResponseEntity.ok(resource);
+    }
+
+    @RequestMapping(value = {"archiviorecente", "archiviorecente/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> archiviorecente(
+            @QuerydslPredicate(root = ArchivioRecente.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivioRecente.archivioRecente, ArchivioRecente.class);
         return ResponseEntity.ok(resource);
     }
 }

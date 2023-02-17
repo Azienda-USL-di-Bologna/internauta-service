@@ -1,5 +1,8 @@
 package it.bologna.ausl.internauta.service.schedulers.workers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
@@ -17,6 +20,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.configurazione.QImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configurazione.QParametroAziende;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.text.SimpleDateFormat;
@@ -32,7 +36,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -85,6 +91,9 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
 
     private String personeAvvisateString;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+    
     private JSONObject personeAvvisateJSON = new JSONObject();
 
     private JSONArray personeAvvisateJArray = new JSONArray();
@@ -493,7 +502,7 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         Boolean sendMail = simpleMailSenderUtility.sendMail(handler.getIdAzienda(),
                 getMailMittente(), "Attivita' su Scrivania",
                 destinatari, body,
-                null, null, null, null);
+                null, null, null, null, false);
         if (!sendMail) {
             log.error("ERRORE: la mail NON e' stata inviata!");
             throw new Throwable("Invio mail fallito");
@@ -581,8 +590,9 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         for (Integer idPersona : personeAttiveConUtentiAttiviSuAzienda) {
             try {
                 log.info("Persona " + idPersona);
-                verificaAndInvia(idPersona, azienda);
-
+                if (isEmailGiornalieraAttivitaPerPersona(idPersona)) {
+                    verificaAndInvia(idPersona, azienda);
+                }
             } catch (Throwable ex) {
                 log.error("Errore in fase di esecutione", ex);
                 log.error("Proseguo con la prossima persona");
@@ -593,4 +603,25 @@ public class InviaNotificaAttivitaSospeseWorker implements Runnable {
         updateAndFlushParametroAziende();
     }
 
+    private boolean isEmailGiornalieraAttivitaPerPersona(Integer idPersona) {
+        boolean res= false;
+    
+        Optional<ImpostazioniApplicazioni> impostazioniPersonaOp = impostazioniApplicazioniRepository.findOne(
+            QImpostazioniApplicazioni.impostazioniApplicazioni.idPersona.id.eq(idPersona).and(
+            QImpostazioniApplicazioni.impostazioniApplicazioni.idApplicazione.id.eq(Applicazione.Applicazioni.scrivania.toString()))
+        );
+        if (impostazioniPersonaOp.isPresent()) {
+            try {
+                ImpostazioniApplicazioni impostazioniPersona = impostazioniPersonaOp.get();
+                String impostazioniVisualizzazioneString = impostazioniPersona.getImpostazioniVisualizzazione();
+                Map<String, Object> impostazioniVisualizzazione = objectMapper.readValue(impostazioniVisualizzazioneString, new TypeReference<Map<String, Object>>(){});
+                if (impostazioniVisualizzazione.containsKey("scrivania.emailGiornaliera")) {
+                    res = (Boolean) impostazioniVisualizzazione.get("scrivania.emailGiornaliera");
+                }
+            } catch (JsonProcessingException ex) {
+                log.error("errore nella lettura del parametro per l'email giornaliera, lo considero false");  
+            }
+        }
+        return res;
+    }
 }

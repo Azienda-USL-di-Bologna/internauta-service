@@ -18,7 +18,9 @@ public class Strutture {
 
     public static Boolean checkAccesaSpentaMale(List<Map<String, Object>> date, ZonedDateTime dataTrasformazione, ZonedDateTime dataInPartenza) {
         for (Map<String, Object> data : date) {
-            if (ImportaDaCSVUtils.formattattore(data.get("datain").toString()).equals(dataInPartenza) && ImportaDaCSVUtils.formattattore(data.get("datafi")).equals(dataTrasformazione.minusDays(1))) {
+            if (    ImportaDaCSVUtils.formattattore(data.get("datafi")) != null && 
+                    ImportaDaCSVUtils.formattattore(data.get("datain").toString()).equals(dataInPartenza) &&
+                    ImportaDaCSVUtils.formattattore(data.get("datafi")).equals(dataTrasformazione.minusDays(1))) {
                 return false;
             }
         }

@@ -1,9 +1,11 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal;
 
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsObjectNotFoundException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
+import it.bologna.ausl.model.entities.masterjobs.DebuggingOption;
 import javax.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,4 +42,14 @@ public class FooExternalWorker extends JobWorker {
         return null;
     }
     
+    @Override
+    public boolean isExecutable() {
+        try {
+            String debuggingParam = debuggingOptionsManager.getDebuggingParam(DebuggingOption.Key.test, String.class);
+            return debuggingParam.equalsIgnoreCase("gdm1");
+        } catch (MasterjobsObjectNotFoundException ex) {
+            log.error("errore", ex);
+            return false;
+        }
+    }
 }

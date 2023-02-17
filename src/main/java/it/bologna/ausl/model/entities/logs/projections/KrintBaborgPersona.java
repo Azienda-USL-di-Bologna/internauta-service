@@ -9,9 +9,14 @@ import org.springframework.data.rest.core.config.Projection;
 
 @Projection(name = "KrintBaborgPersona", types = Persona.class)
 public interface KrintBaborgPersona{
-      
+     
+    @Value("#{target.getId()}") 
     Integer getId();
+    
+    @Value("#{target.getCodiceFiscale()}") 
     String getCodiceFiscale();
+    
+    @Value("#{target.getDescrizione()}") 
     String getDescrizione();
     
     // aziende

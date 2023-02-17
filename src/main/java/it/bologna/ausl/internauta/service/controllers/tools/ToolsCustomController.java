@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-//import per mandare mail 
+//import per mandare mail
 import com.sun.mail.smtp.SMTPTransport;
 import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
@@ -30,6 +30,7 @@ import it.bologna.ausl.internauta.service.controllers.utils.ToolsUtils;
 import it.bologna.ausl.internauta.service.exceptions.SendMailException;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.RichiestaSmartWorkingRepository;
+import it.bologna.ausl.internauta.service.utils.SimpleMailSenderUtility;
 import it.bologna.ausl.internauta.service.utils.redmine.factories.MiddleMineManagerFactory;
 import it.bologna.ausl.internauta.service.utils.redmine.middlemine.communications.MiddleMineNewIssueManager;
 import it.bologna.ausl.internauta.service.utils.redmine.middlemine.communications.MiddleMineNewIssueResponseManager;
@@ -99,6 +100,9 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     private RichiestaSmartWorkingRepository richiestaSmartWorkingRepository;
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+
+    @Autowired
+    private SimpleMailSenderUtility simpleMailSenderUtility;
     
     @Autowired
     private BaborgUtils baborgUtils;
@@ -108,12 +112,12 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 
     public Boolean sendMail(
             Integer idAzienda, String fromName, String Subject, List<String> To, String body,
-            List<String> cc, List<String> bcc, MultipartFile[] attachments, List<String> replyTo) throws IOException {
+            List<String> cc, List<String> bcc, MultipartFile[] attachments, List<String> replyTo, boolean... htmlBody) throws IOException {
 
         Azienda azienda = cachedEntities.getAzienda(idAzienda);
         AziendaParametriJson aziendaParametri = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
         AziendaParametriJson.MailParams mailParams = aziendaParametri.getMailParams();
-
+        boolean flag = (htmlBody.length >= 1) ? htmlBody[0] : false;
         if (mailParams != null) {
             String smtpServer = mailParams.getMailServerSmtpUrl();
             Integer port = mailParams.getMailServerSmtpPort();
@@ -192,13 +196,18 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                 //                            .ofPattern("dd/MM/yyyy - HH:mm")
                 //                            .format(zonedDateTime);             //  esempio 11/03/2020 - 10.44
                 msg.setSubject(Subject);
-                // content 
+                // content
                 if (attachments != null && attachments.length > 0) {
                     Multipart multipart = new MimeMultipart();
 
                     // Body
                     MimeBodyPart messageBodyPart = new MimeBodyPart();
-                    messageBodyPart.setText(body);
+                    if (flag) {
+                        messageBodyPart.setContent(body, "text/html; charset=UTF-8");
+                    } else {
+                        messageBodyPart.setText(body);
+                    }
+
                     multipart.addBodyPart(messageBodyPart);
 
                     // Allegati
@@ -215,7 +224,11 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                     }
                     msg.setContent(multipart);
                 } else {
-                    msg.setText(body);
+                    if (flag) {
+                        msg.setContent(body, "text/html; charset=UTF-8");
+                    } else {
+                        msg.setText(body);
+                    }
                 }
 
                 // msg.setContent(body, "text/html; charset=utf-8");
@@ -564,60 +577,65 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         // Build body mail da inviare all'utente
         String bodyUser = toolsUtils.buildMailForUser(bodyCustomerSupport, numeroNuovaSegnalazione);
         List<String> replyToUsers = Arrays.asList(fromName);
-        
+
+        List<MultipartFile> allegatiList = null;
+        if (segnalazioneUtente.getAllegati() != null) {
+            allegatiList = Arrays.asList(segnalazioneUtente.getAllegati());
+        }
         try {
-            sendMail(
+            simpleMailSenderUtility.sendMail(
                     utente.getIdAzienda().getId(), 
-                    nameCustomerSupport, 
-                    subject, 
-                    to, 
-                    bodyCustomerSupport, 
-                    null, 
-                    null, 
-                    segnalazioneUtente.getAllegati(), 
-                    replyToUsers
-            );
+                    nameCustomerSupport,
+                    subject,
+                    to,
+                    bodyCustomerSupport,
+                    null,
+                    null,
+                    allegatiList,
+                    replyToUsers,
+                    true);
         } catch (IOException ex) {
             return new ResponseEntity("Errore durante l'invio della mail al servizio assistenza.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        
+
         try {
             List<String> toUser = Arrays.asList(fromName);
-            sendMail(
+            
+            simpleMailSenderUtility.sendMail(
                     utente.getIdAzienda().getId(), 
-                    nameCustomerSupport, 
-                    subject, 
-                    toUser, 
-                    bodyUser, 
-                    null, 
-                    null, 
-                    null, 
-                    null
-            );
+                    nameCustomerSupport,
+                    subject,
+                    toUser,
+                    bodyUser,
+                    null,
+                    null,
+                    null,
+                    null,
+                    true);
         } catch (IOException ex) {
             return new ResponseEntity("Errore durante l'invio della mail all'utente.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        
+
         String tipologiaSegnalazione = segnalazioneUtente.getTipologiaSegnalazione();
         if (StringUtils.hasText(tipologiaSegnalazione) && tipologiaSegnalazione.equals("CORREZIONE_DOCUMENTALE")) {
             try {
                 List<String> toAutorizzatore = Arrays.asList(segnalazioneUtente.getEmailAutorizzatore());
-                String introPerAutorizzatore = "Questa è una segnalazione di richiesta modifica da parte dell'utente " + 
-                        utente.getIdPersona().getDescrizione() + ".\nVedi sotto il dettaglio e rispondi alla mail per autorizzare babelcare a procedere\n\n";
+                String introPerAutorizzatore = "Questa è una segnalazione di richiesta modifica da parte dell'utente "
+                        + utente.getIdPersona().getDescrizione() + ".\nVedi sotto il dettaglio e rispondi alla mail per autorizzare babelcare a procedere\n\n";
                 bodyCustomerSupport = introPerAutorizzatore + bodyCustomerSupport;
                 List<String> replyToBabelcare = Arrays.asList("babel.care@ausl.bologna.it");
-                
-                sendMail(
-                        utente.getIdAzienda().getId(), 
-                        nameCustomerSupport, 
-                        subject, 
-                        toAutorizzatore, 
-                        bodyCustomerSupport, 
-                        null, 
-                        null, 
-                        segnalazioneUtente.getAllegati(), 
-                        replyToBabelcare
-                );
+
+                simpleMailSenderUtility.sendMail(
+                    utente.getIdAzienda().getId(), 
+                    nameCustomerSupport,
+                    subject,
+                    toAutorizzatore,
+                    bodyCustomerSupport,
+                    null,
+                    null,
+                    allegatiList,
+                    replyToBabelcare,
+                    true);
             } catch (IOException ex) {
                 return new ResponseEntity("Errore durante l'invio della mail all'autorizzatore.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
