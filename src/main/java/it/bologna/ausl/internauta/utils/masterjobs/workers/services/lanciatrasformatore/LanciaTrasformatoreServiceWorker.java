@@ -63,7 +63,7 @@ public class LanciaTrasformatoreServiceWorker extends ServiceWorker {
             if (parameters != null && !parameters.isEmpty()) {
                 trasformaPrimaDiRibaltare = parametriAziende.getValue(parameters.get(0), new TypeReference<List<Boolean>>() {}).get(0);
             }
-            parameters = parametriAziende.getParameters("fonteRibaltone", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
+            parameters = parametriAziende.getParameters("fonte_ribaltone", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
             if (parameters != null && !parameters.isEmpty()) {
                 fonteRibaltone = parametriAziende.getValue(parameters.get(0), new TypeReference<List<String>>() {}).get(0);
             }
