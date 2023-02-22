@@ -6,6 +6,7 @@ import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetailInterface;
+import it.bologna.ausl.model.entities.scripta.AttoreDoc;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.scripta.projections.generated.SpedizioneWithIdMezzo;
@@ -60,6 +61,14 @@ public class ScriptaProjectionUtils {
     public List<Related> filterRelated(List<Related> related, String tipo) {
         if (related != null) {
             return related.stream().filter(r -> r.getTipo().toString().equals(tipo)).collect(Collectors.toList());
+        } else {
+            return null;
+        }
+    }
+    
+    public List<AttoreDoc> filterAttoreDocList(List<AttoreDoc> attoriDoc, String ruolo) {
+        if (attoriDoc != null) {
+            return attoriDoc.stream().filter(r -> r.getRuolo().toString().equals(ruolo)).collect(Collectors.toList());
         } else {
             return null;
         }
