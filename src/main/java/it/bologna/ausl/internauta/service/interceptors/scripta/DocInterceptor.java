@@ -261,7 +261,7 @@ public class DocInterceptor extends InternautaBaseInterceptor {
                                 creatore.setRuolo(AttoreDoc.RuoloAttoreDoc.RICEZIONE);
                                 attori.add(creatore);
                                 
-                                doc.setAttori(attori);
+                                doc.setAttoriList(attori);
                                 
                                 
                             } else {

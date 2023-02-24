@@ -6,10 +6,14 @@ import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetailInterface;
+import it.bologna.ausl.model.entities.scripta.AttoreDoc;
 import it.bologna.ausl.model.entities.scripta.Related;
+import it.bologna.ausl.model.entities.scripta.Spedizione;
+import it.bologna.ausl.model.entities.scripta.projections.generated.SpedizioneWithIdMezzo;
 import it.bologna.ausl.model.entities.versatore.QVersamentoAllegato;
 import it.bologna.ausl.model.entities.versatore.VersamentoAllegato;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -41,13 +45,13 @@ public class ScriptaProjectionUtils {
     private ScriptaArchiviUtils scriptaArchiviUtils;
     
 
-    public List<CustomRelatedWithSpedizioneList> filterRelatedWithSpedizioneList(List<Related> related, String tipo) {
-        List<CustomRelatedWithSpedizioneList> res = null;
+    public List<CustomRelatedWithUltimaSpedizione> filterRelatedWithUltimaSpedizione(List<Related> related, String tipo) {
+        List<CustomRelatedWithUltimaSpedizione> res = null;
         if (related != null) {
             List<Related> relatedList = related.stream().filter(r -> r.getTipo().toString().equals(tipo)).collect(Collectors.toList());
             if (relatedList != null && !relatedList.isEmpty()) {
                 res = relatedList.stream().map(r -> {
-                    return factory.createProjection(CustomRelatedWithSpedizioneList.class, r);
+                    return factory.createProjection(CustomRelatedWithUltimaSpedizione.class, r);
                 }).collect(Collectors.toList());
             }
         }
@@ -57,6 +61,14 @@ public class ScriptaProjectionUtils {
     public List<Related> filterRelated(List<Related> related, String tipo) {
         if (related != null) {
             return related.stream().filter(r -> r.getTipo().toString().equals(tipo)).collect(Collectors.toList());
+        } else {
+            return null;
+        }
+    }
+    
+    public List<AttoreDoc> filterAttoreDocList(List<AttoreDoc> attoriDoc, String ruolo) {
+        if (attoriDoc != null) {
+            return attoriDoc.stream().filter(r -> r.getRuolo().toString().equals(ruolo)).collect(Collectors.toList());
         } else {
             return null;
         }
@@ -89,6 +101,25 @@ public class ScriptaProjectionUtils {
             Optional<VersamentoAllegato> v = versamentoAllegatoRepository.findOne(q.idVersamento.id.eq(idVersamento).and(q.idAllegato.id.eq(allegato.getId())));
             if (v.isPresent())
                 return v.get();
+        }
+        return null;
+    }
+    
+    /**
+     * Torna l'ultima SpedizioneWithIdMezzo del related
+     * @param related
+     * @return 
+     */
+    public SpedizioneWithIdMezzo getUltimaSpedizione(Related related) {
+        if (related != null) {
+            List<Spedizione> spedizioneList = related.getSpedizioneList();
+            if (spedizioneList != null && !spedizioneList.isEmpty()) {
+                Optional<Spedizione> max = spedizioneList.stream().max(Comparator.comparing(Spedizione::getData));
+                if (max.isPresent()) {
+                    Spedizione s = max.get();
+                    return factory.createProjection(SpedizioneWithIdMezzo.class, s);
+                }
+            }
         }
         return null;
     }
