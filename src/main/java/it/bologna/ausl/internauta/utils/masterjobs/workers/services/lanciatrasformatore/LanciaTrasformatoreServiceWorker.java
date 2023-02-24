@@ -58,14 +58,17 @@ public class LanciaTrasformatoreServiceWorker extends ServiceWorker {
             List<ParametroAziende> parameters = parametriAziende.getParameters("mailRibaltone", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
             if (parameters != null && !parameters.isEmpty()) {
                 email = parametriAziende.getValue(parameters.get(0), new TypeReference<List<String>>() {}).get(0);
+                log.info("la mail è: " + email);
             }
             parameters = parametriAziende.getParameters("trasformaPrimaDiRibaltare", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
             if (parameters != null && !parameters.isEmpty()) {
-                trasformaPrimaDiRibaltare = parametriAziende.getValue(parameters.get(0), new TypeReference<List<Boolean>>() {}).get(0);
+                trasformaPrimaDiRibaltare = parametriAziende.getValue(parameters.get(0), new TypeReference<Boolean>() {});
+                log.info("il trasformaPrimaDiRibaltare è: " + trasformaPrimaDiRibaltare);
             }
-            parameters = parametriAziende.getParameters("fonte_ribaltone", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
+            parameters = parametriAziende.getParameters("fonte_ribaltone", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.ribaltorg.toString()});
             if (parameters != null && !parameters.isEmpty()) {
-                fonteRibaltone = parametriAziende.getValue(parameters.get(0), new TypeReference<List<String>>() {}).get(0);
+                fonteRibaltone = parametriAziende.getValue(parameters.get(0), new TypeReference<String>() {});
+                log.info("la fonte del ribaltone è: " + fonteRibaltone);
             }
 //
             LanciaTrasformatoreJobWorkerData lanciaTrasformatoreJobWorkerData = new LanciaTrasformatoreJobWorkerData(azienda.getId(),azienda.getRibaltaArgo(),azienda.getRibaltaInternauta(),email,fonteRibaltone,trasformaPrimaDiRibaltare,user.getId(), "servizio Notturno");
