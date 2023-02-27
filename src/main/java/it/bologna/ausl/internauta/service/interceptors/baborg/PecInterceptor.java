@@ -17,6 +17,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Pec;
+import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPec;
 import it.bologna.ausl.model.entities.baborg.Struttura;
@@ -484,6 +485,8 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         Azienda aziendaIdRepository = baborgUtils.getAziendaRepositoryFromPecAddress(pec.getIndirizzo());
         if (aziendaIdRepository != null) {
             pec.setIdAziendaRepository(aziendaIdRepository);
+        } else if (!pec.getPecAziendaList().isEmpty()) {
+            pec.setIdAziendaRepository(pec.getPecAziendaList().get(0).getIdAzienda());
         }
 
         return entity;
