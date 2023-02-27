@@ -21,12 +21,20 @@ public interface DocWithAll extends DocWithAllegatiAndAttoriListAndCoinvoltiAndC
     public List<CustomRelatedWithUltimaSpedizione> getMittenti();
     
     @Override
-    @Value("#{@scriptaProjectionUtils.filterRelated(target.getRelated(), 'A')}")
-    public List<Related> getCompetenti();
-
+    @Value("#{@scriptaProjectionUtils.filterRelatedWithUltimaSpedizione(target.getRelated(), 'A')}")
+    public List<CustomRelatedWithUltimaSpedizione> getCompetenti();
+    
     @Override
-    @Value("#{@scriptaProjectionUtils.filterRelated(target.getRelated(), 'CC')}")
-    public List<Related> getCoinvolti();
+    @Value("#{@scriptaProjectionUtils.filterRelatedWithUltimaSpedizione(target.getRelated(), 'CC')}")
+    public List<CustomRelatedWithUltimaSpedizione> getCoinvolti();
+    
+//    @Override
+//    @Value("#{@scriptaProjectionUtils.filterRelated(target.getRelated(), 'A')}")
+//    public List<Related> getCompetenti();
+//
+//    @Override
+//    @Value("#{@scriptaProjectionUtils.filterRelated(target.getRelated(), 'CC')}")
+//    public List<Related> getCoinvolti();
     
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getAllegati', 'AllegatoWithIdAllegatoPadre', @projectionsInterceptorLauncher.buildSort('asc', 'ordinale'))}")
     @Override
