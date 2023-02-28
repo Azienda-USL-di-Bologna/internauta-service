@@ -56,7 +56,7 @@ public interface DocWithAll extends DocWithAllegatiAndArchiviDocListAndAttoriLis
     public Object getRegistroDocList();
     
     @Override    
-    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getArchiviDocList', 'ArchivioDocWithIdArchivioAndIdPersonaArchiviazione')}")
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getArchiviDocList', 'CustomArchivioDocWithIdTitolo')}")
     public Object getArchiviDocList();
     
     
