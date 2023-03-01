@@ -7,7 +7,6 @@ import it.bologna.ausl.internauta.utils.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.logs.Krint;
-import static it.bologna.ausl.model.entities.logs.Krint.TipoOggettoKrint.SCRIPTA_DOC;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgPersona;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
@@ -18,6 +17,7 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.Doc;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Service;
@@ -49,7 +49,7 @@ public class KrintScriptaService {
             // Informazioni oggetto
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);
             String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
-
+            
             krintService.writeKrintRow(
                     archivio.getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
@@ -70,13 +70,35 @@ public class KrintScriptaService {
             krintService.writeKrintError(idOggetto, "writeArchivioCreation", codiceOperazione);
         }
     }
-
-    public void writeArchivioUpdate(Archivio archivio, OperazioneKrint.CodiceOperazione codiceOperazione) {
+   
+    /**
+     * Scrive il log di aggiornamento di un archivio.
+     * @param archivio L'archivio aggiornato.
+     * @param codiceOperazione Il codice dell'operazione.
+     */
+    public void writeArchivioUpdate(Archivio archivio, OperazioneKrint.CodiceOperazione codiceOperazione){
+        writeArchivioUpdate(archivio, null, codiceOperazione);
+    }
+    
+    /**
+     * Scrive il log di aggiornamento di un archivio.
+     * @param archivio L'archivio aggiornato.
+     * @param archivioOld L'archivio prima dell'update.
+     * @param codiceOperazione Il codice dell'operazione.
+     */
+    public void writeArchivioUpdate(Archivio archivio, Archivio archivioOld, OperazioneKrint.CodiceOperazione codiceOperazione ) {
         try {
             // Informazioni oggetto
-            KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);
+            KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);            
             String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
-
+            Map<String, Object> map = objectMapper.readValue(jsonKrintArchivio, Map.class);
+                
+            if (archivioOld != null) {
+                KrintScriptaArchivio krintScriptaArchivioOld = factory.createProjection(KrintScriptaArchivio.class,archivioOld);
+                map.put("archivioOld", krintScriptaArchivioOld);                
+            }
+            jsonKrintArchivio = objectMapper.writeValueAsString(map);
+            
             krintService.writeKrintRow(
                     archivio.getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
@@ -97,7 +119,7 @@ public class KrintScriptaService {
             krintService.writeKrintError(idOggetto, "writeArchivioUpdate", codiceOperazione);
         }
     }
-
+    
     /**
      * @param attoreArchivio
      * @param codiceOperazione
