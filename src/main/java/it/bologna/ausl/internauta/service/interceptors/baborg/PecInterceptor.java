@@ -481,13 +481,7 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         }
 
         // calcola AziendaRepository in base al suo dominio
-        Pec pec = (Pec) entity;
-        Azienda aziendaIdRepository = baborgUtils.getAziendaRepositoryFromPecAddress(pec.getIndirizzo());
-        if (aziendaIdRepository != null) {
-            pec.setIdAziendaRepository(aziendaIdRepository);
-        } else if (!pec.getPecAziendaList().isEmpty()) {
-            pec.setIdAziendaRepository(pec.getPecAziendaList().get(0).getIdAzienda());
-        }
+        setIdAziendaRepository((Pec) entity);
 
         return entity;
     }
@@ -533,7 +527,9 @@ public class PecInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
-
+        if (pec.getIdAziendaRepository() == null) {
+            setIdAziendaRepository(pec);
+        }
         return entity;
     }
 
@@ -546,5 +542,20 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeDeleteEntityInterceptor di Pec");
         throw new AbortSaveInterceptorException();
     }
-
+    
+    /**
+     * Metodo che imposta l'idAziendaRepository sulla pec effettuando un controllo sul dominio dell'indirizzo.
+     * Se il dominio non è riconosciuto imposta la prima azienda associata alla pec, se non ce ne sono lascia
+     * il campo null.
+     * @param pec La Pec.
+     * @return La pec con il campo aggiornato.
+     */
+    private void setIdAziendaRepository(Pec pec) {
+        Azienda aziendaIdRepository = baborgUtils.getAziendaRepositoryFromPecAddress(pec.getIndirizzo());
+        if (aziendaIdRepository != null) {
+            pec.setIdAziendaRepository(aziendaIdRepository);
+        } else if (!pec.getPecAziendaList().isEmpty()) {
+            pec.setIdAziendaRepository(pec.getPecAziendaList().get(0).getIdAzienda());
+        }
+    }
 }
