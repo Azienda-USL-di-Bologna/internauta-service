@@ -54,7 +54,6 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
@@ -65,7 +64,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchiviRecentiRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRecenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
@@ -106,9 +105,7 @@ import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
-import it.bologna.ausl.internauta.service.repositories.shpeck.MessageDocRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
-import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
@@ -118,20 +115,17 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.ArchivioRecente;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
-import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
-import it.bologna.ausl.model.entities.shpeck.MessageInterface;
-import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
-import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
-import java.io.File;
-import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
+import javax.persistence.Entity;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 
@@ -160,10 +154,7 @@ public class ScriptaCustomController {
 
     @Autowired
     private MessageRepository messageRepository;
-
-    @Autowired
-    private MessageDocRepository messageDocRepository;
-
+    
     @Autowired
     private ScriptaArchiviUtils scriptaArchiviUtils;
 
@@ -183,7 +174,7 @@ public class ScriptaCustomController {
     private ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
     @Autowired
-    private ArchiviRecentiRepository archiviRecentiRepository;
+    private ArchivioRecenteRepository archivioRecenteRepository;
 
     @Autowired
     private DocDetailRepository docDetailRepository;
@@ -196,6 +187,9 @@ public class ScriptaCustomController {
 
     @Autowired
     private PecRepository pecRepository;
+    
+    @PersistenceContext
+    private EntityManager em;
 
     @Autowired
     private PersonaVedenteRepository personaVedenteRepository;
@@ -210,9 +204,6 @@ public class ScriptaCustomController {
     private ParametriAziendeReader parametriAziende;
 
     @Autowired
-    private UserInfoService userInfoService;
-
-    @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     @Autowired
@@ -223,9 +214,6 @@ public class ScriptaCustomController {
 
     @Autowired
     private AziendaRepository aziendaRepository;
-
-    @Autowired
-    private ShpeckUtils shpeckUtils;
 
     @Autowired
     private GeneratePE generatePE;
@@ -940,6 +928,7 @@ public class ScriptaCustomController {
             for (MultipartFile file : files) {
                 Doc doc = new Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
                 doc = docRepository.save(doc);
+                em.refresh(doc);
                 idDocList.add(doc.getId());
                 scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename(), true);
 
@@ -947,7 +936,16 @@ public class ScriptaCustomController {
                 ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
                 archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
-
+                
+                PersonaVedente pv = new PersonaVedente();
+                pv.setIdAzienda(doc.getIdAzienda());
+                pv.setIdDocDetail(doc.getIdDocDetail());
+                pv.setIdPersona(persona);
+                pv.setDataCreazione(doc.getDataCreazione());
+                pv.setPienaVisibilita(Boolean.TRUE);
+                pv.setMioDocumento(Boolean.TRUE);
+                personaVedenteRepository.save(pv);
+                
                 AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
                 accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
                 if (krintUtils.doIHaveToKrint(request)) {
@@ -955,6 +953,7 @@ public class ScriptaCustomController {
                 }
             }
         } catch (Exception e) {
+            LOG.error("Errore nell'upload del doc",e);
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
                 for (MinIOWrapperFileInfo minIOWrapperFileInfo : savedFilesOnRepository) {
                     minIOWrapper.removeByFileId(minIOWrapperFileInfo.getFileId(), false);
@@ -983,89 +982,10 @@ public class ScriptaCustomController {
         Message message = messageRepository.findById(idMessage).get();
         Azienda azienda = archivio.getIdAzienda();
 
-        // Controlli di sicurezza
-        // 1
-        // Se il messaggio non è archiviabile perché non ha ancora l'idRepository
-        // Nel frontend l'icona è disattiva quindi qui non dovrei mai entrare.
-        if (message.getUuidRepository() == null) {
-            throw new Http404ResponseException("1", "Messaggio senza idRepository");
-        }
-
-        // 2
-        // Controllo che l'utente abbia permessi nella casella pec del message
-        Map<Integer, List<String>> permessiPec = userInfoService.getPermessiPec(persona);
-        if (!permessiPec.isEmpty()) {
-            List<Integer> pecList = new ArrayList();
-            pecList.addAll(permessiPec.keySet());
-            if (!pecList.contains(message.getIdPec().getId())) {
-                throw new Http403ResponseException("2", "Utente senza permessi sulla casella pec");
-            }
-        } else {
-            throw new Http403ResponseException("2", "Utente senza permessi sulla casella pec");
-        }
-
-        // 3
-        // Controllo che l'utente abbia almeno permesso di modifica sull'archivio
-        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.MODIFICA)) {
-            throw new Http403ResponseException("3", "Utente senza permesso di modificare l'archivio");
-        }
-
-        /*
-        Ora vedo se il doc già esiste ( lo becco dentro messages_docs. )
-        Se non esiste allora dovrò crearlo e quindi dovrò creare i vari allegati.
-         */
-        Doc doc = null;
-        List<MessageDoc> messageDocList = message.getMessageDocList().stream().filter(md -> md.getScope().equals(MessageDoc.ScopeMessageDoc.ARCHIVIAZIONE)).collect(Collectors.toList());
-        for (MessageDoc md : messageDocList) {
-            if (md.getIdDoc().getIdAzienda().getId().equals(azienda.getId())) {
-                doc = md.getIdDoc();
-                break;
-            }
-        }
-
-        if (doc == null) {
-            File downloadEml = shpeckUtils.downloadEml(ShpeckUtils.EmlSource.MESSAGE, idMessage);
-            MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-
-            doc = new Doc("Pec_" + message.getId().toString(), persona, archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString());
-            doc = docRepository.save(doc);
-            MessageDoc.TipoMessageDoc tipo = null;
-            if (message.getInOut().equals(MessageInterface.InOut.IN)) {
-                tipo = MessageDoc.TipoMessageDoc.IN;
-            } else {
-                tipo = MessageDoc.TipoMessageDoc.OUT;
-            }
-            MessageDoc md = new MessageDoc(message, doc, tipo, MessageDoc.ScopeMessageDoc.ARCHIVIAZIONE);
-            messageDocRepository.save(md);
-
-            try {
-                scriptaUtils.creaAndAllegaAllegati(doc, new FileInputStream(downloadEml), "Pec_" + message.getId().toString(), true, true, message.getUuidRepository(), false, null); // downloadEml.getName()
-            } catch (Exception e) {
-                if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
-                    for (MinIOWrapperFileInfo minIOWrapperFileInfo : savedFilesOnRepository) {
-                        minIOWrapper.removeByFileId(minIOWrapperFileInfo.getFileId(), false);
-                    }
-                }
-                e.printStackTrace();
-                throw new Http500ResponseException("4", "Qualcosa è andato storto nelle creazione degli allegati");
-            }
-        }
-
-        // Ora che o il doc lo archivio
-        ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
-        archivioDocRepository.save(archiviazione);
-        archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
-
-        // Ora aggiungo il tag di archiviazione sul message
-        AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), persona.getDescrizione());
-        AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
-        AdditionalDataTagComponent.idArchivio archivioAdditionalData = new AdditionalDataTagComponent.idArchivio(archivio.getId(), archivio.getOggetto(), archivio.getNumerazioneGerarchica());
-        AdditionalDataArchiviation additionalDataArchiviation = new AdditionalDataArchiviation(utenteAdditionalData, aziendaAdditionalData, archivioAdditionalData, LocalDateTime.now());
-        shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalDataArchiviation, utente, true, true);
-
+        Integer idDoc = scriptaArchiviUtils.archiveMessage(message, archivio, persona, azienda, utente);
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-        accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
-
+        accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);
+        
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
@@ -1084,24 +1004,24 @@ public class ScriptaCustomController {
 
     @RequestMapping(value = "aggiungiArchivioRecente", method = RequestMethod.POST)
     public ResponseEntity<?> aggiungiArchivioRecente(
-            @RequestParam("idArchivioRadice") Integer idArchivioRadice,
+            @RequestParam("idArchivio") Integer idArchivio,
             HttpServletRequest request) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-        Archivio archivioRadice = archivioRepository.findById(idArchivioRadice).get();
+        Archivio archivioRadice = archivioRepository.findById(idArchivio).get();
         ZonedDateTime data_recentezza = ZonedDateTime.now();
-        Optional<ArchivioRecente> archivio = archiviRecentiRepository.getArchivioFromPersonaAndArchivio(idArchivioRadice, persona.getId());
+        Optional<ArchivioRecente> archivio = archivioRecenteRepository.getArchivioFromPersonaAndArchivio(idArchivio, persona.getId());
         boolean isPresent = archivio.isPresent();
         if (isPresent) {
             ArchivioRecente archivioUpdate = archivio.get();
             archivioUpdate.setDataRecentezza(data_recentezza);
-            archiviRecentiRepository.save(archivioUpdate);
+            archivioRecenteRepository.save(archivioUpdate);
         } else {
             ArchivioRecente archivioUpdate = new ArchivioRecente();
             archivioUpdate.setIdArchivio(archivioRadice.getIdArchivioDetail());
             archivioUpdate.setIdPersona(persona);
             archivioUpdate.setDataRecentezza(data_recentezza);
-            archiviRecentiRepository.save(archivioUpdate);
+            archivioRecenteRepository.save(archivioUpdate);
         }
         return new ResponseEntity("", HttpStatus.OK);
     }

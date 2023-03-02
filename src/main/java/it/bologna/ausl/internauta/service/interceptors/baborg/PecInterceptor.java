@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.interceptors.baborg;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -11,7 +10,6 @@ import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
@@ -62,9 +60,6 @@ public class PecInterceptor extends InternautaBaseInterceptor {
     PersonaRepository personaRepository;
 
     @Autowired
-    AziendaRepository aziendaRepository;
-
-    @Autowired
     StrutturaRepository strutturaRepository;
 
     @Autowired
@@ -72,9 +67,6 @@ public class PecInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     UserInfoService userInfoService;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private ProjectionFactory projectionFactory;
@@ -484,6 +476,8 @@ public class PecInterceptor extends InternautaBaseInterceptor {
         Azienda aziendaIdRepository = baborgUtils.getAziendaRepositoryFromPecAddress(pec.getIndirizzo());
         if (aziendaIdRepository != null) {
             pec.setIdAziendaRepository(aziendaIdRepository);
+        } else if (!pec.getPecAziendaList().isEmpty()) {
+            pec.setIdAziendaRepository(pec.getPecAziendaList().get(0).getIdAzienda());
         }
 
         return entity;

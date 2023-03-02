@@ -59,4 +59,6 @@ public interface ArchivioRepository extends
     public Set<Integer> getSetAlberaturaArchivioRadice(
             Integer idArchivioRadice
     );
+    
+    public Archivio findByNumerazioneGerarchica(String numerazioneGerarchica);
 }
