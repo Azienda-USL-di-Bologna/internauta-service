@@ -128,6 +128,7 @@ import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
 import it.nextsw.common.controller.RestControllerEngine;
+import it.nextsw.common.controller.exceptions.RestControllerEngineException;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
 import java.util.Objects;
@@ -1198,12 +1199,12 @@ public class ScriptaCustomController {
     
     @RequestMapping(value = "spostaArchivio", method = RequestMethod.POST)
     @Transactional
-    public ResponseEntity<?> spostaArchivio(
+    public Object spostaArchivio(
             @RequestParam("idArchivio") String idArchivio,
             @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
             @RequestParam("fascicolo") boolean fascicolo,
             @RequestParam("contenuto") boolean contenuto,
-            HttpServletRequest request) throws Http500ResponseException {
+            HttpServletRequest request) throws Http500ResponseException, RestControllerEngineException {
         //controllo che almeno uno tra fascicolo e contenuto sia stato selezionato
         if (contenuto == false && fascicolo == false){
             throw new Http500ResponseException("1", "Deve essere selezionato almeno uno tra fascicolo e contenuto");
@@ -1316,24 +1317,38 @@ public class ScriptaCustomController {
                             .where(QArchivioDoc.archivioDoc.idArchivio.eq(archivio)
                                     .and(QArchivioDoc.archivioDoc.idDoc.id.notIn(idDocsDaSpostareCheCiSonoGia)))
                             .execute();
-                    System.out.println("I documenti sono stati spostati correttamente dall'archivio: " + archivio.getId() + " all'archivio: " + archivioDestinazione.getId());
                 }
             }
-        return new ResponseEntity(archivio, HttpStatus.OK);
+            
+        em.refresh(archivio);
+        String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+        // Ritorno la projection coi dati aggiornati
+        log.info("Recupero projection by name " + projection);
+        Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+        projectionsInterceptorLauncher.setRequestParams(null, request);
+        log.info("Chiamo la facrtory della projection...");
+        Object projectedObject = projectionFactory.createProjection(
+                projectionClass, archivio
+        );
+
+        log.info("Ritorno la projectionCreata");
+        return projectedObject;
+//        return new ResponseEntity(archivio, HttpStatus.OK);
         }
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
     
     @RequestMapping(value = "copiaArchivio", method = RequestMethod.POST)
     @Transactional
-    public ResponseEntity<?> copiaArchivio(
+    public Object copiaArchivio(
             @RequestParam("idArchivio") String idArchivio,
             @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
             @RequestParam("fascicolo") boolean fascicolo,
             @RequestParam("contenuto") boolean contenuto,
-            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException {
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Archivio finalArchivio = null;
         //controllo che almeno uno tra fascicolo e contenuto sia stato selezionato
         if (contenuto == false && fascicolo == false){
             throw new Http500ResponseException("1", "Deve essere selezionato almeno uno tra fascicolo e contenuto");
@@ -1385,27 +1400,40 @@ public class ScriptaCustomController {
                         }
                         log.info(String.format("ho copiato anche i figli di %s", archivio.getId()));
                     }
-                    
+                    finalArchivio = savedArchivio;
                 }
                 if(contenuto){
                     log.info(String.format("procedo a copiare i documenti di %s", archivio.getId()));
                     scriptaCopyUtils.coiaArchivioDoc(archivio, archivioDestinazione, persona, em);
                     log.info(String.format("I documenti sono stati copiati correttamente dall'archivio: " + archivio.getId() + " all'archivio: " + archivioDestinazione.getId()));
+                    finalArchivio = archivioDestinazione;
                 }
                 
             }
-        return new ResponseEntity(archivio, HttpStatus.OK);
+        em.refresh(finalArchivio);
+        String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+        log.info("Recupero projection by name " + projection);
+        Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+        projectionsInterceptorLauncher.setRequestParams(null, request);
+        log.info("Chiamo la facrtory della projection...");
+        Object projectedObject = projectionFactory.createProjection(
+                projectionClass, finalArchivio
+        );
+
+        log.info("Ritorno la projectionCreata");
+        return projectedObject;
+//        return new ResponseEntity(archivio, HttpStatus.OK);
         }
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
     
     @RequestMapping(value = "duplicaArchivio", method = RequestMethod.POST)
     @Transactional
-    public ResponseEntity<?> duplicaArchivio(
+    public Object duplicaArchivio(
             @RequestParam("idArchivio") String idArchivio,
             @RequestParam("fascicolo") boolean fascicolo,
             @RequestParam("contenuto") boolean contenuto,
-            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException {
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         if (contenuto == false && fascicolo == false){
@@ -1456,17 +1484,28 @@ public class ScriptaCustomController {
                 }
                 log.info(String.format("finito le duplicare i figli e nipoti di %s", archivio.getId()));
             }
-            
-            return new ResponseEntity(archivio, HttpStatus.OK);
+            em.refresh(savedArchivio);
+            String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+            log.info("Recupero projection by name " + projection);
+            Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+            projectionsInterceptorLauncher.setRequestParams(null, request);
+            log.info("Chiamo la facrtory della projection...");
+            Object projectedObject = projectionFactory.createProjection(
+                    projectionClass, savedArchivio
+            );
+
+            log.info("Ritorno la projectionCreata");
+            return projectedObject;
+//            return new ResponseEntity(archivio, HttpStatus.OK);
         }
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
     
     @RequestMapping(value = "rendiFascicolo", method = RequestMethod.POST)
     @Transactional
-    public ResponseEntity<?> rendiFascicolo(
+    public Object rendiFascicolo(
             @RequestParam("idArchivio") String idArchivio,
-            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException {
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         //procedo a tirare su tutto ciò che mi serve
@@ -1555,7 +1594,19 @@ public class ScriptaCustomController {
                 archivioRepository.calcolaGerarchiaArchivio(archivio.getId());
                 log.info(String.format("ho numerato e calcolato permessi le modifiche ai figli di %s", archivio.getId()));
             }
-            return new ResponseEntity(archivio, HttpStatus.OK);
+            em.refresh(archivio);
+            String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+            log.info("Recupero projection by name " + projection);
+            Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+            projectionsInterceptorLauncher.setRequestParams(null, request);
+            log.info("Chiamo la facrtory della projection...");
+            Object projectedObject = projectionFactory.createProjection(
+                    projectionClass, archivio
+            );
+
+            log.info("Ritorno la projectionCreata");
+            return projectedObject;
+//            return new ResponseEntity(archivio, HttpStatus.OK);
         }
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
