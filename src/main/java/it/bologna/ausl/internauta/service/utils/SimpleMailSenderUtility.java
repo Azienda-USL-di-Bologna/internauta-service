@@ -19,6 +19,7 @@ import javax.activation.DataHandler;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
+import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
@@ -67,14 +68,14 @@ public class SimpleMailSenderUtility {
             String smtpServer = mailParams.getMailServerSmtpUrl();
             Integer port = mailParams.getMailServerSmtpPort();
 
-            String username = null;
-            String password = null;
+            String username = mailParams.getUsername();
+            String password = mailParams.getPassword();
 
             Properties prop = System.getProperties();
             prop.put("mail.smtp.host", smtpServer);                                 //optional, defined in SMTPTransport
             prop.put("mail.smtp.timeout", 3000);
             prop.put("mail.smtp.connectiontimeout", 3000);
-            if (StringUtils.isEmpty(username) && StringUtils.isEmpty(password)) {
+            if (!StringUtils.hasLength(username)) {
                 prop.put("mail.smtp.auth", "false");
             } else {
                 prop.put("mail.smtp.auth", "true");
@@ -89,8 +90,20 @@ public class SimpleMailSenderUtility {
             } else {
                 prop.put("mail.smtp.port", "25");
             }
-
-            Session session = Session.getInstance(prop, null);
+            
+            Session session = null;
+            
+            if (StringUtils.hasLength(username)) {
+                // Get the Session object and pass username and password
+                    session = Session.getInstance(prop, new javax.mail.Authenticator() {
+                        protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
+            } else {
+                session = Session.getInstance(prop, null);
+            }
+            
             Message msg = new MimeMessage(session);
 
             try {

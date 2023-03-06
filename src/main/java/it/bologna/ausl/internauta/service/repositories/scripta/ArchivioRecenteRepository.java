@@ -18,9 +18,9 @@ import org.springframework.data.jpa.repository.Query;
  *
  * @author Matteo Next
  */
-@NextSdrRepository(repositoryPath = "${scripta.mapping.url.root}/archivirecenti", defaultProjection = ArchivioRecenteWithPlainFields.class)
+@NextSdrRepository(repositoryPath = "${scripta.mapping.url.root}/archiviorecente", defaultProjection = ArchivioRecenteWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "archiviorecente", path = "archiviorecente", exported = false, excerptProjection = ArchivioRecenteWithPlainFields.class)
-public interface ArchiviRecentiRepository extends
+public interface ArchivioRecenteRepository extends
         NextSdrQueryDslRepository<ArchivioRecente, Integer, QArchivioRecente>,
         JpaRepository<ArchivioRecente, Integer> {
 

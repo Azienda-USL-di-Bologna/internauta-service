@@ -20,6 +20,6 @@ public interface KrintScriptaAttoreArchivio{
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getIdStruttura', 'KrintBaborgStruttura')}")
     KrintBaborgStruttura getIdStruttura();
 
-    @Value("#{target.getRuolo().name()}") 
+    @Value("#{target.getRuolo().toString().replace(\"_\",\" \").toLowerCase()}") 
     String getRuolo();
 }

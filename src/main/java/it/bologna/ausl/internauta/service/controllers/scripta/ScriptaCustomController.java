@@ -53,8 +53,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.argo.raccolta.Raccolta;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
@@ -65,7 +66,8 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchiviRecentiRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDetailRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRecenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
@@ -106,32 +108,36 @@ import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
-import it.bologna.ausl.internauta.service.repositories.shpeck.MessageDocRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
-import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.ArchivioRecente;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
-import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
+import it.bologna.ausl.model.entities.scripta.QArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
-import it.bologna.ausl.model.entities.shpeck.MessageInterface;
-import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
-import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
-import java.io.File;
-import java.io.FileInputStream;
+import it.nextsw.common.controller.RestControllerEngine;
+import it.nextsw.common.controller.exceptions.RestControllerEngineException;
+import it.nextsw.common.utils.EntityReflectionUtils;
+import it.nextsw.common.utils.exceptions.EntityReflectionException;
+import java.util.Objects;
 import java.lang.reflect.InvocationTargetException;
+import static java.sql.Types.NULL;
+import java.util.Collection;
 import java.util.HashSet;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 
@@ -160,10 +166,7 @@ public class ScriptaCustomController {
 
     @Autowired
     private MessageRepository messageRepository;
-
-    @Autowired
-    private MessageDocRepository messageDocRepository;
-
+    
     @Autowired
     private ScriptaArchiviUtils scriptaArchiviUtils;
 
@@ -183,7 +186,7 @@ public class ScriptaCustomController {
     private ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
     @Autowired
-    private ArchiviRecentiRepository archiviRecentiRepository;
+    private ArchivioRecenteRepository archivioRecenteRepository;
 
     @Autowired
     private DocDetailRepository docDetailRepository;
@@ -196,6 +199,9 @@ public class ScriptaCustomController {
 
     @Autowired
     private PecRepository pecRepository;
+    
+    @PersistenceContext
+    private EntityManager em;
 
     @Autowired
     private PersonaVedenteRepository personaVedenteRepository;
@@ -210,9 +216,6 @@ public class ScriptaCustomController {
     private ParametriAziendeReader parametriAziende;
 
     @Autowired
-    private UserInfoService userInfoService;
-
-    @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     @Autowired
@@ -223,9 +226,6 @@ public class ScriptaCustomController {
 
     @Autowired
     private AziendaRepository aziendaRepository;
-
-    @Autowired
-    private ShpeckUtils shpeckUtils;
 
     @Autowired
     private GeneratePE generatePE;
@@ -253,7 +253,10 @@ public class ScriptaCustomController {
 
     @Autowired
     private KrintScriptaService krintScriptaService;
-
+    
+    @Autowired
+    private ArchivioDetailRepository archivioDetailRepository;
+    
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
 
@@ -940,6 +943,7 @@ public class ScriptaCustomController {
             for (MultipartFile file : files) {
                 Doc doc = new Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
                 doc = docRepository.save(doc);
+                em.refresh(doc);
                 idDocList.add(doc.getId());
                 scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename(), true);
 
@@ -947,7 +951,16 @@ public class ScriptaCustomController {
                 ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
                 archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
-
+                
+                PersonaVedente pv = new PersonaVedente();
+                pv.setIdAzienda(doc.getIdAzienda());
+                pv.setIdDocDetail(doc.getIdDocDetail());
+                pv.setIdPersona(persona);
+                pv.setDataCreazione(doc.getDataCreazione());
+                pv.setPienaVisibilita(Boolean.TRUE);
+                pv.setMioDocumento(Boolean.TRUE);
+                personaVedenteRepository.save(pv);
+                
                 AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
                 accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
                 if (krintUtils.doIHaveToKrint(request)) {
@@ -955,6 +968,7 @@ public class ScriptaCustomController {
                 }
             }
         } catch (Exception e) {
+            LOG.error("Errore nell'upload del doc",e);
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
                 for (MinIOWrapperFileInfo minIOWrapperFileInfo : savedFilesOnRepository) {
                     minIOWrapper.removeByFileId(minIOWrapperFileInfo.getFileId(), false);
@@ -983,89 +997,10 @@ public class ScriptaCustomController {
         Message message = messageRepository.findById(idMessage).get();
         Azienda azienda = archivio.getIdAzienda();
 
-        // Controlli di sicurezza
-        // 1
-        // Se il messaggio non è archiviabile perché non ha ancora l'idRepository
-        // Nel frontend l'icona è disattiva quindi qui non dovrei mai entrare.
-        if (message.getUuidRepository() == null) {
-            throw new Http404ResponseException("1", "Messaggio senza idRepository");
-        }
-
-        // 2
-        // Controllo che l'utente abbia permessi nella casella pec del message
-        Map<Integer, List<String>> permessiPec = userInfoService.getPermessiPec(persona);
-        if (!permessiPec.isEmpty()) {
-            List<Integer> pecList = new ArrayList();
-            pecList.addAll(permessiPec.keySet());
-            if (!pecList.contains(message.getIdPec().getId())) {
-                throw new Http403ResponseException("2", "Utente senza permessi sulla casella pec");
-            }
-        } else {
-            throw new Http403ResponseException("2", "Utente senza permessi sulla casella pec");
-        }
-
-        // 3
-        // Controllo che l'utente abbia almeno permesso di modifica sull'archivio
-        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.MODIFICA)) {
-            throw new Http403ResponseException("3", "Utente senza permesso di modificare l'archivio");
-        }
-
-        /*
-        Ora vedo se il doc già esiste ( lo becco dentro messages_docs. )
-        Se non esiste allora dovrò crearlo e quindi dovrò creare i vari allegati.
-         */
-        Doc doc = null;
-        List<MessageDoc> messageDocList = message.getMessageDocList().stream().filter(md -> md.getScope().equals(MessageDoc.ScopeMessageDoc.ARCHIVIAZIONE)).collect(Collectors.toList());
-        for (MessageDoc md : messageDocList) {
-            if (md.getIdDoc().getIdAzienda().getId().equals(azienda.getId())) {
-                doc = md.getIdDoc();
-                break;
-            }
-        }
-
-        if (doc == null) {
-            File downloadEml = shpeckUtils.downloadEml(ShpeckUtils.EmlSource.MESSAGE, idMessage);
-            MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-
-            doc = new Doc("Pec_" + message.getId().toString(), persona, archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString());
-            doc = docRepository.save(doc);
-            MessageDoc.TipoMessageDoc tipo = null;
-            if (message.getInOut().equals(MessageInterface.InOut.IN)) {
-                tipo = MessageDoc.TipoMessageDoc.IN;
-            } else {
-                tipo = MessageDoc.TipoMessageDoc.OUT;
-            }
-            MessageDoc md = new MessageDoc(message, doc, tipo, MessageDoc.ScopeMessageDoc.ARCHIVIAZIONE);
-            messageDocRepository.save(md);
-
-            try {
-                scriptaUtils.creaAndAllegaAllegati(doc, new FileInputStream(downloadEml), "Pec_" + message.getId().toString(), true, true, message.getUuidRepository(), false, null); // downloadEml.getName()
-            } catch (Exception e) {
-                if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
-                    for (MinIOWrapperFileInfo minIOWrapperFileInfo : savedFilesOnRepository) {
-                        minIOWrapper.removeByFileId(minIOWrapperFileInfo.getFileId(), false);
-                    }
-                }
-                e.printStackTrace();
-                throw new Http500ResponseException("4", "Qualcosa è andato storto nelle creazione degli allegati");
-            }
-        }
-
-        // Ora che o il doc lo archivio
-        ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
-        archivioDocRepository.save(archiviazione);
-        archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
-
-        // Ora aggiungo il tag di archiviazione sul message
-        AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), persona.getDescrizione());
-        AdditionalDataTagComponent.idAzienda aziendaAdditionalData = new AdditionalDataTagComponent.idAzienda(azienda.getId(), azienda.getNome(), azienda.getDescrizione());
-        AdditionalDataTagComponent.idArchivio archivioAdditionalData = new AdditionalDataTagComponent.idArchivio(archivio.getId(), archivio.getOggetto(), archivio.getNumerazioneGerarchica());
-        AdditionalDataArchiviation additionalDataArchiviation = new AdditionalDataArchiviation(utenteAdditionalData, aziendaAdditionalData, archivioAdditionalData, LocalDateTime.now());
-        shpeckUtils.SetArchiviationTag(message.getIdPec(), message, additionalDataArchiviation, utente, true, true);
-
+        Integer idDoc = scriptaArchiviUtils.archiveMessage(message, archivio, persona, azienda, utente);
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-        accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
-
+        accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);
+        
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
@@ -1084,24 +1019,24 @@ public class ScriptaCustomController {
 
     @RequestMapping(value = "aggiungiArchivioRecente", method = RequestMethod.POST)
     public ResponseEntity<?> aggiungiArchivioRecente(
-            @RequestParam("idArchivioRadice") Integer idArchivioRadice,
+            @RequestParam("idArchivio") Integer idArchivio,
             HttpServletRequest request) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-        Archivio archivioRadice = archivioRepository.findById(idArchivioRadice).get();
+        Archivio archivioRadice = archivioRepository.findById(idArchivio).get();
         ZonedDateTime data_recentezza = ZonedDateTime.now();
-        Optional<ArchivioRecente> archivio = archiviRecentiRepository.getArchivioFromPersonaAndArchivio(idArchivioRadice, persona.getId());
+        Optional<ArchivioRecente> archivio = archivioRecenteRepository.getArchivioFromPersonaAndArchivio(idArchivio, persona.getId());
         boolean isPresent = archivio.isPresent();
         if (isPresent) {
             ArchivioRecente archivioUpdate = archivio.get();
             archivioUpdate.setDataRecentezza(data_recentezza);
-            archiviRecentiRepository.save(archivioUpdate);
+            archivioRecenteRepository.save(archivioUpdate);
         } else {
             ArchivioRecente archivioUpdate = new ArchivioRecente();
             archivioUpdate.setIdArchivio(archivioRadice.getIdArchivioDetail());
             archivioUpdate.setIdPersona(persona);
             archivioUpdate.setDataRecentezza(data_recentezza);
-            archiviRecentiRepository.save(archivioUpdate);
+            archivioRecenteRepository.save(archivioUpdate);
         }
         return new ResponseEntity("", HttpStatus.OK);
     }
@@ -1260,6 +1195,420 @@ public class ScriptaCustomController {
         }
 
         return new ResponseEntity("", HttpStatus.OK);
+    }
+    
+    @RequestMapping(value = "spostaArchivio", method = RequestMethod.POST)
+    @Transactional
+    public Object spostaArchivio(
+            @RequestParam("idArchivio") String idArchivio,
+            @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
+            @RequestParam("fascicolo") boolean fascicolo,
+            @RequestParam("contenuto") boolean contenuto,
+            HttpServletRequest request) throws Http500ResponseException, RestControllerEngineException {
+        //controllo che almeno uno tra fascicolo e contenuto sia stato selezionato
+        if (contenuto == false && fascicolo == false){
+            throw new Http500ResponseException("1", "Deve essere selezionato almeno uno tra fascicolo e contenuto");
+        }
+        //procedo a tirare su tutto ciò che mi serve
+        Integer idArchivioInt = Integer.parseInt(idArchivio);
+        Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
+        
+        if (a.isPresent()) {
+            Archivio archivio = a.get();
+            List<ArchivioDoc> documenti;
+            boolean haFigli = false;
+            //controllo che l'archivio di partenza non sia un fascicolo, quindi con livello 1
+            if (archivio.getLivello() == 1 && fascicolo){
+                throw new Http500ResponseException("2", "L'azione sposta è solo per archivi di livello != 1");
+            }
+            //controllo se l'archivio da spostare ha figli
+            if (archivio.getArchiviFigliList().size() > 0){
+                haFigli = true;
+            }
+            Integer idArchivioIntDestinazione = Integer.parseInt(idArchivioDestinazione);
+            Optional<Archivio> aDestinazione = archivioRepository.findById(idArchivioIntDestinazione);
+            if (aDestinazione.isPresent()) {
+                Archivio archivioDestinazione = aDestinazione.get();
+                List<ArchivioDoc> documentiDestinazione;
+                if (archivioDestinazione.getLivello() == 3){
+                    throw new Http500ResponseException("3", "L'azione sposta si può fare solo verso archivi di livello 1");
+                }
+                if (archivioDestinazione.getLivello() == 2 && archivio.getLivello() == 2 && haFigli){
+                    throw new Http500ResponseException("4", "L'azione sposta si può fare solo rimanendo entro i 3 livelli");
+                }
+                JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+                if(fascicolo){
+                            
+                    log.info(String.format("procedo a spostare l'archivio %s", archivio.getId()));
+                    jPAQueryFactory
+                            .update(QArchivio.archivio)
+                            .set(QArchivio.archivio.numero, 0)
+                            .set(QArchivio.archivio.numerazioneGerarchica, archivioDestinazione.getNumerazioneGerarchica().replace("/", "-x/"))
+                            .set(QArchivio.archivio.idArchivioPadre, archivioDestinazione)
+                            .set(QArchivio.archivio.idArchivioRadice, archivioDestinazione.getIdArchivioRadice())
+                            .set(QArchivio.archivio.idTitolo, archivioDestinazione.getIdTitolo())
+                            .set(QArchivio.archivio.livello, archivioDestinazione.getLivello() + 1)
+                            .where(QArchivio.archivio.id.eq(archivio.getId()))
+                            .execute();
+                    log.info(String.format("Ho spostato l'archivio %s in %s", archivio.getId(), archivioDestinazione.getId()));
+                    //procedo con le modifiche
+//                    archivio.setNumero(0);
+//                    archivio.setNumerazioneGerarchica(archivioDestinazione.getNumerazioneGerarchica().replace("/", "-x/"));
+//                    archivio.setIdArchivioPadre(archivioDestinazione);
+//                    archivio.setIdArchivioRadice(archivioDestinazione.getIdArchivioRadice());
+//                    archivio.setIdTitolo(archivioDestinazione.getIdTitolo());
+//                    archivio.setLivello(archivioDestinazione.getLivello() + 1);
+                    em.refresh(archivio);
+                    //numero il nuovo archivio
+                    archivioRepository.numeraArchivio(archivio.getId());
+                    //devo eliminare i vecchi permessi per fare un lavoro pulito
+                    archivioRepository.calcolaPermessiEspliciti(archivio.getId());
+                    log.info(String.format("ho numerato e calcolato i permessi di %s", archivio.getId()));
+                    
+                    if(haFigli){
+                        log.info(String.format("procedo a modificare i figli di %s", archivio.getId()));
+                        em.refresh(archivio);
+                        jPAQueryFactory
+                                .update(QArchivio.archivio)
+                                .set(QArchivio.archivio.numero, 0)
+                                .set(QArchivio.archivio.numerazioneGerarchica, archivio.getNumerazioneGerarchica().replace("/", "-x/"))
+                                .set(QArchivio.archivio.idArchivioRadice, archivio.getIdArchivioRadice())
+                                .set(QArchivio.archivio.idTitolo, archivio.getIdTitolo())
+                                .set(QArchivio.archivio.livello, archivio.getLivello() + 1)
+                                .where(QArchivio.archivio.idArchivioPadre.eq(archivio))
+                                .execute();
+//                        em.refresh(archivio);
+                        log.info(String.format("finito le modifiche ai figli di %s", archivio.getId()));
+                        
+                        for(Archivio arch : archivio.getArchiviFigliList()){
+//                            arch.setNumero(0);
+//                            arch.setNumerazioneGerarchica(archivio.getNumerazioneGerarchica().replace("/", "-x/"));
+//                            arch.setIdArchivioRadice(archivioDestinazione.getIdArchivioRadice());
+//                            arch.setIdTitolo(archivioDestinazione.getIdTitolo());
+//                            arch.setLivello(archivio.getLivello() + 1);
+//                            em.refresh(arch);
+                            archivioRepository.numeraArchivio(arch.getId());
+                            //devo eliminare i vecchi permessi per fare un lavoro pulito
+                            archivioRepository.calcolaPermessiEspliciti(arch.getId());
+                            
+                        }
+                        log.info(String.format("ho numerato e calcolato permessi le modifiche ai figli di %s", archivio.getId()));
+                    }
+                }
+                if(contenuto){
+                    log.info(String.format("procedo a spostare i documenti di %s", archivio.getId()));
+                    
+                    List<Integer> idDocsDaSpostare = jPAQueryFactory
+                            .select(QArchivioDoc.archivioDoc.idDoc.id)
+                            .from(QArchivioDoc.archivioDoc)
+                            .where(QArchivioDoc.archivioDoc.idArchivio.eq(archivio))
+                            .fetch();
+                    List<Integer> idDocsDaSpostareCheCiSonoGia = jPAQueryFactory
+                            .select(QArchivioDoc.archivioDoc.idDoc.id)
+                            .from(QArchivioDoc.archivioDoc)
+                            .where(QArchivioDoc.archivioDoc.idDoc.id.in(idDocsDaSpostare)
+                                    .and(QArchivioDoc.archivioDoc.idArchivio.eq(archivioDestinazione)))
+                            .fetch();
+                            
+                    jPAQueryFactory
+                            .update(QArchivioDoc.archivioDoc)
+                            .set(QArchivioDoc.archivioDoc.idArchivio, archivioDestinazione)
+                            .set(QArchivioDoc.archivioDoc.dataInserimentoRiga, ZonedDateTime.now())
+                            .where(QArchivioDoc.archivioDoc.idArchivio.eq(archivio)
+                                    .and(QArchivioDoc.archivioDoc.idDoc.id.notIn(idDocsDaSpostareCheCiSonoGia)))
+                            .execute();
+                }
+            }
+            
+        em.refresh(archivio);
+        String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+        // Ritorno la projection coi dati aggiornati
+        log.info("Recupero projection by name " + projection);
+        Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+        projectionsInterceptorLauncher.setRequestParams(null, request);
+        log.info("Chiamo la facrtory della projection...");
+        Object projectedObject = projectionFactory.createProjection(
+                projectionClass, archivio
+        );
+
+        log.info("Ritorno la projectionCreata");
+        return projectedObject;
+//        return new ResponseEntity(archivio, HttpStatus.OK);
+        }
+        throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
+    }
+    
+    @RequestMapping(value = "copiaArchivio", method = RequestMethod.POST)
+    @Transactional
+    public Object copiaArchivio(
+            @RequestParam("idArchivio") String idArchivio,
+            @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
+            @RequestParam("fascicolo") boolean fascicolo,
+            @RequestParam("contenuto") boolean contenuto,
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Archivio finalArchivio = null;
+        //controllo che almeno uno tra fascicolo e contenuto sia stato selezionato
+        if (contenuto == false && fascicolo == false){
+            throw new Http500ResponseException("1", "Deve essere selezionato almeno uno tra fascicolo e contenuto");
+        }
+        //procedo a tirare su tutto ciò che mi serve
+        Integer idArchivioInt = Integer.parseInt(idArchivio);
+        Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
+        
+        if (a.isPresent()) {
+            Archivio archivio = a.get();
+            List<ArchivioDoc> documenti;
+            boolean haFigli = false;
+            //controllo se l'archivio da spostare ha figli
+            if (archivio.getArchiviFigliList().size() > 0){
+                haFigli = true;
+            }
+            //controllo che l'archivio di partenza non sia un fascicolo, quindi con livello 1
+            if (archivio.getLivello() == 1){
+                throw new Http500ResponseException("2", "L'azione sposta è solo per archivi di livello != 1");
+            }
+            //se è stato selezionato contenuto tiro su i documenti dell'archivio
+            if (contenuto){
+                documenti = archivioDocRepository.findByIdArchivio(archivio);
+            }
+            Integer idArchivioIntDestinazione = Integer.parseInt(idArchivioDestinazione);
+            Optional<Archivio> aDestinazione = archivioRepository.findById(idArchivioIntDestinazione);
+            if (aDestinazione.isPresent()) {
+                Archivio archivioDestinazione = aDestinazione.get();
+                //procedo con le modifiche
+                log.info(String.format("inzio a copiare %s", archivio.getId()));
+                if(fascicolo){
+                    Archivio savedArchivio = scriptaCopyUtils.copiaArchivio(archivio, archivioDestinazione, persona, em);
+                    
+                    log.info(String.format("procedo a copiare i documenti di %s", archivio.getId()));
+                    scriptaCopyUtils.coiaArchivioDoc(archivio, savedArchivio, persona, em);
+                    log.info(String.format("I documenti sono stati copiati correttamente dall'archivio: " + archivio.getId() + " all'archivio: " + savedArchivio.getId()));
+                    
+                    log.info(String.format("finito di copiare l'archivio %s", archivio.getId()));
+
+                    if(haFigli){
+
+                        log.info(String.format("procedo a copiare i figli di %s", archivio.getId()));
+                        for(Archivio arch : archivio.getArchiviFigliList()){
+                            em.refresh(savedArchivio);
+                            Archivio savedSubArchivio = scriptaCopyUtils.copiaArchivio(arch, savedArchivio, persona, em, Boolean.FALSE);
+                            log.info(String.format("procedo a copiare i documenti di %s", arch.getId()));
+                            scriptaCopyUtils.coiaArchivioDoc(arch, savedSubArchivio, persona, em);
+                            log.info(String.format("I documenti sono stati copiati correttamente dall'archivio: " + arch.getId() + " all'archivio: " + savedSubArchivio.getId()));
+                        }
+                        log.info(String.format("ho copiato anche i figli di %s", archivio.getId()));
+                    }
+                    finalArchivio = savedArchivio;
+                }
+                if(contenuto){
+                    log.info(String.format("procedo a copiare i documenti di %s", archivio.getId()));
+                    scriptaCopyUtils.coiaArchivioDoc(archivio, archivioDestinazione, persona, em);
+                    log.info(String.format("I documenti sono stati copiati correttamente dall'archivio: " + archivio.getId() + " all'archivio: " + archivioDestinazione.getId()));
+                    finalArchivio = archivioDestinazione;
+                }
+                
+            }
+        em.refresh(finalArchivio);
+        String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+        log.info("Recupero projection by name " + projection);
+        Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+        projectionsInterceptorLauncher.setRequestParams(null, request);
+        log.info("Chiamo la facrtory della projection...");
+        Object projectedObject = projectionFactory.createProjection(
+                projectionClass, finalArchivio
+        );
+
+        log.info("Ritorno la projectionCreata");
+        return projectedObject;
+//        return new ResponseEntity(archivio, HttpStatus.OK);
+        }
+        throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
+    }
+    
+    @RequestMapping(value = "duplicaArchivio", method = RequestMethod.POST)
+    @Transactional
+    public Object duplicaArchivio(
+            @RequestParam("idArchivio") String idArchivio,
+            @RequestParam("fascicolo") boolean fascicolo,
+            @RequestParam("contenuto") boolean contenuto,
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        if (contenuto == false && fascicolo == false){
+            throw new Http500ResponseException("1", "Deve essere selezionato almeno uno tra fascicolo e contenuto");
+        }
+        //procedo a tirare su tutto ciò che mi serve
+        Integer idArchivioInt = Integer.parseInt(idArchivio);
+        Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
+        
+        if (a.isPresent()) {
+            Archivio archivio = a.get();
+            boolean haFigli = false;
+            //controllo se l'archivio da copiare ha figli in caso li cancello
+            if (archivio.getArchiviFigliList().size() > 0){
+                haFigli = true;
+            }
+            log.info(String.format("inizio a duplicare l'archivio %s", archivio.getId()));
+            Archivio savedArchivio = scriptaCopyUtils.copiaArchivio(archivio, archivio.getIdArchivioPadre(), persona, em);
+            log.info(String.format("finito di duplicare l'archivio %s", archivio.getId()));
+
+            if(contenuto){
+                em.refresh(savedArchivio);
+                log.info(String.format("procedo a copiare i documenti di %s", archivio.getId()));
+                scriptaCopyUtils.coiaArchivioDoc(archivio, savedArchivio, persona, em);
+                log.info(String.format("I documenti sono stati copiati correttamente dall'archivio: " + archivio.getId() + " all'archivio: " + savedArchivio.getId()));
+            }
+            
+            if(haFigli){
+
+                log.info(String.format("procedo a duplicare i figli e nipoti di %s", archivio.getId()));
+                em.refresh(savedArchivio);
+                for(Archivio archFiglio : archivio.getArchiviFigliList()){
+                    Archivio savedFiglioArchivio = scriptaCopyUtils.copiaArchivio(archFiglio, savedArchivio, persona, em);
+                    if(contenuto){
+                        log.info(String.format("procedo a duplicare i documenti di %s", archFiglio.getId()));
+                        scriptaCopyUtils.coiaArchivioDoc(archFiglio, savedFiglioArchivio, persona, em);
+                        log.info(String.format("I documenti sono stati duplicati correttamente dall'archivio: " + archFiglio.getId() + " all'archivio: " + savedFiglioArchivio.getId()));
+                    }
+                    em.refresh(savedFiglioArchivio);
+                    for(Archivio archNipote : archFiglio.getArchiviFigliList()){
+                        Archivio savedInsArchivio = scriptaCopyUtils.copiaArchivio(archNipote, savedFiglioArchivio, persona, em);
+                        if(contenuto){
+                            log.info(String.format("procedo a duplicare i documenti di %s", archNipote.getId()));
+                            scriptaCopyUtils.coiaArchivioDoc(archNipote, savedInsArchivio, persona, em);
+                            log.info(String.format("I documenti sono stati duplicati correttamente dall'archivio: " + archNipote.getId() + " all'archivio: " + savedInsArchivio.getId()));
+                        }
+                    }
+                }
+                log.info(String.format("finito le duplicare i figli e nipoti di %s", archivio.getId()));
+            }
+            em.refresh(savedArchivio);
+            String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+            log.info("Recupero projection by name " + projection);
+            Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+            projectionsInterceptorLauncher.setRequestParams(null, request);
+            log.info("Chiamo la facrtory della projection...");
+            Object projectedObject = projectionFactory.createProjection(
+                    projectionClass, savedArchivio
+            );
+
+            log.info("Ritorno la projectionCreata");
+            return projectedObject;
+//            return new ResponseEntity(archivio, HttpStatus.OK);
+        }
+        throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
+    }
+    
+    @RequestMapping(value = "rendiFascicolo", method = RequestMethod.POST)
+    @Transactional
+    public Object rendiFascicolo(
+            @RequestParam("idArchivio") String idArchivio,
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        //procedo a tirare su tutto ciò che mi serve
+        Integer idArchivioInt = Integer.parseInt(idArchivio);
+        Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+        
+        if (a.isPresent()) {
+            Archivio archivio = a.get();
+            List<ArchivioDoc> documenti;
+            boolean haFigli = false;
+            //controllo se l'archivio da copiare ha figli in caso li cancello
+            if (archivio.getArchiviFigliList().size() > 0){
+                haFigli = true;
+            }
+            log.info(String.format("procedo a rendere fascicolo l'archivio %s", archivio.getId()));
+            jPAQueryFactory
+                    .update(QArchivioDetail.archivioDetail)
+                    .setNull(QArchivioDetail.archivioDetail.idPersonaCreazione)
+                    .where(QArchivioDetail.archivioDetail.id.eq(archivio.getId()))
+                    .execute();
+            jPAQueryFactory
+                    .update(QArchivio.archivio)
+                    .set(QArchivio.archivio.numero, 0)
+                    .set(QArchivio.archivio.numerazioneGerarchica, "x/x")
+                    .setNull(QArchivio.archivio.idArchivioPadre)
+                    .set(QArchivio.archivio.idArchivioRadice, archivio)
+                    .set(QArchivio.archivio.idTitolo, archivio.getIdTitolo())
+                    .set(QArchivio.archivio.livello, 1)
+                    .set(QArchivio.archivio.stato, Archivio.StatoArchivio.BOZZA.toString())
+                    .where(QArchivio.archivio.id.eq(archivio.getId()))
+                    .execute();
+            jPAQueryFactory
+                    .update(QAttoreArchivio.attoreArchivio)
+                    .set(QAttoreArchivio.attoreArchivio.dataInserimentoRiga, ZonedDateTime.now())
+                    .where(QAttoreArchivio.attoreArchivio.idArchivio.id.eq(archivio.getId()))
+                    .execute();
+            log.info(String.format("Ho reso fascicolo l'archivio %s", archivio.getId()));
+            em.refresh(archivio);
+            //numero il nuovo archivio
+            archivioRepository.numeraArchivio(archivio.getId());
+            //devo eliminare i vecchi permessi per fare un lavoro pulito
+            archivioRepository.calcolaPermessiEspliciti(archivio.getId());
+            log.info(String.format("ho numerato e calcolato i permessi di %s", archivio.getId()));
+
+            if(haFigli){
+                log.info(String.format("procedo a modificare i figli di %s", archivio.getId()));
+                em.refresh(archivio);
+                jPAQueryFactory
+                    .update(QArchivioDetail.archivioDetail)
+                    .setNull(QArchivioDetail.archivioDetail.idPersonaCreazione)
+                    .where(QArchivioDetail.archivioDetail.idArchivioPadre.id.eq(archivio.getId()))
+                    .execute();
+                jPAQueryFactory
+                    .update(QArchivio.archivio)
+                    .set(QArchivio.archivio.numero, 0)
+                    .set(QArchivio.archivio.numerazioneGerarchica, archivio.getNumerazioneGerarchica().replace("/", "-x/"))
+                    .set(QArchivio.archivio.idArchivioRadice, archivio)
+                    .set(QArchivio.archivio.idTitolo, archivio.getIdTitolo())
+                    .set(QArchivio.archivio.livello, archivio.getLivello() + 1)
+                    .set(QArchivio.archivio.stato, Archivio.StatoArchivio.BOZZA.toString())
+                    .where(QArchivio.archivio.idArchivioPadre.eq(archivio))
+                    .execute();
+                
+//                        em.refresh(archivio);
+                log.info(String.format("finito le modifiche ai figli di %s", archivio.getId()));
+
+                for(Archivio arch : archivio.getArchiviFigliList()){
+//                            arch.setNumero(0);
+//                            arch.setNumerazioneGerarchica(archivio.getNumerazioneGerarchica().replace("/", "-x/"));
+//                            arch.setIdArchivioRadice(archivioDestinazione.getIdArchivioRadice());
+//                            arch.setIdTitolo(archivioDestinazione.getIdTitolo());
+//                            arch.setLivello(archivio.getLivello() + 1);
+//                            em.refresh(arch);
+                    jPAQueryFactory
+                        .update(QAttoreArchivio.attoreArchivio)
+                        .set(QAttoreArchivio.attoreArchivio.dataInserimentoRiga, ZonedDateTime.now())
+                        .where(QAttoreArchivio.attoreArchivio.idArchivio.id.eq(arch.getId()))
+                        .execute();
+                    archivioRepository.numeraArchivio(arch.getId());
+                    //devo eliminare i vecchi permessi per fare un lavoro pulito
+                    archivioRepository.calcolaPermessiEspliciti(arch.getId());
+                    
+
+                }
+                archivioRepository.calcolaGerarchiaArchivio(archivio.getId());
+                log.info(String.format("ho numerato e calcolato permessi le modifiche ai figli di %s", archivio.getId()));
+            }
+            em.refresh(archivio);
+            String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+            log.info("Recupero projection by name " + projection);
+            Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+            projectionsInterceptorLauncher.setRequestParams(null, request);
+            log.info("Chiamo la facrtory della projection...");
+            Object projectedObject = projectionFactory.createProjection(
+                    projectionClass, archivio
+            );
+
+            log.info("Ritorno la projectionCreata");
+            return projectedObject;
+//            return new ResponseEntity(archivio, HttpStatus.OK);
+        }
+        throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
 
 }
