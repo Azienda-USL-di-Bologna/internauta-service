@@ -8,7 +8,6 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.services.ServiceWorke
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.VersamentoServiceCore;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
-import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,10 +22,10 @@ import org.springframework.beans.factory.annotation.Autowired;
  (la parte in cui si accodano effettivamente i mestieri di versamento) che è definita nella classe VersamentoServiceCore
  */
 @MasterjobsWorker
-public class VersatoreServiceWorker extends ServiceWorker {
-    private static Logger log = LoggerFactory.getLogger(VersatoreServiceWorker.class);
+public class VersamentoServiceWorker extends ServiceWorker {
+    private static Logger log = LoggerFactory.getLogger(VersamentoServiceWorker.class);
     
-    private String name = VersatoreServiceWorker.class.getSimpleName();
+    private String name = VersamentoServiceWorker.class.getSimpleName();
     
     @Autowired
     private CachedEntities cachedEntities;
