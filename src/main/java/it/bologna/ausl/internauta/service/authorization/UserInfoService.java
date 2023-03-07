@@ -63,6 +63,7 @@ import java.util.HashSet;
 import java.util.stream.Stream;
 import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgUtenteStruttura;
+import org.json.JSONObject;
 import org.springframework.beans.factory.BeanFactory;
 
 /**
@@ -940,32 +941,40 @@ public class UserInfoService {
     }
 
     @Cacheable(value = "getPermessiGediByCodiceAzienda_persona__ribaltorg__", key = "{#persona.getId()}")
-    public Map<String, Boolean> getPermessiGediByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
+    public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiGediByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
         Map<String, Boolean> map = new HashMap<>();
+        Map<String, List<PermessoEntitaStoredProcedure>> mapPermessi = new HashMap<>();
+        List<PermessoEntitaStoredProcedure> listPermessi = new ArrayList<>();
         List<Utente> utentiPersona = persona.getUtenteList().stream().filter(u -> u.getAttivo() == true).collect(Collectors.toList());
         boolean canCreateArchivio = false;
+        JSONObject json = new JSONObject();
         for (int i = 0; i < utentiPersona.size(); i++) {
-//            map.put(utentiPersona.get(i).getIdAzienda().getCodice(),
-//                    permissionManager.getPermissionsOfSubjectActualFromDate(utentiPersona.get(i), null,
-//                            Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.CREA_GEDI.toString()}),
+            mapPermessi.put(utentiPersona.get(i).getIdAzienda().getCodice(),
+                    permissionManager.getPermissionsOfSubjectActualFromDate(utentiPersona.get(i), null,
+                            null,
+                            Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.GEDI.toString()}),
+                            Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FASCICOLO.toString()}),
+                            false, null)
+            );
+
+//            listPermessi.addAll(permissionManager.getPermissionsOfSubjectActualFromDate(utentiPersona.get(i), null,
+//                            null,
 //                            Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.GEDI.toString()}),
 //                            Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FASCICOLO.toString()}),
-//                            false, null)
-//           );
-            if (!permissionManager.getPermissionsOfSubjectActualFromDate(utentiPersona.get(i), null,
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.CREA_GEDI.toString()}),
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.GEDI.toString()}),
-                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FASCICOLO.toString()}),
-                    false, null).isEmpty()) {
-                canCreateArchivio = true;
-            } else {
-                canCreateArchivio = false;
-            }
-            map.put(utentiPersona.get(i).getIdAzienda().getCodice(), canCreateArchivio);
-
+//                            false, null));
+//            if (!permissionManager.getPermissionsOfSubjectActualFromDate(utentiPersona.get(i), null,
+//                    Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.CREA.toString()}),
+//                    Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.GEDI.toString()}),
+//                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FASCICOLO.toString()}),
+//                    false, null).isEmpty()) {
+//                canCreateArchivio = true;
+//            } else {
+//                canCreateArchivio = false;
+//            }
+//            map.put(utentiPersona.get(i).getIdAzienda().getCodice(), canCreateArchivio);
         }
 
-        return map;
+        return mapPermessi;
     }
 
     @CacheEvict(value = "getPermessiGediByCodiceAzienda_persona__ribaltorg__", key = "{#persona.getId()}")

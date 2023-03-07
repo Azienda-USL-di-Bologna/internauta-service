@@ -45,7 +45,7 @@ public interface UtenteLoginCustom extends UtenteWithIdPersonaAndPermessiCustom 
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda();
 
     @Value("#{@userInfoService.getPermessiGediByCodiceAzienda(target.getIdPersona())}")
-    public Map<String, Boolean> getPermessiGediByCodiceAzienda();
+    public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiGediByCodiceAzienda();
 
     @Value("#{@userInfoService.getStruttureDelSegretario(target.getIdPersona())}")
     @Override
