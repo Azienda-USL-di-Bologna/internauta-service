@@ -24,10 +24,10 @@ public interface UtenteLoginCustom extends UtenteWithIdPersonaAndPermessiCustom 
 
     @Value("#{@userInfoService.getAllAziendeCustomLogin(target, false)}")
     public List<CustomAziendaLogin> getAziende();
-    
+
     @Value("#{@userInfoService.getAllAziendeCustomLogin(target, true)}")
     public List<CustomAziendaLogin> getAziendeAttive();
-    
+
     @Value("#{@userInfoService.getRuoliPerModuli(target, null)}")
     @Override
     public Map<String, List<Ruolo>> getMappaRuoli();
@@ -43,7 +43,10 @@ public interface UtenteLoginCustom extends UtenteWithIdPersonaAndPermessiCustom 
     @Value("#{@userInfoService.getPermessiDiFlussoByCodiceAzienda(target)}")
     @Override
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda();
-    
+
+    @Value("#{@userInfoService.getPermessiGediByCodiceAzienda(target.getIdPersona())}")
+    public Map<String, Boolean> getPermessiGediByCodiceAzienda();
+
     @Value("#{@userInfoService.getStruttureDelSegretario(target.getIdPersona())}")
     @Override
     public Object getStruttureDelSegretario();
