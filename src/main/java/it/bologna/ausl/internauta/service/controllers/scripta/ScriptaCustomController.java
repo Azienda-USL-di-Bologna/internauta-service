@@ -58,6 +58,7 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.argo.raccolta.Raccolta;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
+import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
@@ -138,6 +139,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 
@@ -147,7 +149,7 @@ import org.springframework.web.bind.annotation.RequestPart;
  */
 @RestController
 @RequestMapping(value = "${scripta.mapping.url.root}")
-public class ScriptaCustomController {
+public class ScriptaCustomController implements ControllerHandledExceptions {
 
     private static final Logger LOG = LoggerFactory.getLogger(ScriptaCustomController.class);
 
@@ -463,6 +465,35 @@ public class ScriptaCustomController {
             IOUtils.closeQuietly(zos);
         }
     }
+    
+    /**
+     * Api per il download di un archivio con tutto il suo contenuto.
+     * @param idArchivio L'id dell'archivio da scaricare.
+     * @param response Http Response.
+     * @param request Http request.
+     * @throws Http403ResponseException Eccezioni in caso di mancanza di permessi.
+     * @throws Http500ResponseException Eccezioni in caso di errori nella generazione del file zip.
+     * @throws BlackBoxPermissionException Errori della blackbox.
+     */
+    @RequestMapping(value = "downloadArchivioZip/{idArchivio}", method = RequestMethod.GET, produces = "application/zip")
+    public void downloadArchivioZip(
+            @PathVariable(required = true) Integer idArchivio,
+            HttpServletResponse response,
+            HttpServletRequest request
+    ) throws Http403ResponseException, Http500ResponseException, BlackBoxPermissionException {
+        LOG.info("downloadArchivioZip: {}", idArchivio);
+        
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Archivio archivio = archivioRepository.findById(idArchivio).orElseThrow(ResourceNotFoundException::new);
+       
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
+            throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
+        }
+        
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em); 
+        scriptaArchiviUtils.createZipArchivio(archivio, persona, response, jPAQueryFactory);
+    }
 
     private JSONObject getJSONObjectPecMessageDetail(Doc doc) {
         JSONObject pecMessageDetail = new JSONObject();
@@ -731,38 +762,42 @@ public class ScriptaCustomController {
 //        }
         return hashString;
     }
-
-    // SE arrivi qui e vedi che è passato il1 15 giugno 2022 cancella sto metodo commentato
-//    @RequestMapping(value = "getResponsabili", method = RequestMethod.GET)
-//    public JSONObject getResponsabili(@RequestParam("id") String idArchivio) throws Http500ResponseException {
-//        JSONObject json = new JSONObject();
-//        JSONArray jsonArray = new JSONArray();
-//        Archivio archivio = archivioRepository.getById(Integer.parseInt(idArchivio));
-//        ArchivioDetail dettaglio = archivioDetailRepository.getById(Integer.parseInt(idArchivio));
-//        Persona personaResponsabile = dettaglio.getIdPersonaResponsabile();
-//        Integer[] idVicari = dettaglio.getIdVicari();
-//        List<Persona> listVicari = new ArrayList();
-//        for (Integer id : idVicari) {
-//            Optional<Persona> p = personaRepository.findById(id);
-//            listVicari.add(p.get());
-//        }
-//        json.put("descrizione", personaResponsabile.getDescrizione());
-//        json.put("ruolo", "Responsabile");
-//        json.put("id", personaResponsabile.getId());
-//        json.put("struttura", dettaglio.getIdStruttura().getNome());
-//        jsonArray.add(json);
-//        for (Persona vic : listVicari) {
-//            json = new JSONObject();
-//            json.put("descrizione", vic.getDescrizione());
-//            json.put("ruolo", "Vicario");
-//            json.put("id", vic.getId());
-//            json.put("struttura", dettaglio.getIdStruttura().getNome());
-//            jsonArray.add(json);
-//        }
-//        JSONObject jsonReturn = new JSONObject();
-//        jsonReturn.put("responsabili", jsonArray);
-//        return jsonReturn;
-//    }
+    
+    /**
+     * SE arrivi qui e vedi che è passato il1 15 giugno 2022 cancella sto metodo commentato
+     */
+    /**
+    @RequestMapping(value = "getResponsabili", method = RequestMethod.GET)
+    public JSONObject getResponsabili(@RequestParam("id") String idArchivio) throws Http500ResponseException {
+        JSONObject json = new JSONObject();
+        JSONArray jsonArray = new JSONArray();
+        Archivio archivio = archivioRepository.getById(Integer.parseInt(idArchivio));
+        ArchivioDetail dettaglio = archivioDetailRepository.getById(Integer.parseInt(idArchivio));
+        Persona personaResponsabile = dettaglio.getIdPersonaResponsabile();
+        Integer[] idVicari = dettaglio.getIdVicari();
+        List<Persona> listVicari = new ArrayList();
+        for (Integer id : idVicari) {
+            Optional<Persona> p = personaRepository.findById(id);
+            listVicari.add(p.get());
+        }
+        json.put("descrizione", personaResponsabile.getDescrizione());
+        json.put("ruolo", "Responsabile");
+        json.put("id", personaResponsabile.getId());
+        json.put("struttura", dettaglio.getIdStruttura().getNome());
+        jsonArray.add(json);
+        for (Persona vic : listVicari) {
+            json = new JSONObject();
+            json.put("descrizione", vic.getDescrizione());
+            json.put("ruolo", "Vicario");
+            json.put("id", vic.getId());
+            json.put("struttura", dettaglio.getIdStruttura().getNome());
+            jsonArray.add(json);
+        }
+        JSONObject jsonReturn = new JSONObject();
+        jsonReturn.put("responsabili", jsonArray);
+        return jsonReturn;
+    }*/
+    
     @RequestMapping(value = "eliminaProposta", method = RequestMethod.POST)
     public ResponseEntity<?> eliminaProposta(
             @RequestParam("guid_doc") String guidDoc,
