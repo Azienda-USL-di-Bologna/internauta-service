@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -449,6 +450,23 @@ public class Appartenenti {
 
                 }
             }
+        }
+        for (Integer codiceMatricola : appartenentiDiretti.keySet()) {
+            for (Integer id_casella : appartenentiDiretti.get(codiceMatricola).keySet()){
+                if (appartenentiFunzionali.containsKey(codiceMatricola)){
+                    if (appartenentiFunzionali.get(codiceMatricola).containsKey(id_casella)) {
+
+                        for ( Map<String, Object> periodo : appartenentiFunzionali.get(codiceMatricola).get(id_casella)){
+                            if (ImportaDaCSVUtils.isPeriodiSovrapposti(appartenentiFunzionali.get(codiceMatricola).get(id_casella), ImportaDaCSVUtils.formattattore(periodo.get("datain")), ImportaDaCSVUtils.formattattore(periodo.get("datafi")))) {
+                             anomalia = true;
+                             mapError.put("Anomalia", "periodo che sia funzionale che diretto per la stessa casella sovrapposto");
+                            }
+                        }
+                    }
+                
+                }
+            }
+           
         }
         return anomalia;
     }
