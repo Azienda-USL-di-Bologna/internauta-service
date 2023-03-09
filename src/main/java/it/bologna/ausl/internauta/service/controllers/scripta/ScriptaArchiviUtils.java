@@ -35,9 +35,7 @@ import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
-import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
-import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.bologna.ausl.model.entities.shpeck.Message;
@@ -55,16 +53,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.compress.archivers.sevenz.SevenZOutputFile;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
@@ -286,7 +280,7 @@ public class ScriptaArchiviUtils {
         } catch (IOException ex) {
             String errorMessage = "Errore durante la generazione del file zip.";
             LOG.error(errorMessage);
-            throw new Http500ResponseException("1", errorMessage);
+            throw new Http500ResponseException("2", errorMessage);
         }
     }
     
@@ -308,7 +302,8 @@ public class ScriptaArchiviUtils {
               
         List<Archivio> archiviFigli = archivioRepository.findByIdArchivioPadre(archivio);
         for (Archivio archivioFiglio : archiviFigli) {
-            String archivioFiglioName = String.format("%s-%s/", archivioName, archivioFiglio.getNumerazioneGerarchica(), archivioFiglio.getOggetto().trim());
+            String numerazione = archivioFiglio.getNumerazioneGerarchica().substring(0, archivioFiglio.getNumerazioneGerarchica().indexOf("/"));
+            String archivioFiglioName = String.format("%s%s-%s/", archivioName, numerazione, archivioFiglio.getOggetto().trim());
             zipOut.putNextEntry(new ZipEntry(archivioFiglioName));
             buildArchivio(archivioFiglio, archivioFiglioName, persona, zipOut, jPAQueryFactory, minIOWrapper);
             zipOut.closeEntry();
