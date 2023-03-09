@@ -268,8 +268,8 @@ public class ScriptaArchiviUtils {
     public void createZipArchivio(Archivio archivio, Persona persona, HttpServletResponse response, JPAQueryFactory jPAQueryFactory) throws Http500ResponseException {
         try {
             MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-            
-            String archivioZipName = String.format("%d-%d-%s.zip", archivio.getNumero(), archivio.getAnno(), archivio.getOggetto().trim());
+            String numero = archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/"));
+            String archivioZipName = String.format("%s-%d-%s.zip", numero, archivio.getAnno(), archivio.getOggetto().trim());
             response.addHeader(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, HttpHeaders.CONTENT_DISPOSITION);
             response.addHeader(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=%s", archivioZipName));
             response.addHeader(HttpHeaders.CONTENT_TYPE, "application/zip");
