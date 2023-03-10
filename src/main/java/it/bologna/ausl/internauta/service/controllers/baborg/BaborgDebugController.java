@@ -266,6 +266,13 @@ public class BaborgDebugController {
 
     }
     
+    @RequestMapping(value = "test5", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
+    public void test5(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
+        MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
+        mjQueuer.stopThreads();
+    }
+    
     @RequestMapping(value = "test4", method = RequestMethod.GET)
     @Transactional(rollbackFor = Throwable.class)
     public void test4(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {

@@ -7,23 +7,16 @@ import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepositor
 import it.bologna.ausl.internauta.service.repositories.scripta.MassimarioRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
-import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
-import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.Massimario;
 import it.bologna.ausl.model.entities.scripta.QMassimario;
-import it.bologna.ausl.model.entities.scripta.QTitolo;
-import it.bologna.ausl.model.entities.scripta.Titolo;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,12 +41,6 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private ArchivioRepository archivioRepository;
-
-    @Autowired
-    private MasterjobsJobsQueuer masterjobsJobsQueuer;
-
-    @Autowired
-    private MasterjobsObjectsFactory masterjobsObjectsFactory;
 
     @Autowired
     private KrintScriptaService krintScriptaService;
@@ -201,25 +188,25 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
 
             if (krintUtils.doIHaveToKrint(request)) {
                 if (nomeIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOME_UPDATE);
+                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOME_UPDATE);
                 }
                 if (classificazioneIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CLASSIFICAZIONE_UPDATE);
+                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CLASSIFICAZIONE_UPDATE);
                 }
                 if (categoriaDocumentaleIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CATEGORIA_DOCUMENTALE_UPDATE);
+                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CATEGORIA_DOCUMENTALE_UPDATE);
                 }
                 if (conservazioneIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CONSERVAZIONE_UPDATE);
+                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CONSERVAZIONE_UPDATE);
                 }
                 if (tipoIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_TIPO_UPDATE);
+                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_TIPO_UPDATE);
                 }
                 if (riservatoIsChanged) {
                     krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_RISERVATO_UPDATE);
                 }
                 if (noteIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOTE_UPDATE);
+                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOTE_UPDATE);
                 }
 
             }
