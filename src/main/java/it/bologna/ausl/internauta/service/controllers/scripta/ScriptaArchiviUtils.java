@@ -2,6 +2,7 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.StringPath;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
@@ -90,6 +91,23 @@ public class ScriptaArchiviUtils {
 
     @Autowired
     private ShpeckUtils shpeckUtils;
+    
+    public Integer getProfonditaArchivio(Archivio arch){
+        Integer profondita = 1;
+        if (!arch.getArchiviFigliList().isEmpty()){
+            profondita = 2;
+            for(Archivio figlio: arch.getArchiviFigliList()){
+                if (!figlio.getArchiviFigliList().isEmpty()){
+                profondita = 3;
+              }
+            }
+        }
+        return profondita;
+    }
+    
+    public String prova(StringPath s){
+        return s + "frghjk";
+    }
     
     /**
      * Restituisce true se la persona ha ALMENO il permesso sull'archivio

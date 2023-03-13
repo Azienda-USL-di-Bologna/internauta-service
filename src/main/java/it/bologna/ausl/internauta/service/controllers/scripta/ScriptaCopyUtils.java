@@ -13,6 +13,7 @@ import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.Massimario;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
 import static it.bologna.ausl.model.entities.scripta.QArchivio.archivio;
@@ -67,20 +68,22 @@ public class ScriptaCopyUtils {
     }
     
     public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em, Boolean numera) throws JsonProcessingException, EntityReflectionException{
-        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em); 
         String numerazioneGerarchicaDaEreditare;
         Archivio idArchivioRadiceDaEreditare;
         Titolo idTitoloDaEreditare;
+        Massimario idMassimarioDaEreditare;
         Integer livelloDaEreditare;
        if (archivioDestinazione == null){
             numerazioneGerarchicaDaEreditare = "/" + ZonedDateTime.now().getYear();
             idArchivioRadiceDaEreditare = archDaCopiare;
             idTitoloDaEreditare = archDaCopiare.getIdTitolo();
+            idMassimarioDaEreditare = archDaCopiare.getIdMassimario();
             livelloDaEreditare = 1;
         }else{
             numerazioneGerarchicaDaEreditare = archivioDestinazione.getNumerazioneGerarchica();
             idArchivioRadiceDaEreditare = archivioDestinazione.getIdArchivioRadice();
             idTitoloDaEreditare = archivioDestinazione.getIdTitolo();
+            idMassimarioDaEreditare = archivioDestinazione.getIdMassimario();
             livelloDaEreditare = archivioDestinazione.getLivello()+1;
         }
         
@@ -96,11 +99,15 @@ public class ScriptaCopyUtils {
         newArchivio.setIdArchivioPadre(archivioDestinazione);
         newArchivio.setIdArchivioRadice(idArchivioRadiceDaEreditare);
         newArchivio.setIdTitolo(idTitoloDaEreditare);
+        newArchivio.setIdMassimario(idMassimarioDaEreditare);
         newArchivio.setDataCreazione(ZonedDateTime.now());
         newArchivio.setDataInserimentoRiga(ZonedDateTime.now());
         newArchivio.setVersion(ZonedDateTime.now());
-//        newArchivio.setAttoriList(archDaCopiare.getAttoriList());
+        newArchivio.setIdArchivioCopiato(archDaCopiare);
         newArchivio.setLivello(livelloDaEreditare);
+        newArchivio.setNumeroSottoarchivi(0);
+        newArchivio.setIdArchivioArgo(null);
+        newArchivio.setIdArchivioImportato(null);
         em.persist(newArchivio);
         em.refresh(newArchivio);
         
@@ -130,7 +137,6 @@ public class ScriptaCopyUtils {
             detail.setStato(Archivio.StatoArchivio.BOZZA);
             archivioRepository.numeraArchivio(newArchivio.getId());
         }
-        archivioRepository.calcolaPermessiEspliciti(newArchivio.getId());
         return newArchivio;
     }
     
