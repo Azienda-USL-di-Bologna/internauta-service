@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +25,6 @@ public class Appartenenti {
 
     @Autowired
     private AziendaRepository aziendaRepository;
-   
 
     public static Boolean checkCodiceFiscale(Map<String, Object> appartenentiMap, Map<String, Object> mapError) {
         if (appartenentiMap.get("codice_fiscale") == null || appartenentiMap.get("codice_fiscale").toString().trim().equals("") || appartenentiMap.get("codice_fiscale") == "") {
@@ -229,6 +227,11 @@ public class Appartenenti {
         return codiciMatricoleConAppFunzionaliENonDirette;
     }
 
+    // lo scopo di questa funzione e' ritornare anomalia quando becco i casi:
+    // - appartenenza di tipo T multiple
+    // - appartenenza di tipo F su stessa casella casella con tipo T
+    // - tipo appartenenza assente 
+    // 
     public static boolean checkTipoAppatenenza(
             Map<String, Object> appartenentiMap,
             Map<String, Object> mapError,
@@ -327,7 +330,7 @@ public class Appartenenti {
                         }
                     }
                     //cazzo di Ferrarra di merda
-                    if (!controlloZeroUno ) {
+                    if (!controlloZeroUno) {
                         if (appDiretto == null) {
                             //non ho quella matricola nella mappa
                             //creo tutti i contenuti della matricola nuova
@@ -362,9 +365,9 @@ public class Appartenenti {
                                 periodoCasellato.add(periodoDaCasellare);
                             }
                         }
-                    } else if (!codiceEnteEndsWith && !controlloZeroUno){
+                    } else if (!codiceEnteEndsWith && !controlloZeroUno) {
                         //caso in cui non finisco per 01 ma ho il controllo 01 attivo il periodo
-                            if (appDiretto == null) {
+                        if (appDiretto == null) {
                             //non ho quella matricola nella mappa
                             //creo tutti i contenuti della matricola nuova
                             appDiretto = new HashMap();
@@ -451,22 +454,46 @@ public class Appartenenti {
                 }
             }
         }
-        for (Integer codiceMatricola : appartenentiDiretti.keySet()) {
-            for (Integer id_casella : appartenentiDiretti.get(codiceMatricola).keySet()){
-                if (appartenentiFunzionali.containsKey(codiceMatricola)){
-                    if (appartenentiFunzionali.get(codiceMatricola).containsKey(id_casella)) {
-
-                        for ( Map<String, Object> periodo : appartenentiFunzionali.get(codiceMatricola).get(id_casella)){
-                            if (ImportaDaCSVUtils.isPeriodiSovrapposti(appartenentiFunzionali.get(codiceMatricola).get(id_casella), ImportaDaCSVUtils.formattattore(periodo.get("datain")), ImportaDaCSVUtils.formattattore(periodo.get("datafi")))) {
-                             anomalia = true;
-                             mapError.put("Anomalia", "periodo che sia funzionale che diretto per la stessa casella sovrapposto");
+        //adesso controllo che la riga di appartenenza diretta o funzionale non abbia sovrapposizioni temporali cross afferenza 
+        if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")) {
+            if (appartenentiMap.get("codice_matricola") != null && appartenentiMap.get("codice_matricola").toString().trim().equals("")) {
+                Integer codiceMatricola = (Integer) appartenentiMap.get("codice_matricola");
+                if (appartenentiFunzionali.containsKey(codiceMatricola)) {
+                    if (appartenentiMap.get("id_casella") != null && appartenentiMap.get("id_casella").toString().trim().equals("")) {
+                        Integer idCasellaApp = (Integer) appartenentiMap.get("id_casella");
+                        if (appartenentiFunzionali.get(codiceMatricola).containsKey(idCasellaApp)) {
+                            if (ImportaDaCSVUtils.isPeriodiSovrapposti(
+                                    appartenentiFunzionali.get(codiceMatricola).get(idCasellaApp),
+                                    ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain")),
+                                    ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi")))) {
+                                anomalia = true;
+                                mapError.put("Anomalia", "true");
+                                mapError.put("ERRORE", "apparteneza diretta che si sovrappone ad una funzionale");
                             }
                         }
                     }
-                
                 }
             }
-           
+        }
+        if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("F")) {
+            if (appartenentiMap.get("codice_matricola") != null && appartenentiMap.get("codice_matricola").toString().trim().equals("")) {
+                Integer codiceMatricola = (Integer) appartenentiMap.get("codice_matricola");
+                if (appartenentiDiretti.containsKey(codiceMatricola)) {
+                    if (appartenentiMap.get("id_casella") != null && appartenentiMap.get("id_casella").toString().trim().equals("")) {
+                        Integer idCasellaApp = (Integer) appartenentiMap.get("id_casella");
+                        if (appartenentiDiretti.get(codiceMatricola).containsKey(idCasellaApp)) {
+                            if (ImportaDaCSVUtils.isPeriodiSovrapposti(
+                                    appartenentiDiretti.get(codiceMatricola).get(idCasellaApp),
+                                    ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain")),
+                                    ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi")))) {
+                                anomalia = true;
+                                mapError.put("Anomalia", "true");
+                                mapError.put("ERRORE", "apparteneza funzionale che si sovrappone ad una diretta");
+                            }
+                        }
+                    }
+                }
+            }
         }
         return anomalia;
     }
