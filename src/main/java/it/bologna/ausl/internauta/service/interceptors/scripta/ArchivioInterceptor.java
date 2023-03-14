@@ -87,6 +87,7 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
             archivioOld = new Archivio();
             beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
                 Archivio archivioVecchio = (Archivio) oldEntity;
+                archivioVecchio.getIdMassimario();  // Load del massimario per il krint
                 listArchivioOld.add(archivioVecchio);
                 if (archivioVecchio.getIdTitolo() != null) {
                     archivioVecchio.getIdTitolo().getClassificazione();
