@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.controllers.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.MongoException;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException;
@@ -41,6 +42,8 @@ import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.forms.Segnalazione;
 import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDate;
@@ -57,20 +60,25 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Date;
 import java.util.Properties;
+import java.util.logging.Level;
 import javax.activation.DataHandler;
 import javax.mail.Multipart;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StreamUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -103,9 +111,14 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private SimpleMailSenderUtility simpleMailSenderUtility;
-    
+
     @Autowired
     private BaborgUtils baborgUtils;
+
+    @Autowired
+    ParametriAziendeReader parametriAziende;
+    @Autowired
+    ReporitoryConnectionManager mongoConnectionManager;
 
     @Value("${redmine-test-mode}")
     boolean redmineTestMode;
@@ -553,6 +566,10 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                 ResponseEntity<String> res = middleMineNewIssueManager.postNewIssue(segnalazioneUtente);
                 MiddleMineNewIssueResponseManager resManager = new MiddleMineNewIssueResponseManager();
                 numeroNuovaSegnalazione = resManager.getNewIssueIdByResponse(res);
+                LOGGER.info("Numero segnalazione: " + numeroNuovaSegnalazione);
+                if (numeroNuovaSegnalazione == null) {
+                    LOGGER.error("Errore nella creazione dell'id della segnalazione");
+                }
             } catch (Exception e) {
                 LOGGER.error("Errore nella creazione della nuova segnlazione: ", e);
             }
@@ -584,7 +601,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         }
         try {
             simpleMailSenderUtility.sendMail(
-                    utente.getIdAzienda().getId(), 
+                    utente.getIdAzienda().getId(),
                     nameCustomerSupport,
                     subject,
                     to,
@@ -600,9 +617,9 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 
         try {
             List<String> toUser = Arrays.asList(fromName);
-            
+
             simpleMailSenderUtility.sendMail(
-                    utente.getIdAzienda().getId(), 
+                    utente.getIdAzienda().getId(),
                     nameCustomerSupport,
                     subject,
                     toUser,
@@ -626,21 +643,55 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                 List<String> replyToBabelcare = Arrays.asList("babel.care@ausl.bologna.it");
 
                 simpleMailSenderUtility.sendMail(
-                    utente.getIdAzienda().getId(), 
-                    nameCustomerSupport,
-                    subject,
-                    toAutorizzatore,
-                    bodyCustomerSupport,
-                    null,
-                    null,
-                    allegatiList,
-                    replyToBabelcare,
-                    true);
+                        utente.getIdAzienda().getId(),
+                        nameCustomerSupport,
+                        subject,
+                        toAutorizzatore,
+                        bodyCustomerSupport,
+                        null,
+                        null,
+                        allegatiList,
+                        replyToBabelcare,
+                        true);
             } catch (IOException ex) {
                 return new ResponseEntity("Errore durante l'invio della mail all'autorizzatore.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
 
         return new ResponseEntity("Successfully sent!", HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "downloadCSVModel", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public void downloadCSVModel(@RequestParam(required = true) Integer idAzienda, @RequestParam(required = true) String idApplicazione, @RequestParam(required = true) String filename, HttpServletResponse response, HttpServletRequest request) throws FileNotFoundException {
+
+        String modelloCSV = "";
+        List<ParametroAziende> parameters = parametriAziende.getParameters(filename, new Integer[]{idAzienda}, new String[]{idApplicazione});
+        if (parameters != null && !parameters.isEmpty()) {
+            modelloCSV = parametriAziende.getValue(parameters.get(0), String.class);
+        } else {
+            LOGGER.error("manca il parametro pubblico");
+        }
+
+        MinIOWrapper minIOWrapper = mongoConnectionManager.getMinIOWrapper();
+        InputStream is = null;
+
+        try {
+            try {
+                is = minIOWrapper.getByFileId(modelloCSV);
+
+                if (is == null) {
+                    throw new MongoException("File non trovato!!");
+                }
+            } catch (Exception e) {
+                throw new MongoException("qualcosa è andato storto in downloadCSVModel", e);
+            }
+            response.setHeader("Content-Type", "text/csv");
+            StreamUtils.copy(is, response.getOutputStream());
+        } catch (IOException ex) {
+            java.util.logging.Logger.getLogger(BaborgUtils.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            IOUtils.closeQuietly(is);
+        }
+
     }
 }

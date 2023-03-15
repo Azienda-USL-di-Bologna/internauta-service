@@ -533,11 +533,11 @@ public class ImportaDaCSV {
                         listAppartenentiMap.add(mapError);
                         nRigheCSV = mapReader.getRowNumber();
                     }
-
+                    
                     //se ho il caso in cui non ho appartenenti diretti per qualche appatenente funzionale
                     List<Integer> codiciMatricoleConAppFunzionaliENonDirette = Appartenenti.codiciMatricoleConAppFunzionaliENonDirette(appartenentiFunzionali, appartenentiDiretti);
                     riga = 2;
-
+                                      
                     for (Map<String, Object> appMapWithErrorAndAnomalia : listAppartenentiMap) {
                         if (codiciMatricoleConAppFunzionaliENonDirette.contains(Integer.parseInt(appMapWithErrorAndAnomalia.get("codice_matricola").toString()))) {
                             appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con appartenenze funzionali ma senza appartenente dirette");

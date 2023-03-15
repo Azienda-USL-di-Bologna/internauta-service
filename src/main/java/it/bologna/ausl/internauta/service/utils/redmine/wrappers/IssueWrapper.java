@@ -123,9 +123,11 @@ public class IssueWrapper {
             array.put(getNewJsonCustomFieldParamFromRedmine(DATA_MAIL_SEGNALAZIONE.toString(),
                     new SimpleDateFormat("yyyy-MM-dd").format(new Date()).toString()));
             //STRUTTURA UTENTTE
-            array.put(getNewJsonCustomFieldParamFromRedmine(STRUTTURA_UTENTTE.toString(),
-                    segnalazione.getStruttura().getNome()));
-            
+            if (segnalazione.getStruttura() != null) {
+                array.put(getNewJsonCustomFieldParamFromRedmine(STRUTTURA_UTENTTE.toString(),
+                        segnalazione.getStruttura().getNome()));
+            }
+
             String tipologiaSegnalazione = segnalazione.getTipologiaSegnalazione();
             if (StringUtils.hasText(tipologiaSegnalazione)) {
                 switch (segnalazione.getTipologiaSegnalazione()) {
@@ -138,14 +140,14 @@ public class IssueWrapper {
                     case "CORREZIONE_DOCUMENTALE":
                         array.put(getNewJsonCustomFieldParamFromRedmine(TIPOLOGIA_SEGNALAZIONE, "Modifica"));
 
-                        String descrizioneAutorizzaotore = segnalazione.getDescrizioneAutorizzatore() + " (" + segnalazione.getEmailAutorizzatore()+ ")";
+                        String descrizioneAutorizzaotore = segnalazione.getDescrizioneAutorizzatore() + " (" + segnalazione.getEmailAutorizzatore() + ")";
                         array.put(getNewJsonCustomFieldParamFromRedmine(AUTORIZZATORE, descrizioneAutorizzaotore));
                         break;
                     default:
                         throw new AssertionError();
                 }
             }
-            
+
             return array;
         } catch (RedmineException ex) {
             throw ex;
