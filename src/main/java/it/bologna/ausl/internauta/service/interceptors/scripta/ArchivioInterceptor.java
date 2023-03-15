@@ -6,8 +6,6 @@ import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.MassimarioRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.Massimario;
@@ -87,7 +85,11 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
             archivioOld = new Archivio();
             beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
                 Archivio archivioVecchio = (Archivio) oldEntity;
-                archivioVecchio.getIdMassimario();  // Load del massimario per il krint
+                // Load del massimario per il krint, altrimenti non abbiamo i dati nel nuovo oggetto
+                if (archivioVecchio.getIdMassimario() != null) { 
+                    archivioVecchio.getIdMassimario().getNome();
+                    archivioVecchio.getIdMassimario().getDescrizioneTenuta();
+                }  
                 listArchivioOld.add(archivioVecchio);
                 if (archivioVecchio.getIdTitolo() != null) {
                     archivioVecchio.getIdTitolo().getClassificazione();
@@ -164,7 +166,8 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
             }
             boolean conservazioneIsChanged;
             if (archivio.getAnniTenuta() != null && archivioOld.getAnniTenuta() != null) {
-                conservazioneIsChanged = !(archivio.getAnniTenuta().toString().equals(archivioOld.getAnniTenuta().toString()));
+                conservazioneIsChanged = !archivio.getAnniTenuta().toString().equals(archivioOld.getAnniTenuta().toString()) || 
+                        !archivio.getIdMassimario().getDescrizioneTenuta().equals(archivioOld.getIdMassimario().getDescrizioneTenuta());
             } else {
                 conservazioneIsChanged = false;
             }
