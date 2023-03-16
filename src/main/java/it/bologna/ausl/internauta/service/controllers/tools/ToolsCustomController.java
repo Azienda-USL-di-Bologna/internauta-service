@@ -111,7 +111,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private SimpleMailSenderUtility simpleMailSenderUtility;
-    
+
     @Autowired
     private BaborgUtils baborgUtils;
 
@@ -566,6 +566,10 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                 ResponseEntity<String> res = middleMineNewIssueManager.postNewIssue(segnalazioneUtente);
                 MiddleMineNewIssueResponseManager resManager = new MiddleMineNewIssueResponseManager();
                 numeroNuovaSegnalazione = resManager.getNewIssueIdByResponse(res);
+                LOGGER.info("Numero segnalazione: " + numeroNuovaSegnalazione);
+                if (numeroNuovaSegnalazione == null) {
+                    LOGGER.error("Errore nella creazione dell'id della segnalazione");
+                }
             } catch (Exception e) {
                 LOGGER.error("Errore nella creazione della nuova segnlazione: ", e);
             }
@@ -597,7 +601,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
         }
         try {
             simpleMailSenderUtility.sendMail(
-                    utente.getIdAzienda().getId(), 
+                    utente.getIdAzienda().getId(),
                     nameCustomerSupport,
                     subject,
                     to,
@@ -613,9 +617,9 @@ public class ToolsCustomController implements ControllerHandledExceptions {
 
         try {
             List<String> toUser = Arrays.asList(fromName);
-            
+
             simpleMailSenderUtility.sendMail(
-                    utente.getIdAzienda().getId(), 
+                    utente.getIdAzienda().getId(),
                     nameCustomerSupport,
                     subject,
                     toUser,
@@ -639,16 +643,16 @@ public class ToolsCustomController implements ControllerHandledExceptions {
                 List<String> replyToBabelcare = Arrays.asList("babel.care@ausl.bologna.it");
 
                 simpleMailSenderUtility.sendMail(
-                    utente.getIdAzienda().getId(), 
-                    nameCustomerSupport,
-                    subject,
-                    toAutorizzatore,
-                    bodyCustomerSupport,
-                    null,
-                    null,
-                    allegatiList,
-                    replyToBabelcare,
-                    true);
+                        utente.getIdAzienda().getId(),
+                        nameCustomerSupport,
+                        subject,
+                        toAutorizzatore,
+                        bodyCustomerSupport,
+                        null,
+                        null,
+                        allegatiList,
+                        replyToBabelcare,
+                        true);
             } catch (IOException ex) {
                 return new ResponseEntity("Errore durante l'invio della mail all'autorizzatore.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
