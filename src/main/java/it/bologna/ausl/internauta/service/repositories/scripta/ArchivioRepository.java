@@ -50,10 +50,11 @@ public interface ArchivioRepository extends
             Integer idArchivioRadice
     );
     
-    @Query(value = "select * from permessi.copia_permessi_archivi(?1)",
+    @Query(value = "select * from permessi.copia_permessi_archivi(?1, ?2)",
             nativeQuery = true)
     public void copiaPermessiArchivi(
-            Integer idArchivio
+            Integer idArchivioCopiato,
+            Integer idArchivioCopia
     );
     
     @Query(value = "select scripta.aggiorna_gerarchia_entita_archivio_radice(?1)",

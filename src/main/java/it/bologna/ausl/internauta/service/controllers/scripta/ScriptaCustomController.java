@@ -1380,7 +1380,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             Optional<Archivio> aDestinazione = archivioRepository.findById(idArchivioIntDestinazione);
             if (aDestinazione.isPresent()) {
                 Archivio archivioDestinazione = aDestinazione.get();
-                if (3 - scriptaArchiviUtils.getProfonditaArchivio(archivio) > archivioDestinazione.getLivello()){
+                if (3 - scriptaArchiviUtils.getProfonditaArchivio(archivio) < archivioDestinazione.getLivello()){
                     throw new Http500ResponseException("2", "L'azione copia non può essere eseguita perché andrebbe a creare almeno un archivio di livello 4");
                 }
                 //procedo con le modifiche
@@ -1409,7 +1409,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                         log.info(String.format("ho copiato anche i figli di %s", archivio.getId()));
                     }
                     finalArchivio = savedArchivio;
-                    archivioRepository.copiaPermessiArchivi(finalArchivio.getId());
+                    archivioRepository.copiaPermessiArchivi(archivio.getId(), finalArchivio.getId());
                     archivioRepository.calcolaPermessiEspliciti(finalArchivio.getId());
                 }
                 if(contenuto){
@@ -1493,7 +1493,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 log.info(String.format("finito le duplicare i figli e nipoti di %s", archivio.getId()));
             }
             em.refresh(savedArchivio);
-            archivioRepository.copiaPermessiArchivi(savedArchivio.getId());
+            archivioRepository.copiaPermessiArchivi(archivio.getId(), savedArchivio.getId());
             archivioRepository.calcolaPermessiEspliciti(savedArchivio.getId());
             String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
             log.info("Recupero projection by name " + projection);
@@ -1530,6 +1530,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             if (archivio.getArchiviFigliList().size() > 0){
                 haFigli = true;
             }
+            
             log.info(String.format("procedo a rendere fascicolo l'archivio %s", archivio.getId()));
             jPAQueryFactory
                     .update(QArchivioDetail.archivioDetail)
