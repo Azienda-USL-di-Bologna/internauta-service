@@ -52,11 +52,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import com.querydsl.core.types.Ops;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.repositories.PermessoRepository;
+import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
@@ -111,6 +115,7 @@ import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailReposito
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
@@ -247,6 +252,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private KrintUtils krintUtils;
+    
+    @Autowired
+    private PermissionManager permissionManager;
 
     @Autowired
     private KrintScriptaService krintScriptaService;
@@ -1530,30 +1538,45 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             if (archivio.getArchiviFigliList().size() > 0){
                 haFigli = true;
             }
-            
+            List<String> predicati = new ArrayList<>();
+            predicati.add("ELIMINA");
+            predicati.add("VISUALIZZA");
+            predicati.add("MODIFICA");
+            predicati.add("BLOCCO");
+            predicati.add("VICARIO");
+            predicati.add("RESPONSABILE");
+            predicati.add("PASSAGGIO");
+            predicati.add("RESPONSABILE_PROPOSTO");
+            List<String> ambiti = new ArrayList<>();
+            ambiti.add("SCRIPTA");
+            List<String> tipi = new ArrayList<>();
+            tipi.add("ARCHIVIO");
+            List<PermessoEntitaStoredProcedure> subjectsWithPermissionsOnObject = permissionManager.getSubjectsWithPermissionsOnObject(archivio, predicati, ambiti, tipi, Boolean.FALSE);
             log.info(String.format("procedo a rendere fascicolo l'archivio %s", archivio.getId()));
-            jPAQueryFactory
-                    .update(QArchivioDetail.archivioDetail)
-                    .setNull(QArchivioDetail.archivioDetail.idPersonaCreazione)
-                    .where(QArchivioDetail.archivioDetail.id.eq(archivio.getId()))
-                    .execute();
-            jPAQueryFactory
-                    .update(QArchivio.archivio)
-                    .set(QArchivio.archivio.numero, 0)
-                    .set(QArchivio.archivio.numerazioneGerarchica, "x/x")
-                    .setNull(QArchivio.archivio.idArchivioPadre)
-                    .set(QArchivio.archivio.idArchivioRadice, archivio)
-                    .set(QArchivio.archivio.idTitolo, archivio.getIdTitolo())
-                    .set(QArchivio.archivio.idMassimario, archivio.getIdMassimario())
-                    .set(QArchivio.archivio.livello, 1)
-                    .set(QArchivio.archivio.stato, Archivio.StatoArchivio.BOZZA.toString())
-                    .where(QArchivio.archivio.id.eq(archivio.getId()))
-                    .execute();
-            jPAQueryFactory
-                    .update(QAttoreArchivio.attoreArchivio)
-                    .set(QAttoreArchivio.attoreArchivio.dataInserimentoRiga, ZonedDateTime.now())
-                    .where(QAttoreArchivio.attoreArchivio.idArchivio.id.eq(archivio.getId()))
-                    .execute();
+//            jPAQueryFactory
+//                    .update(QArchivioDetail.archivioDetail)
+//                    .setNull(QArchivioDetail.archivioDetail.idPersonaCreazione)
+//                    .where(QArchivioDetail.archivioDetail.id.eq(archivio.getId()))
+//                    .execute();
+//            jPAQueryFactory
+//                    .update(QArchivio.archivio)
+//                    .set(QArchivio.archivio.numero, 0)
+//                    .set(QArchivio.archivio.numerazioneGerarchica, "x/x")
+//                    .setNull(QArchivio.archivio.idArchivioPadre)
+//                    .set(QArchivio.archivio.idArchivioRadice, archivio)
+//                    .set(QArchivio.archivio.idTitolo, archivio.getIdTitolo())
+//                    .set(QArchivio.archivio.idMassimario, archivio.getIdMassimario())
+//                    .set(QArchivio.archivio.livello, 1)
+//                    .set(QArchivio.archivio.stato, Archivio.StatoArchivio.BOZZA.toString())
+//                    .where(QArchivio.archivio.id.eq(archivio.getId()))
+//                    .execute();
+//            jPAQueryFactory
+//                    .update(QAttoreArchivio.attoreArchivio)
+//                    .set(QAttoreArchivio.attoreArchivio.dataInserimentoRiga, ZonedDateTime.now())
+//                    .where(QAttoreArchivio.attoreArchivio.idArchivio.id.eq(archivio.getId()))
+//                    .execute();
+
+            archivioRepository.copiaPermessiRendiFascicolo(archivio.getId());
             log.info(String.format("Ho reso fascicolo l'archivio %s", archivio.getId()));
             //numero il nuovo archivio
             archivioRepository.numeraArchivio(archivio.getId());
@@ -1602,7 +1625,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 log.info(String.format("ho numerato e calcolato permessi le modifiche ai figli di %s", archivio.getId()));
             }
             em.refresh(archivio);
-            archivioRepository.copiaPermessiArchivi(archivio.getId());
+//            archivioRepository.copiaPermessiArchivi(archivio.getId());
             archivioRepository.calcolaPermessiEspliciti(archivio.getId());
             String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
             log.info("Recupero projection by name " + projection);

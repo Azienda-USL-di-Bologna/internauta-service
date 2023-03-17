@@ -63,6 +63,11 @@ public interface ArchivioRepository extends
             Integer idArchivioRadice
     );
     
+    @Procedure("permessi.copia_permessi_e_rendi_fascicolo")
+    public void copiaPermessiRendiFascicolo(
+            @Param("id_archivio") Integer id_archivio
+    );
+    
     @Query(value = "SELECT id FROM scripta.archivi a WHERE id_archivio_radice = ?1", nativeQuery = true)
     public Set<Integer> getSetAlberaturaArchivioRadice(
             Integer idArchivioRadice
