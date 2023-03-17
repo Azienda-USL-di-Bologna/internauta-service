@@ -44,10 +44,12 @@ import it.bologna.ausl.model.entities.shpeck.MessageInterface;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -281,24 +283,30 @@ public class ScriptaArchiviUtils {
      * @param persona La persona autenticata che sta facendo l'operazione.
      * @param response La response http.
      * @param jPAQueryFactory L'oggetto JPAQueryFactory per effettuare le query.
+     * @throws Http404ResponseException Eccezione lanciata quando il fascicolo da scaricare non ha nè documenti nè figli.
      * @throws Http500ResponseException Errore http durante la generazione del file.
      */
-    public void createZipArchivio(Archivio archivio, Persona persona, HttpServletResponse response, JPAQueryFactory jPAQueryFactory) throws Http500ResponseException {
+    public void createZipArchivio(Archivio archivio, Persona persona, HttpServletResponse response, JPAQueryFactory jPAQueryFactory) 
+            throws Http404ResponseException, Http500ResponseException {
         try {
             MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
             String numero = archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/"));
             String archivioZipName = String.format("%s-%d-%s.zip", numero, archivio.getAnno(), archivio.getOggetto().trim());
-            response.addHeader(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, HttpHeaders.CONTENT_DISPOSITION);
-            response.addHeader(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=%s", archivioZipName));
-            response.addHeader(HttpHeaders.CONTENT_TYPE, "application/zip");
-            try (ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(response.getOutputStream()))) {
+            ByteArrayOutputStream byteOutStream = new ByteArrayOutputStream();
+            try (ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(byteOutStream))) {
                 buildArchivio(archivio, "", persona, zipOut, jPAQueryFactory, minIOWrapper);
-            } 
+            }
+            try (OutputStream outStream = response.getOutputStream()) {
+                response.addHeader(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, HttpHeaders.CONTENT_DISPOSITION);
+                response.addHeader(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=%s", archivioZipName));
+                response.addHeader(HttpHeaders.CONTENT_TYPE, "application/zip");
+                    byteOutStream.writeTo(outStream);
+            }
             response.flushBuffer();
         } catch (IOException ex) {
             String errorMessage = "Errore durante la generazione del file zip.";
             LOG.error(errorMessage);
-            throw new Http500ResponseException("2", errorMessage);
+            throw new Http500ResponseException("3", errorMessage);
         }
     }
     
@@ -310,21 +318,14 @@ public class ScriptaArchiviUtils {
      * @param zipOut Il file zip che si sta creando.
      * @param jPAQueryFactory L'oggetto JPAQueryFactory per effettuare le query.
      * @param minIOWrapper L'oggetto per scaricare i file dal repository.
+     * @throws Http404ResponseException Eccezione lanciata quando il fascicolo da scaricare non ha nè documenti nè figli.
      * @throws IOException Eccezioni durante la generazione del file.
      */
-    private void buildArchivio(Archivio archivio, String archivioName, Persona persona, ZipOutputStream zipOut, JPAQueryFactory jPAQueryFactory, MinIOWrapper minIOWrapper) throws IOException {
+    private void buildArchivio(Archivio archivio, String archivioName, Persona persona, ZipOutputStream zipOut, 
+            JPAQueryFactory jPAQueryFactory, MinIOWrapper minIOWrapper) throws IOException, Http404ResponseException {
         
         if (!personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
             return;
-        }
-              
-        List<Archivio> archiviFigli = archivioRepository.findByIdArchivioPadre(archivio);
-        for (Archivio archivioFiglio : archiviFigli) {
-            String numerazione = archivioFiglio.getNumerazioneGerarchica().substring(0, archivioFiglio.getNumerazioneGerarchica().indexOf("/"));
-            String archivioFiglioName = String.format("%s%s-%s/", archivioName, numerazione, archivioFiglio.getOggetto().trim());
-            zipOut.putNextEntry(new ZipEntry(archivioFiglioName));
-            buildArchivio(archivioFiglio, archivioFiglioName, persona, zipOut, jPAQueryFactory, minIOWrapper);
-            zipOut.closeEntry();
         }
         
         QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
@@ -334,9 +335,27 @@ public class ScriptaArchiviUtils {
             .select(qArchivioDoc.idDoc)
             .from(qArchivioDoc)
             .join(qDocDetail).on(qDocDetail.id.eq(qArchivioDoc.idDoc.id))
-            .where(qArchivioDoc.idArchivio.id.eq(archivio.getId()))
+            .where(qArchivioDoc.idArchivio.id.eq(archivio.getId())
+                    .and(qDocDetail.numeroRegistrazione.isNotNull()
+                            .or(qDocDetail.tipologia.eq(DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString())
+                                    .and(qArchivioDoc.dataEliminazione.isNull()))))
             .fetch();
-
+        
+        List<Archivio> archiviFigli = archivioRepository.findByIdArchivioPadre(archivio);
+        
+        // Controlla che sia la prima iterazione del metodo ricorsivo
+        // e serve per evitare la creazione del file zip quando l'archivio da scaricare è vuoto.
+        if (docsDaZippare.isEmpty() && archiviFigli.isEmpty() && archivioName.equals(""))
+            throw new Http404ResponseException("2", "Non ci sono elementi nel fascicolo selezionato.");
+        
+        for (Archivio archivioFiglio : archiviFigli) {
+            String numerazione = archivioFiglio.getNumerazioneGerarchica().substring(0, archivioFiglio.getNumerazioneGerarchica().indexOf("/"));
+            String archivioFiglioName = String.format("%s%s-%s/", archivioName, numerazione, archivioFiglio.getOggetto().trim());
+            zipOut.putNextEntry(new ZipEntry(archivioFiglioName));
+            buildArchivio(archivioFiglio, archivioFiglioName, persona, zipOut, jPAQueryFactory, minIOWrapper);
+            zipOut.closeEntry();
+        }
+        
         List<Allegato> allegatiDaZippare = new ArrayList<>();
         for (Doc doc: docsDaZippare) {
             List<Allegato> allegati = doc.getAllegati();

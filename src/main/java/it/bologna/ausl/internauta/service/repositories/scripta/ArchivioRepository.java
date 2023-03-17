@@ -76,4 +76,6 @@ public interface ArchivioRepository extends
     public Archivio findByNumerazioneGerarchica(String numerazioneGerarchica);
     
     public List<Archivio> findByIdArchivioPadre(Archivio idArchivioPadre);
+    
+    public List<Archivio> findByIdArchivioPadreAndStatoIsNot(Archivio idArchivioPadre, String stato);
 }

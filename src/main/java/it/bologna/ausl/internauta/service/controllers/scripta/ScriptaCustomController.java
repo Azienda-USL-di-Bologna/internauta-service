@@ -475,6 +475,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
      * @param response Http Response.
      * @param request Http request.
      * @throws Http403ResponseException Eccezioni in caso di mancanza di permessi.
+     * @throws Http404ResponseException Eccezione lanciata quando il fascicolo da scaricare non ha nè documenti nè figli.
      * @throws Http500ResponseException Eccezioni in caso di errori nella generazione del file zip.
      * @throws BlackBoxPermissionException Errori della blackbox.
      */
@@ -483,19 +484,22 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @PathVariable(required = true) Integer idArchivio,
             HttpServletResponse response,
             HttpServletRequest request
-    ) throws Http403ResponseException, Http500ResponseException, BlackBoxPermissionException {
+    ) throws Http403ResponseException, Http404ResponseException, Http500ResponseException, BlackBoxPermissionException  {
         LOG.info("downloadArchivioZip: {}", idArchivio);
         
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Archivio archivio = archivioRepository.findById(idArchivio).orElseThrow(ResourceNotFoundException::new);
-       
-        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
-            throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
-        }
         
-        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em); 
+        if (Archivio.StatoArchivio.BOZZA.equals(archivio.getStato()))
+            throw new Http403ResponseException("1", "L'archivio non può essere scaricato in quanto bozza.");
+       
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA))
+            throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
+        
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
         scriptaArchiviUtils.createZipArchivio(archivio, persona, response, jPAQueryFactory);
+        LOG.info("downloadArchivioZip: {} completato.", idArchivio);
     }
 
     private JSONObject getJSONObjectPecMessageDetail(Doc doc) {
