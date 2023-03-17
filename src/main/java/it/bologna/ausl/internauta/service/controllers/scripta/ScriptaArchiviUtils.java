@@ -2,6 +2,7 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.StringPath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -70,6 +71,8 @@ import org.springframework.util.StreamUtils;
 @Component
 public class ScriptaArchiviUtils {
     
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(ScriptaArchiviUtils.class);
+    
     private final List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
     
     @Autowired
@@ -108,8 +111,23 @@ public class ScriptaArchiviUtils {
     @Autowired
     private ShpeckUtils shpeckUtils;
     
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(ScriptaArchiviUtils.class);
+    public Integer getProfonditaArchivio(Archivio arch){
+        Integer profondita = 1;
+        if (!arch.getArchiviFigliList().isEmpty()){
+            profondita = 2;
+            for(Archivio figlio: arch.getArchiviFigliList()){
+                if (!figlio.getArchiviFigliList().isEmpty()){
+                profondita = 3;
+              }
+            }
+        }
+        return profondita;
+    }
     
+    public String prova(StringPath s){
+        return s + "frghjk";
+    }
+
     /**
      * Restituisce true se la persona ha ALMENO il permesso sull'archivio
      */
