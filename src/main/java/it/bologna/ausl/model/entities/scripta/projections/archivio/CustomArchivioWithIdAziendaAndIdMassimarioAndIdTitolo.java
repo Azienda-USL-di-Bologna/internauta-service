@@ -27,4 +27,7 @@ public interface CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo extends A
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getAttoriList', 'AttoreArchivioWithIdPersonaAndIdStruttura')}")
     @Override
     public List<AttoreArchivioWithIdPersonaAndIdStruttura> getAttoriList();
+    
+    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getIdArchivioRadice')}")
+    public Object getIdArchivioRadice();
 }

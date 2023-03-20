@@ -25,9 +25,7 @@ public interface KrintScriptaArchivio {
     KrintScriptaTitolo getIdTitolo();
     
     @Value("#{target.getIdMassimario()}")
-    Massimario getCategoriaDocumentale();
-    @Value("#{target.getAnniTenuta()}")
-    Integer getConservazione();
+    KrintScriptaMassimario getMassimario();
 
     @Value("#{target.getTipo().toString()}")
     String getTipo();
