@@ -17,6 +17,12 @@ import it.bologna.ausl.internauta.service.shpeck.utils.ShpeckUtils;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi;
 import it.bologna.ausl.internauta.service.utils.ScriptaUtils;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.services.versatore.VersatoreServiceUtils;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -35,7 +41,11 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageAddress;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
+import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
+import it.bologna.ausl.model.entities.versatore.Versamento;
 import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.controller.BeforeUpdateEntityApplier;
+import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -90,10 +100,19 @@ public class DocInterceptor extends InternautaBaseInterceptor {
     private AttoreDocRepository attoreDocRepository;
     
     @Autowired
+    private ParametriAziendeReader parametriAziendaReader;
+    
+    @Autowired
     private PersonaVedenteRepository personaVedenteRepository;
     
     @Autowired
     private PersonaRepository personaRepository;
+    
+    @Autowired
+    private MasterjobsJobsQueuer masterjobsJobsQueuer;
+
+    @Autowired
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
 
     @Override
     public Class getTargetEntityClass() {
@@ -300,5 +319,78 @@ public class DocInterceptor extends InternautaBaseInterceptor {
             krintScriptaService.writeDoc(doc, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_BY_DI);
         }
         return doc;
+    }
+
+    
+    @Override
+    public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        Utente user = authenticatedSessionData.getUser();
+        Persona persona = authenticatedSessionData.getPerson();
+        persona = personaRepository.getById(persona.getId());
+        
+        Doc doc = (Doc) entity;
+        Doc docOld = null;
+
+        List<Doc> listDocOld = new ArrayList<>();
+        try {
+            beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
+                Doc docVecchio = (Doc) oldEntity;
+                listDocOld.add(docVecchio);
+            });
+        } catch (BeforeUpdateEntityApplierException ex) {
+            throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity di Doc", ex);
+        }
+        docOld = listDocOld.get(0);
+        
+        Versamento.StatoVersamento statoVersamentoNuovo = doc.getStatoVersamento();
+        Versamento.StatoVersamento statoVersamentoVecchio = docOld.getStatoVersamento();
+        
+        if (!statoVersamentoNuovo.equals(statoVersamentoVecchio)) {
+            AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+            Map<Integer, Map<String, Object>> aziendeAttiveConParametri = VersatoreServiceUtils.getAziendeAttiveConParametri(parametriAziendaReader, cachedEntities);
+            Map<String, Object> versatoreConfigAziendaValue = aziendeAttiveConParametri.get(doc.getIdAzienda().getId());
+            String hostId = (String) versatoreConfigAziendaValue.get("hostId");
+            Integer threadPoolSize = (Integer) versatoreConfigAziendaValue.get("threadPoolSize");
+            Map<String,Object> params = (Map<String,Object>) versatoreConfigAziendaValue.get("params");
+            
+            switch (statoVersamentoNuovo) {
+                case FORZARE:
+                {
+                    try {
+                        accodatoreVeloce.accodaVersatore(
+                                Arrays.asList(doc.getId()),
+                                doc.getIdAzienda().getId(),
+                                hostId,
+                                SessioneVersamento.TipologiaVersamento.FORZATURA,
+                                persona.getId(),
+                                threadPoolSize,
+                                params
+                        );
+                    } catch (MasterjobsWorkerException ex) {
+                        throw new AbortSaveInterceptorException("Errore nell'accodamento del job del versamento");
+                    }
+                }
+                    break;
+
+                case ERRORE_RITENTABILE:
+                    try {
+                        accodatoreVeloce.accodaVersatore(
+                                Arrays.asList(doc.getId()),
+                                doc.getIdAzienda().getId(),
+                                hostId,
+                                SessioneVersamento.TipologiaVersamento.RITENTA,
+                                persona.getId(),
+                                threadPoolSize,
+                                params
+                        );
+                    } catch (MasterjobsWorkerException ex) {
+                        throw new AbortSaveInterceptorException("Errore nell'accodamento del job del versamento");
+                    }
+                    break;
+            }
+        }
+        
+        return entity;
     }
 }
