@@ -55,10 +55,14 @@ import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QRelated;
 import it.bologna.ausl.model.entities.scripta.QSmistamento;
 import it.bologna.ausl.model.entities.scripta.QSpedizione;
+import it.bologna.ausl.model.entities.scripta.QTipImportazioneDocumento;
+import it.bologna.ausl.model.entities.scripta.QTipSessioneImportazione;
 import it.bologna.ausl.model.entities.scripta.QTitolo;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Smistamento;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
+import it.bologna.ausl.model.entities.scripta.TipImportazioneDocumento;
+import it.bologna.ausl.model.entities.scripta.TipSessioneImportazione;
 import it.bologna.ausl.model.entities.scripta.Titolo;
 import it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView;
 import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
@@ -370,6 +374,34 @@ public class ScriptaBaseController extends BaseCrudController {
             @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QArchivioRecente.archivioRecente, ArchivioRecente.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"tipsessioneimportazione", "tipsessioneimportazione/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> tipsessioneimportazione(
+            @QuerydslPredicate(root = TipSessioneImportazione.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Long id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QTipSessioneImportazione.tipSessioneImportazione, TipSessioneImportazione.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"tipimportazionedocumento", "tipimportazionedocumento/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> tipimportazionedocumento(
+            @QuerydslPredicate(root = TipImportazioneDocumento.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Long id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QTipImportazioneDocumento.tipImportazioneDocumento, TipImportazioneDocumento.class);
         return ResponseEntity.ok(resource);
     }
 }
