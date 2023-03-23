@@ -17,6 +17,7 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.Massimario;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
@@ -60,6 +61,19 @@ public class KrintScriptaService {
                     null,
                     null,
                     codiceOperazione);
+            
+            if (archivio.getIdArchivioPadre() != null) {
+                krintService.writeKrintRow(
+                    archivio.getIdArchivioPadre().getId().toString(), // idOggetto
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
+                    archivio.getNumerazioneGerarchica(), // descrizioneOggetto
+                    jsonKrintArchivio, // informazioniOggetto
+                    null, // Da qui si ripete ma per il conenitore
+                    null,
+                    null,
+                    null,
+                    codiceOperazione);
+            }
         } catch (Exception ex) {
             Integer idOggetto = null;
             try {
@@ -92,7 +106,7 @@ public class KrintScriptaService {
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);            
             String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
             Map<String, Object> map = objectMapper.readValue(jsonKrintArchivio, Map.class);
-                
+            
             if (archivioOld != null) {
                 KrintScriptaArchivio krintScriptaArchivioOld = factory.createProjection(KrintScriptaArchivio.class,archivioOld);
                 map.put("archivioOld", krintScriptaArchivioOld);                
