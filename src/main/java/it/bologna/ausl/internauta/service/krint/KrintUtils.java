@@ -148,13 +148,13 @@ public class KrintUtils {
                     
                     //controllo che si tratti di un permesso sugli archivi
                     if (categoriaPermessiStoredProcedure.getTipo().equals(InternautaConstants.Permessi.Tipi.ARCHIVIO.toString())){
-                        if (permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.VISUALIZZA)
-                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.MODIFICA)
-                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.ELIMINA)
-                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.BLOCCO)){
+                        if (permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.VISUALIZZA.toString())
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.MODIFICA.toString())
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.ELIMINA.toString())
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.BLOCCO.toString())){
                             krintScriptaService.writePermessiArchivio(
-                                    permessoStoredProcedure.getOggetto().getIdProvenienza(), 
-                                    permessoStoredProcedure.getSoggetto(), 
+                                    permessi.getOggetto().getIdProvenienza(), 
+                                    permessi.getSoggetto(), 
                                     permessoStoredProcedure.getPredicato(), 
                                     OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_PERMESSI_UPDATE);
                         }
@@ -182,13 +182,13 @@ public class KrintUtils {
                     
                     //controllo che si tratti di un permesso sugli archivi
                     if (categoriaPermessiStoredProcedure.getTipo().equals(InternautaConstants.Permessi.Tipi.ARCHIVIO.toString())){
-                        if (permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.VISUALIZZA)
-                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.MODIFICA)
-                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.ELIMINA)
-                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.BLOCCO)){
+                        if (permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.VISUALIZZA.toString())
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.MODIFICA.toString())
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.ELIMINA.toString())
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.BLOCCO.toString())){
                             krintScriptaService.writePermessiArchivio(
-                                    permessoStoredProcedure.getOggetto().getIdProvenienza(), 
-                                    permessoStoredProcedure.getSoggetto(), 
+                                    permessi.getOggetto().getIdProvenienza(), 
+                                    permessi.getSoggetto(), 
                                     permessoStoredProcedure.getPredicato(), 
                                     OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_PERMESSI_DELETE);
                         }
@@ -215,13 +215,13 @@ public class KrintUtils {
                     
                     //controllo che si tratti di un permesso sugli archivi
                     if (categoriaPermessiStoredProcedure.getTipo().equals(InternautaConstants.Permessi.Tipi.ARCHIVIO.toString())){
-                        if (permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.VISUALIZZA)
-                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.MODIFICA)
-                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.ELIMINA)
-                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.BLOCCO)){
+                        if (permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.VISUALIZZA.toString())
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.MODIFICA.toString())
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.ELIMINA.toString())
+                            || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.BLOCCO.toString())){
                             krintScriptaService.writePermessiArchivio(
-                                    permessoStoredProcedure.getOggetto().getIdProvenienza(), 
-                                    permessoStoredProcedure.getSoggetto(), 
+                                    permessi.getOggetto().getIdProvenienza(), 
+                                    permessi.getSoggetto(), 
                                     permessoStoredProcedure.getPredicato(), 
                                     OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_PERMESSI_CREATION);
                         }

@@ -50,7 +50,11 @@ public class KrintScriptaService {
             // Informazioni oggetto
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);
             String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
-            
+            Map<String, Object> map = objectMapper.readValue(jsonKrintArchivio, Map.class);
+             
+            map.put("tipoArchivio",translateLeveltoArchiveType(archivio.getLivello()));
+            jsonKrintArchivio = objectMapper.writeValueAsString(map);
+             
             krintService.writeKrintRow(
                     archivio.getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
@@ -84,7 +88,21 @@ public class KrintScriptaService {
             krintService.writeKrintError(idOggetto, "writeArchivioCreation", codiceOperazione);
         }
     }
-   
+    
+    private String translateLeveltoArchiveType(Integer livello) {
+        String archivioType = "";
+        switch (livello) {
+            case 1:
+                archivioType = "fascicolo";
+                break;
+            case 2:
+            case 3:
+                archivioType = "subfascicolo";
+                break;
+        }
+        return archivioType;
+    }
+
     /**
      * Scrive il log di aggiornamento di un archivio.
      * @param archivio L'archivio aggiornato.
@@ -101,6 +119,7 @@ public class KrintScriptaService {
      * @param codiceOperazione Il codice dell'operazione.
      */
     public void writeArchivioUpdate(Archivio archivio, Archivio archivioOld, OperazioneKrint.CodiceOperazione codiceOperazione ) {
+        
         try {
             // Informazioni oggetto
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);            
@@ -109,7 +128,7 @@ public class KrintScriptaService {
             
             if (archivioOld != null) {
                 KrintScriptaArchivio krintScriptaArchivioOld = factory.createProjection(KrintScriptaArchivio.class,archivioOld);
-                map.put("archivioOld", krintScriptaArchivioOld);                
+                map.put("archivioOld", krintScriptaArchivioOld);  
             }
             jsonKrintArchivio = objectMapper.writeValueAsString(map);
             
@@ -246,7 +265,7 @@ public class KrintScriptaService {
      * @param oggetto l'oggetto dell'operazione
      */
     public void writePermessiArchivio(Integer idArchivio, EntitaStoredProcedure entita, String predicato, OperazioneKrint.CodiceOperazione codiceOperazione) {
-        Archivio archivio = archivioRepository.getById(Integer.SIZE);
+        Archivio archivio = archivioRepository.getById(idArchivio);
         try {
 
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);

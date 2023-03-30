@@ -543,7 +543,8 @@ public class PermessiCustomController implements ControllerHandledExceptions {
         
                 
         // Clono
-        List<PermessoEntitaStoredProcedure> permessiListClone = objectMapper.convertValue(permessiEntita, new TypeReference<List<PermessoEntitaStoredProcedure>>(){});
+        List<PermessoEntitaStoredProcedure> permessiListClone = new ArrayList(permessiEntita);
+//        List<PermessoEntitaStoredProcedure> permessiListClone = objectMapper.convertValue(permessiEntita, new TypeReference<List<PermessoEntitaStoredProcedure>>(){});
         
         krintUtils.manageKrintPermissions(permessiListClone);
         permissionRepositoryAccess.managePermissions(permessiEntita, dataDiLavoro);

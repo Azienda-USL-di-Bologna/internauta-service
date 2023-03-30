@@ -61,6 +61,7 @@ import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.repositories.PermessoRepository;
 import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
@@ -159,6 +160,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private CachedEntities cachedEntities;
+    
+    @Autowired
+    private UserInfoService userInfoService;
 
     @Autowired
     private ArchivioRepository archivioRepository;
@@ -499,7 +503,10 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
         scriptaArchiviUtils.createZipArchivio(archivio, persona, response, jPAQueryFactory);
+          
         LOG.info("downloadArchivioZip: {} completato.", idArchivio);
+        if (!userInfoService.isSD(authenticatedUserProperties.getRealUser()))
+            krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SCARICA_ZIP_FASCICOLO);
     }
 
     private JSONObject getJSONObjectPecMessageDetail(Doc doc) {
@@ -876,20 +883,16 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam("projection") String projection,
             HttpServletRequest request) throws HttpInternautaResponseException,
             Throwable {
-        log.info("numeraArchivio" + idArchivio);
-
-        // Numero l'archivio
-        //Archivio archivioToSave = archivioRepository.getById(idArchivio);
-        log.info("Numero archivio...");
+        log.info("Numerazione archivio: " + idArchivio + "...");
         Integer numeroGenerato = archivioRepository.numeraArchivio(idArchivio);
-        log.info("Numerato " + numeroGenerato);
+        log.info("Numero generato: " + numeroGenerato);
         //DA QUESTO MOMENTO I DATI DI NUMERO, ANNO, NUMERAZIONE GER. SONO GIA' SALVATI SUL DB
         // Ricarico i dati
         log.info("Reload...");
-        Archivio archivioToSave = archivioRepository.getById(idArchivio);
-        log.info("Numero: " + archivioToSave.getNumero());
-        log.info("Anno: " + archivioToSave.getAnno());
-        log.info("Numerazione Gerarchica: " + archivioToSave.getNumerazioneGerarchica());
+        Archivio archivioNumerato = archivioRepository.getById(idArchivio);
+        log.info("Numero: " + archivioNumerato.getNumero());
+        log.info("Anno: " + archivioNumerato.getAnno());
+        log.info("Numerazione Gerarchica: " + archivioNumerato.getNumerazioneGerarchica());
 
         // Ritorno la projection coi dati aggiornati
         log.info("Recupero projection by name " + projection);
@@ -897,9 +900,14 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         projectionsInterceptorLauncher.setRequestParams(null, request);
         log.info("Chiamo la facrtory della projection...");
         Object projectedObject = projectionFactory.createProjection(
-                projectionClass, archivioToSave
+                projectionClass, archivioNumerato
         );
-
+        
+        if (krintUtils.doIHaveToKrint(request)) {
+            // Utilizziamo il writeArchivioCreation al posto dell'Update perché fa già il controllo necessario sul livello
+            // e scrive il log sul padre, quindi non c'è bisogno di rifare di nuovo i controlli
+            krintScriptaService.writeArchivioCreation(archivioNumerato, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NUMERO_UPDATE);
+        }
         log.info("Ritorno la projectionCreata");
         return projectedObject;
     }
