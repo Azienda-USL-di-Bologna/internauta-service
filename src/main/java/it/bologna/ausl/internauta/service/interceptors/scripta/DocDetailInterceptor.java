@@ -115,7 +115,6 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         
                         
                         initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
-                        initialPredicate = qdoclist.statoUltimoVersamento.isNotNull().and(initialPredicate);
                         initialPredicate = (qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE.toString()).or(qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE_RITENTABILE.toString()))).and(initialPredicate);
                         break;
                     case VisualizzaTabRegistrazioni:
