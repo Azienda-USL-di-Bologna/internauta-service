@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.repositories.logs;
 
-import it.bologna.ausl.internauta.service.krint.KrintLogDescription;
 import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.QKrint;
 import it.bologna.ausl.model.entities.logs.projections.generated.KrintWithPlainFields;
@@ -8,8 +7,6 @@ import it.bologna.ausl.model.entities.logs.projections.generated.KrintWithPlainF
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
-import java.util.Date;
-import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;

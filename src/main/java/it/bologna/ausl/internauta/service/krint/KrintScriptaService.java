@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.bds.types.EntitaStoredProcedure;
+import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.logs.Krint;
@@ -17,7 +18,6 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.Doc;
-import it.bologna.ausl.model.entities.scripta.Massimario;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
@@ -124,6 +124,7 @@ public class KrintScriptaService {
             // Informazioni oggetto
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);            
             String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
+            @SuppressWarnings("unchecked")
             Map<String, Object> map = objectMapper.readValue(jsonKrintArchivio, Map.class);
             
             if (archivioOld != null) {
@@ -259,19 +260,23 @@ public class KrintScriptaService {
     }
 
     /**
-     *
-     * @param struttura l'ufficio soggetto
-     * @param codiceOperazione il tipo di operazione
-     * @param oggetto l'oggetto dell'operazione
+     * Scrive il krint (log) della modifica dei permessi.
+     * @param idArchivio L'id dell'archivio a cui si riferisce il log.
+     * @param entita L'entity dell'archivio.
+     * @param permessoStoredProcedure L'effettivo permesso dell'operazione.
+     * @param codiceOperazione Può essere INSERT, UPDATE o DELETE.
      */
-    public void writePermessiArchivio(Integer idArchivio, EntitaStoredProcedure entita, String predicato, OperazioneKrint.CodiceOperazione codiceOperazione) {
+    public void writePermessiArchivio(Integer idArchivio, EntitaStoredProcedure entita, PermessoStoredProcedure permessoStoredProcedure, OperazioneKrint.CodiceOperazione codiceOperazione) {
         Archivio archivio = archivioRepository.getById(idArchivio);
         try {
-
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);
             String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
-            jsonKrintArchivio = jsonKrintArchivio.replace("}", ", \"predicato\": \"" + predicato + "\"}");
-
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> mapKrintArchivio = objectMapper.readValue(jsonKrintArchivio, Map.class);
+            mapKrintArchivio.put("predicato", permessoStoredProcedure.getPredicato());
+            mapKrintArchivio.put("propagaOggetto", permessoStoredProcedure.getPropagaOggetto() ? "con" : "senza");
+            
             String idOggetto = null;
             String descrizioneOggetto = null;
             Krint.TipoOggettoKrint tipoOggetto = null;
@@ -292,39 +297,12 @@ public class KrintScriptaService {
                     idOggetto = krintBaborgStruttura.getId().toString();
                     descrizioneOggetto = krintBaborgStruttura.getNome();
                     tipoOggetto = Krint.TipoOggettoKrint.BABORG_STRUTTURA;
+                    mapKrintArchivio.put("propagaSoggetto", permessoStoredProcedure.getPropagaSoggetto() ? "con" : "senza");
                     break;
             }
-//
-//            switch(codiceOperazione){
-//                case SCRIPTA_ARCHIVIO_PERMESSI_CREATION:
-//                    AttributiStruttura attributiStruttura = (AttributiStruttura) oggetto;
-//                    TipologiaStruttura tipologiaStruttura = attributiStruttura.getIdTipologiaStruttura();
-//                    idOggetto = tipologiaStruttura.getId().toString();
-//                    descrizioneOggetto = tipologiaStruttura.getTipologia();
-//                    tipoOggetto = Krint.TipoOggettoKrint.BABORG_TIPOLOGIA_STRUTTURA;
-//                    KrintBaborgTipologiaStruttura krintBaborgTipologiaStruttura = factory.createProjection(KrintBaborgTipologiaStruttura.class, tipologiaStruttura);
-//                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgTipologiaStruttura);
-//                    break;
-//                case SCRIPTA_ARCHIVIO_PERMESSI_UPDATE:
-//                    AttributiStruttura attributiStruttura = (AttributiStruttura) oggetto;
-//                    TipologiaStruttura tipologiaStruttura = attributiStruttura.getIdTipologiaStruttura();
-//                    idOggetto = tipologiaStruttura.getId().toString();
-//                    descrizioneOggetto = tipologiaStruttura.getTipologia();
-//                    tipoOggetto = Krint.TipoOggettoKrint.BABORG_TIPOLOGIA_STRUTTURA;
-//                    KrintBaborgTipologiaStruttura krintBaborgTipologiaStruttura = factory.createProjection(KrintBaborgTipologiaStruttura.class, tipologiaStruttura);
-//                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgTipologiaStruttura);
-//                    break;
-//                case SCRIPTA_ARCHIVIO_PERMESSI_DELETE:
-//                    AttributiStruttura attributiStruttura = (AttributiStruttura) oggetto;
-//                    TipologiaStruttura tipologiaStruttura = attributiStruttura.getIdTipologiaStruttura();
-//                    idOggetto = tipologiaStruttura.getId().toString();
-//                    descrizioneOggetto = tipologiaStruttura.getTipologia();
-//                    tipoOggetto = Krint.TipoOggettoKrint.BABORG_TIPOLOGIA_STRUTTURA;
-//                    KrintBaborgTipologiaStruttura krintBaborgTipologiaStruttura = factory.createProjection(KrintBaborgTipologiaStruttura.class, tipologiaStruttura);
-//                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgTipologiaStruttura);
-//                    break;
-//            }
-
+            
+            jsonKrintArchivio = objectMapper.writeValueAsString(mapKrintArchivio);
+            
             krintService.writeKrintRow(
                     idOggetto,
                     tipoOggetto,

@@ -173,10 +173,10 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
             if (archivio.getAnniTenuta() != null) {
                 if (archivioOld.getAnniTenuta() == null) {
                     codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CONSERVAZIONE_INSERT, false));
+                } else if (!archivio.getAnniTenuta().toString().equals(archivioOld.getAnniTenuta().toString())) {
+                    codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CONSERVAZIONE_UPDATE, true));
                 }
-            } else if (!archivio.getAnniTenuta().toString().equals(archivioOld.getAnniTenuta().toString())) {
-                codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CONSERVAZIONE_UPDATE, true));
-            }
+            } 
      
             if (archivio.getTipo() != null && archivioOld.getTipo() != null && !(archivio.getTipo().toString().equals(archivioOld.getTipo().toString()))) {
                 codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_TIPO_UPDATE, true));
