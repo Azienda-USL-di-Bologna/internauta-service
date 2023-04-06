@@ -140,7 +140,7 @@ public class ScriptaCopyUtils {
         return newArchivio;
     }
     
-    public void coiaArchivioDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em){
+    public void copiaArchivioDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em){
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
 
         List<Integer> idDocsDaSpostare = jPAQueryFactory
@@ -163,6 +163,15 @@ public class ScriptaCopyUtils {
             ArchivioDoc newArchivioDoc = new ArchivioDoc(archivioDestinazione, idDoc, utente);
             em.persist(newArchivioDoc);
         }
+    }
+    
+    public Archivio copiaArchivioConDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona persona, EntityManager em, Boolean numera, Boolean contenuto) throws JsonProcessingException, EntityReflectionException{
+        Archivio savedArchivio = copiaArchivio(archDaCopiare, archivioDestinazione, persona, em, numera);
+        if(contenuto){
+            copiaArchivioDoc(archDaCopiare, savedArchivio, persona, em);
+        }
+        em.refresh(savedArchivio);
+        return savedArchivio;
     }
     
     public Map<String, List<String>> copiaArchiviazioni(Doc docOrgine, Doc docDestinazione, Persona persona) {
