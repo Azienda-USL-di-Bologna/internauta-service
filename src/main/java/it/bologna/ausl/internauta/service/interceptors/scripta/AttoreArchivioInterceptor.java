@@ -5,6 +5,7 @@ import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
@@ -44,13 +45,17 @@ public class AttoreArchivioInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AttoreArchivio attoreArchivio = (AttoreArchivio) entity;
+        
+        
         if (krintUtils.doIHaveToKrint(request)) {
-            if (attoreArchivio.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE)
-                    || attoreArchivio.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.VICARIO)
-                    || attoreArchivio.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO)) {
+           
+            Archivio idArchivio = attoreArchivio.getIdArchivio();
+            
+            if (idArchivio.getLivello() == 1 && (attoreArchivio.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.VICARIO)
+                    || attoreArchivio.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO))) {
                 krintScriptaService.writeAttoreArchivioCreation(attoreArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ATTORE_ARCHIVIO_CREATION);
-            }
-        }
+            }        
+        }   
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
