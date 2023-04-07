@@ -505,7 +505,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         scriptaArchiviUtils.createZipArchivio(archivio, persona, response, jPAQueryFactory);
           
         LOG.info("downloadArchivioZip: {} completato.", idArchivio);
-        if (!userInfoService.isSD(authenticatedUserProperties.getRealUser()))
+        if (authenticatedUserProperties.getRealUser() == null || !userInfoService.isSD(authenticatedUserProperties.getRealUser()))
             krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SCARICA_ZIP_FASCICOLO);
     }
 

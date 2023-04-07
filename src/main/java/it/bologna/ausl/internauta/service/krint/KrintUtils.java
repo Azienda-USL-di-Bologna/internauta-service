@@ -101,14 +101,14 @@ public class KrintUtils {
                             
                             /* In questo ciclo viene fatto il controllo dei permessi da salvare con quelli salvati sul DB per distinguere quali permessi
                              * devono essere aggiunti, quali aggiornati e quali rimossi.*/
-                            // Permessi da aggiungere = permessi nuovi - permessi attuali
+                            // Controllo permessi da aggiungere = permessi nuovi - permessi attuali
                             List<PermessoStoredProcedure> permessiDaAggiungereTemp = permessiDaAggiungere.get(permessiEntitaStoredProcedureDaSalvare.indexOf(permessoEntitaStoredDaSalvare)).getCategorie().get(permessoEntitaStoredDaSalvare.getCategorie().indexOf(categoriaPermessiStoredProcedure)).getPermessi();
                             for(PermessoStoredProcedure permessoAttuale : attualiCategoria.getPermessi()){
                                 permessiDaAggiungereTemp.removeIf(permesso -> (permesso.getPredicato().equalsIgnoreCase(permessoAttuale.getPredicato()) ||
                                         checkPermessiIsArchivioAndPredicatiAreInShowEditDelBan(categoriaPermessiStoredProcedure, permesso, permessoAttuale)));
                             }
                             
-                            // Permessi da cancellare = permessi attuali - permessi nuovi
+                            // Controllo permessi da cancellare = permessi attuali - permessi nuovi
                             List<PermessoStoredProcedure> permessiAttualiClone = objectMapper.convertValue(attualiCategoria.getPermessi(), new TypeReference<List<PermessoStoredProcedure>>(){});
                             for(PermessoStoredProcedure permessoNuovo : categoriaPermessiStoredProcedure.getPermessi()){
                                 permessiAttualiClone.removeIf(permesso -> (permesso.getPredicato().equalsIgnoreCase(permessoNuovo.getPredicato()) || 
