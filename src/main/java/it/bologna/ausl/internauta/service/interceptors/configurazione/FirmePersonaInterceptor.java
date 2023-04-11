@@ -7,6 +7,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.firma.data.remota.UserInformation;
 import it.bologna.ausl.internauta.utils.firma.data.remota.arubasignservice.ArubaUserInformation;
 import it.bologna.ausl.internauta.utils.firma.data.remota.infocertsignservice.InfocertUserInformation;
+import it.bologna.ausl.internauta.utils.firma.data.remota.namirialsignservice.NamirialUserInformation;
 import it.bologna.ausl.internauta.utils.firma.remota.controllers.FirmaRemotaArubaController;
 import it.bologna.ausl.internauta.utils.firma.remota.controllers.FirmaRemotaRestController;
 import it.bologna.ausl.internauta.utils.firma.remota.exceptions.FirmaRemotaConfigurationException;
@@ -222,8 +223,8 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
             case INFOCERT:
                 InfocertUserInformation infocertUserInfo = new InfocertUserInformation();
                 infocertUserInfo.setUsername(additionalData.getUsername());
-                String modalita = additionalData.getAutenticazione();
-                switch (modalita) {
+                String modalitaInfocert = additionalData.getAutenticazione();
+                switch (modalitaInfocert) {
                     case "OTP":
                         infocertUserInfo.setModalitaFirma(InfocertUserInformation.ModalitaFirma.OTP);
                         infocertUserInfo.setPassword(password);
@@ -234,6 +235,22 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                         break;
                 }
                 userInfo = infocertUserInfo;
+                break;
+            case NAMIRIAL:
+                NamirialUserInformation namirialUserInformation = new NamirialUserInformation();
+                namirialUserInformation.setUsername(additionalData.getUsername());
+                String modalitaNamirial = additionalData.getAutenticazione();
+                switch (modalitaNamirial) {
+                    case "OTP":
+                        namirialUserInformation.setModalitaFirma(NamirialUserInformation.ModalitaFirma.OTP);
+                        namirialUserInformation.setPassword(password);
+                        break;
+                    case "AUTO":
+                    case "AUTOMATICA":
+                        namirialUserInformation.setModalitaFirma(NamirialUserInformation.ModalitaFirma.AUTOMATICA);
+                        break;
+                }
+                userInfo = namirialUserInformation;
                 break;
         }
         return userInfo;
@@ -246,6 +263,9 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                 hostId = firmaRemotaArubaController.getHostIdFromDominio(DominioAruba.DominiAruba.valueOf(additionalData.getDominio()));
                 break;
             case INFOCERT:
+                hostId = additionalData.getHostId();
+                break;
+            case NAMIRIAL:
                 hostId = additionalData.getHostId();
                 break;
         }

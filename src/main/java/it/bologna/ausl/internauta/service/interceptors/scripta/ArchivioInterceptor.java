@@ -22,7 +22,9 @@ import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -128,6 +130,7 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
 //                }
 //            }
 //        }
+        List<Pair<OperazioneKrint.CodiceOperazione, Boolean>> codiciOperazioneWithOldArchivio = new ArrayList();
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
@@ -138,6 +141,7 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
                             archivioRepository.eliminaBozzeDaArchivioRadice(Archivio.StatoArchivio.BOZZA.toString(), archivioOld.getId());
                         }
                         archivioRepository.chiudiRiapriArchivioRadice(archivio.getStato().toString(), archivioOld.getId());
+                        codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_STATO_CHIUSURA_UPDATE, false));
                     } catch (Exception ex) {
                         throw new AbortSaveInterceptorException("errore nel cambio di stato dell'archivio", ex);
                     }
@@ -146,73 +150,60 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
             }
         }
         try {
-            boolean nomeIsChanged;
-            if (archivio.getOggetto() != null && archivioOld.getOggetto() != null) {
-                nomeIsChanged = !(archivio.getOggetto().equals(archivioOld.getOggetto()));
-            } else {
-                nomeIsChanged = false;
+            if (archivio.getOggetto() != null && archivioOld.getOggetto() != null && !(archivio.getOggetto().equals(archivioOld.getOggetto()))) {
+                codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOME_UPDATE, true));
+            } 
+            
+            if (archivio.getIdTitolo() != null) {
+                if (archivioOld.getIdTitolo() == null) {
+                    codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CLASSIFICAZIONE_INSERT, false));
+                } else if (!(archivio.getIdTitolo().getId().equals(archivioOld.getIdTitolo().getId()))) {
+                    codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CLASSIFICAZIONE_UPDATE, true));
+                }
+            } 
+            
+            if (archivio.getIdMassimario() != null) {
+                if (archivioOld.getIdMassimario() == null) {
+                    codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CATEGORIA_DOCUMENTALE_INSERT, false));
+                } else if (!(archivio.getIdMassimario().getId().equals(archivioOld.getIdMassimario().getId()))) {
+                    codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CATEGORIA_DOCUMENTALE_UPDATE, true));
+                }
+            } 
+            
+            if (archivio.getAnniTenuta() != null) {
+                if (archivioOld.getAnniTenuta() == null) {
+                    codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CONSERVAZIONE_INSERT, false));
+                } else if (!archivio.getAnniTenuta().toString().equals(archivioOld.getAnniTenuta().toString())) {
+                    codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CONSERVAZIONE_UPDATE, true));
+                }
+            } 
+     
+            if (archivio.getTipo() != null && archivioOld.getTipo() != null && !(archivio.getTipo().toString().equals(archivioOld.getTipo().toString()))) {
+                codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_TIPO_UPDATE, true));
             }
-            boolean classificazioneIsChanged;
-            if (archivio.getIdTitolo() != null && archivioOld.getIdTitolo() != null) {
-                classificazioneIsChanged = !(archivio.getIdTitolo().getId().equals(archivioOld.getIdTitolo().getId()));
-            } else {
-                classificazioneIsChanged = false;
+            
+            if (archivio.getRiservato() != null && archivioOld.getRiservato() != null && !(archivio.getRiservato().equals(archivioOld.getRiservato()))) {
+                codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_RISERVATO_UPDATE, false));
             }
-            boolean categoriaDocumentaleIsChanged;
-            if (archivio.getIdMassimario() != null && archivioOld.getIdMassimario() != null) {
-                categoriaDocumentaleIsChanged = !(archivio.getIdMassimario().getId().equals(archivioOld.getIdMassimario().getId()));
-            } else {
-                categoriaDocumentaleIsChanged = false;
-            }
-            boolean conservazioneIsChanged;
-            if (archivio.getAnniTenuta() != null && archivioOld.getAnniTenuta() != null) {
-                conservazioneIsChanged = !archivio.getAnniTenuta().toString().equals(archivioOld.getAnniTenuta().toString()) || 
-                        !archivio.getIdMassimario().getDescrizioneTenuta().equals(archivioOld.getIdMassimario().getDescrizioneTenuta());
-            } else {
-                conservazioneIsChanged = false;
-            }
-            boolean tipoIsChanged;
-            if (archivio.getTipo() != null && archivioOld.getTipo() != null) {
-                tipoIsChanged = !(archivio.getTipo().toString().equals(archivioOld.getTipo().toString()));
-            } else {
-                tipoIsChanged = false;
-            }
-            boolean riservatoIsChanged;
-            if (archivio.getRiservato() != null && archivioOld.getRiservato() != null) {
-                riservatoIsChanged = !(archivio.getRiservato().equals(archivioOld.getRiservato()));
-            } else {
-                riservatoIsChanged = false;
-            }
-            boolean noteIsChanged;
-            if (archivio.getNote() != null && archivioOld.getNote() != null) {
-                noteIsChanged = !(archivio.getNote().equals(archivioOld.getNote()));
-            } else {
-                noteIsChanged = false;
+            
+            if (StringUtils.hasText(archivio.getNote())) {                
+                if (!StringUtils.hasText(archivioOld.getNote())) {
+                    codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOTE_INSERT, false));
+                } else if (!archivio.getNote().equals(archivioOld.getNote())) {
+                    codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOTE_UPDATE, true));
+                }
+            } else if (StringUtils.hasText(archivioOld.getNote())) {
+                codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOTE_DELETE, true));
             }
 
             if (krintUtils.doIHaveToKrint(request)) {
-                if (nomeIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOME_UPDATE);
+                for (Pair<OperazioneKrint.CodiceOperazione, Boolean> pairCodiceOpWithOld: codiciOperazioneWithOldArchivio) {
+                    if (pairCodiceOpWithOld.getSecond() == true) {
+                        krintScriptaService.writeArchivioUpdate(archivio, archivioOld, pairCodiceOpWithOld.getFirst());
+                    } else {
+                        krintScriptaService.writeArchivioUpdate(archivio, pairCodiceOpWithOld.getFirst());
+                    }
                 }
-                if (classificazioneIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CLASSIFICAZIONE_UPDATE);
-                }
-                if (categoriaDocumentaleIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CATEGORIA_DOCUMENTALE_UPDATE);
-                }
-                if (conservazioneIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CONSERVAZIONE_UPDATE);
-                }
-                if (tipoIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_TIPO_UPDATE);
-                }
-                if (riservatoIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_RISERVATO_UPDATE);
-                }
-                if (noteIsChanged) {
-                    krintScriptaService.writeArchivioUpdate(archivio, archivioOld, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_NOTE_UPDATE);
-                }
-
             }
         } catch (Exception ex) {
             throw new AbortSaveInterceptorException("errore nel krintaggio del cambio dell'archivio", ex);

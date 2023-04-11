@@ -112,15 +112,6 @@ public class PermessiCustomController implements ControllerHandledExceptions {
     UtenteRepository utenteRepository;
 
     @Autowired
-    StrutturaRepository strutturaRepository;
-
-    @Autowired
-    UtenteStrutturaRepository utenteStrutturaRepository;
-
-    @Autowired
-    AfferenzaStrutturaRepository afferenzaStrutturaRepository;
-
-    @Autowired
     ObjectMapper objectMapper;
 
     @Autowired
