@@ -269,6 +269,7 @@ public class LoginController {
         userInfoService.getUtentiPersonaRemoveCache(utente.getIdPersona());
         userInfoService.getUtenteStrutturaListRemoveCache(utente, true);
         userInfoService.getUtenteStrutturaListRemoveCache(utente, false);
+        userInfoService.getPermessiGediByCodiceAziendaRemoveCache(utente.getIdPersona());
         userInfoService.getPermessiPecRemoveCache(utente.getIdPersona());
         userInfoService.getStruttureDelSegretarioRemoveCache(utente.getIdPersona());
 
@@ -285,6 +286,7 @@ public class LoginController {
             userInfoService.loadUtenteRemoveCache(utenteReale.getId());
             userInfoService.getUtentiPersonaByUtenteRemoveCache(utenteReale);
             userInfoService.getUtentiPersonaRemoveCache(utenteReale.getIdPersona());
+            userInfoService.getPermessiGediByCodiceAziendaRemoveCache(utenteReale.getIdPersona());
             userInfoService.getUtenteStrutturaListRemoveCache(utenteReale, true);
             userInfoService.getUtenteStrutturaListRemoveCache(utenteReale, false);
             userInfoService.getStruttureDelSegretarioRemoveCache(utenteReale.getIdPersona());

@@ -100,7 +100,7 @@ public class ImportaDaCSVUtils {
      * @param elementi
      * @param dataInizio
      * @param dataFine
-     * @return false se elementi è vuoto
+     * @return false se elementi è vuoto o se i periodi non si sovrappongono
      */
     public static Boolean isPeriodiSovrapposti(List<Map<String, Object>> elementi, ZonedDateTime dataInizio, ZonedDateTime dataFine) {
         if (elementi.isEmpty()) {

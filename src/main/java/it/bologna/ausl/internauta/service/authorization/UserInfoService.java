@@ -63,6 +63,7 @@ import java.util.HashSet;
 import java.util.stream.Stream;
 import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgUtenteStruttura;
+import org.json.JSONObject;
 import org.springframework.beans.factory.BeanFactory;
 
 /**
@@ -107,17 +108,18 @@ public class UserInfoService {
 
     @Autowired
     private ParametriAziendeReader parametriAziende;
-    
+
     @Autowired
     private PermessiUtils permessiUtils;
 
     /**
-     * E' necessario  per poter usare le funzioni cacheable. 
-     * Se una funzione cacheable non viene chiamata così dal bean ottenuto con questa funzione
+     * E' necessario per poter usare le funzioni cacheable. Se una funzione
+     * cacheable non viene chiamata così dal bean ottenuto con questa funzione
      * non verrà usata come cacheable
      */
     @Autowired
     private BeanFactory beanFactory;
+
     private UserInfoService getUserInfoServiceBean() {
         return this.beanFactory.getBean(UserInfoService.class);
     }
@@ -136,7 +138,7 @@ public class UserInfoService {
         Optional<Utente> utenteOp = utenteRepository.findById(id);
         if (utenteOp.isPresent()) {
             res = utenteOp.get();
-            
+
             // Questo pezzo di codice ci permette di essere sicure che utenteList sia caricata.
             // E' una possibile soluzione al problema del menu scrivania che a volte non compare.
             if (res.getIdPersona().getUtenteList() != null) {
@@ -169,7 +171,7 @@ public class UserInfoService {
             Optional<Utente> utenteOp = utenteRepository.findOne(utenteFilter);
             if (utenteOp.isPresent()) {
                 res = utenteOp.get();
-                
+
                 // Questo pezzo di codice ci permette di essere sicure che utenteList sia caricata.
                 // E' una possibile soluzione al problema del menu scrivania che a volte non compare.
                 if (res.getIdPersona().getUtenteList() != null) {
@@ -224,7 +226,7 @@ public class UserInfoService {
 
         if (utenteOp.isPresent()) {
             res = utenteOp.get();
-            
+
             // Questo pezzo di codice ci permette di essere sicure che utenteList sia caricata.
             // E' una possibile soluzione al problema del menu scrivania che a volte non compare.
             if (res.getIdPersona().getUtenteList() != null) {
@@ -561,8 +563,7 @@ public class UserInfoService {
         }
         return new ArrayList();
     }
-    
-    
+
     @Cacheable(value = "getRuoliUtentiPersona_utente__ribaltorg__", key = "{#utente.getId(), #ancheByRuolo.booleanValue()}")
     public Map<String, Map<String, List<String>>> getRuoliUtentiPersona(Utente utente, Boolean ancheByRuolo) {
         return getRuoliUtentiPersona(utente.getIdPersona(), ancheByRuolo);
@@ -767,18 +768,18 @@ public class UserInfoService {
                 false, dataPermesso != null ? dataPermesso.toLocalDate() : null, null, direzione);
     }
 
-    @Cacheable(value = "getPermessiFilteredByAdditionalData__ribaltorg__", 
+    @Cacheable(value = "getPermessiFilteredByAdditionalData__ribaltorg__",
             key = "{#entitySoggetto.toString(), #dataPermesso != null? #dataPermesso.toLocalDate().toEpochDay(): 'null', #modalita, "
             + "#idProvenienzaOggetto != null? #idProvenienzaOggetto: 'null', #ambitiPermesso != null? #ambitiPermesso.toString(): 'null', "
             + "#tipiPermesso != null? #tipiPermesso.toString(): 'null',"
             + "#predicatiPermesso != null? #predicatiPermesso.toString(): 'null',"
             + "#dammiPermessiVirtuali}")
     public List<PermessoEntitaStoredProcedure> getPermessiFilteredByAdditionalData(
-            Object entitySoggetto, 
+            Object entitySoggetto,
             LocalDateTime dataPermesso,
-            String modalita, 
-            Integer idProvenienzaOggetto, 
-            List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, 
+            String modalita,
+            Integer idProvenienzaOggetto,
+            List<InternautaConstants.Permessi.Ambiti> ambitiPermesso,
             List<InternautaConstants.Permessi.Tipi> tipiPermesso,
             List<InternautaConstants.Permessi.Predicati> predicatiPermesso,
             Boolean dammiPermessiVirtuali
@@ -807,18 +808,18 @@ public class UserInfoService {
                 predicatiPermesso != null ? predicatiPermesso.stream().map(predicato -> predicato.toString()).collect(Collectors.toList()) : null,
                 ambitiPermesso != null ? ambitiPermesso.stream().map(ambito -> ambito.toString()).collect(Collectors.toList()) : null,
                 tipiPermesso != null ? tipiPermesso.stream().map(tipo -> tipo.toString()).collect(Collectors.toList()) : null,
-                dammiPermessiVirtuali, 
-                dataPermesso != null ? dataPermesso.toLocalDate() : null, 
-                null, 
+                dammiPermessiVirtuali,
+                dataPermesso != null ? dataPermesso.toLocalDate() : null,
+                null,
                 direzione);
     }
-    
+
     public List<PermessoEntitaStoredProcedure> getPermessiFilteredByAdditionalDataAndSetDescriptionOggetto(
-            Object entitySoggetto, 
+            Object entitySoggetto,
             LocalDateTime dataPermesso,
-            String modalita, 
-            Integer idProvenienzaOggetto, 
-            List<InternautaConstants.Permessi.Ambiti> ambitiPermesso, 
+            String modalita,
+            Integer idProvenienzaOggetto,
+            List<InternautaConstants.Permessi.Ambiti> ambitiPermesso,
             List<InternautaConstants.Permessi.Tipi> tipiPermesso,
             List<InternautaConstants.Permessi.Predicati> predicatiPermesso,
             Boolean dammiPermessiVirtuali,
@@ -826,14 +827,14 @@ public class UserInfoService {
     ) throws BlackBoxPermissionException {
         return permessiUtils.setDescriptionsOggetto(
                 getPermessiFilteredByAdditionalData(
-                    entitySoggetto, 
-                    dataPermesso, 
-                    modalita, 
-                    idProvenienzaOggetto, 
-                    ambitiPermesso, 
-                    tipiPermesso, 
-                    predicatiPermesso, 
-                    dammiPermessiVirtuali), entityAddtiionalDataParam);
+                        entitySoggetto,
+                        dataPermesso,
+                        modalita,
+                        idProvenienzaOggetto,
+                        ambitiPermesso,
+                        tipiPermesso,
+                        predicatiPermesso,
+                        dammiPermessiVirtuali), entityAddtiionalDataParam);
     }
 
     /**
@@ -886,8 +887,8 @@ public class UserInfoService {
             List<InternautaConstants.Permessi.Ambiti> ambitiPermesso,
             List<InternautaConstants.Permessi.Tipi> tipiPermesso) throws BlackBoxPermissionException {
 
-        List<PermessoEntitaStoredProcedure> permessiFilteredByAdditionalData = 
-                getPermessiFilteredByAdditionalData(utente, dataPermesso, modalita, idProvenienzaOggetto, ambitiPermesso, tipiPermesso, null, null);
+        List<PermessoEntitaStoredProcedure> permessiFilteredByAdditionalData
+                = getPermessiFilteredByAdditionalData(utente, dataPermesso, modalita, idProvenienzaOggetto, ambitiPermesso, tipiPermesso, null, null);
         // Riorganizziamo i dati in un oggetto facilmente leggibile dal frontend
         List<Permesso> permessiUtente = new ArrayList<>();
 
@@ -914,11 +915,11 @@ public class UserInfoService {
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Utente utente) throws BlackBoxPermissionException {
         return getPermessiDiFlussoByCodiceAzienda(utente.getIdPersona());
     }
-    
+
     @CacheEvict(value = "getPermessiDiFlussoByCodiceAzienda_utente__ribaltorg__", key = "{#utente.getId()}")
     public void getPermessiDiFlussoByCodiceAziendaRemoveCache(Utente utente) {
     }
-  
+
     // NB: non è by CODICEAZIENDA, ma è ByPersona da cui prendo codice azienda
     @Cacheable(value = "getPermessiDiFlussoByCodiceAzienda_persona__ribaltorg__", key = "{#persona.getId()}")
     public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiDiFlussoByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
@@ -937,6 +938,47 @@ public class UserInfoService {
             );
         }
         return map;
+    }
+
+    @Cacheable(value = "getPermessiGediByCodiceAzienda_persona__ribaltorg__", key = "{#persona.getId()}")
+    public Map<String, List<PermessoEntitaStoredProcedure>> getPermessiGediByCodiceAzienda(Persona persona) throws BlackBoxPermissionException {
+        Map<String, Boolean> map = new HashMap<>();
+        Map<String, List<PermessoEntitaStoredProcedure>> mapPermessi = new HashMap<>();
+        List<PermessoEntitaStoredProcedure> listPermessi = new ArrayList<>();
+        List<Utente> utentiPersona = persona.getUtenteList().stream().filter(u -> u.getAttivo() == true).collect(Collectors.toList());
+        boolean canCreateArchivio = false;
+        JSONObject json = new JSONObject();
+        for (int i = 0; i < utentiPersona.size(); i++) {
+            mapPermessi.put(utentiPersona.get(i).getIdAzienda().getCodice(),
+                    permissionManager.getPermissionsOfSubjectActualFromDate(utentiPersona.get(i), null,
+                            null,
+                            Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.GEDI.toString()}),
+                            Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FASCICOLO.toString()}),
+                            false, null)
+            );
+
+//            listPermessi.addAll(permissionManager.getPermissionsOfSubjectActualFromDate(utentiPersona.get(i), null,
+//                            null,
+//                            Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.GEDI.toString()}),
+//                            Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FASCICOLO.toString()}),
+//                            false, null));
+//            if (!permissionManager.getPermissionsOfSubjectActualFromDate(utentiPersona.get(i), null,
+//                    Arrays.asList(new String[]{InternautaConstants.Permessi.Predicati.CREA.toString()}),
+//                    Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.GEDI.toString()}),
+//                    Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FASCICOLO.toString()}),
+//                    false, null).isEmpty()) {
+//                canCreateArchivio = true;
+//            } else {
+//                canCreateArchivio = false;
+//            }
+//            map.put(utentiPersona.get(i).getIdAzienda().getCodice(), canCreateArchivio);
+        }
+
+        return mapPermessi;
+    }
+
+    @CacheEvict(value = "getPermessiGediByCodiceAzienda_persona__ribaltorg__", key = "{#persona.getId()}")
+    public void getPermessiGediByCodiceAziendaRemoveCache(Persona persona) {
     }
 
     @Cacheable(value = "getPermessiDiFlussoByPersona__ribaltorg__", key = "{#persona.getId()}")
@@ -997,12 +1039,12 @@ public class UserInfoService {
             return null;
         }
     }
-    
+
     @Cacheable(value = "personaFromIdUtente__ribaltorg__", key = "{#idUtente}")
     public Persona getPersonaFromIdUtente(Integer idUtente) throws BlackBoxPermissionException {
         return getPersonaFromUtente(cachedEntities.getUtente(idUtente));
     }
-    
+
     public Map<Integer, List<String>> getPermessiPec(Utente utente) throws BlackBoxPermissionException {
         return getPermessiPec(utente.getIdPersona());
     }
@@ -1252,7 +1294,7 @@ public class UserInfoService {
         // Prendo la connessione dal connection manager
         Sql2o dbConnection = postgresConnectionManager.getDbConnection(codiceAzienda);
 
-        try (Connection conn = (Connection) dbConnection.open()) {
+        try ( Connection conn = (Connection) dbConnection.open()) {
             utenteProcton = conn.createQuery(qUtenteProcton)
                     .addParameter("codiceFiscale", persona.getCodiceFiscale())
                     .executeAndFetchFirst(UtenteProcton.class);
@@ -1369,12 +1411,12 @@ public class UserInfoService {
         }
         return false;
     }
-    
+
     @Cacheable(value = "getStruttureDelSegretario__ribaltorg__", key = "{#persona.getId()}")
     public Integer[] getStruttureDelSegretario(Persona persona) {
         return personaRepository.getStruttureDelSegretario(persona.getId());
     }
-    
+
     @CacheEvict(value = "getStruttureDelSegretario__ribaltorg__", key = "{#persona.getId()}")
     public void getStruttureDelSegretarioRemoveCache(Persona persona) {
     }

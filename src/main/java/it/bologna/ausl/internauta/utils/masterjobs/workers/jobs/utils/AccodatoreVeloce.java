@@ -10,7 +10,12 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersoneve
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.versatore.VersatoreJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.versatore.VersatoreJobWorkerData;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,6 +101,31 @@ public class AccodatoreVeloce {
             );
         } catch (MasterjobsQueuingException ex) {
             String errorMessage = String.format("Errore nell'accodamento di %s", CalcolaPersoneVedentiDaArchiviRadiceJobWorker.class.getSimpleName());
+            log.error(errorMessage, ex);
+            throw new MasterjobsWorkerException(errorMessage, ex);
+        }
+    }
+    public void accodaVersatore(
+            List<Integer> idDocsDaVersare,
+            Integer idAzienda,
+            String hostId,
+            SessioneVersamento.TipologiaVersamento tipologiaVersamento,
+            Integer idPersonaForzatura,
+            Integer poolSize, 
+            Map<String, Object> params
+    ) throws MasterjobsWorkerException {
+        VersatoreJobWorkerData versatoreJobWorkerData = new VersatoreJobWorkerData(idAzienda, hostId, tipologiaVersamento, poolSize, idPersonaForzatura, params, idDocsDaVersare);
+        VersatoreJobWorker jobWorker = null;
+        try { // istanzia il woker
+            jobWorker = masterjobsObjectsFactory.getJobWorker(VersatoreJobWorker.class, versatoreJobWorkerData, false);
+        } catch (Exception ex) {
+            String errorMessage = "errore nella creazione del job Versatore";
+            log.error(errorMessage, ex);
+        }
+        try {
+            masterjobsJobsQueuer.queue(jobWorker, "versatore_" + idAzienda, "Versatore", null, true, it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL);
+        } catch (Exception ex) {
+            String errorMessage = "errore nell'accodamento del job Versatore";
             log.error(errorMessage, ex);
             throw new MasterjobsWorkerException(errorMessage, ex);
         }

@@ -6,6 +6,7 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.ArchivioWith
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.util.List;
 import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -49,10 +50,22 @@ public interface ArchivioRepository extends
             Integer idArchivioRadice
     );
     
+    @Query(value = "select * from permessi.copia_permessi_archivi(?1, ?2)",
+            nativeQuery = true)
+    public void copiaPermessiArchivi(
+            Integer idArchivioCopiato,
+            Integer idArchivioCopia
+    );
+    
     @Query(value = "select scripta.aggiorna_gerarchia_entita_archivio_radice(?1)",
             nativeQuery = true)
     public void calcolaGerarchiaArchivio(
             Integer idArchivioRadice
+    );
+    
+    @Procedure("permessi.copia_permessi_e_rendi_fascicolo")
+    public void copiaPermessiRendiFascicolo(
+            @Param("id_archivio") Integer id_archivio
     );
     
     @Query(value = "SELECT id FROM scripta.archivi a WHERE id_archivio_radice = ?1", nativeQuery = true)
@@ -61,4 +74,8 @@ public interface ArchivioRepository extends
     );
     
     public Archivio findByNumerazioneGerarchica(String numerazioneGerarchica);
+    
+    public List<Archivio> findByIdArchivioPadre(Archivio idArchivioPadre);
+    
+    public List<Archivio> findByIdArchivioPadreAndStatoIsNot(Archivio idArchivioPadre, String stato);
 }
