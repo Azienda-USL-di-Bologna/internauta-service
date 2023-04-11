@@ -166,7 +166,7 @@ public class UserInfoService {
     public Utente loadUtente(String username, String aziendaPath) {
         Utente res = null;
         Azienda azienda = cachedEntities.getAziendaFromPath(aziendaPath);
-        if (azienda != null) {
+        if (azienda != null && username != null) {
             BooleanExpression utenteFilter = QUtente.utente.username.eq(username).and(QUtente.utente.idAzienda.id.eq(azienda.getId()));
             Optional<Utente> utenteOp = utenteRepository.findOne(utenteFilter);
             if (utenteOp.isPresent()) {

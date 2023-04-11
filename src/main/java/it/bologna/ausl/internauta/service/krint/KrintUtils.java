@@ -75,7 +75,7 @@ public class KrintUtils {
         List<PermessoEntitaStoredProcedure> permessiDaAggiungere = objectMapper.convertValue(permessiEntitaStoredProcedureDaSalvare, new TypeReference<List<PermessoEntitaStoredProcedure>>(){});
         List<PermessoEntitaStoredProcedure> permessiDaAggiornare = objectMapper.convertValue(permessiEntitaStoredProcedureDaSalvare, new TypeReference<List<PermessoEntitaStoredProcedure>>(){});
         List<PermessoEntitaStoredProcedure> permessiDaRimuovere = objectMapper.convertValue(permessiEntitaStoredProcedureDaSalvare, new TypeReference<List<PermessoEntitaStoredProcedure>>(){});
-        
+        boolean isRestoreOperation = false;
         // I permessi sono nel formato della blackbox e possono essere per più soggetti/oggetti.
         for (PermessoEntitaStoredProcedure permessoEntitaStoredDaSalvare : permessiEntitaStoredProcedureDaSalvare) {
             // Su un permesso entita possono esserci più categorie, ovvero permessi di più ambiti o tipi applicativi
@@ -104,15 +104,22 @@ public class KrintUtils {
                             // Permessi da aggiungere = permessi nuovi - permessi attuali
                             List<PermessoStoredProcedure> permessiDaAggiungereTemp = permessiDaAggiungere.get(permessiEntitaStoredProcedureDaSalvare.indexOf(permessoEntitaStoredDaSalvare)).getCategorie().get(permessoEntitaStoredDaSalvare.getCategorie().indexOf(categoriaPermessiStoredProcedure)).getPermessi();
                             for(PermessoStoredProcedure permessoAttuale : attualiCategoria.getPermessi()){
+                                isRestoreOperation = checkIsRestoreOperation(
+                                        attualiPermessoEntita.getSoggetto().getIdProvenienza(),
+                                        permessiDaAggiungere.get(permessiEntitaStoredProcedureDaSalvare.indexOf(permessoEntitaStoredDaSalvare)).getSoggetto().getIdProvenienza(),
+                                        attualiPermessoEntita.getOggetto().getIdProvenienza(), 
+                                        permessiDaAggiungere.get(permessiEntitaStoredProcedureDaSalvare.indexOf(permessoEntitaStoredDaSalvare)).getOggetto().getIdProvenienza(),
+                                        permessiDaAggiungereTemp);
+                                
                                 permessiDaAggiungereTemp.removeIf(permesso -> (permesso.getPredicato().equalsIgnoreCase(permessoAttuale.getPredicato()) ||
-                                        checkPermessiIsArchivioAndPredicatiAreInShowEditDelBan(categoriaPermessiStoredProcedure, permesso, permessoAttuale)));
+                                        checkTipoEPredicatiPermesso(categoriaPermessiStoredProcedure.getTipo(), permesso, permessoAttuale)));
                             }
                             
                             // Permessi da cancellare = permessi attuali - permessi nuovi
                             List<PermessoStoredProcedure> permessiAttualiClone = objectMapper.convertValue(attualiCategoria.getPermessi(), new TypeReference<List<PermessoStoredProcedure>>(){});
                             for(PermessoStoredProcedure permessoNuovo : categoriaPermessiStoredProcedure.getPermessi()){
                                 permessiAttualiClone.removeIf(permesso -> (permesso.getPredicato().equalsIgnoreCase(permessoNuovo.getPredicato()) || 
-                                        checkPermessiIsArchivioAndPredicatiAreInShowEditDelBan(categoriaPermessiStoredProcedure, permesso, permessoNuovo)));
+                                        checkTipoEPredicatiPermesso(categoriaPermessiStoredProcedure.getTipo(), permesso, permessoNuovo)));
                             }
                             permessiDaRimuovere.get(permessiEntitaStoredProcedureDaSalvare.indexOf(permessoEntitaStoredDaSalvare)).getCategorie().get(permessoEntitaStoredDaSalvare.getCategorie().indexOf(categoriaPermessiStoredProcedure)).setPermessi(permessiAttualiClone);
                             
@@ -197,6 +204,10 @@ public class KrintUtils {
                     
                     //controllo che si tratti di un permesso sugli archivi
                     if (categoriaPermessiStoredProcedure.getTipo().equals(InternautaConstants.Permessi.Tipi.ARCHIVIO.toString())){
+                        
+                       OperazioneKrint.CodiceOperazione codiceOp = isRestoreOperation ? OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_PERMESSI_EREDITATI_RESTORE : 
+                                OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_PERMESSI_DELETE;
+                        
                         if (permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.VISUALIZZA.toString())
                             || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.MODIFICA.toString())
                             || permessoStoredProcedure.getPredicato().equals(InternautaConstants.Permessi.Predicati.ELIMINA.toString())
@@ -205,7 +216,7 @@ public class KrintUtils {
                                     permessi.getOggetto().getIdProvenienza(), 
                                     permessi.getSoggetto(), 
                                     permessoStoredProcedure,
-                                    OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_PERMESSI_DELETE);
+                                    codiceOp);
                         }
                     }
                 }
@@ -256,14 +267,34 @@ public class KrintUtils {
      * @param categoriaPermessiStoredProcedure La categoria permessi.
      * @param permesso Il primo permesso da controllare.
      * @param permessoNuovo Il secondo permesso da controllare.
-     * @return True o False.
+     * @return {@code true} o {@code false}.
      */
-    private boolean checkPermessiIsArchivioAndPredicatiAreInShowEditDelBan(CategoriaPermessiStoredProcedure categoriaPermessiStoredProcedure, PermessoStoredProcedure permesso, PermessoStoredProcedure permessoNuovo) {
-        return categoriaPermessiStoredProcedure.getTipo().equals(InternautaConstants.Permessi.Tipi.ARCHIVIO.toString())
+    private boolean checkTipoEPredicatiPermesso(String tipoOggettoCategoria, PermessoStoredProcedure permesso, PermessoStoredProcedure permessoNuovo) {
+        return InternautaConstants.Permessi.Tipi.ARCHIVIO.toString().equals(tipoOggettoCategoria)
                 && Lists.newArrayList(
                         InternautaConstants.Permessi.Predicati.VISUALIZZA.toString(),
                         InternautaConstants.Permessi.Predicati.MODIFICA.toString(),
                         InternautaConstants.Permessi.Predicati.ELIMINA.toString(),
                         InternautaConstants.Permessi.Predicati.BLOCCO.toString()).containsAll(Lists.newArrayList(permesso.getPredicato(), permessoNuovo.getPredicato()));
+    }
+    
+    /**
+     * Metodo che controlla se stiamo effettuando l'operazione di RESTORE di un permesso propagato da un fascicolo padre.
+     * Sul fascicolo che stiamo modificando il permesso è NON_PROPAGATO, però nel metodo che carica i permessi dal DB
+     * viene caricato il permesso del padre.
+     * Faremo un check sugli id dei fascicoli per capire se siamo in quella situazione, controllando anche il Predicato per escludere
+     * il caso in cui stiamo "bloccando" l'ereditarietà del permesso del padre al figlio.
+     * @param idSoggettoAttuale Id del soggetto caricato dalla blackbox.
+     * @param idSoggettoNuovo Id del soggetto al quale stiamo modificando il permesso.
+     * @param idProvenienzaAttuale Id del fascicolo caricato dalla blackbox.
+     * @param idProvenienzaNuovo Id del fascicolo sul quale stiamo modificando il permesso.
+     * @param permessiDaAggiungereTemp La lista dei permessi nuovi passati dal frontend.
+     * @return {@code true} se è un'operazione di restore 
+     */
+    private boolean checkIsRestoreOperation(Integer idSoggettoAttuale, Integer idSoggettoNuovo, Integer idProvenienzaAttuale, Integer idProvenienzaNuovo, List<PermessoStoredProcedure> permessiDaAggiungereTemp) {
+        // Quando rimuoviamo il permesso ereditato dal padre viene passato come permesso da aggiungere il "NON_PROPAGATO".
+        return  idSoggettoAttuale.equals(idSoggettoNuovo) &&
+                !idProvenienzaAttuale.equals(idProvenienzaNuovo) && 
+                !permessiDaAggiungereTemp.stream().filter(p -> "NON_PROPAGATO".equals(p.getPredicato())).findFirst().isPresent();
     }
 }
