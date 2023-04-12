@@ -1179,6 +1179,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     }
 
     @RequestMapping(value = "deleteArchivio", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> deleteArchivio(
             @RequestParam("idArchivio") String idArchivio,
             HttpServletRequest request) {
@@ -1423,7 +1424,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                             em.refresh(savedArchivio);
                             
                             log.info(String.format("inzio a copiare %s, figlio di %s, con i suoi documenti", arch.getId(), archivio.getId()));              
-                            scriptaCopyUtils.copiaArchivioConDoc(archivio, archivioDestinazione, persona, em, Boolean.FALSE, contenuto);
+                            scriptaCopyUtils.copiaArchivioConDoc(arch, savedArchivio, persona, em, Boolean.FALSE, contenuto);
                             log.info(String.format("finito di copiare %s, figlio di %s, con i suoi documenti", arch.getId(), archivio.getId()));
                         }
                         log.info(String.format("ho copiato anche i figli di %s", archivio.getId()));

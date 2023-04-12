@@ -94,7 +94,7 @@ public class ScriptaCopyUtils {
             newArchivio.setNumerazioneGerarchica(numerazioneGerarchicaDaEreditare.replace("/", "-x/"));
             newArchivio.setStato(Archivio.StatoArchivio.BOZZA);
         }else {
-            newArchivio.setNumerazioneGerarchica(numerazioneGerarchicaDaEreditare.replace("/", "-" + newArchivio.getNumero().toString() + "/"));
+            newArchivio.setNumerazioneGerarchica(numerazioneGerarchicaDaEreditare.replace("/", "-" + (newArchivio.getNumero().toString().equals("0") ? "x" : newArchivio.getNumero().toString()) + "/"));
         }
         newArchivio.setIdArchivioPadre(archivioDestinazione);
         newArchivio.setIdArchivioRadice(idArchivioRadiceDaEreditare);
