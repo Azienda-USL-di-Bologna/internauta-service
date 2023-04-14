@@ -52,15 +52,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
-import com.querydsl.core.types.Ops;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.blackbox.repositories.PermessoRepository;
-import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
@@ -116,7 +112,6 @@ import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailReposito
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
@@ -1268,6 +1263,12 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         //controllo l'effettiva presenza dell'archivio da spostare
         if (a.isPresent()) {
             Archivio archivio = a.get();
+            Archivio archivioRif = null;
+            try {
+                archivioRif = objectMapper.readValue(objectMapper.writeValueAsString(archivio), Archivio.class);
+            } catch (JsonProcessingException ex) {
+                log.error("errore nella copia dell'archivio per il krint");
+            }
             boolean haFigli = false;
             //controllo se l'archivio da spostare ha figli
             if (!archivio.getArchiviFigliList().isEmpty()){
@@ -1368,7 +1369,14 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Object projectedObject = projectionFactory.createProjection(
                 projectionClass, finalArchivio
         );
-
+        if (krintUtils.doIHaveToKrint(request)) {
+            if (contenuto) {
+                krintScriptaService.writeArchivioUpdate(archivio, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO);
+                krintScriptaService.writeArchivioUpdate(finalArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO_DESTINAZIONE);
+            } else {                
+                krintScriptaService.writeArchivioUpdate(archivio, archivioRif, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA);
+            }
+        }
         log.info("Ritorno la projectionCreata");
         return projectedObject;
         }
@@ -1449,6 +1457,15 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Object projectedObject = projectionFactory.createProjection(
                 projectionClass, finalArchivio
         );
+        if (krintUtils.doIHaveToKrint(request)) {
+            if (contenuto) {
+                krintScriptaService.writeArchivioUpdate(archivio, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO);
+                krintScriptaService.writeArchivioUpdate(finalArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO_DESTINAZIONE);
+            } else {                
+                krintScriptaService.writeArchivioUpdate(archivio, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA);
+                krintScriptaService.writeArchivioUpdate(finalArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA);
+            }
+        }
         log.info("Ritorno la projectionCreata");
         return projectedObject;
         }
@@ -1533,7 +1550,10 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             Object projectedObject = projectionFactory.createProjection(
                     projectionClass, savedArchivio
             );
-
+            if (krintUtils.doIHaveToKrint(request)) {
+                krintScriptaService.writeArchivioUpdate(archivio, savedArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DUPLICA);
+                krintScriptaService.writeArchivioUpdate(savedArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
+            }
             log.info("Ritorno la projectionCreata");
             return projectedObject;
         }
@@ -1554,6 +1574,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         //controllo l'effettiva presenza dell'archivio da spostare
         if (a.isPresent()) {
             Archivio archivio = a.get();
+            Archivio archivioRif = null;
+            try {
+                // copia del fascicolo per il log nel krint
+                archivioRif = objectMapper.readValue(objectMapper.writeValueAsString(archivio), Archivio.class);
+            } catch (JsonProcessingException ex) {
+                log.error("errore nella copia dell'archivio per il krint");
+            }
             List<ArchivioDoc> documenti;
             boolean haFigli = false;
             //controllo se l'archivio da copiare ha figli in caso li cancello
@@ -1619,7 +1646,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             Object projectedObject = projectionFactory.createProjection(
                     projectionClass, archivio
             );
-
+            if (krintUtils.doIHaveToKrint(request)) {
+                krintScriptaService.writeArchivioUpdate(archivio, archivioRif, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_RENDI_FASCICOLO);
+            }
             log.info("Ritorno la projectionCreata");
             return projectedObject;
         }

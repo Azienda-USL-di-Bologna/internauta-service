@@ -50,10 +50,6 @@ public class KrintScriptaService {
             // Informazioni oggetto
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);
             String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
-            Map<String, Object> map = objectMapper.readValue(jsonKrintArchivio, Map.class);
-             
-            map.put("tipoArchivio",translateLeveltoArchiveType(archivio.getLivello()));
-            jsonKrintArchivio = objectMapper.writeValueAsString(map);
              
             krintService.writeKrintRow(
                     archivio.getId().toString(), // idOggetto
@@ -115,10 +111,10 @@ public class KrintScriptaService {
     /**
      * Scrive il log di aggiornamento di un archivio.
      * @param archivio L'archivio aggiornato.
-     * @param archivioOld L'archivio prima dell'update.
+     * @param archivioDiRiferimento L'archivio di riferimento utile al log specifico.
      * @param codiceOperazione Il codice dell'operazione.
      */
-    public void writeArchivioUpdate(Archivio archivio, Archivio archivioOld, OperazioneKrint.CodiceOperazione codiceOperazione ) {
+    public void writeArchivioUpdate(Archivio archivio, Archivio archivioDiRiferimento, OperazioneKrint.CodiceOperazione codiceOperazione ) {
         
         try {
             // Informazioni oggetto
@@ -127,9 +123,9 @@ public class KrintScriptaService {
             @SuppressWarnings("unchecked")
             Map<String, Object> map = objectMapper.readValue(jsonKrintArchivio, Map.class);
             
-            if (archivioOld != null) {
-                KrintScriptaArchivio krintScriptaArchivioOld = factory.createProjection(KrintScriptaArchivio.class,archivioOld);
-                map.put("archivioOld", krintScriptaArchivioOld);  
+            if (archivioDiRiferimento != null) {
+                KrintScriptaArchivio krintScriptaArchivioRif = factory.createProjection(KrintScriptaArchivio.class, archivioDiRiferimento);
+                map.put("archivioDiRiferimento", krintScriptaArchivioRif);  
             }
             jsonKrintArchivio = objectMapper.writeValueAsString(map);
             
@@ -153,7 +149,7 @@ public class KrintScriptaService {
             krintService.writeKrintError(idOggetto, "writeArchivioUpdate", codiceOperazione);
         }
     }
-    
+
     /**
      * @param attoreArchivio
      * @param codiceOperazione
