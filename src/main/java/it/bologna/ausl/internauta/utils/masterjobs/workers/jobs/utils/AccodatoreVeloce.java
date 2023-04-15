@@ -71,7 +71,7 @@ public class AccodatoreVeloce {
                     objectId, 
                     objectType, 
                     app, 
-                    false, 
+                    true, 
                     it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
             );
         } catch (MasterjobsQueuingException ex) {
