@@ -10,6 +10,8 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersoneve
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessigerarchiaarchivio.CalcoloPermessiGerarchiaArchivioJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessigerarchiaarchivio.CalcoloPermessiGerarchiaArchivioJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.versatore.VersatoreJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.versatore.VersatoreJobWorkerData;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
@@ -33,8 +35,12 @@ public class AccodatoreVeloce {
         this.masterjobsJobsQueuer = masterjobsJobsQueuer;
         this.masterjobsObjectsFactory = masterjobsObjectsFactory;
     }
-   
+    
     public void accodaCalcolaPersoneVedentiDoc(Integer idDoc) throws MasterjobsWorkerException {
+        accodaCalcolaPersoneVedentiDoc(idDoc, null, null, null);
+    }
+   
+    public void accodaCalcolaPersoneVedentiDoc(Integer idDoc, String objectId, String objectType, Applicazione applicazione) throws MasterjobsWorkerException {
         CalcolaPersoneVedentiDocJobWorkerData calcolaPersoneVedentiDocJobWorkerData = new CalcolaPersoneVedentiDocJobWorkerData(idDoc);
         CalcolaPersoneVedentiDocJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
                 CalcolaPersoneVedentiDocJobWorker.class, 
@@ -42,11 +48,13 @@ public class AccodatoreVeloce {
                 false
         );
         try {
+            String app = null;
+            if (applicazione != null) app = applicazione.getId();
             masterjobsJobsQueuer.queue(
                     jobWorker,
-                    null, // ObjectID 
-                    null, 
-                    null, 
+                    objectId, // ObjectID 
+                    objectType, 
+                    app, 
                     false, // waitForObject
                     it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
             );
@@ -57,10 +65,10 @@ public class AccodatoreVeloce {
         }
     }
     
-    public void accodaCalcolaPermessiArchivio(Integer idArchivioRadice, String objectId, String objectType, Applicazione applicazione) throws MasterjobsWorkerException {
-        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
-                    CalcoloPermessiArchivioJobWorker.class,
-                    new CalcoloPermessiArchivioJobWorkerData(idArchivioRadice),
+    public void accodaCalcolaPermessiGerarchiaArchivio(Integer idArchivioRadice, String objectId, String objectType, Applicazione applicazione) throws MasterjobsWorkerException {
+        CalcoloPermessiGerarchiaArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
+                    CalcoloPermessiGerarchiaArchivioJobWorker.class,
+                    new CalcoloPermessiGerarchiaArchivioJobWorkerData(idArchivioRadice),
                     false
         );
         try {
@@ -72,6 +80,29 @@ public class AccodatoreVeloce {
                     objectType, 
                     app, 
                     true, 
+                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
+            );
+        } catch (MasterjobsQueuingException ex) {
+            String errorMessage = "Errore nell'accodamento del job CalcoloPermessiGerarchiaArchivio";
+            log.error(errorMessage);
+            throw new MasterjobsWorkerException(errorMessage, ex);
+        }
+    }
+    
+    public void accodaCalcolaPermessiArchivio(Integer idArchivio, String objectId, String objectType, Applicazione applicazione) throws MasterjobsWorkerException {
+        CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(CalcoloPermessiArchivioJobWorker.class,
+                    new CalcoloPermessiArchivioJobWorkerData(idArchivio),
+                    false
+        );
+        try {
+            String app = null;
+            if (applicazione != null) app = applicazione.getId();
+            masterjobsJobsQueuer.queue(
+                    worker, 
+                    objectId, 
+                    objectType, 
+                    app, 
+                    false, 
                     it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
             );
         } catch (MasterjobsQueuingException ex) {

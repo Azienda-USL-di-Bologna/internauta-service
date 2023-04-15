@@ -41,13 +41,19 @@ public interface ArchivioRepository extends
     public void eliminaBozzeDaArchivioRadice(String stato, Integer idArchivioRadice);
 
 //    @Procedure("permessi.calcola_permessi_espliciti")
-//    public void calcolaPermessiEspliciti(
+//    public void calcolaPermessiEsplicitiGerarchia(
 //        @Param("id_archivio") Integer idArchivio
 //    );
     @Query(value = "select permessi.calcola_permessi_espliciti(a.id) from scripta.archivi a where id_archivio_radice = ?1",
             nativeQuery = true)
-    public void calcolaPermessiEspliciti(
+    public void calcolaPermessiEsplicitiGerarchia(
             Integer idArchivioRadice
+    );
+    
+    @Query(value = "select permessi.calcola_permessi_espliciti(?1)",
+            nativeQuery = true)
+    public void calcolaPermessiEspliciti(
+            Integer idArchivio
     );
     
     @Query(value = "select * from permessi.copia_permessi_archivi(?1, ?2)",

@@ -913,8 +913,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     }
 
     /**
-     * Dato un archivio chiama la store procedure che calcola i permessi
-     * espliciti dello stesso
+     * Dato un archivio radice accoda un job che calcola i permessi
+     * espliciti dell'intera gerarchia
      *
      * @param idArchivioRadice
      * @param request
@@ -922,15 +922,51 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
      * @throws
      * it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException
      */
-    @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
-    public ResponseEntity<?> calcolaPermessiEspliciti(
+    @RequestMapping(value = "calcolaPermessiEsplicitiGerarchiaArchivio", method = RequestMethod.POST)
+    public ResponseEntity<?> calcolaPermessiEsplicitiGerarchiaArchivio(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
             HttpServletRequest request) throws MasterjobsWorkerException {
 
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-        accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
-        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
+        accodatoreVeloce.accodaCalcolaPermessiGerarchiaArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
+//        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
+
+        return new ResponseEntity("", HttpStatus.OK);
+    }
+    
+    /**
+     * Dato un archivio accoda un job che calcola i permessi del'archivio
+     *
+     * @param idArchivio
+     * @param request
+     * @return
+     * @throws
+     * it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException
+     */
+    @RequestMapping(value = "calcolaPermessiEsplicitiArchivio", method = RequestMethod.POST)
+    public ResponseEntity<?> calcolaPermessiEsplicitiArchivio(
+            @RequestParam("idArchivio") Integer idArchivio,
+            HttpServletRequest request) throws MasterjobsWorkerException {
+
+        Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+        accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", applicazione);
+//        accodatoreVeloce.accodaCalcolaPersoneVedenti(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
+        QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
+        JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(em);
+        List<Integer> idDocsDaArchivio = jpaQueryFactory
+                .select(qArchivioDoc.idDoc.id)
+                .from(qArchivioDoc)
+                .where(qArchivioDoc.idArchivio.id.eq(idArchivio))
+                .fetch();
+        log.info("idDocsDaArchivi calcolati");
+        if (idDocsDaArchivio != null) {
+            log.info("idDocsDaArchivi non e' null");
+            for (Integer idDoc : idDocsDaArchivio) {
+                accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc, idArchivio.toString(), "scripta_archivio", applicazione);
+            }
+        }
 
         return new ResponseEntity("", HttpStatus.OK);
     }
@@ -1330,7 +1366,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     }
                     em.refresh(archivio);
                     //ricalcolo i permessi per l'achivio spostato e figli
-                    archivioRepository.calcolaPermessiEspliciti(archivio.getId());
+                    archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
                     finalArchivio = archivio;
                 }else if(contenuto){
                     //è stato selezionato il target contenuto e agisco spostando solo i documenti dell'archivio selezionato
@@ -1431,7 +1467,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     }
                     finalArchivio = savedArchivio;
                     archivioRepository.copiaPermessiArchivi(archivio.getId(), finalArchivio.getId());
-                    archivioRepository.calcolaPermessiEspliciti(finalArchivio.getId());
+                    archivioRepository.calcolaPermessiEsplicitiGerarchia(finalArchivio.getId());
                 }else if(contenuto){
                     log.info(String.format("procedo a copiare i documenti di %s", archivio.getId()));
                     scriptaCopyUtils.copiaArchivioDoc(archivio, archivioDestinazione, persona, em);
@@ -1524,7 +1560,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             }
             em.refresh(savedArchivio);
             archivioRepository.copiaPermessiArchivi(archivio.getId(), savedArchivio.getId());
-            archivioRepository.calcolaPermessiEspliciti(savedArchivio.getId());
+            archivioRepository.calcolaPermessiEsplicitiGerarchia(savedArchivio.getId());
             String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
             log.info("Recupero projection by name " + projection);
             Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
@@ -1610,7 +1646,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             }
             em.refresh(archivio);
 //            archivioRepository.copiaPermessiArchivi(archivio.getId());
-            archivioRepository.calcolaPermessiEspliciti(archivio.getId());
+            archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
             String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
             log.info("Recupero projection by name " + projection);
             Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
