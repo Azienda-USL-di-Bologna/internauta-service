@@ -85,19 +85,6 @@ public class KrintScriptaService {
         }
     }
     
-    private String translateLeveltoArchiveType(Integer livello) {
-        String archivioType = "";
-        switch (livello) {
-            case 1:
-                archivioType = "fascicolo";
-                break;
-            case 2:
-            case 3:
-                archivioType = "subfascicolo";
-                break;
-        }
-        return archivioType;
-    }
 
     /**
      * Scrive il log di aggiornamento di un archivio.
