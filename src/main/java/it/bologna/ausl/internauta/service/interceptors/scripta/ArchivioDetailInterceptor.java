@@ -78,7 +78,7 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
         Utente user = authenticatedSessionData.getUser();
         Persona persona = user.getIdPersona();
         ArchivioDiInteresse archivioDiInteresse = null;
-        initialPredicate = safetyFilters().and(initialPredicate);
+        //initialPredicate = safetyFilters().and(initialPredicate);
 
         Boolean safetyFiltersNonNecessari = false; // Ci sono dei casi in cui non voglio aggiungere filtri di sicurezza. Questi casi sono quelli in cui l'utente vuole vedere archivi che ha già usato e sono in archiviDiInteresse
 
@@ -92,16 +92,20 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
                         if (archivioDiInteresse != null) {
                             Integer[] idArchiviPreferiti = archivioDiInteresse.getIdArchiviPreferiti();
                             initialPredicate = getFilterDiInteresse(idArchiviPreferiti).and(initialPredicate);
+                        } else {
+                            BooleanExpression filter = Expressions.TRUE.eq(false);
+                            initialPredicate = filter.and(initialPredicate);
                         }
+                        
                         break;
-                    case VisualizzaTabFrequenti:
-                        safetyFiltersNonNecessari = true;
-                        archivioDiInteresse = getArchivioDiInteresse(persona);
-                        if (archivioDiInteresse != null) {
-                            Integer[] idArchiviFrequenti = archivioDiInteresse.getIdArchiviFrequenti();
-                            initialPredicate = getFilterDiInteresse(idArchiviFrequenti).and(initialPredicate);
-                        }
-                        break;
+//                    case VisualizzaTabFrequenti:
+//                        safetyFiltersNonNecessari = true;
+//                        archivioDiInteresse = getArchivioDiInteresse(persona);
+//                        if (archivioDiInteresse != null) {
+//                            Integer[] idArchiviFrequenti = archivioDiInteresse.getIdArchiviFrequenti();
+//                            initialPredicate = getFilterDiInteresse(idArchiviFrequenti).and(initialPredicate);
+//                        }
+//                        break;
                     case VisualizzaTabRecenti:
                         safetyFiltersNonNecessari = true;
                         //Optional<Integer[]> res = archiviRecentiRepository.getArchiviFromPersona(persona.getId());

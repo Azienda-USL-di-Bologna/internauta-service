@@ -179,7 +179,8 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
                 
                 for (Integer idArchivioRadice : idArchiviRadiceDaPermessizzare) {
                     /**
-                    * NB: Questi job vengono inseriti con waitForObject a false. Ma viene messo l'ObjectID OBJECT_ID_JOB con type TYPE_JOB
+                     * 
+                    * NB(!DEPRECATED! Vedi NB2): Questi job vengono inseriti con waitForObject a false. Ma viene messo l'ObjectID OBJECT_ID_JOB con type TYPE_JOB
                     * in modo che successivamente quando verra messo il JOB CalcolaPersoneVedentiDaArchivi, questo avrà
                     * il waitForObject a TRUE sullo stesso identificativo. Così verranno calcolate le persone vedenti dei doc solo al termine del calcolo
                     * dei permessi espliciti degli archivi.
