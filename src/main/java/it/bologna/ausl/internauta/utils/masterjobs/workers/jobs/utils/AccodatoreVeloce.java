@@ -89,11 +89,8 @@ public class AccodatoreVeloce {
         }
     }
     
-    public void accodaCalcolaPermessiArchivio(Integer idArchivio, String objectId, String objectType, Applicazione applicazione) throws MasterjobsWorkerException {
-        String app = null;
-        if (applicazione != null) 
-            app = applicazione.getId();
-        accodaCalcolaPermessiArchivio(idArchivio, objectId, objectType, app);
+    public void accodaCalcolaPermessiArchivio(Integer idArchivio, String objectId, String objectType) throws MasterjobsWorkerException {
+        accodaCalcolaPermessiArchivio(idArchivio, objectId, objectType, null);
     }
     
     public void accodaCalcolaPermessiArchivio(Integer idArchivio, String objectId, String objectType, String app) throws MasterjobsWorkerException {

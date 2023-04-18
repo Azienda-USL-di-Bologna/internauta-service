@@ -951,7 +951,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-        accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", applicazione);
+        accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", applicazione.getId());
 //        accodatoreVeloce.accodaCalcolaPersoneVedenti(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
         QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
         JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(em);
