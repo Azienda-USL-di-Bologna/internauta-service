@@ -89,14 +89,16 @@ public class AccodatoreVeloce {
         }
     }
     
-    public void accodaCalcolaPermessiArchivio(Integer idArchivio, String objectId, String objectType, Applicazione applicazione) throws MasterjobsWorkerException {
+    public void accodaCalcolaPermessiArchivio(Integer idArchivio, String objectId, String objectType) throws MasterjobsWorkerException {
+        accodaCalcolaPermessiArchivio(idArchivio, objectId, objectType, null);
+    }
+    
+    public void accodaCalcolaPermessiArchivio(Integer idArchivio, String objectId, String objectType, String app) throws MasterjobsWorkerException {
         CalcoloPermessiArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(CalcoloPermessiArchivioJobWorker.class,
                     new CalcoloPermessiArchivioJobWorkerData(idArchivio),
                     false
         );
         try {
-            String app = null;
-            if (applicazione != null) app = applicazione.getId();
             masterjobsJobsQueuer.queue(
                     worker, 
                     objectId, 

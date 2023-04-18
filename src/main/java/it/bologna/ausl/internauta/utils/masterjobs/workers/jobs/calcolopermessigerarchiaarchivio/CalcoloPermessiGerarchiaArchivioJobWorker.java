@@ -55,7 +55,7 @@ public class CalcoloPermessiGerarchiaArchivioJobWorker extends JobWorker<Calcolo
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         for (Integer idArchivio : idArchivi) {
             // Come object id uso idArchivioRadice perché voglio che CalcolaPersoneVedentiDaArchiviRadice abbia il wait for object rispetto a tutti questi job
-            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, data.getIdArchivioRadice().toString(), "scripta_archivio", null);
+            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, data.getIdArchivioRadice().toString(), "scripta_archivio");
         }
         
         log.info("Ora accodo il ricalcolo persone vedenti");

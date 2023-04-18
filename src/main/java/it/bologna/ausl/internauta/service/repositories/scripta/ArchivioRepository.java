@@ -79,9 +79,13 @@ public interface ArchivioRepository extends
             Integer idArchivioRadice
     );
     
-    public Archivio findByNumerazioneGerarchica(String numerazioneGerarchica);
+    @Query(value = "SELECT * FROM scripta.archivi a WHERE numerazione_gerarchica = ?1 and id_azienda = ?2", nativeQuery = true)
+    public Archivio findByNumerazioneGerarchicaAndIdAzienda(String numerazioneGerarchica, Integer idAzienda);
     
     public List<Archivio> findByIdArchivioPadre(Archivio idArchivioPadre);
     
     public List<Archivio> findByIdArchivioPadreAndStatoIsNot(Archivio idArchivioPadre, String stato);
+    
+    @Query(value = "SELECT * FROM scripta.archivi a WHERE id_archivio_padre = ?1 and oggetto like ?2", nativeQuery = true)
+    public Archivio findByPadreAndPatternOggetto(Integer idArchivioPadre, String patternOggetto);
 }
