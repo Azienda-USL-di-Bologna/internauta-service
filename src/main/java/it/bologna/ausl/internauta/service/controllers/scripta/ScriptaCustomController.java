@@ -1275,6 +1275,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             if (aDestinazione.isPresent()) {
                 Archivio archivioDestinazione = aDestinazione.get();
                 JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+                Archivio archivioRif = null;
                 boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
                 //controllo se è stato selezionato il target fascicolo e agisco spostando l'archivio con figli e documenti
                 //NB: i documenti sono legati all'archivio con una tabella di cross ergo seguiranno l'archivio ovunque
@@ -1285,7 +1286,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     if (3 - scriptaArchiviUtils.getProfonditaArchivio(archivio) < archivioDestinazione.getLivello()){
                         throw new Http500ResponseException("4", "L'azione sposta non può essere eseguita perché andrebbe a creare almeno un archivio di livello 4");
                     }
-                            
+                    try {
+                        // copia del fascicolo per il log nel krint
+                        archivioRif = objectMapper.readValue(objectMapper.writeValueAsString(archivio), Archivio.class);
+                        archivioRif.setIdArchivioPadre(archivio.getIdArchivioPadre());
+                    } catch (JsonProcessingException ex) {
+                        log.error("errore nella copia dell'archivio per il krint");
+                    }   
                     log.info(String.format("procedo a spostare l'archivio %s", archivio.getId()));
                     //update con cui "sposto" l'archivio da spostare
                     jPAQueryFactory
@@ -1358,8 +1365,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                         krintScriptaService.writeArchivioUpdate(archivio, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO);
                         krintScriptaService.writeArchivioUpdate(finalArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO_DESTINAZIONE);
                     } else {                
-                        krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA);
-                         if (haFigli)
+                        krintScriptaService.writeArchivioUpdate(archivio, archivioRif, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA, true);
+                        if (haFigli)
                             archivio.getArchiviFigliList().stream().
                                     forEach(archFiglio -> krintScriptaService.writeArchivioUpdate(archFiglio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA));
                     }
@@ -1431,10 +1438,10 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                             em.refresh(savedArchivio);
                             
                             log.info(String.format("inzio a copiare %s, figlio di %s, con i suoi documenti", arch.getId(), archivio.getId()));              
-                            scriptaCopyUtils.copiaArchivioConDoc(arch, savedArchivio, persona, em, Boolean.FALSE, contenuto);
+                            Archivio newArch = scriptaCopyUtils.copiaArchivioConDoc(arch, savedArchivio, persona, em, Boolean.FALSE, contenuto);
                             log.info(String.format("finito di copiare %s, figlio di %s, con i suoi documenti", arch.getId(), archivio.getId()));
                             if (iHaveToKrint) // Log nel fascicolo che è stato creato da una copia
-                                krintScriptaService.writeArchivioUpdate(arch, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA);
+                                krintScriptaService.writeArchivioUpdate(newArch, arch, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA);
                         }
                         log.info(String.format("ho copiato anche i figli di %s", archivio.getId()));
                     }
@@ -1447,22 +1454,22 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     log.info(String.format("I documenti sono stati copiati correttamente dall'archivio: " + archivio.getId() + " all'archivio: " + archivioDestinazione.getId()));
                     finalArchivio = archivioDestinazione;
                 }
+                em.refresh(finalArchivio);
                 if (iHaveToKrint) {
                     if (fascicolo && contenuto) {
-                        krintScriptaService.writeArchivioUpdate(archivio, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA);
-                        krintScriptaService.writeArchivioUpdate(finalArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA);
-                        krintScriptaService.writeArchivioUpdate(archivio, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO);
-                        krintScriptaService.writeArchivioUpdate(finalArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO_DESTINAZIONE);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA, true);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO_DESTINAZIONE);
                     } else if (contenuto) {
-                        krintScriptaService.writeArchivioUpdate(archivio, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO);
-                        krintScriptaService.writeArchivioUpdate(finalArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO_DESTINAZIONE);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO_DESTINAZIONE);
                     } else {                
-                        krintScriptaService.writeArchivioUpdate(archivio, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA);
-                        krintScriptaService.writeArchivioUpdate(finalArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA, true);
                     }
                 }
             }
-            em.refresh(finalArchivio);
             String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
             log.info("Recupero projection by name " + projection);
             Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);

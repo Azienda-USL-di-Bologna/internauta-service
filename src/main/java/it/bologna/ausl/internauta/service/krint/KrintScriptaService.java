@@ -62,6 +62,7 @@ public class KrintScriptaService {
                     null,
                     codiceOperazione);
             
+            // Logghiamo la stessa operazione anche nel padre
             if (archivio.getIdArchivioPadre() != null) {
                 krintService.writeKrintRow(
                     archivio.getIdArchivioPadre().getId().toString(), // idOggetto
@@ -101,7 +102,18 @@ public class KrintScriptaService {
      * @param archivioDiRiferimento L'archivio di riferimento utile al log specifico.
      * @param codiceOperazione Il codice dell'operazione.
      */
-    public void writeArchivioUpdate(Archivio archivio, Archivio archivioDiRiferimento, OperazioneKrint.CodiceOperazione codiceOperazione ) {
+    public void writeArchivioUpdate(Archivio archivio, Archivio archivioDiRiferimento, OperazioneKrint.CodiceOperazione codiceOperazione) {
+        writeArchivioUpdate(archivio, archivioDiRiferimento, codiceOperazione, false);
+    }
+    
+    /**
+     * Scrive il log di aggiornamento di un archivio.
+     * @param archivio L'archivio aggiornato.
+     * @param archivioDiRiferimento L'archivio di riferimento utile al log specifico.
+     * @param codiceOperazione Il codice dell'operazione.
+     * @param canLogOnPadre {@code true} per fare il log sull'archivio padre per archivio.
+     */
+    public void writeArchivioUpdate(Archivio archivio, Archivio archivioDiRiferimento, OperazioneKrint.CodiceOperazione codiceOperazione, boolean canLogOnPadre ) {
         
         try {
             // Informazioni oggetto
@@ -118,6 +130,31 @@ public class KrintScriptaService {
             
             krintService.writeKrintRow(
                     archivio.getId().toString(), // idOggetto
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
+                    archivio.getNumerazioneGerarchica(), // descrizioneOggetto
+                    jsonKrintArchivio, // informazioniOggetto
+                    null, // Da qui si ripete ma per il conenitore
+                    null,
+                    null,
+                    null,
+                    codiceOperazione);
+            
+            if (canLogOnPadre && archivio.getIdArchivioPadre() != null && (OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA.equals(codiceOperazione) || 
+                    OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA.equals(codiceOperazione))) 
+                krintService.writeKrintRow(
+                    archivio.getIdArchivioPadre().getId().toString(), // idOggetto
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
+                    archivio.getNumerazioneGerarchica(), // descrizioneOggetto
+                    jsonKrintArchivio, // informazioniOggetto
+                    null, // Da qui si ripete ma per il conenitore
+                    null,
+                    null,
+                    null,
+                    codiceOperazione);
+            // Se è uno SPOSTA FASCICOLO logghiamo sul vecchio padre lo stesso messaggio
+            if (archivioDiRiferimento != null && archivioDiRiferimento.getIdArchivioPadre() != null && OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA.equals(codiceOperazione))
+                krintService.writeKrintRow(
+                    archivioDiRiferimento.getIdArchivioPadre().getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
                     archivio.getNumerazioneGerarchica(), // descrizioneOggetto
                     jsonKrintArchivio, // informazioniOggetto
