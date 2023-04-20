@@ -15,21 +15,17 @@ import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.Massimario;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
-import it.bologna.ausl.model.entities.scripta.QArchivio;
-import static it.bologna.ausl.model.entities.scripta.QArchivio.archivio;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.Titolo;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
-import static java.lang.Math.log;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,10 +60,10 @@ public class ScriptaCopyUtils {
     private ObjectMapper objectMapper;
 
     public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em) throws JsonProcessingException, EntityReflectionException{
-        return copiaArchivio(archDaCopiare, archivioDestinazione, utente, em, Boolean.TRUE);
+        return copiaArchivio(archDaCopiare, archivioDestinazione, utente, em, Boolean.TRUE, Boolean.FALSE);
     }
     
-    public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em, Boolean numera) throws JsonProcessingException, EntityReflectionException{
+    public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em, Boolean numera, Boolean rinomina) throws JsonProcessingException, EntityReflectionException{
         String numerazioneGerarchicaDaEreditare;
         Archivio idArchivioRadiceDaEreditare;
         Titolo idTitoloDaEreditare;
@@ -96,6 +92,8 @@ public class ScriptaCopyUtils {
         }else {
             newArchivio.setNumerazioneGerarchica(numerazioneGerarchicaDaEreditare.replace("/", "-" + (newArchivio.getNumero().toString().equals("0") ? "x" : newArchivio.getNumero().toString()) + "/"));
         }
+        if (rinomina)
+            newArchivio.setOggetto(archDaCopiare.getOggetto() + " - copia");
         newArchivio.setIdArchivioPadre(archivioDestinazione);
         newArchivio.setIdArchivioRadice(idArchivioRadiceDaEreditare);
         newArchivio.setIdTitolo(idTitoloDaEreditare);
@@ -166,7 +164,11 @@ public class ScriptaCopyUtils {
     }
     
     public Archivio copiaArchivioConDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona persona, EntityManager em, Boolean numera, Boolean contenuto) throws JsonProcessingException, EntityReflectionException{
-        Archivio savedArchivio = copiaArchivio(archDaCopiare, archivioDestinazione, persona, em, numera);
+        return copiaArchivioConDoc(archDaCopiare, archivioDestinazione, persona, em, numera, false, contenuto);
+    }
+    
+    public Archivio copiaArchivioConDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona persona, EntityManager em, Boolean numera, Boolean rinomina, Boolean contenuto) throws JsonProcessingException, EntityReflectionException{
+        Archivio savedArchivio = copiaArchivio(archDaCopiare, archivioDestinazione, persona, em, numera, rinomina);
         if(contenuto){
             copiaArchivioDoc(archDaCopiare, savedArchivio, persona, em);
         }

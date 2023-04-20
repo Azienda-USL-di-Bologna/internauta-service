@@ -1471,7 +1471,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 //procedo con le modifiche
                 if (fascicolo) {
                     log.info(String.format("inzio a copiare %s con i suoi documenti", archivio.getId()));              
-                    Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivioDestinazione, persona, em, Boolean.TRUE, contenuto);
+                    Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivioDestinazione, persona, em, Boolean.TRUE, Boolean.TRUE, contenuto);
                     log.info(String.format("finito di copiare %s con i suoi documenti", archivio.getId()));
                     if (haFigli) {
                         log.info(String.format("procedo a copiare i figli di %s", archivio.getId()));
@@ -1552,7 +1552,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 haFigli = true;
             }
             log.info(String.format("inzio a duplicare %s con i suoi documenti", archivio.getId()));              
-            Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivio.getIdArchivioPadre(), persona, em, Boolean.TRUE, contenuto);
+            Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivio.getIdArchivioPadre(), persona, em, Boolean.TRUE, Boolean.TRUE, contenuto);
             log.info(String.format("finito di duplicare %s con i suoi documenti", archivio.getId()));
 //            
 //            log.info(String.format("inizio a duplicare l'archivio %s", archivio.getId()));
