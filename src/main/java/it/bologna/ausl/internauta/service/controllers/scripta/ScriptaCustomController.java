@@ -1285,13 +1285,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
             @RequestParam("fascicolo") boolean fascicolo,
             @RequestParam("contenuto") boolean contenuto,
-            HttpServletRequest request) throws Http500ResponseException, RestControllerEngineException, Http403ResponseException, BlackBoxPermissionException {
+            HttpServletRequest request) throws Http500ResponseException, RestControllerEngineException, BlackBoxPermissionException, Http403ResponseException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         //controllo che almeno uno e solo uno tra fascicolo e contenuto sia stato selezionato
         if ((contenuto == false && fascicolo == false) || (contenuto == true && fascicolo == true)){
             throw new Http500ResponseException("1", "Uno e solo uno tra i target fascicolo e contenuto deve essere selezionato");
         }
-        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         //procedo a tirare su tutto ciò che mi serve sull'archivio soggetto del sposta
         Integer idArchivioInt = Integer.valueOf(idArchivio);
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO))
@@ -1333,6 +1333,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                         log.error("errore nella copia dell'archivio per il krint");
                     }   
                     log.info(String.format("procedo a spostare l'archivio %s", archivio.getId()));
+                    
                     //update con cui "sposto" l'archivio da spostare
                     jPAQueryFactory
                             .update(QArchivio.archivio)
@@ -1351,6 +1352,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     //numero il nuovo archivio
                     archivioRepository.numeraArchivio(archivio.getId());
                     log.info(String.format("ho numerato l'archivio di %s", archivio.getId()));
+                    scriptaCopyUtils.setNewAttoriArchivio(archivio, em);
                     
                     //grazie al controllo sulla presenza dei figli fatto in precedenza agisco di conseguenza
                     if (haFigli) {
@@ -1371,6 +1373,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                         log.info(String.format("finito le modifiche ai figli di %s", archivio.getId()));
                     }
                     em.refresh(archivio);
+                    for(Archivio archFiglio: archivio.getArchiviFigliList()){
+                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, em);                        
+                    }
                     //ricalcolo i permessi per l'achivio spostato e figli
                     archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
                     finalArchivio = archivio;
