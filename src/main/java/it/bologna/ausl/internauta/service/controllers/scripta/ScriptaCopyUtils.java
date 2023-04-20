@@ -18,6 +18,7 @@ import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
 import static it.bologna.ausl.model.entities.scripta.QArchivio.archivio;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.Titolo;
 import it.nextsw.common.utils.EntityReflectionUtils;
@@ -123,14 +124,16 @@ public class ScriptaCopyUtils {
         }
         detail.setLivello(livelloDaEreditare);
 
-        List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
-        for (AttoreArchivio attore: archDaCopiare.getAttoriList()){
-            AttoreArchivio newAttore = new AttoreArchivio(newArchivio, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
-            em.persist(newAttore);
-            em.refresh(newAttore);
-            attoriList.add(newAttore);
-        }
-        newArchivio.setAttoriList(attoriList);
+        setNewAttoriArchivio(newArchivio, utente, em);
+//        
+//        List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
+//        for (AttoreArchivio attore: archDaCopiare.getAttoriList()){
+//            AttoreArchivio newAttore = new AttoreArchivio(newArchivio, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
+//            em.persist(newAttore);
+//            em.refresh(newAttore);
+//            attoriList.add(newAttore);
+//        }
+//        newArchivio.setAttoriList(attoriList);
         
         
         if(numera){
@@ -138,6 +141,39 @@ public class ScriptaCopyUtils {
             archivioRepository.numeraArchivio(newArchivio.getId());
         }
         return newArchivio;
+    }
+    
+    public void setNewAttoriArchivio(Archivio arch, EntityManager em){
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+        for (AttoreArchivio attore: arch.getIdArchivioRadice().getAttoriList()){
+            if(attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.CREATORE)){
+                Persona p = attore.getIdPersona();
+                jPAQueryFactory
+                            .delete(QAttoreArchivio.attoreArchivio)
+                            .where(QAttoreArchivio.attoreArchivio.idArchivio.id.eq(arch.getId()))
+                            .execute();
+                setNewAttoriArchivio(arch, p, em);
+            }
+        }
+    }
+    
+    public void setNewAttoriArchivio(Archivio arch, Persona utenteCreatore, EntityManager em){
+        List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
+        AttoreArchivio newAttoreCreatore = new AttoreArchivio(arch, utenteCreatore, null, AttoreArchivio.RuoloAttoreArchivio.CREATORE);
+        em.persist(newAttoreCreatore);
+        em.refresh(newAttoreCreatore);
+        attoriList.add(newAttoreCreatore);
+        for (AttoreArchivio attore: arch.getIdArchivioRadice().getAttoriList()){
+            if(attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.VICARIO) || 
+               attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE) ||
+               attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO)){
+                AttoreArchivio newAttore = new AttoreArchivio(arch, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
+                em.persist(newAttore);
+                em.refresh(newAttore);
+                attoriList.add(newAttore);
+            }  
+        }
+        arch.setAttoriList(attoriList);
     }
     
     public void copiaArchivioDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em){
