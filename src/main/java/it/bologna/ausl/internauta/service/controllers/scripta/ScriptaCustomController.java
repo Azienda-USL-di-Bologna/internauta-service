@@ -132,7 +132,6 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWith
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashSet;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
@@ -1286,13 +1285,17 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
             @RequestParam("fascicolo") boolean fascicolo,
             @RequestParam("contenuto") boolean contenuto,
-            HttpServletRequest request) throws Http500ResponseException, RestControllerEngineException {
+            HttpServletRequest request) throws Http500ResponseException, RestControllerEngineException, Http403ResponseException, BlackBoxPermissionException {
         //controllo che almeno uno e solo uno tra fascicolo e contenuto sia stato selezionato
         if ((contenuto == false && fascicolo == false) || (contenuto == true && fascicolo == true)){
             throw new Http500ResponseException("1", "Uno e solo uno tra i target fascicolo e contenuto deve essere selezionato");
         }
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         //procedo a tirare su tutto ciò che mi serve sull'archivio soggetto del sposta
         Integer idArchivioInt = Integer.valueOf(idArchivio);
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO))
+            throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
         Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
         //finalArchivio è l'archivio che verrà usato per crare la projection da restituire al front end
         Archivio finalArchivio = null;
@@ -1431,7 +1434,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
             @RequestParam("fascicolo") boolean fascicolo,
             @RequestParam("contenuto") boolean contenuto,
-            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException, Http403ResponseException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Archivio finalArchivio = null;
@@ -1441,6 +1444,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         //procedo a tirare su tutto ciò che mi serve
         Integer idArchivioInt = Integer.valueOf(idArchivio);
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO))
+            throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
         Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
         //controllo l'effettiva presenza dell'archivio da copiare
         if (a.isPresent()) {
@@ -1526,7 +1531,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam("idArchivio") String idArchivio,
             @RequestParam("fascicolo") boolean fascicolo,
             @RequestParam("contenuto") boolean contenuto,
-            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException, Http403ResponseException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         if ((contenuto == false && fascicolo == false) || (contenuto == true && fascicolo == true)){
@@ -1534,6 +1539,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         //procedo a tirare su tutto ciò che mi serve per l'archivio da duplicare
         Integer idArchivioInt = Integer.parseInt(idArchivio);
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO))
+            throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
         Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
         //controllo l'effettiva presenza dell'archivio da spostare
         if (a.isPresent()) {
@@ -1616,11 +1623,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     @Transactional
     public Object rendiFascicolo(
             @RequestParam("idArchivio") String idArchivio,
-            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException, Http403ResponseException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         //procedo a tirare su tutto ciò che mi serve
         Integer idArchivioInt = Integer.parseInt(idArchivio);
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO))
+            throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
         Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
         //controllo l'effettiva presenza dell'archivio da spostare
