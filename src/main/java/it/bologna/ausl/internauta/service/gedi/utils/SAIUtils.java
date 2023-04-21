@@ -11,18 +11,29 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloPadreNotDefinedException;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerInitializationException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fascicolatoresai.FascicolatoreSAIWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fascicolatoresai.FascicolatoreSAIWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.masterjobs.Set;
+import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.shpeck.Outbox;
+import java.util.ArrayList;
+import java.util.List;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import org.json.XMLTokener;
 
 /**
  *
@@ -43,13 +54,125 @@ public class SAIUtils {
     private MasterjobsJobsQueuer masterjobsJobsQueuer; 
     
     @Autowired
+    private ArchivioRepository archivioRepository;
+    
+    @Autowired
+    private AttoreArchivioRepository attoreArchivioRepository;
+    
+    @Autowired
     private MasterjobsObjectsFactory masterjobsObjectsFactory; 
     
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
+    
+    public String fascicolaPecGediInternauta(
+            Integer idOutbox,
+            Azienda azienda,
+            String cognome,
+            String nome,
+            String codiceFiscale,
+            String mittente,
+            String numerazioneGerarchicaDelPadre,
+            Utente utente,
+            Persona persona
+    ) throws FascicoloPadreNotDefinedException, FascicoloNotFoundException, MasterjobsWorkerException, MasterjobsQueuingException {
+        log.info("fascicolaPecGediInternauta");
+        Map<String, Object> datiPerFascicolazione;
+        if (numerazioneGerarchicaDelPadre == null) {
+            log.info("fascicolazione gerarchida del padre non passata, la cerco in parametri_aziene");            
+            datiPerFascicolazione = getDatiPerFascicolazione(mittente, azienda.getId());
+        } else {
+            datiPerFascicolazione = getDatiPerFascicolazione("default", azienda.getId());
+        }
+        numerazioneGerarchicaDelPadre = (String) datiPerFascicolazione.get("numerazioneGerarchicaFascicolo");
+        String nomeFascicoloTemplate = ((String) datiPerFascicolazione.get("templateNomeSottoFascicolo"));
+        nomeFascicoloTemplate = nomeFascicoloTemplate.replace("[CF]", codiceFiscale);
+        nomeFascicoloTemplate = nomeFascicoloTemplate.replace("[COGNOME]", cognome != null? cognome: "");
+        nomeFascicoloTemplate = nomeFascicoloTemplate.replace("[NOME]", nome != null? nome: "");
+        nomeFascicoloTemplate = nomeFascicoloTemplate.replaceAll("\\s+", " ").trim(); // toglie gli spazi in mezzo e all'inizio e alla fine
+        
+        Archivio archivioPadre;
+        
+        if (numerazioneGerarchicaDelPadre != null) {
+            archivioPadre = archivioRepository.findByNumerazioneGerarchicaAndIdAzienda(numerazioneGerarchicaDelPadre, azienda.getId());
+            if (archivioPadre == null) {
+                String errorMessage = String.format("Impossibile trovare il fascicolo %s ", numerazioneGerarchicaDelPadre);
+                log.error(errorMessage);
+                throw new FascicoloNotFoundException(errorMessage);
+            }
+        } else {
+            String errorMessage = "non è stato possibile reperire la numerazione gerarchica del padre";
+            log.error(errorMessage);
+            throw new FascicoloPadreNotDefinedException(errorMessage);
+        }
+        log.info("id fascicolo padre: " + archivioPadre.getId());
+        
+        log.info("Cerco il fascicolo destinazione ...");
+        Archivio archivioDestinazione = archivioRepository.findByPadreAndPatternOggetto(archivioPadre.getId(), "%" + codiceFiscale + "%");
+        
+        if (archivioDestinazione != null) {
+            log.info("fascicolo destinazione: " + archivioDestinazione.getIdArchivioArgo());
+        } else {
+            log.info("Not found fascicolo destinazione: va creato");
+            
+            archivioDestinazione = new Archivio(
+                    azienda,
+                    archivioPadre,
+                    archivioPadre.getIdArchivioRadice(),
+                    0,
+                    0,
+                    archivioPadre.getNumero() + "-x/" + archivioPadre.getAnno(),
+                    Archivio.TipoArchivio.AFFARE.toString(),
+                    true,
+                    nomeFascicoloTemplate,
+                    Archivio.StatoArchivio.BOZZA.toString(),
+                    archivioPadre.getLivello() + 1,
+                    archivioPadre.getIdTitolo(),
+                    null
+            );
+            
+            archivioDestinazione = archivioRepository.save(archivioDestinazione);
+            archivioRepository.numeraArchivio(archivioDestinazione.getId());
+            entityManager.refresh(archivioDestinazione);
+            
+            List<AttoreArchivio> attoriListPadre = archivioPadre.getAttoriList();
+            List<AttoreArchivio> attoriList = new ArrayList();
+            
+            for (AttoreArchivio attore : attoriListPadre) {
+                AttoreArchivio newAttore = new AttoreArchivio(archivioDestinazione, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
+                attoriList.add(newAttore);
+            }
+            
+            attoreArchivioRepository.saveAll(attoriList);
+            //archivioDestinazione.persist ? e poi chiamo la numerazione?  transactonal??
+                    
+            
+        }            
+            
+        log.info("Accodo jobs di fascicolazione outbox");
+        
+//        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+//        accodatoreVeloce.accodaCalcolaPermessiArchivio(archivioDestinazione.getId(), idOutbox.toString(), Outbox.class.getSimpleName(), Applicazione.Applicazioni.sai.toString());
+
+        FascicolatoreSAIWorker fascicolatoreSAIWorker = createFascicolatoreSAIWorker(
+                idOutbox, azienda.getId(), null, null, archivioDestinazione.getNumerazioneGerarchica(), utente.getId(), persona.getId());
+        masterjobsJobsQueuer.queue(
+                fascicolatoreSAIWorker, 
+                idOutbox.toString(), 
+                Outbox.class.getSimpleName(), 
+                Applicazione.Applicazioni.sai.toString(), 
+                true, 
+                Set.SetPriority.NORMAL);
+
+        return archivioDestinazione.getNumerazioneGerarchica();
+    }
 
     // fascicola pec
-    public String fascicolaPec(Integer idOutbox,
+    public String fascicolaPecOldGedi(
+            Integer idOutbox,
             Azienda azienda,
             String cognome,
             String nome,
@@ -58,6 +181,7 @@ public class SAIUtils {
             String numerazioneGerarchicaDelPadre,
             Utente utente,
             Persona persona) throws Exception {
+        log.info("fascicolaPecOldGedi");
         String idFascicoloPadre = null;
         log.info("Cerco il fascicolo padre");
         Map<String, Object> fascicoloPadre = null;

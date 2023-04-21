@@ -43,10 +43,10 @@ public class CalcolaGerarchiaArchivioJobWorker extends JobWorker<CalcolaGerarchi
            log.error(errore, ex);
            throw new MasterjobsWorkerException(errore, ex);
         }
-        log.info("Gerarchia calcolata ora accodo il ricalcolo permessi archivi e il ricalcolo persone vedenti");
+        log.info("Gerarchia calcolata ora accodo il ricalcolo permessi archivi");
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-        accodatoreVeloce.accodaCalcolaPermessiArchivio(data.getIdArchivioRadice(), data.getIdArchivioRadice().toString(), "scripta_archivio", null);
-        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(data.getIdArchivioRadice())), data.getIdArchivioRadice().toString(), "scripta_archivio", null);
+        accodatoreVeloce.accodaCalcolaPermessiGerarchiaArchivio(data.getIdArchivioRadice(), data.getIdArchivioRadice().toString(), "scripta_archivio", null);
+        //accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(data.getIdArchivioRadice())), data.getIdArchivioRadice().toString(), "scripta_archivio", null);
         return null;
     }
 }
