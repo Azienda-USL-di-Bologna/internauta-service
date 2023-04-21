@@ -9,10 +9,12 @@ import it.bologna.ausl.eml.handler.EmlHandlerResult;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
+import it.bologna.ausl.internauta.service.exceptions.InternautaRuntimeExceptionContainer;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.HttpResponseRuntimeException;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicolazioneGddocException;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloPadreNotDefinedException;
@@ -45,9 +47,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.QPec;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.diagnostica.Report;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
@@ -58,10 +63,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.apache.commons.codec.digest.MessageDigestAlgorithms;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.http.MediaType;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  *
@@ -102,9 +109,15 @@ public class SAIController implements ControllerHandledExceptions {
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    private ParametriAziendeReader parametriAziendeReader;
 
     @Autowired
     private CachedEntities cachedEntities;
+    
+    @Autowired
+    TransactionTemplate transactionTemplate;
     
     // @Transactional(rollbackFor = Throwable.class, noRollbackFor = Http500ResponseException.class)
     @RequestMapping(value = {"send-and-archive-pec", "sendAndArchivePec"}, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -122,7 +135,7 @@ public class SAIController implements ControllerHandledExceptions {
             @RequestParam(name = "nome", required = false) String nome,
             @RequestParam(name = "fascicolo", required = false) String fascicolo,
             @RequestParam(name = "azienda", required = true) String azienda
-    ) throws Http500ResponseException, Http400ResponseException, Http403ResponseException, IOException, NoSuchAlgorithmException {
+    ) throws Http500ResponseException, Http400ResponseException, Http403ResponseException, IOException, NoSuchAlgorithmException, Throwable {
         try{
             
             Boolean doIHaveToKrint = true;
@@ -234,31 +247,73 @@ public class SAIController implements ControllerHandledExceptions {
             }
 
             String numerazioneGerarchica = null;
-            try {
-                numerazioneGerarchica = saiUtils.fascicolaPec(idOutBox, aziendaObj, cognome, nome, userCF, senderAddress, fascicolo, user, person);
-            } catch (FascicolazioneGddocException ex) {
-                LOG.error("errore fascicolazione 500-007", ex);
-                throw new Http500ResponseException("500-007", "Il sottofacicolo è stato creato, ma c'è stato un errore nella fascicolazione della mail", ex);
-            } catch (FascicoloNotFoundException ex) {
-                LOG.error("errore fascicolazione 400-003", ex);
-                throw new Http400ResponseException("400-003", "Il fascicolo padre in cui fascicolare non è stato trovato", ex);
-            } catch (FascicoloPadreNotDefinedException ex) {
-                LOG.error("errore fascicolazione 500-006", ex);
-                throw new Http500ResponseException("500-006", "Il fascicolo padre in cui fascicolare non è definito in Babel", ex);
-            } catch (FascicoloPermissionSettingException ex) {
-                LOG.error("errore fascicolazione 500-011", ex);
-                throw new Http500ResponseException("500-011", "Errore nell'attribuzione dei permessi al fascicolo", ex);
-            } catch (GddocCreationException ex) {
-                LOG.error("errore fascicolazione 500-008", ex);
-                throw new Http500ResponseException("500-008", "Il sottofacicolo è stato creato, ma c'è stato un errore nella creazione del documento da fascicolare", ex);
-            } catch (SubFascicoloCreationException ex) {
-                LOG.error("errore fascicolazione 500-009", ex);
-                throw new Http500ResponseException("500-009", "Errore nella creazione del sottofascicolo", ex);
-            } catch (Exception ex) {
-                LOG.error("errore fascicolazione 500-010", ex);
-                throw new Http500ResponseException("500-010", "Errore non previsto nella fascicolazione della mail", ex);
+            
+            List<ParametroAziende> parameters = parametriAziendeReader.getParameters(
+                    ParametriAziendeReader.ParametriAzienda.usaGediInternauta.toString(),
+                    new Integer[]{aziendaObj.getId()}
+            );
+            if (parameters.size() == 1 && parametriAziendeReader.getValue(parameters.get(0), Boolean.class)) {
+                // Ok si usa gedi nuovo
+                try {
+                    Integer varIdOutBox = idOutBox;
+                    String resNumerazioneGerarchica = transactionTemplate.execute(a -> {
+                        try {
+                            return saiUtils.fascicolaPecGediInternauta(
+                                    varIdOutBox, 
+                                    aziendaObj, 
+                                    cognome, nome, 
+                                    userCF, 
+                                    senderAddress, 
+                                    fascicolo, 
+                                    user, 
+                                    person);
+                        } catch (FascicoloPadreNotDefinedException | FascicoloNotFoundException | MasterjobsWorkerException | MasterjobsQueuingException ex) {
+                            throw new InternautaRuntimeExceptionContainer(ex);
+                        }
+                    });
+                    numerazioneGerarchica = resNumerazioneGerarchica;
+                } catch (InternautaRuntimeExceptionContainer ex) {
+                    Exception exception = ex.getException();
+                    if (exception.getClass().isAssignableFrom(FascicoloPadreNotDefinedException.class)) {
+                        LOG.error("errore fascicolazione 500-006", ex);
+                        throw new Http500ResponseException("500-006", "Il fascicolo padre in cui fascicolare non è definito in Babel", ex);
+                    } else if (exception.getClass().isAssignableFrom(FascicoloNotFoundException.class)) {
+                        LOG.error("errore fascicolazione 400-003", ex);
+                        throw new Http400ResponseException("400-003", "Il fascicolo padre in cui fascicolare non è stato trovato", ex);
+                    } else {
+                        LOG.error("errore fascicolazione 500-010", ex);
+                        throw new Http500ResponseException("500-010", "Errore non previsto nella fascicolazione della mail", ex);
+                    }
+                }
+                
+            } else {
+                // Si usa gedi vecchio
+                try {
+                    numerazioneGerarchica = saiUtils.fascicolaPecOldGedi(idOutBox, aziendaObj, cognome, nome, userCF, senderAddress, fascicolo, user, person);
+                } catch (FascicolazioneGddocException ex) {
+                    LOG.error("errore fascicolazione 500-007", ex);
+                    throw new Http500ResponseException("500-007", "Il sottofacicolo è stato creato, ma c'è stato un errore nella fascicolazione della mail", ex);
+                } catch (FascicoloNotFoundException ex) {
+                    LOG.error("errore fascicolazione 400-003", ex);
+                    throw new Http400ResponseException("400-003", "Il fascicolo padre in cui fascicolare non è stato trovato", ex);
+                } catch (FascicoloPadreNotDefinedException ex) {
+                    LOG.error("errore fascicolazione 500-006", ex);
+                    throw new Http500ResponseException("500-006", "Il fascicolo padre in cui fascicolare non è definito in Babel", ex);
+                } catch (FascicoloPermissionSettingException ex) {
+                    LOG.error("errore fascicolazione 500-011", ex);
+                    throw new Http500ResponseException("500-011", "Errore nell'attribuzione dei permessi al fascicolo", ex);
+                } catch (GddocCreationException ex) {
+                    LOG.error("errore fascicolazione 500-008", ex);
+                    throw new Http500ResponseException("500-008", "Il sottofacicolo è stato creato, ma c'è stato un errore nella creazione del documento da fascicolare", ex);
+                } catch (SubFascicoloCreationException ex) {
+                    LOG.error("errore fascicolazione 500-009", ex);
+                    throw new Http500ResponseException("500-009", "Errore nella creazione del sottofascicolo", ex);
+                } catch (Exception ex) {
+                    LOG.error("errore fascicolazione 500-010", ex);
+                    throw new Http500ResponseException("500-010", "Errore non previsto nella fascicolazione della mail", ex);
+                }
             }
-
+            
             Map<String, Object> res = new HashMap();
             res.put("mail-id", idOutBox);
             res.put("fascicolo-id", numerazioneGerarchica);

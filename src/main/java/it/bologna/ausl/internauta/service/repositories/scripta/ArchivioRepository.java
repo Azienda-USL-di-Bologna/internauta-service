@@ -41,13 +41,19 @@ public interface ArchivioRepository extends
     public void eliminaBozzeDaArchivioRadice(String stato, Integer idArchivioRadice);
 
 //    @Procedure("permessi.calcola_permessi_espliciti")
-//    public void calcolaPermessiEspliciti(
+//    public void calcolaPermessiEsplicitiGerarchia(
 //        @Param("id_archivio") Integer idArchivio
 //    );
     @Query(value = "select permessi.calcola_permessi_espliciti(a.id) from scripta.archivi a where id_archivio_radice = ?1",
             nativeQuery = true)
-    public void calcolaPermessiEspliciti(
+    public void calcolaPermessiEsplicitiGerarchia(
             Integer idArchivioRadice
+    );
+    
+    @Query(value = "select permessi.calcola_permessi_espliciti(?1)",
+            nativeQuery = true)
+    public void calcolaPermessiEspliciti(
+            Integer idArchivio
     );
     
     @Query(value = "select * from permessi.copia_permessi_archivi(?1, ?2)",
@@ -73,9 +79,13 @@ public interface ArchivioRepository extends
             Integer idArchivioRadice
     );
     
-    public Archivio findByNumerazioneGerarchica(String numerazioneGerarchica);
+    @Query(value = "SELECT * FROM scripta.archivi a WHERE numerazione_gerarchica = ?1 and id_azienda = ?2", nativeQuery = true)
+    public Archivio findByNumerazioneGerarchicaAndIdAzienda(String numerazioneGerarchica, Integer idAzienda);
     
     public List<Archivio> findByIdArchivioPadre(Archivio idArchivioPadre);
     
     public List<Archivio> findByIdArchivioPadreAndStatoIsNot(Archivio idArchivioPadre, String stato);
+    
+    @Query(value = "SELECT * FROM scripta.archivi a WHERE id_archivio_padre = ?1 and oggetto like ?2", nativeQuery = true)
+    public Archivio findByPadreAndPatternOggetto(Integer idArchivioPadre, String patternOggetto);
 }

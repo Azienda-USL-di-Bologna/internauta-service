@@ -11,7 +11,5 @@ import org.springframework.data.rest.core.config.Projection;
 public interface KrintScriptaMassimario {
 
     Integer getId();
-    String getNome();
-    String getDescrizioneTenuta();
-    
+    String getNome();    
 }

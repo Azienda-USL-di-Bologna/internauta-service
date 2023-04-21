@@ -15,21 +15,18 @@ import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.Massimario;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
-import it.bologna.ausl.model.entities.scripta.QArchivio;
-import static it.bologna.ausl.model.entities.scripta.QArchivio.archivio;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.Titolo;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
-import static java.lang.Math.log;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,10 +61,10 @@ public class ScriptaCopyUtils {
     private ObjectMapper objectMapper;
 
     public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em) throws JsonProcessingException, EntityReflectionException{
-        return copiaArchivio(archDaCopiare, archivioDestinazione, utente, em, Boolean.TRUE);
+        return copiaArchivio(archDaCopiare, archivioDestinazione, utente, em, Boolean.TRUE, Boolean.FALSE);
     }
     
-    public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em, Boolean numera) throws JsonProcessingException, EntityReflectionException{
+    public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em, Boolean numera, Boolean rinomina) throws JsonProcessingException, EntityReflectionException{
         String numerazioneGerarchicaDaEreditare;
         Archivio idArchivioRadiceDaEreditare;
         Titolo idTitoloDaEreditare;
@@ -94,8 +91,10 @@ public class ScriptaCopyUtils {
             newArchivio.setNumerazioneGerarchica(numerazioneGerarchicaDaEreditare.replace("/", "-x/"));
             newArchivio.setStato(Archivio.StatoArchivio.BOZZA);
         }else {
-            newArchivio.setNumerazioneGerarchica(numerazioneGerarchicaDaEreditare.replace("/", "-" + newArchivio.getNumero().toString() + "/"));
+            newArchivio.setNumerazioneGerarchica(numerazioneGerarchicaDaEreditare.replace("/", "-" + (newArchivio.getNumero().toString().equals("0") ? "x" : newArchivio.getNumero().toString()) + "/"));
         }
+        if (rinomina)
+            newArchivio.setOggetto(archDaCopiare.getOggetto() + " - copia");
         newArchivio.setIdArchivioPadre(archivioDestinazione);
         newArchivio.setIdArchivioRadice(idArchivioRadiceDaEreditare);
         newArchivio.setIdTitolo(idTitoloDaEreditare);
@@ -123,14 +122,16 @@ public class ScriptaCopyUtils {
         }
         detail.setLivello(livelloDaEreditare);
 
-        List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
-        for (AttoreArchivio attore: archDaCopiare.getAttoriList()){
-            AttoreArchivio newAttore = new AttoreArchivio(newArchivio, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
-            em.persist(newAttore);
-            em.refresh(newAttore);
-            attoriList.add(newAttore);
-        }
-        newArchivio.setAttoriList(attoriList);
+        setNewAttoriArchivio(newArchivio, utente, em);
+//        
+//        List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
+//        for (AttoreArchivio attore: archDaCopiare.getAttoriList()){
+//            AttoreArchivio newAttore = new AttoreArchivio(newArchivio, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
+//            em.persist(newAttore);
+//            em.refresh(newAttore);
+//            attoriList.add(newAttore);
+//        }
+//        newArchivio.setAttoriList(attoriList);
         
         
         if(numera){
@@ -140,7 +141,40 @@ public class ScriptaCopyUtils {
         return newArchivio;
     }
     
-    public void coiaArchivioDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em){
+    public void setNewAttoriArchivio(Archivio arch, EntityManager em){
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+        for (AttoreArchivio attore: arch.getIdArchivioRadice().getAttoriList()){
+            if(attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.CREATORE)){
+                Persona p = attore.getIdPersona();
+                jPAQueryFactory
+                            .delete(QAttoreArchivio.attoreArchivio)
+                            .where(QAttoreArchivio.attoreArchivio.idArchivio.id.eq(arch.getId()))
+                            .execute();
+                setNewAttoriArchivio(arch, p, em);
+            }
+        }
+    }
+    
+    public void setNewAttoriArchivio(Archivio arch, Persona utenteCreatore, EntityManager em){
+        List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
+        AttoreArchivio newAttoreCreatore = new AttoreArchivio(arch, utenteCreatore, null, AttoreArchivio.RuoloAttoreArchivio.CREATORE);
+        em.persist(newAttoreCreatore);
+        em.refresh(newAttoreCreatore);
+        attoriList.add(newAttoreCreatore);
+        for (AttoreArchivio attore: arch.getIdArchivioRadice().getAttoriList()){
+            if(attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.VICARIO) || 
+               attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE) ||
+               attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO)){
+                AttoreArchivio newAttore = new AttoreArchivio(arch, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
+                em.persist(newAttore);
+                em.refresh(newAttore);
+                attoriList.add(newAttore);
+            }  
+        }
+        arch.setAttoriList(attoriList);
+    }
+    
+    public void copiaArchivioDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em){
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
 
         List<Integer> idDocsDaSpostare = jPAQueryFactory
@@ -163,6 +197,19 @@ public class ScriptaCopyUtils {
             ArchivioDoc newArchivioDoc = new ArchivioDoc(archivioDestinazione, idDoc, utente);
             em.persist(newArchivioDoc);
         }
+    }
+    
+    public Archivio copiaArchivioConDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona persona, EntityManager em, Boolean numera, Boolean contenuto) throws JsonProcessingException, EntityReflectionException{
+        return copiaArchivioConDoc(archDaCopiare, archivioDestinazione, persona, em, numera, false, contenuto);
+    }
+    
+    public Archivio copiaArchivioConDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona persona, EntityManager em, Boolean numera, Boolean rinomina, Boolean contenuto) throws JsonProcessingException, EntityReflectionException{
+        Archivio savedArchivio = copiaArchivio(archDaCopiare, archivioDestinazione, persona, em, numera, rinomina);
+        if(contenuto){
+            copiaArchivioDoc(archDaCopiare, savedArchivio, persona, em);
+        }
+        em.refresh(savedArchivio);
+        return savedArchivio;
     }
     
     public Map<String, List<String>> copiaArchiviazioni(Doc docOrgine, Doc docDestinazione, Persona persona) {

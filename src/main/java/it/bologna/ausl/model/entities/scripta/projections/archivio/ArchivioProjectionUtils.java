@@ -1,6 +1,7 @@
 package it.bologna.ausl.model.entities.scripta.projections.archivio;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -21,6 +22,7 @@ import it.bologna.ausl.model.entities.permessi.Entita;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
+import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.projections.generated.PermessoArchivioWithPlainFields;
 import it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView;
@@ -28,6 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
@@ -62,41 +66,59 @@ public class ArchivioProjectionUtils {
 
     @Autowired
     private AziendaRepository aziendaRepository;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public Boolean getIsArchivioNero(ArchivioDetail archivio) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = authenticatedSessionData.getPerson();
-        BooleanExpression filter = QPermessoArchivio.permessoArchivio.idArchivioDetail.id.eq(archivio.getId())
-                .and(QPermessoArchivio.permessoArchivio.idPersona.id.eq(persona.getId()))
-                .and(QPermessoArchivio.permessoArchivio.idAzienda.id.eq((archivio.getIdAzienda().getId())))
-                .and(QPermessoArchivio.permessoArchivio.dataCreazione.eq(archivio.getDataCreazione()));
-        PermessoArchivio pA = new PermessoArchivio();
-        Iterable<PermessoArchivio> permessiArchivi = permessoArchivioRepository.findAll(filter);
-        return !(permessiArchivi.iterator().hasNext());
+        return checkIfPermessoArchivioExists(persona.getId(), archivio.getId());
+//        BooleanExpression filter = QPermessoArchivio.permessoArchivio.idArchivioDetail.id.eq(archivio.getId())
+//                .and(QPermessoArchivio.permessoArchivio.idPersona.id.eq(persona.getId()))
+//                .and(QPermessoArchivio.permessoArchivio.idAzienda.id.eq((archivio.getIdAzienda().getId())))
+//                .and(QPermessoArchivio.permessoArchivio.dataCreazione.eq(archivio.getDataCreazione()));
+//        PermessoArchivio pA = new PermessoArchivio();
+//        Iterable<PermessoArchivio> permessiArchivi = permessoArchivioRepository.findAll(filter);
+//        return !(permessiArchivi.iterator().hasNext());
     }
 
     public Boolean getIsArchivioNeroView(ArchivioDetailView archivio) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = authenticatedSessionData.getPerson();
-        BooleanExpression filter = QPermessoArchivio.permessoArchivio.idArchivioDetail.id.eq(archivio.getId())
-                .and(QPermessoArchivio.permessoArchivio.idPersona.id.eq(persona.getId()))
-                .and(QPermessoArchivio.permessoArchivio.idAzienda.id.eq((archivio.getIdAzienda().getId())))
-                .and(QPermessoArchivio.permessoArchivio.dataCreazione.eq(archivio.getDataCreazione()));
-        PermessoArchivio pA = new PermessoArchivio();
-        Iterable<PermessoArchivio> permessiArchivi = permessoArchivioRepository.findAll(filter);
-        return !(permessiArchivi.iterator().hasNext());
+        return checkIfPermessoArchivioExists(persona.getId(), archivio.getId());
+//        BooleanExpression filter = QPermessoArchivio.permessoArchivio.idArchivioDetail.id.eq(archivio.getId())
+//                .and(QPermessoArchivio.permessoArchivio.idPersona.id.eq(persona.getId()))
+//                .and(QPermessoArchivio.permessoArchivio.idAzienda.id.eq((archivio.getIdAzienda().getId())))
+//                .and(QPermessoArchivio.permessoArchivio.dataCreazione.eq(archivio.getDataCreazione()));
+//        PermessoArchivio pA = new PermessoArchivio();
+//        Iterable<PermessoArchivio> permessiArchivi = permessoArchivioRepository.findAll(filter);
+//        return !(permessiArchivi.iterator().hasNext());
     }
-
+    
     public Boolean getIsArchivioNero(Archivio archivio) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = authenticatedSessionData.getPerson();
-        BooleanExpression filter = QPermessoArchivio.permessoArchivio.idArchivioDetail.id.eq(archivio.getId())
-                .and(QPermessoArchivio.permessoArchivio.idPersona.id.eq(persona.getId()))
-                .and(QPermessoArchivio.permessoArchivio.idAzienda.id.eq((archivio.getIdAzienda().getId())))
-                .and(QPermessoArchivio.permessoArchivio.dataCreazione.eq(archivio.getDataCreazione()));
-        PermessoArchivio pA = new PermessoArchivio();
-        Iterable<PermessoArchivio> permessiArchivi = permessoArchivioRepository.findAll(filter);
-        return !(permessiArchivi.iterator().hasNext());
+        return checkIfPermessoArchivioExists(persona.getId(), archivio.getId());
+    }
+    
+    private Boolean checkIfPermessoArchivioExists(Integer idPersona, Integer idArchivio) {
+        QPermessoArchivio qPermessoArchivio = QPermessoArchivio.permessoArchivio;
+        QArchivio qArchivio = QArchivio.archivio;
+        
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
+        Integer fetchFirst = jPAQueryFactory
+                .selectOne()
+                .from(qArchivio)
+                .join(qPermessoArchivio).on(
+                        qArchivio.id.eq(qPermessoArchivio.idArchivioDetail.id)
+                                .and(qArchivio.idAzienda.id.eq(qPermessoArchivio.idAzienda.id))
+                                .and(qArchivio.dataCreazione.eq(qPermessoArchivio.dataCreazione))
+                )
+                .where(qPermessoArchivio.idPersona.id.eq(idPersona)
+                    .and(qArchivio.id.eq(idArchivio)))
+                .fetchFirst();
+        return fetchFirst == null;
     }
 
     public String getElencoCodiciAziendeAttualiPersona(Persona persona) {

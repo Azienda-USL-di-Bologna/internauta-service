@@ -23,6 +23,7 @@ import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
+import it.bologna.ausl.model.entities.versatore.Versamento;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
@@ -106,6 +107,15 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                     case VisualizzaTabIFirmato:
                         initialPredicate = buildFilterPerStruttureDelSegretario(persona).and(initialPredicate);
                         initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
+                        break;
+                    case VisualizzaTabErroriVersamento:
+                        
+                        List<Integer> codiceAziendaListDoveSonoRV = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.RV);
+                        initialPredicate = qdoclist.idAzienda.id.in(codiceAziendaListDoveSonoRV).and(initialPredicate);
+                        
+                        
+                        initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
+                        initialPredicate = (qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE.toString()).or(qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE_RITENTABILE.toString()))).and(initialPredicate);
                         break;
                     case VisualizzaTabRegistrazioni:
                         if (!userInfoService.isSD(user)) {
