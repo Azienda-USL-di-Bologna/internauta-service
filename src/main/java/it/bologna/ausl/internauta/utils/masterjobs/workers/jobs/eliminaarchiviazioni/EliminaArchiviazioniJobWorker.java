@@ -17,6 +17,7 @@ import it.bologna.ausl.model.entities.scripta.QAllegato;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import org.slf4j.Logger;
@@ -48,11 +49,11 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
     
     @Override
     public JobWorkerResult doRealWork() throws MasterjobsWorkerException {
-        log.info("sono in do doWork() di " + getName());
         
         Integer idAzienda = getWorkerData().getIdAzienda();
         Integer tempoEliminaArchiviazioni = getWorkerData().getTempoEliminaArchiviazioni();
-        
+        log.info("sono in do doWork() di {} per l'azienda {}", getName(), idAzienda);
+        //pesco tutti i doc con almeno un cross eliminato logicamnete
         JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
         List<Integer> idDocsConCrossEliminateLogicamente = jpaQueryFactory
                 .select(QArchivioDoc.archivioDoc.idDoc.id).distinct()
@@ -64,7 +65,7 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                         QDoc.doc.idAzienda.id.eq(idAzienda)
                 )
                 .fetch();
-
+        //pesco tutti i doc //pesco tutti i doc con almeno un cross eliminato logicamnete e anche almeo uno non eliminato
         List<Integer> idDocsConCrossEliminateLogicamenteEAncheNonEliminate = jpaQueryFactory
                 .select(QArchivioDoc.archivioDoc.idDoc.id).distinct()
                 .from(QArchivioDoc.archivioDoc)
@@ -73,13 +74,13 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                         QArchivioDoc.archivioDoc.dataEliminazione.isNull()
                 )
                 .fetch();
-        
+        //faccio la sottrazione tra  due risultati ottentendo così solo quelli che hanno solo cross eliminate logicamnete
         idDocsConCrossEliminateLogicamente.removeAll(idDocsConCrossEliminateLogicamenteEAncheNonEliminate);
-        
+        //elimino tutte le cross di doc aventi solo cross logicamente elimininate 
         jpaQueryFactory
                 .delete(QArchivioDoc.archivioDoc)
                 .where(QArchivioDoc.archivioDoc.idDoc.id.in(idDocsConCrossEliminateLogicamente));
-        
+        //pesco tra i doc precedentemente pescati quelli che non derivno dalle pec (quindi per esclusione solo quelli caricati dall'utente) 
         List<Integer> idDocsConCrossEliminateLogicamenteNonPec = jpaQueryFactory
                 .select(QDoc.doc.id)
                 .from(QDoc.doc)
@@ -87,13 +88,16 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                         QDoc.doc.id.in(idDocsConCrossEliminateLogicamente),
                         QDoc.doc.tipologia.ne(DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString())
                 ).fetch();
-        
+        //mi connetto al minio e elimino i file dei dec non pec pescati in precedenza ciclando per ogni doc i suoi allegti e per ogni allegato i suoi dettagli 
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         for(Integer idDoc: idDocsConCrossEliminateLogicamenteNonPec){
             Doc doc = docRepository.getById(idDoc);
             List<Allegato> allegati = allegatoRepository.findByIdDoc(doc);
             for(Allegato allegato: allegati){
-                List<Allegato.DettaglioAllegato> allTipiDettagliAllegati = allegato.getDettagli().getAllTipiDettagliAllegati();
+                List<Allegato.DettaglioAllegato> allTipiDettagliAllegati = new ArrayList<Allegato.DettaglioAllegato>();
+                if (allegato.getDettagli() != null){
+                    allTipiDettagliAllegati = allegato.getDettagli().getAllTipiDettagliAllegati();
+                }
                 for(Allegato.DettaglioAllegato dettaglioAllegato: allTipiDettagliAllegati){
                     try {
                         minIOWrapper.deleteByFileUuid(dettaglioAllegato.getIdRepository());
@@ -103,13 +107,13 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                 }
             }
         }
-        
+        //rimuovo gli allegati in base ai doc
         jpaQueryFactory
                 .delete(QAllegato.allegato)
                 .where(
                         QAllegato.allegato.idDoc.id.in(idDocsConCrossEliminateLogicamenteNonPec)
                 );
-        
+        //rimuovo i doc
         jpaQueryFactory
                 .delete(QDoc.doc)
                 .where(

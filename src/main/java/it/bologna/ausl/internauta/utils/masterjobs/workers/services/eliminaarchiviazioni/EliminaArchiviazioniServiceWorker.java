@@ -54,10 +54,10 @@ public class EliminaArchiviazioniServiceWorker extends ServiceWorker {
         for (Azienda azienda : allAziende) {
             List<ParametroAziende> parameters = parametriAziende.getParameters("tempoEliminaArchiviazioni", new Integer[]{azienda.getId()});
             if (parameters != null && !parameters.isEmpty()) {
-                tempoEliminaArchiviazioni = Integer.valueOf(parametriAziende.getValue(parameters.get(0), new TypeReference<List<String>>() {}).get(0));
+                tempoEliminaArchiviazioni = parametriAziende.getValue(parameters.get(0), Integer.class);
                 log.info("il tempo di permanenza delle archiviazioni logicamente eliminate è di {} giorni", tempoEliminaArchiviazioni);
             }
-            if (tempoEliminaArchiviazioni >= 0) {
+            if (tempoEliminaArchiviazioni >= 0 && azienda.getId() == 2) {
                 EliminaArchiviazioniJobWorkerData eliminaArchiviazioniJobWorkerData = new EliminaArchiviazioniJobWorkerData(azienda.getId(), tempoEliminaArchiviazioni, "servizio Notturno");
                 EliminaArchiviazioniJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(EliminaArchiviazioniJobWorker.class, eliminaArchiviazioniJobWorkerData, false);
                 try {
