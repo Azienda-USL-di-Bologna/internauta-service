@@ -174,9 +174,85 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                                 initialPredicate = Expressions.FALSE.eq(true);
                             }
                         }
+                    
                     } catch (Exception ex) {
                         throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_ruolo_e_figlie", ex);
                     }
+                    case FIlterPerAssegnamentoMassivo:
+                        try {
+                            String idStruttura = additionalData.get("idStruttura") ;
+                            Struttura struttura = strutturaRepository.getById(Integer.parseInt(idStruttura));
+                            String stringaDaCercare = additionalData.get("stringaDaCercare");
+                            List<Integer> idStruttureFiglieECugine = strutturaRepository.getStruttureFiglieECugine(struttura.getId());
+                            
+                            
+                            List<Integer> poolDiTipoAssegnamento = strutturaRepository.getPoolAssegnamento();
+//                            Qui filtro per i pool che sono figli della struttura 
+                            BooleanExpression poolFilter = Expressions.TRUE.eq(true)
+                                    .and(QStruttura.struttura.ufficio.eq(Boolean.TRUE)
+                                    .and(QStruttura.struttura.attiva.eq(Boolean.TRUE)
+                                    .and(QStruttura.struttura.id.in(poolDiTipoAssegnamento)
+                                    .and(QStruttura.struttura.idStrutturaPadre.id.eq(struttura.getId())
+                                    .and(QStruttura.struttura.nome.containsIgnoreCase(stringaDaCercare))))));
+                                    
+//                            Qui filtro per le strutture figlie e cugine che non sono uffici e sono attive
+                            BooleanExpression struttureFiglieFilter = Expressions.TRUE.eq(false);
+                            if (!idStruttureFiglieECugine.isEmpty() && idStruttureFiglieECugine != null) {
+                                struttureFiglieFilter = Expressions.TRUE.eq(true)
+                                        .and(QStruttura.struttura.id.in(idStruttureFiglieECugine)
+                                        .and(QStruttura.struttura.nome.containsIgnoreCase(stringaDaCercare)
+                                        .and(QStruttura.struttura.ufficio.eq(Boolean.FALSE)
+                                        .and(QStruttura.struttura.attiva.eq(Boolean.TRUE)))));
+                                //poolFilter = poolFilter.or((struttureFiglieFilter));
+                            } 
+                            
+//                            Mi recupero i pool connessi
+                            List<Integer> idPoolConnessi = new ArrayList<Integer>();
+                            List<PermessoEntitaStoredProcedure> permessiAttuali = permissionManager.getSubjectsWithPermissionsOnObject(
+                                    struttura, 
+                                    Arrays.asList(Predicati.CONNESSO.toString()), 
+                                    Arrays.asList(Ambiti.BABORG.toString()), 
+                                    Arrays.asList(Tipi.UFFICIO.toString()), 
+                                    false);
+                            if (permessiAttuali != null && !permessiAttuali.isEmpty()) {
+                                permessiAttuali.forEach(permessoEntitaStoredProcedure -> {
+                                    idPoolConnessi.add(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza());
+                                });
+                            }
+//                            Qui filtro per i pool connessi di tipo assegnamento
+                            BooleanExpression filterConnessi = Expressions.TRUE.eq(false);
+                            if(!idPoolConnessi.isEmpty()) {
+                                filterConnessi = Expressions.TRUE.eq(true)
+                                        .and(QStruttura.struttura.ufficio.eq(Boolean.TRUE)
+                                        .and(QStruttura.struttura.attiva.eq(Boolean.TRUE)
+                                        .and(QStruttura.struttura.id.in(poolDiTipoAssegnamento)
+                                        .and(QStruttura.struttura.id.in(idPoolConnessi)
+                                        .and(QStruttura.struttura.nome.containsIgnoreCase(stringaDaCercare))))));
+                                //poolFilter = poolFilter.or((filterConnessi));
+                            } 
+                            
+//                            BooleanExpression tutto = QStruttura.struttura.ufficio.eq(Boolean.TRUE)
+//                                    .and(QStruttura.struttura.attiva.eq(Boolean.TRUE)
+//                                    .and(QStruttura.struttura.attributiStruttura.idTipologiaStruttura.tipologia.eq("Assegnamento")
+//                                    .and(QStruttura.struttura.idStrutturaPadre.id.eq(struttura.getId())
+//                                            .and(QStruttura.struttura.nome.contains(stringaDaCercare))))
+//                                            .or(QStruttura.struttura.id.in(idStruttureFiglieECugine)
+//                                                .and(QStruttura.struttura.nome.contains(stringaDaCercare)
+//                                                        .and(QStruttura.struttura.ufficio.eq(Boolean.FALSE)
+//                                                                .and(QStruttura.struttura.attiva.eq(Boolean.TRUE)))).or(QStruttura.struttura.ufficio.eq(Boolean.TRUE)
+//                                        .and(QStruttura.struttura.attiva.eq(Boolean.TRUE)
+//                                                .and(QStruttura.struttura.attributiStruttura.idTipologiaStruttura.tipologia.eq("Assegnamento")
+//                                                        .and(QStruttura.struttura.id.in(idPoolConnessi)
+//                                                                .and(QStruttura.struttura.nome.contains(stringaDaCercare))))))))
+                            BooleanExpression filtroStandard = poolFilter
+                                .or(struttureFiglieFilter) // Filtro 4
+                                .or(filterConnessi); // Filtro 5
+                            initialPredicate = filtroStandard.and(initialPredicate);
+//                            initialPredicate = tutto.and(initialPredicate);
+                                   
+                        } catch (Exception ex) {
+                            throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_figlie_e_cugine", ex);
+                        }
                     break;
                 }
             }
