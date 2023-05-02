@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  *
- * @author mido
+ * @author gusgus
  */
 public class CalcoloPermessiArchivioJobWorkerData extends JobWorkerData {
     @JsonIgnore

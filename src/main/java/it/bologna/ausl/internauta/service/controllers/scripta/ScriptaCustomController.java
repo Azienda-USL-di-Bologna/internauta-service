@@ -52,15 +52,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
-import com.querydsl.core.types.Ops;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
-import it.bologna.ausl.blackbox.repositories.PermessoRepository;
-import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
@@ -116,7 +112,6 @@ import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailReposito
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
@@ -137,7 +132,6 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWith
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashSet;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
@@ -913,8 +907,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     }
 
     /**
-     * Dato un archivio chiama la store procedure che calcola i permessi
-     * espliciti dello stesso
+     * Dato un archivio radice accoda un job che calcola i permessi
+     * espliciti dell'intera gerarchia
      *
      * @param idArchivioRadice
      * @param request
@@ -922,15 +916,51 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
      * @throws
      * it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException
      */
-    @RequestMapping(value = "calcolaPermessiEspliciti", method = RequestMethod.POST)
-    public ResponseEntity<?> calcolaPermessiEspliciti(
+    @RequestMapping(value = "calcolaPermessiEsplicitiGerarchiaArchivio", method = RequestMethod.POST)
+    public ResponseEntity<?> calcolaPermessiEsplicitiGerarchiaArchivio(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
             HttpServletRequest request) throws MasterjobsWorkerException {
 
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-        accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
-        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
+        accodatoreVeloce.accodaCalcolaPermessiGerarchiaArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
+//        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
+
+        return new ResponseEntity("", HttpStatus.OK);
+    }
+    
+    /**
+     * Dato un archivio accoda un job che calcola i permessi del'archivio
+     *
+     * @param idArchivio
+     * @param request
+     * @return
+     * @throws
+     * it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException
+     */
+    @RequestMapping(value = "calcolaPermessiEsplicitiArchivio", method = RequestMethod.POST)
+    public ResponseEntity<?> calcolaPermessiEsplicitiArchivio(
+            @RequestParam("idArchivio") Integer idArchivio,
+            HttpServletRequest request) throws MasterjobsWorkerException {
+
+        Applicazione applicazione = cachedEntities.getApplicazione("scripta");
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+        accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", applicazione.getId());
+//        accodatoreVeloce.accodaCalcolaPersoneVedenti(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
+        QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
+        JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(em);
+        List<Integer> idDocsDaArchivio = jpaQueryFactory
+                .select(qArchivioDoc.idDoc.id)
+                .from(qArchivioDoc)
+                .where(qArchivioDoc.idArchivio.id.eq(idArchivio))
+                .fetch();
+        log.info("idDocsDaArchivi calcolati");
+        if (idDocsDaArchivio != null) {
+            log.info("idDocsDaArchivi non e' null");
+            for (Integer idDoc : idDocsDaArchivio) {
+                accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc, idArchivio.toString(), "scripta_archivio", applicazione);
+            }
+        }
 
         return new ResponseEntity("", HttpStatus.OK);
     }
@@ -1255,13 +1285,17 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
             @RequestParam("fascicolo") boolean fascicolo,
             @RequestParam("contenuto") boolean contenuto,
-            HttpServletRequest request) throws Http500ResponseException, RestControllerEngineException {
+            HttpServletRequest request) throws Http500ResponseException, RestControllerEngineException, BlackBoxPermissionException, Http403ResponseException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         //controllo che almeno uno e solo uno tra fascicolo e contenuto sia stato selezionato
         if ((contenuto == false && fascicolo == false) || (contenuto == true && fascicolo == true)){
             throw new Http500ResponseException("1", "Uno e solo uno tra i target fascicolo e contenuto deve essere selezionato");
         }
         //procedo a tirare su tutto ciò che mi serve sull'archivio soggetto del sposta
         Integer idArchivioInt = Integer.valueOf(idArchivio);
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO))
+            throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
         Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
         //finalArchivio è l'archivio che verrà usato per crare la projection da restituire al front end
         Archivio finalArchivio = null;
@@ -1270,7 +1304,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             Archivio archivio = a.get();
             boolean haFigli = false;
             //controllo se l'archivio da spostare ha figli
-            if (!archivio.getArchiviFigliList().isEmpty()){
+            if (!archivio.getArchiviFigliList().isEmpty()) {
                 haFigli = true;
             }
             //procedo a tirare su tutto ciò che mi serve sull'archivio destinazione
@@ -1280,17 +1314,26 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             if (aDestinazione.isPresent()) {
                 Archivio archivioDestinazione = aDestinazione.get();
                 JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+                Archivio archivioRif = null;
+                boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
                 //controllo se è stato selezionato il target fascicolo e agisco spostando l'archivio con figli e documenti
                 //NB: i documenti sono legati all'archivio con una tabella di cross ergo seguiranno l'archivio ovunque
-                if(fascicolo){
+                if (fascicolo) {
                     if (archivioDestinazione.getLivello() == 3){
                         throw new Http500ResponseException("3", "L'azione sposta di un archivio non si può fare verso un archivio di livello 3");
                     }
                     if (3 - scriptaArchiviUtils.getProfonditaArchivio(archivio) < archivioDestinazione.getLivello()){
                         throw new Http500ResponseException("4", "L'azione sposta non può essere eseguita perché andrebbe a creare almeno un archivio di livello 4");
                     }
-                            
+                    try {
+                        // copia del fascicolo per il log nel krint
+                        archivioRif = objectMapper.readValue(objectMapper.writeValueAsString(archivio), Archivio.class);
+                        archivioRif.setIdArchivioPadre(archivio.getIdArchivioPadre());
+                    } catch (JsonProcessingException ex) {
+                        log.error("errore nella copia dell'archivio per il krint");
+                    }   
                     log.info(String.format("procedo a spostare l'archivio %s", archivio.getId()));
+                    
                     //update con cui "sposto" l'archivio da spostare
                     jPAQueryFactory
                             .update(QArchivio.archivio)
@@ -1309,9 +1352,10 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     //numero il nuovo archivio
                     archivioRepository.numeraArchivio(archivio.getId());
                     log.info(String.format("ho numerato l'archivio di %s", archivio.getId()));
+                    scriptaCopyUtils.setNewAttoriArchivio(archivio, em);
                     
                     //grazie al controllo sulla presenza dei figli fatto in precedenza agisco di conseguenza
-                    if(haFigli){
+                    if (haFigli) {
                         log.info(String.format("procedo a modificare i figli di %s", archivio.getId()));
                         em.refresh(archivio);
                         //update con cui fixo alcuni dati sugli archivi figli di quello spostato
@@ -1329,10 +1373,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                         log.info(String.format("finito le modifiche ai figli di %s", archivio.getId()));
                     }
                     em.refresh(archivio);
+                    for(Archivio archFiglio: archivio.getArchiviFigliList()){
+                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, em);                        
+                    }
                     //ricalcolo i permessi per l'achivio spostato e figli
-                    archivioRepository.calcolaPermessiEspliciti(archivio.getId());
+                    archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
                     finalArchivio = archivio;
-                }else if(contenuto){
+                } else if (contenuto) {
                     //è stato selezionato il target contenuto e agisco spostando solo i documenti dell'archivio selezionato
                     log.info(String.format("procedo a spostare i documenti di %s", archivio.getId()));
                     
@@ -1357,20 +1404,30 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                             .execute();
                     finalArchivio = archivioDestinazione;
                 }
+                if (iHaveToKrint) {
+                    if (contenuto) {
+                        krintScriptaService.writeArchivioUpdate(archivio, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO_DESTINAZIONE);
+                    } else {                
+                        krintScriptaService.writeArchivioUpdate(archivio, archivioRif, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA, true);
+                        if (haFigli)
+                            archivio.getArchiviFigliList().stream().
+                                    forEach(archFiglio -> krintScriptaService.writeArchivioUpdate(archFiglio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA));
+                    }
+                }
             }
-            
-        String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
-        // Ritorno la projection coi dati aggiornati
-        log.info("Recupero projection by name " + projection);
-        Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
-        projectionsInterceptorLauncher.setRequestParams(null, request);
-        log.info("Chiamo la facrtory della projection...");
-        Object projectedObject = projectionFactory.createProjection(
-                projectionClass, finalArchivio
-        );
+            String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+            // Ritorno la projection coi dati aggiornati
+            log.info("Recupero projection by name " + projection);
+            Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+            projectionsInterceptorLauncher.setRequestParams(null, request);
+            log.info("Chiamo la facrtory della projection...");
+            Object projectedObject = projectionFactory.createProjection(
+                    projectionClass, finalArchivio
+            );
 
-        log.info("Ritorno la projectionCreata");
-        return projectedObject;
+            log.info("Ritorno la projectionCreata");
+            return projectedObject;
         }
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
@@ -1382,7 +1439,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
             @RequestParam("fascicolo") boolean fascicolo,
             @RequestParam("contenuto") boolean contenuto,
-            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException, Http403ResponseException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Archivio finalArchivio = null;
@@ -1392,10 +1449,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         //procedo a tirare su tutto ciò che mi serve
         Integer idArchivioInt = Integer.valueOf(idArchivio);
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO))
+            throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
         Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
         //controllo l'effettiva presenza dell'archivio da copiare
         if (a.isPresent()) {
             Archivio archivio = a.get();
+            boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
             boolean haFigli = false;
             //controllo se l'archivio da copiare ha figli
             if (!archivio.getArchiviFigliList().isEmpty()){
@@ -1412,45 +1472,60 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 }
                 if (3 - scriptaArchiviUtils.getProfonditaArchivio(archivio) < archivioDestinazione.getLivello()){
                     throw new Http500ResponseException("2", "L'azione copia non può essere eseguita perché andrebbe a creare almeno un archivio di livello 4");
-                }
+                } 
                 //procedo con le modifiche
-                if(fascicolo){
+                if (fascicolo) {
                     log.info(String.format("inzio a copiare %s con i suoi documenti", archivio.getId()));              
-                    Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivioDestinazione, persona, em, Boolean.TRUE, contenuto);
+                    Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivioDestinazione, persona, em, Boolean.TRUE, Boolean.TRUE, contenuto);
                     log.info(String.format("finito di copiare %s con i suoi documenti", archivio.getId()));
-                    if(haFigli){
+                    if (haFigli) {
                         log.info(String.format("procedo a copiare i figli di %s", archivio.getId()));
-                        for(Archivio arch : archivio.getArchiviFigliList()){
+                        for (Archivio arch : archivio.getArchiviFigliList()) {
                             em.refresh(savedArchivio);
                             
                             log.info(String.format("inzio a copiare %s, figlio di %s, con i suoi documenti", arch.getId(), archivio.getId()));              
-                            scriptaCopyUtils.copiaArchivioConDoc(arch, savedArchivio, persona, em, Boolean.FALSE, contenuto);
+                            Archivio newArch = scriptaCopyUtils.copiaArchivioConDoc(arch, savedArchivio, persona, em, Boolean.FALSE, contenuto);
                             log.info(String.format("finito di copiare %s, figlio di %s, con i suoi documenti", arch.getId(), archivio.getId()));
+                            if (iHaveToKrint) // Log nel fascicolo che è stato creato da una copia
+                                krintScriptaService.writeArchivioUpdate(newArch, arch, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA);
                         }
                         log.info(String.format("ho copiato anche i figli di %s", archivio.getId()));
                     }
                     finalArchivio = savedArchivio;
                     archivioRepository.copiaPermessiArchivi(archivio.getId(), finalArchivio.getId());
-                    archivioRepository.calcolaPermessiEspliciti(finalArchivio.getId());
+                    archivioRepository.calcolaPermessiEsplicitiGerarchia(finalArchivio.getId());
                 }else if(contenuto){
                     log.info(String.format("procedo a copiare i documenti di %s", archivio.getId()));
                     scriptaCopyUtils.copiaArchivioDoc(archivio, archivioDestinazione, persona, em);
                     log.info(String.format("I documenti sono stati copiati correttamente dall'archivio: " + archivio.getId() + " all'archivio: " + archivioDestinazione.getId()));
                     finalArchivio = archivioDestinazione;
                 }
-                
+                em.refresh(finalArchivio);
+                if (iHaveToKrint) {
+                    if (fascicolo && contenuto) {
+                        krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA, true);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO_DESTINAZIONE);
+                    } else if (contenuto) {
+                        krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO_DESTINAZIONE);
+                    } else {                
+                        krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA, true);
+                    }
+                }
             }
-        em.refresh(finalArchivio);
-        String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
-        log.info("Recupero projection by name " + projection);
-        Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
-        projectionsInterceptorLauncher.setRequestParams(null, request);
-        log.info("Chiamo la facrtory della projection...");
-        Object projectedObject = projectionFactory.createProjection(
-                projectionClass, finalArchivio
-        );
-        log.info("Ritorno la projectionCreata");
-        return projectedObject;
+            String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+            log.info("Recupero projection by name " + projection);
+            Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+            projectionsInterceptorLauncher.setRequestParams(null, request);
+            log.info("Chiamo la facrtory della projection...");
+            Object projectedObject = projectionFactory.createProjection(
+                    projectionClass, finalArchivio
+            );
+            log.info("Ritorno la projectionCreata");
+            return projectedObject;
         }
         throw new Http500ResponseException("3", "Non ho trovato nessun archivio con l'id passato");
     }
@@ -1461,7 +1536,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam("idArchivio") String idArchivio,
             @RequestParam("fascicolo") boolean fascicolo,
             @RequestParam("contenuto") boolean contenuto,
-            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException, Http403ResponseException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         if ((contenuto == false && fascicolo == false) || (contenuto == true && fascicolo == true)){
@@ -1469,17 +1544,20 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         //procedo a tirare su tutto ciò che mi serve per l'archivio da duplicare
         Integer idArchivioInt = Integer.parseInt(idArchivio);
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO))
+            throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
         Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
         //controllo l'effettiva presenza dell'archivio da spostare
         if (a.isPresent()) {
             Archivio archivio = a.get();
             boolean haFigli = false;
+            boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
             //controllo se l'archivio da copiare ha figli
             if (archivio.getArchiviFigliList().size() > 0){
                 haFigli = true;
             }
             log.info(String.format("inzio a duplicare %s con i suoi documenti", archivio.getId()));              
-            Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivio.getIdArchivioPadre(), persona, em, Boolean.TRUE, contenuto);
+            Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivio.getIdArchivioPadre(), persona, em, Boolean.TRUE, Boolean.TRUE, contenuto);
             log.info(String.format("finito di duplicare %s con i suoi documenti", archivio.getId()));
 //            
 //            log.info(String.format("inizio a duplicare l'archivio %s", archivio.getId()));
@@ -1493,14 +1571,15 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 //                log.info(String.format("I documenti sono stati copiati correttamente dall'archivio: " + archivio.getId() + " all'archivio: " + savedArchivio.getId()));
 //            }
             
-            if(haFigli){
+            if (haFigli) {
 
                 log.info(String.format("procedo a duplicare i figli e nipoti di %s", archivio.getId()));
                 for(Archivio archFiglio : archivio.getArchiviFigliList()){
                     log.info(String.format("inzio a duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));              
                     Archivio savedFiglioArchivio = scriptaCopyUtils.copiaArchivioConDoc(archFiglio, savedArchivio, persona, em, Boolean.TRUE, contenuto);
                     log.info(String.format("finito di duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));
-//                    
+                    if (iHaveToKrint)
+                        krintScriptaService.writeArchivioUpdate(savedFiglioArchivio, archFiglio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
 //                    Archivio savedFiglioArchivio = scriptaCopyUtils.copiaArchivio(archFiglio, savedArchivio, persona, em);
 //                    if(contenuto){
 //                        log.info(String.format("procedo a duplicare i documenti di %s", archFiglio.getId()));
@@ -1512,6 +1591,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                         log.info(String.format("inzio a duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));              
                         Archivio savedInsArchivio = scriptaCopyUtils.copiaArchivioConDoc(archNipote, savedFiglioArchivio, persona, em, Boolean.TRUE, contenuto);
                         log.info(String.format("finito di duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));
+                        if (iHaveToKrint)
+                            krintScriptaService.writeArchivioUpdate(savedInsArchivio, archNipote, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
 //                        Archivio savedInsArchivio = scriptaCopyUtils.copiaArchivio(archNipote, savedFiglioArchivio, persona, em);
 //                        if(contenuto){
 //                            log.info(String.format("procedo a duplicare i documenti di %s", archNipote.getId()));
@@ -1524,7 +1605,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             }
             em.refresh(savedArchivio);
             archivioRepository.copiaPermessiArchivi(archivio.getId(), savedArchivio.getId());
-            archivioRepository.calcolaPermessiEspliciti(savedArchivio.getId());
+            archivioRepository.calcolaPermessiEsplicitiGerarchia(savedArchivio.getId());
             String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
             log.info("Recupero projection by name " + projection);
             Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
@@ -1533,7 +1614,10 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             Object projectedObject = projectionFactory.createProjection(
                     projectionClass, savedArchivio
             );
-
+            if (iHaveToKrint) {
+                krintScriptaService.writeArchivioUpdate(archivio, savedArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DUPLICA);
+                krintScriptaService.writeArchivioUpdate(savedArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
+            }
             log.info("Ritorno la projectionCreata");
             return projectedObject;
         }
@@ -1544,16 +1628,26 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     @Transactional
     public Object rendiFascicolo(
             @RequestParam("idArchivio") String idArchivio,
-            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException {
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException, Http403ResponseException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         //procedo a tirare su tutto ciò che mi serve
         Integer idArchivioInt = Integer.parseInt(idArchivio);
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO))
+            throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
         Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
         //controllo l'effettiva presenza dell'archivio da spostare
         if (a.isPresent()) {
             Archivio archivio = a.get();
+            Archivio archivioRif = null;
+            boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
+            try {
+                // copia del fascicolo per il log nel krint
+                archivioRif = objectMapper.readValue(objectMapper.writeValueAsString(archivio), Archivio.class);
+            } catch (JsonProcessingException ex) {
+                log.error("errore nella copia dell'archivio per il krint");
+            }
             List<ArchivioDoc> documenti;
             boolean haFigli = false;
             //controllo se l'archivio da copiare ha figli in caso li cancello
@@ -1567,7 +1661,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             em.refresh(archivio);
             log.info(String.format("ho numerato e calcolato i permessi di %s", archivio.getId()));
 
-            if(haFigli){
+            if (haFigli) {
                 log.info(String.format("procedo a modificare i figli di %s", archivio.getId()));
                 em.refresh(archivio);
                 jPAQueryFactory
@@ -1590,27 +1684,21 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 //                        em.refresh(archivio);
                 log.info(String.format("finito le modifiche ai figli di %s", archivio.getId()));
 
-                for(Archivio arch : archivio.getArchiviFigliList()){
-//                            arch.setNumero(0);
-//                            arch.setNumerazioneGerarchica(archivio.getNumerazioneGerarchica().replace("/", "-x/"));
-//                            arch.setIdArchivioRadice(archivioDestinazione.getIdArchivioRadice());
-//                            arch.setIdTitolo(archivioDestinazione.getIdTitolo());
-//                            arch.setLivello(archivio.getLivello() + 1);
-//                            em.refresh(arch);
+                for (Archivio arch : archivio.getArchiviFigliList()) {
                     jPAQueryFactory
                         .update(QAttoreArchivio.attoreArchivio)
                         .set(QAttoreArchivio.attoreArchivio.dataInserimentoRiga, ZonedDateTime.now())
                         .where(QAttoreArchivio.attoreArchivio.idArchivio.id.eq(arch.getId()))
                         .execute();
                     archivioRepository.numeraArchivio(arch.getId());
-                    
-
+                    if (iHaveToKrint)
+                        krintScriptaService.writeArchivioUpdate(arch, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_RENDI_FASCICOLO_NUOVA_NUMERAZIONE);
                 }
                 log.info(String.format("ho numerato e calcolato permessi le modifiche ai figli di %s", archivio.getId()));
             }
             em.refresh(archivio);
 //            archivioRepository.copiaPermessiArchivi(archivio.getId());
-            archivioRepository.calcolaPermessiEspliciti(archivio.getId());
+            archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
             String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
             log.info("Recupero projection by name " + projection);
             Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
@@ -1619,7 +1707,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             Object projectedObject = projectionFactory.createProjection(
                     projectionClass, archivio
             );
-
+            if (iHaveToKrint) 
+                krintScriptaService.writeArchivioUpdate(archivio, archivioRif, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_RENDI_FASCICOLO);
+            
             log.info("Ritorno la projectionCreata");
             return projectedObject;
         }

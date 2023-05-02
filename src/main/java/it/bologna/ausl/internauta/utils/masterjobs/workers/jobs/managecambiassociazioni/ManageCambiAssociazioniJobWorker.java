@@ -179,17 +179,23 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
                 
                 for (Integer idArchivioRadice : idArchiviRadiceDaPermessizzare) {
                     /**
-                    * NB: Questi job vengono inseriti con waitForObject a false. Ma viene messo l'ObjectID OBJECT_ID_JOB con type TYPE_JOB
+                     * 
+                    * NB(!DEPRECATED! Vedi NB2): Questi job vengono inseriti con waitForObject a false. Ma viene messo l'ObjectID OBJECT_ID_JOB con type TYPE_JOB
                     * in modo che successivamente quando verra messo il JOB CalcolaPersoneVedentiDaArchivi, questo avrà
-                    * il waitForObject a TRUE sullo stesso identificativo. Così verranno calcolare le persone vedenti dei doc solo al termine del calcolo
+                    * il waitForObject a TRUE sullo stesso identificativo. Così verranno calcolate le persone vedenti dei doc solo al termine del calcolo
                     * dei permessi espliciti degli archivi.
+                    * 
+                    * NB2: Quanto detto qui sopra è falso, infatti ho commentato le righe di accodamento di CalcolaPersoneVedentiDaArchiviRadice
+                    * il motivo è che essendoc he ora CalcolaPermessiGerarchiaArchivio di fatto accoda poi un job per ogni singolo archivio ed essendo che il calcolo sulle perosne vedenti
+                    * lo si vuole effettuare solo dopo aver calcolato i permessi arhcivi allora l'unico modo che ho trovato è stato mettere l'accodamento di CalcolaPersoneVedentiDaArchiviRadice
+                    * solo dopo aver accdoato il calcolo permessi archvi di ogni archivio (tutti avranno l'object id che sarà l'id arhdivio radice)
                     */
-                    accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivioRadice, OBJECT_ID_JOB, TYPE_JOB, null);
+                    accodatoreVeloce.accodaCalcolaPermessiGerarchiaArchivio(idArchivioRadice, OBJECT_ID_JOB, TYPE_JOB, null);
                 }
                 
-                log.info("Inserisco il job CalcolaPersoneVedentiDaArchiviRadice");
-                
-                accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(idArchiviRadiceDaPermessizzare, OBJECT_ID_JOB, TYPE_JOB, null);
+//                log.info("Inserisco il job CalcolaPersoneVedentiDaArchiviRadice");
+//                
+//                accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(idArchiviRadiceDaPermessizzare, OBJECT_ID_JOB, TYPE_JOB, null);
             } else {
                 log.warn("Non ho trovato nessun archivio coinvolto dai cambiamenti associazione presi in esame");
             }

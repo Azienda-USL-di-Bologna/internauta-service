@@ -142,8 +142,8 @@ public class FascicolatoreSAIWorker extends JobWorker<FascicolatoreSAIWorkerData
             private Integer idPersona;
             */
             loadMessageByIdOutbox(); // Carico il message e setto la proprietà message
-            Archivio archivio = archivioRepository.findByNumerazioneGerarchica(getWorkerData().getNumerazioneGerarchica());
-            Persona persona = personaRepository.getById(getWorkerData().getIdPersona());
+            Archivio archivio = archivioRepository.findByNumerazioneGerarchicaAndIdAzienda(getWorkerData().getNumerazioneGerarchica(), getWorkerData().getIdAzienda());
+            Persona persona = personaRepository.findByCodiceFiscale("SAI");
             Utente utente = utenteRepository.getById(getWorkerData().getIdUtente());
             Azienda azienda = aziendaRepository.getById(getWorkerData().getIdAzienda());
             
