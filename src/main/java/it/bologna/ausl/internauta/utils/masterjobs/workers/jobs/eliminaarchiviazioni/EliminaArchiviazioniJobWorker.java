@@ -79,7 +79,8 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
         //elimino tutte le cross di doc aventi solo cross logicamente elimininate 
         jpaQueryFactory
                 .delete(QArchivioDoc.archivioDoc)
-                .where(QArchivioDoc.archivioDoc.idDoc.id.in(idDocsConCrossEliminateLogicamente));
+                .where(QArchivioDoc.archivioDoc.idDoc.id.in(idDocsConCrossEliminateLogicamente))
+                .execute();
         //pesco tra i doc precedentemente pescati quelli che non derivno dalle pec (quindi per esclusione solo quelli caricati dall'utente) 
         List<Integer> idDocsConCrossEliminateLogicamenteNonPec = jpaQueryFactory
                 .select(QDoc.doc.id)
@@ -92,7 +93,12 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         for(Integer idDoc: idDocsConCrossEliminateLogicamenteNonPec){
             Doc doc = docRepository.getById(idDoc);
-            List<Allegato> allegati = allegatoRepository.findByIdDoc(doc);
+            List<Allegato> allegati = jpaQueryFactory
+                .select(QAllegato.allegato)
+                .from(QAllegato.allegato)
+                .where(
+                        QAllegato.allegato.idDoc.id.eq(doc.getId())
+                ).fetch();
             for(Allegato allegato: allegati){
                 List<Allegato.DettaglioAllegato> allTipiDettagliAllegati = new ArrayList<Allegato.DettaglioAllegato>();
                 if (allegato.getDettagli() != null){
@@ -100,9 +106,9 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                 }
                 for(Allegato.DettaglioAllegato dettaglioAllegato: allTipiDettagliAllegati){
                     try {
-                        minIOWrapper.deleteByFileUuid(dettaglioAllegato.getIdRepository());
+                        minIOWrapper.deleteByFileId(dettaglioAllegato.getIdRepository());
                     } catch (MinIOWrapperException ex) {
-                        java.util.logging.Logger.getLogger(EliminaArchiviazioniJobWorker.class.getName()).log(Level.SEVERE, null, ex);
+                        log.error("errore nella delete del file dal minio", ex);
                     }
                 }
             }
@@ -110,16 +116,15 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
         //rimuovo gli allegati in base ai doc
         jpaQueryFactory
                 .delete(QAllegato.allegato)
-                .where(
-                        QAllegato.allegato.idDoc.id.in(idDocsConCrossEliminateLogicamenteNonPec)
-                );
+                .where(QAllegato.allegato.idDoc.id.in(idDocsConCrossEliminateLogicamenteNonPec))
+                .execute();
         //rimuovo i doc
         jpaQueryFactory
                 .delete(QDoc.doc)
                 .where(
                         QDoc.doc.id.in(idDocsConCrossEliminateLogicamenteNonPec),
                         QDoc.doc.idAzienda.id.eq(idAzienda)
-                );
+                ).execute();
    
         return null;
     }
