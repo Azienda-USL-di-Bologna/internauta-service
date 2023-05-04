@@ -94,7 +94,7 @@ public class InternautaConstants {
             FilterForArchiviContent,
             FilterBitGOEModifica,
             RemovePassword,
-            FIlterPerAssegnamentoMassivo,
+            FilterPerAssegnamentoMassivo,
             GetUtentiInStrutturaEFiglie
         }
 

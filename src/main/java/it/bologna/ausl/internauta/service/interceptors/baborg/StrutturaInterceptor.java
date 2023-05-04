@@ -100,10 +100,10 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private UtenteStrutturaRepository utenteStrutturaRepository;
-    
+
     @Autowired
     private KrintBaborgService krintBaborgService;
-    
+
     @Autowired
     private KrintUtils krintUtils;
 
@@ -133,7 +133,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                                     Arrays.asList(new Pec[]{pec}),
                                     Arrays.asList(new String[]{Predicati.SPEDISCE.toString(), Predicati.SPEDISCE_PRINCIPALE.toString()}),
                                     Arrays.asList(new String[]{Ambiti.PECG.toString()}),
-                                    Arrays.asList(new String[]{Tipi.PEC.toString()}), false,false);
+                                    Arrays.asList(new String[]{Tipi.PEC.toString()}), false, false);
                             if (subjectsWithPermissionsOnObject == null) {
                                 initialPredicate = Expressions.FALSE.eq(true);
                             } else {
@@ -174,73 +174,70 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                                 initialPredicate = Expressions.FALSE.eq(true);
                             }
                         }
-                    
+
                     } catch (Exception ex) {
                         throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_ruolo_e_figlie", ex);
                     }
-                    case FIlterPerAssegnamentoMassivo:
+                    case FilterPerAssegnamentoMassivo:
                         try {
-                            String idStruttura = additionalData.get("idStruttura") ;
-                            Struttura struttura = strutturaRepository.getById(Integer.parseInt(idStruttura));
-                            String stringaDaCercare = additionalData.get("stringaDaCercare");
-                            List<Integer> idStruttureFiglieECugine = strutturaRepository.getStruttureFiglieECugine(struttura.getId());
-                            
-                            
-                            List<Integer> poolDiTipoAssegnamento = strutturaRepository.getPoolAssegnamento();
-//                            Qui filtro per i pool che sono figli della struttura 
-                            BooleanExpression poolFilter = Expressions.TRUE.eq(true)
-                                    .and(QStruttura.struttura.ufficio.eq(Boolean.TRUE)
-                                    .and(QStruttura.struttura.attiva.eq(Boolean.TRUE)
-                                    .and(QStruttura.struttura.id.in(poolDiTipoAssegnamento)
-                                    .and(QStruttura.struttura.idStrutturaPadre.id.eq(struttura.getId())
-                                    .and(QStruttura.struttura.nome.containsIgnoreCase(stringaDaCercare))))));
-                                    
-//                            Qui filtro per le strutture figlie e cugine che non sono uffici e sono attive
-                            BooleanExpression struttureFiglieFilter = Expressions.TRUE.eq(false);
-                            if (!idStruttureFiglieECugine.isEmpty() && idStruttureFiglieECugine != null) {
-                                struttureFiglieFilter = Expressions.TRUE.eq(true)
-                                        .and(QStruttura.struttura.id.in(idStruttureFiglieECugine)
-                                        .and(QStruttura.struttura.nome.containsIgnoreCase(stringaDaCercare)
-                                        .and(QStruttura.struttura.ufficio.eq(Boolean.FALSE)
-                                        .and(QStruttura.struttura.attiva.eq(Boolean.TRUE)))));
-
-                            } 
-                            
-//                            Mi recupero i pool connessi
-                            List<Integer> idPoolConnessi = new ArrayList<Integer>();
-                            List<PermessoEntitaStoredProcedure> permessiAttuali = permissionManager.getSubjectsWithPermissionsOnObject(
-                                    struttura, 
-                                    Arrays.asList(Predicati.CONNESSO.toString()), 
-                                    Arrays.asList(Ambiti.BABORG.toString()), 
-                                    Arrays.asList(Tipi.UFFICIO.toString()), 
-                                    false);
-                            if (permessiAttuali != null && !permessiAttuali.isEmpty()) {
-                                permessiAttuali.forEach(permessoEntitaStoredProcedure -> {
-                                    idPoolConnessi.add(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza());
-                                });
-                            }
-//                            Qui filtro per i pool connessi di tipo assegnamento
-                            BooleanExpression filterConnessi = Expressions.TRUE.eq(false);
-                            if(!idPoolConnessi.isEmpty()) {
-                                filterConnessi = Expressions.TRUE.eq(true)
-                                        .and(QStruttura.struttura.ufficio.eq(Boolean.TRUE)
+                        String idStruttura = additionalData.get("idStruttura");
+                        Struttura struttura = strutturaRepository.getById(Integer.parseInt(idStruttura));
+                        String stringaDaCercare = additionalData.get("stringaDaCercare");
+                        List<Integer> idStruttureFiglieECugine = strutturaRepository.getStruttureFiglieECugine(struttura.getId());
+                        LOGGER.info("Assegnamento massivo, idStruttura : " + struttura.getId().toString() + ", stringa da cercare: " + stringaDaCercare);
+                        List<Integer> poolDiTipoAssegnamento = strutturaRepository.getPoolAssegnamento();
+//                            Qui filtro per i pool che sono figli della struttura
+                        BooleanExpression poolFilter = Expressions.TRUE.eq(true)
+                                .and(QStruttura.struttura.ufficio.eq(Boolean.TRUE)
                                         .and(QStruttura.struttura.attiva.eq(Boolean.TRUE)
-                                        .and(QStruttura.struttura.id.in(poolDiTipoAssegnamento)
-                                        .and(QStruttura.struttura.id.in(idPoolConnessi)
-                                        .and(QStruttura.struttura.nome.containsIgnoreCase(stringaDaCercare))))));
+                                                .and(QStruttura.struttura.id.in(poolDiTipoAssegnamento)
+                                                        .and(QStruttura.struttura.idStrutturaPadre.id.eq(struttura.getId())
+                                                                .and(QStruttura.struttura.nome.containsIgnoreCase(stringaDaCercare))))));
 
-                            } 
-                            
+//                            Qui filtro per le strutture figlie e cugine che non sono uffici e sono attive
+                        BooleanExpression struttureFiglieFilter = Expressions.TRUE.eq(false);
+                        if (!idStruttureFiglieECugine.isEmpty() && idStruttureFiglieECugine != null) {
+                            struttureFiglieFilter = Expressions.TRUE.eq(true)
+                                    .and(QStruttura.struttura.id.in(idStruttureFiglieECugine)
+                                            .and(QStruttura.struttura.nome.containsIgnoreCase(stringaDaCercare)
+                                                    .and(QStruttura.struttura.ufficio.eq(Boolean.FALSE)
+                                                            .and(QStruttura.struttura.attiva.eq(Boolean.TRUE)))));
 
-                            BooleanExpression filtroStandard = poolFilter
+                        }
+
+//                            Mi recupero i pool connessi
+                        List<Integer> idPoolConnessi = new ArrayList<Integer>();
+                        List<PermessoEntitaStoredProcedure> permessiAttuali = permissionManager.getSubjectsWithPermissionsOnObject(
+                                struttura,
+                                Arrays.asList(Predicati.CONNESSO.toString()),
+                                Arrays.asList(Ambiti.BABORG.toString()),
+                                Arrays.asList(Tipi.UFFICIO.toString()),
+                                false);
+                        if (permessiAttuali != null && !permessiAttuali.isEmpty()) {
+                            permessiAttuali.forEach(permessoEntitaStoredProcedure -> {
+                                idPoolConnessi.add(permessoEntitaStoredProcedure.getSoggetto().getIdProvenienza());
+                            });
+                        }
+//                            Qui filtro per i pool connessi di tipo assegnamento
+                        BooleanExpression filterConnessi = Expressions.TRUE.eq(false);
+                        if (!idPoolConnessi.isEmpty()) {
+                            filterConnessi = Expressions.TRUE.eq(true)
+                                    .and(QStruttura.struttura.ufficio.eq(Boolean.TRUE)
+                                            .and(QStruttura.struttura.attiva.eq(Boolean.TRUE)
+                                                    .and(QStruttura.struttura.id.in(poolDiTipoAssegnamento)
+                                                            .and(QStruttura.struttura.id.in(idPoolConnessi)
+                                                                    .and(QStruttura.struttura.nome.containsIgnoreCase(stringaDaCercare))))));
+
+                        }
+
+                        BooleanExpression filtroStandard = poolFilter
                                 .or(struttureFiglieFilter) // Filtro 4
                                 .or(filterConnessi); // Filtro 5
-                            initialPredicate = filtroStandard.and(initialPredicate);
+                        initialPredicate = filtroStandard.and(initialPredicate);
 
-                                   
-                        } catch (Exception ex) {
-                            throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_figlie_e_cugine", ex);
-                        }
+                    } catch (Exception ex) {
+                        throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_figlie_e_cugine", ex);
+                    }
                     break;
                 }
             }
@@ -291,9 +288,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         List<AdditionalData.OperationsRequested> operationsRequested = AdditionalData.getOperationRequested(AdditionalData.Keys.OperationRequested, additionalData);
-        
-        
-        
+
         Struttura struttura = (Struttura) entity;
         Struttura strutturaOld;
         try {
@@ -303,7 +298,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
         boolean isEliminata = (!struttura.getAttiva() && (strutturaOld.getAttiva()));
-        boolean isChangedStrutturaPadre = struttura.getIdStrutturaPadre()== null ? strutturaOld.getIdStrutturaPadre() != null : !struttura.getIdStrutturaPadre().equals(strutturaOld.getIdStrutturaPadre());
+        boolean isChangedStrutturaPadre = struttura.getIdStrutturaPadre() == null ? strutturaOld.getIdStrutturaPadre() != null : !struttura.getIdStrutturaPadre().equals(strutturaOld.getIdStrutturaPadre());
         boolean isChangedNome = struttura.getNome() == null ? strutturaOld.getNome() != null : !struttura.getNome().equals(strutturaOld.getNome());
         boolean isChangedAttributiStruttura = struttura.getAttributiStruttura() == null ? strutturaOld.getAttributiStruttura() != null : !struttura.getAttributiStruttura().equals(strutturaOld.getAttributiStruttura());
         if (krintUtils.doIHaveToKrint(request)) {
@@ -325,8 +320,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
-        
-      
+
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             if (operationsRequested.contains(AdditionalData.OperationsRequested.SvuotaStruttureConnesseUfficio)) {
                 //entro solo nel caso del pool quando cerco di eliminarne uno
@@ -380,7 +374,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             if (struttura.getUfficio() && struttura.getIdStrutturaPadre() == null) {
                 krintBaborgService.writeUfficioCreation(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_CREATION);
             }
-            
+
         }
         return entity; //To change body of generated methods, choose Tools | Templates.
     }
@@ -395,13 +389,13 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
         boolean isSD = userInfoService.isSD(utente);
 
         if (struttura.getUfficio() && struttura.getIdStrutturaPadre() == null) {
-            //setto la data di attivazione al primo momento del giorno 
+            //setto la data di attivazione al primo momento del giorno
             struttura.setDataAttivazione(ZonedDateTime.of(LocalDate.now(), LocalTime.MIN, ZoneId.systemDefault()));
             // In caso di creazione ufficio vogliamo arbitrariamente popolare la struttura padre
 //            if (isCA || isCI || isSD) {
             // In questo caso setto la radice dell'organigramma
             //Non vogliamo più settare la radice dell'organigramma, ma vogliamo che sia selezionata dall'utente.
-//                BooleanExpression findRadice = 
+//                BooleanExpression findRadice =
 //                        QStruttura.struttura.idStrutturaPadre.isNull()
 //                        .and(QStruttura.struttura.idAzienda.id.eq(struttura.getIdAzienda().getId()))
 //                        .and(QStruttura.struttura.attiva.eq(Boolean.TRUE));
