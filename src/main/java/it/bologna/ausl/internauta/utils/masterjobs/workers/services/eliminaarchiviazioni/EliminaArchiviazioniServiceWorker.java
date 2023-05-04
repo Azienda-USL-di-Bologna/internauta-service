@@ -57,7 +57,7 @@ public class EliminaArchiviazioniServiceWorker extends ServiceWorker {
                 tempoEliminaArchiviazioni = parametriAziende.getValue(parameters.get(0), Integer.class);
                 log.info("il tempo di permanenza delle archiviazioni logicamente eliminate è di {} giorni", tempoEliminaArchiviazioni);
             }
-            if (tempoEliminaArchiviazioni >= 0 && azienda.getId() == 2) {
+            if (tempoEliminaArchiviazioni >= 0) {
                 EliminaArchiviazioniJobWorkerData eliminaArchiviazioniJobWorkerData = new EliminaArchiviazioniJobWorkerData(azienda.getId(), tempoEliminaArchiviazioni, "servizio Notturno");
                 EliminaArchiviazioniJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(EliminaArchiviazioniJobWorker.class, eliminaArchiviazioniJobWorkerData, false);
                 try {
