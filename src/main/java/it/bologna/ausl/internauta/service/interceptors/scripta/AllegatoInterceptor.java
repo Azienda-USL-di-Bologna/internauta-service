@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
@@ -11,6 +12,7 @@ import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
@@ -21,6 +23,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,10 +44,13 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(AllegatoInterceptor.class);
     
     @Autowired
-    ReporitoryConnectionManager aziendeConnectionManager;
+    private ReporitoryConnectionManager aziendeConnectionManager;
  
     @Autowired
-    PersonaVedenteRepository personaVedenteRepository;
+    private PersonaVedenteRepository personaVedenteRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
     
     @Autowired
     @Qualifier(value = "customRepositoryEntityMap")
@@ -99,6 +107,15 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Persona persona = authenticatedSessionData.getPerson();
         Boolean pienaVisibilitaUtente = pienaVisibilita(doc, persona);
+//        while (pienaVisibilitaUtente == null) {
+//            LOGGER.warn("sono pienaVisibilitaUtente e sono NULL ");
+//            pienaVisibilitaUtente = pienaVisibilita(doc, persona);
+//            try {
+//                Thread.sleep(100);
+//            } catch (InterruptedException ex) {
+//                
+//            }
+//        }
         if (pienaVisibilitaUtente) {
             return entity;
         } else {
@@ -134,8 +151,15 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
         Boolean hasPienaVisibilita = false;
         LOGGER.info("id_doc"+doc.getId().toString());
         LOGGER.info("id_persona"+persona.getId().toString());
-        hasPienaVisibilita = personaVedenteRepository.hasPienaVisibìlita(doc.getId(), persona.getId());
-        
+        hasPienaVisibilita = personaVedenteRepository.hasPienaVisibilita(doc.getId(), persona.getId());
+//        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+//        hasPienaVisibilita = queryFactory
+//            .select(QPersonaVedente.personaVedente.pienaVisibilita)
+//            .from(QPersonaVedente.personaVedente)
+//            .where(QPersonaVedente.personaVedente.idDocDetail.id.eq(doc.getId())
+//                    .and(QPersonaVedente.personaVedente.idPersona.id.eq(persona.getId()))
+//            )
+//            .fetchOne();
         return hasPienaVisibilita;
     }
     
