@@ -120,6 +120,21 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
             customFilterUtenteStrutturaAttivo = customFilterUtenteStrutturaAttivo.and(QUtenteStruttura.utenteStruttura.idStruttura.attiva.eq(true));
             initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
         }
+        
+            List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+            if (operationsRequested != null && !operationsRequested.isEmpty()) {
+                for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                    switch (operationRequested) {
+                        case GetUtentiInStrutturaEFiglie:
+                            Integer idStruttura = Integer.parseInt(additionalData.get("idStruttura")) ;
+                            BooleanExpression filterUtentiStruttura = QUtenteStruttura.utenteStruttura.attivo.eq(Boolean.TRUE)
+                                                                        .and(QUtenteStruttura.utenteStruttura.idStruttura.id.eq(idStruttura)
+                                                                                .or(QUtenteStruttura.utenteStruttura.idStruttura.idStrutturaPadre.id.eq(idStruttura)));
+                            initialPredicate = filterUtentiStruttura.and(initialPredicate);
+                        break;
+                    }
+                }
+            }
 
         return initialPredicate;
     }
