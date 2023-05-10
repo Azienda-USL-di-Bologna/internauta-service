@@ -301,6 +301,9 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                     DocDetail.TipologiaDoc.DOCUMENT_REGISTRO.toString()
                 ).and(filter);
             }
+            
+            
+            
         }
             
 
