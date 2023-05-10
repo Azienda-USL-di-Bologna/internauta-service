@@ -178,10 +178,12 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                     } catch (Exception ex) {
                         throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_ruolo_e_figlie", ex);
                     }
+                        break;
                     case FilterPerAssegnamentoMassivo:
                         try {
                         String idStruttura = additionalData.get("idStruttura");
-                        Struttura struttura = strutturaRepository.getById(Integer.parseInt(idStruttura));
+                        Integer idStrutturaInteger = Integer.parseInt(idStruttura);
+                        Struttura struttura = strutturaRepository.getById(idStrutturaInteger);
                         String stringaDaCercare = additionalData.get("stringaDaCercare");
                         List<Integer> idStruttureFiglieECugine = strutturaRepository.getStruttureFiglieECugine(struttura.getId());
                         LOGGER.info("Assegnamento massivo, idStruttura : " + struttura.getId().toString() + ", stringa da cercare: " + stringaDaCercare);
