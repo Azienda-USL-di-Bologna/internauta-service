@@ -142,7 +142,6 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
             String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "idArchivi"};
             List<Integer> listaIdAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getId()).collect(Collectors.toList());
             List<Integer> listaIdAziendaOsservatore = userInfoService.getListaIdAziendaOsservatore(persona);
-            List<Integer> listaAziendeInCuiSonoIP = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.IP);
 
             Integer[] idStruttureSegretario = userInfoService.getStruttureDelSegretario(persona);
             BooleanExpression pienaVisibilita = qdocdetailview.idPersona.id.eq(persona.getId()).and(qdocdetailview.pienaVisibilita.eq(Expressions.TRUE));
@@ -156,10 +155,13 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
             } else {
                 sonoSegretario = Expressions.FALSE.eq(true);
             }
-
+            
+            
+            
             BooleanExpression filtroStandard = qdocdetailview.numeroRegistrazione.isNotNull()
                     .or(personaVedente) // Filtro 4
                     .or(sonoSegretario); // Filtro 5
+                    
 
             filtroStandard = filtroStandard.and(
                     qdocdetailview.riservato.eq(Boolean.FALSE) // Filtro 6 Riservato
@@ -176,15 +178,13 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
             BooleanExpression filtroOsservatore = qdocdetailview.idAzienda.id.in(listaIdAziendaOsservatore)
                     .and(qdocdetailview.idAziendaDoc.id.in(listaIdAziendaOsservatore))
                     .and(qdocdetailview.riservato.eq(Boolean.FALSE)); // Filtro 3
-            
-            BooleanExpression filtroImportatorePregressi = qdocdetailview.idAzienda.id.in(listaAziendeInCuiSonoIP)
-                    .and(qdocdetailview.idAziendaDoc.id.in(listaAziendeInCuiSonoIP))
-                    .and(qdocdetailview.pregresso.eq(Boolean.TRUE));
 
+            
+            
+            
             filter = qdocdetailview.idAzienda.id.in(listaIdAziendaUtenteAttivo)
                     .and(qdocdetailview.idAziendaDoc.id.in(listaIdAziendaUtenteAttivo)); // Filtro 2
-            filter = filter.and(filtroOsservatore.or(filtroStandard).or(filtroImportatorePregressi));
-            
+            filter = filter.and(filtroOsservatore.or(filtroStandard));
             
             
             

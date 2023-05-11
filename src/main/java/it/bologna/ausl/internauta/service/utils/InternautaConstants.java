@@ -86,6 +86,7 @@ public class InternautaConstants {
             VisualizzaTabIFirmato,
             VisualizzaTabRegistrazioni,
             VisualizzaTabErroriVersamento,
+            VisualizzaTabPregressi,
             VisualizzaTabPreferiti,
             VisualizzaTabFrequenti,
             VisualizzaTabRecenti,
