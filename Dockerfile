@@ -63,6 +63,8 @@ LABEL version=$BUILD_NUMBER
 
 RUN echo "Europe/Rome" > /etc/timezone && dpkg-reconfigure -f noninteractive tzdata
 
+WORKDIR /app
+
 COPY --from=internauta_builder /home/target/internauta-service-0.0.1-SNAPSHOT.jar /app/internauta-service-0.0.1-SNAPSHOT.jar
 
 # Esegui l'applicazione quando l'immagine Docker viene avviata
