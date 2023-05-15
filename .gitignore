@@ -15,3 +15,4 @@ src/main/resources/downloader/Internauta_Downloader_Encription_Private_Key_Test.
 authorizations-utils/
 downloader/
 firma/jnj/firmaJnJInstaller.msi
+application.properties

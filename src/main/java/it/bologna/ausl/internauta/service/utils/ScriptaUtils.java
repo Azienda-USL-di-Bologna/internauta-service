@@ -126,7 +126,7 @@ public class ScriptaUtils {
             CharSequence sostituto = "\\" + separatoreDiSiStema;
             fileName = fileName.replace(daRimpiazzare, sostituto);
 
-            File tmp = File.createTempFile("Allegato_", FilenameUtils.getExtension(fileName));
+            File tmp = File.createTempFile("Allegato_", "." + FilenameUtils.getExtension(fileName));
             FileUtils.copyInputStreamToFile(allegatoInputStream, tmp);
 
             ArrayList<ExtractorResult> extractionResultAll = FileUtilities.estraiTuttoDalFile(folderToSave, tmp, fileName);

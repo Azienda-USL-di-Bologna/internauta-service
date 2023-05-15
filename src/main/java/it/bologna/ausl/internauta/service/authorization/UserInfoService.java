@@ -166,7 +166,7 @@ public class UserInfoService {
     public Utente loadUtente(String username, String aziendaPath) {
         Utente res = null;
         Azienda azienda = cachedEntities.getAziendaFromPath(aziendaPath);
-        if (azienda != null) {
+        if (azienda != null && username != null) {
             BooleanExpression utenteFilter = QUtente.utente.username.eq(username).and(QUtente.utente.idAzienda.id.eq(azienda.getId()));
             Optional<Utente> utenteOp = utenteRepository.findOne(utenteFilter);
             if (utenteOp.isPresent()) {
@@ -1116,6 +1116,13 @@ public class UserInfoService {
         }
     }
 
+    /**
+     * Controlla se l'utente è Configuratore Interaziendale (CI).
+     * È il ruolo tipico del PM del cliente. Può intervenire su configurazioni varie di tute le aziende. 
+     * Può vedere l'organigramma di tutte le aziende e così via.
+     * @param user L'Utente da controllare.
+     * @return true o false.
+     */
     @Cacheable(value = "getRuoliIsCI__ribaltorg__", key = "{#user.getId()}")
     public boolean isCI(Utente user) {
         if (user.getRuoliUtentiPersona() == null) {
@@ -1129,6 +1136,12 @@ public class UserInfoService {
 //    public boolean isR(Utente user) {
 //       return isR(user, null);
 //    }
+    /**
+     * Controlla se l'utente è un Responsabile (R).
+     * Questo ruolo non da molto all'utente. Vedere BabelMan.
+     * @param modulo Il modulo del ruolo.
+     * @return true o false.
+     */
     @Cacheable(value = "getRuoliIIsR__ribaltorg__", key = "{#user.getId(), #modulo.toString()}")
     public boolean isR(Utente user, Ruolo.ModuliRuolo modulo) {
         if (user.getRuoliUtentiPersona() == null) {
@@ -1146,10 +1159,11 @@ public class UserInfoService {
     }
 
     /**
-     * Torna "true" se l'utente è CA di almeno un'azienda
-     *
-     * @param user
-     * @return
+     * Torna "true" se l'utente è CA di almeno un'azienda.
+     * Configuratore Aziendale (CA): E' il ruolo del PM della singola azienda. 
+     * Gli permette di gestire le varie configurazioni della sua azienda.
+     * @param user L'Utente su cui effettuare il controllo.
+     * @return true o false.
      */
     @Cacheable(value = "getRuoliIsCA__ribaltorg__", key = "{#user.getId()}")
     public boolean isCA(Utente user) {
@@ -1166,7 +1180,16 @@ public class UserInfoService {
         }
         return false;
     }
+    
+   
+    
 
+    /**
+     * Controlla se l'utente è Super Demiurgo (SD).
+     * Questo è il ruolo degli sviluppatori. Permette di fare tutto a patto che il programma lo permetta.
+     * @param user L'Utente su cui effettuare il controllo.
+     * @return true o false.
+     */
     @Cacheable(value = "getRuoliIsSD__ribaltorg__", key = "{#user.getId()}")
     public boolean isSD(Utente user) {
         if (user.getRuoliUtentiPersona() == null) {

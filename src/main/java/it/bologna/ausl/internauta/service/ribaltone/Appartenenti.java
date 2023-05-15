@@ -456,11 +456,11 @@ public class Appartenenti {
         }
         //adesso controllo che la riga di appartenenza diretta o funzionale non abbia sovrapposizioni temporali cross afferenza 
         if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")) {
-            if (appartenentiMap.get("codice_matricola") != null && appartenentiMap.get("codice_matricola").toString().trim().equals("")) {
-                Integer codiceMatricola = (Integer) appartenentiMap.get("codice_matricola");
+            if (appartenentiMap.get("codice_matricola") != null && !appartenentiMap.get("codice_matricola").toString().trim().equals("")) {
+                Integer codiceMatricola = Integer.parseInt(appartenentiMap.get("codice_matricola").toString());
                 if (appartenentiFunzionali.containsKey(codiceMatricola)) {
-                    if (appartenentiMap.get("id_casella") != null && appartenentiMap.get("id_casella").toString().trim().equals("")) {
-                        Integer idCasellaApp = (Integer) appartenentiMap.get("id_casella");
+                    if (appartenentiMap.get("id_casella") != null && !appartenentiMap.get("id_casella").toString().trim().equals("")) {
+                        Integer idCasellaApp = Integer.parseInt(appartenentiMap.get("id_casella").toString());
                         if (appartenentiFunzionali.get(codiceMatricola).containsKey(idCasellaApp)) {
                             if (ImportaDaCSVUtils.isPeriodiSovrapposti(
                                     appartenentiFunzionali.get(codiceMatricola).get(idCasellaApp),
@@ -476,12 +476,12 @@ public class Appartenenti {
             }
         }
         if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("F")) {
-            if (appartenentiMap.get("codice_matricola") != null && appartenentiMap.get("codice_matricola").toString().trim().equals("")) {
-                Integer codiceMatricola = (Integer) appartenentiMap.get("codice_matricola");
+            if (appartenentiMap.get("codice_matricola") != null && !appartenentiMap.get("codice_matricola").toString().trim().equals("")) {
+                Integer codiceMatricola = Integer.parseInt(appartenentiMap.get("codice_matricola").toString());
                 if (appartenentiDiretti.containsKey(codiceMatricola)) {
-                    if (appartenentiMap.get("id_casella") != null && appartenentiMap.get("id_casella").toString().trim().equals("")) {
-                        Integer idCasellaApp = (Integer) appartenentiMap.get("id_casella");
-                        if (appartenentiDiretti.get(codiceMatricola).containsKey(idCasellaApp)) {
+                    if (appartenentiMap.get("id_casella") != null && !appartenentiMap.get("id_casella").toString().trim().equals("")) {
+                        Integer idCasellaApp = Integer.parseInt(appartenentiMap.get("id_casella").toString());
+                        if (appartenentiDiretti.get(codiceMatricola).containsKey(idCasellaApp)) {                           
                             if (ImportaDaCSVUtils.isPeriodiSovrapposti(
                                     appartenentiDiretti.get(codiceMatricola).get(idCasellaApp),
                                     ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain")),

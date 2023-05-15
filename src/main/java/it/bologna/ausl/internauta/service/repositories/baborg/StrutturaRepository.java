@@ -56,4 +56,13 @@ public interface StrutturaRepository extends
 //    @Procedure(value = "baborg.get_strutture_ruolo_e_figlie")
 //    public List<Integer> getStruttureRuoloEFiglie(Integer bitRuoli, Integer idUtente, LocalDateTime date);
 
+    @Procedure("baborg.get_strutture_figlie_e_cugine")
+    public List<Integer> getStruttureFiglieECugine(Integer idStruttura);
+    
+    @Query(value= "select s.id from baborg.strutture s " +
+                    "join baborg.attributi_strutture as2 on as2.id_struttura = s.id " +
+                    "join baborg.tipologie_struttura ts on ts.id = as2.id_tipologia_struttura " +
+                    "where ts.tipologia = 'Assegnamento'",
+                    nativeQuery = true ) 
+    public List<Integer> getPoolAssegnamento();
 }

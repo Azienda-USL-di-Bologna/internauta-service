@@ -1396,6 +1396,18 @@ public class RaccoltaSempliceCustomController {
         List<Fascicolo> returnFascicoli = new ArrayList<Fascicolo>();
 
         try ( Connection conn = (Connection) dbConnection.open()) {
+            String tmp = RaccoltaManager.queryGetIdUtente(idUtente);
+            if (tmp != null) {
+                Query queryWithParams = conn.createQuery(tmp);
+                log.info("esecuzione query getIdUtente: " + queryWithParams.toString());
+                idUtente = queryWithParams.executeAndFetchFirst(String.class);
+            }
+        } catch (Exception e) {
+            log.error("errore nell'esecuzione della query getIdUtente", e);
+            throw new Http500ResponseException("1", "Errore nell'esecuzione della query getIdUtente");
+        }
+
+        try ( Connection conn = (Connection) dbConnection.open()) {
             Query queryWithParams = conn.createQuery(RaccoltaManager.queryGetFascicoli(idUtente, param));
             log.info("esecuzione query getFascicoli: " + queryWithParams.toString());
             fascicoli = (List<Fascicolo>) queryWithParams.executeAndFetch(Fascicolo.class);
