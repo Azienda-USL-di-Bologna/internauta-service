@@ -56,7 +56,8 @@ public class AccodatoreVeloce {
                     objectType, 
                     app, 
                     false, // waitForObject
-                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
+                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST,
+                    true
             );
         } catch (MasterjobsQueuingException ex) {
             String errorMessage = String.format("Errore nell'accodamento di %s", CalcolaPersoneVedentiDocJobWorker.class.getSimpleName());
@@ -80,7 +81,8 @@ public class AccodatoreVeloce {
                     objectType, 
                     app, 
                     true, 
-                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
+                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST,
+                    true
             );
         } catch (MasterjobsQueuingException ex) {
             String errorMessage = "Errore nell'accodamento del job CalcoloPermessiGerarchiaArchivio";
@@ -105,7 +107,8 @@ public class AccodatoreVeloce {
                     objectType, 
                     app, 
                     false, 
-                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
+                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST,
+                    true
             );
         } catch (MasterjobsQueuingException ex) {
             String errorMessage = "Errore nell'accodamento del job CalcoloPermessiArchivio";
@@ -130,7 +133,8 @@ public class AccodatoreVeloce {
                     objectType, 
                     app, 
                     true, // waitForObject
-                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST
+                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST,
+                    true
             );
         } catch (MasterjobsQueuingException ex) {
             String errorMessage = String.format("Errore nell'accodamento di %s", CalcolaPersoneVedentiDaArchiviRadiceJobWorker.class.getSimpleName());
