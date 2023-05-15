@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author gdm
  */
 @RestController
-@RequestMapping(value = "${scripta.mapping.url.root}")
+@RequestMapping(value = "${tip.mapping.url.root}")
 public class TipCustomController implements ControllerHandledExceptions {
     
 }
