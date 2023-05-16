@@ -16,3 +16,4 @@ authorizations-utils/
 downloader/
 firma/jnj/firmaJnJInstaller.msi
 application.properties
+nbactions-noTest.xml

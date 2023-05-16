@@ -321,7 +321,7 @@ public class ScriptaArchiviUtils {
      * @throws Http404ResponseException Eccezione lanciata quando il fascicolo da scaricare non ha nè documenti nè figli.
      * @throws IOException Eccezioni durante la generazione del file.
      */
-    private void buildArchivio(Archivio archivio, String archivioName, Persona persona, ZipOutputStream zipOut, 
+    public void buildArchivio(Archivio archivio, String archivioName, Persona persona, ZipOutputStream zipOut, 
             JPAQueryFactory jPAQueryFactory, MinIOWrapper minIOWrapper) throws IOException, Http404ResponseException {
         
         if (!personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {

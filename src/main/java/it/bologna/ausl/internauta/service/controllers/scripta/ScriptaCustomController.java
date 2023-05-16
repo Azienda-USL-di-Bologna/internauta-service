@@ -113,8 +113,11 @@ import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioR
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.generazioneziparchivio.GenerazioneZipArchivioJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.generazioneziparchivio.GenerazioneZipArchivioJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Archivio;
@@ -482,7 +485,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @PathVariable(required = true) Integer idArchivio,
             HttpServletResponse response,
             HttpServletRequest request
-    ) throws Http403ResponseException, Http404ResponseException, Http500ResponseException, BlackBoxPermissionException  {
+    ) throws Http403ResponseException, Http404ResponseException, Http500ResponseException, BlackBoxPermissionException, MasterjobsWorkerException  {
         LOG.info("downloadArchivioZip: {}", idArchivio);
         
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -495,8 +498,34 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA))
             throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
         
-        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
-        scriptaArchiviUtils.createZipArchivio(archivio, persona, response, jPAQueryFactory);
+        GenerazioneZipArchivioJobWorkerData data = new GenerazioneZipArchivioJobWorkerData(
+                persona,
+                archivio,
+                request,
+                "Servizio per generare lo zip dell'archivio e fornire il download"
+        );
+        GenerazioneZipArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
+                    GenerazioneZipArchivioJobWorker.class,
+                    data,
+                    false
+        );
+        try {
+            masterjobsJobsQueuer.queue(
+                    worker, 
+                    null, 
+                    null, 
+                    Applicazione.Applicazioni.gedi.toString(), 
+                    false, 
+                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL
+            );
+        } catch (MasterjobsQueuingException ex) {
+            String errorMessage = "Errore nell'accodamento del job CalcoloPermessiGerarchiaArchivio";
+            log.error(errorMessage);
+            throw new MasterjobsWorkerException(errorMessage, ex);
+        }
+
+//        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+//        scriptaArchiviUtils.createZipArchivio(archivio, persona, response, jPAQueryFactory);
           
         LOG.info("downloadArchivioZip: {} completato.", idArchivio);
         if (authenticatedUserProperties.getRealUser() == null || !userInfoService.isSD(authenticatedUserProperties.getRealUser()))
