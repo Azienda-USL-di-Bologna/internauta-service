@@ -15,15 +15,17 @@ public class GenerazioneZipArchivioJobWorkerData extends JobWorkerData{
     
     private Persona persona;
     private Archivio archivio;
-    private HttpServletRequest request;
+    private String downloadUrl;
+    private String uploadUrl;
     private String note;
 
     public GenerazioneZipArchivioJobWorkerData() { }
 
-    public GenerazioneZipArchivioJobWorkerData(Persona persona, Archivio archivio, HttpServletRequest request, String note) {
+    public GenerazioneZipArchivioJobWorkerData(Persona persona, Archivio archivio, String downloadUrl, String uploadUrl, String note) {
         this.persona = persona;
         this.archivio = archivio;
-        this.request = request;
+        this.downloadUrl = downloadUrl;
+        this.uploadUrl = uploadUrl;
         this.note = note;
     }
 
@@ -44,12 +46,20 @@ public class GenerazioneZipArchivioJobWorkerData extends JobWorkerData{
         this.archivio = archivio;
     }
 
-    public HttpServletRequest getRequest() {
-        return request;
+    public String getDownloadUrl() {
+        return downloadUrl;
     }
 
-    public void setRequest(HttpServletRequest request) {
-        this.request = request;
+    public void setDownloadUrl(String downloadUrl) {
+        this.downloadUrl = downloadUrl;
+    }
+
+    public String getUploadUrl() {
+        return uploadUrl;
+    }
+
+    public void setUploadUrl(String uploadUrl) {
+        this.uploadUrl = uploadUrl;
     }
 
     public String getNote() {

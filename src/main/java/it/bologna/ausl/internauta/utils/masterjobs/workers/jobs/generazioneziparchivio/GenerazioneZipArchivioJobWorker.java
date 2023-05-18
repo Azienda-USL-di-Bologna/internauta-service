@@ -5,6 +5,8 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaArchiviUtils;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
@@ -20,6 +22,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.scripta.Allegato;
@@ -60,6 +63,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 
 /**
  *
@@ -83,7 +87,13 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
     AttivitaRepository attivitaRepository;
     
     @Autowired
+    AziendaRepository aziendaRepository;
+    
+    @Autowired
     ApplicazioneRepository applicazioneRepository;
+    
+    @Autowired
+    PersonaRepository personaRepository;
     
     @PersistenceContext
     private EntityManager em;
@@ -99,7 +109,8 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         
         Persona persona = getWorkerData().getPersona();
         Archivio archivio = getWorkerData().getArchivio();
-        HttpServletRequest request = getWorkerData().getRequest();
+        String downloadUrl = getWorkerData().getDownloadUrl();
+        String uploadUrl = getWorkerData().getUploadUrl();
         
         String numero = archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/"));
         String archivioZipName = String.format("%s-%d-%s.zip", numero, archivio.getAnno(), archivio.getOggetto().trim());
@@ -117,21 +128,29 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         }
         ByteArrayInputStream bis = new ByteArrayInputStream(byteOutStream.toByteArray());
         
+        
+        
         String urlToDownload = null;
         try {
-            urlToDownload = firmaRemotaDownloaderUtils.uploadToUploader(bis, archivioZipName, "application/zip", true, request);
+            urlToDownload = firmaRemotaDownloaderUtils.uploadToUploader(bis, archivioZipName, "application/zip", true, downloadUrl, uploadUrl);
         } catch (FirmaRemotaHttpException ex) {
             log.error("errore nell'upload e generazione del url per il download", ex);
         }
         
-        Applicazione app = applicazioneRepository.getById("gediInt");
+        Applicazione app = applicazioneRepository.getById("downloader");
         Attivita a = new Attivita(null, archivio.getIdAzienda(), Attivita.TipoAttivita.NOTIFICA.toString(), ZonedDateTime.now(), ZonedDateTime.now());
-        a.setUrls(String.format("[{\"url\": \"$s\", \"label\": \"Scarica archivio\"}]", urlToDownload));
+        a.setUrls(String.format("[{\"url\": \"%s\", \"label\": \"Scarica\"}]", urlToDownload));
         a.setDescrizione("Archivio zip generato per lo scaricamento asincrono");
         a.setIdApplicazione(app);
-        a.setIdAzienda(archivio.getIdAzienda());
-        a.setIdPersona(persona);
-        a.setOggetto(archivioZipName);
+        a.setIdAzienda(aziendaRepository.getById(archivio.getIdAzienda().getId()));
+        a.setIdPersona(personaRepository.getById(persona.getId()));
+        a.setOggetto(String.format("Fascicolo: %s", archivioZipName));
+        a.setProvenienza(app.getNome());
+        a.setOggettoEsterno(archivio.getId().toString());
+        a.setTipoOggettoEsterno("ArchivioInternauta");
+        a.setOggettoEsternoSecondario(archivio.getId().toString());
+        a.setTipoOggettoEsternoSecondario("ArchivioInternauta");
+        a.setAperta(false);
         attivitaRepository.saveAndFlush(a);
         
         return null;

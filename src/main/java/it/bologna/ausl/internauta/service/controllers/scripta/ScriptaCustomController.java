@@ -112,6 +112,8 @@ import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailReposito
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
+import it.bologna.ausl.internauta.utils.firma.utils.CommonUtils;
+import it.bologna.ausl.internauta.utils.firma.utils.ConfigParams;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
@@ -155,6 +157,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     private final List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
 //    private List<Allegato> savedFilesOnInternauta = new ArrayList();
 
+    @Autowired
+    private ConfigParams configParams;
+    
     @Autowired
     private CachedEntities cachedEntities;
     
@@ -253,15 +258,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private KrintUtils krintUtils;
-    
-    @Autowired
-    private PermissionManager permissionManager;
 
     @Autowired
     private KrintScriptaService krintScriptaService;
-    
-    @Autowired
-    private ArchivioDetailRepository archivioDetailRepository;
     
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -497,11 +496,17 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
        
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA))
             throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
-        
+        String scheme = request.getScheme();
+        String hostname = CommonUtils.getHostname(request);
+        Integer port = request.getServerPort();
+
+        String downloadUrl = this.configParams.getDownloaderUrl(scheme, hostname, port);
+        String uploaderUrl = this.configParams.getUploaderUrl(scheme, hostname, port);
         GenerazioneZipArchivioJobWorkerData data = new GenerazioneZipArchivioJobWorkerData(
                 persona,
                 archivio,
-                request,
+                downloadUrl,
+                uploaderUrl,
                 "Servizio per generare lo zip dell'archivio e fornire il download"
         );
         GenerazioneZipArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
