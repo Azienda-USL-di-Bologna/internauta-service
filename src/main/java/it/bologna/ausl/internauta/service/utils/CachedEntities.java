@@ -268,6 +268,11 @@ public class CachedEntities {
         return parametriAziende.getParameters(nome, new Integer[]{idAzienda});
     }
     
+    @Cacheable(value = "getParameters", key = "{#nome}")
+    public List<ParametroAziende> getParameters(String nome) {
+        return parametriAziende.getParameters(nome);
+    }
+    
     
     @Cacheable(value = "supportedFiles")
     public Map<String, SupportedFile> getSupportedFiles() {
