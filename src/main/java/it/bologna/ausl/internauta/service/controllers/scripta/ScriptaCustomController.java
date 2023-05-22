@@ -1061,12 +1061,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         //return ResponseEntity.status(HttpStatus.OK).build();
     }
 
-    @RequestMapping(value = "archiveMessage/{idMessage}/{idArchivio}", method = RequestMethod.POST)
+    @RequestMapping(value = "archiveMessage/{idMessage}/{idArchivio}/{nomeDocDaPec}", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> archiveMessage(
             HttpServletRequest request,
             @PathVariable(required = true) Integer idMessage,
-            @PathVariable(required = true) Integer idArchivio
+            @PathVariable(required = true) Integer idArchivio,
+            @PathVariable(required = true) String nomeDocDaPec
     ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, BlackBoxPermissionException, Http404ResponseException, Http403ResponseException, BadParamsException, MinIOWrapperException, Http500ResponseException, MasterjobsWorkerException {
         projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
 
@@ -1077,7 +1078,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Message message = messageRepository.findById(idMessage).get();
         Azienda azienda = archivio.getIdAzienda();
 
-        Integer idDoc = scriptaArchiviUtils.archiveMessage(message, archivio, persona, azienda, utente);
+        Integer idDoc = scriptaArchiviUtils.archiveMessage(message, nomeDocDaPec, archivio, persona, azienda, utente);
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);
         
