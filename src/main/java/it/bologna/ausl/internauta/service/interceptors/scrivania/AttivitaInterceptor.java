@@ -113,6 +113,7 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                 || (attivita.getTipo().equals(Attivita.TipoAttivita.NOTIFICA.toString())
                 && attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.PICO.toString())
                 || attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.DETE.toString())
+                || attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.DOWNLOADER.toString())
                 || attivita.getIdApplicazione().getId().equals(Attivita.IdApplicazione.DELI.toString()))) {
 
             // composizione dell'applicazione (es: /Procton/Procton.htm)

@@ -53,7 +53,7 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
         Integer idAzienda = getWorkerData().getIdAzienda();
         Integer tempoEliminaArchiviazioni = getWorkerData().getTempoEliminaArchiviazioni();
         log.info("sono in do doWork() di {} per l'azienda {}", getName(), idAzienda);
-        //pesco tutti i doc con almeno un cross eliminato logicamnete
+        //pesco tutti i doc con almeno un cross eliminato logicamente
         JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
         List<Integer> idDocsConCrossEliminateLogicamente = jpaQueryFactory
                 .select(QArchivioDoc.archivioDoc.idDoc.id).distinct()
@@ -65,7 +65,7 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                         QDoc.doc.idAzienda.id.eq(idAzienda)
                 )
                 .fetch();
-        //pesco tutti i doc //pesco tutti i doc con almeno un cross eliminato logicamnete e anche almeo uno non eliminato
+        //pesco tutti i doc con almeno un cross eliminato logicamente e anche almeno uno non eliminato
         List<Integer> idDocsConCrossEliminateLogicamenteEAncheNonEliminate = jpaQueryFactory
                 .select(QArchivioDoc.archivioDoc.idDoc.id).distinct()
                 .from(QArchivioDoc.archivioDoc)
