@@ -189,7 +189,7 @@ public class ScriptaArchiviUtils {
      * @throws MinIOWrapperException
      * @throws Http500ResponseException 
      */
-    public Integer archiveMessage(Message message, Archivio archivio, Persona persona, Azienda azienda, Utente utente) 
+    public Integer archiveMessage(Message message, String nomeDocDaPec, Archivio archivio, Persona persona, Azienda azienda, Utente utente) 
             throws Http404ResponseException, Http403ResponseException, MasterjobsWorkerException, BlackBoxPermissionException, 
             BadParamsException, IOException, MinIOWrapperException, Http500ResponseException {
         // Controlli di sicurezza
@@ -236,7 +236,7 @@ public class ScriptaArchiviUtils {
             File downloadEml = shpeckUtils.downloadEml(ShpeckUtils.EmlSource.MESSAGE, message.getId());
             MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
 
-            doc = new Doc("Pec_" + message.getId().toString(), persona, archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString());
+            doc = new Doc(nomeDocDaPec != null ? nomeDocDaPec : "Pec_" + message.getId().toString(), persona, archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString());
             doc = docRepository.save(doc);
             MessageDoc.TipoMessageDoc tipo = null;
             if (message.getInOut().equals(MessageInterface.InOut.IN)) {
@@ -248,7 +248,7 @@ public class ScriptaArchiviUtils {
             messageDocRepository.save(md);
 
             try {
-                scriptaUtils.creaAndAllegaAllegati(doc, new FileInputStream(downloadEml), "Pec_" + message.getId().toString(), true, true, message.getUuidRepository(), false, null); // downloadEml.getName()
+                scriptaUtils.creaAndAllegaAllegati(doc, new FileInputStream(downloadEml), nomeDocDaPec != null ? nomeDocDaPec : "Pec_" + message.getId().toString(), true, true, message.getUuidRepository(), false, null); // downloadEml.getName()
             } catch (Exception e) {
                 if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
                     for (MinIOWrapperFileInfo minIOWrapperFileInfo : savedFilesOnRepository) {
