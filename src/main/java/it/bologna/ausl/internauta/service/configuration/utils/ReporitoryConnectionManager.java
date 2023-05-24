@@ -66,7 +66,7 @@ public class ReporitoryConnectionManager {
         List<Azienda> aziende = aziendaRepository.findAll();
         aziendeParametriJson = new HashMap();
         for (Azienda azienda : aziende) {
-            AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+            AziendaParametriJson parametriAzienda = azienda.getParametri();
             aziendeParametriJson.put(azienda.getCodice(), parametriAzienda);
         }
     }

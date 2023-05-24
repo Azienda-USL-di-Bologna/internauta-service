@@ -525,7 +525,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             if (mt.getIdTag().getName().equals(Tag.SystemTagName.readdressed_out.toString())) {
                 throw new Http409ResponseException("1", "il messaggio è gia stato reindirizzato.");
             } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.registered.toString())) {
-                ArrayList<HashMap> additionalData = objectMapper.readValue(mt.getAdditionalData(), ArrayList.class);
+                ArrayList<HashMap> additionalData = mt.getAdditionalData();
                 for (HashMap hashMap : additionalData) {
                     HashMap obj = (HashMap) hashMap.get("idAzienda");
                     int idAzienda = (int) obj.get("id");
@@ -534,7 +534,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     }
                 }
             } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.in_registration.toString())) {
-                ArrayList<HashMap> additionalData = objectMapper.readValue(mt.getAdditionalData(), ArrayList.class);
+                ArrayList<HashMap> additionalData = mt.getAdditionalData();
                 for (HashMap hashMap : additionalData) {
                     HashMap obj = (HashMap) hashMap.get("idAzienda");
                     int idAzienda = (int) obj.get("id");
@@ -582,7 +582,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         JsonObject additionalData = new JsonObject();
         additionalData.add("idUtente", idUtente);
         additionalData.add("idPec", idPecSource);
-        messageTag.setAdditionalData(additionalData.toString());
+        messageTag.setAdditionalData(additionalData);
         messageTagList.add(messageTag);
         messageDestination.setMessageTagList(messageTagList);
 
@@ -619,7 +619,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         JsonObject additionalDataSource = new JsonObject();
         additionalDataSource.add("idUtente", idUtente);
         additionalDataSource.add("idPec", idPecDestinationJson);
-        messageTagSource.setAdditionalData(additionalDataSource.toString());
+        messageTagSource.setAdditionalData(additionalDataSource);
         // List<MessageFolder> messageFolderList = messageSource.getMessageFolderList();
 
         messageTagListSource.add(messageTagSource);

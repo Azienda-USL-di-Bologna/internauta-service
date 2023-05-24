@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.krint;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -19,6 +20,7 @@ import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniRealUser
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniUtente;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,11 +65,11 @@ public class KrintService {
             String idOggetto,
             Krint.TipoOggettoKrint tipoOggetto,
             String descrizioneOggetto,
-            String informazioniOggetto,
+            Map<String, Object> informazioniOggetto,
             String idOggettoContenitore,
             Krint.TipoOggettoKrint tipoOggettoContenitore,
             String descrizioneOggettoContenitore,
-            String informazioniOggettocontenitore,
+            Map<String,Object> informazioniOggettocontenitore,
             OperazioneKrint.CodiceOperazione codiceOperazione) throws Exception {
 
         try {
@@ -75,9 +77,8 @@ public class KrintService {
 
             Integer idSessione = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getIdSessionLog(); // TODO: mettere idSessione corretto
             KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
-            String jsonKrintInformazioniUtente = objectMapper.writeValueAsString(krintInformazioniUtente);
-
-            Krint krint = new Krint(idSessione, authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getApplicazione(), utente.getId(), utente.getIdPersona().getDescrizione(), jsonKrintInformazioniUtente);
+            Map<String, Object> mapKrintInformazioniUtente = objectMapper.convertValue(utente, new TypeReference<Map<String,Object>>(){});
+            Krint krint = new Krint(idSessione, authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getApplicazione(), utente.getId(), utente.getIdPersona().getDescrizione(), mapKrintInformazioniUtente);
 
             // recupero l'operazioneVersionata con quel codiceOperazione e con la versione più alta
             OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(codiceOperazione);
@@ -93,6 +94,7 @@ public class KrintService {
                 krint.setTipoOggettoContenitore(tipoOggettoContenitore);
                 krint.setDescrizioneOggettoContenitore(descrizioneOggettoContenitore);
             }
+            
             krint.setInformazioniOggettoContenitore(informazioniOggettocontenitore);
 
             krint.setIdOperazioneVersionata(operazioneVersionataKrint);
@@ -107,8 +109,8 @@ public class KrintService {
                     krint.setDescrizioneRealUser(personaReale.getDescrizione());
                 }
                 KrintInformazioniRealUser krintInformazioniRealUser = factory.createProjection(KrintInformazioniRealUser.class, utenteReale);
-                String jsonKrintInformazioniRealUser = objectMapper.writeValueAsString(krintInformazioniRealUser);
-                krint.setInformazioniRealUser(jsonKrintInformazioniRealUser);
+                Map<String, Object> mapKrintInformazioniRealUser = objectMapper.convertValue(krintInformazioniRealUser, new TypeReference<Map<String,Object>>(){});
+                krint.setInformazioniRealUser(mapKrintInformazioniRealUser);
             }
 
             List<Krint> krintList = (List<Krint>) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.KRINT_ROWS);

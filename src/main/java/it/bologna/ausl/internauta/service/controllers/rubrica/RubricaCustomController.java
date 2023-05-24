@@ -549,7 +549,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
     private String buildGestisciDestinatariDaRubricaInternautarUrl(Azienda azienda, String idApplicazione) throws IOException {
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
-        AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        AziendaParametriJson parametriAzienda = azienda.getParametri();
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), manageDestinatariUrl);
         //url = "http://localhost:8080/Deli/GestisciDestinatariDaRubricaInternauta";
         log.info("Url da chiamare: " + url);
@@ -564,7 +564,7 @@ public class RubricaCustomController implements ControllerHandledExceptions {
 
         Map<String, Object> primusCommandParams = new HashMap();
         primusCommandParams.put("refreshDestinatari", guid);
-        AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        AziendaParametriJson aziendaParametriJson = azienda.getParametri();
         AziendaParametriJson.MasterChefParmas masterchefParams = aziendaParametriJson.getMasterchefParams();
         MasterChefUtils.MasterchefJobDescriptor masterchefJobDescriptor
                 = masterChefUtils.buildPrimusMasterchefJob(MasterChefUtils.PrimusCommands.refreshDestinatari,

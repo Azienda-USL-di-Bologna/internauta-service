@@ -342,7 +342,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
 
         Azienda azienda = aziendaRepository.findById(Integer.parseInt(idAzienda)).get();
-        AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        AziendaParametriJson parametriAzienda =  azienda.getParametri();
        
         
         String cf = "";
@@ -445,7 +445,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
             additionalData.put("message", t.getMessage());
             additionalData.put("toString", t.toString());
             t.printStackTrace();
-            report.setAdditionalData(objectMapper.writeValueAsString(additionalData));
+            report.setAdditionalData(additionalData);
             reportRepository.save(report);
             return new ResponseEntity("Not so good madafaca :D", HttpStatus.OK);
         }

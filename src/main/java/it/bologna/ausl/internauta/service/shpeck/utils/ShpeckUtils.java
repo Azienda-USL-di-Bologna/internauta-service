@@ -58,7 +58,6 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagReposito
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.RawMessageRepository;
 import it.bologna.ausl.model.entities.data.AdditionalData;
-import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi;

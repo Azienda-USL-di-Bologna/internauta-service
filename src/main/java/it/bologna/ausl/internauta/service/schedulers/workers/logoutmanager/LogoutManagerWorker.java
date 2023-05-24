@@ -108,7 +108,7 @@ public class LogoutManagerWorker implements Runnable {
         Map<String, Object> primusCommandParams = new HashMap();
         primusCommandParams.put("redirectUrl", redirectUrl);
         for (Azienda azienda: aziendeLogout) {
-            AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+            AziendaParametriJson aziendaParametriJson = azienda.getParametri();
             AziendaParametriJson.MasterChefParmas masterchefParams = aziendaParametriJson.getMasterchefParams();
             MasterChefUtils.MasterchefJobDescriptor masterchefJobDescriptor = masterChefUtils.buildPrimusMasterchefJob(
                     MasterChefUtils.PrimusCommands.logout, primusCommandParams, "1", "1", dests, "*");

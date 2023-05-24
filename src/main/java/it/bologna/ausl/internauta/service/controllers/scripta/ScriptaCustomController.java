@@ -860,7 +860,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
 
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
-        AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        AziendaParametriJson parametriAzienda = azienda.getParametri();
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), EliminaPropostaDaEdiUrl);
 //        String url = "http://localhost:8080/Procton/EliminaPropostaDaEdi";
 //        String url = "http://localhost:8080/Dete/EliminaPropostaDaEdi";
