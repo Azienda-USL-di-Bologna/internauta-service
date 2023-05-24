@@ -453,6 +453,31 @@ public class KrintScriptaService {
         }
     }
     
+    public void writeActionDoc(Doc doc, Archivio arch, OperazioneKrint.CodiceOperazione codiceOperazione) {
+        try {
+            // Informazioni oggetto
+
+            krintService.writeKrintRow(
+                    doc.getId().toString(),
+                    Krint.TipoOggettoKrint.SCRIPTA_DOC,
+                    doc.getOggetto(),
+                    null,
+                    arch.getId().toString(),
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
+                    arch.getOggetto(),
+                    null,
+                    codiceOperazione);
+        } catch (Exception ex) {
+            Integer idOggetto = null;
+            try {
+                ex.printStackTrace();
+                idOggetto = doc.getId();
+            } catch (Exception exa) {
+            }
+            krintService.writeKrintError(idOggetto, "writeActionDoc", codiceOperazione);
+        }
+    }
+    
     /**
      * Crea una mappa serializzando la classe Archivio.
      * @param archivio Da serializzare.
