@@ -1758,5 +1758,127 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
+    
+    @RequestMapping(value = "copiaDoc", method = RequestMethod.POST)
+    @Transactional
+    public Object copiaDoc(
+            @RequestParam("idDoc") String idDoc,
+            @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException, Http403ResponseException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Archivio finalArchivio = null;
+        //procedo a tirare su tutto ciò che mi serve
+        Integer idDocInt = Integer.valueOf(idDoc);
+        Optional<Doc> d = docRepository.findById(idDocInt);
+        //controllo l'effettiva presenza dell'archivio da copiare
+        if (d.isPresent()) {
+            Doc doc = d.get();
+            boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
+            //procedo a tirare su tutto ciò che mi serve sull'archivio destinazione
+            Integer idArchivioIntDestinazione = Integer.valueOf(idArchivioDestinazione);
+            Optional<Archivio> aDestinazione = archivioRepository.findById(idArchivioIntDestinazione);
+            //controllo l'effettiva presenza dell'archivio destinazione
+            if (aDestinazione.isPresent()) {
+                Archivio archivioDestinazione = aDestinazione.get();
+                //procedo con le modifiche
+                List<ArchivioDoc> archivioDestinazioneDocs = archivioDocRepository.findByIdArchivio(archivioDestinazione);
+                for(ArchivioDoc ad: archivioDestinazioneDocs){
+                    if(ad.getIdDoc().getId().equals(doc.getId())){
+                        throw new Http500ResponseException("2", "L'archivio di destinazione contiene già il doc da copiare");
+                    }
+                }
+                ArchivioDoc archivioDocCopiato = new ArchivioDoc(archivioDestinazione, doc, persona);
+                ArchivioDoc save = archivioDocRepository.save(archivioDocCopiato);
+                
+                log.info(String.format("Il documento è stato copiato correttamente all'archivio: " + archivioDestinazione.getId()));
+                finalArchivio = archivioDestinazione;
+                
+                em.refresh(finalArchivio);
+                if (iHaveToKrint) {             
+                    krintScriptaService.writeActionDoc(doc, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_DOC_COPIA);
+                }
+            }
+            String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+            log.info("Recupero projection by name " + projection);
+            Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+            projectionsInterceptorLauncher.setRequestParams(null, request);
+            log.info("Chiamo la facrtory della projection...");
+            Object projectedObject = projectionFactory.createProjection(
+                    projectionClass, finalArchivio
+            );
+            log.info("Ritorno la projectionCreata");
+            return projectedObject;
+        }
+        throw new Http500ResponseException("1", "Non ho trovato nessun doc con l'id passato");
+    }
+    
+    @RequestMapping(value = "spostaDoc", method = RequestMethod.POST)
+    @Transactional
+    public Object spostaDoc(
+            @RequestParam("idDoc") String idDoc,
+            @RequestParam("idArchivioPartenza") String idArchivioPartenza,
+            @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
+            HttpServletRequest request) throws Http500ResponseException, RestControllerEngineException, BlackBoxPermissionException, Http403ResponseException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        //finalArchivio è l'archivio che verrà usato per crare la projection da restituire al front end
+        Archivio finalArchivio = null;
+        //procedo a tirare su tutto ciò che mi serve sul doc da spostare
+        Integer idDocInt = Integer.valueOf(idDoc);
+        Optional<Doc> d = docRepository.findById(idDocInt);
+        //controllo l'effettiva presenza del doc da spostare
+        if (d.isPresent()) {
+            Doc doc = d.get();
+            //procedo a tirare su tutto ciò che mi serve sull'archivio partenza
+            Integer idArchivioIntPartenza = Integer.valueOf(idArchivioPartenza);
+            Optional<Archivio> aPartenza = archivioRepository.findById(idArchivioIntPartenza);
+            if (aPartenza.isPresent()) {
+                Archivio archivioPartenza = aPartenza.get();
+                //procedo a tirare su tutto ciò che mi serve sull'archivio destinazione
+                Integer idArchivioIntDestinazione = Integer.valueOf(idArchivioDestinazione);
+                Optional<Archivio> aDestinazione = archivioRepository.findById(idArchivioIntDestinazione);
+                //controllo l'effettiva presenza dell'archivio destinazione
+                if (aDestinazione.isPresent()) {
+                    Archivio archivioDestinazione = aDestinazione.get();
+                    JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+                    boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
+                        log.info(String.format("procedo a spostare il documento %s", doc.getId()));
+                        List<ArchivioDoc> archivioDestinazioneDocs = archivioDocRepository.findByIdArchivio(archivioDestinazione);
+                        for(ArchivioDoc ad: archivioDestinazioneDocs){
+                            if(ad.getIdDoc().getId().equals(doc.getId())){
+                                throw new Http500ResponseException("2", "L'archivio di destinazione contiene già il doc da spostare");
+                            }
+                        }    
+                        jPAQueryFactory
+                                .update(QArchivioDoc.archivioDoc)
+                                .set(QArchivioDoc.archivioDoc.idArchivio, archivioDestinazione)
+                                .set(QArchivioDoc.archivioDoc.dataInserimentoRiga, ZonedDateTime.now())
+                                .where(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioPartenza.getId())
+                                        .and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))
+                                .execute();
+                        finalArchivio = archivioDestinazione;
+                        log.info(String.format("il documento %s è stato spostato con successo", doc.getId()));
+
+                    if (iHaveToKrint) { 
+                        krintScriptaService.writeActionDoc(doc, archivioDestinazione, OperazioneKrint.CodiceOperazione.SCRIPTA_DOC_SPOSTA); 
+                    }
+                }
+            }
+            String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+            // Ritorno la projection coi dati aggiornati
+            log.info("Recupero projection by name " + projection);
+            Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+            projectionsInterceptorLauncher.setRequestParams(null, request);
+            log.info("Chiamo la facrtory della projection...");
+            Object projectedObject = projectionFactory.createProjection(
+                    projectionClass, finalArchivio
+            );
+
+            log.info("Ritorno la projectionCreata");
+            return projectedObject;
+        }
+        throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
+    }
 
 }
