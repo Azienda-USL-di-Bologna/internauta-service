@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
+import static it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData.OperationsRequested.VisualizzaTabRegistrazioni;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
@@ -127,6 +128,15 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         
                         initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
                         break;
+                    case VisualizzaTabPregressi:
+                        if (!userInfoService.isSD(user)) {
+                            List<Integer> listaAziendeInCuiSonoIP = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.IP);
+                            initialPredicate = qdoclist.idAzienda.id.in(listaAziendeInCuiSonoIP).and(qdoclist.pregresso.isTrue().and(initialPredicate));
+                        }
+                        
+                        initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
+                        break;
+
                     case FilterForArchiviContent:
                         //I remove te security filters for this case since I am filtering with permesso of persona
                         addSafetyFilters = false;
@@ -293,6 +303,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
             BooleanExpression filtroOsservatore = qdoclist.idAzienda.id.in(listaIdAziendaOsservatore)
                     .and(qdoclist.riservato.eq(Boolean.FALSE)); // Filtro 3
 
+           
             filter = qdoclist.idAzienda.id.in(listaIdAziendaUtenteAttivo); // Filtro 2
             filter = filter.and(filtroOsservatore.or(filtroStandard));
             
@@ -301,6 +312,9 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                     DocDetail.TipologiaDoc.DOCUMENT_REGISTRO.toString()
                 ).and(filter);
             }
+            
+            
+            
         }
             
 

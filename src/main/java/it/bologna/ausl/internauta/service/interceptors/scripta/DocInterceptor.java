@@ -149,7 +149,6 @@ public class DocInterceptor extends InternautaBaseInterceptor {
     }
 
     @Override
-
     public Object beforeCreateEntityInterceptor(Object entity,
             Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         Doc doc = (Doc) entity;
@@ -305,6 +304,8 @@ public class DocInterceptor extends InternautaBaseInterceptor {
             boolean mainEntity,
             Class projectionClass) throws AbortSaveInterceptorException {
         Doc doc = (Doc) entity;
+//        AttoreDoc attoreCreazione = addAttoreCreazione(doc.getIdPersonaCreazione().getId(), doc);
+        
         personaVedenteRepository.calcolaPersoneVedenti(doc.getId());
         try {
             if (additionalDatacointainThisOperation(additionalData,
@@ -321,7 +322,17 @@ public class DocInterceptor extends InternautaBaseInterceptor {
         return doc;
     }
 
-    
+//    private AttoreDoc addAttoreCreazione(Integer idPersonaCreazione, Doc doc) {
+//        AttoreDoc attoreDoc = new AttoreDoc();
+//        Persona personaCreazione = personaRepository.getById(idPersonaCreazione);
+//        //Persona personaCreazione = cachedEntities.getAzienda(personaCreazione.getid)
+//        attoreDoc.setIdPersona(personaCreazione);
+//        attoreDoc.setRuolo(AttoreDoc.RuoloAttoreDoc.REDAZIONE);
+//        attoreDoc.setIdDoc(doc);
+//        attoreDocRepository.save(attoreDoc);
+//        return attoreDoc;
+//    }
+//    
     @Override
     public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
@@ -346,7 +357,7 @@ public class DocInterceptor extends InternautaBaseInterceptor {
         Versamento.StatoVersamento statoVersamentoNuovo = doc.getStatoVersamento();
         Versamento.StatoVersamento statoVersamentoVecchio = docOld.getStatoVersamento();
         
-        if (!statoVersamentoNuovo.equals(statoVersamentoVecchio)) {
+        if (statoVersamentoNuovo != null && !statoVersamentoNuovo.equals(statoVersamentoVecchio)) {
             AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
             Map<Integer, Map<String, Object>> aziendeAttiveConParametri = VersatoreServiceUtils.getAziendeAttiveConParametri(parametriAziendaReader, cachedEntities);
             Map<String, Object> versatoreConfigAziendaValue = aziendeAttiveConParametri.get(doc.getIdAzienda().getId());

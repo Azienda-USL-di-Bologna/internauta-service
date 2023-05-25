@@ -290,5 +290,14 @@ public class RaccoltaManager {
 // + "AND  '[{\"u\":\"" + idUtente + "\"}]'::jsonb<@d.utenti_vedenti_json "
         return query;
     }
+    
+    public static String queryGetIdUtente(String username) {
+        String res = null;
+        if (username != null) {
+            res = "SELECT id_utente from procton.utenti where username = '"
+                    + username +"'";
+        }
+        return res;
+    }
 
 }

@@ -1180,6 +1180,9 @@ public class UserInfoService {
         }
         return false;
     }
+    
+   
+    
 
     /**
      * Controlla se l'utente è Super Demiurgo (SD).

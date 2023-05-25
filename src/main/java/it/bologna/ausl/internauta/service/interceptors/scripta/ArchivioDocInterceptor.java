@@ -113,6 +113,9 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
                     throw new AbortSaveInterceptorException("Il documento non ha altre fasciolazioni attive");
                 }
             }
+            if (krintUtils.doIHaveToKrint(request)) {
+                krintScriptaService.writeArchivioDoc(archivioDoc, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_DELETE);
+            }
         } else if (archivioDocBeforeUpdate.getDataEliminazione() != null && archivioDoc.getDataEliminazione() == null) {
             // Sto ripristinando questa archiviazione
             // Ho il permesso di farlo? Devo avere almeno il permesso vicario
@@ -125,6 +128,9 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
 
             if (!findOne.isPresent()) {
                 throw new AbortSaveInterceptorException("Persona senza permesso su Archivio. Permesso minimo richiesto per ripristinare: VICARIO");
+            }
+            if (krintUtils.doIHaveToKrint(request)) {
+                krintScriptaService.writeArchivioDoc(archivioDoc, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_RESTORE);
             }
         }
 

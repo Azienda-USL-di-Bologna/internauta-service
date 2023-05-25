@@ -1212,12 +1212,20 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> deleteArchivio(
             @RequestParam("idArchivio") String idArchivio,
-            HttpServletRequest request) {
+            HttpServletRequest request) throws BlackBoxPermissionException, Http403ResponseException {
         Integer idArchivioInt = Integer.parseInt(idArchivio);
         Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
         if (a.isPresent()) {
+            AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+            Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.RESPONSABILE))
+                throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
             Archivio entity = a.get();
             archivioRepository.delete(entity);
+            
+            boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
+            if (iHaveToKrint)
+                krintScriptaService.writeArchivioDelete(entity, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DELETE);
             return new ResponseEntity("", HttpStatus.OK);
         }
         return new ResponseEntity("", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -1487,7 +1495,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                             Archivio newArch = scriptaCopyUtils.copiaArchivioConDoc(arch, savedArchivio, persona, em, Boolean.FALSE, contenuto);
                             log.info(String.format("finito di copiare %s, figlio di %s, con i suoi documenti", arch.getId(), archivio.getId()));
                             if (iHaveToKrint) // Log nel fascicolo che è stato creato da una copia
-                                krintScriptaService.writeArchivioUpdate(newArch, arch, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA);
+                                krintScriptaService.writeArchivioCreation(newArch, arch, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA);
                         }
                         log.info(String.format("ho copiato anche i figli di %s", archivio.getId()));
                     }
@@ -1504,7 +1512,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 if (iHaveToKrint) {
                     if (fascicolo && contenuto) {
                         krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA);
-                        krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA, true);
+                        krintScriptaService.writeArchivioCreation(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA);
                         krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO);
                         krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO_DESTINAZIONE);
                     } else if (contenuto) {
@@ -1512,7 +1520,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                         krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA_CONTENUTO_DESTINAZIONE);
                     } else {                
                         krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA);
-                        krintScriptaService.writeArchivioUpdate(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA, true);
+                        krintScriptaService.writeArchivioCreation(finalArchivio, finalArchivio.getIdArchivioCopiato(), OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA);
                     }
                 }
             }
