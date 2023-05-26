@@ -63,8 +63,8 @@ public class InternautaUtils {
         String paramsWithoutContextInformation = urlToChange;
         String paramsWithContextInformation = buildContextInformations(urlToChange, realPerson, person, aziendaLogin, idSessionLog);
 
-        AziendaParametriJson parametriAziendaLogin = AziendaParametriJson.parse(objectMapper, aziendaLogin.getParametri());
-        AziendaParametriJson parametriAziendaTarget = AziendaParametriJson.parse(objectMapper, aziendaTarget.getParametri());
+        AziendaParametriJson parametriAziendaLogin = aziendaLogin.getParametri();
+        AziendaParametriJson parametriAziendaTarget = aziendaTarget.getParametri();
         String crossLoginUrlTemplate = parametriAziendaTarget.getCrossLoginUrlTemplate();
         String simpleCrossLoginUrlTemplate = parametriAziendaTarget.getSimpleCrossLoginUrlTemplate();
         String entityId = parametriAziendaLogin.getEntityId();

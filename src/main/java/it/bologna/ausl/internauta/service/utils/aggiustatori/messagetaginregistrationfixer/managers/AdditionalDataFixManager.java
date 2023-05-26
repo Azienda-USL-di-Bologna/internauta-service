@@ -197,7 +197,7 @@ public class AdditionalDataFixManager {
         JSONObject newRegisteredAdditionalDataJSONObject = getNewRegisteredAdditionalDataJSONObject(datiDocumentiDaPico, aziendaObject);
         log.info("Inserisco nell'array in nuovo oggetto...");
         oldAdditionalDataJSONObject.put(newRegisteredAdditionalDataJSONObject);
-        registeredMessageTag.setAdditionalData(oldAdditionalDataJSONObject.toString());
+        registeredMessageTag.setAdditionalData(oldAdditionalDataJSONObject);
 
     }
 

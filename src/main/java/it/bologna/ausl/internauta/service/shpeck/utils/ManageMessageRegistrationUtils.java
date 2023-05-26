@@ -14,7 +14,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.data.AdditionalData;
+import it.bologna.ausl.model.entities.data.AdditionalDataShpeck;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.Message;
@@ -133,9 +133,7 @@ public class ManageMessageRegistrationUtils {
                 // leggo gli additional data del messaggio in stado di in registrazione
                 if (messageTagInRegistration != null && messageTagInRegistration.getAdditionalData() != null) {
                     try {
-                        AdditionalDataRegistration initialAdditionalData = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), new TypeReference<AdditionalDataRegistration>() {
-                        });
-
+                        AdditionalDataRegistration initialAdditionalData = (AdditionalDataRegistration) messageTagInRegistration.getAdditionalData();
                         initialAdditionalDataArrayInRegistration.add(initialAdditionalData);
                     } catch (Throwable ex) {
 
@@ -148,7 +146,7 @@ public class ManageMessageRegistrationUtils {
                 // leggo gli additional data del messaggio in stato di registrati
                 if (messageTagRegistered != null && messageTagRegistered.getAdditionalData() != null) {
                     try {
-                        AdditionalDataRegistration initialAdditionalData = objectMapper.readValue(messageTagRegistered.getAdditionalData(), AdditionalDataRegistration.class);
+                        AdditionalDataRegistration initialAdditionalData = (AdditionalDataRegistration) messageTagRegistered.getAdditionalData();
                         initialAdditionalDataArrayRegistered.add(initialAdditionalData);
                     } catch (Throwable ex) {
                         LOG.warn("Non riuscito a convertire in AdditionalDataRegistration il messaggio in stato registrati, probabilmente è una lista", ex);
@@ -248,7 +246,7 @@ public class ManageMessageRegistrationUtils {
             }
             initialAdditionalDataArrayInRegistration.add(additionalData);
 //            messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayInRegistration));
-            messageTagToAdd.setAdditionalData(AdditionalData.toJsonString(objectMapper, initialAdditionalDataArrayInRegistration));
+            messageTagToAdd.setAdditionalData(AdditionalDataShpeck.toJsonString(objectMapper, initialAdditionalDataArrayInRegistration));
             messageTagRespository.save(messageTagToAdd);
         } catch (Exception ex) {
             throw new Exception("errore nella funzione--> addInRegistration " + ex.getMessage());
@@ -402,7 +400,7 @@ public class ManageMessageRegistrationUtils {
 
             if (initialAdditionalDataArrayOfTag.size() > 0) {
 //                messageTag.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayOfTag));
-                messageTag.setAdditionalData(AdditionalData.toJsonString(objectMapper, initialAdditionalDataArrayOfTag));
+                messageTag.setAdditionalData(AdditionalDataShpeck.toJsonString(objectMapper, initialAdditionalDataArrayOfTag));
                 messageTagRespository.save(messageTag);
             } else {
                 messageTagRespository.delete(messageTag);

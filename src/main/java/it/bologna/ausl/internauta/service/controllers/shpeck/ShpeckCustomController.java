@@ -94,6 +94,7 @@ import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.data.AdditionalDataShpeck;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
@@ -573,13 +574,20 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         messageTag.setIdTag(tagOp.get());
         messageTag.setInserted(ZonedDateTime.now());
         messageTag.setIdUtente(utente);
+        
+        AdditionalDataShpeck additionalDataShpeck = new AdditionalDataRegistration(
+                messageTag.getIdMessage().getIsPec(),
+                utente,
+                utente.getIdAzienda(),
+                
+        );                
         JsonObject idPecSource = new JsonObject();
         idPecSource.addProperty("id", messageSource.getIdPec().getId());
         idPecSource.addProperty("indirizzo", messageSource.getIdPec().getIndirizzo());
         JsonObject idUtente = new JsonObject();
         idUtente.addProperty("id", utente.getId());
         idUtente.addProperty("descrizione", utente.getIdPersona().getDescrizione());
-        JsonObject additionalData = new JsonObject();
+        JsonObject additionalDataShpeck = new JsonObject();
         additionalData.add("idUtente", idUtente);
         additionalData.add("idPec", idPecSource);
         messageTag.setAdditionalData(additionalData);
