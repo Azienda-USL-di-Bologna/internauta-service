@@ -127,9 +127,10 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
                     switch (operationRequested) {
                         case GetUtentiInStrutturaEFiglie:
                             Integer idStruttura = Integer.parseInt(additionalData.get("idStruttura")) ;
+                            List<Integer> idStrutturaEfiglie = strutturaRepository.getStruttureFiglie(idStruttura);
+                            idStrutturaEfiglie.add(idStruttura);
                             BooleanExpression filterUtentiStruttura = QUtenteStruttura.utenteStruttura.attivo.eq(Boolean.TRUE)
-                                                                        .and(QUtenteStruttura.utenteStruttura.idStruttura.id.eq(idStruttura)
-                                                                                .or(QUtenteStruttura.utenteStruttura.idStruttura.idStrutturaPadre.id.eq(idStruttura)));
+                                                                        .and(QUtenteStruttura.utenteStruttura.idStruttura.id.in(idStrutturaEfiglie));
                             initialPredicate = filterUtentiStruttura.and(initialPredicate);
                         break;
                     }

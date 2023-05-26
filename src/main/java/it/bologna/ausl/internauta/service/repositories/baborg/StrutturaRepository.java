@@ -59,6 +59,9 @@ public interface StrutturaRepository extends
     @Procedure("baborg.get_strutture_figlie_e_cugine")
     public List<Integer> getStruttureFiglieECugine(Integer idStruttura);
     
+    @Procedure("baborg.get_strutture_figlie")
+    public List<Integer> getStruttureFiglie(Integer idStruttura);
+    
     @Query(value= "select s.id from baborg.strutture s " +
                     "join baborg.attributi_strutture as2 on as2.id_struttura = s.id " +
                     "join baborg.tipologie_struttura ts on ts.id = as2.id_tipologia_struttura " +
