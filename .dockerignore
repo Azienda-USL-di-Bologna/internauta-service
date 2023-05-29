@@ -1,0 +1,6 @@
+**/.git
+**/.gitignore
+**/.hgignore
+**/.vscode
+**/target
+logs

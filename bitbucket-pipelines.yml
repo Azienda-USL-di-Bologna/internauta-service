@@ -1,0 +1,31 @@
+image: maven:3.8.6-openjdk-8
+
+pipelines:
+  branches: 
+    pipeline-dev:
+      - step:
+          name: Build internauta
+          oidc: true
+          deployment: Test
+          runs-on:
+            - "self.hosted"
+            - "linux"
+          services:
+            - docker
+          caches:
+            - docker
+          script:
+            - ls submodules/internauta-utils -al
+            - git submodule init
+            - git submodule update --depth 1 --single-branch --recommend-shallow
+            - ls submodules/internauta-utils -al
+            # build the image
+            - IMAGE_NAME=internauta_service
+            - docker build -t ${IMAGE_NAME}:${BITBUCKET_BUILD_NUMBER} -t ${IMAGE_NAME} .
+            # use the pipe to push the image to AWS ECR
+            - pipe: atlassian/aws-ecr-push-image:2.0.0
+              variables:
+                AWS_DEFAULT_REGION: 'eu-west-1'
+                AWS_OIDC_ROLE_ARN: 'arn:aws:iam::545463498725:role/babel-bitbucket'
+                IMAGE_NAME: ${IMAGE_NAME}
+                TAGS: '${BITBUCKET_BUILD_NUMBER} latest'
