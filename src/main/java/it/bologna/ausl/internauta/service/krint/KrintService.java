@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.krint;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
@@ -69,7 +70,7 @@ public class KrintService {
             String idOggettoContenitore,
             Krint.TipoOggettoKrint tipoOggettoContenitore,
             String descrizioneOggettoContenitore,
-            Map<String,Object> informazioniOggettocontenitore,
+            Map<String, Object> informazioniOggettocontenitore,
             OperazioneKrint.CodiceOperazione codiceOperazione) throws Exception {
 
         try {
@@ -77,7 +78,8 @@ public class KrintService {
 
             Integer idSessione = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getIdSessionLog(); // TODO: mettere idSessione corretto
             KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
-            Map<String, Object> mapKrintInformazioniUtente = objectMapper.convertValue(utente, new TypeReference<Map<String,Object>>(){});
+            Map<String, Object> mapKrintInformazioniUtente = objectMapper.convertValue(utente, new TypeReference<Map<String, Object>>() {
+            });
             Krint krint = new Krint(idSessione, authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getApplicazione(), utente.getId(), utente.getIdPersona().getDescrizione(), mapKrintInformazioniUtente);
 
             // recupero l'operazioneVersionata con quel codiceOperazione e con la versione più alta
@@ -94,7 +96,7 @@ public class KrintService {
                 krint.setTipoOggettoContenitore(tipoOggettoContenitore);
                 krint.setDescrizioneOggettoContenitore(descrizioneOggettoContenitore);
             }
-            
+
             krint.setInformazioniOggettoContenitore(informazioniOggettocontenitore);
 
             krint.setIdOperazioneVersionata(operazioneVersionataKrint);
@@ -109,7 +111,8 @@ public class KrintService {
                     krint.setDescrizioneRealUser(personaReale.getDescrizione());
                 }
                 KrintInformazioniRealUser krintInformazioniRealUser = factory.createProjection(KrintInformazioniRealUser.class, utenteReale);
-                Map<String, Object> mapKrintInformazioniRealUser = objectMapper.convertValue(krintInformazioniRealUser, new TypeReference<Map<String,Object>>(){});
+                Map<String, Object> mapKrintInformazioniRealUser = objectMapper.convertValue(krintInformazioniRealUser, new TypeReference<Map<String, Object>>() {
+                });
                 krint.setInformazioniRealUser(mapKrintInformazioniRealUser);
             }
 
@@ -121,7 +124,7 @@ public class KrintService {
             httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.KRINT_ROWS, krintList);
 
         } catch (Exception ex) {
-            // TODO: log
+            LOGGER.error("errore nella writeKrintRow", ex);
             throw ex;
         }
     }
@@ -143,12 +146,14 @@ public class KrintService {
         try {
             Utente utente = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser();
             krintError.setIdUtente(utente.getId());
-        } catch (Exception ex) {
+        } catch (BlackBoxPermissionException ex) {
+            LOGGER.error("errore nella writeKrintError", ex);
         }
         try {
             Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getRealUser();
             krintError.setIdRealUser(utenteReale.getId());
-        } catch (Exception ex) {
+        } catch (BlackBoxPermissionException ex) {
+            LOGGER.error("errore nella writeKrintError", ex);
         }
         krintError.setIdOggetto(idOggetto);
         krintError.setFunctionName(functionName);

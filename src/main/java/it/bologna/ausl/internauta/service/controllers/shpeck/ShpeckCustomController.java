@@ -92,6 +92,7 @@ import it.bologna.ausl.internauta.service.shpeck.utils.EmlData;
 import it.bologna.ausl.internauta.service.shpeck.utils.ManageMessageRegistrationUtils;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.data.AdditionalDataShpeck;
@@ -100,6 +101,7 @@ import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
+import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataReaddressed;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
 import it.bologna.ausl.model.entities.shpeck.views.QOutboxLite;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
@@ -109,6 +111,7 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import org.json.JSONArray;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.util.StringUtils;
 
 /**
  *
@@ -127,7 +130,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     private CommonUtils nextSdrCommonUtils;
 
     @Autowired
-    ShpeckCacheableFunctions shpeckCacheableFunctions;
+    private ShpeckCacheableFunctions shpeckCacheableFunctions;
 
     @Autowired
     private PecRepository pecRepository;
@@ -178,13 +181,13 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
     private KrintUtils krintUtils;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     @Autowired
-    MessagesTagsProtocollazioneFixManager messagesTagsProtocollazioneFixManager;
+    private MessagesTagsProtocollazioneFixManager messagesTagsProtocollazioneFixManager;
 
     @Autowired
-    ManageMessageRegistrationUtils manageMessageRegistrationUtils;
+    private ManageMessageRegistrationUtils manageMessageRegistrationUtils;
 
     /**
      *
@@ -208,7 +211,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 //            httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.test, "gdml");
             EmlHandlerResult res = shpeckCacheableFunctions.getInfoEml(emlSource, idMessage);
             EmlData emlData = new EmlData(res);
-            
+
             if (emlSource != EmlSource.DRAFT && emlSource != EmlSource.OUTBOX) {
                 int attNumber = (int) Arrays.stream(emlData.getAttachments())
                         .filter(a -> {
@@ -225,7 +228,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
                     } else {
                         emlData.setMessage(m);
                     }
-                    
+
                 }
             } else {
                 emlData.setRealAttachmentNumber(res.getAttachments().length);
@@ -526,20 +529,19 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             if (mt.getIdTag().getName().equals(Tag.SystemTagName.readdressed_out.toString())) {
                 throw new Http409ResponseException("1", "il messaggio è gia stato reindirizzato.");
             } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.registered.toString())) {
-                ArrayList<HashMap> additionalData = mt.getAdditionalData();
-                for (HashMap hashMap : additionalData) {
-                    HashMap obj = (HashMap) hashMap.get("idAzienda");
-                    int idAzienda = (int) obj.get("id");
-                    if (idAziendePec.contains(idAzienda)) {
+                List<AdditionalDataShpeck> additionalData = mt.getAdditionalData();
+
+                for (AdditionalDataShpeck additionalDataShpeck : additionalData) {
+                    AdditionalDataRegistration additionalDataRegistration = (AdditionalDataRegistration) additionalDataShpeck;
+                    if (idAziendePec.contains(additionalDataRegistration.getIdAzienda().getId())) {
                         throw new Http409ResponseException("2", "il messaggio è stato protocollato.");
                     }
                 }
             } else if (mt.getIdTag().getName().equals(Tag.SystemTagName.in_registration.toString())) {
-                ArrayList<HashMap> additionalData = mt.getAdditionalData();
-                for (HashMap hashMap : additionalData) {
-                    HashMap obj = (HashMap) hashMap.get("idAzienda");
-                    int idAzienda = (int) obj.get("id");
-                    if (idAziendePec.contains(idAzienda)) {
+                List<AdditionalDataShpeck> additionalData = mt.getAdditionalData();
+                for (AdditionalDataShpeck additionalDataShpeck : additionalData) {
+                    AdditionalDataRegistration additionalDataRegistration = (AdditionalDataRegistration) additionalDataShpeck;
+                    if (idAziendePec.contains(additionalDataRegistration.getIdAzienda().getId())) {
                         throw new Http409ResponseException("3", "il messaggio è in protocollazione.");
                     }
                 }
@@ -574,41 +576,23 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         messageTag.setIdTag(tagOp.get());
         messageTag.setInserted(ZonedDateTime.now());
         messageTag.setIdUtente(utente);
-        
-        AdditionalDataShpeck additionalDataShpeck = new AdditionalDataRegistration(
-                messageTag.getIdMessage().getIsPec(),
-                utente,
-                utente.getIdAzienda(),
-                
-        );                
-        JsonObject idPecSource = new JsonObject();
-        idPecSource.addProperty("id", messageSource.getIdPec().getId());
-        idPecSource.addProperty("indirizzo", messageSource.getIdPec().getIndirizzo());
-        JsonObject idUtente = new JsonObject();
-        idUtente.addProperty("id", utente.getId());
-        idUtente.addProperty("descrizione", utente.getIdPersona().getDescrizione());
-        JsonObject additionalDataShpeck = new JsonObject();
-        additionalData.add("idUtente", idUtente);
-        additionalData.add("idPec", idPecSource);
-        messageTag.setAdditionalData(additionalData);
+
+//        JsonObject idPecSource = new JsonObject();
+//        idPecSource.addProperty("id", messageSource.getIdPec().getId());
+//        idPecSource.addProperty("indirizzo", messageSource.getIdPec().getIndirizzo());
+//        JsonObject idUtente = new JsonObject();
+//        idUtente.addProperty("id", utente.getId());
+//        idUtente.addProperty("descrizione", utente.getIdPersona().getDescrizione());
+//        JsonObject additionalDataShpeck = new JsonObject();
+//        additionalData.add("idUtente", idUtente);
+//        additionalData.add("idPec", idPecSource);
+        List<AdditionalDataShpeck> additionalDataRegistrationList = new ArrayList();
+        AdditionalDataReaddressed additionalDataReaddressed = new AdditionalDataReaddressed(messageSource.getIdPec(), utente);
+        additionalDataRegistrationList.add(additionalDataReaddressed);
+        messageTag.setAdditionalData(additionalDataRegistrationList);
+
         messageTagList.add(messageTag);
         messageDestination.setMessageTagList(messageTagList);
-
-        /* gdm: commentato perché con lo spostamento del trigger che sposta nella posta in arrivo all'inserimento di ogni messaggio in messages, 
-        *  questa parte non serve più perché viene fatta in auomatico dal trigger
-        MessageFolder messageFolder = new MessageFolder();
-        List<MessageFolder> mfList = new ArrayList();
-
-        messageFolder.setIdMessage(messageDestination);
-        Optional<Folder> folderOp = folderRepository.findOne(
-                QFolder.folder.type.eq(Folder.FolderType.INBOX.toString())
-                        .and(QFolder.folder.idPec.id.eq(pecDestination.getId()))
-        );
-        messageFolder.setIdFolder(folderOp.get());
-        messageFolder.setInserted(LocalDateTime.now());
-        mfList.add(messageFolder);
-        messageDestination.setMessageFolderList(mfList);
-         */
         messageRepository.save(messageDestination);
         // assegno il tag reindirizzato out a il message source
 
@@ -621,13 +605,19 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
         messageTagSource.setIdTag(tagOpSource.get());
         messageTagSource.setInserted(ZonedDateTime.now());
         messageTagSource.setIdUtente(utente);
-        JsonObject idPecDestinationJson = new JsonObject();
-        idPecDestinationJson.addProperty("id", pecDestination.getId());
-        idPecDestinationJson.addProperty("indirizzo", pecDestination.getIndirizzo());
-        JsonObject additionalDataSource = new JsonObject();
-        additionalDataSource.add("idUtente", idUtente);
-        additionalDataSource.add("idPec", idPecDestinationJson);
-        messageTagSource.setAdditionalData(additionalDataSource);
+//        JsonObject idPecDestinationJson = new JsonObject();
+//        idPecDestinationJson.addProperty("id", pecDestination.getId());
+//        idPecDestinationJson.addProperty("indirizzo", pecDestination.getIndirizzo());
+//        JsonObject additionalDataSource = new JsonObject();
+//        additionalDataSource.add("idUtente", idUtente);
+//        additionalDataSource.add("idPec", idPecDestinationJson);
+
+        List<AdditionalDataShpeck> additionalDataRegistrationDestinationList = new ArrayList();
+        AdditionalDataReaddressed additionalDataReaddressedDestination = new AdditionalDataReaddressed(pecDestination, utente);
+        additionalDataRegistrationList.add(additionalDataReaddressedDestination);
+        messageTag.setAdditionalData(additionalDataRegistrationList);
+
+        messageTagSource.setAdditionalData(additionalDataRegistrationDestinationList);
         // List<MessageFolder> messageFolderList = messageSource.getMessageFolderList();
 
         messageTagListSource.add(messageTagSource);
@@ -644,8 +634,15 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             krintShpeckService.writeReaddress(messageSource, messageDestination, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_OUT);
             krintShpeckService.writeReaddress(messageDestination, messageSource, OperazioneKrint.CodiceOperazione.PEC_MESSAGE_REINDIRIZZAMENTO_IN);
         }
+        
+        String additionalDataDestinationListString;
+        try {
+            additionalDataDestinationListString = objectMapper.writeValueAsString(additionalDataRegistrationDestinationList);
+        } catch (JsonProcessingException e) {
+            throw new Http409ResponseException("5", "qualcosa e' andato storto. additionalDataRegistrationDestinationList non e' stato convertito");
+        }
 
-        return additionalDataSource.toString();
+        return additionalDataDestinationListString;
     }
 
     /**
@@ -724,30 +721,30 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @param idMessage L'id del messaggio di cui recuperare il MessageTag
      * @return String Un json di risposta
      */
-    @RequestMapping(value = "fixMessageTagInRegistration/{idMessage}", method = RequestMethod.GET)
-    public String fixMessageTagInRegistration(@PathVariable(required = true) Integer idMessage) throws Throwable {
-        LOG.info("Ho chiamato la funzione per aggiustare il MessageTag di "
-                + "message con id {} ...", idMessage);
-        JSONObject risposta = new JSONObject();
-        try {
-            Message message = messageRepository.findById(idMessage).get();
-            LOG.info("Trovato messagggio: uuidMessage {}", message.getUuidMessage());
-            JSONArray fixedData = messagesTagsProtocollazioneFixManager.fixDatiProtocollazioneMessaggio(message);
-
-            String fixedDataString = "Fixed Data: ";
-            if (fixedData != null) {
-                fixedDataString += fixedData.toString(4);
-            } else {
-                fixedDataString += "NO DATA FIXED";
-            }
-            String responseString = "Tutto ok - " + fixedDataString;
-            risposta.put("Response", responseString);
-        } catch (Throwable t) {
-            t.printStackTrace();
-            risposta.put("Response", "PROBLEMI: " + t.getMessage());
-        }
-        return risposta.toString();
-    }
+//    @RequestMapping(value = "fixMessageTagInRegistration/{idMessage}", method = RequestMethod.GET)
+//    public String fixMessageTagInRegistration(@PathVariable(required = true) Integer idMessage) throws Throwable {
+//        LOG.info("Ho chiamato la funzione per aggiustare il MessageTag di "
+//                + "message con id {} ...", idMessage);
+//        JSONObject risposta = new JSONObject();
+//        try {
+//            Message message = messageRepository.findById(idMessage).get();
+//            LOG.info("Trovato messagggio: uuidMessage {}", message.getUuidMessage());
+//            JSONArray fixedData = messagesTagsProtocollazioneFixManager.fixDatiProtocollazioneMessaggio(message);
+//
+//            String fixedDataString = "Fixed Data: ";
+//            if (fixedData != null) {
+//                fixedDataString += fixedData.toString(4);
+//            } else {
+//                fixedDataString += "NO DATA FIXED";
+//            }
+//            String responseString = "Tutto ok - " + fixedDataString;
+//            risposta.put("Response", responseString);
+//        } catch (Throwable t) {
+//            t.printStackTrace();
+//            risposta.put("Response", "PROBLEMI: " + t.getMessage());
+//        }
+//        return risposta.toString();
+//    }
 
     @Transactional(rollbackFor = Throwable.class)
     @RequestMapping(value = "manageMessageRegistration", method = RequestMethod.POST)

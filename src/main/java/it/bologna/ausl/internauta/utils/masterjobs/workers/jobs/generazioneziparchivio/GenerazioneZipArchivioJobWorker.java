@@ -24,6 +24,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipOutputStream;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -103,7 +107,12 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         //genero la nofica che apparirà sulla scivania con il link per il download e della nuova applicazione
         Applicazione app = applicazioneRepository.getById("downloader");
         Attivita a = new Attivita(null, archivio.getIdAzienda(), Attivita.TipoAttivita.NOTIFICA.toString(), ZonedDateTime.now(), ZonedDateTime.now());
-        a.setUrls(String.format("[{\"url\": \"%s\", \"label\": \"Scarica\"}]", urlToDownload));
+        Map<String,String> urlsMap = new HashMap();
+        urlsMap.put("url", urlToDownload);
+        urlsMap.put("label", "Scarica");
+        List<Map<String,String>> listaUrls = new ArrayList(); 
+//        a.setUrls(String.format("[{\"url\": \"%s\", \"label\": \"Scarica\"}]", urlToDownload));
+        a.setUrls(listaUrls);
         a.setDescrizione("Archivio zip generato per lo scaricamento asincrono");
         a.setIdApplicazione(app);
         a.setIdAzienda(aziendaRepository.getById(archivio.getIdAzienda().getId()));

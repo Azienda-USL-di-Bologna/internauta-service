@@ -1,6 +1,7 @@
 
 package it.bologna.ausl.internauta.service.krint;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
@@ -53,31 +54,28 @@ public class KrintShpeckService {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);
             KrintShpeckMessage coorelatedkrintPecMessage = factory.createProjection(KrintShpeckMessage.class, correlatedMessage);
-            Map<String, KrintShpeckMessage> map = new HashMap();
+            Map<String, Object> map = new HashMap();
             map.put("idMessage", krintPecMessage);
             map.put("idMessageCorrelated", coorelatedkrintPecMessage);
-            String jsonKrintPecMessage = objectMapper.writeValueAsString(map);
+//            String jsonKrintPecMessage = objectMapper.writeValueAsString(map);
             
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, message.getIdPec());
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-            
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
             krintService.writeKrintRow(
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
-                jsonKrintPecMessage,
+                map,
                 message.getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                idOggetto = message.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeReaddress", codiceOperazione);
+            LOGGER.error("Errore nella writeReaddress con messaggio" + message.getId().toString(), ex);
+            krintService.writeKrintError(message.getId(), "writeReaddress", codiceOperazione);
         }
     }
     
@@ -90,28 +88,25 @@ public class KrintShpeckService {
         try {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);
-            String jsonKrintPecMessage = objectMapper.writeValueAsString(krintPecMessage);
-            
+//            String jsonKrintPecMessage = objectMapper.writeValueAsString(krintPecMessage);
+            HashMap<String, Object> krintPecMessageMap = objectMapper.convertValue(krintPecMessage, new TypeReference<HashMap<String, Object>>() {});
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, message.getIdPec());
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-            
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
             krintService.writeKrintRow(
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
-                jsonKrintPecMessage,
+                krintPecMessageMap,
                 message.getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                idOggetto = message.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeRegistration", codiceOperazione);
+            LOGGER.error("Errore nella writeRegistration con messaggio" + message.getId().toString(), ex);
+            krintService.writeKrintError(message.getId(), "writeRegistration", codiceOperazione);
         }
     }
     
@@ -128,28 +123,25 @@ public class KrintShpeckService {
             Map<String, Object> map = new HashMap();
             map.put("idMessage", krintPecMessage);
             map.put("tagAdditionalData", additionalDataArchiviation);
-            String jsonKrintPecMessage = objectMapper.writeValueAsString(map);
+//            String jsonKrintPecMessage = objectMapper.writeValueAsString(map);
             
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, message.getIdPec());
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-            
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
             krintService.writeKrintRow(
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
-                jsonKrintPecMessage,
+                map,
                 message.getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                idOggetto = message.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeArchiviation", codiceOperazione);
+            LOGGER.error("Errore nella writeReaddress con messaggio" + message.getId().toString(), ex);
+            krintService.writeKrintError(message.getId(), "writeArchiviation", codiceOperazione);
         }
     }
     
@@ -162,28 +154,25 @@ public class KrintShpeckService {
         try {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);    
-            String jsonKrintPecMessage = objectMapper.writeValueAsString(krintPecMessage);
-            
+//            String jsonKrintPecMessage = objectMapper.writeValueAsString(krintPecMessage);
+            HashMap<String, Object> krintPecMessageMap = objectMapper.convertValue(krintPecMessage, new TypeReference<HashMap<String, Object>>() {});
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, message.getIdPec());   
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
             krintService.writeKrintRow(
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
-                jsonKrintPecMessage,
+                krintPecMessageMap,
                 message.getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                idOggetto = message.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeSeenOrNotSeen", codiceOperazione);
+            LOGGER.error("Errore nella writeSeenOrNotSeen con messaggio" + message.getId().toString(), ex);
+            krintService.writeKrintError(message.getId(), "writeSeenOrNotSeen", codiceOperazione);
         }  
     }
     
@@ -208,29 +197,25 @@ public class KrintShpeckService {
             map.put("idMessage", krintPecMessage);
             map.put("idFolder", krintPecFolder);
             map.put("idPreviousFolder", krintPecPreviousFolder);
-            String jsonKrintPecMessage = objectMapper.writeValueAsString(map);
+//            String jsonKrintPecMessage = objectMapper.writeValueAsString(map);
             
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, message.getIdPec());   
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
             krintService.writeKrintRow(
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
-                jsonKrintPecMessage,
+                map,
                 message.getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            LOGGER.error("errore nel krinting dell'operazione writeFolderChanged", ex);
-            Integer idOggetto = null;
-            try {
-                idOggetto = message.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeFolderChanged", codiceOperazione);
+            LOGGER.error("Errore nella writeFolderChanged con messaggio" + message.getId().toString(), ex);
+            krintService.writeKrintError(message.getId(), "writeFolderChanged", codiceOperazione);
         }  
     }
     
@@ -243,28 +228,26 @@ public class KrintShpeckService {
         try {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);
-            String jsonKrintPecMessage = objectMapper.writeValueAsString(krintPecMessage);
-            
+//            String jsonKrintPecMessage = objectMapper.writeValueAsString(krintPecMessage);
+            HashMap<String, Object> krintPecMessageMap = objectMapper.convertValue(krintPecMessage, new TypeReference<HashMap<String, Object>>() {});
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, message.getIdPec());   
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
+            
             krintService.writeKrintRow(
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
-                jsonKrintPecMessage,
+                krintPecMessageMap,
                 message.getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                idOggetto = message.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeReplyToMessage", codiceOperazione);
+            LOGGER.error("Errore nella writeReplyToMessage con messaggio" + message.getId().toString(), ex);
+            krintService.writeKrintError(message.getId(), "writeReplyToMessage", codiceOperazione);
         }  
     }
     
@@ -280,31 +263,28 @@ public class KrintShpeckService {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);
             KrintShpeckTag krintPecTag = factory.createProjection(KrintShpeckTag.class, tag);             
-            Map<String, Object> map = new HashMap();
-            map.put("idMessage", krintPecMessage);
-            map.put("idTag", krintPecTag);
-            String jsonKrintPecMessage = objectMapper.writeValueAsString(map);
+            Map<String, Object> krintPecMessageMap = new HashMap();
+            krintPecMessageMap.put("idMessage", krintPecMessage);
+            krintPecMessageMap.put("idTag", krintPecTag);
+//            String jsonKrintPecMessage = objectMapper.writeValueAsString(map);
             
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, message.getIdPec());   
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
             krintService.writeKrintRow(
                 message.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 message.getId().toString(),
-                jsonKrintPecMessage,
+                krintPecMessageMap,
                 message.getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 message.getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                idOggetto = message.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeMessageTag", codiceOperazione);
+            LOGGER.error("Errore nella writeMessageTag con messaggio" + message.getId().toString(), ex);
+            krintService.writeKrintError(message.getId(), "writeMessageTag", codiceOperazione);
         }  
     }
     
@@ -317,28 +297,25 @@ public class KrintShpeckService {
         try {
             // Informazioni oggetto
             KrintShpeckDraft krintPecMessage = factory.createProjection(KrintShpeckDraft.class, draft);
-            String jsonKrintPecDraft = objectMapper.writeValueAsString(krintPecMessage);
-            
+//            String jsonKrintPecDraft = objectMapper.writeValueAsString(krintPecMessage);
+            HashMap<String, Object> krintPecDraft = objectMapper.convertValue(krintPecMessage, new TypeReference<HashMap<String, Object>>() {});
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, draft.getIdPec());   
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
             krintService.writeKrintRow(
                 draft.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_DRAFT,
                 draft.getId().toString(),
-                jsonKrintPecDraft,
+                krintPecDraft,
                 draft.getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 draft.getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                idOggetto = draft.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeDraft", codiceOperazione);
+            LOGGER.error("Errore nella writeDraft con messaggio" + draft.getId().toString(), ex);
+            krintService.writeKrintError(draft.getId(), "writeDraft", codiceOperazione);
         }  
     }
     
@@ -351,28 +328,25 @@ public class KrintShpeckService {
        try {
             // Informazioni oggetto
             KrintShpeckOutbox krintPecOutbox = factory.createProjection(KrintShpeckOutbox.class, outbox);
-            String jsonKrintPecOutbox = objectMapper.writeValueAsString(krintPecOutbox);
-            
+//            String jsonKrintPecOutbox = objectMapper.writeValueAsString(krintPecOutbox);
+            HashMap<String, Object> krintPecOutboxMap = objectMapper.convertValue(krintPecOutbox, new TypeReference<HashMap<String, Object>>() {});
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, outbox.getIdPec());   
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
             krintService.writeKrintRow(
                 outbox.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_OUTBOX,
                 outbox.getId().toString(),
-                jsonKrintPecOutbox,
+                krintPecOutboxMap,
                 outbox.getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 outbox.getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                idOggetto = outbox.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeOutboxMessage", codiceOperazione);
+            LOGGER.error("Errore nella writeOutboxMessage con messaggio" + outbox.getId().toString(), ex);
+            krintService.writeKrintError(outbox.getId(), "writeOutboxMessage", codiceOperazione);
         }  
     }
     
@@ -385,28 +359,25 @@ public class KrintShpeckService {
        try {
             // Informazioni oggetto
             KrintShpeckFolder krintPecFolder = factory.createProjection(KrintShpeckFolder.class, folder);
-            String jsonKrintPecOutbox = objectMapper.writeValueAsString(krintPecFolder);
-            
+//            String jsonKrintPecOutbox = objectMapper.writeValueAsString(krintPecFolder);
+            HashMap<String, Object> krintPecFolderMap = objectMapper.convertValue(krintPecFolder, new TypeReference<HashMap<String, Object>>() {});
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, folder.getIdPec());   
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
             krintService.writeKrintRow(
                 folder.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_FOLDER,
                 folder.getId().toString(),
-                jsonKrintPecOutbox,
+                krintPecFolderMap,
                 folder.getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 folder.getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                idOggetto = folder.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeFolder", codiceOperazione);
+            LOGGER.error("Errore nella writeFolder con folder" + folder.getId().toString(), ex);
+            krintService.writeKrintError(folder.getId(), "writeFolder", codiceOperazione);
         }  
     }
     
@@ -419,28 +390,27 @@ public class KrintShpeckService {
        try {
             // Informazioni oggetto
             KrintShpeckTag krintPecTag = factory.createProjection(KrintShpeckTag.class, tag);
-            String jsonKrintPecOutbox = objectMapper.writeValueAsString(krintPecTag);
+//            String jsonKrintPecOutbox = objectMapper.writeValueAsString(krintPecTag);
+            HashMap<String, Object> krintPecOutboxMap = objectMapper.convertValue(krintPecTag, new TypeReference<HashMap<String, Object>>() {});
             
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, tag.getIdPec());   
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
+            
             krintService.writeKrintRow(
                 tag.getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_TAG,
                 tag.getId().toString(),
-                jsonKrintPecOutbox,
+                krintPecOutboxMap,
                 tag.getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 tag.getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                idOggetto = tag.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeTag", codiceOperazione);
+            LOGGER.error("Errore nella writeTag con tag" + tag.getId().toString(), ex);
+            krintService.writeKrintError(tag.getId(), "writeTag", codiceOperazione);
         }  
     }
     
@@ -454,27 +424,24 @@ public class KrintShpeckService {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, messageFolder.getIdMessage());    
             String jsonKrintPecMessage = objectMapper.writeValueAsString(krintPecMessage);
-            
+            HashMap<String, Object> krintPecMessageMap = objectMapper.convertValue(krintPecMessage, new TypeReference<HashMap<String, Object>>() {});
             // Informazioni oggetto contenitore
             KrintShpeckPec krintPec = factory.createProjection(KrintShpeckPec.class, messageFolder.getIdMessage().getIdPec());   
-            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
-
+//            String jsonKrintPec = objectMapper.writeValueAsString(krintPec);
+            HashMap<String, Object> krintPecMap = objectMapper.convertValue(krintPec, new TypeReference<HashMap<String, Object>>() {});
             krintService.writeKrintRow(
                 messageFolder.getIdMessage().getId().toString(),
                 Krint.TipoOggettoKrint.SHPECK_MESSAGE,
                 messageFolder.getIdMessage().getId().toString(),
-                jsonKrintPecMessage,
+                krintPecMessageMap,
                 messageFolder.getIdMessage().getIdPec().getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_PEC,
                 messageFolder.getIdMessage().getIdPec().getIndirizzo(),
-                jsonKrintPec,
+                krintPecMap,
                 codiceOperazione);                                                    
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                idOggetto = messageFolder.getIdMessage().getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeDeletedFromTrash", codiceOperazione);
+            LOGGER.error("Errore nella writeDeletedFromTrash con tag" + messageFolder.getId().toString(), ex);
+            krintService.writeKrintError(messageFolder.getId(), "writeDeletedFromTrash", codiceOperazione);
         }  
     }
 }

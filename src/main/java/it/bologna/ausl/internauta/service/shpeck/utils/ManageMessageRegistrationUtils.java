@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.bouncycastle.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -139,8 +140,8 @@ public class ManageMessageRegistrationUtils {
 
                         LOG.warn("Non riuscito a convertire in AdditionalDataRegistration il messaggio in stato in registrazione, probabilmente è una lista", ex);
 //                        initialAdditionalDataArrayInRegistration = (List<AdditionalDataRegistration>)AdditionalDataRegistration.fromJsonString(objectMapper, messageTagInRegistration.getAdditionalData());
-                        initialAdditionalDataArrayInRegistration = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), new TypeReference<List<AdditionalDataRegistration>>() {
-                        });
+//                        initialAdditionalDataArrayInRegistration = objectMapper.readValue(messageTagInRegistration.getAdditionalData(), new TypeReference<List<AdditionalDataRegistration>>() {
+//                        });
                     }
                 }
                 // leggo gli additional data del messaggio in stato di registrati
@@ -150,8 +151,7 @@ public class ManageMessageRegistrationUtils {
                         initialAdditionalDataArrayRegistered.add(initialAdditionalData);
                     } catch (Throwable ex) {
                         LOG.warn("Non riuscito a convertire in AdditionalDataRegistration il messaggio in stato registrati, probabilmente è una lista", ex);
-                        initialAdditionalDataArrayRegistered = objectMapper.readValue(messageTagRegistered.getAdditionalData(), new TypeReference<List<AdditionalDataRegistration>>() {
-                        });
+//                        initialAdditionalDataArrayRegistered = (List<AdditionalDataShpeck>) (List<?>)messageTagRegistered.getAdditionalData();
                     }
                 }
 
@@ -246,7 +246,7 @@ public class ManageMessageRegistrationUtils {
             }
             initialAdditionalDataArrayInRegistration.add(additionalData);
 //            messageTagToAdd.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayInRegistration));
-            messageTagToAdd.setAdditionalData(AdditionalDataShpeck.toJsonString(objectMapper, initialAdditionalDataArrayInRegistration));
+            messageTagToAdd.setAdditionalData((List<AdditionalDataShpeck>) (List<?>) initialAdditionalDataArrayInRegistration);
             messageTagRespository.save(messageTagToAdd);
         } catch (Exception ex) {
             throw new Exception("errore nella funzione--> addInRegistration " + ex.getMessage());
@@ -397,10 +397,10 @@ public class ManageMessageRegistrationUtils {
                 }
 //                return item.getIdAzienda().getId().equals(additionalData.getIdAzienda().getId());
             });
-
-            if (initialAdditionalDataArrayOfTag.size() > 0) {
+            if (initialAdditionalDataArrayOfTag != null && !initialAdditionalDataArrayOfTag.isEmpty()) {
 //                messageTag.setAdditionalData(objectMapper.writeValueAsString(initialAdditionalDataArrayOfTag));
-                messageTag.setAdditionalData(AdditionalDataShpeck.toJsonString(objectMapper, initialAdditionalDataArrayOfTag));
+                messageTag.setAdditionalData((List<AdditionalDataShpeck>) (List<?>) initialAdditionalDataArrayOfTag);
+
                 messageTagRespository.save(messageTag);
             } else {
                 messageTagRespository.delete(messageTag);
