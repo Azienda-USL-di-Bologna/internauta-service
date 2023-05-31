@@ -1,7 +1,9 @@
 package it.bologna.ausl.internauta.service.controllers.tip;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.controllers.tip.validations.TipDataValidator;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
+import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.ImportazioneOggetto;
 import it.bologna.ausl.model.entities.tip.SessioneImportazione;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
@@ -27,7 +29,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -46,7 +51,13 @@ public class TipCustomController implements ControllerHandledExceptions {
     @PersistenceContext
     private EntityManager entityManager;
     
-    @RequestMapping(value = "uploadCSVPregressi ", method = RequestMethod.POST)
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+    
+    @RequestMapping(value = "uploadCSVPregressi", method = RequestMethod.POST)
     public ResponseEntity<?> uploadCSVPregressi (
             HttpServletRequest request,
             @RequestParam("idAzienda") Integer idAzienda,
@@ -55,14 +66,14 @@ public class TipCustomController implements ControllerHandledExceptions {
             @RequestParam("idArchivioDefault") Integer idArchivioDefault,
             @RequestParam("separatore") String separatore,
             @RequestParam("idVicarioDefault") Integer idVicarioDefault,
-            @RequestParam("csv") MultipartFile csv) {
+            @RequestParam("csv") MultipartFile[] csv) {
         File csvFile = null;
         try {
             try {
                 csvFile = File.createTempFile("uploadCSVPregressi_", ".csv");
                 csvFile.deleteOnExit();
                 try (FileOutputStream fos = new FileOutputStream(csvFile);) {
-                    try (InputStream csvIs = csv.getInputStream()) {
+                    try (InputStream csvIs = csv[0].getInputStream()) {
                         IOUtils.copy(csvIs, fos);
                     }
                 }
@@ -72,7 +83,7 @@ public class TipCustomController implements ControllerHandledExceptions {
             }
             validateCsv(tipologia, csvFile, separatore);
         } catch (Throwable ex) {
-            log.error("errore nel caricamento del csv");
+            log.error("errore nel caricamento del csv", ex);
             
         }
         finally {
@@ -99,8 +110,15 @@ public class TipCustomController implements ControllerHandledExceptions {
                 Map<String, String> csvRowMap = buildCsvRowMap(csvParser, csvRecord);
                 ImportazioneOggetto importazioneOggettoRow = buildImportazioneOggettoRow(tipologia, csvRowMap);
                 TipErroriImportazione error = tipDataValidator.validate(importazioneOggettoRow);
-                importazioneOggettoRow.setErrori(error);
-                entityManager.persist(importazioneOggettoRow);
+                log.info(objectMapper.writeValueAsString(error));
+//                importazioneOggettoRow.setErrori(error);
+                transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+                transactionTemplate.executeWithoutResult(a -> {
+                    SessioneImportazione test = entityManager.find(SessioneImportazione.class, 1l);
+                    ImportazioneDocumento ida = ((ImportazioneDocumento) importazioneOggettoRow);
+                    ida.setIdSessioneImportazione(test);
+                    entityManager.persist(importazioneOggettoRow);
+                });
             }
         }
     }
@@ -121,7 +139,11 @@ public class TipCustomController implements ControllerHandledExceptions {
         BeanWrapper wrapper = new BeanWrapperImpl(importazioneOggetto);
         for (String headerName: csvRowMap.keySet()) {
             ColonneImportazioneOggetto colonnaEnum = ColonneImportazioneOggetto.findKey(headerName, tipologia);
-            wrapper.setPropertyValue(colonnaEnum.toString(), csvRowMap.get(headerName));
+            if (colonnaEnum != null) {
+                wrapper.setPropertyValue(colonnaEnum.toString(), csvRowMap.get(headerName));
+            } else {
+                log.error("Header csv %s non previsto dal tracciato, il campo sarà ignorato");
+            }
         }
         return (T) wrapper.getWrappedInstance();
     }
