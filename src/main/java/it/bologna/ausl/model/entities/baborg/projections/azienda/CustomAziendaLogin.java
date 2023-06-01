@@ -6,6 +6,7 @@
 package it.bologna.ausl.model.entities.baborg.projections.azienda;
 
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.projections.generated.AziendaWithPlainFields;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,5 +25,5 @@ public interface CustomAziendaLogin extends AziendaWithPlainFields {
     public String getBaseUrl();
 
     @Value("#{@aziendaProjectionUtils.getParametriAzienda(target)}")
-    public Map<String, Object> getParametriAzienda();
+    public AziendaParametriJson getParametriAzienda();
 }

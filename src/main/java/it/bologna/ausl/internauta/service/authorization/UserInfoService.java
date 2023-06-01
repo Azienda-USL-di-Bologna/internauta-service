@@ -1028,7 +1028,7 @@ public class UserInfoService {
 
     @Cacheable(value = "personaFromUtente__ribaltorg__", key = "{#utente.getId()}")
     public Persona getPersonaFromUtente(Utente utente) throws BlackBoxPermissionException {
-        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
+         Utente refreshedUtente = utenteRepository.getOne(utente.getId());
         Persona persona = cachedEntities.getPersona(refreshedUtente.getIdPersona().getId());
 //        Optional<Persona> personaOp = personaRepository.findById(utente.getIdPersona().getId());
         if (persona != null) {
