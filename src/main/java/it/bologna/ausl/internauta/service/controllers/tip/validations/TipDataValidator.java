@@ -8,7 +8,6 @@ import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaP
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.PROTOCOLLO_IN_ENTRATA;
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.PROTOCOLLO_IN_USCITA;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
-import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -16,21 +15,25 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
-import org.supercsv.cellprocessor.Optional;
-import org.supercsv.cellprocessor.ift.CellProcessor;
 
 /**
- *
+ * Classe stratta che si occupa della validazione delle importazioni.
+ * Deve esistere una classe concreta per ogni tipologia di importazione
  * @author gdm
  */
 public abstract class TipDataValidator {
     public static final String FORMATO_DATA = "dd/MM/yyyy";
     public static final String DEFAULT_STRING_SEPARATOR = "#";
     
+    /**
+     * torna la classe concreta in base alla tipologia passata
+     * @param tipologia
+     * @return 
+     */
     public static TipDataValidator getTipDataValidator(SessioneImportazione.TipologiaPregresso tipologia) {
         TipDataValidator res = null;
         switch (tipologia) {
-            case FASCICOLO:
+            case FASCICOLO: //TODO: tornare la classe corretta dopo l'implementazione dell'importazione degli archivi
                 throw new RuntimeException("non ancora implementato");
             case PROTOCOLLO_IN_ENTRATA:
                 res = new ProtocolloEntrataDataValidation();
@@ -75,8 +78,19 @@ public abstract class TipDataValidator {
 //        return indirizziErrati;
 //    }
     
+    /**
+     * valdida la riga e setta gli errori nel campo errori
+     * @param rigaImportazione la riga da controllare
+     * @return la classe TipErroriImportazione che rappresenta il json di esito del controllo di validazione
+     */
     public abstract TipErroriImportazione validate(ImportazioneOggetto rigaImportazione);
-        
+    
+    
+    /**
+     * controlla se l'indirizzo passato è un indirizzo email valido
+     * @param indirizzoEmail
+     * @return true se è un indirizzo email valido, false altrimenti
+     */
     public boolean validaIndirizzoEmail(String indirizzoEmail) {
         try {
             InternetAddress emailAddress = new InternetAddress(indirizzoEmail);

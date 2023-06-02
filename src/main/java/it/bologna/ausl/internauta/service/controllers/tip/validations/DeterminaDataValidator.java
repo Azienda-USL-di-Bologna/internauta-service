@@ -1,15 +1,9 @@
 package it.bologna.ausl.internauta.service.controllers.tip.validations;
 
-import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
 import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.ImportazioneOggetto;
-import it.bologna.ausl.model.entities.tip.SessioneImportazione;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneDetermina;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
-import java.util.Arrays;
-import java.util.List;
-import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.util.StringUtils;
 
 /**
@@ -17,56 +11,6 @@ import org.springframework.util.StringUtils;
  * @author gdm
  */
 public class DeterminaDataValidator extends TipDataValidator {
-
-    
-    
-    public static void main(String[] args) {
-        ColonneImportazioneOggetto findKey = ColonneImportazioneOggetto.findKey("oggetto", SessioneImportazione.TipologiaPregresso.DETERMINA);
-        System.out.println("la chiave corrispondente è " + findKey);
-        
-        BeanWrapper wrapper = new BeanWrapperImpl(ImportazioneDocumento.class);
-        wrapper.setPropertyValue(findKey.toString(), "ciao");
-        wrapper.setPropertyValue(ColonneDetermina.adottatoDa.toString(), "aaaaaaaaaaaaaaa");
-        wrapper.setPropertyValue(ColonneDetermina.allegati.toString(), "gdm");
-        ImportazioneDocumento wrappedInstance = (ImportazioneDocumento) wrapper.getWrappedInstance();
-        System.out.println(wrappedInstance.getDataInvioConservazione());
-        System.out.println(wrappedInstance.getAllegati());
-        System.out.println(wrappedInstance.getAdottatoDa());
-        System.out.println(wrappedInstance.getOggetto());
-    }
-    
-//    public enum ColonneDetermina1 implements ColonneImportazioneOggetto {
-//        registro,
-//        numero,
-//        anno,
-//        oggetto,
-//        dataAdozione,
-//        destinatariInterni,
-//        indirizziDestinatariEsterni,
-//        nomiDestinatariEsterni,
-//        adottatoDa,
-//        firmatario,
-//        pareri,
-//        redattore,
-//        visto,
-//        idFascicoloPregresso,
-//        fascicolazione,
-//        classificazione,
-//        allegati,
-//        annotazioni,
-//        numeroPubblicazione,
-//        dataInizio,
-//        dataFine,
-//        annoPubblicazione,
-//        conservato,
-//        collegamentoPrecedente,
-//        note,
-//        annullato,
-//        noteAnnullamento,
-//        dataAnnullamento,
-//        dataInvioConservazione,
-//        errori
-//    }
     
     @Override
     public TipErroriImportazione validate(ImportazioneOggetto rigaImportazione) {

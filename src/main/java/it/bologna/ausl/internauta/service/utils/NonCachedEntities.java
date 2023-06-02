@@ -12,6 +12,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.OperazioneKrinRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -23,6 +24,7 @@ import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.QRegistro;
 import it.bologna.ausl.model.entities.scripta.Registro;
 import java.util.Optional;
@@ -58,6 +60,9 @@ public class NonCachedEntities {
 
     @Autowired
     private StrutturaRepository strutturaRepository;
+    
+    @Autowired
+    private ArchivioRepository archivioRepository;
 
     @Autowired
     private PersonaRepository personaRepository;
@@ -211,6 +216,15 @@ public class NonCachedEntities {
         Optional<Registro> registro = registroRepository.findOne(filtro);
         if (registro.isPresent()) {
             return registro.get();
+        } else {
+            return null;
+        }
+    }
+    
+    public Archivio getArchivio(Integer id) {
+        Optional<Archivio> archivio = archivioRepository.findById(id);
+        if (archivio.isPresent()) {
+            return archivio.get();
         } else {
             return null;
         }

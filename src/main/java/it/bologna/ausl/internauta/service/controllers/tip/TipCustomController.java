@@ -1,37 +1,25 @@
 package it.bologna.ausl.internauta.service.controllers.tip;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.bologna.ausl.internauta.service.controllers.tip.validations.TipDataValidator;
+import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
-import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
-import it.bologna.ausl.model.entities.tip.ImportazioneOggetto;
+import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException;
+import it.bologna.ausl.internauta.service.utils.NonCachedEntities;
 import it.bologna.ausl.model.entities.tip.SessioneImportazione;
-import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
-import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
+import it.bologna.ausl.model.entities.tip.projections.generated.SessioneImportazioneWithPlainFields;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
-import java.util.HashMap;
-import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.csv.QuoteMode;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -55,96 +43,71 @@ public class TipCustomController implements ControllerHandledExceptions {
     private ObjectMapper objectMapper;
     
     @Autowired
+    private NonCachedEntities nonCachedEntities;
+    
+    @Autowired
+    private ReporitoryConnectionManager reporitoryConnectionManager;
+    
+    @Autowired
     private TransactionTemplate transactionTemplate;
     
+    @Autowired
+    private ProjectionFactory projectionFactory;
+    
+    /**
+     * importa il csv nella tabella importazioni_docimenti o importazioni_archivi a seconda della tipologia
+     * @param request
+     * @param idSessione l'id della sessione a cui attribuire le righe importate, se non passata ne verrà creata una nuova
+     * @param idAzienda l'azienda da settare sulla sessione (in caso di sessione esistente sarà ignorato)
+     * @param tipologia la tipologia dell'importazione della sessione (in caso di sessione esistente deve essere la stessa, altrimento viene tornato errore)
+     * @param idStrutturaDefault la struttura di default da settare sulla sessione (in caso di sessione esistente sarà ignorato)
+     * @param idArchivioDefault l'archivio di defautl da settare sulla sessione (in caso di sessione esistente sarà ignorato)
+     * @param separatore il separatore delle colonne del csv
+     * @param idVicarioDefault il vicario di default da settare sulla sessione (in caso di sessione esistente sarà ignorato)
+     * @param csv il csv da importare
+     * @return la sessione creata/usata
+     * @throws HttpInternautaResponseException 
+     */
     @RequestMapping(value = "uploadCSVPregressi", method = RequestMethod.POST)
     public ResponseEntity<?> uploadCSVPregressi (
             HttpServletRequest request,
+            @RequestParam(name = "idSessione", required = false) Long idSessione,
             @RequestParam("idAzienda") Integer idAzienda,
             @RequestParam("tipologia") SessioneImportazione.TipologiaPregresso tipologia,
             @RequestParam("idStrutturaDefault") Integer idStrutturaDefault,
             @RequestParam("idArchivioDefault") Integer idArchivioDefault,
             @RequestParam("separatore") String separatore,
             @RequestParam("idVicarioDefault") Integer idVicarioDefault,
-            @RequestParam("csv") MultipartFile[] csv) {
+            @RequestParam("csv") MultipartFile csv) throws HttpInternautaResponseException {
         File csvFile = null;
         try {
-            try {
-                csvFile = File.createTempFile("uploadCSVPregressi_", ".csv");
-                csvFile.deleteOnExit();
-                try (FileOutputStream fos = new FileOutputStream(csvFile);) {
-                    try (InputStream csvIs = csv[0].getInputStream()) {
-                        IOUtils.copy(csvIs, fos);
-                    }
+            // creo il csv come file temporaneo e lo cancello al termine
+            csvFile = File.createTempFile("uploadCSVPregressi_", ".csv");
+            csvFile.deleteOnExit();
+            try (FileOutputStream fos = new FileOutputStream(csvFile);) {
+                try (InputStream csvIs = csv.getInputStream()) {
+                    IOUtils.copy(csvIs, fos);
                 }
-            } catch (Throwable ex) {
+            }
+            // lancia l'importazione
+            TipImportManager tipImportManager = new TipImportManager(entityManager, objectMapper, nonCachedEntities, reporitoryConnectionManager, transactionTemplate);
+            SessioneImportazione sessioneImportazione = tipImportManager.csvImportAndValidate(idSessione, idAzienda, tipologia, idStrutturaDefault, idArchivioDefault, separatore, idVicarioDefault, csvFile);
+            
+            // torna la sessione creata/usata con la projection SessioneImportazioneWithPlainFields
+            return ResponseEntity.ok(projectionFactory.createProjection(SessioneImportazioneWithPlainFields.class, sessioneImportazione));
+        } catch (Exception ex) {
+            if (HttpInternautaResponseException.class.isAssignableFrom(ex.getClass()))
+                throw (HttpInternautaResponseException)ex;
+            else {
                 String errorMessage = "errore nella creazione del file csv temporaneo";
                 log.error(errorMessage, ex);
+                throw new Http500ResponseException("01", errorMessage, ex);
             }
-            validateCsv(tipologia, csvFile, separatore);
-        } catch (Throwable ex) {
-            log.error("errore nel caricamento del csv", ex);
-            
         }
         finally {
             if (csvFile != null) {
                 csvFile.delete();
             }
         }
-        return null;
-    }
-    
-    private void validateCsv(SessioneImportazione.TipologiaPregresso tipologia, File csvFile, String separatore) throws FileNotFoundException, IOException {
-        TipDataValidator tipDataValidator = TipDataValidator.getTipDataValidator(tipologia);
-        try (
-                Reader csvReader = new FileReader(csvFile);
-                CSVParser csvParser = new CSVParser(csvReader,  CSVFormat.DEFAULT.builder()
-                    .setDelimiter(separatore)
-                    .setQuote('"')
-                    .setQuoteMode(QuoteMode.MINIMAL)
-                    .setRecordSeparator("\r\n")
-                    .setHeader().build())
-            ) {
-
-            for (CSVRecord csvRecord : csvParser) {
-                Map<String, String> csvRowMap = buildCsvRowMap(csvParser, csvRecord);
-                ImportazioneOggetto importazioneOggettoRow = buildImportazioneOggettoRow(tipologia, csvRowMap);
-                TipErroriImportazione error = tipDataValidator.validate(importazioneOggettoRow);
-                log.info(objectMapper.writeValueAsString(error));
-//                importazioneOggettoRow.setErrori(error);
-                transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-                transactionTemplate.executeWithoutResult(a -> {
-                    SessioneImportazione test = entityManager.find(SessioneImportazione.class, 1l);
-                    ImportazioneDocumento ida = ((ImportazioneDocumento) importazioneOggettoRow);
-                    ida.setIdSessioneImportazione(test);
-                    entityManager.persist(importazioneOggettoRow);
-                });
-            }
-        }
-    }
-    
-    private Map<String, String> buildCsvRowMap(CSVParser csvParser, CSVRecord csvRecord) {
-        Map<String, String> res = new HashMap<>();
-        for (Map.Entry<String, Integer> entry : csvParser.getHeaderMap().entrySet()) {
-            String header = entry.getKey();
-            int columnIndex = entry.getValue();
-            String value = csvRecord.get(columnIndex);
-            res.put(header, value);
-        }
-        return res;
-    }
-    
-    private <T extends ImportazioneOggetto> T buildImportazioneOggettoRow(SessioneImportazione.TipologiaPregresso tipologia, Map<String, String> csvRowMap) {
-        ImportazioneOggetto importazioneOggetto = ImportazioneOggetto.getImportazioneOggettoImpl(tipologia);
-        BeanWrapper wrapper = new BeanWrapperImpl(importazioneOggetto);
-        for (String headerName: csvRowMap.keySet()) {
-            ColonneImportazioneOggetto colonnaEnum = ColonneImportazioneOggetto.findKey(headerName, tipologia);
-            if (colonnaEnum != null) {
-                wrapper.setPropertyValue(colonnaEnum.toString(), csvRowMap.get(headerName));
-            } else {
-                log.error("Header csv %s non previsto dal tracciato, il campo sarà ignorato");
-            }
-        }
-        return (T) wrapper.getWrappedInstance();
     }
 }
