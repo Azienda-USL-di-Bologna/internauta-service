@@ -46,11 +46,11 @@ public class AziendaProjectionUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(AziendaProjectionUtils.class);
 
     @Cacheable(value = "getParametriAzienda", key = "{#azienda.getId()}")
-    public AziendaParametriJson getParametriAzienda(Azienda azienda) throws BlackBoxPermissionException {
+    public Map<String, Object> getParametriAzienda(Azienda azienda) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Applicazione.Applicazioni applicazione = authenticatedSessionData.getApplicazione();
 
-        AziendaParametriJson parametri = parametriAziende.getAllAziendaApplicazioneParameters(applicazione.toString(), azienda.getId());
+        Map<String, Object> parametri = parametriAziende.getAllAziendaApplicazioneParameters(applicazione.toString(), azienda.getId());
 
         return parametri;
     }

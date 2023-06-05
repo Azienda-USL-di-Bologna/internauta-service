@@ -25,5 +25,5 @@ public interface CustomAziendaLogin extends AziendaWithPlainFields {
     public String getBaseUrl();
 
     @Value("#{@aziendaProjectionUtils.getParametriAzienda(target)}")
-    public AziendaParametriJson getParametriAzienda();
+    public Map<String,Object> getParametriAzienda();
 }
