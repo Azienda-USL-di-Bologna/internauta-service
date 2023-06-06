@@ -343,7 +343,7 @@ public class KrintRubricaService {
             KrintRubricaDettaglioContatto krintRubricaDettaglioContatto = factory.createProjection(KrintRubricaDettaglioContatto.class, dettaglioContatto);
             KrintRubricaDettaglioContatto krintRubricaDettaglioContattoOld = factory.createProjection(KrintRubricaDettaglioContatto.class, dettaglioContattoOld);
             
-            Map<String, Object> map = new HashMap();
+            HashMap<String, Object> map = new HashMap();
             map.put("idDettaglioContatto", krintRubricaDettaglioContatto);
             map.put("idDettaglioContattoCorrelated", krintRubricaDettaglioContattoOld);
 //            String jsonKrintDettaglioContatto = objectMapper.writeValueAsString(map);

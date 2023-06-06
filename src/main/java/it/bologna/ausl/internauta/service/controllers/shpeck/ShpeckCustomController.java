@@ -2,7 +2,6 @@ package it.bologna.ausl.internauta.service.controllers.shpeck;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonObject;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.eml.handler.EmlHandler;
@@ -74,7 +73,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
-import org.jose4j.json.internal.json_simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -92,7 +90,6 @@ import it.bologna.ausl.internauta.service.shpeck.utils.EmlData;
 import it.bologna.ausl.internauta.service.shpeck.utils.ManageMessageRegistrationUtils;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.data.AdditionalDataShpeck;
@@ -109,9 +106,7 @@ import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
-import org.json.JSONArray;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.util.StringUtils;
 
 /**
  *

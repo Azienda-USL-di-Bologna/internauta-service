@@ -70,7 +70,7 @@ public class KrintScriptaService {
     public void writeArchivioCreation(Archivio archivio, Archivio archivioDiRiferimento, OperazioneKrint.CodiceOperazione codiceOperazione) {
         try {
             // Informazioni oggetto
-            Map<String, Object> map = getArchivioPropertiesAsMap(archivio);
+            HashMap<String, Object> map = getArchivioPropertiesAsMap(archivio);
             
             if (archivioDiRiferimento != null) {
                 KrintScriptaArchivio krintScriptaArchivioRif = factory.createProjection(KrintScriptaArchivio.class, archivioDiRiferimento);
@@ -138,7 +138,7 @@ public class KrintScriptaService {
         
         try {
             // Informazioni oggetto
-            Map<String, Object> map = getArchivioPropertiesAsMap(archivio);
+            HashMap<String, Object> map = getArchivioPropertiesAsMap(archivio);
             
             if (archivioDiRiferimento != null) {
                 KrintScriptaArchivio krintScriptaArchivioRif = factory.createProjection(KrintScriptaArchivio.class, archivioDiRiferimento);
@@ -197,7 +197,7 @@ public class KrintScriptaService {
         try {
             // Informazioni oggetto
             Archivio archivioPadre = archivio.getIdArchivioPadre();
-            Map<String, Object> map = getArchivioPropertiesAsMap(archivioPadre);
+            HashMap<String, Object> map = getArchivioPropertiesAsMap(archivioPadre);
             
             KrintScriptaArchivio krintScriptaArchivioRif = factory.createProjection(KrintScriptaArchivio.class, archivio);
             map.put("archivioDiRiferimento", krintScriptaArchivioRif);  
@@ -325,7 +325,7 @@ public class KrintScriptaService {
     public void writePermessiArchivio(Integer idArchivio, EntitaStoredProcedure entita, PermessoStoredProcedure permessoStoredProcedure, OperazioneKrint.CodiceOperazione codiceOperazione) {
         Archivio archivio = archivioRepository.getById(idArchivio);
         try {
-            Map<String, Object> mapKrintArchivio = getArchivioPropertiesAsMap(archivio);
+            HashMap<String, Object> mapKrintArchivio = getArchivioPropertiesAsMap(archivio);
             mapKrintArchivio.put("predicato", permessoStoredProcedure.getPredicato());
             mapKrintArchivio.put("propagaOggetto", permessoStoredProcedure.getPropagaOggetto() ? "con" : "senza");
             
@@ -454,11 +454,11 @@ public class KrintScriptaService {
      * @return La mappa con le property del fascicolo.
      * @throws JsonProcessingException Errori nel parsing.
      */
-    private Map<String, Object> getArchivioPropertiesAsMap(Archivio archivio) throws JsonProcessingException {
+    private HashMap<String, Object> getArchivioPropertiesAsMap(Archivio archivio) throws JsonProcessingException {
         KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);            
         String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
         @SuppressWarnings("unchecked")
-        Map<String, Object> map = objectMapper.readValue(jsonKrintArchivio, Map.class);
+        HashMap<String, Object> map = objectMapper.readValue(jsonKrintArchivio, HashMap.class);
         return map;
     }
 }

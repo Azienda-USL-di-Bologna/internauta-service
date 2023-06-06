@@ -54,7 +54,7 @@ public class KrintShpeckService {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);
             KrintShpeckMessage coorelatedkrintPecMessage = factory.createProjection(KrintShpeckMessage.class, correlatedMessage);
-            Map<String, Object> map = new HashMap();
+            HashMap<String, Object> map = new HashMap();
             map.put("idMessage", krintPecMessage);
             map.put("idMessageCorrelated", coorelatedkrintPecMessage);
 //            String jsonKrintPecMessage = objectMapper.writeValueAsString(map);
@@ -120,7 +120,7 @@ public class KrintShpeckService {
         try {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);
-            Map<String, Object> map = new HashMap();
+            HashMap<String, Object> map = new HashMap();
             map.put("idMessage", krintPecMessage);
             map.put("tagAdditionalData", additionalDataArchiviation);
 //            String jsonKrintPecMessage = objectMapper.writeValueAsString(map);
@@ -193,7 +193,7 @@ public class KrintShpeckService {
             if (idPreviousFolder != null) {
                 krintPecPreviousFolder = factory.createProjection(KrintShpeckFolder.class, idPreviousFolder);
             }
-            Map<String, Object> map = new HashMap();
+            HashMap<String, Object> map = new HashMap();
             map.put("idMessage", krintPecMessage);
             map.put("idFolder", krintPecFolder);
             map.put("idPreviousFolder", krintPecPreviousFolder);
@@ -263,7 +263,7 @@ public class KrintShpeckService {
             // Informazioni oggetto
             KrintShpeckMessage krintPecMessage = factory.createProjection(KrintShpeckMessage.class, message);
             KrintShpeckTag krintPecTag = factory.createProjection(KrintShpeckTag.class, tag);             
-            Map<String, Object> krintPecMessageMap = new HashMap();
+            HashMap<String, Object> krintPecMessageMap = new HashMap();
             krintPecMessageMap.put("idMessage", krintPecMessage);
             krintPecMessageMap.put("idTag", krintPecTag);
 //            String jsonKrintPecMessage = objectMapper.writeValueAsString(map);

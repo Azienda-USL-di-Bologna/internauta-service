@@ -107,10 +107,10 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         //genero la nofica che apparirà sulla scivania con il link per il download e della nuova applicazione
         Applicazione app = applicazioneRepository.getById("downloader");
         Attivita a = new Attivita(null, archivio.getIdAzienda(), Attivita.TipoAttivita.NOTIFICA.toString(), ZonedDateTime.now(), ZonedDateTime.now());
-        Map<String,String> urlsMap = new HashMap();
+        HashMap<String,String> urlsMap = new HashMap();
         urlsMap.put("url", urlToDownload);
         urlsMap.put("label", "Scarica");
-        List<Map<String,String>> listaUrls = new ArrayList(); 
+        List<HashMap<String,String>> listaUrls = new ArrayList(); 
 //        a.setUrls(String.format("[{\"url\": \"%s\", \"label\": \"Scarica\"}]", urlToDownload));
         a.setUrls(listaUrls);
         a.setDescrizione("Archivio zip generato per lo scaricamento asincrono");

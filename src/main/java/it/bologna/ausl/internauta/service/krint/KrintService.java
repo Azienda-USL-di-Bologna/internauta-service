@@ -20,6 +20,7 @@ import it.bologna.ausl.model.entities.logs.OperazioneVersionataKrint;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniRealUser;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniUtente;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -66,11 +67,11 @@ public class KrintService {
             String idOggetto,
             Krint.TipoOggettoKrint tipoOggetto,
             String descrizioneOggetto,
-            Map<String, Object> informazioniOggetto,
+            HashMap<String, Object> informazioniOggetto,
             String idOggettoContenitore,
             Krint.TipoOggettoKrint tipoOggettoContenitore,
             String descrizioneOggettoContenitore,
-            Map<String, Object> informazioniOggettocontenitore,
+            HashMap<String, Object> informazioniOggettocontenitore,
             OperazioneKrint.CodiceOperazione codiceOperazione) throws Exception {
 
         try {
@@ -78,7 +79,7 @@ public class KrintService {
 
             Integer idSessione = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getIdSessionLog(); // TODO: mettere idSessione corretto
             KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
-            Map<String, Object> mapKrintInformazioniUtente = objectMapper.convertValue(utente, new TypeReference<Map<String, Object>>() {
+            HashMap<String, Object> mapKrintInformazioniUtente = objectMapper.convertValue(utente, new TypeReference<HashMap<String, Object>>() {
             });
             Krint krint = new Krint(idSessione, authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getApplicazione(), utente.getId(), utente.getIdPersona().getDescrizione(), mapKrintInformazioniUtente);
 
@@ -111,7 +112,7 @@ public class KrintService {
                     krint.setDescrizioneRealUser(personaReale.getDescrizione());
                 }
                 KrintInformazioniRealUser krintInformazioniRealUser = factory.createProjection(KrintInformazioniRealUser.class, utenteReale);
-                Map<String, Object> mapKrintInformazioniRealUser = objectMapper.convertValue(krintInformazioniRealUser, new TypeReference<Map<String, Object>>() {
+                HashMap<String, Object> mapKrintInformazioniRealUser = objectMapper.convertValue(krintInformazioniRealUser, new TypeReference<HashMap<String, Object>>() {
                 });
                 krint.setInformazioniRealUser(mapKrintInformazioniRealUser);
             }
