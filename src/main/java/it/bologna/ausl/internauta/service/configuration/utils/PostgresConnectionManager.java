@@ -4,12 +4,12 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.PostConstruct;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +21,7 @@ public class PostgresConnectionManager {
     @Autowired
     private AziendaRepository aziendaRepository;
 
-    private List<AziendaParams> aziendaParamsList = null;
+    private List<AziendaParametriJson.DbConnParams> aziendaParamsList = null;
     private final Map<String, Sql2o> dbConnectionMap = new HashMap<>();
     @Value("${spring.datasource.driver-class-name}")
     private String driverClass;
@@ -38,12 +38,12 @@ public class PostgresConnectionManager {
         aziendaParamsList = getConnParams();
 
         // Popolo la mappa con le connssioni per ogni azienda
-        for (AziendaParams aziendaConnParams : aziendaParamsList) {
+        for (AziendaParametriJson.DbConnParams aziendaConnParams : aziendaParamsList) {
             HikariConfig hikariConfig = new HikariConfig();
             hikariConfig.setDriverClassName(driverClass);
             hikariConfig.setJdbcUrl(aziendaConnParams.getJdbcUrl());
-            hikariConfig.setUsername(aziendaConnParams.getDbUsername());
-            hikariConfig.setPassword(aziendaConnParams.getDbPassword());
+            hikariConfig.setUsername(aziendaConnParams.getUsername());
+            hikariConfig.setPassword(aziendaConnParams.getPassword());
             // hikariConfig.setLeakDetectionThreshold(20000);
             hikariConfig.setMinimumIdle(sql2oMinIdleSize);
             hikariConfig.setMaximumPoolSize(sql2oMaxPoolSize);
@@ -75,17 +75,13 @@ public class PostgresConnectionManager {
         return dbConnectionMap.get(azienda.getCodice());
     }
 
-    public List<AziendaParams> getConnParams() {
+    public List<AziendaParametriJson.DbConnParams> getConnParams() {
         List<Azienda> aziende = aziendaRepository.findAll();
-        List<AziendaParams> aps = new ArrayList();
+        List<AziendaParametriJson.DbConnParams> aps = new ArrayList<>();
         aziende.stream().forEach(azienda -> {
-            AziendaParams aziendaParams = new AziendaParams();
+            AziendaParametriJson aziendaParametriJson = azienda.getParametri();
+            AziendaParametriJson.DbConnParams aziendaParams = aziendaParametriJson.getDbConnParams();
             aziendaParams.setCodiceAzienda(azienda.getCodice());
-            JSONObject parametri = new JSONObject(azienda.getParametri());
-            JSONObject dbConnParams = parametri.getJSONObject("dbConnParams");
-            aziendaParams.setDbPassword(dbConnParams.getString("password"));
-            aziendaParams.setDbUsername(dbConnParams.getString("username"));
-            aziendaParams.setJdbcUrl(dbConnParams.getString("jdbcUrl"));
             aps.add(aziendaParams);
         });
         return aps;
