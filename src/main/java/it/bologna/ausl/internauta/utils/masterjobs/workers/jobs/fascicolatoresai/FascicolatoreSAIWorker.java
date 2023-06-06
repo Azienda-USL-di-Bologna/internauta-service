@@ -147,7 +147,7 @@ public class FascicolatoreSAIWorker extends JobWorker<FascicolatoreSAIWorkerData
             Utente utente = utenteRepository.getById(getWorkerData().getIdUtente());
             Azienda azienda = aziendaRepository.getById(getWorkerData().getIdAzienda());
             
-            Integer idDoc = scriptaArchiviUtils.archiveMessage(message, archivio, persona, azienda, utente);
+            Integer idDoc = scriptaArchiviUtils.archiveMessage(message, null, archivio, persona, azienda, utente);
             
             AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
             accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);

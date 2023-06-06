@@ -112,9 +112,14 @@ import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailReposito
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
+import it.bologna.ausl.internauta.utils.firma.utils.CommonUtils;
+import it.bologna.ausl.internauta.utils.firma.utils.ConfigParams;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.generazioneziparchivio.GenerazioneZipArchivioJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.generazioneziparchivio.GenerazioneZipArchivioJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Archivio;
@@ -152,6 +157,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     private final List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
 //    private List<Allegato> savedFilesOnInternauta = new ArrayList();
 
+    @Autowired
+    private ConfigParams configParams;
+    
     @Autowired
     private CachedEntities cachedEntities;
     
@@ -250,15 +258,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private KrintUtils krintUtils;
-    
-    @Autowired
-    private PermissionManager permissionManager;
 
     @Autowired
     private KrintScriptaService krintScriptaService;
-    
-    @Autowired
-    private ArchivioDetailRepository archivioDetailRepository;
     
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -482,7 +484,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @PathVariable(required = true) Integer idArchivio,
             HttpServletResponse response,
             HttpServletRequest request
-    ) throws Http403ResponseException, Http404ResponseException, Http500ResponseException, BlackBoxPermissionException  {
+    ) throws Http403ResponseException, Http404ResponseException, Http500ResponseException, BlackBoxPermissionException, MasterjobsWorkerException  {
         LOG.info("downloadArchivioZip: {}", idArchivio);
         
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -494,9 +496,41 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
        
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA))
             throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
-        
-        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
-        scriptaArchiviUtils.createZipArchivio(archivio, persona, response, jPAQueryFactory);
+        String scheme = request.getScheme();
+        String hostname = CommonUtils.getHostname(request);
+        Integer port = request.getServerPort();
+
+        String downloadUrl = this.configParams.getDownloaderUrl(scheme, hostname, port);
+        String uploaderUrl = this.configParams.getUploaderUrl(scheme, hostname, port);
+        GenerazioneZipArchivioJobWorkerData data = new GenerazioneZipArchivioJobWorkerData(
+                persona,
+                archivio,
+                downloadUrl,
+                uploaderUrl,
+                "Servizio per generare lo zip dell'archivio e fornire il download"
+        );
+        GenerazioneZipArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
+                    GenerazioneZipArchivioJobWorker.class,
+                    data,
+                    false
+        );
+        try {
+            masterjobsJobsQueuer.queue(
+                    worker, 
+                    null, 
+                    null, 
+                    Applicazione.Applicazioni.gedi.toString(), 
+                    false, 
+                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL
+            );
+        } catch (MasterjobsQueuingException ex) {
+            String errorMessage = "Errore nell'accodamento del job CalcoloPermessiGerarchiaArchivio";
+            log.error(errorMessage);
+            throw new MasterjobsWorkerException(errorMessage, ex);
+        }
+
+//        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+//        scriptaArchiviUtils.createZipArchivio(archivio, persona, response, jPAQueryFactory);
           
         LOG.info("downloadArchivioZip: {} completato.", idArchivio);
         if (authenticatedUserProperties.getRealUser() == null || !userInfoService.isSD(authenticatedUserProperties.getRealUser()))
@@ -1061,12 +1095,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         //return ResponseEntity.status(HttpStatus.OK).build();
     }
 
-    @RequestMapping(value = "archiveMessage/{idMessage}/{idArchivio}", method = RequestMethod.POST)
+    @RequestMapping(value = "archiveMessage/{idMessage}/{idArchivio}/{nomeDocDaPec}", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> archiveMessage(
             HttpServletRequest request,
             @PathVariable(required = true) Integer idMessage,
-            @PathVariable(required = true) Integer idArchivio
+            @PathVariable(required = true) Integer idArchivio,
+            @PathVariable(required = true) String nomeDocDaPec
     ) throws IOException, FileNotFoundException, NoSuchAlgorithmException, BlackBoxPermissionException, Http404ResponseException, Http403ResponseException, BadParamsException, MinIOWrapperException, Http500ResponseException, MasterjobsWorkerException {
         projectionsInterceptorLauncher.setRequestParams(null, request); // Necessario per poter poi creare una projection
 
@@ -1077,7 +1112,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Message message = messageRepository.findById(idMessage).get();
         Azienda azienda = archivio.getIdAzienda();
 
-        Integer idDoc = scriptaArchiviUtils.archiveMessage(message, archivio, persona, azienda, utente);
+        Integer idDoc = scriptaArchiviUtils.archiveMessage(message, nomeDocDaPec, archivio, persona, azienda, utente);
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);
         
@@ -1718,6 +1753,128 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             if (iHaveToKrint) 
                 krintScriptaService.writeArchivioUpdate(archivio, archivioRif, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_RENDI_FASCICOLO);
             
+            log.info("Ritorno la projectionCreata");
+            return projectedObject;
+        }
+        throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
+    }
+    
+    @RequestMapping(value = "copiaDoc", method = RequestMethod.POST)
+    @Transactional
+    public Object copiaDoc(
+            @RequestParam("idDoc") String idDoc,
+            @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
+            HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException, Http403ResponseException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Archivio finalArchivio = null;
+        //procedo a tirare su tutto ciò che mi serve
+        Integer idDocInt = Integer.valueOf(idDoc);
+        Optional<Doc> d = docRepository.findById(idDocInt);
+        //controllo l'effettiva presenza dell'archivio da copiare
+        if (d.isPresent()) {
+            Doc doc = d.get();
+            boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
+            //procedo a tirare su tutto ciò che mi serve sull'archivio destinazione
+            Integer idArchivioIntDestinazione = Integer.valueOf(idArchivioDestinazione);
+            Optional<Archivio> aDestinazione = archivioRepository.findById(idArchivioIntDestinazione);
+            //controllo l'effettiva presenza dell'archivio destinazione
+            if (aDestinazione.isPresent()) {
+                Archivio archivioDestinazione = aDestinazione.get();
+                //procedo con le modifiche
+                List<ArchivioDoc> archivioDestinazioneDocs = archivioDocRepository.findByIdArchivio(archivioDestinazione);
+                for(ArchivioDoc ad: archivioDestinazioneDocs){
+                    if(ad.getIdDoc().getId().equals(doc.getId())){
+                        throw new Http500ResponseException("2", "L'archivio di destinazione contiene già il doc da copiare");
+                    }
+                }
+                ArchivioDoc archivioDocCopiato = new ArchivioDoc(archivioDestinazione, doc, persona);
+                ArchivioDoc save = archivioDocRepository.save(archivioDocCopiato);
+                
+                log.info(String.format("Il documento è stato copiato correttamente all'archivio: " + archivioDestinazione.getId()));
+                finalArchivio = archivioDestinazione;
+                
+                em.refresh(finalArchivio);
+                if (iHaveToKrint) {             
+                    krintScriptaService.writeActionDoc(doc, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_DOC_COPIA);
+                }
+            }
+            String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+            log.info("Recupero projection by name " + projection);
+            Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+            projectionsInterceptorLauncher.setRequestParams(null, request);
+            log.info("Chiamo la facrtory della projection...");
+            Object projectedObject = projectionFactory.createProjection(
+                    projectionClass, finalArchivio
+            );
+            log.info("Ritorno la projectionCreata");
+            return projectedObject;
+        }
+        throw new Http500ResponseException("1", "Non ho trovato nessun doc con l'id passato");
+    }
+    
+    @RequestMapping(value = "spostaDoc", method = RequestMethod.POST)
+    @Transactional
+    public Object spostaDoc(
+            @RequestParam("idDoc") String idDoc,
+            @RequestParam("idArchivioPartenza") String idArchivioPartenza,
+            @RequestParam("idArchivioDestinazione") String idArchivioDestinazione,
+            HttpServletRequest request) throws Http500ResponseException, RestControllerEngineException, BlackBoxPermissionException, Http403ResponseException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        //finalArchivio è l'archivio che verrà usato per crare la projection da restituire al front end
+        Archivio finalArchivio = null;
+        //procedo a tirare su tutto ciò che mi serve sul doc da spostare
+        Integer idDocInt = Integer.valueOf(idDoc);
+        Optional<Doc> d = docRepository.findById(idDocInt);
+        //controllo l'effettiva presenza del doc da spostare
+        if (d.isPresent()) {
+            Doc doc = d.get();
+            //procedo a tirare su tutto ciò che mi serve sull'archivio partenza
+            Integer idArchivioIntPartenza = Integer.valueOf(idArchivioPartenza);
+            Optional<Archivio> aPartenza = archivioRepository.findById(idArchivioIntPartenza);
+            if (aPartenza.isPresent()) {
+                Archivio archivioPartenza = aPartenza.get();
+                //procedo a tirare su tutto ciò che mi serve sull'archivio destinazione
+                Integer idArchivioIntDestinazione = Integer.valueOf(idArchivioDestinazione);
+                Optional<Archivio> aDestinazione = archivioRepository.findById(idArchivioIntDestinazione);
+                //controllo l'effettiva presenza dell'archivio destinazione
+                if (aDestinazione.isPresent()) {
+                    Archivio archivioDestinazione = aDestinazione.get();
+                    JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+                    boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
+                        log.info(String.format("procedo a spostare il documento %s", doc.getId()));
+                        List<ArchivioDoc> archivioDestinazioneDocs = archivioDocRepository.findByIdArchivio(archivioDestinazione);
+                        for(ArchivioDoc ad: archivioDestinazioneDocs){
+                            if(ad.getIdDoc().getId().equals(doc.getId())){
+                                throw new Http500ResponseException("2", "L'archivio di destinazione contiene già il doc da spostare");
+                            }
+                        }    
+                        jPAQueryFactory
+                                .update(QArchivioDoc.archivioDoc)
+                                .set(QArchivioDoc.archivioDoc.idArchivio, archivioDestinazione)
+                                .set(QArchivioDoc.archivioDoc.dataInserimentoRiga, ZonedDateTime.now())
+                                .where(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioPartenza.getId())
+                                        .and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))
+                                .execute();
+                        finalArchivio = archivioDestinazione;
+                        log.info(String.format("il documento %s è stato spostato con successo", doc.getId()));
+
+                    if (iHaveToKrint) { 
+                        krintScriptaService.writeActionDoc(doc, archivioDestinazione, OperazioneKrint.CodiceOperazione.SCRIPTA_DOC_SPOSTA); 
+                    }
+                }
+            }
+            String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
+            // Ritorno la projection coi dati aggiornati
+            log.info("Recupero projection by name " + projection);
+            Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+            projectionsInterceptorLauncher.setRequestParams(null, request);
+            log.info("Chiamo la facrtory della projection...");
+            Object projectedObject = projectionFactory.createProjection(
+                    projectionClass, finalArchivio
+            );
+
             log.info("Ritorno la projectionCreata");
             return projectedObject;
         }
