@@ -8,15 +8,19 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.firma.remota.exceptions.http.FirmaRemotaHttpException;
 import it.bologna.ausl.internauta.utils.firma.remota.utils.FirmaRemotaDownloaderUtils;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.io.BufferedOutputStream;
@@ -24,6 +28,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.zip.ZipOutputStream;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -61,6 +66,12 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
     @Autowired
     PersonaRepository personaRepository;
     
+    @Autowired
+    private CachedEntities cachedEntities;
+    
+    @Autowired
+    private ParametriAziendeReader parametriAziende;    
+    
     @PersistenceContext
     private EntityManager em;
     
@@ -80,6 +91,12 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         //calcolo numero e filename da utilizzare sucessivamente per il salvataggio e scaricamento dello zip
         String numero = archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/"));
         String archivioZipName = String.format("%s-%d-%s.zip", numero, archivio.getAnno(), archivio.getOggetto().trim());
+        Azienda aziendaArch = aziendaRepository.getById(archivio.getIdAzienda().getId());
+        Integer downloadArchivioZipTokenExpireSeconds = null;
+        List<ParametroAziende> parameters = parametriAziende.getParameters("downloadArchivioZipTokenExpireSeconds", new Integer[]{aziendaArch.getId()});
+        if (parameters != null && !parameters.isEmpty()) {
+            downloadArchivioZipTokenExpireSeconds = parametriAziende.getValue(parameters.get(0), Integer.class);
+        }
         
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         //creo lo zip, prima come outstream poi lo converto in inputstream
@@ -96,7 +113,7 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         //carico e ottengo il url per il download con token valido per un minuto
         String urlToDownload = null;
         try {
-            urlToDownload = firmaRemotaDownloaderUtils.uploadToUploader(bis, archivioZipName, "application/zip", true, downloadUrl, uploadUrl);
+            urlToDownload = firmaRemotaDownloaderUtils.uploadToUploader(bis, archivioZipName, "application/zip", true, downloadUrl, uploadUrl, downloadArchivioZipTokenExpireSeconds);
         } catch (FirmaRemotaHttpException ex) {
             log.error("errore nell'upload e generazione del url per il download", ex);
         }
@@ -104,9 +121,9 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         Applicazione app = applicazioneRepository.getById("downloader");
         Attivita a = new Attivita(null, archivio.getIdAzienda(), Attivita.TipoAttivita.NOTIFICA.toString(), ZonedDateTime.now(), ZonedDateTime.now());
         a.setUrls(String.format("[{\"url\": \"%s\", \"label\": \"Scarica\"}]", urlToDownload));
-        a.setDescrizione("Archivio zip generato per lo scaricamento asincrono");
+        a.setDescrizione("Fascicolo zip");
         a.setIdApplicazione(app);
-        a.setIdAzienda(aziendaRepository.getById(archivio.getIdAzienda().getId()));
+        a.setIdAzienda(aziendaArch);
         a.setIdPersona(personaRepository.getById(persona.getId()));
         a.setOggetto(String.format("Fascicolo: %s", archivioZipName));
         a.setProvenienza(app.getNome());
