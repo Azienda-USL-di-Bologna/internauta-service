@@ -153,7 +153,7 @@ public class SendAttivitaMailJobWorker extends JobWorker<SendAttivitaMailJobWork
         String bodyTemplate = activityMailTemplate.get("body");
         Applicazione applicazione = cachedEntities.getApplicazione(Applicazione.Applicazioni.scrivania.toString());
         Azienda azienda = cachedEntities.getAzienda(getWorkerData().getIdAzienda());
-        AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        AziendaParametriJson aziendaParametriJson = azienda.getParametri();
         String linkScrivania = aziendaParametriJson.getBasePath() + applicazione.getBaseUrl();
         
         bodyTemplate = bodyTemplate.replace("[oggetto]", getWorkerData().getOggettoAttivita());

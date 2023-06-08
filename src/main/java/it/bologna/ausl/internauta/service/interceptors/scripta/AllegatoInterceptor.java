@@ -1,29 +1,25 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailViewRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Doc;
-import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
@@ -188,7 +184,8 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
         Allegato.DettagliAllegato dettagli = allegato.getDettagli();
         if (dettagli != null) {
             //TODO: in caso di fallimento quando si hanno piu dettagli allegati se uno fallisce bisogna fare l'undelete degli altri
-            MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+            //commento la prossima riga perche non e' usata
+//            MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
             try {
                 Set<String> data = (Set) super.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.DettagliAllegatiDaEliminare);
                 if (data == null){
@@ -202,7 +199,7 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
                         data.add(dettaglioAllegato.getIdRepository());
                     }
                 }                      
-            } catch (Exception ex) {
+            } catch (IllegalAccessException | IllegalArgumentException | NoSuchMethodException | InvocationTargetException ex) {
                 LOGGER.error("errore nell'eliminazione del file su minIO", ex);
                 throw new AbortSaveInterceptorException("errore nell'eliminazione del file su minIO", ex);
             }

@@ -99,7 +99,7 @@ public class AziendaProjectionUtils {
     public String getBaseUrl(Azienda azienda) throws IOException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         String baseUrl;
-        AziendaParametriJson aziendaParams = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        AziendaParametriJson aziendaParams = azienda.getParametri();
         if (authenticatedSessionData.isFromInternet()) {
             baseUrl = aziendaParams.getInternetBasePath();
         } else {
@@ -123,7 +123,7 @@ public class AziendaProjectionUtils {
 
         Utente utente = (Utente) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
 
-        AziendaParametriJson parametri = AziendaParametriJson.parse(objectMapper, utente.getIdAzienda().getParametri());
+        AziendaParametriJson parametri = utente.getIdAzienda().getParametri();
         if (authenticatedSessionData.isFromInternet()) {
             try {
                 parametri.setBasePath(parametri.getInternetBasePath());

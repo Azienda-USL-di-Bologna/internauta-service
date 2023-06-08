@@ -128,7 +128,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             List<String> cc, List<String> bcc, MultipartFile[] attachments, List<String> replyTo, boolean... htmlBody) throws IOException {
 
         Azienda azienda = cachedEntities.getAzienda(idAzienda);
-        AziendaParametriJson aziendaParametri = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        AziendaParametriJson aziendaParametri = azienda.getParametri();
         AziendaParametriJson.MailParams mailParams = aziendaParametri.getMailParams();
         boolean flag = (htmlBody.length >= 1) ? htmlBody[0] : false;
         if (mailParams != null) {
