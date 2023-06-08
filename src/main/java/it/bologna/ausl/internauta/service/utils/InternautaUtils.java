@@ -2,7 +2,7 @@ package it.bologna.ausl.internauta.service.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
-import it.bologna.ausl.internauta.utils.bds.types.EntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
