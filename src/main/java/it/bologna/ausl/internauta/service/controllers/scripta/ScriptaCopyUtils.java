@@ -161,7 +161,7 @@ public class ScriptaCopyUtils {
         em.persist(newAttoreCreatore);
         em.refresh(newAttoreCreatore);
         attoriList.add(newAttoreCreatore);
-        for (AttoreArchivio attore: arch.getIdArchivioRadice().getAttoriList()){
+        for (AttoreArchivio attore: arch.getIdArchivioCopiato().getIdArchivioRadice().getAttoriList()){
             if(attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.VICARIO) || 
                attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE) ||
                attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO)){

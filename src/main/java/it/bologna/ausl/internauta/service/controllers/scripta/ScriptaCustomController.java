@@ -1616,30 +1616,34 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
                 log.info(String.format("procedo a duplicare i figli e nipoti di %s", archivio.getId()));
                 for(Archivio archFiglio : archivio.getArchiviFigliList()){
-                    log.info(String.format("inzio a duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));              
-                    Archivio savedFiglioArchivio = scriptaCopyUtils.copiaArchivioConDoc(archFiglio, savedArchivio, persona, em, Boolean.TRUE, contenuto);
-                    log.info(String.format("finito di duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));
-                    if (iHaveToKrint)
-                        krintScriptaService.writeArchivioUpdate(savedFiglioArchivio, archFiglio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
-//                    Archivio savedFiglioArchivio = scriptaCopyUtils.copiaArchivio(archFiglio, savedArchivio, persona, em);
-//                    if(contenuto){
-//                        log.info(String.format("procedo a duplicare i documenti di %s", archFiglio.getId()));
-//                        scriptaCopyUtils.copiaArchivioDoc(archFiglio, savedFiglioArchivio, persona, em);
-//                        log.info(String.format("I documenti sono stati duplicati correttamente dall'archivio: " + archFiglio.getId() + " all'archivio: " + savedFiglioArchivio.getId()));
-//                    }
-//                    em.refresh(savedFiglioArchivio);
-                    for(Archivio archNipote : archFiglio.getArchiviFigliList()){
-                        log.info(String.format("inzio a duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));              
-                        Archivio savedInsArchivio = scriptaCopyUtils.copiaArchivioConDoc(archNipote, savedFiglioArchivio, persona, em, Boolean.TRUE, contenuto);
-                        log.info(String.format("finito di duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));
+                    if (!archFiglio.getStato().equals(Archivio.StatoArchivio.BOZZA)){
+                        log.info(String.format("inzio a duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));              
+                        Archivio savedFiglioArchivio = scriptaCopyUtils.copiaArchivioConDoc(archFiglio, savedArchivio, persona, em, Boolean.TRUE, contenuto);
+                        log.info(String.format("finito di duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));
                         if (iHaveToKrint)
-                            krintScriptaService.writeArchivioUpdate(savedInsArchivio, archNipote, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
-//                        Archivio savedInsArchivio = scriptaCopyUtils.copiaArchivio(archNipote, savedFiglioArchivio, persona, em);
-//                        if(contenuto){
-//                            log.info(String.format("procedo a duplicare i documenti di %s", archNipote.getId()));
-//                            scriptaCopyUtils.copiaArchivioDoc(archNipote, savedInsArchivio, persona, em);
-//                            log.info(String.format("I documenti sono stati duplicati correttamente dall'archivio: " + archNipote.getId() + " all'archivio: " + savedInsArchivio.getId()));
-//                        }
+                            krintScriptaService.writeArchivioUpdate(savedFiglioArchivio, archFiglio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
+    //                    Archivio savedFiglioArchivio = scriptaCopyUtils.copiaArchivio(archFiglio, savedArchivio, persona, em);
+    //                    if(contenuto){
+    //                        log.info(String.format("procedo a duplicare i documenti di %s", archFiglio.getId()));
+    //                        scriptaCopyUtils.copiaArchivioDoc(archFiglio, savedFiglioArchivio, persona, em);
+    //                        log.info(String.format("I documenti sono stati duplicati correttamente dall'archivio: " + archFiglio.getId() + " all'archivio: " + savedFiglioArchivio.getId()));
+    //                    }
+    //                    em.refresh(savedFiglioArchivio);
+                        for(Archivio archNipote : archFiglio.getArchiviFigliList()){
+                            if (!archNipote.getStato().equals(Archivio.StatoArchivio.BOZZA)){
+                                log.info(String.format("inzio a duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));              
+                                Archivio savedInsArchivio = scriptaCopyUtils.copiaArchivioConDoc(archNipote, savedFiglioArchivio, persona, em, Boolean.TRUE, contenuto);
+                                log.info(String.format("finito di duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));
+                                if (iHaveToKrint)
+                                    krintScriptaService.writeArchivioUpdate(savedInsArchivio, archNipote, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
+        //                        Archivio savedInsArchivio = scriptaCopyUtils.copiaArchivio(archNipote, savedFiglioArchivio, persona, em);
+        //                        if(contenuto){
+        //                            log.info(String.format("procedo a duplicare i documenti di %s", archNipote.getId()));
+        //                            scriptaCopyUtils.copiaArchivioDoc(archNipote, savedInsArchivio, persona, em);
+        //                            log.info(String.format("I documenti sono stati duplicati correttamente dall'archivio: " + archNipote.getId() + " all'archivio: " + savedInsArchivio.getId()));
+        //                        }
+                            }
+                        }
                     }
                 }
                 log.info(String.format("finito le duplicare i figli e nipoti di %s", archivio.getId()));
