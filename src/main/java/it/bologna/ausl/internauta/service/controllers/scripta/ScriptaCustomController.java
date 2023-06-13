@@ -138,6 +138,7 @@ import it.nextsw.common.utils.exceptions.EntityReflectionException;
 import java.lang.reflect.InvocationTargetException;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -151,7 +152,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 @RequestMapping(value = "${scripta.mapping.url.root}")
 public class ScriptaCustomController implements ControllerHandledExceptions {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ScriptaCustomController.class);
+    private static final Logger log = LoggerFactory.getLogger(ScriptaCustomController.class);
 
 //    private MinIOWrapperFileInfo savedFileOnRepository = null;
     private final List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
@@ -268,8 +269,6 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     @Value("${babelsuite.webapi.eliminapropostadaedi.method}")
     private String eliminaPropostaDaEdiMethod;
 
-    private static final Logger log = LoggerFactory.getLogger(ScriptaCustomController.class);
-
     /**
      * Controller chiamato dal PEIS per salvare una lista di allegati
      *
@@ -344,7 +343,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             HttpServletResponse response,
             HttpServletRequest request
     ) throws IOException, MinIOWrapperException, Http500ResponseException, Http404ResponseException, Throwable {
-        LOG.info("downloadAllegato", idAllegato, tipoDettaglioAllegato);
+        log.info("downloadAllegato", idAllegato, tipoDettaglioAllegato);
         Allegato allegato = allegatoRepository.getById(idAllegato);
         if (allegato != null) {
             try {
@@ -364,7 +363,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 try {
                     dettaglioAllegato = dettagli.getDettaglioAllegato(tipoDettaglioAllegato);
                 } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-                    LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
+                    log.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
                     throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
                 }
 
@@ -436,7 +435,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             HttpServletResponse response,
             HttpServletRequest request
     ) throws IOException, MinIOWrapperException {
-        LOG.info("downloadAllAttachments", idDoc);
+        log.info("downloadAllAttachments", idDoc);
         Doc doc = docRepository.getOne(idDoc);
         List<Allegato> allegati = doc.getAllegati();
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
@@ -485,7 +484,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             HttpServletResponse response,
             HttpServletRequest request
     ) throws Http403ResponseException, Http404ResponseException, Http500ResponseException, BlackBoxPermissionException, MasterjobsWorkerException  {
-        LOG.info("downloadArchivioZip: {}", idArchivio);
+        log.info("downloadArchivioZip: {}", idArchivio);
         
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
@@ -532,7 +531,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 //        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
 //        scriptaArchiviUtils.createZipArchivio(archivio, persona, response, jPAQueryFactory);
           
-        LOG.info("downloadArchivioZip: {} completato.", idArchivio);
+        log.info("downloadArchivioZip: {} completato.", idArchivio);
         if (authenticatedUserProperties.getRealUser() == null || !userInfoService.isSD(authenticatedUserProperties.getRealUser()))
             krintScriptaService.writeArchivioUpdate(archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SCARICA_ZIP_FASCICOLO);
     }
@@ -609,7 +608,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         try {
             dettaglioAllegatoRichiesto = allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato);
         } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-            LOG.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
+            log.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
             throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
         }
         InputStream allegatoIS = minIOWrapper.getByFileId(dettaglioAllegatoRichiesto.getIdRepository()
@@ -692,7 +691,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         );
 
         String resultJson = generatePE.create(null);
-        LOG.info("generatePE.create() ha tornato '" + resultJson + "'");
+        log.info("generatePE.create() ha tornato '" + resultJson + "'");
         if (!StringUtils.hasText(resultJson)) {
             throw new Throwable("Errore nella protocollazione del PE");
         }
@@ -1082,7 +1081,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 }
             }
         } catch (Exception e) {
-            LOG.error("Errore nell'upload del doc",e);
+            log.error("Errore nell'upload del doc",e);
             if (savedFilesOnRepository != null && !savedFilesOnRepository.isEmpty()) {
                 for (MinIOWrapperFileInfo minIOWrapperFileInfo : savedFilesOnRepository) {
                     minIOWrapper.removeByFileId(minIOWrapperFileInfo.getFileId(), false);
@@ -1115,8 +1114,15 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         try {
             idDoc = scriptaArchiviUtils.archiveMessage(message, nomeDocDaPec, archivio, persona, azienda, utente);
         } catch (DataIntegrityViolationException ex) {
-            String errore = "Il documento è già presente nel fascicolo selezionato.";
-            throw new Http409ResponseException("409", errore);
+            String errorMessage = "Errore durante la fascicolazione del messaggio. Se il problema persiste contattare BabelCare.";
+            String specificMessage = NestedExceptionUtils.getMostSpecificCause(ex).getMessage();
+            log.error(errorMessage);
+            if (specificMessage != null && specificMessage.contains("duplicate key")) {
+                errorMessage = "Il documento è già presente nel fascicolo selezionato.";
+                throw new Http409ResponseException("409", errorMessage);
+            } else {
+                throw new Http500ResponseException("500", errorMessage);    
+            }
         }
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);
