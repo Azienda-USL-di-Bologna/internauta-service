@@ -4,10 +4,15 @@ package it.bologna.ausl.internauta.service.controllers.scripta;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDetailRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
@@ -52,19 +57,25 @@ public class ScriptaCopyUtils {
     private ArchivioDocRepository archivioDocRepository;
     
     @Autowired
+    private UtenteStrutturaRepository utenteStrutturaRepository;
+    
+    @Autowired
     private ArchivioDetailRepository archivioDetailRepository;
     
     @Autowired
     private ArchivioRepository archivioRepository;
     
     @Autowired
+    private StrutturaRepository strutturaRepository;
+    
+    @Autowired
     private ObjectMapper objectMapper;
 
-    public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em) throws JsonProcessingException, EntityReflectionException{
+    public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Utente utente, EntityManager em) throws JsonProcessingException, EntityReflectionException{
         return copiaArchivio(archDaCopiare, archivioDestinazione, utente, em, Boolean.TRUE, Boolean.FALSE);
     }
     
-    public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em, Boolean numera, Boolean rinomina) throws JsonProcessingException, EntityReflectionException{
+    public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Utente utente, EntityManager em, Boolean numera, Boolean rinomina) throws JsonProcessingException, EntityReflectionException{
         String numerazioneGerarchicaDaEreditare;
         Archivio idArchivioRadiceDaEreditare;
         Titolo idTitoloDaEreditare;
@@ -112,9 +123,10 @@ public class ScriptaCopyUtils {
         
         //numero il nuovo archivio
         ArchivioDetail detail = archivioDetailRepository.getById(newArchivio.getId());
-        detail.setIdPersonaResponsabile(archDaCopiare.getIdArchivioDetail().getIdPersonaResponsabile());
-        detail.setIdPersonaCreazione(utente);
-        detail.setIdStruttura(archDaCopiare.getIdArchivioDetail().getIdStruttura());
+        detail.setIdPersonaResponsabile(utente.getIdPersona());
+        detail.setIdPersonaCreazione(utente.getIdPersona());
+        Integer idStruttura = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utente.getId());
+        detail.setIdStruttura(strutturaRepository.getById(idStruttura));
         
         if (archivioDestinazione == null){
             detail.setDataCreazionePadre(null);
@@ -146,35 +158,46 @@ public class ScriptaCopyUtils {
         for (AttoreArchivio attore: arch.getIdArchivioRadice().getAttoriList()){
             if(attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.CREATORE)){
                 Persona p = attore.getIdPersona();
+                Struttura s = attore.getIdStruttura();
                 jPAQueryFactory
                             .delete(QAttoreArchivio.attoreArchivio)
                             .where(QAttoreArchivio.attoreArchivio.idArchivio.id.eq(arch.getId()))
                             .execute();
-                setNewAttoriArchivio(arch, p, em);
+                setNewAttoriArchivio(arch, p, s, em);
             }
         }
     }
     
-    public void setNewAttoriArchivio(Archivio arch, Persona utenteCreatore, EntityManager em){
+    public void setNewAttoriArchivio(Archivio arch, Utente utenteCreatore, EntityManager em){
+        Integer idStruttura = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utenteCreatore.getId());
+        setNewAttoriArchivio(arch, utenteCreatore.getIdPersona(), strutturaRepository.getById(idStruttura), em);
+    }
+    
+    public void setNewAttoriArchivio(Archivio arch, Persona utenteCreatore, Struttura strutturaUtenteCreatore, EntityManager em){
         List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
-        AttoreArchivio newAttoreCreatore = new AttoreArchivio(arch, utenteCreatore, null, AttoreArchivio.RuoloAttoreArchivio.CREATORE);
+        //creazione e salvataggio dell'attore creatore
+        AttoreArchivio newAttoreCreatore = new AttoreArchivio(arch, utenteCreatore, strutturaUtenteCreatore, AttoreArchivio.RuoloAttoreArchivio.CREATORE);
         em.persist(newAttoreCreatore);
         em.refresh(newAttoreCreatore);
         attoriList.add(newAttoreCreatore);
-        for (AttoreArchivio attore: arch.getIdArchivioRadice().getAttoriList()){
+        //creazione e salvataggio dell'attore responsabile
+        AttoreArchivio newAttoreResponsabile = new AttoreArchivio(arch, utenteCreatore, strutturaUtenteCreatore, AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE);
+        em.persist(newAttoreResponsabile);
+        em.refresh(newAttoreResponsabile);
+        attoriList.add(newAttoreResponsabile);
+        for (AttoreArchivio attore: arch.getIdArchivioCopiato().getIdArchivioRadice().getAttoriList()){
             if(attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.VICARIO) || 
-               attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE) ||
                attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO)){
                 AttoreArchivio newAttore = new AttoreArchivio(arch, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
                 em.persist(newAttore);
                 em.refresh(newAttore);
                 attoriList.add(newAttore);
-            }  
+            }
         }
         arch.setAttoriList(attoriList);
     }
     
-    public void copiaArchivioDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona utente, EntityManager em){
+    public void copiaArchivioDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Utente utente, EntityManager em){
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
 
         List<Integer> idDocsDaSpostare = jPAQueryFactory
@@ -194,19 +217,19 @@ public class ScriptaCopyUtils {
                 .fetch();
         
         for(Doc idDoc: idDocsDaSpostareCheNonCiSonoGia){
-            ArchivioDoc newArchivioDoc = new ArchivioDoc(archivioDestinazione, idDoc, utente);
+            ArchivioDoc newArchivioDoc = new ArchivioDoc(archivioDestinazione, idDoc, utente.getIdPersona());
             em.persist(newArchivioDoc);
         }
     }
     
-    public Archivio copiaArchivioConDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona persona, EntityManager em, Boolean numera, Boolean contenuto) throws JsonProcessingException, EntityReflectionException{
-        return copiaArchivioConDoc(archDaCopiare, archivioDestinazione, persona, em, numera, false, contenuto);
+    public Archivio copiaArchivioConDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Utente utente, EntityManager em, Boolean numera, Boolean contenuto) throws JsonProcessingException, EntityReflectionException{
+        return copiaArchivioConDoc(archDaCopiare, archivioDestinazione, utente, em, numera, false, contenuto);
     }
     
-    public Archivio copiaArchivioConDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Persona persona, EntityManager em, Boolean numera, Boolean rinomina, Boolean contenuto) throws JsonProcessingException, EntityReflectionException{
-        Archivio savedArchivio = copiaArchivio(archDaCopiare, archivioDestinazione, persona, em, numera, rinomina);
+    public Archivio copiaArchivioConDoc(Archivio archDaCopiare, Archivio archivioDestinazione, Utente utente, EntityManager em, Boolean numera, Boolean rinomina, Boolean contenuto) throws JsonProcessingException, EntityReflectionException{
+        Archivio savedArchivio = copiaArchivio(archDaCopiare, archivioDestinazione, utente, em, numera, rinomina);
         if(contenuto){
-            copiaArchivioDoc(archDaCopiare, savedArchivio, persona, em);
+            copiaArchivioDoc(archDaCopiare, savedArchivio, utente, em);
         }
         em.refresh(savedArchivio);
         return savedArchivio;
