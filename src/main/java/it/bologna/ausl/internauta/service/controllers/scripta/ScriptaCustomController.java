@@ -67,6 +67,7 @@ import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PecRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRecenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
@@ -202,6 +203,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private PersonaRepository personaRepository;
+    
+    @Autowired
+    private UtenteRepository utenteRepository;
 
     @Autowired
     private PecRepository pecRepository;
@@ -1482,7 +1486,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam("contenuto") boolean contenuto,
             HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException, Http403ResponseException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Utente utente = utenteRepository.findById(authenticatedUserProperties.getUser().getId()).get();
+        Persona persona = utente.getIdPersona();
         Archivio finalArchivio = null;
         //controllo che almeno uno tra fascicolo e contenuto sia stato selezionato
         if (contenuto == false && fascicolo == false){
@@ -1517,7 +1522,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 //procedo con le modifiche
                 if (fascicolo) {
                     log.info(String.format("inzio a copiare %s con i suoi documenti", archivio.getId()));              
-                    Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivioDestinazione, persona, em, Boolean.TRUE, Boolean.TRUE, contenuto);
+                    Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivioDestinazione, utente, em, Boolean.TRUE, Boolean.TRUE, contenuto);
                     log.info(String.format("finito di copiare %s con i suoi documenti", archivio.getId()));
                     if (haFigli) {
                         log.info(String.format("procedo a copiare i figli di %s", archivio.getId()));
@@ -1525,7 +1530,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                             em.refresh(savedArchivio);
                             
                             log.info(String.format("inzio a copiare %s, figlio di %s, con i suoi documenti", arch.getId(), archivio.getId()));              
-                            Archivio newArch = scriptaCopyUtils.copiaArchivioConDoc(arch, savedArchivio, persona, em, Boolean.FALSE, contenuto);
+                            Archivio newArch = scriptaCopyUtils.copiaArchivioConDoc(arch, savedArchivio, utente, em, Boolean.FALSE, contenuto);
                             log.info(String.format("finito di copiare %s, figlio di %s, con i suoi documenti", arch.getId(), archivio.getId()));
                             if (iHaveToKrint) // Log nel fascicolo che è stato creato da una copia
                                 krintScriptaService.writeArchivioCreation(newArch, arch, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_COPIA);
@@ -1537,7 +1542,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     archivioRepository.calcolaPermessiEsplicitiGerarchia(finalArchivio.getId());
                 }else if(contenuto){
                     log.info(String.format("procedo a copiare i documenti di %s", archivio.getId()));
-                    scriptaCopyUtils.copiaArchivioDoc(archivio, archivioDestinazione, persona, em);
+                    scriptaCopyUtils.copiaArchivioDoc(archivio, archivioDestinazione, utente, em);
                     log.info(String.format("I documenti sono stati copiati correttamente dall'archivio: " + archivio.getId() + " all'archivio: " + archivioDestinazione.getId()));
                     finalArchivio = archivioDestinazione;
                 }
@@ -1579,7 +1584,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam("contenuto") boolean contenuto,
             HttpServletRequest request) throws Http500ResponseException, CloneNotSupportedException, JsonProcessingException, EntityReflectionException, BlackBoxPermissionException, RestControllerEngineException, Http403ResponseException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Utente utente = utenteRepository.findById(authenticatedUserProperties.getUser().getId()).get();
+        Persona persona = utente.getIdPersona();
         if ((contenuto == false && fascicolo == false) || (contenuto == true && fascicolo == true)){
             throw new Http500ResponseException("1", "Uno e solo uno tra i target fascicolo e contenuto deve essere selezionato");
         }
@@ -1598,7 +1604,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 haFigli = true;
             }
             log.info(String.format("inzio a duplicare %s con i suoi documenti", archivio.getId()));              
-            Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivio.getIdArchivioPadre(), persona, em, Boolean.TRUE, Boolean.TRUE, contenuto);
+            Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivio.getIdArchivioPadre(), utente, em, Boolean.TRUE, Boolean.TRUE, contenuto);
             log.info(String.format("finito di duplicare %s con i suoi documenti", archivio.getId()));
 //            
 //            log.info(String.format("inizio a duplicare l'archivio %s", archivio.getId()));
@@ -1618,7 +1624,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 for(Archivio archFiglio : archivio.getArchiviFigliList()){
                     if (!archFiglio.getStato().equals(Archivio.StatoArchivio.BOZZA)){
                         log.info(String.format("inzio a duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));              
-                        Archivio savedFiglioArchivio = scriptaCopyUtils.copiaArchivioConDoc(archFiglio, savedArchivio, persona, em, Boolean.TRUE, contenuto);
+                        Archivio savedFiglioArchivio = scriptaCopyUtils.copiaArchivioConDoc(archFiglio, savedArchivio, utente, em, Boolean.TRUE, contenuto);
                         log.info(String.format("finito di duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));
                         if (iHaveToKrint)
                             krintScriptaService.writeArchivioUpdate(savedFiglioArchivio, archFiglio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
@@ -1632,7 +1638,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                         for(Archivio archNipote : archFiglio.getArchiviFigliList()){
                             if (!archNipote.getStato().equals(Archivio.StatoArchivio.BOZZA)){
                                 log.info(String.format("inzio a duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));              
-                                Archivio savedInsArchivio = scriptaCopyUtils.copiaArchivioConDoc(archNipote, savedFiglioArchivio, persona, em, Boolean.TRUE, contenuto);
+                                Archivio savedInsArchivio = scriptaCopyUtils.copiaArchivioConDoc(archNipote, savedFiglioArchivio, utente, em, Boolean.TRUE, contenuto);
                                 log.info(String.format("finito di duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));
                                 if (iHaveToKrint)
                                     krintScriptaService.writeArchivioUpdate(savedInsArchivio, archNipote, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
