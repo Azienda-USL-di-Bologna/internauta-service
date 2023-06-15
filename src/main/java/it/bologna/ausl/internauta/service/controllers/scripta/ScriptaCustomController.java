@@ -132,7 +132,6 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.ArchivioRecente;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
-import it.bologna.ausl.model.entities.scripta.NoteVersamento;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
@@ -151,6 +150,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 
 /**
  *
@@ -503,8 +503,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         entitaOggetto.setSchema("scripta");
         entitaOggetto.setSchema("archivi");
         List<Object> soggettiVirtuali = userInfoService.getUtenteStrutturaList(authenticatedSessionData.getUser(), true).stream().map(us -> us.getIdStruttura()).collect(Collectors.toList());
-        List<it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure> permessiAttualiSuBlackBox = null;
-        permessiAttualiSuBlackBox = permissionManager.getPermissionsOfSubjectAdvanced(
+        List<PermessoEntitaStoredProcedure> permessiAttualiSuBlackBox = permissionManager.getPermissionsOfSubjectAdvanced(
                 persona,
                 Lists.newArrayList(archivio),
                 Arrays.asList(

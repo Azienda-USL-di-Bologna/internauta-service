@@ -1,9 +1,11 @@
 package it.bologna.ausl.model.entities.scripta.projections.archivio;
 
+import com.google.common.collect.Lists;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
@@ -12,8 +14,11 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.model.bds.types.CategoriaPermessiStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
@@ -28,6 +33,7 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.PermessoArch
 import it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -46,7 +52,7 @@ public class ArchivioProjectionUtils {
 
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
-    
+
     @Autowired
     private ProjectionFactory projectionFactory;
 
@@ -67,7 +73,10 @@ public class ArchivioProjectionUtils {
 
     @Autowired
     private AziendaRepository aziendaRepository;
-    
+
+    @Autowired
+    private UserInfoService userInfoService;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -96,17 +105,52 @@ public class ArchivioProjectionUtils {
 //        Iterable<PermessoArchivio> permessiArchivi = permessoArchivioRepository.findAll(filter);
 //        return !(permessiArchivi.iterator().hasNext());
     }
-    
+
     public Boolean getIsArchivioNero(Archivio archivio) throws BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = authenticatedSessionData.getPerson();
-        return checkIfPermessoArchivioExists(persona.getId(), archivio.getId(), archivio.getIdAzienda().getId(), archivio.getDataCreazione());
+        EntitaStoredProcedure entitaSoggetto = new EntitaStoredProcedure();
+        entitaSoggetto.setIdProvenienza(persona.getId());
+        entitaSoggetto.setSchema("baborg");
+        entitaSoggetto.setTable("persone");
+        EntitaStoredProcedure entitaOggetto = new EntitaStoredProcedure();
+        entitaOggetto.setIdProvenienza(archivio.getId());
+        entitaOggetto.setSchema("scripta");
+        entitaOggetto.setSchema("archivi");
+        List<Object> soggettiVirtuali = userInfoService.getUtenteStrutturaList(authenticatedSessionData.getUser(), true).stream().map(us -> us.getIdStruttura()).collect(Collectors.toList());
+        List<PermessoEntitaStoredProcedure> permessiAttualiSuBlackBox = permissionManager.getPermissionsOfSubjectAdvanced(
+                persona,
+                Lists.newArrayList(archivio),
+                Arrays.asList(
+                        new String[]{
+                            InternautaConstants.Permessi.Predicati.ELIMINA.toString(),
+                            InternautaConstants.Permessi.Predicati.MODIFICA.toString(),
+                            InternautaConstants.Permessi.Predicati.VISUALIZZA.toString(),
+                            InternautaConstants.Permessi.Predicati.PASSAGGIO.toString(),
+                            InternautaConstants.Permessi.Predicati.VICARIO.toString(),
+                            InternautaConstants.Permessi.Predicati.RESPONSABILE.toString(),
+                            InternautaConstants.Permessi.Predicati.RESPONSABILE_PROPOSTO.toString()
+                        }),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.SCRIPTA.toString()}),
+                Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.ARCHIVIO.toString()}),
+                true,
+                null,
+                null,
+                soggettiVirtuali,
+                BlackBoxConstants.Direzione.PRESENTE);
+        if (permessiAttualiSuBlackBox != null && !permessiAttualiSuBlackBox.isEmpty()) {
+            return false;
+        } else {
+            return true;
+        }
+
+        //return checkIfPermessoArchivioExists(persona.getId(), archivio.getId(), archivio.getIdAzienda().getId(), archivio.getDataCreazione());
     }
-    
+
     private Boolean checkIfPermessoArchivioExists(Integer idPersona, Integer idArchivio, Integer idAzienda, ZonedDateTime dataCreazione) {
         QPermessoArchivio qPermessoArchivio = QPermessoArchivio.permessoArchivio;
 //        QArchivio qArchivio = QArchivio.archivio;
-        
+
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
 //        Integer fetchFirst = jPAQueryFactory
 //                .selectOne()
@@ -123,10 +167,10 @@ public class ArchivioProjectionUtils {
                 .selectOne()
                 .from(qPermessoArchivio)
                 .where(
-                    qPermessoArchivio.idPersona.id.eq(idPersona)
-                    .and(qPermessoArchivio.idArchivioDetail.id.eq(idArchivio))
-                    .and(qPermessoArchivio.idAzienda.id.eq(idAzienda))
-                    .and(qPermessoArchivio.dataCreazione.eq(dataCreazione))
+                        qPermessoArchivio.idPersona.id.eq(idPersona)
+                                .and(qPermessoArchivio.idArchivioDetail.id.eq(idArchivio))
+                                .and(qPermessoArchivio.idAzienda.id.eq(idAzienda))
+                                .and(qPermessoArchivio.dataCreazione.eq(dataCreazione))
                 )
                 .fetchFirst();
         return fetchFirst == null;
@@ -197,9 +241,11 @@ public class ArchivioProjectionUtils {
         }
         return subjectsWithPermissionsOnObject;
     }
-    
+
     /**
-     * Dato un archivio torno la lista dei PermessoArchivio che ci sono sull'arhciviodetail corrispondente
+     * Dato un archivio torno la lista dei PermessoArchivio che ci sono
+     * sull'arhciviodetail corrispondente
+     *
      * @param archivio
      * @return
      */
@@ -213,7 +259,7 @@ public class ArchivioProjectionUtils {
         List<PermessoArchivioWithPlainFields> res = null;
         if (!permessiArchiviList.isEmpty()) {
             res = permessiArchiviList.stream().map(pa -> {
-                return projectionFactory.createProjection(PermessoArchivioWithPlainFields.class, pa);                
+                return projectionFactory.createProjection(PermessoArchivioWithPlainFields.class, pa);
             }).collect(Collectors.toList());
         }
         return res;
