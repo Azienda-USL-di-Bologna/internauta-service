@@ -109,6 +109,7 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.NoteVersamentoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
@@ -126,6 +127,7 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.ArchivioRecente;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
+import it.bologna.ausl.model.entities.scripta.NoteVersamento;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
@@ -176,6 +178,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private MessageRepository messageRepository;
+    
+    @Autowired
+    private NoteVersamentoRepository noteVersamentoRepository;
     
     @Autowired
     private ScriptaArchiviUtils scriptaArchiviUtils;
@@ -1901,5 +1906,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
+    
+   
 
 }
