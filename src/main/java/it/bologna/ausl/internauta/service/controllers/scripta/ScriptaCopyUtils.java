@@ -173,25 +173,27 @@ public class ScriptaCopyUtils {
         setNewAttoriArchivio(arch, utenteCreatore.getIdPersona(), strutturaRepository.getById(idStruttura), em);
     }
     
-    public void setNewAttoriArchivio(Archivio arch, Persona utenteCreatore, Struttura strutturaUtenteCreatore, EntityManager em){
+    public void setNewAttoriArchivio(Archivio arch, Persona personaCreatore, Struttura strutturaUtenteCreatore, EntityManager em){
         List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
         //creazione e salvataggio dell'attore creatore
-        AttoreArchivio newAttoreCreatore = new AttoreArchivio(arch, utenteCreatore, strutturaUtenteCreatore, AttoreArchivio.RuoloAttoreArchivio.CREATORE);
+        AttoreArchivio newAttoreCreatore = new AttoreArchivio(arch, personaCreatore, strutturaUtenteCreatore, AttoreArchivio.RuoloAttoreArchivio.CREATORE);
         em.persist(newAttoreCreatore);
         em.refresh(newAttoreCreatore);
         attoriList.add(newAttoreCreatore);
         //creazione e salvataggio dell'attore responsabile
-        AttoreArchivio newAttoreResponsabile = new AttoreArchivio(arch, utenteCreatore, strutturaUtenteCreatore, AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE);
+        AttoreArchivio newAttoreResponsabile = new AttoreArchivio(arch, personaCreatore, strutturaUtenteCreatore, AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE);
         em.persist(newAttoreResponsabile);
         em.refresh(newAttoreResponsabile);
         attoriList.add(newAttoreResponsabile);
         for (AttoreArchivio attore: arch.getIdArchivioCopiato().getIdArchivioRadice().getAttoriList()){
-            if(attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.VICARIO) || 
-               attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO)){
-                AttoreArchivio newAttore = new AttoreArchivio(arch, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
-                em.persist(newAttore);
-                em.refresh(newAttore);
-                attoriList.add(newAttore);
+            if (attore.getIdPersona().getId().equals(personaCreatore.getId())){ 
+                if (attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.VICARIO) ||
+                        attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO)) {
+                    AttoreArchivio newAttore = new AttoreArchivio(arch, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
+                    em.persist(newAttore);
+                    em.refresh(newAttore);
+                    attoriList.add(newAttore);
+                }
             }
         }
         arch.setAttoriList(attoriList);
