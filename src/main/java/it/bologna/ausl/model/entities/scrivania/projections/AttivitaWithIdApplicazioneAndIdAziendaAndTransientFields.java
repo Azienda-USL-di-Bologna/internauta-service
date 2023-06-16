@@ -11,6 +11,6 @@ import org.springframework.data.rest.core.config.Projection;
 @Projection(name = "AttivitaWithIdApplicazioneAndIdAziendaAndTransientFields", types = Attivita.class)
 public interface AttivitaWithIdApplicazioneAndIdAziendaAndTransientFields extends AttivitaWithIdApplicazioneAndIdAzienda{
 
-    @Override
-    public String getCompiledUrls();
+//    @Override
+//    public String getCompiledUrls();
 }

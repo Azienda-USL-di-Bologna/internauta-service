@@ -255,8 +255,9 @@ public class ScriptaArchiviUtils {
                         minIOWrapper.removeByFileId(minIOWrapperFileInfo.getFileId(), false);
                     }
                 }
-                e.printStackTrace();
-                throw new Http500ResponseException("4", "Qualcosa è andato storto nelle creazione degli allegati");
+                String errore = "4 Qualcosa è andato storto nelle creazione degli allegati";
+                LOG.error(errore,e);
+                throw new Http500ResponseException("4", errore);
             }
         }
 

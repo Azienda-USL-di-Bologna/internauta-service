@@ -34,6 +34,7 @@ import it.bologna.ausl.model.entities.scripta.DocDetail;
 import it.bologna.ausl.model.entities.scripta.FrequenzaUtilizzoArchivio;
 import it.bologna.ausl.model.entities.scripta.Massimario;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
+import it.bologna.ausl.model.entities.scripta.NoteVersamento;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QAllegato;
@@ -50,6 +51,7 @@ import it.bologna.ausl.model.entities.scripta.QFrequenzaUtilizzoArchivio;
 import it.bologna.ausl.model.entities.scripta.QMassimario;
 import it.bologna.ausl.model.entities.scripta.views.QDocDetailView;
 import it.bologna.ausl.model.entities.scripta.QMezzo;
+import it.bologna.ausl.model.entities.scripta.QNoteVersamento;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QRelated;
@@ -359,6 +361,20 @@ public class ScriptaBaseController extends BaseCrudController {
         return ResponseEntity.ok(resource);
     }
 
+    @RequestMapping(value = {"noteversamento", "noteversamento/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+//    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> noteVersamento(
+            @QuerydslPredicate(root = NoteVersamento.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QNoteVersamento.noteVersamento, NoteVersamento.class);
+        return ResponseEntity.ok(resource);
+    }
+    
     @RequestMapping(value = {"archiviorecente", "archiviorecente/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 //    @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> archiviorecente(

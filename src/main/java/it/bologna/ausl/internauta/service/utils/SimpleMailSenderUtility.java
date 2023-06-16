@@ -61,7 +61,7 @@ public class SimpleMailSenderUtility {
             boolean htmlBody) throws IOException {
 
         Azienda azienda = cachedEntities.getAzienda(idAzienda);
-        AziendaParametriJson aziendaParametri = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        AziendaParametriJson aziendaParametri = azienda.getParametri();
         AziendaParametriJson.MailParams mailParams = aziendaParametri.getMailParams();
 
         if (mailParams != null) {
