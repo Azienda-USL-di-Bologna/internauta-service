@@ -1,51 +1,100 @@
+clone:
+  # lfs: true     # See the lfs property documentation prior to enabling
+  # skip-ssl-verify: true
+  enabled: false
+  depth: 1
+
+definitions:
+  steps:
+    - step: &start_runner
+        # Questo job viene eseguito nell'infrastruttura di Atlassian e si paga l'esecuzione
+        # Dura pochi secondi, poi il resto viene eseguito sui runners in AWS
+        name: Start Runner
+        oidc: true
+        image: public.ecr.aws/aws-cli/aws-cli:2.11.21
+        script:
+          # Le altre variabili d'ambiente necessarie sono definite nel workspace e nel deployment
+          - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
+          - echo $BITBUCKET_STEP_OIDC_TOKEN > $(pwd)/web-identity-token
+          - INSTANCE_ID=$(aws ec2 describe-instances --filter "Name=tag:RunnerName,Values=*${AWS_ENV}*" --query 'Reservations[].Instances[].InstanceId' --output text)
+          - ([[ -n "${INSTANCE_ID}" ]])
+          - INSTANCE_STATE=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} --query 'Reservations[].Instances[].State.Name' --output text)
+          - ([[ "${INSTANCE_STATE}" != "running" ]] && aws ec2 start-instances --instance-ids ${INSTANCE_ID} --region ${AWS_DEFAULT_REGION}) || true
+          - ([[ "${INSTANCE_STATE}" != "running" ]] && aws ec2 wait instance-running --instance-ids ${INSTANCE_ID} --region ${AWS_DEFAULT_REGION}) || true
+          - ([[ "${INSTANCE_STATE}" != "running" ]] && sleep 15) || true
+    - step: &stop_runner
+        name: Stop Runner
+        oidc: true
+        image: public.ecr.aws/aws-cli/aws-cli:2.11.21
+        script:
+          # Le altre variabili d'ambiente necessarie sono definite nel workspace e nel deployment
+          - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
+          - echo ${BITBUCKET_STEP_OIDC_TOKEN} > $(pwd)/web-identity-token
+          - aws ec2 stop-instances --instance-ids ${INSTANCE_ID} --region ${AWS_DEFAULT_REGION}
+
 pipelines:
   branches:
     cly-pipeline:
-      - step:
-          name: Build & Push su ECR
-          image: maven:3.8.6-openjdk-8
-          oidc: true
-          deployment: Test
-          runs-on:
-            - "self.hosted"
-            - "dev"
-          services:
-            - docker
-          caches:
-            - docker
-          script:
-            - ls submodules/internauta-utils -al
-            - git submodule init
-            - git submodule update --depth 1 --single-branch --recommend-shallow
-            - ls submodules/internauta-utils -al
-            # build the image
-            - IMAGE_NAME="babel-cloud-dev-internauta" # deve coincidere con il nome del repo
-            - IMAGE_VERSION="dev-${BITBUCKET_COMMIT:0:8}"
-            - docker build -t "${IMAGE_NAME}:${IMAGE_VERSION}" .
-            # use the pipe to push the image to AWS ECR
-            - pipe: atlassian/aws-ecr-push-image:2.0.0
-              variables:
-                #INFO: ereditato dal workspace | AWS_DEFAULT_REGION: "eu-west-1"
-                #INFO: ereditato dal workspace | AWS_OIDC_ROLE_ARN: "arn:aws:iam::545463498725:role/babel-bitbucket"
-                IMAGE_NAME: "${IMAGE_NAME}"
-                TAGS: "${IMAGE_VERSION}"
-      - step:
-        name: Build & Push su ECR
-          image: public.ecr.aws/docker/library/python:3.10
-          oidc: true
-          deployment: Test
-          runs-on:
-            - "self.hosted"
-            - "dev"
-          script:
-            - export SAM_VERSION=v1.86.1
-            - export SAM_SHA=c90d664290947bdfc9e0534020a84bebd3788cfc24a5c2b58c8611808ee1e92b
-            - wget --no-verbose https://github.com/aws/aws-sam-cli/releases/download/${SAM_VERSION}/aws-sam-cli-linux-x86_64.zip && \
-                echo '${SAM_SHA} aws-sam-cli-linux-x86_64.zip' | sha256sum -c - && \
-                unzip aws-sam-cli-linux-x86_64.zip -d sam-installation && ./sam-installation/install
-            - export APP_IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}"
-            - cd .aws && sed -i "s/__ImageVersion__/$APP_IMAGE_VERSION/g" samconfig.toml
-            - sam build && sam deploy --config-env dev
+      - stage:
+          deployment: test
+          steps:
+            - step: *start_runner
+            - step:
+                name: Build
+                image: maven:3.8.6-openjdk-8
+                clone:
+                  enabled: true
+                oidc: true
+                runs-on:
+                  - "self.hosted"
+                  - "dev"
+                services:
+                  - docker
+                caches:
+                  - docker
+                script:
+                  - ls submodules/internauta-utils -al
+                  - git submodule init
+                  - git submodule update --depth 1 --single-branch --recommend-shallow
+                  - ls submodules/internauta-utils -al
+                  # build the image
+                  - IMAGE_NAME="babel-cloud-dev-internauta" # deve coincidere con il nome del repo
+                  - IMAGE_VERSION="dev-${BITBUCKET_COMMIT:0:8}"
+                  - docker build -t "${IMAGE_NAME}:${IMAGE_VERSION}" .
+            - step:
+                name: Push to registry
+                oidc: true
+                runs-on:
+                  - "self.hosted"
+                  - "dev"
+                services:
+                  - docker
+                caches:
+                  - docker
+                script:
+                  # use the pipe to push the image to AWS ECR
+                  - pipe: atlassian/aws-ecr-push-image:2.0.0
+                    variables:
+                      #INFO: ereditato dal workspace | AWS_DEFAULT_REGION: "eu-west-1"
+                      #INFO: ereditato dal workspace | AWS_OIDC_ROLE_ARN: "arn:aws:iam::545463498725:role/babel-bitbucket"
+                      IMAGE_NAME: "${IMAGE_NAME}"
+                      TAGS: "${IMAGE_VERSION}"
+            - step:
+              name: Build Infrastructure
+                image: public.ecr.aws/docker/library/python:3.10
+                oidc: true
+                runs-on:
+                  - "self.hosted"
+                  - "dev"
+                script:
+                  - export SAM_VERSION=v1.86.1
+                  - export SAM_SHA=c90d664290947bdfc9e0534020a84bebd3788cfc24a5c2b58c8611808ee1e92b
+                  - wget --no-verbose https://github.com/aws/aws-sam-cli/releases/download/${SAM_VERSION}/aws-sam-cli-linux-x86_64.zip && \
+                      echo '${SAM_SHA} aws-sam-cli-linux-x86_64.zip' | sha256sum -c - && \
+                      unzip aws-sam-cli-linux-x86_64.zip -d sam-installation && ./sam-installation/install
+                  - export APP_IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}"
+                  - cd .aws && sed -i "s/__ImageVersion__/$APP_IMAGE_VERSION/g" samconfig.toml
+                  - sam build && sam deploy --config-env dev
 
 
 
