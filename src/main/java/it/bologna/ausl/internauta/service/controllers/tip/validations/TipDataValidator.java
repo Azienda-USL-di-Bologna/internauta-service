@@ -24,7 +24,7 @@ import javax.mail.internet.InternetAddress;
 public abstract class TipDataValidator {
     public static final String FORMATO_DATA = "dd/MM/yyyy";
     public static final String DEFAULT_STRING_SEPARATOR = "#";
-    
+
     /**
      * torna la classe concreta in base alla tipologia passata
      * @param tipologia
@@ -91,7 +91,7 @@ public abstract class TipDataValidator {
      * @param indirizzoEmail
      * @return true se è un indirizzo email valido, false altrimenti
      */
-    public boolean validaIndirizzoEmail(String indirizzoEmail) {
+    public static boolean validaIndirizzoEmail(String indirizzoEmail) {
         try {
             InternetAddress emailAddress = new InternetAddress(indirizzoEmail);
             emailAddress.validate();
@@ -106,7 +106,7 @@ public abstract class TipDataValidator {
      * @param stringaFascicolazioni la stringa rappresentante delle numerazioni gerarchiche separate da cancelletto (se più di una)
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
-    public boolean validateFascicolazioni(String stringaFascicolazioni) {
+    public static boolean validateFascicolazioni(String stringaFascicolazioni) {
         String regex = "^(?:\\d+-\\d+-\\d+/\\d{4}|\\d+-\\d+/\\d{4}|\\d+/\\d{4})(?:#(?:\\d+-\\d+-\\d+/\\d{4}|\\d+-\\d+/\\d{4}|\\d+/\\d{4}))*$";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(stringaFascicolazioni);
@@ -118,7 +118,7 @@ public abstract class TipDataValidator {
      * @param stringaClassificazioni la stringa rappresentante delle classificazioni separate da cancelletto (se più di una)
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
-    public boolean validateClassificazione(String stringaClassificazioni) {
+    public static boolean validateClassificazione(String stringaClassificazioni) {
         String regex = "^(\\d+)(\\/\\d+){0,2}(#(\\d+)(\\/\\d+){0,2})*$";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(stringaClassificazioni);
@@ -130,10 +130,9 @@ public abstract class TipDataValidator {
      * @param stringaData la data da validare
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
-    public boolean validateData(String stringaData) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATO_DATA);
+    public static boolean validateData(String stringaData) {
         try {
-           LocalDate data = LocalDate.parse(stringaData, formatter);
+           LocalDate data = parseData(stringaData);
            return true;
         }  catch (DateTimeParseException ex) {
             return false;
@@ -141,11 +140,21 @@ public abstract class TipDataValidator {
     }
     
     /**
+     * Parsa una stringa rappresentante una data nel formato dd/MM/aaaa
+     * @param stringaData la data da parsare
+     * @return un oggetto LocalDate rappresentante la data passata
+     */
+    public static LocalDate parseData(String stringaData) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMATO_DATA);
+        return LocalDate.parse(stringaData, formatter);
+    }
+    
+    /**
      * Valida la stringa rappresentante un anno nel formato yyyy
      * @param stringaAnno la stringa da validare
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
-    public boolean validateAnno(String stringaAnno) {
+    public static boolean validateAnno(String stringaAnno) {
         String regex = "^\\d{4}$";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(stringaAnno);
@@ -153,11 +162,25 @@ public abstract class TipDataValidator {
     }
     
     /**
-     * Valida la stringa rappresentante un numero di documento, cioè nel formato numero/yyyy
+     * Valida la stringa rappresentante un numero di registrazione, cioè che sia un numero intero positivo
+     * @param StringaNumero la stringa da validare
+     * @return true se la stringa è nel formato corretto, false altrimenti
+     */
+    public static boolean validateNumber(String StringaNumero) {
+        try {
+            Long.parseUnsignedLong(StringaNumero);
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+        return true;
+    }
+    
+    /**
+     * Valida la stringa rappresentante un numero di documento precedente, cioè nel formato numero/yyyy
      * @param stringaNumeroDocumento la stringa da validare
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
-    public boolean validateNumeroDocumento(String stringaNumeroDocumento) {
+    public static boolean validateNumeroDocumentoPrecedente(String stringaNumeroDocumento) {
         String regex = "^\\d+\\/\\d{4}$";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(stringaNumeroDocumento);
@@ -169,7 +192,7 @@ public abstract class TipDataValidator {
      * @param stringaBoolean la stringa da validare
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
-    public boolean validateBoolean(String stringaBoolean) {
+    public static boolean validateBoolean(String stringaBoolean) {
         return stringaBoolean.equalsIgnoreCase("true") || stringaBoolean.equalsIgnoreCase("false");
     }
     
@@ -180,7 +203,7 @@ public abstract class TipDataValidator {
      * @param separatore il separatore che separa gli elementi nelle stringe
      * @return true se le due stringhe hanno lo stesso numero di elementi, false altrimenti
      */
-    public boolean validateNotazioniPosizionali(String stringa1, String stringa2, String separatore) {
+    public static boolean validateNotazioniPosizionali(String stringa1, String stringa2, String separatore) {
         return stringa2.split(separatore).length == stringa2.split(separatore).length;
     }
 }

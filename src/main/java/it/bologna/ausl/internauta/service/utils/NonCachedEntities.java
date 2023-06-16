@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.configurazione.Applicazio
 import it.bologna.ausl.internauta.service.repositories.logs.OperazioneKrinRepository;
 import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.MezzoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.RegistroRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -25,6 +26,8 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.Mezzo;
+import it.bologna.ausl.model.entities.scripta.QMezzo;
 import it.bologna.ausl.model.entities.scripta.QRegistro;
 import it.bologna.ausl.model.entities.scripta.Registro;
 import java.util.Optional;
@@ -78,6 +81,9 @@ public class NonCachedEntities {
 
     @Autowired
     private UtenteRepository utenteRepository;
+
+    @Autowired
+    private MezzoRepository mezzoRepository;
 
     @Autowired
     private UserInfoService userInfoService;
@@ -211,7 +217,7 @@ public class NonCachedEntities {
     
     public Registro getRegistro(Integer idAzienda, Registro.CodiceRegistro codice) {
         QRegistro qRegistro = QRegistro.registro;
-        BooleanExpression filtro = qRegistro.codice.eq(codice.toString())
+        BooleanExpression filtro = qRegistro.codice.eq(codice)
                 .and(qRegistro.idAzienda.id.eq(idAzienda));
         Optional<Registro> registro = registroRepository.findOne(filtro);
         if (registro.isPresent()) {
@@ -225,6 +231,15 @@ public class NonCachedEntities {
         Optional<Archivio> archivio = archivioRepository.findById(id);
         if (archivio.isPresent()) {
             return archivio.get();
+        } else {
+            return null;
+        }
+    }
+    
+    public Mezzo getMezzoFromCodice(Mezzo.CodiciMezzo codice) {
+        Optional<Mezzo> mezzo = mezzoRepository.findOne(QMezzo.mezzo.codice.eq(codice.toString()));
+        if (mezzo.isPresent()) {
+            return mezzo.get();
         } else {
             return null;
         }

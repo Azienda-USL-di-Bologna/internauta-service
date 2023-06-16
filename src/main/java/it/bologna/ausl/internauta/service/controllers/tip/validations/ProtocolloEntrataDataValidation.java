@@ -1,9 +1,14 @@
 package it.bologna.ausl.internauta.service.controllers.tip.validations;
 
+import it.bologna.ausl.model.entities.scripta.Registro;
 import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.ImportazioneOggetto;
+import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneProtocolloEntrata;
+import it.bologna.ausl.model.entities.tip.data.KeyValueEnum;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
+import java.util.Arrays;
+import org.apache.commons.lang3.EnumUtils;
 import org.springframework.util.StringUtils;
 
 /**
@@ -16,8 +21,18 @@ public class ProtocolloEntrataDataValidation extends TipDataValidator {
     public TipErroriImportazione validate(ImportazioneOggetto rigaImportazione) {
         TipErroriImportazione erroriImportazione = new TipErroriImportazione();
         ImportazioneDocumento riga = (ImportazioneDocumento) rigaImportazione;
+        if(!StringUtils.hasText(riga.getRegistro()) && !EnumUtils.isValidEnumIgnoreCase(Registro.CodiceRegistro.class, riga.getRegistro())) {
+            erroriImportazione.setError(
+                    ColonneProtocolloEntrata.registro, 
+                    TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
+                    String.format("valore non valido, i valori validi sono: %s", Arrays.asList(Registro.CodiceRegistro.values())));
+            riga.setErrori(erroriImportazione);
+        }
         if (!StringUtils.hasText(riga.getNumero())) {
             erroriImportazione.setError(ColonneProtocolloEntrata.numero, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il campo è obbligatorio.");
+            riga.setErrori(erroriImportazione);
+        } else if (!TipDataValidator.validateNumber(riga.getNumero())) {
+            erroriImportazione.setError(ColonneProtocolloEntrata.numero, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il campo deve essere un numero intero potivo.");
             riga.setErrori(erroriImportazione);
         }
         if (!StringUtils.hasText(riga.getAnno())) {
@@ -52,11 +67,33 @@ public class ProtocolloEntrataDataValidation extends TipDataValidator {
             erroriImportazione.setError(ColonneProtocolloEntrata.indirizzoMittente, 
                     TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, String.format("E' obbligatorio almeno uno tra %s e %s", ColonneProtocolloEntrata.indirizzoMittente, ColonneProtocolloEntrata.mittente));
             riga.setErrori(erroriImportazione);
+        } else if (
+                StringUtils.hasText(riga.getMittente()) && 
+                StringUtils.hasText(riga.getIndirizzoMittente()) &&  
+                !validateNotazioniPosizionali(riga.getMittente(), riga.getIndirizzoMittente(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+            erroriImportazione.setError(ColonneProtocolloEntrata.mittente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
+                    String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloEntrata.indirizzoMittente.toString()));
+            erroriImportazione.setError(ColonneProtocolloEntrata.indirizzoMittente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
+                     String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloEntrata.mittente.toString()));
         }
         if (!StringUtils.hasText(riga.getMezzo())) {
             erroriImportazione.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "il campo è obbligatorio.");
             riga.setErrori(erroriImportazione);
+        } else if(KeyValueEnum.findEnumKeyFromValue(riga.getMezzo(), ColonneImportazioneOggettoEnums.MezziConsentiti.class) == null) {
+            erroriImportazione.setError(ColonneProtocolloEntrata.mezzo, 
+                    TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
+                    String.format("valore non valido, i valori validi sono: %s", Arrays.asList(ColonneImportazioneOggettoEnums.MezziConsentiti.values())));
+        } else {
+            if (StringUtils.hasText(riga.getMittente()) && !validateNotazioniPosizionali(riga.getMezzo(), riga.getMittente(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+                erroriImportazione.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
+                    String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloEntrata.mittente.toString()));
+            }
+            if (StringUtils.hasText(riga.getIndirizzoMittente()) && !validateNotazioniPosizionali(riga.getMezzo(), riga.getIndirizzoMittente(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+                erroriImportazione.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
+                    String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloEntrata.indirizzoMittente.toString()));
+            }    
         }
+        
         if (StringUtils.hasText(riga.getDataProtocolloEsterno()) && !validateData(riga.getDataProtocolloEsterno())) {
             erroriImportazione.setError(ColonneProtocolloEntrata.dataProtocolloEsterno, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
             riga.setErrori(erroriImportazione);
@@ -101,7 +138,7 @@ public class ProtocolloEntrataDataValidation extends TipDataValidator {
             erroriImportazione.setError(ColonneProtocolloEntrata.dataInvioConservazione, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
             riga.setErrori(erroriImportazione);
         }
-        if (StringUtils.hasText(riga.getCollegamentoPrecedente()) && !validateNumeroDocumento(riga.getCollegamentoPrecedente())) {
+        if (StringUtils.hasText(riga.getCollegamentoPrecedente()) && !validateNumeroDocumentoPrecedente(riga.getCollegamentoPrecedente())) {
             erroriImportazione.setError(ColonneProtocolloEntrata.collegamentoPrecedente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: numero/yyyy");
             riga.setErrori(erroriImportazione);
         }

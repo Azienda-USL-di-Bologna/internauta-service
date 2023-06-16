@@ -16,9 +16,12 @@ import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.ImportazioneOggetto;
+import it.bologna.ausl.model.entities.tip.QSessioneImportazione;
 import it.bologna.ausl.model.entities.tip.SessioneImportazione;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
+import it.bologna.ausl.model.entities.versatore.QSessioneVersamento;
+import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -85,7 +88,7 @@ public class TipImportManager {
      * @param csv
      * @throws HttpInternautaResponseException 
      */
-    public void csvImport(
+    public void csvImportAndValidate(
             Integer idAzienda, 
             SessioneImportazione.TipologiaPregresso tipologia, 
             Integer idStrutturaDefault, 
@@ -171,6 +174,29 @@ public class TipImportManager {
             }
         }
         return sessioneImportazione;
+    }
+    
+    public void transferInScripta(Long idSessione) {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+        QSessioneImportazione qSessioneImportazione = QSessioneImportazione.sessioneImportazione;
+        SessioneImportazione sessioneImportazione = transactionTemplate.execute( a -> {
+            return queryFactory
+                .select(qSessioneImportazione)
+                .from(qSessioneImportazione)
+                .where(qSessioneImportazione.id.eq(idSessione))
+                .fetchOne();
+        });
+        switch (sessioneImportazione.getTipologia()) {
+            case DELIBERA:
+            case DETERMINA:
+            case PROTOCOLLO_IN_ENTRATA:
+            case PROTOCOLLO_IN_USCITA:
+                
+                break;
+            default:
+                throw new AssertionError();
+        }
+        
     }
     
     /**
@@ -328,7 +354,7 @@ public class TipImportManager {
                         .selectOne()
                         .from(qImportazioneOggetto)
                         .where(filter)
-                        .fetchOne() != null;
+                        .fetchFirst() != null;
             return found;
         });   
     }

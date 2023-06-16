@@ -1,9 +1,17 @@
 package it.bologna.ausl.internauta.service.controllers.tip.validations;
 
+import it.bologna.ausl.model.entities.scripta.Registro;
 import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.ImportazioneOggetto;
+import it.bologna.ausl.model.entities.tip.SessioneImportazione;
+import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneDetermina;
+import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.MezziConsentiti;
+import it.bologna.ausl.model.entities.tip.data.KeyValueEnum;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.commons.lang3.EnumUtils;
 import org.springframework.util.StringUtils;
 
 /**
@@ -16,8 +24,18 @@ public class DeterminaDataValidator extends TipDataValidator {
     public TipErroriImportazione validate(ImportazioneOggetto rigaImportazione) {
         TipErroriImportazione erroriImportazione = new TipErroriImportazione();
         ImportazioneDocumento riga = (ImportazioneDocumento) rigaImportazione;
+        if(!StringUtils.hasText(riga.getRegistro()) && !EnumUtils.isValidEnumIgnoreCase(Registro.CodiceRegistro.class, riga.getRegistro())) {
+            erroriImportazione.setError(
+                    ColonneDetermina.registro, 
+                    TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
+                    String.format("valore non valido, i valori validi sono: %s", Arrays.asList(Registro.CodiceRegistro.values())));
+            riga.setErrori(erroriImportazione);
+        }
         if (!StringUtils.hasText(riga.getNumero())) {
             erroriImportazione.setError(ColonneDetermina.numero, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il campo è obbligatorio.");
+            riga.setErrori(erroriImportazione);
+        } else if (!TipDataValidator.validateNumber(riga.getNumero())) {
+            erroriImportazione.setError(ColonneDetermina.numero, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il campo deve essere un numero intero potivo.");
             riga.setErrori(erroriImportazione);
         }
         if (!StringUtils.hasText(riga.getAnno())) {
@@ -80,7 +98,7 @@ public class DeterminaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneDetermina.conservato, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: true/false");
             riga.setErrori(erroriImportazione);
         }
-        if (StringUtils.hasText(riga.getCollegamentoPrecedente()) && !validateNumeroDocumento(riga.getCollegamentoPrecedente())) {
+        if (StringUtils.hasText(riga.getCollegamentoPrecedente()) && !validateNumeroDocumentoPrecedente(riga.getCollegamentoPrecedente())) {
             erroriImportazione.setError(ColonneDetermina.collegamentoPrecedente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: numero/yyyy");
             riga.setErrori(erroriImportazione);
         }
@@ -99,4 +117,7 @@ public class DeterminaDataValidator extends TipDataValidator {
         return erroriImportazione;
     }
     
+//    public static void main(String[] args) {
+//        System.out.println(MezziConsentiti.POSTA_SEMPLICE.getCodiceMezzoScripta());
+//    }
 }
