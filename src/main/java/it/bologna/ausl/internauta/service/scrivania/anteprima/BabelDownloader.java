@@ -62,7 +62,7 @@ public class BabelDownloader {
     private String buildBabelDownladerUrl(Integer idAzienda, String idApplicazione) throws IOException {
         Azienda azienda = cachedEntities.getAzienda(idAzienda);
         Applicazione applicazione = cachedEntities.getApplicazione(idApplicazione);
-        parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        parametriAzienda = azienda.getParametri();
 
         String url = String.format("%s%s%s", parametriAzienda.getBabelSuiteWebApiUrl(), applicazione.getBaseUrl(), babelDownloaderUrl);
         return url;

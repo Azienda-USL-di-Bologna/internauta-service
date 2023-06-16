@@ -11,7 +11,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.CambiamentiAssocia
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;

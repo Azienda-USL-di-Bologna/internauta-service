@@ -327,7 +327,7 @@ public class SAIController implements ControllerHandledExceptions {
             additionalData.put("message", t.getMessage());
             additionalData.put("toString", t.toString());
 //            t.printStackTrace();
-            report.setAdditionalData(objectMapper.writeValueAsString(additionalData));
+            report.setAdditionalData(additionalData);
             reportRepository.save(report);
             throw t;
         }

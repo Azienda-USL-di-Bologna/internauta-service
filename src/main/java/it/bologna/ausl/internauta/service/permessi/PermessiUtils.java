@@ -1,7 +1,7 @@
 package it.bologna.ausl.internauta.service.permessi;
 
-import it.bologna.ausl.internauta.utils.bds.types.EntitaStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.EntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.EntityInterface;
 import java.util.HashMap;
 import java.util.List;

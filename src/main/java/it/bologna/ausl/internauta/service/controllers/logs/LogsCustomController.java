@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.krint.KrintLogDescription;
 import it.bologna.ausl.internauta.service.repositories.logs.KrintRepository;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;

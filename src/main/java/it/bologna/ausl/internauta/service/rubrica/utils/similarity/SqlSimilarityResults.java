@@ -4,7 +4,7 @@ import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import java.time.LocalDate;
