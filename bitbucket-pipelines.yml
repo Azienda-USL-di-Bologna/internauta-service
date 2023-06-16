@@ -1,15 +1,14 @@
-image: maven:3.8.6-openjdk-8
-
 pipelines:
   branches:
-    pipeline-dev:
+    cly-pipeline:
       - step:
           name: Build & Push su ECR
+          image: maven:3.8.6-openjdk-8
           oidc: true
           deployment: Test
           runs-on:
             - "self.hosted"
-            - "linux"
+            - "dev"
           services:
             - docker
           caches:
@@ -20,7 +19,7 @@ pipelines:
             - git submodule update --depth 1 --single-branch --recommend-shallow
             - ls submodules/internauta-utils -al
             # build the image
-            - IMAGE_NAME="internauta_service"
+            - IMAGE_NAME="babel-cloud-dev-internauta" # deve coincidere con il nome del repo
             - IMAGE_VERSION="dev-${BITBUCKET_COMMIT:0:8}"
             - docker build -t "${IMAGE_NAME}:${IMAGE_VERSION}" .
             # use the pipe to push the image to AWS ECR
@@ -30,3 +29,24 @@ pipelines:
                 #INFO: ereditato dal workspace | AWS_OIDC_ROLE_ARN: "arn:aws:iam::545463498725:role/babel-bitbucket"
                 IMAGE_NAME: "${IMAGE_NAME}"
                 TAGS: "${IMAGE_VERSION}"
+      - step:
+        name: Build & Push su ECR
+          image: public.ecr.aws/docker/library/python:3.10
+          oidc: true
+          deployment: Test
+          runs-on:
+            - "self.hosted"
+            - "dev"
+          script:
+            - export SAM_VERSION=v1.86.1
+            - export SAM_SHA=c90d664290947bdfc9e0534020a84bebd3788cfc24a5c2b58c8611808ee1e92b
+            - wget --no-verbose https://github.com/aws/aws-sam-cli/releases/download/${SAM_VERSION}/aws-sam-cli-linux-x86_64.zip && \
+                echo '${SAM_SHA} aws-sam-cli-linux-x86_64.zip' | sha256sum -c - && \
+                unzip aws-sam-cli-linux-x86_64.zip -d sam-installation && ./sam-installation/install
+            - export APP_IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}"
+            - cd .aws && sed -i "s/__ImageVersion__/$APP_IMAGE_VERSION/g" samconfig.toml
+            - sam build && sam deploy --config-env dev
+
+
+
+
