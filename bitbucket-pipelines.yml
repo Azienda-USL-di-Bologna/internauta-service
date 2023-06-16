@@ -80,7 +80,7 @@ pipelines:
                       IMAGE_NAME: "${IMAGE_NAME}"
                       TAGS: "${IMAGE_VERSION}"
             - step:
-              name: Build Infrastructure
+                name: Build Infrastructure
                 image: public.ecr.aws/docker/library/python:3.10
                 oidc: true
                 runs-on:
@@ -90,12 +90,8 @@ pipelines:
                   - export SAM_VERSION=v1.86.1
                   - export SAM_SHA=c90d664290947bdfc9e0534020a84bebd3788cfc24a5c2b58c8611808ee1e92b
                   - wget --no-verbose https://github.com/aws/aws-sam-cli/releases/download/${SAM_VERSION}/aws-sam-cli-linux-x86_64.zip && \
-                      echo '${SAM_SHA} aws-sam-cli-linux-x86_64.zip' | sha256sum -c - && \
-                      unzip aws-sam-cli-linux-x86_64.zip -d sam-installation && ./sam-installation/install
+                    echo '${SAM_SHA} aws-sam-cli-linux-x86_64.zip' | sha256sum -c - && \
+                    unzip aws-sam-cli-linux-x86_64.zip -d sam-installation && ./sam-installation/install
                   - export APP_IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}"
                   - cd .aws && sed -i "s/__ImageVersion__/$APP_IMAGE_VERSION/g" samconfig.toml
                   - sam build && sam deploy --config-env dev
-
-
-
-
