@@ -191,13 +191,19 @@ public class AdditionalDataFixManager {
 
     private void fixRegisteredAdditionalData(MessageTag registeredMessageTag,
             JSONObject datiDocumentiDaPico, JSONObject aziendaObject) {
-        log.info("Mi creo un'oggetto dall'additionalData del REGISTERED MessageTag");
-        JSONArray oldAdditionalDataJSONObject = new JSONArray(registeredMessageTag.getAdditionalData());
-        log.info("oldAdditionalDataJSONObject:\n{}", oldAdditionalDataJSONObject.toString(4));
-        JSONObject newRegisteredAdditionalDataJSONObject = getNewRegisteredAdditionalDataJSONObject(datiDocumentiDaPico, aziendaObject);
-        log.info("Inserisco nell'array in nuovo oggetto...");
-        oldAdditionalDataJSONObject.put(newRegisteredAdditionalDataJSONObject);
-        registeredMessageTag.setAdditionalData(oldAdditionalDataJSONObject.toString());
+//        log.info("Mi creo un'oggetto dall'additionalData del REGISTERED MessageTag");
+////        JSONArray oldAdditionalDataJSONObject = new JSONArray(registeredMessageTag.getAdditionalData());
+////        log.info("oldAdditionalDataJSONObject:\n{}", oldAdditionalDataJSONObject.toString(4));
+//        JSONObject newRegisteredAdditionalDataJSONObject = getNewRegisteredAdditionalDataJSONObject(datiDocumentiDaPico, aziendaObject);
+//        log.info("Inserisco nell'array in nuovo oggetto...");
+//        oldAdditionalDataJSONObject.put(newRegisteredAdditionalDataJSONObject);
+//        
+//        List<AdditionalDataShpeck> additionalData = registeredMessageTag.getAdditionalData();
+//        
+//        AdditionalDataRegistration additionalDataRegistration = new AdditionalDataRegistration();
+//        
+//        
+//        registeredMessageTag.setAdditionalData(oldAdditionalDataJSONObject);
 
     }
 

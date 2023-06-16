@@ -1,6 +1,6 @@
 package it.bologna.ausl.model.entities.baborg.projections.struttura;
 
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
 import java.util.List;

@@ -226,7 +226,7 @@ public class AlboBridgeController implements ControllerHandledExceptions {
         try {
             // leggo i parametri del masterchef aziendale
             Azienda aziendaObj = cachedEntities.getAziendaFromCodice(codiceAzienda);
-            AziendaParametriJson aziendaParametriJson = AziendaParametriJson.parse(objectMapper, aziendaObj.getParametri());
+            AziendaParametriJson aziendaParametriJson =  aziendaObj.getParametri();
             AziendaParametriJson.MasterChefParmas masterchefParams = aziendaParametriJson.getMasterchefParams();
 
             // calcolo il nome del template della relata (c'è un template per ogni azienda)

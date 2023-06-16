@@ -87,7 +87,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                             if (firmePersona.getTipo() == FirmePersona.TipoFirma.REMOTA) {
                                 // prendo l'azienda della persona e vedo nei parametri aziende se è attivo il credential proxy
 //                                Azienda azienda = getAziendaFromUser();
-                                FirmePersona.AdditionalData firmaPersonaAdditionalData = firmePersona.getAdditionalData();
+                                FirmePersona.AdditionalDataFirma firmaPersonaAdditionalData = firmePersona.getAdditionalData();
                                 try {
                                     if (!StringUtils.hasText(firmaPersonaAdditionalData.getHostId())) {
                                         String hostId = getHostId(firmePersona.getTramite(), firmaPersonaAdditionalData);
@@ -118,7 +118,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
                         if (firmePersona.getTipo() == FirmePersona.TipoFirma.REMOTA) {
                                 // prendo l'azienda della persona e vedo nei parametri aziende se è attivo il credential proxy
 //                                Azienda azienda = getAziendaFromUser();
-                            FirmePersona.AdditionalData firmaPersonaAdditionalData = firmePersona.getAdditionalData();
+                            FirmePersona.AdditionalDataFirma firmaPersonaAdditionalData = firmePersona.getAdditionalData();
                             try {
                                 if (!StringUtils.hasText(firmaPersonaAdditionalData.getHostId())) {
                                     String hostId = getHostId(firmePersona.getTramite(), firmaPersonaAdditionalData);
@@ -170,7 +170,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
             // prendo l'azienda della persona e vedo nei parametri aziende se è attivo il credential proxy
 //            Azienda azienda = getAziendaFromUser();
             try {
-                FirmePersona.AdditionalData firmaPersonaAdditionalData = firmePersona.getAdditionalData();
+                FirmePersona.AdditionalDataFirma firmaPersonaAdditionalData = firmePersona.getAdditionalData();
                 try {
                     if (!StringUtils.hasText(firmaPersonaAdditionalData.getHostId())) {
                         String hostId = getHostId(firmePersona.getTramite(), firmePersona.getAdditionalData());
@@ -197,7 +197,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
     * Creazione delle informazioni utente per il Provider Aruba
     * prende in input il json con gli additionaldata che vengono dall'oggetto firmapersona
      */
-    public UserInformation createUserInformation(FirmePersona.TramiteFirma tramiteFirma, FirmePersona.AdditionalData additionalData, String password) {
+    public UserInformation createUserInformation(FirmePersona.TramiteFirma tramiteFirma, FirmePersona.AdditionalDataFirma additionalData, String password) {
         UserInformation userInfo = null;
         switch (tramiteFirma) {
             case ARUBA:
@@ -256,7 +256,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
         return userInfo;
     }
     
-    private String getHostId(FirmePersona.TramiteFirma tramiteFirma, FirmePersona.AdditionalData additionalData) throws FirmaRemotaHttpException, FirmaRemotaConfigurationException {
+    private String getHostId(FirmePersona.TramiteFirma tramiteFirma, FirmePersona.AdditionalDataFirma additionalData) throws FirmaRemotaHttpException, FirmaRemotaConfigurationException {
         String hostId = null;
         switch (tramiteFirma) {
             case ARUBA:
@@ -284,7 +284,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
      */
     private Boolean setCredential(FirmePersona firmePersona, UserInformation userInformation) throws FirmaModuleException {
         Boolean areCredentialSet = false;
-        FirmePersona.AdditionalData additionalData = firmePersona.getAdditionalData();
+        FirmePersona.AdditionalDataFirma additionalData = firmePersona.getAdditionalData();
         try {
             areCredentialSet = firmaRemotaRestController.setCredential(userInformation, additionalData.getHostId());
         } catch (Exception ex) {
@@ -305,7 +305,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
      */
     private Boolean removeCredential(FirmePersona firmePersona, UserInformation userInformation) throws FirmaModuleException {
         Boolean haveCredentialBeenRemoved = false;
-        FirmePersona.AdditionalData additionalData = firmePersona.getAdditionalData();
+        FirmePersona.AdditionalDataFirma additionalData = firmePersona.getAdditionalData();
         try {
             haveCredentialBeenRemoved = firmaRemotaRestController.removeCredential(userInformation, additionalData.getHostId());    
         } catch (FirmaRemotaHttpException | FirmaRemotaConfigurationException ex) {
