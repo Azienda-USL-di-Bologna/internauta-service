@@ -21,7 +21,7 @@ FROM jenesis_projection AS internauta_utils_types
 
 WORKDIR /home
 COPY submodules/internauta-utils ./internauta-utils
-RUN cd internauta-utils && mvn --projects bds-types,jpa-tools --also-make clean install
+RUN cd internauta-utils && mvn --projects jpa-tools --also-make clean install
 
 # Build internauta model
 FROM internauta_utils_types AS internauta_model
