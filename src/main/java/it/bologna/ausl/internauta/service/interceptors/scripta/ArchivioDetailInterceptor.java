@@ -178,7 +178,7 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
 //                idAziendeParlantiList.addAll(Arrays.asList(idAziendeParlanti));
 //                List<Integer> idAziendeParlantiList = Arrays.stream(idAziendeParlanti).boxed().collect(Collectors.toList());
                 List<Integer> idAziendaFiltranti = getIdAziendeFiltranti();
-                if (idAziendaFiltranti == null && idAziendeParlantiList.size() > 0) {
+                if (idAziendaFiltranti == null && !idAziendeParlantiList.isEmpty()) {
                     throw new AbortLoadInterceptorException("Si sta cercando su una azienda con fascicoli parlanti. Questo non è permesso");
                 }
                 idAziendaFiltranti.retainAll(idAziendeParlantiList);

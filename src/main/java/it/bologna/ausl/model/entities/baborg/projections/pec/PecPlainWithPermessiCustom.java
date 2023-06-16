@@ -1,6 +1,6 @@
 package it.bologna.ausl.model.entities.baborg.projections.pec;
 
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.projections.generated.PecWithPlainFields;
 import java.util.List;

@@ -10,9 +10,9 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.CategoriaPermessiStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;

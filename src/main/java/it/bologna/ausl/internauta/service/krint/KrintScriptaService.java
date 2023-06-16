@@ -1,11 +1,12 @@
 package it.bologna.ausl.internauta.service.krint;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
-import it.bologna.ausl.internauta.utils.bds.types.EntitaStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.EntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.logs.Krint;
@@ -19,7 +20,10 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.Doc;
+import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Service;
@@ -30,6 +34,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class KrintScriptaService {
+    
+    private static Logger log = LoggerFactory.getLogger(KrintScriptaService.class);
 
     @Autowired
     private ProjectionFactory factory;
@@ -64,19 +70,19 @@ public class KrintScriptaService {
     public void writeArchivioCreation(Archivio archivio, Archivio archivioDiRiferimento, OperazioneKrint.CodiceOperazione codiceOperazione) {
         try {
             // Informazioni oggetto
-            Map<String, Object> map = getArchivioPropertiesAsMap(archivio);
+            HashMap<String, Object> map = getArchivioPropertiesAsMap(archivio);
             
             if (archivioDiRiferimento != null) {
                 KrintScriptaArchivio krintScriptaArchivioRif = factory.createProjection(KrintScriptaArchivio.class, archivioDiRiferimento);
                 map.put("archivioDiRiferimento", krintScriptaArchivioRif);  
             }
-            String jsonKrintArchivio = objectMapper.writeValueAsString(map);   
+//            String jsonKrintArchivio = objectMapper.writeValueAsString(map);   
              
             krintService.writeKrintRow(
                     archivio.getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
                     archivio.getNumerazioneGerarchica(), // descrizioneOggetto
-                    jsonKrintArchivio, // informazioniOggetto
+                    map, // informazioniOggetto
                     null, // Da qui si ripete ma per il conenitore
                     null,
                     null,
@@ -89,7 +95,7 @@ public class KrintScriptaService {
                     archivio.getIdArchivioPadre().getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
                     archivio.getNumerazioneGerarchica(), // descrizioneOggetto
-                    jsonKrintArchivio, // informazioniOggetto
+                    map, // informazioniOggetto
                     null, // Da qui si ripete ma per il conenitore
                     null,
                     null,
@@ -97,13 +103,8 @@ public class KrintScriptaService {
                     codiceOperazione);
             }
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = archivio.getId();
-            } catch (Exception exa) {
-            }
-            krintService.writeKrintError(idOggetto, "writeArchivioCreation", codiceOperazione);
+            log.error("Errore nella writeArchivioCreation con archivio" + archivio.getId().toString(), ex);
+            krintService.writeKrintError(archivio.getId(), "writeArchivioCreation", codiceOperazione);
         }
     }
     
@@ -137,19 +138,19 @@ public class KrintScriptaService {
         
         try {
             // Informazioni oggetto
-            Map<String, Object> map = getArchivioPropertiesAsMap(archivio);
+            HashMap<String, Object> map = getArchivioPropertiesAsMap(archivio);
             
             if (archivioDiRiferimento != null) {
                 KrintScriptaArchivio krintScriptaArchivioRif = factory.createProjection(KrintScriptaArchivio.class, archivioDiRiferimento);
                 map.put("archivioDiRiferimento", krintScriptaArchivioRif);  
             }
-            String jsonKrintArchivio = objectMapper.writeValueAsString(map);
+//            String jsonKrintArchivio = objectMapper.writeValueAsString(map);
             
             krintService.writeKrintRow(
                     archivio.getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
                     archivio.getNumerazioneGerarchica(), // descrizioneOggetto
-                    jsonKrintArchivio, // informazioniOggetto
+                    map, // informazioniOggetto
                     null, // Da qui si ripete ma per il conenitore
                     null,
                     null,
@@ -161,7 +162,7 @@ public class KrintScriptaService {
                     archivio.getIdArchivioPadre().getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
                     archivio.getNumerazioneGerarchica(), // descrizioneOggetto
-                    jsonKrintArchivio, // informazioniOggetto
+                    map, // informazioniOggetto
                     null, // Da qui si ripete ma per il conenitore
                     null,
                     null,
@@ -174,7 +175,7 @@ public class KrintScriptaService {
                     archivioDiRiferimento.getIdArchivioPadre().getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
                     archivio.getNumerazioneGerarchica(), // descrizioneOggetto
-                    jsonKrintArchivio, // informazioniOggetto
+                    map, // informazioniOggetto
                     null, // Da qui si ripete ma per il conenitore
                     null,
                     null,
@@ -182,13 +183,8 @@ public class KrintScriptaService {
                     codiceOperazione);
         
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = archivio.getId();
-            } catch (Exception exa) {
-            }
-            krintService.writeKrintError(idOggetto, "writeArchivioUpdate", codiceOperazione);
+            log.error("Errore nella writeContactCreation con archivio " + archivio.getId().toString(), ex);
+            krintService.writeKrintError(archivio.getId(), "writeArchivioUpdate", codiceOperazione);
         }
     }
     
@@ -201,31 +197,26 @@ public class KrintScriptaService {
         try {
             // Informazioni oggetto
             Archivio archivioPadre = archivio.getIdArchivioPadre();
-            Map<String, Object> map = getArchivioPropertiesAsMap(archivioPadre);
+            HashMap<String, Object> map = getArchivioPropertiesAsMap(archivioPadre);
             
             KrintScriptaArchivio krintScriptaArchivioRif = factory.createProjection(KrintScriptaArchivio.class, archivio);
             map.put("archivioDiRiferimento", krintScriptaArchivioRif);  
    
-            String jsonKrintArchivio = objectMapper.writeValueAsString(map);
+//            String jsonKrintArchivio = objectMapper.writeValueAsString(map);
             
             krintService.writeKrintRow(
                     archivioPadre.getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
                     archivioPadre.getNumerazioneGerarchica(), // descrizioneOggetto
-                    jsonKrintArchivio, // informazioniOggetto
+                    map, // informazioniOggetto
                     null, // Da qui si ripete ma per il conenitore
                     null,
                     null,
                     null,
                     codiceOperazione);           
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = archivio.getId();
-            } catch (Exception exa) {
-            }
-            krintService.writeKrintError(idOggetto, "writeArchivioUpdate", codiceOperazione);
+            log.error("Errore nella writeArchivioUpdate con archivio " + archivio.getId().toString(), ex);
+            krintService.writeKrintError(archivio.getId(), "writeArchivioUpdate", codiceOperazione);
         }
     }
 
@@ -237,30 +228,27 @@ public class KrintScriptaService {
         try {
             // Informazioni oggetto
             KrintScriptaAttoreArchivio krintScriptaAttoreArchivio = factory.createProjection(KrintScriptaAttoreArchivio.class, attoreArchivio);
-            String jsonKrintAttore = objectMapper.writeValueAsString(krintScriptaAttoreArchivio);
+//            String jsonKrintAttore = objectMapper.writeValueAsString(krintScriptaAttoreArchivio);
 
             // Informazioni oggetto contenitore
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, attoreArchivio.getIdArchivio());
-            String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
-
+//            String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
+            
+            HashMap<String, Object> krintArchivio = objectMapper.convertValue(krintScriptaArchivio, new TypeReference<HashMap<String, Object>>(){});
+            HashMap<String, Object> krintAttore = objectMapper.convertValue(krintScriptaAttoreArchivio, new TypeReference<HashMap<String, Object>>(){});
             krintService.writeKrintRow(
                     attoreArchivio.getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ATTORE_ARCHIVIO, // tipoOggetto
                     attoreArchivio.getIdPersona().getDescrizione(), // descrizioneOggetto
-                    jsonKrintAttore, // informazioniOggetto
+                    krintAttore, // informazioniOggetto
                     attoreArchivio.getIdArchivio().getId().toString(), // Da qui si ripete ma per il conenitore
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
                     attoreArchivio.getIdArchivio().getNumerazioneGerarchica(),
-                    jsonKrintArchivio,
+                    krintArchivio,
                     codiceOperazione);
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = attoreArchivio.getId();
-            } catch (Exception exa) {
-            }
-            krintService.writeKrintError(idOggetto, "writeAttoreArchivioCreation", codiceOperazione);
+            log.error("Errore nella writeAttoreArchivioCreation con archivio " + attoreArchivio.getId().toString(), ex);
+            krintService.writeKrintError(attoreArchivio.getId(), "writeAttoreArchivioCreation", codiceOperazione);
         }
     }
 
@@ -272,30 +260,26 @@ public class KrintScriptaService {
         try {
             // Informazioni oggetto
             KrintScriptaAttoreArchivio krintScriptaAttoreArchivio = factory.createProjection(KrintScriptaAttoreArchivio.class, attoreArchivio);
-            String jsonKrintAttore = objectMapper.writeValueAsString(krintScriptaAttoreArchivio);
-
+//            String jsonKrintAttore = objectMapper.writeValueAsString(krintScriptaAttoreArchivio);
+            
+            HashMap<String, Object> krintAttore = objectMapper.convertValue(krintScriptaAttoreArchivio, new TypeReference<HashMap<String, Object>>(){});
             // Informazioni oggetto contenitore
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, attoreArchivio.getIdArchivio());
-            String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
-
+//            String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
+            HashMap<String, Object> krintArchivio = objectMapper.convertValue(krintScriptaArchivio, new TypeReference<HashMap<String, Object>>(){});
             krintService.writeKrintRow(
                     attoreArchivio.getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ATTORE_ARCHIVIO, // tipoOggetto
                     attoreArchivio.getIdPersona().getDescrizione(), // descrizioneOggetto
-                    jsonKrintAttore, // informazioniOggetto
+                    krintAttore, // informazioniOggetto
                     attoreArchivio.getIdArchivio().getId().toString(), // Da qui si ripete ma per il conenitore
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
                     attoreArchivio.getIdArchivio().getNumerazioneGerarchica(),
-                    jsonKrintArchivio,
+                    krintArchivio,
                     codiceOperazione);
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = attoreArchivio.getId();
-            } catch (Exception exa) {
-            }
-            krintService.writeKrintError(idOggetto, "writeAttoreArchivioUpdate", codiceOperazione);
+            log.error("Errore nella writeAttoreArchivioUpdate con archivio" + attoreArchivio.getId().toString(), ex);
+            krintService.writeKrintError(attoreArchivio.getId(), "writeAttoreArchivioUpdate", codiceOperazione);
         }
     }
 
@@ -307,30 +291,27 @@ public class KrintScriptaService {
         try {
             // Informazioni oggetto
             KrintScriptaAttoreArchivio krintScriptaAttoreArchivio = factory.createProjection(KrintScriptaAttoreArchivio.class, attoreArchivio);
-            String jsonKrintAttore = objectMapper.writeValueAsString(krintScriptaAttoreArchivio);
+//            String jsonKrintAttore = objectMapper.writeValueAsString(krintScriptaAttoreArchivio);
 
             // Informazioni oggetto contenitore
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, attoreArchivio.getIdArchivio());
-            String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
+//            String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
+            HashMap<String, Object> krintArchivio = objectMapper.convertValue(krintScriptaArchivio, new TypeReference<HashMap<String, Object>>(){});
+            HashMap<String, Object> krintAttore = objectMapper.convertValue(krintScriptaAttoreArchivio, new TypeReference<HashMap<String, Object>>(){});
 
             krintService.writeKrintRow(
                     attoreArchivio.getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ATTORE_ARCHIVIO, // tipoOggetto
                     attoreArchivio.getIdPersona().getDescrizione(), // descrizioneOggetto
-                    jsonKrintAttore, // informazioniOggetto
+                    krintAttore, // informazioniOggetto
                     attoreArchivio.getIdArchivio().getId().toString(), // Da qui si ripete ma per il conenitore
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
                     attoreArchivio.getIdArchivio().getNumerazioneGerarchica(),
-                    jsonKrintArchivio,
+                    krintArchivio,
                     codiceOperazione);
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = attoreArchivio.getId();
-            } catch (Exception exa) {
-            }
-            krintService.writeKrintError(idOggetto, "writeAttoreArchivioDelete", codiceOperazione);
+            log.error("Errore nella writeAttoreArchivioDelete con archivio " + attoreArchivio.getId().toString(), ex);
+            krintService.writeKrintError(attoreArchivio.getId(), "writeAttoreArchivioDelete", codiceOperazione);
         }
     }
 
@@ -344,19 +325,22 @@ public class KrintScriptaService {
     public void writePermessiArchivio(Integer idArchivio, EntitaStoredProcedure entita, PermessoStoredProcedure permessoStoredProcedure, OperazioneKrint.CodiceOperazione codiceOperazione) {
         Archivio archivio = archivioRepository.getById(idArchivio);
         try {
-            Map<String, Object> mapKrintArchivio = getArchivioPropertiesAsMap(archivio);
+            HashMap<String, Object> mapKrintArchivio = getArchivioPropertiesAsMap(archivio);
             mapKrintArchivio.put("predicato", permessoStoredProcedure.getPredicato());
             mapKrintArchivio.put("propagaOggetto", permessoStoredProcedure.getPropagaOggetto() ? "con" : "senza");
             
             String idOggetto = null;
             String descrizioneOggetto = null;
             Krint.TipoOggettoKrint tipoOggetto = null;
-            String jsonKrintEntitaPermessoArchivio = null;
+//            String jsonKrintEntitaPermessoArchivio = null;
+            HashMap<String, Object> krintEntitaPermessoArchivio = null;
+            
             switch (entita.getTable()) {
                 case "persone":
                     Persona persona = cachedEntities.getPersona(entita.getIdProvenienza());
                     KrintBaborgPersona krintBaborgPersona = factory.createProjection(KrintBaborgPersona.class, persona);
-                    jsonKrintEntitaPermessoArchivio = objectMapper.writeValueAsString(krintBaborgPersona);
+//                    jsonKrintEntitaPermessoArchivio = objectMapper.writeValueAsString(krintBaborgPersona);
+                    krintEntitaPermessoArchivio = objectMapper.convertValue(krintBaborgPersona, new TypeReference<HashMap<String, Object>>(){});
                     idOggetto = krintBaborgPersona.getId().toString();
                     descrizioneOggetto = krintBaborgPersona.getDescrizione();
                     tipoOggetto = Krint.TipoOggettoKrint.BABORG_PERSONA;
@@ -364,7 +348,8 @@ public class KrintScriptaService {
                 case "strutture":
                     Struttura struttura = cachedEntities.getStruttura(entita.getIdProvenienza());
                     KrintBaborgStruttura krintBaborgStruttura = factory.createProjection(KrintBaborgStruttura.class, struttura);
-                    jsonKrintEntitaPermessoArchivio = objectMapper.writeValueAsString(krintBaborgStruttura);
+//                    jsonKrintEntitaPermessoArchivio = objectMapper.writeValueAsString(krintBaborgStruttura);
+                    krintEntitaPermessoArchivio = objectMapper.convertValue(krintBaborgStruttura, new TypeReference<HashMap<String, Object>>(){});
                     idOggetto = krintBaborgStruttura.getId().toString();
                     descrizioneOggetto = krintBaborgStruttura.getNome();
                     tipoOggetto = Krint.TipoOggettoKrint.BABORG_STRUTTURA;
@@ -372,27 +357,22 @@ public class KrintScriptaService {
                     break;
             }
             
-            String jsonKrintArchivio = objectMapper.writeValueAsString(mapKrintArchivio);
+//            String jsonKrintArchivio = objectMapper.writeValueAsString(mapKrintArchivio);
             
             krintService.writeKrintRow(
                     idOggetto,
                     tipoOggetto,
                     descrizioneOggetto,
-                    jsonKrintEntitaPermessoArchivio,
+                    krintEntitaPermessoArchivio,
                     archivio.getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
                     archivio.getNumerazioneGerarchica(), // descrizioneOggetto
-                    jsonKrintArchivio, // informazioniOggetto
+                    mapKrintArchivio, // informazioniOggetto
                     codiceOperazione);
 
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = archivio.getId();
-            } catch (Exception exa) {
-            }
-            krintService.writeKrintError(idOggetto, "writePermessiArchivio", codiceOperazione);
+            log.error("Errore nella writePermessiArchivio con archivio" + archivio.getId().toString(), ex);
+            krintService.writeKrintError(archivio.getId(), "writePermessiArchivio", codiceOperazione);
         }
     }
 
@@ -400,30 +380,25 @@ public class KrintScriptaService {
         try {
             // Informazioni oggetto
             KrintScriptaDoc krintScriptaDoc = factory.createProjection(KrintScriptaDoc.class, archivioDoc.getIdDoc());
-            String jsonKrintDoc = objectMapper.writeValueAsString(krintScriptaDoc);
-
+//            String jsonKrintDoc = objectMapper.writeValueAsString(krintScriptaDoc);
+            HashMap<String, Object> krintDoc = objectMapper.convertValue(krintScriptaDoc, new TypeReference<HashMap<String, Object>>(){});
             // Informazioni oggetto contenitore
             KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivioDoc.getIdArchivio());
-            String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
-
+//            String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
+            HashMap<String, Object> krintArchivio = objectMapper.convertValue(krintScriptaArchivio, new TypeReference<HashMap<String, Object>>(){});
             krintService.writeKrintRow(
                     archivioDoc.getIdDoc().getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO_DOC, // tipoOggetto
                     archivioDoc.getIdDoc().getOggetto(), // descrizioneOggetto
-                    jsonKrintDoc, // informazioniOggetto
+                    krintDoc, // informazioniOggetto
                     archivioDoc.getIdArchivio().getId().toString(), // Da qui si ripete ma per il conenitore
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
                     archivioDoc.getIdArchivio().getNumerazioneGerarchica(),
-                    jsonKrintArchivio,
+                    krintArchivio,
                     codiceOperazione);
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = archivioDoc.getIdDoc().getId();
-            } catch (Exception exa) {
-            }
-            krintService.writeKrintError(idOggetto, "writeArchivioDoc", codiceOperazione);
+            log.error("Errore nella writeArchivioDoc con archivioDoc" + archivioDoc.getId().toString(), ex);
+            krintService.writeKrintError(archivioDoc.getId(), "writeArchivioDoc", codiceOperazione);
         }
 
     }
@@ -443,13 +418,8 @@ public class KrintScriptaService {
                     null,
                     codiceOperazione);
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = doc.getId();
-            } catch (Exception exa) {
-            }
-            krintService.writeKrintError(idOggetto, "writeDoc", codiceOperazione);
+            log.error("Errore nella writeDoc con doc" + doc.getId().toString(), ex);
+            krintService.writeKrintError(doc.getId(), "writeDoc", codiceOperazione);
         }
     }
     
@@ -484,11 +454,11 @@ public class KrintScriptaService {
      * @return La mappa con le property del fascicolo.
      * @throws JsonProcessingException Errori nel parsing.
      */
-    private Map<String, Object> getArchivioPropertiesAsMap(Archivio archivio) throws JsonProcessingException {
+    private HashMap<String, Object> getArchivioPropertiesAsMap(Archivio archivio) throws JsonProcessingException {
         KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, archivio);            
         String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
         @SuppressWarnings("unchecked")
-        Map<String, Object> map = objectMapper.readValue(jsonKrintArchivio, Map.class);
+        HashMap<String, Object> map = objectMapper.readValue(jsonKrintArchivio, HashMap.class);
         return map;
     }
 }

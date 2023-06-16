@@ -1,6 +1,6 @@
 package it.bologna.ausl.model.entities.baborg.projections.utente;
 
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import java.util.List;

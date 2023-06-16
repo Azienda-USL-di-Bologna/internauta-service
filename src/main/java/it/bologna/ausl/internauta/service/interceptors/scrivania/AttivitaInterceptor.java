@@ -91,13 +91,8 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 //        LOGGER.info(String.format("after afterSelectQueryInterceptor on Attivita user: %d person: %s", authenticatedSessionData.getUser().getId(), authenticatedSessionData.getPerson().getCodiceFiscale()) );
         AziendaParametriJson parametriAziendaOrigine = (AziendaParametriJson) this.httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda);
         if (parametriAziendaOrigine == null) {
-            try {
-                parametriAziendaOrigine = AziendaParametriJson.parse(this.objectMapper, authenticatedSessionData.getUser().getIdAzienda().getParametri());
-                this.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda, parametriAziendaOrigine);
-            }
-            catch (IOException ex) {
-                throw new AbortLoadInterceptorException("errore nella lettura dei parametri dell'azienda origine", ex);
-            }
+            parametriAziendaOrigine = authenticatedSessionData.getUser().getIdAzienda().getParametri();
+            this.httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.ParametriAzienda, parametriAziendaOrigine);
         }
 //        String targetLoginPath;
 //        String targetLoginPath;
@@ -123,7 +118,7 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
 
             try {
                 if (attivita.getUrls() != null) {
-                    List urls = objectMapper.readValue(attivita.getUrls(), List.class);
+                    List urls = attivita.getUrls();
 //                        jsonArray = (JSONArray) parser.parse(attivita.getUrls());
                     List compiledUrls;
                     if (urls != null) {

@@ -34,7 +34,7 @@ public class MessagesTagsHandler {
         MessageTag mt = new MessageTag();
         mt.setIdMessage(message);
         mt.setIdTag(tag);
-        mt.setAdditionalData(new JSONArray().toString());
+        //mt.setAdditionalData(new JSONArray().toString());
         return mt;
     }
 
