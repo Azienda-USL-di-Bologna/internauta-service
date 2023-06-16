@@ -53,16 +53,28 @@ definitions:
           # use the pipe to push the image to AWS ECR
           - pipe: atlassian/aws-ecr-push-image:2.0.0
             variables:
-              AWS_DEFAULT_REGION: 'eu-west-1'
-              AWS_OIDC_ROLE_ARN: 'arn:aws:iam::545463498725:role/babel-bitbucket'
-              IMAGE_NAME: ${AWS_ENV}/${IMAGE_NAME}
-              TAGS: '${BITBUCKET_BUILD_NUMBER} latest'
-
+              #INFO: ereditato dal workspace | AWS_DEFAULT_REGION: "eu-west-1"
+              #INFO: ereditato dal workspace | AWS_OIDC_ROLE_ARN: "arn:aws:iam::545463498725:role/babel-bitbucket"
+              IMAGE_NAME: "${IMAGE_NAME}"
+              TAGS: "${IMAGE_VERSION}"
+    - step: &deploy
+        name: Build Infrastructure
+        image: public.ecr.aws/docker/library/python:3.10
+        oidc: true
+        script:
+          - export SAM_VERSION=v1.86.1
+          - export SAM_SHA=c90d664290947bdfc9e0534020a84bebd3788cfc24a5c2b58c8611808ee1e92b
+          - wget --no-verbose https://github.com/aws/aws-sam-cli/releases/download/${SAM_VERSION}/aws-sam-cli-linux-x86_64.zip && \
+            echo '${SAM_SHA} aws-sam-cli-linux-x86_64.zip' | sha256sum -c - && \
+            unzip aws-sam-cli-linux-x86_64.zip -d sam-installation && ./sam-installation/install
+          - export APP_IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}"
+          - cd .aws && sed -i "s/__ImageVersion__/$APP_IMAGE_VERSION/g" samconfig.toml
+          - sam build && sam deploy --config-env dev
 
 pipelines:
   branches:
     ### TEST
-    sviluppo:
+    cly-pipeline:
       - stage:
           deployment: test
           steps:
@@ -74,6 +86,9 @@ pipelines:
                   - "dev"
             - step:
                 <<: *push_image_to_ecr
+                runs-on: *run_on_dev
+            - step:
+                <<: *deploy
                 runs-on: *run_on_dev
     ### STAGING
     stage:
