@@ -81,8 +81,8 @@ pipelines:
             - step:
                 name: "Set image name and version"
                 script:
-                  - export IMAGE_NAME="babel-cloud-${AWS_ENV}-internauta"
-                  - export IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}"
+                  - IMAGE_NAME="babel-cloud-${AWS_ENV}-internauta"
+                  - IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}"
                 runs-on: &run_on_dev
                   - "self.hosted"
                   - "dev"
