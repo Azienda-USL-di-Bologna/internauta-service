@@ -41,14 +41,13 @@ definitions:
         caches:
           - docker
         script:
+          - printenv
           - git submodule init
           - git submodule update --depth 1 --single-branch --recommend-shallow
           # build the image
-          - IMAGE_NAME=internauta_service
-          - docker build -t ${IMAGE_NAME}:${BITBUCKET_BUILD_NUMBER} -t ${IMAGE_NAME} .
+          - docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} .
     - step: &push_image_to_ecr
         name: Push Docker image to AWS ECR
-        oidc: true
         script:
           # use the pipe to push the image to AWS ECR
           - pipe: atlassian/aws-ecr-push-image:2.0.0
@@ -60,15 +59,15 @@ definitions:
     - step: &deploy
         name: Build Infrastructure
         image: public.ecr.aws/docker/library/python:3.10
-        oidc: true
         script:
           - export SAM_VERSION=v1.86.1
           - export SAM_SHA=c90d664290947bdfc9e0534020a84bebd3788cfc24a5c2b58c8611808ee1e92b
-          - wget --no-verbose https://github.com/aws/aws-sam-cli/releases/download/${SAM_VERSION}/aws-sam-cli-linux-x86_64.zip && \
-            echo '${SAM_SHA} aws-sam-cli-linux-x86_64.zip' | sha256sum -c - && \
-            unzip aws-sam-cli-linux-x86_64.zip -d sam-installation && ./sam-installation/install
-          - export APP_IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}"
-          - cd .aws && sed -i "s/__ImageVersion__/$APP_IMAGE_VERSION/g" samconfig.toml
+          - wget --no-verbose https://github.com/aws/aws-sam-cli/releases/download/${SAM_VERSION}/aws-sam-cli-linux-x86_64.zip
+          - echo "${SAM_SHA} aws-sam-cli-linux-x86_64.zip" | sha256sum -c -
+          - unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
+          - ./sam-installation/install
+          - sam --version
+          - cd .aws && sed -i "s/__ImageVersion__/$IMAGE_VERSION/g" samconfig.toml
           - sam build && sam deploy --config-env dev
 
 pipelines:
@@ -79,6 +78,14 @@ pipelines:
           deployment: test
           steps:
             - step: *start_runner
+            - step:
+                name: "Set image name and version"
+                script:
+                  - export IMAGE_NAME="babel-cloud-${AWS_ENV}-internauta"
+                  - export IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}"
+                runs-on: &run_on_dev
+                  - "self.hosted"
+                  - "dev"
             - step:
                 <<: *build_internauta
                 runs-on: &run_on_dev
