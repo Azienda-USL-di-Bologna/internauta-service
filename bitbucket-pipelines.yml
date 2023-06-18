@@ -45,6 +45,12 @@ definitions:
           - git submodule update --depth 1 --single-branch --recommend-shallow
           - export IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}" && if [[ -n "$BITBUCKET_TAG" ]]; then IMAGE_VERSION="$BITBUCKET_TAG"; fi
           - docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} .
+          - pipe: atlassian/aws-ecr-push-image:2.0.0
+            variables:
+              #INFO: ereditato dal workspace | AWS_DEFAULT_REGION: "eu-west-1"
+              #INFO: ereditato dal workspace | AWS_OIDC_ROLE_ARN: "arn:aws:iam::545463498725:role/babel-bitbucket"
+              IMAGE_NAME: "${IMAGE_NAME}"
+              TAGS: "${IMAGE_VERSION}"
     - step: &push_image_to_ecr
         name: Push Docker image to AWS ECR
         services:
@@ -88,9 +94,9 @@ pipelines:
                 runs-on: &run_on_dev
                   - "self.hosted"
                   - "dev"
-            - step:
-                <<: *push_image_to_ecr
-                runs-on: *run_on_dev
+            # - step:
+            #     <<: *push_image_to_ecr
+            #     runs-on: *run_on_dev
             - step:
                 <<: *deploy
                 runs-on: *run_on_dev
