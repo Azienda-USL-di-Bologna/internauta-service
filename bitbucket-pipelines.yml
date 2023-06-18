@@ -38,17 +38,19 @@ definitions:
           enabled: true
         services:
           - docker
-        caches:
-          - docker
+        # caches:
+        #   - docker
         script:
           - printenv
           - git submodule init
           - git submodule update --depth 1 --single-branch --recommend-shallow
           # build the image
+          - export IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}" && if [[ -n "$BITBUCKET_TAG" ]]; then IMAGE_VERSION="$BITBUCKET_TAG"; fi
           - docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} .
     - step: &push_image_to_ecr
         name: Push Docker image to AWS ECR
         script:
+          - export IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}" && if [[ -n "$BITBUCKET_TAG" ]]; then IMAGE_VERSION="$BITBUCKET_TAG"; fi
           # use the pipe to push the image to AWS ECR
           - pipe: atlassian/aws-ecr-push-image:2.0.0
             variables:
@@ -67,8 +69,9 @@ definitions:
           - unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
           - ./sam-installation/install
           - sam --version
+          - export IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}" && if [[ -n "$BITBUCKET_TAG" ]]; then IMAGE_VERSION="$BITBUCKET_TAG"; fi
           - cd .aws && sed -i "s/__ImageVersion__/$IMAGE_VERSION/g" samconfig.toml
-          - sam build && sam deploy --config-env dev
+          - sam build && sam deploy --config-env "$AWS_ENV"
 
 pipelines:
   branches:
@@ -78,14 +81,6 @@ pipelines:
           deployment: test
           steps:
             - step: *start_runner
-            - step:
-                name: "Set image name and version"
-                script:
-                  - IMAGE_NAME="babel-cloud-${AWS_ENV}-internauta"
-                  - IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}"
-                runs-on: &run_on_dev
-                  - "self.hosted"
-                  - "dev"
             - step:
                 <<: *build_internauta
                 runs-on: &run_on_dev
