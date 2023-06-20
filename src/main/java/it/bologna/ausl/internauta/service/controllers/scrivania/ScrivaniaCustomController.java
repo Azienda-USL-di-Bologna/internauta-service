@@ -439,12 +439,12 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
             List<ItemMenu> buildMenu = gestioneMenu.buildMenu(persona);
             return new ResponseEntity(objectMapper.writeValueAsString(buildMenu), HttpStatus.OK);
         } catch (Throwable t) {
+            LOGGER.error("",t);
             Report report = new Report();
             report.setTipologia("GET_MENU_SCRIVANIA_ERROR");
-            Map<String, String> additionalData = new HashMap();
+            HashMap<String, String> additionalData = new HashMap<>();
             additionalData.put("message", t.getMessage());
             additionalData.put("toString", t.toString());
-            t.printStackTrace();
             report.setAdditionalData(additionalData);
             reportRepository.save(report);
             return new ResponseEntity("Not so good madafaca :D", HttpStatus.OK);
