@@ -1,11 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package it.bologna.ausl.internauta.service.controllers.tip;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.CaseFormat;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -35,21 +30,18 @@ import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaP
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.PROTOCOLLO_IN_ENTRATA;
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.PROTOCOLLO_IN_USCITA;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
-import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneProtocolloEntrata;
-import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.MezziConsentiti;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
 import it.nextsw.common.utils.EntityReflectionUtils;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
 import javax.persistence.EntityManager;
 import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
@@ -132,28 +124,96 @@ public class TipTransferManager {
                         sessioneImportazione.getTipologia(),
                         sessioneImportazione.getIdAzienda(),
                         importazioneDoc.getRegistro(),
-                        importazioneDoc.getNumero(),
+                        Integer.valueOf(importazioneDoc.getNumero()),
                         importazioneDoc.getAnno())) {
                     errori.setWarning(ColonneProtocolloEntrata.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
                     errori.setWarning(ColonneProtocolloEntrata.numero, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
                     errori.setWarning(ColonneProtocolloEntrata.anno, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
                 } else {
+                    ZonedDateTime dataRegistrazione = TipDataValidator.parseData(importazioneDoc.getDataRegistrazione()).atStartOfDay(ZoneId.systemDefault());
                     try {
-                        RegistroDoc registroDoc = transferRegistrazione(sessioneImportazione.getIdAzienda(), sessioneImportazione.getTipologia(), importazioneDoc);
+                        RegistroDoc registroDoc = transferRegistrazione(sessioneImportazione.getIdAzienda(), sessioneImportazione.getTipologia(), dataRegistrazione, importazioneDoc);
                         doc.setRegistroDocList(Arrays.asList(registroDoc));
-                    } catch (TipTransferException ex) {
+                    } catch (Throwable ex) {
+                        log.error("errore nel trasferimento dei dati di registrazione", ex);
                         errori.setError(ColonneProtocolloEntrata.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
                         errori.setError(ColonneProtocolloEntrata.numero, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
                         errori.setError(ColonneProtocolloEntrata.anno, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
                     }
                     
-//                    List<Related> mittenti = transferMittenti( personaTIP, importazioneDoc);
-                    List<Related> mittenti = transferRelated(personaTIP, importazioneDoc, Related.TipoRelated.MITTENTE, ColonneProtocolloEntrata.mittente, ColonneProtocolloEntrata.indirizzoMittente, null);
-                    doc.setRelated(mittenti);
+                    List<Related> mittenti = null;
+                    List<Related> destinatariA = null;
+                    List<Related> destinatariCC = null;
+                    try {
+                        mittenti = transferRelated(
+                            personaTIP, 
+                            sessioneImportazione.getIdAzienda(),
+                            dataRegistrazione,
+                            false, 
+                            importazioneDoc, 
+                            Related.TipoRelated.MITTENTE, 
+                            ColonneProtocolloEntrata.mittente, 
+                            ColonneProtocolloEntrata.indirizzoMittente, 
+                            null);
+                    } catch (Throwable ex) {
+                        log.error("errore nel trasferimento del mittente", ex);
+                        errori.setError(ColonneProtocolloEntrata.mittente, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+                        errori.setError(ColonneProtocolloEntrata.indirizzoMittente, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+//                        errori.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+                    }
+                    
+                    try {
+                        destinatariA = transferRelated(
+                            personaTIP,
+                            sessioneImportazione.getIdAzienda(),
+                            dataRegistrazione,
+                            true,
+                            importazioneDoc,
+                            Related.TipoRelated.A,
+                            ColonneProtocolloEntrata.destinatariInterniA,
+                            null, 
+                            null);
+                    }  catch (Throwable ex) {
+                        log.error("errore nel trasferimento dei destinatari interni A", ex);
+                        errori.setError(ColonneProtocolloEntrata.destinatariInterniA, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+                    }
+                    
+                    try {
+                        destinatariCC = transferRelated(
+                            personaTIP,
+                            sessioneImportazione.getIdAzienda(),
+                            dataRegistrazione,
+                            true,
+                            importazioneDoc,
+                            Related.TipoRelated.CC,
+                            ColonneProtocolloEntrata.destinatariInterniA,
+                            null, 
+                            null);
+                    } catch (Throwable ex) {
+                        log.error("errore nel trasferimento dei destinatari interni CC", ex);
+                        errori.setError(ColonneProtocolloEntrata.destinatariInterniA, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+                    }
+                    List<Related> related = doc.getRelated();
+                    
+                    if (mittenti != null || destinatariA != null || destinatariCC != null) {
+                        if (related == null) {
+                            related = new ArrayList<>();
+                            doc.setRelated(related);
+                        }
+                        doc.setRelated(related);
+                        if (mittenti != null) {
+                            related.addAll(mittenti);
+                        }
+                        if (destinatariA != null) {
+                            related.addAll(destinatariA);
+                        }
+                        if (destinatariCC != null) {
+                            related.addAll(destinatariCC);
+                        }
+                    }
                     
                     addInAdditionalData(doc, ColonneProtocolloEntrata.protocolloEsterno, importazioneDoc.getProtocolloEsterno());
-                    addInAdditionalData(doc, ColonneProtocolloEntrata.dataProtocolloEsterno, importazioneDoc.getDataProtocolloEsterno());
-                    
+                    addInAdditionalData(doc, ColonneProtocolloEntrata.dataProtocolloEsterno, importazioneDoc.getDataProtocolloEsterno());  
                 }
 
                 
@@ -193,14 +253,7 @@ public class TipTransferManager {
      * @return la struttura più recente con il nome passato se esiste, altrimenti una nuova spenta
      */
     private Struttura findOrCreateStruttura(String nome, Azienda azienda, ZonedDateTime dataCessazione) {
-        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
-        QStruttura qStruttura = QStruttura.struttura;
-        Struttura struttura = queryFactory
-                .select(qStruttura)
-                .from(qStruttura)
-                .where(qStruttura.nome.equalsIgnoreCase(nome).and(qStruttura.idAzienda.id.eq(azienda.getId())))
-                .orderBy(qStruttura.attiva.desc(), qStruttura.dataAttivazione.desc())
-                .fetchOne();
+        Struttura struttura = findStruttura(nome, azienda);
         if (struttura == null) {
             struttura = new Struttura();
             struttura.setIdAzienda(azienda);
@@ -216,14 +269,33 @@ public class TipTransferManager {
     }
     
     /**
+     * Cerca la struttura con il nome passato e se ne trova più di una prende la più recente
+     * @param nome il nome della struttura da cercare
+     * @param azienda l'azienda a cui appartiene la struttura
+     * @return  la struttura più recente con il nome passato
+     */
+    private Struttura findStruttura(String nome, Azienda azienda) {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+        QStruttura qStruttura = QStruttura.struttura;
+        Struttura struttura = queryFactory
+            .select(qStruttura)
+            .from(qStruttura)
+            .where(qStruttura.nome.equalsIgnoreCase(nome).and(qStruttura.idAzienda.id.eq(azienda.getId())))
+            .orderBy(qStruttura.attiva.desc(), qStruttura.dataAttivazione.desc())
+            .fetchOne();
+        return struttura;
+    }
+    
+    /**
      * Controlla e setta e salva i campi relativi alla registrazione sull'entità RegistroDoc
      * @param azienda l'azienda per la quale si sta effettuando l'importazione
      * @param tipologia la tipologia di importazione
+     * @param dataRegistrazione la data di registrazione del documento
      * @param importazioneDocumento l'oggetto contente i campi da trasferire (quello che è stato popolato dal CSV)
      * @return l'entità RegistroDoc correttamente popolata
      * @throws TipTransferException nel caso il registro indicato non sia tra quelli consentiti dall'enum Registro.CodiceRegistro
      */
-    private RegistroDoc transferRegistrazione(Azienda azienda, SessioneImportazione.TipologiaPregresso tipologia, ImportazioneDocumento importazioneDocumento) throws TipTransferException {
+    private RegistroDoc transferRegistrazione(Azienda azienda, SessioneImportazione.TipologiaPregresso tipologia, ZonedDateTime dataRegistrazione, ImportazioneDocumento importazioneDocumento) throws TipTransferException {
         
         // carico o creo il registro(se non esiste)
         Registro registroEntity;
@@ -238,9 +310,8 @@ public class TipTransferManager {
             throw new TipTransferException(String.format("registro con codice %s non valido", importazioneDocumento.getRegistro()));
         RegistroDoc registroDoc = new RegistroDoc();
         registroDoc.setIdRegistro(registroEntity);
-        registroDoc.setNumero(importazioneDocumento.getNumero());
+        registroDoc.setNumero(Integer.valueOf(importazioneDocumento.getNumero()));
         registroDoc.setAnno(Integer.valueOf(importazioneDocumento.getAnno()));
-        ZonedDateTime dataRegistrazione = TipDataValidator.parseData(importazioneDocumento.getDataRegistrazione()).atStartOfDay(ZoneId.systemDefault());
         registroDoc.setDataRegistrazione(dataRegistrazione);
         registroDoc.setIdStrutturaRegistrante(findOrCreateStruttura(importazioneDocumento.getPropostoDa(), azienda, dataRegistrazione));
 //        entityManager.persist(registroDoc);
@@ -250,6 +321,10 @@ public class TipTransferManager {
     /**
      * Crea i related con relativa spedizione per rappresentare i destinatari/mittenti
      * @param persona la persona TIP che verrà inserita come persona che ha inserito il mittente
+     * @param azienda l'azienda per cui si sta eseguendo l'esportazione
+     * @param dataRegistrazione la data di registrazione del documento
+     * @param soloStrutture se "true" indica che i destinatari passati sono struttura, 
+     *  per cui verrano cercati solo all'interno delle strutture e nel caso non esista la struttura, verà creata
      * @param importazioneDocumento l'oggetto contente i campi da trasferire (quello che è stato popolato dal CSV)
      * @param tipoRelated il tipo di related (MITTENTE / DESTINATARIO A / DESTINATARIO CC)
      * @param nomeColonnaNome l'enum della colonna che rapresenta il nome del/dei destinatari/mittenti
@@ -259,21 +334,20 @@ public class TipTransferManager {
      */
     private <E extends Enum<E> & ColonneImportazioneOggetto>  List<Related> transferRelated(
             Persona persona, 
+            Azienda azienda,
+            ZonedDateTime dataRegistrazione,
+            boolean soloStrutture,
             ImportazioneDocumento importazioneDocumento, 
             Related.TipoRelated tipoRelated, 
             Enum<E> nomeColonnaNome, 
             Enum<E> nomeColonnaIndirizzo, 
             Enum<E> nomeColonnaDescrizione) {
-        
-        String dataSpedizioneString = null;
-        if (tipoRelated == Related.TipoRelated.MITTENTE)
-            dataSpedizioneString = importazioneDocumento.getDataArrivo();
-        if (!StringUtils.hasText(dataSpedizioneString)) {
-            dataSpedizioneString = importazioneDocumento.getDataRegistrazione();
-        }
-        ZonedDateTime dataSpedizione = null;
-        if (StringUtils.hasText(dataSpedizioneString)) {
-            dataSpedizione = TipDataValidator.parseData(dataSpedizioneString).atStartOfDay(ZoneId.systemDefault());
+
+        ZonedDateTime dataSpedizione;
+        if (tipoRelated == Related.TipoRelated.MITTENTE && StringUtils.hasText(importazioneDocumento.getDataArrivo())) {
+            dataSpedizione = TipDataValidator.parseData(importazioneDocumento.getDataArrivo()).atStartOfDay(ZoneId.systemDefault());
+        } else {
+            dataSpedizione = dataRegistrazione;
         }
         
         List<Related> relatedList = new ArrayList<>();
@@ -328,13 +402,24 @@ public class TipTransferManager {
             
             String possibileIndirizzo = indirizzo != null? indirizzo: descrizione != null? descrizione: nome;
             
+            Related related = new Related();
             Mezzo.CodiciMezzo codiceMezzo = Mezzo.CodiciMezzo.POSTA_ORDINARIA;
-            if (TipDataValidator.validaIndirizzoEmail(possibileIndirizzo)) {
+            if (!soloStrutture && TipDataValidator.validaIndirizzoEmail(possibileIndirizzo)) {
                 codiceMezzo = Mezzo.CodiciMezzo.MAIL;
+            } else {
+                Struttura struttura;
+                if (soloStrutture) {
+                    struttura = findOrCreateStruttura(possibileIndirizzo, azienda, dataRegistrazione);
+                } else {
+                    struttura = findStruttura(possibileIndirizzo, azienda);
+                }
+                if (struttura != null) {
+                    codiceMezzo = Mezzo.CodiciMezzo.BABEL; 
+                    related.setIdContatto(struttura.getIdContatto());
+                }
             }
             Mezzo mezzo = getMezzoFromCodice(codiceMezzo);
             
-            Related related = new Related();
             related.setIdPersonaInserente(persona);
             related.setDescrizione(descrizione != null? descrizione: possibileIndirizzo);
             related.setOrigine(Related.OrigineRelated.ESTERNO);
@@ -365,7 +450,7 @@ public class TipTransferManager {
         return mezzo;
     }
     
-    private boolean isDocAlreadyPresent(SessioneImportazione.TipologiaPregresso tipologia, Azienda azienda, String registro, String numero, String anno) {
+    private boolean isDocAlreadyPresent(SessioneImportazione.TipologiaPregresso tipologia, Azienda azienda, String registro, Integer numero, String anno) {
         QDoc qDoc = QDoc.doc;
         QRegistroDoc qRegistroDoc = QRegistroDoc.registroDoc;
         Registro.CodiceRegistro codiceRegistro;

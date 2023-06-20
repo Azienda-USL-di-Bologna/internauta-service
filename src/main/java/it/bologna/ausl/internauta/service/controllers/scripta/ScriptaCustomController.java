@@ -773,11 +773,11 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     }
 
     private void saveRegistriDoc(Map<String, Object> resObj, Doc doc, Persona loggedPersona) throws JsonProcessingException {
-        Integer numeroProtocollo = Integer.parseInt((String) resObj.get("numeroProtocollo"));
+        Integer numeroProtocollo = Integer.valueOf((String) resObj.get("numeroProtocollo"));
         Integer annoProtocollo = (Integer) resObj.get("annoProtocollo");
         String numeroPropostaConAnno = (String) resObj.get("numeroProposta");
-        Integer numeroProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[1]);
-        Integer annoProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[0]);
+        Integer numeroProposta = Integer.valueOf(numeroPropostaConAnno.split("-")[1]);
+        Integer annoProposta = Integer.valueOf(numeroPropostaConAnno.split("-")[0]);
         Integer idStrutturaProtocollante = (Integer) resObj.get("idStrutturaProtocollante");
 
         Struttura struttura = nonCachedEntities.getStruttura(idStrutturaProtocollante);
