@@ -82,7 +82,7 @@ definitions:
           - export IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}" && if [[ -n "$BITBUCKET_TAG" ]]; then IMAGE_VERSION="$BITBUCKET_TAG"; fi
           - cd .aws
           - sed -i "s/__ImageVersion__/$IMAGE_VERSION/g" samconfig.toml
-          - sam build && sam deploy --config-env "$AWS_ENV"
+          - sam build && sam deploy --config-env "$AWS_ENV" --no-confirm-changeset
 
 pipelines:
   branches:
