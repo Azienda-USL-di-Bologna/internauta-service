@@ -136,7 +136,7 @@ pipelines:
           # - step:
           #     <<: *push_image_to_ecr
           #     runs-on: *run_on_prod
-            - step:
-                <<: *deploy
-                runs-on: *run_on_prod
+          - step:
+              <<: *deploy
+              runs-on: *run_on_prod
           - step: *stop_runner
