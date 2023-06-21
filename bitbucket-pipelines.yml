@@ -110,12 +110,15 @@ pipelines:
           steps:
             - step: *start_runner
             - step:
-                <<: *build_internauta
+                <<: *build_internauta_push_ecr
                 runs-on: &run_on_staging
                   - "self.hosted"
                   - "staging"
+            # - step:
+            #     <<: *push_image_to_ecr
+            #     runs-on: *run_on_staging
             - step:
-                <<: *push_image_to_ecr
+                <<: *deploy
                 runs-on: *run_on_staging
             - step: *stop_runner
   tags:
@@ -126,11 +129,14 @@ pipelines:
         steps:
           - step: *start_runner
           - step:
-              <<: *build_internauta
+              <<: *build_internauta_push_ecr
               runs-on: &run_on_prod
                 - "self.hosted"
                 - "prod"
-          - step:
-              <<: *push_image_to_ecr
-              runs-on: *run_on_prod
+          # - step:
+          #     <<: *push_image_to_ecr
+          #     runs-on: *run_on_prod
+            - step:
+                <<: *deploy
+                runs-on: *run_on_prod
           - step: *stop_runner
