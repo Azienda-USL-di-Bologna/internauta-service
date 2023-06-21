@@ -41,14 +41,13 @@ definitions:
         caches:
           - docker
         script:
+          - set -euo pipefail
           - git submodule init
           - git submodule update --depth 1 --single-branch --recommend-shallow
           - export IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}" && if [[ -n "$BITBUCKET_TAG" ]]; then IMAGE_VERSION="$BITBUCKET_TAG"; fi
           - docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} .
           - pipe: atlassian/aws-ecr-push-image:2.0.0
             variables:
-              #INFO: ereditato dal workspace | AWS_DEFAULT_REGION: "eu-west-1"
-              #INFO: ereditato dal workspace | AWS_OIDC_ROLE_ARN: "arn:aws:iam::545463498725:role/babel-bitbucket"
               IMAGE_NAME: "${IMAGE_NAME}"
               TAGS: "${IMAGE_VERSION}"
     - step: &push_image_to_ecr
@@ -70,6 +69,7 @@ definitions:
         name: Build Infrastructure
         image: public.ecr.aws/docker/library/python:3.10
         script:
+          - set -euo pipefail
           - export SAM_VERSION=v1.86.1
           - export SAM_SHA=c90d664290947bdfc9e0534020a84bebd3788cfc24a5c2b58c8611808ee1e92b
           - wget --no-verbose https://github.com/aws/aws-sam-cli/releases/download/${SAM_VERSION}/aws-sam-cli-linux-x86_64.zip
@@ -78,7 +78,8 @@ definitions:
           - ./sam-installation/install
           - sam --version
           - export IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}" && if [[ -n "$BITBUCKET_TAG" ]]; then IMAGE_VERSION="$BITBUCKET_TAG"; fi
-          - cd .aws && sed -i "s/__ImageVersion__/$IMAGE_VERSION/g" samconfig.toml
+          - cd .aws
+          - sed -i "s/__ImageVersion__/$IMAGE_VERSION/g" samconfig.toml
           - sam build && sam deploy --config-env "$AWS_ENV"
 
 pipelines:
