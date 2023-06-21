@@ -31,8 +31,8 @@ definitions:
           - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
           - echo $BITBUCKET_STEP_OIDC_TOKEN > $(pwd)/web-identity-token
           - aws ec2 stop-instances --instance-ids $INSTANCE_ID --region $AWS_DEFAULT_REGION
-    - step: &build_internauta
-        name: Build internauta
+    - step: &build_internauta_push_ecr
+        name: Build internauta & push to ECR
         image: maven:3.8.6-openjdk-8
         clone:
           enabled: true
@@ -50,21 +50,21 @@ definitions:
             variables:
               IMAGE_NAME: "${IMAGE_NAME}"
               TAGS: "${IMAGE_VERSION}"
-    - step: &push_image_to_ecr
-        name: Push Docker image to AWS ECR
-        services:
-          - docker
-        caches:
-          - docker
-        script:
-          - export IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}" && if [[ -n "$BITBUCKET_TAG" ]]; then IMAGE_VERSION="$BITBUCKET_TAG"; fi
-          # use the pipe to push the image to AWS ECR
-          - pipe: atlassian/aws-ecr-push-image:2.0.0
-            variables:
-              #INFO: ereditato dal workspace | AWS_DEFAULT_REGION: "eu-west-1"
-              #INFO: ereditato dal workspace | AWS_OIDC_ROLE_ARN: "arn:aws:iam::545463498725:role/babel-bitbucket"
-              IMAGE_NAME: "${IMAGE_NAME}"
-              TAGS: "${IMAGE_VERSION}"
+    # - step: &push_image_to_ecr
+    #     name: Push Docker image to AWS ECR
+    #     services:
+    #       - docker
+    #     caches:
+    #       - docker
+    #     script:
+    #       - export IMAGE_VERSION="${BITBUCKET_COMMIT:0:8}" && if [[ -n "$BITBUCKET_TAG" ]]; then IMAGE_VERSION="$BITBUCKET_TAG"; fi
+    #       # use the pipe to push the image to AWS ECR
+    #       - pipe: atlassian/aws-ecr-push-image:2.0.0
+    #         variables:
+    #           #INFO: ereditato dal workspace | AWS_DEFAULT_REGION: "eu-west-1"
+    #           #INFO: ereditato dal workspace | AWS_OIDC_ROLE_ARN: "arn:aws:iam::545463498725:role/babel-bitbucket"
+    #           IMAGE_NAME: "${IMAGE_NAME}"
+    #           TAGS: "${IMAGE_VERSION}"
     - step: &deploy
         name: Update infrastructure
         image: public.ecr.aws/docker/library/python:3.10
@@ -93,13 +93,13 @@ pipelines:
           steps:
             - step: *start_runner
             - step:
-                <<: *build_internauta
+                <<: *build_internauta_push_ecr
                 runs-on: &run_on_dev
                   - "self.hosted"
                   - "dev"
-            - step:
-                <<: *push_image_to_ecr
-                runs-on: *run_on_dev
+            # - step:
+            #     <<: *push_image_to_ecr
+            #     runs-on: *run_on_dev
             - step:
                 <<: *deploy
                 runs-on: *run_on_dev
