@@ -66,8 +66,10 @@ definitions:
               IMAGE_NAME: "${IMAGE_NAME}"
               TAGS: "${IMAGE_VERSION}"
     - step: &deploy
-        name: Build Infrastructure
+        name: Update infrastructure
         image: public.ecr.aws/docker/library/python:3.10
+        clone:
+          enabled: true
         script:
           - set -eo pipefail
           - export SAM_VERSION=v1.86.1
@@ -95,9 +97,9 @@ pipelines:
                 runs-on: &run_on_dev
                   - "self.hosted"
                   - "dev"
-            # - step:
-            #     <<: *push_image_to_ecr
-            #     runs-on: *run_on_dev
+            - step:
+                <<: *push_image_to_ecr
+                runs-on: *run_on_dev
             - step:
                 <<: *deploy
                 runs-on: *run_on_dev
