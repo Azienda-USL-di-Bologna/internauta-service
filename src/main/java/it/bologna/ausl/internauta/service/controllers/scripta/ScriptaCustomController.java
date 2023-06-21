@@ -1246,9 +1246,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             doc.setIdAzienda(azienda);
             doc = docRepository.save(doc);
         } catch (Exception ex) {
-            log.error("errore nella creazione del doc internauta", ex);
+            log.error("errore nella creazione del doc internauta. Forse esisteva già per via del cannone quindi lo recupero", ex);
             // Forse esisteva già per via del cannone quindi lo recupero
-            doc = docRepository.findByIdEsterno((String) registroGiornaliero.get("id"));
+            doc = docRepository.findByIdEsternoAndIdAzienda((String) registroGiornaliero.get("id"), azienda);
             if (doc == null) {
                 throw new Http500ResponseException("2", "Documento non trovato. E non creabile");
             }
@@ -1276,7 +1276,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         if (archivioSpeciale.isPresent()) {
             log.info("ho trovato il fascicolo speciale");
             if (!archivioDocRepository.exists(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioSpeciale.get().getId()).and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))) {
-                log.info("non essite la fascicolazione quindi la eseguo");
+                log.info("non esiste la fascicolazione quindi la eseguo");
                 ArchivioDoc archivioDoc = new ArchivioDoc();
                 archivioDoc.setIdArchivio(archivioSpeciale.get());
                 archivioDoc.setIdDoc(doc);
