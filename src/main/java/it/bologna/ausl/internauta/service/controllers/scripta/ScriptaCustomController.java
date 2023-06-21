@@ -1246,9 +1246,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             doc.setIdAzienda(azienda);
             doc = docRepository.save(doc);
         } catch (Exception ex) {
-            log.error("errore nella creazione del doc internauta", ex);
+            log.error("errore nella creazione del doc internauta. Forse esisteva già per via del cannone quindi lo recupero");
             // Forse esisteva già per via del cannone quindi lo recupero
-            doc = docRepository.findByIdEsterno((String) registroGiornaliero.get("id"));
+            doc = docRepository.findByIdEsternoAndIdAzienda((String) registroGiornaliero.get("id"),azienda);
             if (doc == null) {
                 throw new Http500ResponseException("2", "Documento non trovato. E non creabile");
             }

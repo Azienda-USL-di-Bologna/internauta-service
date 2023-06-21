@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.repositories.scripta;
 
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.projections.generated.DocWithPlainFields;
@@ -19,4 +20,5 @@ public interface DocRepository extends
         JpaRepository<Doc, Integer> {
     
     public Doc findByIdEsterno(String idEsterno);
+    public Doc findByIdEsternoAndIdAzienda(String idEsterno, Azienda idAzienda);
 }
