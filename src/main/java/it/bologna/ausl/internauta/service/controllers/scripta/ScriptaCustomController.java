@@ -1123,7 +1123,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 //archvivio il document
                 ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
-                archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
+//                archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
 
                 PersonaVedente pv = new PersonaVedente();
                 pv.setIdAzienda(doc.getIdAzienda());
@@ -1136,6 +1136,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
                 AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
                 accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
+                
                 if (krintUtils.doIHaveToKrint(request)) {
                     krintScriptaService.writeArchivioDoc(save, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_LOAD);
                 }

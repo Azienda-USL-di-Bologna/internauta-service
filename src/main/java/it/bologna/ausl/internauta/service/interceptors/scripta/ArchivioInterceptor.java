@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
+import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaArchiviUtils;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
@@ -13,6 +14,7 @@ import it.bologna.ausl.model.entities.scripta.QMassimario;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
+import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +49,9 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private KrintUtils krintUtils;
+    
+    @Autowired
+    private ScriptaArchiviUtils scriptaArchiviUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -210,5 +215,15 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         }
 
         return super.beforeUpdateEntityInterceptor(archivio, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass);
+    }
+    
+    
+    @Override
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        Archivio archivio = (Archivio) entity;
+        
+        scriptaArchiviUtils.updateDataUltimoUtilizzoArchivio(archivio.getId());
+        
+        return super.afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
 }
