@@ -12,6 +12,8 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRe
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.jpa.natiquery.NativeQueryTools;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
@@ -125,6 +127,11 @@ public class BaborgDebugController {
     
     @Autowired
     private JobReporitory jobRepository;
+    
+    @Autowired
+    private DocRepository docRepository;
+    @Autowired
+    private ArchivioRepository archivioRepository;
     
     @Autowired
     private CambiamentiAssociazioneRepository cambiamentiAssociazioneRepository;
@@ -278,6 +285,14 @@ public class BaborgDebugController {
     public void test5(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
         MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
         mjQueuer.stopThreads();
+    }
+    
+    @RequestMapping(value = "test6", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
+    public Integer test6(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
+//        return docRepository.numeraDoc(1548, 304295, 1064625);
+        archivioRepository.numeraTuttiDocumentsArchivioRadice(440, 304295, 1064625);
+        return 1;
     }
     
     @RequestMapping(value = "test4", method = RequestMethod.GET)
