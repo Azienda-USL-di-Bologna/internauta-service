@@ -1367,7 +1367,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         if (a.isPresent()) {
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
             Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.RESPONSABILE)) {
+            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.RESPONSABILE) && !scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO)) {
                 throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
             }
             Archivio entity = a.get();
