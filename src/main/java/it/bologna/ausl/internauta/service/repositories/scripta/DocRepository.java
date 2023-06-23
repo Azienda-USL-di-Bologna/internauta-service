@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.repositories.scripta;
 
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.projections.generated.DocWithPlainFields;
@@ -28,4 +29,6 @@ public interface DocRepository extends
     
     @Query(value = "select * from scripta.numerazione_doc(?1, ?2, ?3);", nativeQuery = true)
     public Integer numeraDoc(Integer idDoc, Integer idPersona, Integer idStruttura);
+
+    public Doc findByIdEsternoAndIdAzienda(String idEsterno, Azienda idAzienda);
 }
