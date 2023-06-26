@@ -1,12 +1,18 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.ricalcolopermessiarchivi;
 
+import com.querydsl.jpa.impl.JPAQuery;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessigerarchiaarchivio.*;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
+import java.time.ZonedDateTime;
+import java.util.Iterator;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +29,8 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
     
     @Autowired
     private ParametriAziendeReader parametriAziendeReader;
+    
+    
 
     @Override
     public String getName() {
@@ -35,7 +43,7 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
         
         List<ParametroAziende> parameters = parametriAziendeReader.getParameters(ParametriAziendeReader.ParametriAzienda.ricalcoloPermessiArchivi.toString());
         if (parameters == null || parameters.isEmpty() || parameters.size() > 1) {
-            throw new MasterjobsWorkerException("il parametro ricalcoloPermessiArchivi non è presente una e una sola volta");
+            throw new MasterjobsWorkerException("il parametro ricalcoloPermessiArchivi non Ã¨ presente una e una sola volta");
         }
         RicalcoloPermessiArchiviParams parametri = parametriAziendeReader.getValue(parameters.get(0), RicalcoloPermessiArchiviParams.class);
         
@@ -43,36 +51,51 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
         log.info("GiorniPerDataMinimaUltimoUtilizzo" + parametri.getGiorniPerDataMinimaUltimoUtilizzo());
         log.info("NumeroArchiviAggiuntiviDaRecuperare" + parametri.getNumeroArchiviAggiuntiviDaRecuperare());
         
+        ZonedDateTime now = ZonedDateTime.now();
+        ZonedDateTime dataMassimaUltimoRicalcolo = now.minusDays(parametri.getGiorniPerDataMassimaUltimoRicalcolo());
+        ZonedDateTime dataMinimaUltimoUtilizzo = now.minusDays(parametri.getGiorniPerDataMinimaUltimoUtilizzo());
         
-//        CalcoloPermessiGerarchiaArchivioJobWorkerData data = getWorkerData();
-//        log.info("Calcolo permessi archivioRadice: " + data.getIdArchivioRadice().toString());
-//        
-//        List<Integer> idArchivi = null;
-//        
-//        try {
-//            QArchivio qArchivio = QArchivio.archivio;
-//            
-//            JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
-//            idArchivi = jPAQueryFactory
-//                    .select(qArchivio.id)
-//                    .from(qArchivio)
-//                    .where(qArchivio.idArchivioRadice.id.eq(data.getIdArchivioRadice()))
-//                    .fetch();
-//        } catch (Exception ex){
-//           String errore = "Errore nel calcolo dei permessi espliciti degli archivi";
-//           log.error(errore, ex);
-//           throw new MasterjobsWorkerException(errore, ex);
-//        }
-//        
-//        log.info("Ora accodo il job per il calcolo di ogni singolo archivio");
-//        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-//        for (Integer idArchivio : idArchivi) {
-//            // Come object id uso idArchivioRadice perché voglio che CalcolaPersoneVedentiDaArchiviRadice abbia il wait for object rispetto a tutti questi job
-//            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, data.getIdArchivioRadice().toString(), "scripta_archivio");
-//        }
-//        
-//        log.info("Ora accodo il ricalcolo persone vedenti");
-//        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(data.getIdArchivioRadice())), data.getIdArchivioRadice().toString(), "scripta_archivio", null);
+        QArchivioInfo qArchivioinfo = QArchivioInfo.archivioInfo;
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
+        
+        JPAQuery<Integer> archiviDaRicalcolarePerMaggioreUtilizzo = jPAQueryFactory
+                .select(qArchivioinfo.id)
+                .from(qArchivioinfo)
+                .where(qArchivioinfo.dataUltimoUtilizzo.goe(dataMinimaUltimoUtilizzo)
+                        .and(qArchivioinfo.dataUltimoRicalcoloPermessi.loe(dataMassimaUltimoRicalcolo))
+                )
+                .fetchAll();
+        
+        JPAQuery<Integer> archiviDaRicalcolarePerRecupero = jPAQueryFactory
+                .select(qArchivioinfo.id)
+                .from(qArchivioinfo)
+                .orderBy(qArchivioinfo.dataUltimoRicalcoloPermessi.asc())
+                .limit(parametri.getNumeroArchiviAggiuntiviDaRecuperare())
+                .fetchAll();
+        
+        log.info("Ora accodo il job per il calcolo di ogni singolo archivio");
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+        
+        Integer i = 0;
+        
+        for (Iterator<Integer> a = archiviDaRicalcolarePerMaggioreUtilizzo.iterate(); a.hasNext();) {
+            Integer idArchivio = a.next();
+            i++;
+            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", null);
+        }
+
+        log.info("Size di archiviDaRicalcolarePerMaggioreUtilizzo:" + i);
+        
+        i = 0;
+        
+        for (Iterator<Integer> a = archiviDaRicalcolarePerRecupero.iterate(); a.hasNext();) {
+            Integer idArchivio = a.next();
+            i++;
+            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", null);
+        }
+        
+        log.info("Size di archiviDaRicalcolarePerRecupero:" + i);
+
         return null;
     }
     

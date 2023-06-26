@@ -4,6 +4,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.WorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.ricalcolopermessiarchivi.RicalcoloPermessiArchiviJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.ServiceWorker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
