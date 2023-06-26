@@ -7,12 +7,16 @@ import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaP
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.FASCICOLO;
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.PROTOCOLLO_IN_ENTRATA;
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.PROTOCOLLO_IN_USCITA;
+import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
+import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums;
+import it.bologna.ausl.model.entities.tip.data.KeyValueEnum;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
@@ -205,5 +209,10 @@ public abstract class TipDataValidator {
      */
     public static boolean validateNotazioniPosizionali(String stringa1, String stringa2, String separatore) {
         return stringa2.split(separatore).length == stringa2.split(separatore).length;
+    }
+    
+    public static  <E extends Enum<E> & KeyValueEnum> boolean validaEnumConNotazioniPosizionali(String stringa, String separatore, Class<E> enumClass) {
+        String[] stringhe = stringa.split(separatore);
+        return Stream.of(stringhe).allMatch(s -> KeyValueEnum.findEnumKeyFromValue(s, enumClass) != null);
     }
 }

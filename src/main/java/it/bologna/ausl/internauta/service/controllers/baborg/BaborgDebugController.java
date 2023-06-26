@@ -15,6 +15,8 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRe
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.jpa.natiquery.NativeQueryTools;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
@@ -134,6 +136,11 @@ public class BaborgDebugController {
     
     @Autowired
     private JobReporitory jobRepository;
+    
+    @Autowired
+    private DocRepository docRepository;
+    @Autowired
+    private ArchivioRepository archivioRepository;
     
     @Autowired
     private CambiamentiAssociazioneRepository cambiamentiAssociazioneRepository;

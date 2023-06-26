@@ -320,7 +320,7 @@ public class TipImportManager {
                 // se trovo il campo, ne setto il valore tramite il wrapper istanziato prima
                 wrapper.setPropertyValue(colonnaEnum.toString(), csvRowMap.get(headerName));
             } else { // se non lo trovo, stampo un errore e lo ignoro
-                log.error("header csv %s non previsto dal tracciato, il campo sarà ignorato");
+                log.error(String.format("header csv %s non previsto dal tracciato, il campo sarà ignorato", headerName));
             }
         }
         return (T) wrapper.getWrappedInstance();

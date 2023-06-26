@@ -64,7 +64,7 @@ public class RequestInterceptor implements AsyncHandlerInterceptor {
                 } catch (Exception e) {
                     Report report = new Report();
                     report.setTipologia("KRINT_ERROR");
-                    Map<String, String> additionalData = new HashMap();
+                    HashMap<String, String> additionalData = new HashMap();
                     additionalData.put("message", "KRINT ERROR: errore nel salvataggio di una riga di krint");
                     additionalData.put("errorMessage", e.getMessage());
                     //String mapAsString = additionalData.keySet().stream().map(key -> "\"" + key + "\":\"" + additionalData.get(key) + "\"").collect(Collectors.joining(", ", "{", "}"));
@@ -88,7 +88,7 @@ public class RequestInterceptor implements AsyncHandlerInterceptor {
                         LOGGER.error(s);
                         Report report = new Report();
                         report.setTipologia("KRINT_ERROR_LOG");
-                        Map<String, String> additionalData = new HashMap();
+                        HashMap<String, String> additionalData = new HashMap();
                         additionalData.put("message", "KRINT ERROR LOG: scrittura del log del krint error");
                         additionalData.put("errorMessage", s);
                         //String mapAsString = additionalData.keySet().stream().map(key -> "\"" + key + "\":\"" + additionalData.get(key) + "\"").collect(Collectors.joining(", ", "{", "}"));
@@ -98,7 +98,7 @@ public class RequestInterceptor implements AsyncHandlerInterceptor {
                 } catch (Exception e) {
                     Report report = new Report();
                     report.setTipologia("KRINT_ERROR_LOG_ERROR");
-                    Map<String, String> additionalData = new HashMap();
+                    HashMap<String, String> additionalData = new HashMap();
                     additionalData.put("message", "KRINT ERROR: errore nella scrittura del log del krint error");
                     additionalData.put("errorMessage", e.getMessage());
                     //String mapAsString = additionalData.keySet().stream().map(key -> "\"" + key + "\":\"" + additionalData.get(key) + "\"").collect(Collectors.joining(", ", "{", "}"));

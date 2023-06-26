@@ -79,10 +79,6 @@ public class ProtocolloEntrataDataValidation extends TipDataValidator {
         if (!StringUtils.hasText(riga.getMezzo())) {
             erroriImportazione.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "il campo è obbligatorio.");
             riga.setErrori(erroriImportazione);
-        } else if(KeyValueEnum.findEnumKeyFromValue(riga.getMezzo(), ColonneImportazioneOggettoEnums.MezziConsentiti.class) == null) {
-            erroriImportazione.setError(ColonneProtocolloEntrata.mezzo, 
-                    TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
-                    String.format("valore non valido, i valori validi sono: %s", Arrays.asList(ColonneImportazioneOggettoEnums.MezziConsentiti.values())));
         } else {
             if (StringUtils.hasText(riga.getMittente()) && !validateNotazioniPosizionali(riga.getMezzo(), riga.getMittente(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
                 erroriImportazione.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
@@ -91,7 +87,14 @@ public class ProtocolloEntrataDataValidation extends TipDataValidator {
             if (StringUtils.hasText(riga.getIndirizzoMittente()) && !validateNotazioniPosizionali(riga.getMezzo(), riga.getIndirizzoMittente(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
                 erroriImportazione.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                     String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloEntrata.indirizzoMittente.toString()));
-            }    
+            }
+             
+            if (!TipDataValidator.validaEnumConNotazioniPosizionali(riga.getMezzo(), TipDataValidator.DEFAULT_STRING_SEPARATOR, ColonneImportazioneOggettoEnums.MezziConsentiti.class)) {
+                erroriImportazione.setError(ColonneProtocolloEntrata.mezzo,
+                        TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE,
+                        String.format("valore non valido, i valori validi sono: %s", Arrays.asList(ColonneImportazioneOggettoEnums.MezziConsentiti.values())));
+            }
+            
         }
         
         if (StringUtils.hasText(riga.getDataProtocolloEsterno()) && !validateData(riga.getDataProtocolloEsterno())) {

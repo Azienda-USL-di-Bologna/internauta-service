@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
+import com.drew.lang.StringUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import it.bologna.ausl.documentgenerator.GeneratePE;
@@ -151,6 +152,19 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.service.utils.FileUtilities;
+import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.services.jobsnotified.JobsNotifiedServiceWorker;
+import it.bologna.ausl.model.entities.masterjobs.JobNotified;
+import it.bologna.ausl.model.entities.masterjobs.QJobNotified;
+import it.bologna.ausl.model.entities.masterjobs.Set;
+import java.io.File;
+import java.io.FileInputStream;
+import java.nio.file.Files;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.tika.mime.MimeTypeException;
 
 /**
  *
@@ -276,6 +290,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private KrintUtils krintUtils;
+    
+    @Autowired
+    private JobNotifiedRepository jobNotifiedRepository;
 
     @Autowired
     private KrintScriptaService krintScriptaService;
@@ -422,8 +439,27 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                                     throw new Http404ResponseException("3", "Dettaglio allegato richiesto non tovato");
                             }
                         } else {
-                            response.setHeader("Content-Type", allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato).getMimeType());
-                            StreamUtils.copy(fileRichiesto, response.getOutputStream());
+                            String mimeType = allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato).getMimeType();
+                            
+                            if (!StringUtils.hasText(mimeType)) {
+                                // Non ha il mimetype, me lo recupero
+                                try {
+                                    File file = File.createTempFile("Allegato_", FilenameUtils.getExtension(allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato).getNome()));
+                                    file.deleteOnExit();
+                                    scriptaDownloadUtils.addFileToTempFiles(file);
+                                    FileUtils.copyInputStreamToFile(fileRichiesto, file);
+                                    mimeType = FileUtilities.getMimeTypeFromPath(file.getAbsolutePath());
+                                    try (FileInputStream fileInputStream = new FileInputStream(file)) {
+                                        response.setHeader("Content-Type", mimeType);
+                                        StreamUtils.copy(fileInputStream, response.getOutputStream());
+                                    }
+                                } catch (IOException | MimeTypeException ex) {
+                                    throw new Http500ResponseException("23", "IOException", ex);
+                                }
+                            } else {
+                                response.setHeader("Content-Type", mimeType);
+                                StreamUtils.copy(fileRichiesto, response.getOutputStream());
+                            }
                         }
                     }
                 }
@@ -1133,9 +1169,16 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 pv.setPienaVisibilita(Boolean.TRUE);
                 pv.setMioDocumento(Boolean.TRUE);
                 personaVedenteRepository.save(pv);
+ 
+                CalcolaPersoneVedentiDocJobWorkerData calcolaPersoneVedentiDocJobWorkerData = new CalcolaPersoneVedentiDocJobWorkerData(doc.getId());
 
-                AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-                accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
+                Map calcolaPersoneVedentiDocJobWorkerDataMap = objectMapper.convertValue(calcolaPersoneVedentiDocJobWorkerData, Map.class);
+                JobNotified jn = new JobNotified();
+                jn.setJobName("CalcolaPersoneVedentiDocJobWorker");
+                jn.setJobData(calcolaPersoneVedentiDocJobWorkerDataMap);
+                jn.setWaitObject(false);
+                jobNotifiedRepository.save(jn);
+                
                 if (krintUtils.doIHaveToKrint(request)) {
                     krintScriptaService.writeArchivioDoc(save, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_LOAD);
                 }
@@ -1246,9 +1289,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             doc.setIdAzienda(azienda);
             doc = docRepository.save(doc);
         } catch (Exception ex) {
-            log.error("errore nella creazione del doc internauta", ex);
+            log.error("errore nella creazione del doc internauta. Forse esisteva già per via del cannone quindi lo recupero");
             // Forse esisteva già per via del cannone quindi lo recupero
-            doc = docRepository.findByIdEsterno((String) registroGiornaliero.get("id"));
+            doc = docRepository.findByIdEsternoAndIdAzienda((String) registroGiornaliero.get("id"), azienda);
             if (doc == null) {
                 throw new Http500ResponseException("2", "Documento non trovato. E non creabile");
             }
@@ -1276,7 +1319,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         if (archivioSpeciale.isPresent()) {
             log.info("ho trovato il fascicolo speciale");
             if (!archivioDocRepository.exists(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioSpeciale.get().getId()).and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))) {
-                log.info("non essite la fascicolazione quindi la eseguo");
+                log.info("non esiste la fascicolazione quindi la eseguo");
                 ArchivioDoc archivioDoc = new ArchivioDoc();
                 archivioDoc.setIdArchivio(archivioSpeciale.get());
                 archivioDoc.setIdDoc(doc);
@@ -1324,7 +1367,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         if (a.isPresent()) {
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
             Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.RESPONSABILE)) {
+            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.RESPONSABILE) && !scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO)) {
                 throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
             }
             Archivio entity = a.get();
