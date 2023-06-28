@@ -30,8 +30,6 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
     @Autowired
     private ParametriAziendeReader parametriAziendeReader;
     
-    
-
     @Override
     public String getName() {
         return this.name;
@@ -41,6 +39,7 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
     protected JobWorkerResult doRealWork() throws MasterjobsWorkerException {
         log.info("Inizio job");
         
+        // Recupero i parametri di esecuzione del job
         List<ParametroAziende> parameters = parametriAziendeReader.getParameters(ParametriAziendeReader.ParametriAzienda.ricalcoloPermessiArchivi.toString());
         if (parameters == null || parameters.isEmpty() || parameters.size() > 1) {
             throw new MasterjobsWorkerException("il parametro ricalcoloPermessiArchivi non è presente una e una sola volta");
@@ -52,6 +51,7 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
         log.info("NumeroArchiviAggiuntiviDaRecuperare" + parametri.getNumeroArchiviAggiuntiviDaRecuperare());
         log.info("LimitArchiviUltimoPeriodo" + parametri.getLimitArchiviUltimoPeriodo());
         
+        // Preparo le date per le query
         ZonedDateTime now = ZonedDateTime.now();
         ZonedDateTime dataMassimaUltimoRicalcolo = now.minusDays(parametri.getGiorniPerDataMassimaUltimoRicalcolo());
         ZonedDateTime dataMinimaUltimoUtilizzo = now.minusDays(parametri.getGiorniPerDataMinimaUltimoUtilizzo());
@@ -59,6 +59,10 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
         QArchivioInfo qArchivioinfo = QArchivioInfo.archivioInfo;
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
         
+        /* Con questa query prendiamo gli archivi usati di recente (data ultimo utilizzo maggiore di dataMinimaUltimoUtilizzo)
+         * e che non abbiano "subìto" un ricalcolo dei permessi di recente (data ultimo ricalcolo minore di dataMassimaUltimoRicalcolo)
+         * Ne prendo solo un numero limitato: LimitArchiviUltimoPeriodo
+         */
         JPAQuery<Integer> archiviDaRicalcolarePerMaggioreUtilizzo = jPAQueryFactory
                 .select(qArchivioinfo.id)
                 .from(qArchivioinfo)
@@ -68,6 +72,9 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
                 .limit(parametri.getLimitArchiviUltimoPeriodo())
                 .fetchAll();
         
+        /* Con questa query vado a prendere gli archivi che da più tempo non hanno ricalcolato i permessi
+         * Ne prendo solo un numero limitato: NumeroArchiviAggiuntiviDaRecuperare
+         */
         JPAQuery<Integer> archiviDaRicalcolarePerRecupero = jPAQueryFactory
                 .select(qArchivioinfo.id)
                 .from(qArchivioinfo)
@@ -75,6 +82,8 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
                 .limit(parametri.getNumeroArchiviAggiuntiviDaRecuperare())
                 .fetchAll();
         
+        // Ciclo gli archivi trovati e accodo il job di ricalcolo permessi. 
+        // Il job poi a sua volta accoderà il ricalcolo delle persone vedenti dei doc contenuti
         log.info("Ora accodo il job per il calcolo di ogni singolo archivio");
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         
@@ -101,6 +110,9 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
         return null;
     }
     
+    /**
+     * Classe che rappresenta il valore del parametro ricalcoloPermessiArchivi
+     */
     public static class RicalcoloPermessiArchiviParams {
         Integer numeroArchiviAggiuntiviDaRecuperare;
         Integer giorniPerDataMinimaUltimoUtilizzo;
