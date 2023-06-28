@@ -17,6 +17,7 @@ import it.bologna.ausl.internauta.service.repositories.gru.MdrResponsabiliReposi
 import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrStrutturaRepositoryCustomImpl;
 import it.bologna.ausl.internauta.service.repositories.gru.MdrTrasformazioniRepository;
+import it.bologna.ausl.internauta.service.repositories.mdrsporco.MdrTrasformazioniSporcheRepository;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
@@ -31,6 +32,7 @@ import it.bologna.ausl.model.entities.gru.QMdrAppartenenti;
 import it.bologna.ausl.model.entities.gru.QMdrResponsabili;
 import it.bologna.ausl.model.entities.gru.QMdrStruttura;
 import it.bologna.ausl.model.entities.gru.QMdrTrasformazioni;
+import it.bologna.ausl.model.entities.mdrsporco.MdrTrasformazioniSporche;
 import it.bologna.ausl.mongowrapper.MongoWrapper;
 import it.bologna.ausl.mongowrapper.exceptions.MongoWrapperException;
 import java.io.File;
@@ -113,6 +115,9 @@ public class ImportaDaCSV {
 
     @Autowired
     private ParametriAziendeReader parametriAziende;
+    
+    @Autowired
+    private MdrTrasformazioniSporcheRepository mdrTrasformazioniSporcheRepository;
 
     private static String[] headersGenerator(String tipo) {
         String[] headers = null;
@@ -955,11 +960,17 @@ public class ImportaDaCSV {
                 break;
 
                 case "TRASFORMAZIONI": {
+                    
                     nRigheDB = mdrTrasformazioniRepository.countRow(idAzienda);
                     anomalia = false;
                     parameters = parametriAziende.getParameters("tolleranzaResponsabili", new Integer[]{idAzienda}, new String[]{Applicazione.Applicazioni.ribaltorg.toString()});
                     if (parameters != null && !parameters.isEmpty()) {
                         tolleranza = parametriAziende.getValue(parameters.get(0), Integer.class);
+                    }
+                    Boolean salvaSuMdrSporco = false;
+                    parameters = parametriAziende.getParameters("salvaSuMdrSporco", new Integer[]{idAzienda}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
+                    if (parameters != null && !parameters.isEmpty()) {
+                        salvaSuMdrSporco = parametriAziende.getValue(parameters.get(0), Boolean.class);
                     }
                     //TODO per ottimizzazioni successive decommentare riga successiva
                     //Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda1 = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
@@ -970,150 +981,169 @@ public class ImportaDaCSV {
                     //Reading with CsvMapReader
                     Map<String, Object> trasformazioniMap;
                     while ((trasformazioniMap = mapReader.read(headers, processors)) != null) {
-                        log.info("mapReader.getLineNumber()" + mapReader.getLineNumber());
-                        Boolean tempi_ok = true;
-                        Boolean dataTrasformazione = true;
-                        Boolean dataInPartenza = true;
-                        // Inserisco la riga
-                        MdrTrasformazioni mT = new MdrTrasformazioni();
-                        mapError.put("ERRORE", "");
-                        //PROGRESSIVO RIGA
-                        Integer progressivoRiga = Trasformazioni.checkProgressivoRiga(trasformazioniMap, mapError, mapReader);
-                        mT.setProgressivoRiga(progressivoRiga);
-                        bloccante = progressivoRiga == null ? true : bloccante;
+                        if (salvaSuMdrSporco){
+                            Integer lastProgressivoRiga = mdrTrasformazioniSporcheRepository.getLastProgressivoRiga(idAzienda);
+                            lastProgressivoRiga +=1;
+                            MdrTrasformazioniSporche mdrTrasfSporca = new MdrTrasformazioniSporche();
+                            
+                            mdrTrasfSporca.setProgressivoRiga(lastProgressivoRiga);
+                            mdrTrasfSporca.setIdCasellaPartenza(Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()));
+                            mdrTrasfSporca.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                            mdrTrasfSporca.setDataTrasformazione(ImportaDaCSVUtils.formattattore(trasformazioniMap.get("data_trasformazione")));
+                            mdrTrasfSporca.setMotivo(trasformazioniMap.get("motivo").toString());
+                            mdrTrasfSporca.setDatainPartenza(ImportaDaCSVUtils.formattattore(trasformazioniMap.get("datain_partenza")));
+                            mdrTrasfSporca.setDatainPartenza(ImportaDaCSVUtils.formattattore(trasformazioniMap.get("dataora_oper")));
+                            mdrTrasfSporca.setCodiceEnte(azienda.getCodice());
+                            mdrTrasfSporca.setIdAzienda(azienda);
+                            mdrTrasformazioniSporcheRepository.save(mdrTrasfSporca);
+                            mapWriter.write(trasformazioniMap, headersGenerator(tipo), getProcessors(tipo));
+                            
+                        } else {
+                            log.info("mapReader.getLineNumber()" + mapReader.getLineNumber());
+                            Boolean tempi_ok = true;
+                            Boolean dataTrasformazione = true;
+                            Boolean dataInPartenza = true;
+                            // Inserisco la riga
+                            MdrTrasformazioni mT = new MdrTrasformazioni();
+                            mapError.put("ERRORE", "");
+                            //PROGRESSIVO RIGA
+                            Integer progressivoRiga = Trasformazioni.checkProgressivoRiga(trasformazioniMap, mapError, mapReader);
+                            mT.setProgressivoRiga(progressivoRiga);
+                            bloccante = progressivoRiga == null ? true : bloccante;
 
-//                      DATA TRASFORMAZIONE DEVE ESISTERE SEMPRE
-                        ZonedDateTime dataTrasformazioneT = Trasformazioni.checkDataTrasformazione(trasformazioniMap, mapError, mapReader);
-                        bloccante = dataTrasformazioneT == null ? true : bloccante;
-                        dataTrasformazione = dataTrasformazioneT == null ? false : dataTrasformazione;
-                        mT.setDataTrasformazione(dataTrasformazioneT);
-//                       DATA IN PARTENZA DEVE ESISTERE SEMPRE
-//                       PER MOTIVO DI "X", "T","R" E "U" Ã¨ LA DATA INIZIO DELLA CASELLA DI PARTENZA
-//                      AGGIUNGERE BOOLEANO TEMPI_CASELLA_OK
-                        ZonedDateTime dataInPartenzaT = Trasformazioni.checkDataInPartenza(trasformazioniMap, mapError, mapReader);
-                        bloccante = dataInPartenzaT == null ? true : bloccante;
-                        dataInPartenza = dataInPartenzaT == null ? false : dataInPartenza;
-                        mT.setDatainPartenza(dataInPartenzaT);
+    //                      DATA TRASFORMAZIONE DEVE ESISTERE SEMPRE
+                            ZonedDateTime dataTrasformazioneT = Trasformazioni.checkDataTrasformazione(trasformazioniMap, mapError, mapReader);
+                            bloccante = dataTrasformazioneT == null ? true : bloccante;
+                            dataTrasformazione = dataTrasformazioneT == null ? false : dataTrasformazione;
+                            mT.setDataTrasformazione(dataTrasformazioneT);
+    //                       DATA IN PARTENZA DEVE ESISTERE SEMPRE
+    //                       PER MOTIVO DI "X", "T","R" E "U" Ã¨ LA DATA INIZIO DELLA CASELLA DI PARTENZA
+    //                      AGGIUNGERE BOOLEANO TEMPI_CASELLA_OK
+                            ZonedDateTime dataInPartenzaT = Trasformazioni.checkDataInPartenza(trasformazioniMap, mapError, mapReader);
+                            bloccante = dataInPartenzaT == null ? true : bloccante;
+                            dataInPartenza = dataInPartenzaT == null ? false : dataInPartenza;
+                            mT.setDatainPartenza(dataInPartenzaT);
 
-                        //ID CASELLA DI PARTENZA
-                        //SEMPRE SPENTO IL GIORNO PRIMA DELLA DATA DI TRASFORMAZIONE
-                        //DI CONSEGUENZA DEVE ESISTERE
-                        Integer idCasellaPartenza = Trasformazioni.checkIdCasellaPartenza(trasformazioniMap, mapError, mapReader);
-                        mT.setIdCasellaPartenza(idCasellaPartenza == -1 ? null : idCasellaPartenza);
-                        bloccante = idCasellaPartenza == null ? true : bloccante;
+                            //ID CASELLA DI PARTENZA
+                            //SEMPRE SPENTO IL GIORNO PRIMA DELLA DATA DI TRASFORMAZIONE
+                            //DI CONSEGUENZA DEVE ESISTERE
+                            Integer idCasellaPartenza = Trasformazioni.checkIdCasellaPartenza(trasformazioniMap, mapError, mapReader);
+                            mT.setIdCasellaPartenza(idCasellaPartenza == -1 ? null : idCasellaPartenza);
+                            bloccante = idCasellaPartenza == null ? true : bloccante;
 
-                        if (dataInPartenza && dataTrasformazione && idCasellaPartenza != -1) {
+                            if (dataInPartenza && dataTrasformazione && idCasellaPartenza != -1) {
 
-                            if (!listaStruttureConDate.containsKey(idCasellaPartenza)) {
-                                log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di partenza non trovata");
-                                bloccante = true;
-                                tempi_ok = false;
-                                mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non trovata,");
-                            } else {
-                                boolean blocco = Strutture.checkAccesaSpentaMale(listaStruttureConDate.get(idCasellaPartenza), ImportaDaCSVUtils.formattattore(trasformazioniMap.get("data_trasformazione").toString()), ImportaDaCSVUtils.formattattore(trasformazioniMap.get("datain_partenza").toString()));
-                                if (blocco) {
-                                    log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " periodi temporali della casella di partenza non sono validi");
+                                if (!listaStruttureConDate.containsKey(idCasellaPartenza)) {
+                                    log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di partenza non trovata");
                                     bloccante = true;
                                     tempi_ok = false;
-                                    mapError.put("ERRORE", mapError.get("ERRORE") + " periodi temporali della casella di partenza non sono validi,");
+                                    mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non trovata,");
+                                } else {
+                                    boolean blocco = Strutture.checkAccesaSpentaMale(listaStruttureConDate.get(idCasellaPartenza), ImportaDaCSVUtils.formattattore(trasformazioniMap.get("data_trasformazione").toString()), ImportaDaCSVUtils.formattattore(trasformazioniMap.get("datain_partenza").toString()));
+                                    if (blocco) {
+                                        log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " periodi temporali della casella di partenza non sono validi");
+                                        bloccante = true;
+                                        tempi_ok = false;
+                                        mapError.put("ERRORE", mapError.get("ERRORE") + " periodi temporali della casella di partenza non sono validi,");
+                                    }
                                 }
                             }
-                        }
 
-//                      DATA ORA OPERAZIONE
-                        ZonedDateTime dataOraOper = Trasformazioni.checkDataOraOper(trasformazioniMap, mapError);
-                        mT.setDataoraOper(dataOraOper);
-                        boolean buono = trasformazioniMap.get("dataora_oper") == null || trasformazioniMap.get("dataora_oper").toString().trim().equals("");
-                        anomalia = buono ? true : anomalia;
-                        nRigheAnomale = buono ? nRigheAnomale++ : nRigheAnomale;
+    //                      DATA ORA OPERAZIONE
+                            ZonedDateTime dataOraOper = Trasformazioni.checkDataOraOper(trasformazioniMap, mapError);
+                            mT.setDataoraOper(dataOraOper);
+                            boolean buono = trasformazioniMap.get("dataora_oper") == null || trasformazioniMap.get("dataora_oper").toString().trim().equals("");
+                            anomalia = buono ? true : anomalia;
+                            nRigheAnomale = buono ? nRigheAnomale++ : nRigheAnomale;
 
-//                      CODICE ENTE
-                        String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(trasformazioniMap, mapError, codiceAzienda);
-                        mT.setCodiceEnte(codiceEnte);
-                        anomalia = codiceEnte.equals(codiceAzienda) ? true : anomalia;
-                        nRigheAnomale = codiceEnte.equals(codiceAzienda) ? nRigheAnomale++ : nRigheAnomale;
+    //                      CODICE ENTE
+                            String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(trasformazioniMap, mapError, codiceAzienda);
+                            mT.setCodiceEnte(codiceEnte);
+                            anomalia = codiceEnte.equals(codiceAzienda) ? true : anomalia;
+                            nRigheAnomale = codiceEnte.equals(codiceAzienda) ? nRigheAnomale++ : nRigheAnomale;
 
-//                      MOTIVO
-                        if (trasformazioniMap.get("motivo") == null
-                                || trasformazioniMap.get("motivo").toString().trim().equals("")
-                                || trasformazioniMap.get("motivo") == ""
-                                || !(trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("X")
-                                || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("R")
-                                || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("T")
-                                || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("U"))) {
-                            mapError.put("ERRORE", mapError.get("ERRORE") + " MOTIVO,");
-                            mapError.put("motivo", "");
-                            mT.setMotivo(null);
-                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " id_casella_arrivo assente");
-                            bloccante = true;
-                            //non ci sta un motivo copio paripari id casella di arrivo non ho elementi per sapere se ci dovrebbe o meno essere qualcosa
-                            mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
-                            mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
-                        } else {
-                            mapError.put("motivo", trasformazioniMap.get("motivo"));
-                            mT.setMotivo(trasformazioniMap.get("motivo").toString());
-
-                            if (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("X")) {
+    //                      MOTIVO
+                            if (trasformazioniMap.get("motivo") == null
+                                    || trasformazioniMap.get("motivo").toString().trim().equals("")
+                                    || trasformazioniMap.get("motivo") == ""
+                                    || !(trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("X")
+                                    || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("R")
+                                    || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("T")
+                                    || trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("U"))) {
+                                mapError.put("ERRORE", mapError.get("ERRORE") + " MOTIVO,");
+                                mapError.put("motivo", "");
+                                mT.setMotivo(null);
+                                log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " id_casella_arrivo assente");
+                                bloccante = true;
+                                //non ci sta un motivo copio paripari id casella di arrivo non ho elementi per sapere se ci dovrebbe o meno essere qualcosa
                                 mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
-                                if (tempi_ok) {
+                                mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                            } else {
+                                mapError.put("motivo", trasformazioniMap.get("motivo"));
+                                mT.setMotivo(trasformazioniMap.get("motivo").toString());
+
+                                if (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("X")) {
+                                    mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
+                                    if (tempi_ok) {
+                                        if (trasformazioniMap.get("id_casella_arrivo") == null || trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")) {
+                                            mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non presente nella tabella struttura,");
+                                            mapError.put("id_casella_arrivo", "");
+                                            mT.setIdCasellaArrivo(null);
+                                            bloccante = true;
+                                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " id_casella_arrivo assente");
+                                        } else {
+                                            mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
+                                            mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                            if (!trasformazioniMap.get("id_casella_arrivo").equals(trasformazioniMap.get("partenza"))) {
+                                                mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                                //TODO usare metodo appartenenti per ottimizzare
+                                                if (dataTrasformazioneT != null) {
+                                                    Integer accesaIntervalloByIdAzienda = mdrTrasformazioniRepository.isAccesaIntervalloByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()), dataTrasformazioneT);
+                                                    if (accesaIntervalloByIdAzienda != 1) {
+                                                        bloccante = true;
+                                                        log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di arrivo non valida nella data di trasformazione");
+                                                        mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non valida nella data di trasformazione,");
+                                                    }
+                                                }
+                                            } else {
+                                                log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di arrivo e di partenza sono uguali");
+                                                bloccante = true;
+                                                mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo e di partenza sono uguali,");
+                                            }
+                                        }
+                                    }
+                                } else if (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("R")
+                                        || (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("T"))) {
                                     if (trasformazioniMap.get("id_casella_arrivo") == null || trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")) {
-                                        mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non presente nella tabella struttura,");
                                         mapError.put("id_casella_arrivo", "");
                                         mT.setIdCasellaArrivo(null);
-                                        bloccante = true;
-                                        log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " id_casella_arrivo assente");
+
                                     } else {
                                         mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
                                         mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
-                                        if (!trasformazioniMap.get("id_casella_arrivo").equals(trasformazioniMap.get("partenza"))) {
-                                            mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
-                                            //TODO usare metodo appartenenti per ottimizzare
-                                            if (dataTrasformazioneT != null) {
-                                                Integer accesaIntervalloByIdAzienda = mdrTrasformazioniRepository.isAccesaIntervalloByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()), dataTrasformazioneT);
-                                                if (accesaIntervalloByIdAzienda != 1) {
-                                                    bloccante = true;
-                                                    log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di arrivo non valida nella data di trasformazione");
-                                                    mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo non valida nella data di trasformazione,");
-                                                }
-                                            }
+                                        if (!trasformazioniMap.get("id_casella_partenza").equals(trasformazioniMap.get("id_casella_arrivo"))) {
+                                            bloccante = true;
+                                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " id_casella_arrivo diversa da id_casella_partenza");
+                                            mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella_arrivo diversa da id_casella_partenza,");
                                         } else {
-                                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di arrivo e di partenza sono uguali");
-                                            bloccante = true;
-                                            mapError.put("ERRORE", mapError.get("ERRORE") + " casella di arrivo e di partenza sono uguali,");
+                                            Integer accesaBeneByIdAzienda = mdrTrasformazioniRepository.isAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), ImportaDaCSVUtils.formattattore(trasformazioniMap.get("data_trasformazione")));
+                                            if (accesaBeneByIdAzienda != 1) {
+                                                bloccante = true;
+                                                log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di partenza non valida nella data di trasformazione");
+                                                mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non valida nella data di trasformazione,");
+                                            }
+
                                         }
                                     }
-                                }
-                            } else if (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("R")
-                                    || (trasformazioniMap.get("motivo").toString().trim().equalsIgnoreCase("T"))) {
-                                if (trasformazioniMap.get("id_casella_arrivo") == null || trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")) {
-                                    mapError.put("id_casella_arrivo", "");
-                                    mT.setIdCasellaArrivo(null);
 
-                                } else {
-                                    mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
-                                    mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
-                                    if (!trasformazioniMap.get("id_casella_partenza").equals(trasformazioniMap.get("id_casella_arrivo"))) {
-                                        bloccante = true;
-                                        log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " id_casella_arrivo diversa da id_casella_partenza");
-                                        mapError.put("ERRORE", mapError.get("ERRORE") + " id_casella_arrivo diversa da id_casella_partenza,");
-                                    } else {
-                                        Integer accesaBeneByIdAzienda = mdrTrasformazioniRepository.isAccesaBeneByIdAzienda(idAzienda, Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()), ImportaDaCSVUtils.formattattore(trasformazioniMap.get("data_trasformazione")));
-                                        if (accesaBeneByIdAzienda != 1) {
-                                            bloccante = true;
-                                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " casella di partenza non valida nella data di trasformazione");
-                                            mapError.put("ERRORE", mapError.get("ERRORE") + " casella di partenza non valida nella data di trasformazione,");
-                                        }
-
-                                    }
                                 }
 
                             }
-
+                            mT.setIdAzienda(azienda);
+                            mdrTrasformazioniRepository.save(mT);
+                            mapWriter.write(mapError, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
+                            nRigheCSV = mapReader.getRowNumber();
                         }
-                        mT.setIdAzienda(azienda);
-                        mdrTrasformazioniRepository.save(mT);
-                        mapWriter.write(mapError, headersErrorGenerator(tipo), getProcessorsError(tipo, codiceAzienda));
-                        nRigheCSV = mapReader.getRowNumber();
                     }
                 }
                 break;
