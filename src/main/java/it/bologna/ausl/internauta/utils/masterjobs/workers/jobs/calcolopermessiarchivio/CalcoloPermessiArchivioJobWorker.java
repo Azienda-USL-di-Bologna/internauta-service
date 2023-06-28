@@ -8,6 +8,8 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
+import java.time.ZonedDateTime;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,10 +47,12 @@ public class CalcoloPermessiArchivioJobWorker extends JobWorker<CalcoloPermessiA
            throw new MasterjobsWorkerException(errore, ex);
         }
         
+        JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
+        
         if (data.getQueueJobCalcolaPersoneVedentiDoc()) {
             log.info("Ora inserisco i job per calcolare le persone vedenti dei documenti contenuti sull'archivio");
             QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
-            JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
+            
             List<Integer> idDocsDaArchivio = jpaQueryFactory
                     .select(qArchivioDoc.idDoc.id)
                     .from(qArchivioDoc)
@@ -63,6 +67,13 @@ public class CalcoloPermessiArchivioJobWorker extends JobWorker<CalcoloPermessiA
                 }
             }
         }
+        
+        log.info("Aggiorno la data di ultirmo ricalcolo permessi sullo archivio info");
+        jpaQueryFactory
+                .update(QArchivioInfo.archivioInfo)
+                .set(QArchivioInfo.archivioInfo.dataUltimoRicalcoloPermessi, ZonedDateTime.now())
+                .where(QArchivioInfo.archivioInfo.id.eq(data.getIdArchivio()))
+                .execute();
         
         return null;
     }

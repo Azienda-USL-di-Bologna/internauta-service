@@ -43,13 +43,14 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
         
         List<ParametroAziende> parameters = parametriAziendeReader.getParameters(ParametriAziendeReader.ParametriAzienda.ricalcoloPermessiArchivi.toString());
         if (parameters == null || parameters.isEmpty() || parameters.size() > 1) {
-            throw new MasterjobsWorkerException("il parametro ricalcoloPermessiArchivi non Ã¨ presente una e una sola volta");
+            throw new MasterjobsWorkerException("il parametro ricalcoloPermessiArchivi non è presente una e una sola volta");
         }
         RicalcoloPermessiArchiviParams parametri = parametriAziendeReader.getValue(parameters.get(0), RicalcoloPermessiArchiviParams.class);
         
         log.info("GiorniPerDataMassimaUltimoRicalcolo: " + parametri.getGiorniPerDataMassimaUltimoRicalcolo());
         log.info("GiorniPerDataMinimaUltimoUtilizzo" + parametri.getGiorniPerDataMinimaUltimoUtilizzo());
         log.info("NumeroArchiviAggiuntiviDaRecuperare" + parametri.getNumeroArchiviAggiuntiviDaRecuperare());
+        log.info("LimitArchiviUltimoPeriodo" + parametri.getLimitArchiviUltimoPeriodo());
         
         ZonedDateTime now = ZonedDateTime.now();
         ZonedDateTime dataMassimaUltimoRicalcolo = now.minusDays(parametri.getGiorniPerDataMassimaUltimoRicalcolo());
@@ -64,6 +65,7 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
                 .where(qArchivioinfo.dataUltimoUtilizzo.goe(dataMinimaUltimoUtilizzo)
                         .and(qArchivioinfo.dataUltimoRicalcoloPermessi.loe(dataMassimaUltimoRicalcolo))
                 )
+                .limit(parametri.getLimitArchiviUltimoPeriodo())
                 .fetchAll();
         
         JPAQuery<Integer> archiviDaRicalcolarePerRecupero = jPAQueryFactory
@@ -81,7 +83,7 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
         for (Iterator<Integer> a = archiviDaRicalcolarePerMaggioreUtilizzo.iterate(); a.hasNext();) {
             Integer idArchivio = a.next();
             i++;
-            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", null);
+            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", null, true);
         }
 
         log.info("Size di archiviDaRicalcolarePerMaggioreUtilizzo:" + i);
@@ -91,7 +93,7 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
         for (Iterator<Integer> a = archiviDaRicalcolarePerRecupero.iterate(); a.hasNext();) {
             Integer idArchivio = a.next();
             i++;
-            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", null);
+            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", null, true);
         }
         
         log.info("Size di archiviDaRicalcolarePerRecupero:" + i);
@@ -99,10 +101,13 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
         return null;
     }
     
-    private class RicalcoloPermessiArchiviParams {
+    public static class RicalcoloPermessiArchiviParams {
         Integer numeroArchiviAggiuntiviDaRecuperare;
         Integer giorniPerDataMinimaUltimoUtilizzo;
         Integer giorniPerDataMassimaUltimoRicalcolo;
+        Integer limitArchiviUltimoPeriodo;
+        
+        public RicalcoloPermessiArchiviParams() {};
 
         public Integer getNumeroArchiviAggiuntiviDaRecuperare() {
             return numeroArchiviAggiuntiviDaRecuperare;
@@ -126,6 +131,14 @@ public class RicalcoloPermessiArchiviJobWorker extends JobWorker<CalcoloPermessi
 
         public void setGiorniPerDataMassimaUltimoRicalcolo(Integer giorniPerDataMassimaUltimoRicalcolo) {
             this.giorniPerDataMassimaUltimoRicalcolo = giorniPerDataMassimaUltimoRicalcolo;
+        }
+
+        public Integer getLimitArchiviUltimoPeriodo() {
+            return limitArchiviUltimoPeriodo;
+        }
+
+        public void setLimitArchiviUltimoPeriodo(Integer limitArchiviUltimoPeriodo) {
+            this.limitArchiviUltimoPeriodo = limitArchiviUltimoPeriodo;
         }
     }
 }

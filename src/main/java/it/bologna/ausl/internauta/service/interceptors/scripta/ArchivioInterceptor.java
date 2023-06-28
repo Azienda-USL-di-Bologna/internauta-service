@@ -254,7 +254,9 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         Archivio archivio = (Archivio) entity;
         
-        scriptaArchiviUtils.updateDataUltimoUtilizzoArchivio(archivio.getId());
+        if (mainEntity) {
+            scriptaArchiviUtils.updateDataUltimoUtilizzoArchivio(archivio.getId());
+        }
         
         return super.afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
