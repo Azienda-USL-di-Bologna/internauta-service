@@ -25,6 +25,7 @@ import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.persistence.Table;
 import org.slf4j.Logger;
@@ -62,12 +63,12 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
     protected JobWorkerResult doRealWork() throws MasterjobsWorkerException {
         log.info("Inizio", getName());
         //carico l'azienda
-        String codiceAzienda = getWorkerData().getCodiceAzienda();
-        Azienda azienda = aziendaRepository.findByCodice(codiceAzienda);
+        Integer idAzienda = getWorkerData().getIdAzienda();
+        Azienda azienda = aziendaRepository.findById(idAzienda).get();
 
         //carico la persona a cui devo spegnere/accendere i permessi/ruoli
-        Persona persona = personaRepository.findByCodiceFiscale(getWorkerData().getCodiceFiscale());
-
+        Persona persona = personaRepository.findById(getWorkerData().getIdPersona()).get();
+        
         //carico l'utente a cui devo spegnere/accendere i permessi/ruoli
         Utente utente = utenteRepository.findByIdAziendaAndIdPersona(azienda, persona);
 //      carico tutti i predicati dei permessi che servono al profilo nuovo

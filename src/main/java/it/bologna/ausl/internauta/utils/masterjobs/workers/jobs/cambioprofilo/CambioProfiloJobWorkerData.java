@@ -15,20 +15,20 @@ public class CambioProfiloJobWorkerData extends JobWorkerData {
     @JsonIgnore
     private static final Logger log = LoggerFactory.getLogger(CalcolaGerarchiaArchivioJobWorkerData.class);
     
-    private String codiceFiscale;
+    private Integer idPersona;
     private String profiloNew;
     private String profiloOld;
-    private String codiceAzienda;
+    private Integer idAzienda;
     
     public CambioProfiloJobWorkerData() {
     }
 
-    public String getCodiceFiscale() {
-        return codiceFiscale;
+    public Integer getIdPersona() {
+        return idPersona;
     }
 
-    public void setCodiceFiscale(String codiceFiscale) {
-        this.codiceFiscale = codiceFiscale;
+    public void setIdPersona(Integer idPersona) {
+        this.idPersona = idPersona;
     }
 
     public String getProfiloNew() {
@@ -47,14 +47,12 @@ public class CambioProfiloJobWorkerData extends JobWorkerData {
         this.profiloOld = profiloOld;
     }
 
-    public String getCodiceAzienda() {
-        return codiceAzienda;
+    public Integer getIdAzienda() {
+        return idAzienda;
     }
 
-    public void setCodiceAzienda(String codiceAzienda) {
-        this.codiceAzienda = codiceAzienda;
+    public void setIdAzienda(Integer idAzienda) {
+        this.idAzienda = idAzienda;
     }
-    
-    
     
 }
