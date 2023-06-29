@@ -273,6 +273,11 @@
             <version>1.0-SNAPSHOT</version>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>it.bologna.ausl.internauta.utils</groupId>
+            <artifactId>PDFToolkit</artifactId>
+            <version>1.0</version>
+        </dependency>
         <!-- altri progetti -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
