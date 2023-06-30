@@ -1,14 +1,13 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
+import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaArchiviUtils;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
-import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.MassimarioRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
-import it.bologna.ausl.internauta.service.utils.NonCachedEntities;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -20,6 +19,7 @@ import it.bologna.ausl.model.entities.scripta.QMassimario;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
+import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +57,9 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private KrintUtils krintUtils;
+    
+    @Autowired
+    private ScriptaArchiviUtils scriptaArchiviUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -244,5 +247,17 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         }
 
         return super.beforeUpdateEntityInterceptor(archivio, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass);
+    }
+    
+    
+    @Override
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        Archivio archivio = (Archivio) entity;
+        
+        if (mainEntity) {
+            scriptaArchiviUtils.updateDataUltimoUtilizzoArchivio(archivio.getId());
+        }
+        
+        return super.afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
 }
