@@ -14,12 +14,18 @@ public class CalcoloPermessiArchivioJobWorkerData extends JobWorkerData {
     private static final Logger log = LoggerFactory.getLogger(CalcoloPermessiArchivioJobWorkerData.class);
 
     private Integer idArchivio;
+    private Boolean queueJobCalcolaPersoneVedentiDoc = false;
 
     public CalcoloPermessiArchivioJobWorkerData() {
     }
 
     public CalcoloPermessiArchivioJobWorkerData(Integer idArchivio) {
         this.idArchivio = idArchivio;
+    }
+
+    public CalcoloPermessiArchivioJobWorkerData(Integer idArchivio, Boolean queueJobCalcolaPersoneVedentiDoc) {
+        this.idArchivio = idArchivio;
+        this.queueJobCalcolaPersoneVedentiDoc = queueJobCalcolaPersoneVedentiDoc;
     }
 
     public Integer getIdArchivio() {
@@ -30,4 +36,11 @@ public class CalcoloPermessiArchivioJobWorkerData extends JobWorkerData {
         this.idArchivio = idArchivio;
     }
 
+    public Boolean getQueueJobCalcolaPersoneVedentiDoc() {
+        return queueJobCalcolaPersoneVedentiDoc;
+    }
+
+    public void setQueueJobCalcolaPersoneVedentiDoc(Boolean queueJobCalcolaPersoneVedentiDoc) {
+        this.queueJobCalcolaPersoneVedentiDoc = queueJobCalcolaPersoneVedentiDoc;
+    }
 }

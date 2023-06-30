@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.interceptors.scripta;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaArchiviUtils;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
@@ -21,6 +22,7 @@ import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,9 +50,6 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
     PermessoArchivioRepository permessoArchivioRepository;
 
     @Autowired
-    ArchivioDiInteresseRepository archiviDiInteresseRepository;
-
-    @Autowired
     ArchivioRecenteRepository archivioRecenteRepository;
 
     @Autowired
@@ -58,6 +57,9 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private KrintScriptaService krintScriptaService;
+    
+    @Autowired
+    private ScriptaArchiviUtils scriptaArchiviUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -142,7 +144,10 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
         Persona persona = user.getIdPersona();
 
         ArchivioDoc archivioDoc = (ArchivioDoc) entity;
-        archiviDiInteresseRepository.aggiungiArchivioRecente(archivioDoc.getIdArchivio().getIdArchivioRadice().getId(), persona.getId());
+        
+        scriptaArchiviUtils.updateDataUltimoUtilizzoArchivio(archivioDoc.getIdArchivio().getId());
+        
+//        archiviDiInteresseRepository.aggiungiArchivioRecente(archivioDoc.getIdArchivio().getIdArchivioRadice().getId(), persona.getId());
         /*
         ZonedDateTime data_recentezza = ZonedDateTime.now();
         Optional<ArchivioRecente> archivio = archiviRecentiRepository.getArchivioFromPersonaAndArchivio(archivioDoc.getIdArchivio().getIdArchivioRadice().getId(), persona.getId());
@@ -163,5 +168,23 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
             krintScriptaService.writeArchivioDoc(archivioDoc, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_BY_ADI);
         }
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
+    }
+
+    @Override
+    public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        ArchivioDoc archivioDoc = (ArchivioDoc) entity;
+        
+        scriptaArchiviUtils.updateDataUltimoUtilizzoArchivio(archivioDoc.getIdArchivio().getId());
+        
+        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
+    }
+
+    @Override
+    public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        ArchivioDoc archivioDoc = (ArchivioDoc) entity;
+        
+        scriptaArchiviUtils.updateDataUltimoUtilizzoArchivio(archivioDoc.getIdArchivio().getId());
+        
+        super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
     }
 }

@@ -1159,7 +1159,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 //archvivio il document
                 ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
-                archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
+//                archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
 
                 PersonaVedente pv = new PersonaVedente();
                 pv.setIdAzienda(doc.getIdAzienda());
@@ -1291,7 +1291,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         } catch (Exception ex) {
             log.error("errore nella creazione del doc internauta. Forse esisteva già per via del cannone quindi lo recupero");
             // Forse esisteva già per via del cannone quindi lo recupero
-            doc = docRepository.findByIdEsternoAndIdAzienda((String) registroGiornaliero.get("id"),azienda);
+            doc = docRepository.findByIdEsternoAndIdAzienda((String) registroGiornaliero.get("id"), azienda);
             if (doc == null) {
                 throw new Http500ResponseException("2", "Documento non trovato. E non creabile");
             }
@@ -1319,7 +1319,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         if (archivioSpeciale.isPresent()) {
             log.info("ho trovato il fascicolo speciale");
             if (!archivioDocRepository.exists(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioSpeciale.get().getId()).and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))) {
-                log.info("non essite la fascicolazione quindi la eseguo");
+                log.info("non esiste la fascicolazione quindi la eseguo");
                 ArchivioDoc archivioDoc = new ArchivioDoc();
                 archivioDoc.setIdArchivio(archivioSpeciale.get());
                 archivioDoc.setIdDoc(doc);
@@ -1367,7 +1367,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         if (a.isPresent()) {
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
             Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.RESPONSABILE)) {
+            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.RESPONSABILE) && !scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO)) {
                 throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
             }
             Archivio entity = a.get();
