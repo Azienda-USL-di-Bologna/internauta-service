@@ -61,7 +61,7 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                 .join(QDoc.doc).on(QDoc.doc.id.eq(QArchivioDoc.archivioDoc.idDoc.id))
                 .where(
                         QArchivioDoc.archivioDoc.dataEliminazione.isNotNull().and(QArchivioDoc.archivioDoc.dataEliminazione.before(ZonedDateTime.now().minusDays(tempoEliminaArchiviazioni))),
-                        QDoc.doc.tipologia.eq(DocDetailInterface.TipologiaDoc.DOCUMENT.toString()).or(QDoc.doc.tipologia.eq(DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString())).or(QDoc.doc.tipologia.eq(DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString())),
+                        QDoc.doc.tipologia.eq(DocDetailInterface.TipologiaDoc.DOCUMENT).or(QDoc.doc.tipologia.eq(DocDetailInterface.TipologiaDoc.DOCUMENT_PEC)).or(QDoc.doc.tipologia.eq(DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE)),
                         QDoc.doc.idAzienda.id.eq(idAzienda)
                 )
                 .fetch();
@@ -87,7 +87,7 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                 .from(QDoc.doc)
                 .where(
                         QDoc.doc.id.in(idDocsConCrossEliminateLogicamente),
-                        QDoc.doc.tipologia.ne(DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString())
+                        QDoc.doc.tipologia.ne(DocDetailInterface.TipologiaDoc.DOCUMENT_PEC)
                 ).fetch();
         //mi connetto al minio e elimino i file dei dec non pec pescati in precedenza ciclando per ogni doc i suoi allegti e per ogni allegato i suoi dettagli 
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();

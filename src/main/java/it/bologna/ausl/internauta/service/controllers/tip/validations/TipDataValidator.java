@@ -7,8 +7,6 @@ import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaP
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.FASCICOLO;
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.PROTOCOLLO_IN_ENTRATA;
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.PROTOCOLLO_IN_USCITA;
-import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
-import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums;
 import it.bologna.ausl.model.entities.tip.data.KeyValueEnum;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
 import java.time.LocalDate;
@@ -211,8 +209,26 @@ public abstract class TipDataValidator {
         return stringa2.split(separatore).length == stringa2.split(separatore).length;
     }
     
+    /**
+     * Controlla che nella stringa passata ci siano solo stringhe rappresentate dall'emnum passato separate dal separatore passato
+     * @param <E>
+     * @param stringa la stringa da controllare
+     * @param separatore il separatore
+     * @param enumClass l'enum con il quale validare la stringa
+     * @return 
+     */
     public static  <E extends Enum<E> & KeyValueEnum> boolean validaEnumConNotazioniPosizionali(String stringa, String separatore, Class<E> enumClass) {
         String[] stringhe = stringa.split(separatore);
         return Stream.of(stringhe).allMatch(s -> KeyValueEnum.findEnumKeyFromValue(s, enumClass) != null);
+    }
+    
+    /**
+     * Controlla che i path degli allegati non contengano caratteri non consentiti nei path
+     * @param stringaAllegati la stringa degli allegati
+     * @return true se i path sono validi, false altrimenti
+     */
+    public static boolean validaAllegati(String stringaAllegati) {
+        String regex = "^[^\\*\\?\\<\\>\\|\\:\\\"]*$";
+        return stringaAllegati.matches(regex);
     }
 }

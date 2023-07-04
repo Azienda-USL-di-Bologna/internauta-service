@@ -236,6 +236,10 @@ public class NonCachedEntities {
         }
     }
     
+    public Archivio getArchivioFromNumerazioneGerarchicaAndIdAzienda(String numerazioneGerarchica, Integer idAzienda) {
+        return archivioRepository.findByNumerazioneGerarchicaAndIdAzienda(numerazioneGerarchica, idAzienda);
+    }
+    
     public Mezzo getMezzoFromCodice(Mezzo.CodiciMezzo codice) {
         Optional<Mezzo> mezzo = mezzoRepository.findOne(QMezzo.mezzo.codice.eq(codice.toString()));
         if (mezzo.isPresent()) {

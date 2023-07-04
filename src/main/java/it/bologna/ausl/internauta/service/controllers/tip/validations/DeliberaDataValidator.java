@@ -109,6 +109,10 @@ public class DeliberaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneDelibera.dataInvioConservazione, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
             riga.setErrori(erroriImportazione);
         }
+        if (StringUtils.hasText(riga.getAllegati()) && !validaAllegati(riga.getAllegati())) {
+            erroriImportazione.setError(ColonneDelibera.allegati, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Gli allegati contengono caratteri non validi. I catatteri non validi sono: *, ?, <, >, |, :, \" ");
+            riga.setErrori(erroriImportazione);
+        }
         return erroriImportazione;
     }
     

@@ -129,6 +129,13 @@ public class ProtocolloEntrataDataValidation extends TipDataValidator {
             erroriImportazione.setError(ColonneProtocolloEntrata.riservato, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: true/false");
             riga.setErrori(erroriImportazione);
         }
+        if (StringUtils.hasText(riga.getRiservato()) && StringUtils.hasText(riga.getVisibilitaLimitata())) {
+            erroriImportazione.setWarning(
+                ColonneProtocolloEntrata.visibilitaLimitata, 
+                TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
+                String.format("Sarà considerato solo %s perché già include questo campo", ColonneProtocolloEntrata.riservato));
+            riga.setErrori(erroriImportazione);
+        }
         if (StringUtils.hasText(riga.getAnnullato()) && !validateBoolean(riga.getAnnullato())) {
             erroriImportazione.setError(ColonneProtocolloEntrata.annullato, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: true/false");
             riga.setErrori(erroriImportazione);
@@ -143,6 +150,10 @@ public class ProtocolloEntrataDataValidation extends TipDataValidator {
         }
         if (StringUtils.hasText(riga.getCollegamentoPrecedente()) && !validateNumeroDocumentoPrecedente(riga.getCollegamentoPrecedente())) {
             erroriImportazione.setError(ColonneProtocolloEntrata.collegamentoPrecedente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: numero/yyyy");
+            riga.setErrori(erroriImportazione);
+        }
+        if (StringUtils.hasText(riga.getAllegati()) && !validaAllegati(riga.getAllegati())) {
+            erroriImportazione.setError(ColonneProtocolloEntrata.allegati, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Gli allegati contengono caratteri non validi. I catatteri non validi sono: *, ?, <, >, |, :, \" ");
             riga.setErrori(erroriImportazione);
         }
         return erroriImportazione;

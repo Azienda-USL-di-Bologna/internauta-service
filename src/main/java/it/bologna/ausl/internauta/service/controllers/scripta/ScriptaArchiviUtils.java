@@ -248,7 +248,7 @@ public class ScriptaArchiviUtils {
             File downloadEml = shpeckUtils.downloadEml(ShpeckUtils.EmlSource.MESSAGE, message.getId());
             MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
 
-            doc = new Doc(nomeDocDaPec != null ? nomeDocDaPec : "Pec_" + message.getId().toString(), persona, archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString());
+            doc = new Doc(nomeDocDaPec != null ? nomeDocDaPec : "Pec_" + message.getId().toString(), persona, archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_PEC);
             doc = docRepository.save(doc);
             MessageDoc.TipoMessageDoc tipo = null;
             if (message.getInOut().equals(MessageInterface.InOut.IN)) {

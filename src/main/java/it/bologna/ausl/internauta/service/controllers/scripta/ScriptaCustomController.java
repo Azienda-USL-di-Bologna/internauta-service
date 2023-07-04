@@ -1150,7 +1150,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         List<Integer> idDocList = new ArrayList();
         try {
             for (MultipartFile file : files) {
-                Doc doc = new Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
+                Doc doc = new Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE);
                 doc = docRepository.save(doc);
                 em.refresh(doc);
                 idDocList.add(doc.getId());

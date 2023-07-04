@@ -302,7 +302,7 @@ public class ScriptaUtils {
         Allegato nuovoAllegato = buildNewAllegato(doc, nomeDelFile);
         nuovoAllegato.setOrdinale(numeroAllegato);
         nuovoAllegato.setEstraibile(isEstraibile);
-        Integer intSize = new Long(Files.size(file.toPath())).intValue();
+        Integer intSize = Long.valueOf(Files.size(file.toPath())).intValue();
         // Creo il dettaglio allegato
         Allegato.DettaglioAllegato dettaglioAllegato = buildNewDettaglioAllegato(
                 nuovoAllegato,
