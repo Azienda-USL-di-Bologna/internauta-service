@@ -1512,7 +1512,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     //numero il nuovo archivio
                     archivioRepository.numeraArchivio(archivio.getId());
                     log.info(String.format("ho numerato l'archivio di %s", archivio.getId()));
-                    scriptaCopyUtils.setNewAttoriArchivio(archivio, em);
+                    scriptaCopyUtils.setNewAttoriArchivio(archivio, archivio.getIdArchivioPadre(), em);
 
                     //grazie al controllo sulla presenza dei figli fatto in precedenza agisco di conseguenza
                     if (haFigli) {
@@ -1534,7 +1534,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     }
                     em.refresh(archivio);
                     for (Archivio archFiglio : archivio.getArchiviFigliList()) {
-                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, em);
+                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, archivio.getIdArchivioPadre(), em);
                     }
                     //ricalcolo i permessi per l'achivio spostato e figli
                     archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
