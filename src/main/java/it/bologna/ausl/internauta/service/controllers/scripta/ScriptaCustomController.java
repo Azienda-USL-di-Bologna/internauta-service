@@ -1360,23 +1360,24 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = "deleteArchivio", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> deleteArchivio(
-            @RequestParam("idArchivio") String idArchivio,
+            @RequestParam("idArchivio") Integer idArchivio,
             HttpServletRequest request) throws BlackBoxPermissionException, Http403ResponseException {
-        Integer idArchivioInt = Integer.parseInt(idArchivio);
-        Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
+        Optional<Archivio> a = archivioRepository.findById(idArchivio);
         if (a.isPresent()) {
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
             Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.RESPONSABILE) && !scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO)) {
+            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivio, PermessoArchivio.DecimalePredicato.RESPONSABILE) && !scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivio, PermessoArchivio.DecimalePredicato.VICARIO)) {
                 throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
             }
             Archivio entity = a.get();
-            archivioRepository.delete(entity);
+//            archivioRepository.delete(entity);
 
             boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
             if (iHaveToKrint) {
                 krintScriptaService.writeArchivioDelete(entity, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DELETE);
             }
+            JPAQueryFactory j = new JPAQueryFactory(em);
+            j.delete(QArchivio.archivio).where(QArchivio.archivio.id.eq(idArchivio)).execute();
             return new ResponseEntity("", HttpStatus.OK);
         }
         return new ResponseEntity("", HttpStatus.INTERNAL_SERVER_ERROR);
