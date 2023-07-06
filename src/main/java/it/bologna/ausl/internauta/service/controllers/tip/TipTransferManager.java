@@ -21,15 +21,19 @@ import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.DocDoc;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.QDoc;
+import it.bologna.ausl.model.entities.scripta.QDocDoc;
 import it.bologna.ausl.model.entities.scripta.QRegistroDoc;
 import it.bologna.ausl.model.entities.scripta.Registro;
 import it.bologna.ausl.model.entities.scripta.RegistroDoc;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.scripta.Spedizione.IndirizzoSpedizione;
+import it.bologna.ausl.model.entities.tip.DocumentoDaCollegare;
 import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
+import it.bologna.ausl.model.entities.tip.QDocumentoDaCollegare;
 import it.bologna.ausl.model.entities.tip.QImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.QSessioneImportazione;
 import it.bologna.ausl.model.entities.tip.SessioneImportazione;
@@ -242,6 +246,7 @@ public class TipTransferManager {
                     }
                     addInAdditionalData(doc, ColonneProtocolloEntrata.classificazione, importazioneDoc.getClassificazione());
                     transferAllegati(doc, importazioneDoc.getAllegati(), sessioneImportazione.getIdAzienda());
+                    
                 }
 
                 importazioneDoc.setErrori(errori);
@@ -249,7 +254,54 @@ public class TipTransferManager {
         });
     }
     
-    
+    private Doc transferPrecedente(Doc doc, SessioneImportazione sessioneImportazione, ImportazioneDocumento importazioneDocumento, Registro registro, Persona persona) throws TipTransferBadDataException {
+        if (StringUtils.hasText(importazioneDocumento.getCollegamentoPrecedente()) && (doc.getRegistroDocList() == null || doc.getRegistroDocList().isEmpty())) {
+            String errorMessage = "impossibile inserire il precedente perché c'è un errore nell'importazionde del registro";
+            log.error(errorMessage);
+            throw new TipTransferBadDataException(errorMessage);
+        }
+        QDocumentoDaCollegare qDocumentoDaCollegare = QDocumentoDaCollegare.documentoDaCollegare;
+        QDoc qDoc = QDoc.doc;
+        QDocDoc qDocDoc = QDocDoc.docDoc;
+        QRegistroDoc qRegistroDoc = QRegistroDoc.registroDoc;
+        RegistroDoc registroDoc = doc.getRegistroDocList().get(0);
+        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+        List<DocumentoDaCollegare> documentiDestinazione = queryFactory
+            .select(qDocumentoDaCollegare)
+            .from(qDocumentoDaCollegare)
+            .where(
+                    qDocumentoDaCollegare.idRegistroDestinazione.id.eq(registroDoc.getIdRegistro().getId())
+                            .and(
+                                    qDocumentoDaCollegare.numeroDestinazione.eq(registroDoc.getNumero()))
+                            .and(
+                                    qDocumentoDaCollegare.annoDestinazione.eq(registroDoc.getAnno()))
+                            .and(
+                                    qDocumentoDaCollegare.tipoCollegamento.eq(DocDoc.TipoCollegamentoDoc.PRECEDENTE))
+            )
+            .fetch();
+        if (documentiDestinazione != null && !documentiDestinazione.isEmpty()) {
+            for (DocumentoDaCollegare documentoDestinazione : documentiDestinazione) {
+                Doc docSorgente = queryFactory
+                    .select(qRegistroDoc.idDoc)
+                    .from(qRegistroDoc)
+                    .join(qDoc).on(qRegistroDoc.idDoc.id.eq(qDoc.id))
+                    .where( qRegistroDoc.idRegistro.id.eq(documentoDestinazione.getIdRegistroSorgente().getId())
+                            .and(
+                                    qRegistroDoc.numero.eq(documentoDestinazione.getNumeroSorgente()))
+                            .and(
+                                    qRegistroDoc.anno.eq(documentoDestinazione.getAnnoSorgente()))
+                    )
+                    .fetchOne();
+                if (docSorgente.getDocsCollegati() == null) {
+                    List docsCollegati = new ArrayList();
+                    docSorgente.setDocsCollegati(docsCollegati);
+                }
+                docSorgente.getDocsCollegati().add(new DocDoc(docSorgente, doc, DocDoc.TipoCollegamentoDoc.PRECEDENTE, persona));
+            }
+            // salvare?
+        }
+        // TODO: collegare il precedente
+    }
     
     /**
      * Importa i metadati degli allegati. Per ogni path indicato nella stringa, crea l'oggetto Allegato e i suoi dettagli.
