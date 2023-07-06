@@ -1357,6 +1357,17 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         return false;
     }
 
+    /**
+     * La delete dell'archivio viene fatta custom così anzichè usare il framework e gli interceptor
+     * perché passando dal framework oltre la delete dell'archivio verrebbero lanciare le delete
+     * di ogni attoreArchivio e dell'archivioDetail. Vogliamo che sia il DB a uccuparsi di queste CASCADE
+     * in quanto lo farà in maniera più performante
+     * @param idArchivio
+     * @param request
+     * @return
+     * @throws BlackBoxPermissionException
+     * @throws Http403ResponseException 
+     */
     @RequestMapping(value = "deleteArchivio", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> deleteArchivio(
