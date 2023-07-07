@@ -134,7 +134,7 @@ public class ScriptaCopyUtils {
         }
         detail.setLivello(livelloDaEreditare);
 
-        setNewAttoriArchivio(newArchivio, utente, em);
+        setNewAttoriArchivio(newArchivio, newArchivio.getIdArchivioCopiato(), utente, em);
 //        
 //        List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
 //        for (AttoreArchivio attore: archDaCopiare.getAttoriList()){
@@ -153,7 +153,7 @@ public class ScriptaCopyUtils {
         return newArchivio;
     }
     
-    public void setNewAttoriArchivio(Archivio arch, EntityManager em){
+    public void setNewAttoriArchivio(Archivio arch, Archivio archDes, EntityManager em){
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
         for (AttoreArchivio attore: arch.getIdArchivioRadice().getAttoriList()){
             if(attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.CREATORE)){
@@ -163,17 +163,17 @@ public class ScriptaCopyUtils {
                             .delete(QAttoreArchivio.attoreArchivio)
                             .where(QAttoreArchivio.attoreArchivio.idArchivio.id.eq(arch.getId()))
                             .execute();
-                setNewAttoriArchivio(arch, p, s, em);
+                setNewAttoriArchivio(arch, archDes, p, s, em);
             }
         }
     }
     
-    public void setNewAttoriArchivio(Archivio arch, Utente utenteCreatore, EntityManager em){
+    public void setNewAttoriArchivio(Archivio arch, Archivio archDes, Utente utenteCreatore, EntityManager em){
         Integer idStruttura = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utenteCreatore.getId());
-        setNewAttoriArchivio(arch, utenteCreatore.getIdPersona(), strutturaRepository.getById(idStruttura), em);
+        setNewAttoriArchivio(arch, archDes, utenteCreatore.getIdPersona(), strutturaRepository.getById(idStruttura), em);
     }
     
-    public void setNewAttoriArchivio(Archivio arch, Persona personaCreatore, Struttura strutturaUtenteCreatore, EntityManager em){
+    public void setNewAttoriArchivio(Archivio arch, Archivio archDes, Persona personaCreatore, Struttura strutturaUtenteCreatore, EntityManager em){
         List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
         //creazione e salvataggio dell'attore creatore
         AttoreArchivio newAttoreCreatore = new AttoreArchivio(arch, personaCreatore, strutturaUtenteCreatore, AttoreArchivio.RuoloAttoreArchivio.CREATORE);
@@ -185,7 +185,7 @@ public class ScriptaCopyUtils {
         em.persist(newAttoreResponsabile);
         em.refresh(newAttoreResponsabile);
         attoriList.add(newAttoreResponsabile);
-        for (AttoreArchivio attore: arch.getIdArchivioCopiato().getIdArchivioRadice().getAttoriList()){
+        for (AttoreArchivio attore: archDes.getIdArchivioRadice().getAttoriList()){
             if (attore.getIdPersona().getId().equals(personaCreatore.getId())){ 
                 if (attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.VICARIO) ||
                         attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO)) {

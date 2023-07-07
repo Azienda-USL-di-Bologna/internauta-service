@@ -1357,26 +1357,38 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         return false;
     }
 
+    /**
+     * La delete dell'archivio viene fatta custom così anzichè usare il framework e gli interceptor
+     * perché passando dal framework oltre la delete dell'archivio verrebbero lanciare le delete
+     * di ogni attoreArchivio e dell'archivioDetail. Vogliamo che sia il DB a uccuparsi di queste CASCADE
+     * in quanto lo farà in maniera più performante
+     * @param idArchivio
+     * @param request
+     * @return
+     * @throws BlackBoxPermissionException
+     * @throws Http403ResponseException 
+     */
     @RequestMapping(value = "deleteArchivio", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> deleteArchivio(
-            @RequestParam("idArchivio") String idArchivio,
+            @RequestParam("idArchivio") Integer idArchivio,
             HttpServletRequest request) throws BlackBoxPermissionException, Http403ResponseException {
-        Integer idArchivioInt = Integer.parseInt(idArchivio);
-        Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
+        Optional<Archivio> a = archivioRepository.findById(idArchivio);
         if (a.isPresent()) {
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
             Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.RESPONSABILE) && !scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO)) {
+            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivio, PermessoArchivio.DecimalePredicato.RESPONSABILE) && !scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivio, PermessoArchivio.DecimalePredicato.VICARIO)) {
                 throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
             }
             Archivio entity = a.get();
-            archivioRepository.delete(entity);
+//            archivioRepository.delete(entity);
 
             boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
             if (iHaveToKrint) {
                 krintScriptaService.writeArchivioDelete(entity, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DELETE);
             }
+            JPAQueryFactory j = new JPAQueryFactory(em);
+            j.delete(QArchivio.archivio).where(QArchivio.archivio.id.eq(idArchivio)).execute();
             return new ResponseEntity("", HttpStatus.OK);
         }
         return new ResponseEntity("", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -1512,7 +1524,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     //numero il nuovo archivio
                     archivioRepository.numeraArchivio(archivio.getId());
                     log.info(String.format("ho numerato l'archivio di %s", archivio.getId()));
-                    scriptaCopyUtils.setNewAttoriArchivio(archivio, em);
+                    scriptaCopyUtils.setNewAttoriArchivio(archivio, archivio.getIdArchivioPadre(), em);
 
                     //grazie al controllo sulla presenza dei figli fatto in precedenza agisco di conseguenza
                     if (haFigli) {
@@ -1534,7 +1546,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     }
                     em.refresh(archivio);
                     for (Archivio archFiglio : archivio.getArchiviFigliList()) {
-                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, em);
+                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, archivio.getIdArchivioPadre(), em);
                     }
                     //ricalcolo i permessi per l'achivio spostato e figli
                     archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
