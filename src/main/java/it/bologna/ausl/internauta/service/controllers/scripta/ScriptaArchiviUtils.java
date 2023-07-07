@@ -37,6 +37,7 @@ import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.bologna.ausl.model.entities.shpeck.Message;
@@ -51,6 +52,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,11 +61,15 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletResponse;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StreamUtils;
 
 /**
@@ -112,6 +118,12 @@ public class ScriptaArchiviUtils {
 
     @Autowired
     private ShpeckUtils shpeckUtils;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
+    
+    @Autowired
+    TransactionTemplate transactionTemplate;
     
     public Integer getProfonditaArchivio(Archivio arch){
         Integer profondita = 1;
@@ -264,7 +276,7 @@ public class ScriptaArchiviUtils {
         // Ora che o il doc lo archivio
         ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
         archivioDocRepository.save(archiviazione);
-        archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
+//        archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
 
         // Ora aggiungo il tag di archiviazione sul message
         AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), persona.getDescrizione());
@@ -379,5 +391,23 @@ public class ScriptaArchiviUtils {
                 LOG.error("Errore durante il reperimento del file da MinIO.");
             }
         }        
+    }
+    
+    
+    /**
+     * Dato un idArchivio viene settato a now() il cmapo dataUltimoUtilizzo
+     * dell'archivioInfo
+     * @param idArchivio 
+     */
+    public void updateDataUltimoUtilizzoArchivio(Integer idArchivio) {
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        transactionTemplate.executeWithoutResult(action -> {
+            jPAQueryFactory
+                .update(QArchivioInfo.archivioInfo)
+                .set(QArchivioInfo.archivioInfo.dataUltimoUtilizzo, ZonedDateTime.now())
+                .where(QArchivioInfo.archivioInfo.id.eq(idArchivio))
+                .execute();
+        });
     }
 }

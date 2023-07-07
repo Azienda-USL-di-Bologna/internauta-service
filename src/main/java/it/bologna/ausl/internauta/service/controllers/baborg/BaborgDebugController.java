@@ -1,6 +1,8 @@
 package it.bologna.ausl.internauta.service.controllers.baborg;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.querydsl.jpa.impl.JPAQuery;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
 import it.bologna.ausl.estrattore.exception.ExtractorException;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
@@ -11,13 +13,14 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooE
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.jpa.natiquery.NativeQueryTools;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobReporitory;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorker;
-import it.bologna.ausl.internauta.utils.pdftoolkit.utils.PdfToolkitConfigParams;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
@@ -26,8 +29,10 @@ import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.utentestruttura.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.masterjobs.Job;
 import it.bologna.ausl.model.entities.masterjobs.QJob;
+import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.File;
@@ -43,6 +48,7 @@ import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,18 +86,13 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping(value = "${internauta.mapping.url.debug}")
 public class BaborgDebugController {
     private static final Logger log = LoggerFactory.getLogger(BaborgDebugController.class);
-    
-    private String pdfToolkitBucket;
-    
-    @Autowired
-    ReporitoryConnectionManager aziendeConnectionManager;
-    
-    @Autowired
-    PdfToolkitConfigParams pdfToolkitConfigParams;
-    
+        
     @Autowired
     StrutturaRepository strutturaRepository;
     
+    @Autowired
+    private ParametriAziendeReader parametriAziendeReader;
+
     @Autowired
     PersonaRepository personaRepository;
 
@@ -105,7 +106,7 @@ public class BaborgDebugController {
     ObjectMapper objectMapper;
     
     @PersistenceContext
-    EntityManager entityManager;
+    EntityManager entityManager;   
 
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
@@ -118,9 +119,15 @@ public class BaborgDebugController {
     
     @Autowired
     private JobReporitory jobRepository;
+
+    @Autowired
+    private ArchivioRepository archivioRepository;
     
     @Autowired
-    ReporterWorker reporterWorker;
+    private ReporitoryConnectionManager aziendeConnectionManager;
+    
+    @Autowired
+    private ReporterWorker reporterWorker;
 
     @Autowired
     @Qualifier(value = "redisMaterjobs")
@@ -271,6 +278,105 @@ public class BaborgDebugController {
     public void test5(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
         MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
         mjQueuer.stopThreads();
+    }
+    
+    @RequestMapping(value = "test6", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
+    public Integer test6(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
+//        return docRepository.numeraDoc(1548, 304295, 1064625);
+        archivioRepository.numeraTuttiDocumentsArchivioRadice(440, 304295, 1064625);
+        return 1;
+    }
+    
+    @RequestMapping(value = "testgus", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
+    public void testgus(HttpServletRequest request) {
+        List<ParametroAziende> parameters = parametriAziendeReader.getParameters(ParametriAziendeReader.ParametriAzienda.ricalcoloPermessiArchivi.toString());
+        if (parameters == null || parameters.isEmpty() || parameters.size() > 1) {
+            System.out.println("naaa");
+        }
+        RicalcoloPermessiArchiviParams parametri = parametriAziendeReader.getValue(parameters.get(0), RicalcoloPermessiArchiviParams.class);
+        
+        System.out.println("GiorniPerDataMassimaUltimoRicalcolo: " + parametri.getGiorniPerDataMassimaUltimoRicalcolo());
+        System.out.println("GiorniPerDataMinimaUltimoUtilizzo" + parametri.getGiorniPerDataMinimaUltimoUtilizzo());
+        System.out.println("NumeroArchiviAggiuntiviDaRecuperare" + parametri.getNumeroArchiviAggiuntiviDaRecuperare());
+        
+        ZonedDateTime now = ZonedDateTime.now();
+        ZonedDateTime dataMassimaUltimoRicalcolo = now.minusDays(parametri.getGiorniPerDataMassimaUltimoRicalcolo());
+        ZonedDateTime dataMinimaUltimoUtilizzo = now.minusDays(parametri.getGiorniPerDataMinimaUltimoUtilizzo());
+        
+        QArchivioInfo qArchivioinfo = QArchivioInfo.archivioInfo;
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
+        
+        JPAQuery<Integer> archiviDaRicalcolarePerMaggioreUtilizzo = jPAQueryFactory
+                .select(qArchivioinfo.id)
+                .from(qArchivioinfo)
+                .where(qArchivioinfo.dataUltimoUtilizzo.goe(dataMinimaUltimoUtilizzo)
+                        .and(qArchivioinfo.dataUltimoRicalcoloPermessi.loe(dataMassimaUltimoRicalcolo))
+                )
+                .fetchAll();
+        
+        JPAQuery<Integer> archiviDaRicalcolarePerRecupero = jPAQueryFactory
+                .select(qArchivioinfo.id)
+                .from(qArchivioinfo)
+                .orderBy(qArchivioinfo.dataUltimoRicalcoloPermessi.asc())
+                .limit(parametri.getNumeroArchiviAggiuntiviDaRecuperare())
+                .fetchAll();
+        
+        System.out.println("Ora accodo il job per il calcolo di ogni singolo archivio");
+        //AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+        
+        Integer i = 0;
+        
+        for (Iterator<Integer> a = archiviDaRicalcolarePerMaggioreUtilizzo.iterate(); a.hasNext();) {
+            Integer idArchivio = a.next();
+            i++;
+            //accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", null);
+        }
+
+        System.out.println("Size di archiviDaRicalcolarePerMaggioreUtilizzo:" + i);
+        
+        i = 0;
+        
+        for (Iterator<Integer> a = archiviDaRicalcolarePerRecupero.iterate(); a.hasNext();) {
+            Integer idArchivio = a.next();
+            i++;
+            //accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", null);
+        }
+        
+        System.out.println("Size di archiviDaRicalcolarePerRecupero:" + i);
+    }
+    
+    public static class RicalcoloPermessiArchiviParams {
+        Integer numeroArchiviAggiuntiviDaRecuperare;
+        Integer giorniPerDataMinimaUltimoUtilizzo;
+        Integer giorniPerDataMassimaUltimoRicalcolo;
+        
+        public RicalcoloPermessiArchiviParams() {};
+        
+        public Integer getNumeroArchiviAggiuntiviDaRecuperare() {
+            return numeroArchiviAggiuntiviDaRecuperare;
+        }
+
+        public void setNumeroArchiviAggiuntiviDaRecuperare(Integer numeroArchiviAggiuntiviDaRecuperare) {
+            this.numeroArchiviAggiuntiviDaRecuperare = numeroArchiviAggiuntiviDaRecuperare;
+        }
+
+        public Integer getGiorniPerDataMinimaUltimoUtilizzo() {
+            return giorniPerDataMinimaUltimoUtilizzo;
+        }
+
+        public void setGiorniPerDataMinimaUltimoUtilizzo(Integer giorniPerDataMinimaUltimoUtilizzo) {
+            this.giorniPerDataMinimaUltimoUtilizzo = giorniPerDataMinimaUltimoUtilizzo;
+        }
+
+        public Integer getGiorniPerDataMassimaUltimoRicalcolo() {
+            return giorniPerDataMassimaUltimoRicalcolo;
+        }
+
+        public void setGiorniPerDataMassimaUltimoRicalcolo(Integer giorniPerDataMassimaUltimoRicalcolo) {
+            this.giorniPerDataMassimaUltimoRicalcolo = giorniPerDataMassimaUltimoRicalcolo;
+        }
     }
     
     @RequestMapping(value = "test4", method = RequestMethod.GET)

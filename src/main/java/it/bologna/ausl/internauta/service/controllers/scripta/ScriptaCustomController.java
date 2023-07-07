@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
+import com.drew.lang.StringUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import it.bologna.ausl.documentgenerator.GeneratePE;
@@ -151,6 +152,19 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.service.utils.FileUtilities;
+import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.services.jobsnotified.JobsNotifiedServiceWorker;
+import it.bologna.ausl.model.entities.masterjobs.JobNotified;
+import it.bologna.ausl.model.entities.masterjobs.QJobNotified;
+import it.bologna.ausl.model.entities.masterjobs.Set;
+import java.io.File;
+import java.io.FileInputStream;
+import java.nio.file.Files;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.tika.mime.MimeTypeException;
 
 /**
  *
@@ -276,6 +290,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private KrintUtils krintUtils;
+    
+    @Autowired
+    private JobNotifiedRepository jobNotifiedRepository;
 
     @Autowired
     private KrintScriptaService krintScriptaService;
@@ -422,8 +439,27 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                                     throw new Http404ResponseException("3", "Dettaglio allegato richiesto non tovato");
                             }
                         } else {
-                            response.setHeader("Content-Type", allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato).getMimeType());
-                            StreamUtils.copy(fileRichiesto, response.getOutputStream());
+                            String mimeType = allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato).getMimeType();
+                            
+                            if (!StringUtils.hasText(mimeType)) {
+                                // Non ha il mimetype, me lo recupero
+                                try {
+                                    File file = File.createTempFile("Allegato_", FilenameUtils.getExtension(allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato).getNome()));
+                                    file.deleteOnExit();
+                                    scriptaDownloadUtils.addFileToTempFiles(file);
+                                    FileUtils.copyInputStreamToFile(fileRichiesto, file);
+                                    mimeType = FileUtilities.getMimeTypeFromPath(file.getAbsolutePath());
+                                    try (FileInputStream fileInputStream = new FileInputStream(file)) {
+                                        response.setHeader("Content-Type", mimeType);
+                                        StreamUtils.copy(fileInputStream, response.getOutputStream());
+                                    }
+                                } catch (IOException | MimeTypeException ex) {
+                                    throw new Http500ResponseException("23", "IOException", ex);
+                                }
+                            } else {
+                                response.setHeader("Content-Type", mimeType);
+                                StreamUtils.copy(fileRichiesto, response.getOutputStream());
+                            }
                         }
                     }
                 }
@@ -1123,7 +1159,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 //archvivio il document
                 ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
                 ArchivioDoc save = archivioDocRepository.save(archiviazione);
-                archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
+//                archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
 
                 PersonaVedente pv = new PersonaVedente();
                 pv.setIdAzienda(doc.getIdAzienda());
@@ -1133,9 +1169,16 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 pv.setPienaVisibilita(Boolean.TRUE);
                 pv.setMioDocumento(Boolean.TRUE);
                 personaVedenteRepository.save(pv);
+ 
+                CalcolaPersoneVedentiDocJobWorkerData calcolaPersoneVedentiDocJobWorkerData = new CalcolaPersoneVedentiDocJobWorkerData(doc.getId());
 
-                AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-                accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
+                Map calcolaPersoneVedentiDocJobWorkerDataMap = objectMapper.convertValue(calcolaPersoneVedentiDocJobWorkerData, Map.class);
+                JobNotified jn = new JobNotified();
+                jn.setJobName("CalcolaPersoneVedentiDocJobWorker");
+                jn.setJobData(calcolaPersoneVedentiDocJobWorkerDataMap);
+                jn.setWaitObject(false);
+                jobNotifiedRepository.save(jn);
+                
                 if (krintUtils.doIHaveToKrint(request)) {
                     krintScriptaService.writeArchivioDoc(save, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_LOAD);
                 }
@@ -1246,9 +1289,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             doc.setIdAzienda(azienda);
             doc = docRepository.save(doc);
         } catch (Exception ex) {
-            log.error("errore nella creazione del doc internauta", ex);
+            log.error("errore nella creazione del doc internauta. Forse esisteva già per via del cannone quindi lo recupero");
             // Forse esisteva già per via del cannone quindi lo recupero
-            doc = docRepository.findByIdEsterno((String) registroGiornaliero.get("id"));
+            doc = docRepository.findByIdEsternoAndIdAzienda((String) registroGiornaliero.get("id"), azienda);
             if (doc == null) {
                 throw new Http500ResponseException("2", "Documento non trovato. E non creabile");
             }
@@ -1276,7 +1319,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         if (archivioSpeciale.isPresent()) {
             log.info("ho trovato il fascicolo speciale");
             if (!archivioDocRepository.exists(QArchivioDoc.archivioDoc.idArchivio.id.eq(archivioSpeciale.get().getId()).and(QArchivioDoc.archivioDoc.idDoc.id.eq(doc.getId())))) {
-                log.info("non essite la fascicolazione quindi la eseguo");
+                log.info("non esiste la fascicolazione quindi la eseguo");
                 ArchivioDoc archivioDoc = new ArchivioDoc();
                 archivioDoc.setIdArchivio(archivioSpeciale.get());
                 archivioDoc.setIdDoc(doc);
@@ -1314,26 +1357,38 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         return false;
     }
 
+    /**
+     * La delete dell'archivio viene fatta custom così anzichè usare il framework e gli interceptor
+     * perché passando dal framework oltre la delete dell'archivio verrebbero lanciare le delete
+     * di ogni attoreArchivio e dell'archivioDetail. Vogliamo che sia il DB a uccuparsi di queste CASCADE
+     * in quanto lo farà in maniera più performante
+     * @param idArchivio
+     * @param request
+     * @return
+     * @throws BlackBoxPermissionException
+     * @throws Http403ResponseException 
+     */
     @RequestMapping(value = "deleteArchivio", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> deleteArchivio(
-            @RequestParam("idArchivio") String idArchivio,
+            @RequestParam("idArchivio") Integer idArchivio,
             HttpServletRequest request) throws BlackBoxPermissionException, Http403ResponseException {
-        Integer idArchivioInt = Integer.parseInt(idArchivio);
-        Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
+        Optional<Archivio> a = archivioRepository.findById(idArchivio);
         if (a.isPresent()) {
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
             Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.RESPONSABILE)) {
+            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivio, PermessoArchivio.DecimalePredicato.RESPONSABILE) && !scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivio, PermessoArchivio.DecimalePredicato.VICARIO)) {
                 throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
             }
             Archivio entity = a.get();
-            archivioRepository.delete(entity);
+//            archivioRepository.delete(entity);
 
             boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
             if (iHaveToKrint) {
                 krintScriptaService.writeArchivioDelete(entity, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DELETE);
             }
+            JPAQueryFactory j = new JPAQueryFactory(em);
+            j.delete(QArchivio.archivio).where(QArchivio.archivio.id.eq(idArchivio)).execute();
             return new ResponseEntity("", HttpStatus.OK);
         }
         return new ResponseEntity("", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -1469,7 +1524,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     //numero il nuovo archivio
                     archivioRepository.numeraArchivio(archivio.getId());
                     log.info(String.format("ho numerato l'archivio di %s", archivio.getId()));
-                    scriptaCopyUtils.setNewAttoriArchivio(archivio, em);
+                    scriptaCopyUtils.setNewAttoriArchivio(archivio, archivio.getIdArchivioPadre(), em);
 
                     //grazie al controllo sulla presenza dei figli fatto in precedenza agisco di conseguenza
                     if (haFigli) {
@@ -1491,7 +1546,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     }
                     em.refresh(archivio);
                     for (Archivio archFiglio : archivio.getArchiviFigliList()) {
-                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, em);
+                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, archivio.getIdArchivioPadre(), em);
                     }
                     //ricalcolo i permessi per l'achivio spostato e figli
                     archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
