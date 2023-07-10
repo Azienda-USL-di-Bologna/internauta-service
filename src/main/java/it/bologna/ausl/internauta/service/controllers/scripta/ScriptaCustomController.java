@@ -156,9 +156,16 @@ import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.jobsnotified.JobsNotifiedServiceWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.services.versatore.VersatoreServiceUtils;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
 import it.bologna.ausl.model.entities.masterjobs.QJobNotified;
 import it.bologna.ausl.model.entities.masterjobs.Set;
+import it.bologna.ausl.model.entities.scripta.QDoc;
+import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
+import it.bologna.ausl.model.entities.versatore.Versamento;
+import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.ERRORE_RITENTABILE;
+import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.FORZARE;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.file.Files;
@@ -216,6 +223,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     @Autowired
     private DocRepository docRepository;
 
+    @Autowired
+    private ParametriAziendeReader parametriAziendaReader;
+    
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
 
@@ -2025,5 +2035,56 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
+    
+    
+    @RequestMapping(value = "versaDocMassivo", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
+    public ResponseEntity<?> versaDocMassivo(
+            HttpServletRequest request,
+            @RequestParam("idDocs") Integer[] idDocs,
+            @RequestParam("operazione") Versamento.StatoVersamento operazione,
+            @RequestParam("idAzienda") Integer idAzienda
+    ) throws MasterjobsWorkerException, BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+        QDoc qDoc = QDoc.doc;
+        jPAQueryFactory
+                .update(qDoc)
+                .set(qDoc.statoVersamento, operazione.toString())
+                .where(qDoc.id.in(idDocs))
+                .execute();
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+        Map<Integer, Map<String, Object>> aziendeAttiveConParametri = VersatoreServiceUtils.getAziendeAttiveConParametri(parametriAziendaReader, cachedEntities);
+        Map<String, Object> versatoreConfigAziendaValue = aziendeAttiveConParametri.get(idAzienda);
+        String hostId = (String) versatoreConfigAziendaValue.get("hostId");
+        Integer threadPoolSize = (Integer) versatoreConfigAziendaValue.get("threadPoolSize");
+        Map<String,Object> params = (Map<String,Object>) versatoreConfigAziendaValue.get("params");
+        switch (operazione) {
+            case FORZARE:
+                accodatoreVeloce.accodaVersatore(
+                        Arrays.asList(idDocs),
+                        idAzienda,
+                        hostId,
+                        SessioneVersamento.TipologiaVersamento.FORZATURA,
+                        persona.getId(),
+                        threadPoolSize,
+                        params
+                );
+                break;
 
+            case ERRORE_RITENTABILE:
+                accodatoreVeloce.accodaVersatore(
+                        Arrays.asList(idDocs),
+                        idAzienda,
+                        hostId,
+                        SessioneVersamento.TipologiaVersamento.RITENTA,
+                        persona.getId(),
+                        threadPoolSize,
+                        params
+                );
+                break;
+        }
+        return new ResponseEntity("", HttpStatus.OK);
+    }
 }
