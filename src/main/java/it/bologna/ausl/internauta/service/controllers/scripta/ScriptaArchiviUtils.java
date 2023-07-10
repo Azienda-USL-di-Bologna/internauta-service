@@ -53,8 +53,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -393,6 +395,29 @@ public class ScriptaArchiviUtils {
         }        
     }
     
+    public Map<String,Object> creaParametriTemplate(Archivio archivio) {
+        Map<String,Object> parametriTemplate = new HashMap<>();
+        String categoria = "Fascicolo";
+        switch (archivio.getLivello()) {
+            case 1:
+                categoria = "Fascicolo";
+                break;
+            case 2:
+                categoria = "Sottofascicolo";
+                break;
+            case 3:
+                categoria = "Inserto";
+        }
+        parametriTemplate.put("titolo", archivio.getOggetto());
+        parametriTemplate.put("categoria", categoria);
+        parametriTemplate.put("codice", archivio.getNumerazioneGerarchica());
+        parametriTemplate.put("classificazione", archivio.getIdTitolo().getClassificazione());
+        parametriTemplate.put("responsabile", archivio.getIdArchivioDetail().getIdPersonaResponsabile().getDescrizione());
+        parametriTemplate.put("unita_responsabile", archivio.getIdArchivioRadice().getIdArchivioDetail().getIdStruttura().getNome());
+        parametriTemplate.put("data_stampa", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        
+        return parametriTemplate;
+    }
     
     /**
      * Dato un idArchivio viene settato a now() il cmapo dataUltimoUtilizzo

@@ -269,8 +269,8 @@
         </dependency>
         <dependency>
             <groupId>it.bologna.ausl.mavenchef.utils</groupId>
-            <artifactId>flying-saucer-pdf-itext5_gdm</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <artifactId>flying-saucer-pdf-itext5-local</artifactId>
+            <version>1.0</version>
             <type>jar</type>
         </dependency>
         <dependency>

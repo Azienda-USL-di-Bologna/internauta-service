@@ -13,26 +13,45 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooE
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+<<<<<<< HEAD
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
+=======
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
+>>>>>>> sviluppo-ausl
 import it.bologna.ausl.internauta.utils.jpa.natiquery.NativeQueryTools;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobReporitory;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
+<<<<<<< HEAD
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorker;
-import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
+import it.bologna.ausl.internauta.utils.pdftoolkit.utils.PdfToolkitConfigParams;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
+=======
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.ricalcolopermessiarchivi.RicalcoloPermessiArchiviJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
+import it.bologna.ausl.model.entities.baborg.CambiamentiAssociazione;
+>>>>>>> sviluppo-ausl
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.utentestruttura.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
+<<<<<<< HEAD
+import it.bologna.ausl.model.entities.masterjobs.Job;
+import it.bologna.ausl.model.entities.masterjobs.QJob;
+=======
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.masterjobs.Job;
 import it.bologna.ausl.model.entities.masterjobs.QJob;
+import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
+>>>>>>> sviluppo-ausl
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
 import java.io.File;
@@ -86,14 +105,28 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping(value = "${internauta.mapping.url.debug}")
 public class BaborgDebugController {
     private static final Logger log = LoggerFactory.getLogger(BaborgDebugController.class);
-        
+    
+    private String pdfToolkitBucket;
+    
+    @Autowired
+    ReporitoryConnectionManager aziendeConnectionManager;
+    
+    @Autowired
+    PdfToolkitConfigParams pdfToolkitConfigParams;
+    
     @Autowired
     StrutturaRepository strutturaRepository;
+    
+    @Autowired
+<<<<<<< HEAD
+=======
+    StoricoRelazioneRepository storicoRelazioneRepository;
     
     @Autowired
     private ParametriAziendeReader parametriAziendeReader;
 
     @Autowired
+>>>>>>> sviluppo-ausl
     PersonaRepository personaRepository;
 
     @Autowired
@@ -106,7 +139,7 @@ public class BaborgDebugController {
     ObjectMapper objectMapper;
     
     @PersistenceContext
-    EntityManager entityManager;   
+    EntityManager entityManager;
 
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
@@ -119,15 +152,18 @@ public class BaborgDebugController {
     
     @Autowired
     private JobReporitory jobRepository;
-
+    
+    @Autowired
+<<<<<<< HEAD
+    ReporterWorker reporterWorker;
+=======
+    private DocRepository docRepository;
     @Autowired
     private ArchivioRepository archivioRepository;
     
     @Autowired
-    private ReporitoryConnectionManager aziendeConnectionManager;
-    
-    @Autowired
-    private ReporterWorker reporterWorker;
+    private CambiamentiAssociazioneRepository cambiamentiAssociazioneRepository;
+>>>>>>> sviluppo-ausl
 
     @Autowired
     @Qualifier(value = "redisMaterjobs")
@@ -507,7 +543,7 @@ public class BaborgDebugController {
      * @param codiceAzienda Il codice aziendale associato al file.
      * @param file Il file da caricare.
      * @return Un messaggio di stringa che indica lo stato dell'operazione di caricamento.
-     * <br>
+     *
      * Questo metodo riceve un file, un nome di bucket e un codice aziendale come parametri. 
      * Crea un file temporaneo e una cartella temporanea, poi copia il file di input nel file temporaneo.
      * I contenuti del file temporaneo vengono quindi estratti nella cartella temporanea.

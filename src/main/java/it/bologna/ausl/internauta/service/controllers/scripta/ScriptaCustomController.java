@@ -155,6 +155,8 @@ import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.jobsnotified.JobsNotifiedServiceWorker;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
 import it.bologna.ausl.model.entities.masterjobs.QJobNotified;
@@ -565,7 +567,32 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             return false;
         }
     }
+    @RequestMapping(value = "downloadFrontespizioFascicolo/{idArchivio}", method = RequestMethod.GET)
+    public void downloadFrontespizioFascicolo(
+            @PathVariable(required = true) Integer idArchivio,
+            HttpServletResponse response,
+            HttpServletRequest request
+    ) throws Http403ResponseException, Http404ResponseException, Http500ResponseException, BlackBoxPermissionException, MasterjobsWorkerException {
+        log.info("downloadFrontespizioFascicolo: {}", idArchivio);
 
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Archivio archivio = archivioRepository.findById(idArchivio).orElseThrow(ResourceNotFoundException::new);
+
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(
+                persona.getId(), 
+                archivio.getId(), 
+                PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
+            throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
+        }
+        String codiceAzienda = persona.getIdAziendaDefault().getCodice();
+        
+        Map<String, Object> creaParametriTemplate = scriptaArchiviUtils.creaParametriTemplate(archivio);
+        
+        ReporterWorkerData reporterWorkerData = new ReporterWorkerData(codiceAzienda, codiceAzienda + "_gd_frontespizio.xhtml", creaParametriTemplate);
+        ReporterWorker jobWorker = masterjobsObjectsFactory.getJobWorker(ReporterWorker.class, reporterWorkerData, false);
+        jobWorker.doWork();
+    }
     /**
      * Api per il download di un archivio con tutto il suo contenuto.
      *
