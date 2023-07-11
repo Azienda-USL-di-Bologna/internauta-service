@@ -22,6 +22,5 @@ public class InternautaPdfToolkitConfiguration {
     @PostConstruct
     public void initConfiguration() {
         this.pdfToolkitHttpClientConfiguration.setHttpClientManager(new InternautaPdfToolkitConfigurationManager(httpClientManager));
-        this.pdfToolkitHttpClientConfiguration.setAdobeIccProfileResourcePath("pdf/AdobeRGB1998.icc");
     }
 }

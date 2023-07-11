@@ -42,6 +42,9 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.Month;
@@ -439,18 +442,6 @@ public class BaborgDebugController {
 //        mjQueuer.queue(Arrays.asList(worker7, worker8, worker9), "1", "t2", applicazione.getId(), wait, Set.SetPriority.HIGHEST);
     }
     
-    /**
-     *
-     * @param workerData
-     * @return
-     * @throws MinIOWrapperException
-     */
-    @RequestMapping(value = "testReporter", method = RequestMethod.GET)
-    public Map<Object, Object> testReporter(@RequestBody Map<Object, Object> workerData) throws MasterjobsWorkerException, MasterjobsWorkerException, UnsupportedEncodingException {
-        String decode = java.net.URLDecoder.decode((String) workerData.get("template"), StandardCharsets.UTF_8.name());
-        reporterWorker.doWork();
-        return workerData;
-    }
     
     /**
     * Restituisce una lista di file in un percorso specificato su MinIO.
@@ -542,7 +533,12 @@ public class BaborgDebugController {
             FileUtils.copyInputStreamToFile(stream, fileTempToUpload);
             FileUtilities.estraiTuttoDalFile(folderToSave, fileTempToUpload, fileTempToUpload.getName());
             
-            uploadToMinIO(folderToSave, folderToSave, minIOWrapper, codiceAzienda, bucket);          
+            uploadToMinIO(folderToSave, folderToSave, minIOWrapper, codiceAzienda, bucket);
+            
+            File[] listFiles = folderToSave.listFiles();
+            for (File listFile : listFiles) {
+                Files.move(listFile.toPath(), Paths.get(System.getProperty("java.io.tmpdir") + listFile.getName()), StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (ExtractorException ex) {
             responseMessage = "Errore durante l'estrazione del file zip.";
             log.error(responseMessage);
@@ -586,7 +582,7 @@ public class BaborgDebugController {
                 uploadToMinIO(fileList, folderToSave, minIOWrapper, codiceAzienda, bucket);
             }
         } else {
-            String path = folderToSave.toURI().relativize(fileToUpload.toURI()).getPath();
+            String path = "/" + folderToSave.toURI().relativize(fileToUpload.toURI()).getPath();
             minIOWrapper.putWithBucket(fileToUpload, codiceAzienda, path, fileToUpload.getName(), null, true, bucket);
             log.info("File uploaded: {} ok", path);
         }

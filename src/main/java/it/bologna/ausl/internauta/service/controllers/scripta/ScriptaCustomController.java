@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
-import com.drew.lang.StringUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import it.bologna.ausl.documentgenerator.GeneratePE;
@@ -157,13 +156,10 @@ import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedReposit
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorkerData;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.services.jobsnotified.JobsNotifiedServiceWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorkerResult;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
-import it.bologna.ausl.model.entities.masterjobs.QJobNotified;
-import it.bologna.ausl.model.entities.masterjobs.Set;
 import java.io.File;
 import java.io.FileInputStream;
-import java.nio.file.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.tika.mime.MimeTypeException;
@@ -568,7 +564,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
     }
     @RequestMapping(value = "downloadFrontespizioFascicolo/{idArchivio}", method = RequestMethod.GET)
-    public void downloadFrontespizioFascicolo(
+    public String downloadFrontespizioFascicolo(
             @PathVariable(required = true) Integer idArchivio,
             HttpServletResponse response,
             HttpServletRequest request
@@ -585,13 +581,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
             throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
         }
-        String codiceAzienda = persona.getIdAziendaDefault().getCodice();
-        
+        String codiceAziendaArchivio = archivio.getIdAzienda().getCodice();
+        String fileName = String.format("Frontespizio - %s.pdf", archivio.getNumerazioneGerarchica());
         Map<String, Object> creaParametriTemplate = scriptaArchiviUtils.creaParametriTemplate(archivio);
-        
-        ReporterWorkerData reporterWorkerData = new ReporterWorkerData(codiceAzienda, codiceAzienda + "_gd_frontespizio.xhtml", creaParametriTemplate);
+        ReporterWorkerData reporterWorkerData = new ReporterWorkerData(codiceAziendaArchivio, codiceAziendaArchivio + "_gd_frontespizio.xhtml", fileName, creaParametriTemplate);
         ReporterWorker jobWorker = masterjobsObjectsFactory.getJobWorker(ReporterWorker.class, reporterWorkerData, false);
-        jobWorker.doWork();
+        ReporterWorkerResult result = (ReporterWorkerResult) jobWorker.doWork();
+        return result.getUrl();
     }
     /**
      * Api per il download di un archivio con tutto il suo contenuto.

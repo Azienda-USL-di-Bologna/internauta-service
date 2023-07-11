@@ -409,6 +409,7 @@ public class ScriptaArchiviUtils {
                 categoria = "Inserto";
         }
         parametriTemplate.put("titolo", archivio.getOggetto());
+        parametriTemplate.put("descrizione", archivio.getNote());
         parametriTemplate.put("categoria", categoria);
         parametriTemplate.put("codice", archivio.getNumerazioneGerarchica());
         parametriTemplate.put("classificazione", archivio.getIdTitolo().getClassificazione());
