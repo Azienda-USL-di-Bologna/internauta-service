@@ -8,12 +8,17 @@ import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
+import it.bologna.ausl.model.entities.baborg.QStruttura;
 import it.bologna.ausl.model.entities.baborg.StoricoRelazione;
+import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.nextsw.common.annotations.NextSdrInterceptor;
@@ -23,6 +28,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -58,6 +64,15 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     InternautaUtils internautaUtils;
+    
+    @Autowired
+    UtenteRepository utenteRepository;
+    
+    @Autowired
+    PersonaRepository personaRepository;
+    
+    @Autowired
+    StrutturaRepository strutturaRepository;
 
     @Override
     public Class getTargetEntityClass() {
@@ -153,8 +168,12 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
                     case FilterStruttureRuolo:
                         try {
                             ruoliNomeBreveString = additionalData.get(InternautaConstants.AdditionalData.Keys.ruoli.toString());
+                            String predicatiNomeBreveString = additionalData.get(InternautaConstants.AdditionalData.Keys.predicati.toString());
+
                             if (!isCA && !isCI && !isSD && !StringUtils.isEmpty(ruoliNomeBreveString)) {
                                 List<ParametroAziende> filtraResponsabiliParams = parametriAziende.getParameters("AccessoPoolFiltratoPerRuolo", new Integer[]{utente.getIdAzienda().getId()});
+                                BooleanExpression filterSegreteria = Expressions.FALSE.eq(true);
+                                BooleanExpression filterRuolo = Expressions.FALSE.eq(true);
                                 if (filtraResponsabiliParams != null && !filtraResponsabiliParams.isEmpty() && parametriAziende.getValue(filtraResponsabiliParams.get(0), Boolean.class)) {
                                     Integer mascheraBit = internautaUtils.getSommaMascheraBit(ruoliNomeBreveString);
                                     Map<String, Integer> struttureRuoloEFiglie = objectMapper.convertValue(
@@ -163,16 +182,25 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
                                     );
                                     if (struttureRuoloEFiglie != null && !struttureRuoloEFiglie.isEmpty()) {
                                         Collection<Integer> idStoricoRelazioneResponsabilita = struttureRuoloEFiglie.values();
-                                        BooleanExpression filterRuolo = qStoricoRelazione.id.in(idStoricoRelazioneResponsabilita);
-                                        initialPredicate = filterRuolo.and(initialPredicate);
-                                    } else {
-                                        initialPredicate = Expressions.FALSE.eq(true);
+                                        filterRuolo = qStoricoRelazione.id.in(idStoricoRelazioneResponsabilita);
+//                                        initialPredicate = filterRuolo.and(initialPredicate);
                                     }
-                                } else {
-                                    initialPredicate = Expressions.FALSE.eq(true);
+                                    if( !StringUtils.isEmpty(predicatiNomeBreveString) && predicatiNomeBreveString.contains("SEGR")) {
+//                                        List<Struttura> struttureSegretario = utenteRepository.getStruttureConPermessoSegr(utente.getId());
+                                        List<Integer> struttureSegretario = Arrays.asList(personaRepository.getStruttureDelSegretario(utente.getIdPersona().getId()));
+                                        
+                                        if(struttureSegretario != null && !struttureSegretario.isEmpty()){
+                                            filterSegreteria = QStoricoRelazione.storicoRelazione.idStrutturaFiglia.id.in(struttureSegretario);
+//                                            initialPredicate = filterSegreteria.and(initialPredicate);
+                                        }
+                                    }
+                                    initialPredicate = (filterSegreteria.or(filterRuolo)).and(initialPredicate);
                                 }
-                            }
-                        } catch (Exception ex) {
+                                    
+                            } else {
+                            initialPredicate = Expressions.FALSE.eq(true);
+                                }
+                            }  catch (Exception ex) {
                             throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_ruolo_e_figlie", ex);
                         }
                     break;
