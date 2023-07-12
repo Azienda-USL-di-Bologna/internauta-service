@@ -583,7 +583,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
      * @throws MasterjobsWorkerException    Se si verifica un errore con il masterjobs worker.
      */
     @RequestMapping(value = "downloadFrontespizioFascicolo/{idArchivio}", method = RequestMethod.GET)
-    public String downloadFrontespizioFascicolo(
+    public ResponseEntity<?> downloadFrontespizioFascicolo(
             @PathVariable(required = true) Integer idArchivio
     ) throws BlackBoxPermissionException, Http403ResponseException, MasterjobsWorkerException {
         log.info("downloadFrontespizioFascicolo: {}", idArchivio);
@@ -612,7 +612,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         // Esegue il lavoro del worker del reporter
         ReporterWorkerResult result = (ReporterWorkerResult) jobWorker.doWork();
         
-        return result.getUrl();
+        return new ResponseEntity(result, HttpStatus.OK);
     }
     /**
      * Api per il download di un archivio con tutto il suo contenuto.
