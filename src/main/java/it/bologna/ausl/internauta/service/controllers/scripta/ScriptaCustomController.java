@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
-import com.drew.lang.StringUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import it.bologna.ausl.documentgenerator.GeneratePE;
@@ -155,20 +154,18 @@ import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.services.jobsnotified.JobsNotifiedServiceWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorkerResult;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.versatore.VersatoreServiceUtils;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
-import it.bologna.ausl.model.entities.masterjobs.QJobNotified;
-import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.Versamento;
 import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.ERRORE_RITENTABILE;
 import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.FORZARE;
-import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
-import java.nio.file.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.tika.mime.MimeTypeException;
@@ -575,19 +572,58 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             return false;
         }
     }
+    
+    /**
+     * Scarica il frontespizio di un fascicolo dal archivio specificato.
+     *
+     * @param idArchivio L'ID del archivio da cui scaricare il frontespizio.
+     * @return L'URL del file frontespizio scaricato.
+     * @throws BlackBoxPermissionException  Se si verifica un errore sui permessi.
+     * @throws Http403ResponseException     Se l'utente non ha il permesso di visualizzare l'archivio.
+     * @throws MasterjobsWorkerException    Se si verifica un errore con il masterjobs worker.
+     */
+    @RequestMapping(value = "downloadFrontespizioFascicolo/{idArchivio}", method = RequestMethod.GET)
+    public String downloadFrontespizioFascicolo(
+            @PathVariable(required = true) Integer idArchivio
+    ) throws BlackBoxPermissionException, Http403ResponseException, MasterjobsWorkerException {
+        log.info("downloadFrontespizioFascicolo: {}", idArchivio);
 
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Archivio archivio = archivioRepository.findById(idArchivio).orElseThrow(ResourceNotFoundException::new);
+
+        // Verifica se l'utente ha il permesso di visualizzare l'archivio
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(
+                persona.getId(), 
+                archivio.getId(), 
+                PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
+            throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
+        }
+        // Genera il nome del file da scaricare
+        String codiceAziendaArchivio = archivio.getIdAzienda().getCodice();
+        String fileName = String.format("Frontespizio - %s.pdf", archivio.getNumerazioneGerarchica());
+        
+        // Crea i parametri per il template
+        Map<String, Object> creaParametriTemplate = scriptaArchiviUtils.creaParametriTemplate(archivio);       
+        // Prepara i dati per il worker del reporter
+        ReporterWorkerData reporterWorkerData = new ReporterWorkerData(codiceAziendaArchivio, codiceAziendaArchivio + "_gd_frontespizio.xhtml", fileName, creaParametriTemplate);       
+        // Ottiene il worker del reporter dal factory dei job master
+        ReporterWorker jobWorker = masterjobsObjectsFactory.getJobWorker(ReporterWorker.class, reporterWorkerData, false);      
+        // Esegue il lavoro del worker del reporter
+        ReporterWorkerResult result = (ReporterWorkerResult) jobWorker.doWork();
+        
+        return result.getUrl();
+    }
     /**
      * Api per il download di un archivio con tutto il suo contenuto.
      *
      * @param idArchivio L'id dell'archivio da scaricare.
      * @param response Http Response.
      * @param request Http request.
-     * @throws Http403ResponseException Eccezioni in caso di mancanza di
-     * permessi.
+     * @throws Http403ResponseException Eccezioni in caso di mancanza di permessi.
      * @throws Http404ResponseException Eccezione lanciata quando il fascicolo
      * da scaricare non ha nè documenti nè figli.
-     * @throws Http500ResponseException Eccezioni in caso di errori nella
-     * generazione del file zip.
+     * @throws Http500ResponseException Eccezioni in caso di errori nella generazione del file zip.
      * @throws BlackBoxPermissionException Errori della blackbox.
      */
     @RequestMapping(value = "downloadArchivioZip/{idArchivio}", method = RequestMethod.GET, produces = "application/zip")
