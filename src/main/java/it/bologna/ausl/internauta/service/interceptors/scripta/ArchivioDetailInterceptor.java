@@ -170,7 +170,7 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
             List<ParametroAziende> fascicoliParlanti = cachedEntities.getParameters("fascicoliParlanti");
             if (fascicoliParlanti != null && !fascicoliParlanti.isEmpty()) {
                 for (ParametroAziende parametro : fascicoliParlanti) {
-                    if (parametro.getValore().equals("true")) {
+                    if (parametriAziende.getValue(parametro, Boolean.class)) {
                         Integer[] idAziendeParlanti = parametro.getIdAziende();
                         List<Integer> idAziendeParlantiList = Arrays.asList(idAziendeParlanti);//IntStream.of(Arrays.stream(idAziendeParlanti).mapToInt(Integer::intValue).toArray()).boxed().collect(Collectors.toCollection(ArrayList::new));
 //                idAziendeParlantiList.addAll(Arrays.asList(idAziendeParlanti));
