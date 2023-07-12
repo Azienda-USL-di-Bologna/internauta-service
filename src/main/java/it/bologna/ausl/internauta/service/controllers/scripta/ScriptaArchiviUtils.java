@@ -395,9 +395,15 @@ public class ScriptaArchiviUtils {
         }        
     }
     
+    /**
+     * Crea i parametri per il template utilizzati per generare il frontespizio del archivio.
+     *
+     * @param archivio L'oggetto Archivio per cui creare i parametri del template.
+     * @return Una mappa contenente i parametri del template per il frontespizio del archivio.
+     */
     public Map<String,Object> creaParametriTemplate(Archivio archivio) {
         Map<String,Object> parametriTemplate = new HashMap<>();
-        String categoria = "Fascicolo";
+        String categoria = null;
         switch (archivio.getLivello()) {
             case 1:
                 categoria = "Fascicolo";
@@ -407,12 +413,26 @@ public class ScriptaArchiviUtils {
                 break;
             case 3:
                 categoria = "Inserto";
+                break;
+        }
+        String labelClassificazione = null;
+        switch (archivio.getIdTitolo().getLivello()) {
+            case 1:
+                labelClassificazione = "Categoria";
+                break;
+            case 2:
+                labelClassificazione = "Classe";
+                break;
+            case 3:
+                labelClassificazione = "Sottoclasse";
+                break;
         }
         parametriTemplate.put("titolo", archivio.getOggetto());
         parametriTemplate.put("descrizione", archivio.getNote());
         parametriTemplate.put("categoria", categoria);
         parametriTemplate.put("codice", archivio.getNumerazioneGerarchica());
-        parametriTemplate.put("classificazione", archivio.getIdTitolo().getClassificazione());
+        parametriTemplate.put("classificazione", 
+                String.format("%s %s - %s", labelClassificazione, archivio.getIdTitolo().getClassificazione(), archivio.getIdTitolo().getNome()));
         parametriTemplate.put("responsabile", archivio.getIdArchivioDetail().getIdPersonaResponsabile().getDescrizione());
         parametriTemplate.put("unita_responsabile", archivio.getIdArchivioRadice().getIdArchivioDetail().getIdStruttura().getNome());
         parametriTemplate.put("data_stampa", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
