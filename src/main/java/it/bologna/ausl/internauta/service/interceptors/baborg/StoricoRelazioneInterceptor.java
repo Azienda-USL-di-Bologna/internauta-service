@@ -197,9 +197,7 @@ public class StoricoRelazioneInterceptor extends InternautaBaseInterceptor {
                                     initialPredicate = (filterSegreteria.or(filterRuolo)).and(initialPredicate);
                                 }
                                     
-                            } else {
-                            initialPredicate = Expressions.FALSE.eq(true);
-                                }
+                            } 
                             }  catch (Exception ex) {
                             throw new AbortLoadInterceptorException("errore nella chiamata alla funzione db get_strutture_ruolo_e_figlie", ex);
                         }
