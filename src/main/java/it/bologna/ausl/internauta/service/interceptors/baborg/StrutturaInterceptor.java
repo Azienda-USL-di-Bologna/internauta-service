@@ -216,11 +216,10 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                                             filterSegreteriaPoolAssegnamento = QStruttura.struttura.id.in(listaPoolAssegnamento);
                                             initialPredicate = filterSegreteriaPoolAssegnamento.and(initialPredicate);
                                         } 
-                                        initialPredicate = (filterSegreteriaPoolAssegnamento.or(filterRuolo)).and(initialPredicate);
 
-                                    } else {
-                                    initialPredicate = Expressions.FALSE.eq(true);
                                     }
+                                    initialPredicate = (filterSegreteriaPoolAssegnamento.or(filterRuolo)).and(initialPredicate);
+
                                 } else {
                                     initialPredicate = Expressions.FALSE.eq(true);
                                 }
