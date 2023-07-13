@@ -268,12 +268,6 @@
             <type>jar</type>
         </dependency>
         <dependency>
-            <groupId>it.bologna.ausl.mavenchef.utils</groupId>
-            <artifactId>flying-saucer-pdf-itext5-local</artifactId>
-            <version>1.0</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
             <groupId>it.bologna.ausl.internauta.utils</groupId>
             <artifactId>PDFToolkit</artifactId>
             <version>1.0</version>
