@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.estrattore.exception.ExtractorException;
-import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
@@ -14,16 +12,11 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
-import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.jpa.natiquery.NativeQueryTools;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobReporitory;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorker;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
-import it.bologna.ausl.minio.manager.MinIOWrapper;
-import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
-import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
@@ -35,16 +28,10 @@ import it.bologna.ausl.model.entities.masterjobs.QJob;
 import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.Month;
@@ -63,9 +50,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.JoinColumn;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
-import org.apache.commons.io.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -74,12 +58,9 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  *
@@ -88,7 +69,6 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping(value = "${internauta.mapping.url.debug}")
 public class BaborgDebugController {
-    private static final Logger log = LoggerFactory.getLogger(BaborgDebugController.class);
         
     @Autowired
     StrutturaRepository strutturaRepository;
@@ -126,12 +106,6 @@ public class BaborgDebugController {
     @Autowired
     private ArchivioRepository archivioRepository;
     
-    @Autowired
-    private ReporitoryConnectionManager aziendeConnectionManager;
-    
-    @Autowired
-    private ReporterWorker reporterWorker;
-
     @Autowired
     @Qualifier(value = "redisMaterjobs")
     protected RedisTemplate redisTemplate;

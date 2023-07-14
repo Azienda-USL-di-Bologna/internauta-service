@@ -155,7 +155,7 @@ import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerInitializationException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorkerResult;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
@@ -600,7 +600,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         // Prepara i dati per il worker del reporter
         ReporterWorkerData reporterWorkerData = new ReporterWorkerData(codiceAziendaArchivio, codiceAziendaArchivio + "_gd_frontespizio.xhtml", fileName, creaParametriTemplate);       
         // Ottiene il worker del reporter dal factory dei job master
-        ReporterWorker jobWorker = masterjobsObjectsFactory.getJobWorker(ReporterWorker.class, reporterWorkerData, false);      
+        ReporterJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(ReporterJobWorker.class, reporterWorkerData, false);      
         // Esegue il lavoro del worker del reporter
         ReporterWorkerResult result = (ReporterWorkerResult) jobWorker.doWork();
         
