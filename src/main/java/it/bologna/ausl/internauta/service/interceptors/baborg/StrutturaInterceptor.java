@@ -361,7 +361,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                     String nomeOld = strutturaOld.getNome();
                     krintBaborgService.writeUfficioUpdate(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_NOME_UPDATE, nomeOld);
                 }
-                if (isChangedStrutturaPadre && !isChangedNome) {
+                if (isChangedStrutturaPadre && !isChangedNome ) {
                     Struttura strutturaPadre = struttura.getIdStrutturaPadre();
                     krintBaborgService.writeUfficioUpdate(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_STRUTTURA_PADRE_UPDATE, strutturaPadre);
                 }
