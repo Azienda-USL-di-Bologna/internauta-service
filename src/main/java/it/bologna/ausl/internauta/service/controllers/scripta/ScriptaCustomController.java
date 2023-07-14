@@ -156,8 +156,8 @@ import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerIn
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorkerData;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerResult;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
 import java.io.File;
 import java.io.FileInputStream;
@@ -598,11 +598,11 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         // Crea i parametri per il template
         Map<String, Object> creaParametriTemplate = scriptaArchiviUtils.creaParametriTemplate(archivio);       
         // Prepara i dati per il worker del reporter
-        ReporterWorkerData reporterWorkerData = new ReporterWorkerData(codiceAziendaArchivio, codiceAziendaArchivio + "_gd_frontespizio.xhtml", fileName, creaParametriTemplate);       
+        ReporterJobWorkerData reporterWorkerData = new ReporterJobWorkerData(codiceAziendaArchivio, codiceAziendaArchivio + "_gd_frontespizio.xhtml", fileName, creaParametriTemplate);       
         // Ottiene il worker del reporter dal factory dei job master
         ReporterJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(ReporterJobWorker.class, reporterWorkerData, false);      
         // Esegue il lavoro del worker del reporter
-        ReporterWorkerResult result = (ReporterWorkerResult) jobWorker.doWork();
+        ReporterJobWorkerResult result = (ReporterJobWorkerResult) jobWorker.doWork();
         
         return new ResponseEntity(result, HttpStatus.OK);
     }
