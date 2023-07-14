@@ -87,11 +87,14 @@ public class KrintService {
             OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(codiceOperazione);
             OperazioneVersionataKrint operazioneVersionataKrint
                     = operazioneVersionataKrinRepository.findFirstByIdOperazioneIdOrderByVersioneDesc(operazioneKrint.getId()).orElse(null);
-
-            krint.setIdOggetto(idOggetto);
+            if(idOggetto != null) {
+                krint.setIdOggetto(idOggetto);
+            }
             krint.setTipoOggetto(tipoOggetto);
             krint.setInformazioniOggetto(informazioniOggetto);
-            krint.setDescrizioneOggetto(descrizioneOggetto);
+            if(descrizioneOggetto != null) {
+                krint.setDescrizioneOggetto(descrizioneOggetto);
+            } 
             if (StringUtils.hasText(idOggettoContenitore)) {
                 krint.setIdOggettoContenitore(idOggettoContenitore);
                 krint.setTipoOggettoContenitore(tipoOggettoContenitore);
