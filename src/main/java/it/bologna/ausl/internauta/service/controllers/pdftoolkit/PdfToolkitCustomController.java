@@ -124,8 +124,9 @@ public class PdfToolkitCustomController {
         String responseMessage = "Operazione completata.";
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente user = authenticatedSessionData.getRealUser() != null ? authenticatedSessionData.getRealUser() : authenticatedSessionData.getUser();
+        log.info("Api caricamento resources. Check ruolo utente...");
         if (userInfoService.isSD(user)) {
-             MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+            MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
             File folderToSave = null;
             File fileTempToUpload = null;
             
@@ -146,10 +147,17 @@ public class PdfToolkitCustomController {
                 fileTempToUpload.deleteOnExit();
 
                 FileUtils.copyInputStreamToFile(stream, fileTempToUpload);
+                log.info("File temporanei creati. Estrazione zip...");
                 FileUtilities.estraiTuttoDalFile(folderToSave, fileTempToUpload, fileTempToUpload.getName());
 
+                log.info("Caricamento resource su minIO");
                 uploadToMinIO(folderToSave, folderToSave, minIOWrapper, codiceAzienda, bucket);
-
+                
+                log.info("Upload dei resources completato. Sposto i file nella cartella di lavoro...");
+                File[] listFiles = folderToSave.listFiles();
+                for (File listFile : listFiles) {
+                    FileSystemUtils.copyRecursively(listFile.toPath(), Paths.get(System.getProperty("java.io.tmpdir") + listFile.getName()));
+                }
             } catch (ExtractorException ex) {
                 responseMessage = "Errore durante l'estrazione del file zip.";
                 log.error(responseMessage);
@@ -165,8 +173,10 @@ public class PdfToolkitCustomController {
                 if (fileTempToUpload != null && fileTempToUpload.exists())
                     FileSystemUtils.deleteRecursively(fileTempToUpload);
             }   
+        } else {
+            log.warn("Utente non abilitato all'operazione.");
         }
-               
+        log.info("Operazione di upload completata.");       
         return responseMessage;
     }
 
@@ -183,7 +193,7 @@ public class PdfToolkitCustomController {
      * Se è una directory, itera su tutti i file nella directory e li carica ricorsivamente.
      * Se non è una directory, carica il file su MinIO utilizzando il metodo putWithBucket di MinIOWrapper.
      * Il percorso del file viene calcolato come il percorso relativo dal folderToSave al fileToUpload.
-     * Dopo il caricamento di ogni file, viene spostato nella folder di lavoro del reporter e registrato un messaggio di log.
+     * Dopo il caricamento di ogni file viene registrato un messaggio di log.
      *
      * @throws MinIOWrapperException Se si verifica un errore durante il caricamento su MinIO.
      * @throws IOException Se si verifica un errore durante la lettura del file o della directory.
@@ -197,9 +207,6 @@ public class PdfToolkitCustomController {
         } else {
             String path = "/" + folderToSave.toURI().relativize(fileToUpload.toURI()).getPath();
             minIOWrapper.putWithBucket(fileToUpload, codiceAzienda, path, fileToUpload.getName(), null, true, bucket);
-            // Sposta il file per renderlo subito disponibile all'applicazione
-            Path toPath = new File(System.getProperty("java.io.tmpdir"), folderToSave.toURI().relativize(fileToUpload.toURI()).getPath()).toPath();
-            Files.move(Paths.get(fileToUpload.getPath()), toPath, StandardCopyOption.REPLACE_EXISTING);
             log.info("File uploaded: {} ok", path);
         }
     }
