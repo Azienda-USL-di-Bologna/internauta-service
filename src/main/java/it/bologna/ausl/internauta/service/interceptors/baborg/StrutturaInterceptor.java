@@ -486,10 +486,10 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                     Struttura strutturaResponsabile = strutturaRepository.findOne(findStrutturaResponsabile).get();
                     struttura.setIdStrutturaPadre(strutturaResponsabile);
                 } else {
-//                    BooleanExpression findStrutturaSegretario
-//                        = QStruttura.struttura.id.in(idStruttureSegretario).and(QStruttura.struttura.ufficio.eq(Boolean.FALSE));
-//                    List<Struttura> struttureSegretario = (List<Struttura>) strutturaRepository.findAll(findStrutturaSegretario);
-//                    struttura.setIdStrutturaPadre(struttureSegretario.get(0));
+                    BooleanExpression findStrutturaSegretario
+                        = QStruttura.struttura.id.in(idStruttureSegretario);
+                    List<Struttura> struttureSegretario = (List<Struttura>) strutturaRepository.findAll(findStrutturaSegretario);
+                    struttura.setIdStrutturaPadre(struttureSegretario.get(0));
                 }
 
                 
