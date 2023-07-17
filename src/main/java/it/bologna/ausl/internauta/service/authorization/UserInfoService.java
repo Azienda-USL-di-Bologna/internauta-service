@@ -1157,6 +1157,52 @@ public class UserInfoService {
         }
         return false;
     }
+    
+    /**
+     * Controlla se l'utente è un Osservatore (OS).
+     * Questo ruolo non da molto all'utente. Vedere BabelMan.
+     * @param modulo Il modulo del ruolo.
+     * @return true o false.
+     */
+    @Cacheable(value = "getRuoliIIsOS__ribaltorg__", key = "{#user.getId()}")
+    public boolean isOS(Utente user) {
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
+        boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.OS.toString());
+        if (containsKey) {
+            List<String> get = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.OS.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString());
+            if (get != null) {
+                return get.contains(user.getIdAzienda().getCodice());
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Controlla se l'utente è un Mini-Osservatore (MOS).
+     * Questo ruolo non da molto all'utente. Vedere BabelMan.
+     * @param modulo Il modulo del ruolo.
+     * @return true o false.
+     */
+    @Cacheable(value = "getRuoliIIsMOS__ribaltorg__", key = "{#user.getId()}")
+    public boolean isMOS(Utente user) {
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
+        boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.MOS.toString());
+        if (containsKey) {
+            List<String> get = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.MOS.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString());
+            if (get != null) {
+                return get.contains(user.getIdAzienda().getCodice());
+            }
+        }
+        return false;
+    }
+    
+    
 
     /**
      * Torna "true" se l'utente è CA di almeno un'azienda.
