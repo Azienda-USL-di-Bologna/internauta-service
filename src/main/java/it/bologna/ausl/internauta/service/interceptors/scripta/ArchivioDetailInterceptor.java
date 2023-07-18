@@ -9,9 +9,7 @@ import static com.querydsl.jpa.JPAExpressions.select;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRecenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
-import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -25,7 +23,6 @@ import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -35,7 +32,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +70,7 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private ArchivioDiInteresseRepository archivioDiInteresseRepository;
-    
+
     @Autowired
     private ParametriAziendeReader parametriAziende;
 
@@ -107,7 +103,7 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
                             BooleanExpression filter = Expressions.TRUE.eq(false);
                             initialPredicate = filter.and(initialPredicate);
                         }
-                        
+
                         break;
 //                    case VisualizzaTabFrequenti:
 //                        safetyFiltersNonNecessari = true;
@@ -169,24 +165,28 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
         QPermessoArchivio permessoArchivio = QPermessoArchivio.permessoArchivio;
 
         if (!userInfoService.isSD(user)) {
-            
+
             // Se nel filtro c'è una azienda parlante devo lanciare eccezione
             List<ParametroAziende> fascicoliParlanti = cachedEntities.getParameters("fascicoliParlanti");
-            if (fascicoliParlanti != null && !fascicoliParlanti.isEmpty() && parametriAziende.getValue(fascicoliParlanti.get(0), Boolean.class)) {
-                Integer[] idAziendeParlanti = fascicoliParlanti.get(0).getIdAziende();
-                List<Integer> idAziendeParlantiList = Arrays.asList(idAziendeParlanti);//IntStream.of(Arrays.stream(idAziendeParlanti).mapToInt(Integer::intValue).toArray()).boxed().collect(Collectors.toCollection(ArrayList::new));
+            if (fascicoliParlanti != null && !fascicoliParlanti.isEmpty()) {
+                for (ParametroAziende parametro : fascicoliParlanti) {
+                    if (parametriAziende.getValue(parametro, Boolean.class)) {
+                        Integer[] idAziendeParlanti = parametro.getIdAziende();
+                        List<Integer> idAziendeParlantiList = Arrays.asList(idAziendeParlanti);//IntStream.of(Arrays.stream(idAziendeParlanti).mapToInt(Integer::intValue).toArray()).boxed().collect(Collectors.toCollection(ArrayList::new));
 //                idAziendeParlantiList.addAll(Arrays.asList(idAziendeParlanti));
 //                List<Integer> idAziendeParlantiList = Arrays.stream(idAziendeParlanti).boxed().collect(Collectors.toList());
-                List<Integer> idAziendaFiltranti = getIdAziendeFiltranti();
-                if (idAziendaFiltranti == null && !idAziendeParlantiList.isEmpty()) {
-                    throw new AbortLoadInterceptorException("Si sta cercando su una azienda con fascicoli parlanti. Questo non è permesso");
-                }
-                idAziendaFiltranti.retainAll(idAziendeParlantiList);
-                if (!idAziendaFiltranti.isEmpty()) {
-                    throw new AbortLoadInterceptorException("Si sta cercando su una azienda con fascicoli parlanti. Questo non è permesso");
+                        List<Integer> idAziendaFiltranti = getIdAziendeFiltranti();
+                        if (idAziendaFiltranti == null && !idAziendeParlantiList.isEmpty()) {
+                            throw new AbortLoadInterceptorException("Si sta cercando su una azienda con fascicoli parlanti. Questo non è permesso");
+                        }
+                        idAziendaFiltranti.retainAll(idAziendeParlantiList);
+                        if (!idAziendaFiltranti.isEmpty()) {
+                            throw new AbortLoadInterceptorException("Si sta cercando su una azienda con fascicoli parlanti. Questo non è permesso");
+                        }
+                    }
                 }
             }
-            
+
             List<Integer> listaIdAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getId()).collect(Collectors.toList());
 
             SubQueryExpression<Long> queryPersonaConPermesso
@@ -213,9 +213,10 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
 
         return filter;
     }
-    
+
     /**
      * Recupero dal filterDescriptor su quali aziende sta avvenendo il filtro
+     *
      * @return la lista di id delle azinede che sto filtrando
      */
     private List<Integer> getIdAziendeFiltranti() {
@@ -229,7 +230,7 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
                 String fieldName = matcher.group(1);
 //                System.out.println("fieldName " + fieldName);
                 if (fieldName.equals("idAzienda")) {
-                    return filterDescriptorMap.get(path).stream().map(o -> (Integer)o).collect(Collectors.toList());
+                    return filterDescriptorMap.get(path).stream().map(o -> (Integer) o).collect(Collectors.toList());
                 }
             }
         }

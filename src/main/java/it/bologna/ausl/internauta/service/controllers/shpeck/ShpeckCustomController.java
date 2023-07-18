@@ -609,7 +609,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 
         List<AdditionalDataShpeck> additionalDataRegistrationDestinationList = new ArrayList();
         AdditionalDataReaddressed additionalDataReaddressedDestination = new AdditionalDataReaddressed(pecDestination, utente);
-        additionalDataRegistrationList.add(additionalDataReaddressedDestination);
+        additionalDataRegistrationDestinationList.add(additionalDataReaddressedDestination);
         messageTag.setAdditionalData(additionalDataRegistrationList);
 
         messageTagSource.setAdditionalData(additionalDataRegistrationDestinationList);

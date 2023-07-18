@@ -88,4 +88,10 @@ public interface ArchivioRepository extends
     
     @Query(value = "SELECT * FROM scripta.archivi a WHERE id_archivio_padre = ?1 and oggetto like ?2", nativeQuery = true)
     public Archivio findByPadreAndPatternOggetto(Integer idArchivioPadre, String patternOggetto);
+    
+    @Query(value = "select * from scripta.numera_tutti_documents_archivio_radice(?1, ?2, ?3);", nativeQuery = true)
+    public void numeraTuttiDocumentsArchivioRadice(Integer idArchivio, Integer idPersona, Integer idStruttura);
+    
+    @Query(value = "select * from scripta.numera_tutti_documents_archivio_radice(?1, ?2);", nativeQuery = true)
+    public void numeraTuttiDocumentsArchivioRadice(Integer idArchivio, Integer idPersona);
 }
