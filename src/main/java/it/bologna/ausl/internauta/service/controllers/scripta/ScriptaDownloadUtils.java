@@ -254,6 +254,7 @@ public class ScriptaDownloadUtils {
         String mimeType = null;
         try {
             file = File.createTempFile("Allegato_", FilenameUtils.getExtension(originale.getNome()));
+            file.deleteOnExit();
             tempfiles.add(file);
             FileUtils.copyInputStreamToFile(fileToConvert, file);
             mimeType = FileUtilities.getMimeTypeFromPath(file.getAbsolutePath());
@@ -293,6 +294,7 @@ public class ScriptaDownloadUtils {
                     try (InputStream convertito = response.body().byteStream()) {
                         if (convertito != null) {
                             File fileConvertito = File.createTempFile("Allegato_", FilenameUtils.getExtension(originale.getNome()));
+                            fileConvertito.deleteOnExit();
                             tempfiles.add(fileConvertito);
                             FileUtils.copyInputStreamToFile(convertito, fileConvertito);
                             MinIOWrapperFileInfo info;
@@ -331,6 +333,7 @@ public class ScriptaDownloadUtils {
                 byte[] segnapostoBytes = createSegnapostoFile(text);
 //                InputStream input = new FileInputStream(segnapostoBytes);
                 File fileConvertito = File.createTempFile("Allegato_", FilenameUtils.getExtension(originale.getNome()) + ".pdf");
+                fileConvertito.deleteOnExit();
                 tempfiles.add(fileConvertito);
                 FileUtils.writeByteArrayToFile(fileConvertito, segnapostoBytes);
                 MinIOWrapperFileInfo info;
@@ -475,6 +478,10 @@ public class ScriptaDownloadUtils {
             map.put(a.getDettagli().getOriginale().getHashMd5(), a);
             fillMapAllegatiToUpdate(a, map);
         }
+    }
+    
+    public void addFileToTempFiles(File f) {
+        tempfiles.add(f);
     }
     
     /**

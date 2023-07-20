@@ -1,12 +1,11 @@
-
 package it.bologna.ausl.internauta.service.krint;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.model.entities.baborg.AttributiStruttura;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.TipologiaStruttura;
-import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
@@ -16,6 +15,9 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Service;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgTipologiaStruttura;
+import java.util.HashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -23,6 +25,8 @@ import it.bologna.ausl.model.entities.logs.projections.KrintBaborgTipologiaStrut
  */
 @Service
 public class KrintBaborgService {
+    
+    private static Logger log = LoggerFactory.getLogger(KrintBaborgService.class);
     
     @Autowired
     ProjectionFactory factory;
@@ -34,30 +38,28 @@ public class KrintBaborgService {
     KrintService krintService;
     
     /**
+     * @param struttura
+     * @param codiceOperazione
      */
     public void writeUfficioCreation(Struttura struttura, OperazioneKrint.CodiceOperazione codiceOperazione) {
         try {
             // Informazioni oggetto
             KrintBaborgStruttura krintBaborgStruttura = factory.createProjection(KrintBaborgStruttura.class, struttura);
-            String jsonKrintUfficio = objectMapper.writeValueAsString(krintBaborgStruttura);
-            
+//            String jsonKrintUfficio = objectMapper.writeValueAsString(krintBaborgStruttura);
+            HashMap<String, Object> krintUfficio = objectMapper.convertValue(krintBaborgStruttura, new TypeReference<HashMap<String, Object>>(){});
             krintService.writeKrintRow(
                 struttura.getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_UFFICIO,
                 struttura.getNome(),
-                jsonKrintUfficio,
+                krintUfficio,
                 null,
                 null,
                 null,
                 null,
                 codiceOperazione);
         } catch (Exception ex) {
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = struttura.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeUfficioCreation", codiceOperazione);
+            log.error("Errore nella writeUfficioCreation con struttura" + struttura.getId().toString(), ex);
+            krintService.writeKrintError(struttura.getId(), "writeUfficioCreation", codiceOperazione);
         }
     }
     
@@ -65,11 +67,11 @@ public class KrintBaborgService {
        try{
            KrintBaborgStruttura krintBaborgStruttura = factory.createProjection(KrintBaborgStruttura.class, struttura);
            String jsonKrintUfficio = objectMapper.writeValueAsString(krintBaborgStruttura);
-
+           HashMap<String, Object> krintUfficio = objectMapper.convertValue(krintBaborgStruttura, new TypeReference<HashMap<String, Object>>(){});
            krintService.writeKrintRow(struttura.getId().toString(),
                Krint.TipoOggettoKrint.BABORG_UFFICIO,
                struttura.getNome(),
-               jsonKrintUfficio,
+               krintUfficio,
                null,
                null,
                null,
@@ -77,12 +79,8 @@ public class KrintBaborgService {
                codiceOperazione);
 
        } catch (Exception ex){
-           Integer idOggetto = null;
-           try {
-               ex.printStackTrace();
-               idOggetto = struttura.getId();
-           } catch (Exception exa) {}
-           krintService.writeKrintError(idOggetto, "writeUfficioDelete", codiceOperazione);
+           log.error("Errore nella writeUfficioDelete con struttura" + struttura.getId().toString(), ex);
+           krintService.writeKrintError(struttura.getId(), "writeUfficioDelete", codiceOperazione);
        }
     }
     
@@ -95,13 +93,12 @@ public class KrintBaborgService {
     public void writeUfficioUpdate(Struttura struttura, OperazioneKrint.CodiceOperazione codiceOperazione, Object oggetto){
         try{
             KrintBaborgStruttura krintBaborgStruttura = factory.createProjection(KrintBaborgStruttura.class, struttura);
-            String jsonKrintUfficio = objectMapper.writeValueAsString(krintBaborgStruttura);
-            
+//            String jsonKrintUfficio = objectMapper.writeValueAsString(krintBaborgStruttura);
+            HashMap<String, Object> krintUfficio = objectMapper.convertValue(krintBaborgStruttura, new TypeReference<HashMap<String, Object>>(){});
             String idOggetto = "";
             String descrizioneOggetto = "";
             Krint.TipoOggettoKrint tipoOggetto = null;
-            String jsonKrintOggetto = "";
-
+            HashMap<String, Object> krintOggetto = null;
             switch(codiceOperazione){
                 case BABORG_UFFICIO_ATTRIBUTI_STRUTTURA_UPDATE:
                     AttributiStruttura attributiStruttura = (AttributiStruttura) oggetto;
@@ -110,7 +107,8 @@ public class KrintBaborgService {
                     descrizioneOggetto = tipologiaStruttura.getTipologia();
                     tipoOggetto = Krint.TipoOggettoKrint.BABORG_TIPOLOGIA_STRUTTURA;
                     KrintBaborgTipologiaStruttura krintBaborgTipologiaStruttura = factory.createProjection(KrintBaborgTipologiaStruttura.class, tipologiaStruttura);
-                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgTipologiaStruttura);
+                    //jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgTipologiaStruttura);
+                    krintOggetto = objectMapper.convertValue(krintBaborgTipologiaStruttura, new TypeReference<HashMap<String, Object>>(){});
                     break;
                 case BABORG_UFFICIO_NOME_UPDATE:
                     Struttura strutturaOggetto = struttura;
@@ -118,15 +116,26 @@ public class KrintBaborgService {
                     descrizioneOggetto = strutturaOggetto.getNome();
                     tipoOggetto = Krint.TipoOggettoKrint.BABORG_UFFICIO;
                     KrintBaborgStruttura krintBaborgStrutturaOggetto = factory.createProjection(KrintBaborgStruttura.class, strutturaOggetto);
-                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgStrutturaOggetto);
+                    krintOggetto = objectMapper.convertValue(krintBaborgStrutturaOggetto, new TypeReference<HashMap<String, Object>>(){});
+//                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgStrutturaOggetto);
                     break;
                 case BABORG_UFFICIO_STRUTTURA_PADRE_UPDATE:
                     Struttura strutturaPadreOggetto = (Struttura) oggetto;
-                    idOggetto = strutturaPadreOggetto.getId().toString();
-                    descrizioneOggetto = strutturaPadreOggetto.getNome();
+                    KrintBaborgStruttura krintBaborgStrutturaPadre = null;
+                    if(strutturaPadreOggetto != null) {
+                        idOggetto = strutturaPadreOggetto.getId().toString();
+                        descrizioneOggetto = strutturaPadreOggetto.getNome();
+                         krintBaborgStrutturaPadre = factory.createProjection(KrintBaborgStruttura.class, strutturaPadreOggetto);
+                    } else {
+                        idOggetto = null;
+                        descrizioneOggetto = null;
+                    }
+                    
                     tipoOggetto = Krint.TipoOggettoKrint.BABORG_STRUTTURA;
-                    KrintBaborgStruttura krintBaborgStrutturaPadre = factory.createProjection(KrintBaborgStruttura.class, strutturaPadreOggetto);
-                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgStrutturaPadre);
+                    krintOggetto = objectMapper.convertValue(krintBaborgStrutturaPadre, new TypeReference<HashMap<String, Object>>(){});
+                    
+                    
+//                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgStrutturaPadre);
                     break;
                 case BABORG_UFFICIO_UTENTE_STRUTTURA_LIST_ADD:
                 case BABORG_UFFICIO_UTENTE_STRUTTURA_LIST_REMOVE:
@@ -136,7 +145,8 @@ public class KrintBaborgService {
                     descrizioneOggetto = persona.getDescrizione();
                     tipoOggetto = Krint.TipoOggettoKrint.BABORG_PERSONA;
                     KrintBaborgPersona krintBaborgPersona = factory.createProjection(KrintBaborgPersona.class, persona);
-                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgPersona);
+//                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgPersona);
+                    krintOggetto = objectMapper.convertValue(krintBaborgPersona, new TypeReference<HashMap<String, Object>>(){});
                     break;
                 case BABORG_UFFICIO_STRUTTURE_CONNESSE_LIST_ADD:
                 case BABORG_UFFICIO_STRUTTURE_CONNESSE_LIST_REMOVE:
@@ -145,7 +155,8 @@ public class KrintBaborgService {
                     descrizioneOggetto = strutturaConnessaOggetto.getNome();
                     tipoOggetto = Krint.TipoOggettoKrint.BABORG_STRUTTURA;
                     KrintBaborgStruttura krintBaborgStrutturaConnessaOggetto = factory.createProjection(KrintBaborgStruttura.class, strutturaConnessaOggetto);
-                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgStrutturaConnessaOggetto);
+//                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgStrutturaConnessaOggetto);
+                    krintOggetto = objectMapper.convertValue(krintBaborgStrutturaConnessaOggetto, new TypeReference<HashMap<String, Object>>(){});
                     break;
                 case BABORG_UFFICIO_STRUTTURE_CONNESSE_LIST_PROPAGA_ADD:
                 case BABORG_UFFICIO_STRUTTURE_CONNESSE_LIST_PROPAGA_REMOVE:
@@ -154,7 +165,8 @@ public class KrintBaborgService {
                     descrizioneOggetto = strutturaConnessaConPropagaOggetto.getNome();
                     tipoOggetto = Krint.TipoOggettoKrint.BABORG_STRUTTURA;
                     KrintBaborgStruttura krintBaborgStrutturaConnessaConPropagaOggetto = factory.createProjection(KrintBaborgStruttura.class, strutturaConnessaConPropagaOggetto);
-                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgStrutturaConnessaConPropagaOggetto);
+//                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgStrutturaConnessaConPropagaOggetto);
+                    krintOggetto = objectMapper.convertValue(krintBaborgStrutturaConnessaConPropagaOggetto, new TypeReference<HashMap<String, Object>>(){});
                     break;
             }
 
@@ -162,20 +174,16 @@ public class KrintBaborgService {
                 idOggetto,
                 tipoOggetto,
                 descrizioneOggetto,
-                jsonKrintOggetto,
+                krintOggetto,
                 struttura.getId().toString(),
                 Krint.TipoOggettoKrint.BABORG_UFFICIO,
                 struttura.getNome(),
-                jsonKrintUfficio,
+                krintUfficio,
                 codiceOperazione);
 
         } catch (Exception ex){
-            Integer idOggetto = null;
-            try {
-                ex.printStackTrace();
-                idOggetto = struttura.getId();
-            } catch (Exception exa) {}
-            krintService.writeKrintError(idOggetto, "writeUfficioUpdate", codiceOperazione);
+            log.error("Errore nella writeUfficioUpdate con struttura" + struttura.getId().toString(), ex);
+            krintService.writeKrintError(struttura.getId(), "writeUfficioUpdate", codiceOperazione);
         }
     }
     /*

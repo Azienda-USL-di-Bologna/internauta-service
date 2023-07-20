@@ -99,7 +99,7 @@ public class ConfigurazioneDebugController {
                     QFirmePersona.firmePersona.tramite.eq(FirmePersona.TramiteFirma.ARUBA.toString()));
             Iterable<FirmePersona> firePersonaDaFixare = firmePersonaRepository.findAll(filter);
             for (FirmePersona firmePersona : firePersonaDaFixare) {
-                FirmePersona.AdditionalData additionalData = firmePersona.getAdditionalData();
+                FirmePersona.AdditionalDataFirma additionalData = firmePersona.getAdditionalData();
                 if (additionalData != null) {
                     LOGGER.info(objectMapper.writeValueAsString(additionalData));
                     if (StringUtils.hasText(additionalData.getDominio())) {

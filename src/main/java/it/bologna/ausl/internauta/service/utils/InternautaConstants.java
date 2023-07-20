@@ -21,7 +21,7 @@ public class InternautaConstants {
     public static class Permessi {
 
         public enum Predicati {
-            CONNESSO, CREA, REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, VISUALIZZA, MODIFICA, BLOCCO, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO, SEGR
+            RESPONSABILE, VICARIO, RESPONSABILE_PROPOSTO, PASSAGGIO, CONNESSO, CREA, REDIGE, FIRMA, AGFIRMA, DG, DS, DSC, DA, RISERVA, ELIMINA, VISUALIZZA, MODIFICA, BLOCCO, RISPONDE, LEGGE, SPEDISCE, SPEDISCE_PRINCIPALE, DELEGA, ACCESSO, SEGR
         }
 
         public enum Ambiti {
@@ -52,7 +52,8 @@ public class InternautaConstants {
             codiceAzienda,
             BitPermessoMinimo,
             idArchivio,
-            doNotInclude
+            doNotInclude,
+            predicati
         }
 
         public enum OperationsRequested {

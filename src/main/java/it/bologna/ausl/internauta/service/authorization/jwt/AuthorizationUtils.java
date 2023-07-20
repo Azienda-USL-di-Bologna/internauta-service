@@ -257,7 +257,7 @@ public class AuthorizationUtils {
         logger.info("aziendaRealUser: " + aziendaRealUser.getCodice());
         logger.info("parametri: " + aziendaRealUser.getParametri());
         //userInfoService.loadAziendaByPathRemoveCache(path);
-        AziendaParametriJson aziendaRealUserParams = AziendaParametriJson.parse(objectMapper, aziendaRealUser.getParametri());
+        AziendaParametriJson aziendaRealUserParams = aziendaRealUser.getParametri();
         //AziendaParametriJson aziendaImpersonatedUserParams = AziendaParametriJson.parse(objectMapper, aziendaImpersonatedUser.getParametri());
 
         if (ssoFieldValue == null) {

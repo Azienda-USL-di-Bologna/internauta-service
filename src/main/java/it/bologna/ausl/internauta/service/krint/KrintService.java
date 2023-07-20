@@ -1,6 +1,8 @@
 package it.bologna.ausl.internauta.service.krint;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
@@ -18,7 +20,9 @@ import it.bologna.ausl.model.entities.logs.OperazioneVersionataKrint;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniRealUser;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniUtente;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,11 +67,11 @@ public class KrintService {
             String idOggetto,
             Krint.TipoOggettoKrint tipoOggetto,
             String descrizioneOggetto,
-            String informazioniOggetto,
+            HashMap<String, Object> informazioniOggetto,
             String idOggettoContenitore,
             Krint.TipoOggettoKrint tipoOggettoContenitore,
             String descrizioneOggettoContenitore,
-            String informazioniOggettocontenitore,
+            HashMap<String, Object> informazioniOggettocontenitore,
             OperazioneKrint.CodiceOperazione codiceOperazione) throws Exception {
 
         try {
@@ -75,24 +79,28 @@ public class KrintService {
 
             Integer idSessione = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getIdSessionLog(); // TODO: mettere idSessione corretto
             KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
-            String jsonKrintInformazioniUtente = objectMapper.writeValueAsString(krintInformazioniUtente);
-
-            Krint krint = new Krint(idSessione, authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getApplicazione(), utente.getId(), utente.getIdPersona().getDescrizione(), jsonKrintInformazioniUtente);
+            HashMap<String, Object> mapKrintInformazioniUtente = objectMapper.convertValue(utente, new TypeReference<HashMap<String, Object>>() {
+            });
+            Krint krint = new Krint(idSessione, authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getApplicazione(), utente.getId(), utente.getIdPersona().getDescrizione(), mapKrintInformazioniUtente);
 
             // recupero l'operazioneVersionata con quel codiceOperazione e con la versione più alta
             OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(codiceOperazione);
             OperazioneVersionataKrint operazioneVersionataKrint
                     = operazioneVersionataKrinRepository.findFirstByIdOperazioneIdOrderByVersioneDesc(operazioneKrint.getId()).orElse(null);
-
-            krint.setIdOggetto(idOggetto);
+            if(idOggetto != null) {
+                krint.setIdOggetto(idOggetto);
+            }
             krint.setTipoOggetto(tipoOggetto);
             krint.setInformazioniOggetto(informazioniOggetto);
-            krint.setDescrizioneOggetto(descrizioneOggetto);
+            if(descrizioneOggetto != null) {
+                krint.setDescrizioneOggetto(descrizioneOggetto);
+            } 
             if (StringUtils.hasText(idOggettoContenitore)) {
                 krint.setIdOggettoContenitore(idOggettoContenitore);
                 krint.setTipoOggettoContenitore(tipoOggettoContenitore);
                 krint.setDescrizioneOggettoContenitore(descrizioneOggettoContenitore);
             }
+
             krint.setInformazioniOggettoContenitore(informazioniOggettocontenitore);
 
             krint.setIdOperazioneVersionata(operazioneVersionataKrint);
@@ -107,8 +115,9 @@ public class KrintService {
                     krint.setDescrizioneRealUser(personaReale.getDescrizione());
                 }
                 KrintInformazioniRealUser krintInformazioniRealUser = factory.createProjection(KrintInformazioniRealUser.class, utenteReale);
-                String jsonKrintInformazioniRealUser = objectMapper.writeValueAsString(krintInformazioniRealUser);
-                krint.setInformazioniRealUser(jsonKrintInformazioniRealUser);
+                HashMap<String, Object> mapKrintInformazioniRealUser = objectMapper.convertValue(krintInformazioniRealUser, new TypeReference<HashMap<String, Object>>() {
+                });
+                krint.setInformazioniRealUser(mapKrintInformazioniRealUser);
             }
 
             List<Krint> krintList = (List<Krint>) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.KRINT_ROWS);
@@ -119,7 +128,7 @@ public class KrintService {
             httpSessionData.putData(InternautaConstants.HttpSessionData.Keys.KRINT_ROWS, krintList);
 
         } catch (Exception ex) {
-            // TODO: log
+            LOGGER.error("errore nella writeKrintRow", ex);
             throw ex;
         }
     }
@@ -141,12 +150,14 @@ public class KrintService {
         try {
             Utente utente = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getUser();
             krintError.setIdUtente(utente.getId());
-        } catch (Exception ex) {
+        } catch (BlackBoxPermissionException ex) {
+            LOGGER.error("errore nella writeKrintError", ex);
         }
         try {
             Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getRealUser();
             krintError.setIdRealUser(utenteReale.getId());
-        } catch (Exception ex) {
+        } catch (BlackBoxPermissionException ex) {
+            LOGGER.error("errore nella writeKrintError", ex);
         }
         krintError.setIdOggetto(idOggetto);
         krintError.setFunctionName(functionName);

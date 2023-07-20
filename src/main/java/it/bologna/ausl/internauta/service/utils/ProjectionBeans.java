@@ -48,7 +48,7 @@ import org.springframework.stereotype.Component;
 //import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 //import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoAmbitoRepository;
 //import it.bologna.ausl.internauta.service.repositories.permessi.PredicatoRepository;
-//import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+//import it.bologna.ausl.internauta.utils.model.types.PermessoEntitaStoredProcedure;
 //import it.bologna.ausl.model.entities.baborg.QStoricoRelazione;
 //import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
 //import it.bologna.ausl.model.entities.baborg.StoricoRelazione;

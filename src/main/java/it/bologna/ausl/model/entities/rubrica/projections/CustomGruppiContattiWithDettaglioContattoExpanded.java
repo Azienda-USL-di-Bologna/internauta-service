@@ -1,6 +1,6 @@
 package it.bologna.ausl.model.entities.rubrica.projections;
 
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.ContattoWithContattiDelGruppoListAndIdPersonaCreazioneAndIdUtenteCreazione;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithEmailAndIndirizzoAndTelefono;

@@ -7,7 +7,7 @@ import com.querydsl.core.types.dsl.PathBuilder;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.utils.UtenteProcton;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
@@ -37,8 +37,8 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
-import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.CategoriaPermessiStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.Ruolo.CodiciRuolo;
@@ -1028,7 +1028,7 @@ public class UserInfoService {
 
     @Cacheable(value = "personaFromUtente__ribaltorg__", key = "{#utente.getId()}")
     public Persona getPersonaFromUtente(Utente utente) throws BlackBoxPermissionException {
-        Utente refreshedUtente = utenteRepository.getOne(utente.getId());
+         Utente refreshedUtente = utenteRepository.getOne(utente.getId());
         Persona persona = cachedEntities.getPersona(refreshedUtente.getIdPersona().getId());
 //        Optional<Persona> personaOp = personaRepository.findById(utente.getIdPersona().getId());
         if (persona != null) {

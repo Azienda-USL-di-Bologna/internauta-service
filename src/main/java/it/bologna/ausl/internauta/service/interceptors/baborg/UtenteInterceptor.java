@@ -9,9 +9,12 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
+import static it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData.OperationsRequested.FilterBitPermessoMinimo;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QUtente;
+import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.nextsw.common.annotations.NextSdrInterceptor;
@@ -58,6 +61,10 @@ public class UtenteInterceptor extends InternautaBaseInterceptor {
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
+                     case FilterBitPermessoMinimo:
+                            String bit = additionalData.get(InternautaConstants.AdditionalData.Keys.BitPermessoMinimo.toString());
+                            BooleanExpression filter = QUtente.utente.bitRuoli.goe(Integer.parseInt(bit));
+                            initialPredicate = filter.and(initialPredicate);
                     // se la chiamata arriva dal cambia utente
                     case CambioUtente:
                         // per prima cosa prendo l'utente reale (non dovrebbe mai arrivare un cambia utente da un utente impersonato, ma per sicurezza faccio il controllo

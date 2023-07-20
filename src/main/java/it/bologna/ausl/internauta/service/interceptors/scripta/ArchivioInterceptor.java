@@ -1,11 +1,17 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
+import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaArchiviUtils;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.MassimarioRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.Massimario;
@@ -13,6 +19,7 @@ import it.bologna.ausl.model.entities.scripta.QMassimario;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
+import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +53,13 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
     private KrintScriptaService krintScriptaService;
 
     @Autowired
+    private ParametriAziendeReader parametriAziendeReader;
+
+    @Autowired
     private KrintUtils krintUtils;
+    
+    @Autowired
+    private ScriptaArchiviUtils scriptaArchiviUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -79,7 +92,10 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
-
+        AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
+        Utente user = authenticatedSessionData.getUser();
+        Persona persona = user.getIdPersona();
+        
         Archivio archivio = (Archivio) entity;
         Archivio archivioOld;
         List<Archivio> listArchivioOld = new ArrayList<>();
@@ -141,6 +157,27 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
                             archivioRepository.eliminaBozzeDaArchivioRadice(Archivio.StatoArchivio.BOZZA.toString(), archivioOld.getId());
                         }
                         archivioRepository.chiudiRiapriArchivioRadice(archivio.getStato().toString(), archivioOld.getId());
+                        
+                        /* 
+                        se l'azienda ha impostata la chiusura definita del fascicolo, parametro "chiusuraArchivio" in configurazione.parametri_Aziende, allora numero tutti
+                        i doc ti tipo document (cioè quelli con tipologia DOCUMENT_UTENTE e DOCUMENT_PEC)
+                        */
+                        List<ParametroAziende> parameters = parametriAziendeReader.getParameters(ParametriAziendeReader.ParametriAzienda.chiusuraArchivio, new Integer[]{archivio.getIdAzienda().getId()});
+                        if (parameters != null && !parameters.isEmpty()) {
+                            // se trovo il parametro, sono sicuro che sia una sola riga, dato che ho passato una sola azienda, per cui prendo il primo
+                            if (parametriAziendeReader.getValue(parameters.get(0), Boolean.class) == true) {
+                                /*
+                                se il parametro è true, allora lancio la numerazione di tutti i document sull'archivio.
+                                Questa numererà tutti i docs di tipo DOCUMENT_UTENTE e DOCUMENT_PEC di tuti gli archivi della gerarchia a partire dell'archivio radice
+                                */
+                                LOGGER.info(String.format("numerazione di tutti i document dell'archivio %s...", archivio.getId()));
+                                archivioRepository.numeraTuttiDocumentsArchivioRadice(archivio.getId(), persona.getId());
+                                LOGGER.info("numerazione completata", archivio.getId());
+                            }
+                        } else {
+                            // se non trovo il parametri non do errore, ma lo considero come false
+                            LOGGER.warn(String.format("manca il parametro %s per l'azienda %s, lo considero false", ParametriAziendeReader.ParametriAzienda.chiusuraArchivio, archivio.getIdAzienda().getId()));
+                        }
                         codiciOperazioneWithOldArchivio.add(Pair.of(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_STATO_CHIUSURA_UPDATE, false));
                     } catch (Exception ex) {
                         throw new AbortSaveInterceptorException("errore nel cambio di stato dell'archivio", ex);
@@ -210,5 +247,17 @@ public class ArchivioInterceptor extends InternautaBaseInterceptor {
         }
 
         return super.beforeUpdateEntityInterceptor(archivio, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass);
+    }
+    
+    
+    @Override
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        Archivio archivio = (Archivio) entity;
+        
+        if (mainEntity) {
+            scriptaArchiviUtils.updateDataUltimoUtilizzoArchivio(archivio.getId());
+        }
+        
+        return super.afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
     }
 }

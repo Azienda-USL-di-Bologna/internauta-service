@@ -57,12 +57,11 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.TagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.RawMessageRepository;
-import it.bologna.ausl.model.entities.data.AdditionalData;
-import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
+import it.bologna.ausl.model.entities.data.AdditionalDataShpeck;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -518,7 +517,7 @@ public class ShpeckUtils {
      * esempio torna false se il messaggio aveva già il tag passato)
      * @throws com.fasterxml.jackson.core.JsonProcessingException
      */
-    public boolean setTagToMessage(Pec pec, Message messageToTag, String tagName, AdditionalData additionalData, Utente utente) throws JsonProcessingException {
+    public boolean setTagToMessage(Pec pec, Message messageToTag, String tagName, AdditionalDataShpeck additionalData, Utente utente) throws JsonProcessingException {
         LOG.info("Getting message...");
 
         LOG.info("Getting tag to apply...");
@@ -528,7 +527,7 @@ public class ShpeckUtils {
         List<MessageTag> findByIdMessageAndIdTag = messageTagRepository.findByIdMessageAndIdTag(messageToTag, tag);
 
         // Cerco se il messageTag esiste già
-        List<AdditionalData> currentAdditionalDataList;
+        List<AdditionalDataShpeck> currentAdditionalDataList;
         MessageTag messageTag;
         boolean tagged = false;
         if (findByIdMessageAndIdTag.isEmpty()) {
@@ -540,7 +539,7 @@ public class ShpeckUtils {
                 currentAdditionalDataList = new ArrayList();
                 currentAdditionalDataList.add(additionalData);
 //                messageTag.setAdditionalData(objectMapper.writeValueAsString(currentAdditionalDataList));
-                messageTag.setAdditionalData(AdditionalData.toJsonString(objectMapper, currentAdditionalDataList));
+                messageTag.setAdditionalData(currentAdditionalDataList);
             }
             if (utente != null) {
                 if (messageTag.getIdUtente() == null || !messageTag.getIdUtente().getId().equals(utente.getId())) {
@@ -557,10 +556,13 @@ public class ShpeckUtils {
             LOG.info("Tag already present, skip applying!");
             messageTag = findByIdMessageAndIdTag.get(0);
             if (additionalData != null) {
-                if (StringUtils.hasText(messageTag.getAdditionalData())) {
-                    currentAdditionalDataList = AdditionalData.fromJsonString(objectMapper, messageTag.getAdditionalData());
-                    currentAdditionalDataList.add(additionalData);
-                    messageTag.setAdditionalData(AdditionalData.toJsonString(objectMapper, currentAdditionalDataList));
+
+                if (messageTag.getAdditionalData() != null && !messageTag.getAdditionalData().isEmpty()) {
+
+                    List<AdditionalDataShpeck> additionalDataList = messageTag.getAdditionalData();
+                    additionalDataList.add(additionalData);
+                    messageTag.setAdditionalData(additionalDataList);
+
                 }
             }
             if (utente != null) {
@@ -575,11 +577,10 @@ public class ShpeckUtils {
         return tagged;
     }
 
-    
     public void SetArchiviationTag(Pec pec, Message messageToTag, AdditionalDataArchiviation additionalDataArchiviation, Utente utente, boolean krint) throws JsonProcessingException {
         SetArchiviationTag(pec, messageToTag, additionalDataArchiviation, utente, krint, false);
     }
-    
+
     /**
      * Aggiunge il tag di fascicolazione
      *
@@ -596,18 +597,19 @@ public class ShpeckUtils {
         boolean toTag = true;
         List<MessageTag> messageTagList = getMessageTagList(pec, messageToTag, SystemTagName.archived.toString());
         if (!messageTagList.isEmpty()) {
-            if (StringUtils.hasText(messageTagList.get(0).getAdditionalData())) {
-                List<AdditionalData> additionalData = AdditionalData.fromJsonString(objectMapper, messageTagList.get(0).getAdditionalData());
+            List<AdditionalDataShpeck> additionalData = messageTagList.get(0).getAdditionalData();
+            if (additionalData != null && !additionalData.isEmpty()) {
+//                List<AdditionalDataShpeck> additionalData = AdditionalDataShpeck.fromJsonString(objectMapper, messageTagList.get(0).getAdditionalData());
                 boolean additionalDataAlreadyExits = false;
                 if (archiviazioneInternauta) {
                     additionalDataAlreadyExits = additionalData.stream().anyMatch(a
-                        -> ((AdditionalDataArchiviation) a).getIdArchivio() != null && 
-                           ((AdditionalDataArchiviation) a).getIdArchivio().getId().equals(additionalDataArchiviation.getIdArchivio().getId())
+                            -> ((AdditionalDataArchiviation) a).getIdArchivio() != null
+                            && ((AdditionalDataArchiviation) a).getIdArchivio().getId().equals(additionalDataArchiviation.getIdArchivio().getId())
                     );
                 } else {
                     additionalDataAlreadyExits = additionalData.stream().anyMatch(a
-                        -> ((AdditionalDataArchiviation) a).getIdFascicolo().getId().equals(additionalDataArchiviation.getIdFascicolo().getId())
-                        && ((AdditionalDataArchiviation) a).getIdGdDoc().getId().equals(additionalDataArchiviation.getIdGdDoc().getId()));
+                            -> ((AdditionalDataArchiviation) a).getIdFascicolo().getId().equals(additionalDataArchiviation.getIdFascicolo().getId())
+                            && ((AdditionalDataArchiviation) a).getIdGdDoc().getId().equals(additionalDataArchiviation.getIdGdDoc().getId()));
                 }
                 if (additionalDataAlreadyExits) {
                     toTag = false;
@@ -637,8 +639,9 @@ public class ShpeckUtils {
         boolean toTag = true;
         List<MessageTag> messageTagList = getMessageTagList(pec, messageToTag, SystemTagName.registered.toString());
         if (!messageTagList.isEmpty()) {
-            if (StringUtils.hasText(messageTagList.get(0).getAdditionalData())) {
-                List<AdditionalData> additionalData = AdditionalData.fromJsonString(objectMapper, messageTagList.get(0).getAdditionalData());
+            List<AdditionalDataShpeck> additionalData = messageTagList.get(0).getAdditionalData();
+            if (additionalData != null && !additionalData.isEmpty()) {
+//                List<AdditionalDataShpeck> additionalData = AdditionalDataShpeck.fromJsonString(objectMapper, messageTagList.get(0).getAdditionalData());
                 boolean additionalDataAlreadyExits = additionalData.stream().anyMatch(a
                         -> ((AdditionalDataRegistration) a).getIdDocumento().getNumeroProtocollo().equals(additionalDataRegistration.getIdDocumento().getNumeroProtocollo())
                         && ((AdditionalDataRegistration) a).getIdDocumento().getNumeroProposta().equals(additionalDataRegistration.getIdDocumento().getNumeroProposta()));
@@ -671,8 +674,9 @@ public class ShpeckUtils {
         boolean toTag = true;
         List<MessageTag> messageTagList = getMessageTagList(pec, messageToTag, SystemTagName.in_registration.toString());
         if (!messageTagList.isEmpty()) {
-            if (StringUtils.hasText(messageTagList.get(0).getAdditionalData())) {
-                List<AdditionalData> additionalData = AdditionalData.fromJsonString(objectMapper, messageTagList.get(0).getAdditionalData());
+            List<AdditionalDataShpeck> additionalData = messageTagList.get(0).getAdditionalData();
+            if (additionalData != null && !additionalData.isEmpty()) {
+//                List<AdditionalDataShpeck> additionalData = AdditionalDataShpeck.fromJsonString(objectMapper, messageTagList.get(0).getAdditionalData());
                 boolean additionalDataAlreadyExits = additionalData.stream().anyMatch(a
                         -> ((AdditionalDataRegistration) a).getIdDocumento().getNumeroProtocollo().equals(additionalDataRegistration.getIdDocumento().getNumeroProtocollo())
                         && ((AdditionalDataRegistration) a).getIdDocumento().getNumeroProposta().equals(additionalDataRegistration.getIdDocumento().getNumeroProposta()));

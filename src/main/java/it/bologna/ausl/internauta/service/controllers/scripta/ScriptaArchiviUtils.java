@@ -37,6 +37,7 @@ import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.bologna.ausl.model.entities.shpeck.Message;
@@ -51,19 +52,26 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletResponse;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StreamUtils;
 
 /**
@@ -112,6 +120,12 @@ public class ScriptaArchiviUtils {
 
     @Autowired
     private ShpeckUtils shpeckUtils;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
+    
+    @Autowired
+    TransactionTemplate transactionTemplate;
     
     public Integer getProfonditaArchivio(Archivio arch){
         Integer profondita = 1;
@@ -255,15 +269,16 @@ public class ScriptaArchiviUtils {
                         minIOWrapper.removeByFileId(minIOWrapperFileInfo.getFileId(), false);
                     }
                 }
-                e.printStackTrace();
-                throw new Http500ResponseException("4", "Qualcosa è andato storto nelle creazione degli allegati");
+                String errore = "4 Qualcosa è andato storto nelle creazione degli allegati";
+                LOG.error(errore,e);
+                throw new Http500ResponseException("4", errore);
             }
         }
 
         // Ora che o il doc lo archivio
         ArchivioDoc archiviazione = new ArchivioDoc(archivio, doc, persona);
         archivioDocRepository.save(archiviazione);
-        archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
+//        archivioDiInteresseRepository.aggiungiArchivioRecente(archivio.getIdArchivioRadice().getId(), persona.getId());
 
         // Ora aggiungo il tag di archiviazione sul message
         AdditionalDataTagComponent.idUtente utenteAdditionalData = new AdditionalDataTagComponent.idUtente(utente.getId(), persona.getDescrizione());
@@ -378,5 +393,67 @@ public class ScriptaArchiviUtils {
                 LOG.error("Errore durante il reperimento del file da MinIO.");
             }
         }        
+    }
+    
+    /**
+     * Crea i parametri per il template utilizzati per generare il frontespizio del archivio.
+     *
+     * @param archivio L'oggetto Archivio per cui creare i parametri del template.
+     * @return Una mappa contenente i parametri del template per il frontespizio del archivio.
+     */
+    public Map<String,Object> creaParametriTemplate(Archivio archivio) {
+        Map<String,Object> parametriTemplate = new HashMap<>();
+        String categoria = null;
+        switch (archivio.getLivello()) {
+            case 1:
+                categoria = "Fascicolo";
+                break;
+            case 2:
+                categoria = "Sottofascicolo";
+                break;
+            case 3:
+                categoria = "Inserto";
+                break;
+        }
+        String labelClassificazione = null;
+        switch (archivio.getIdTitolo().getLivello()) {
+            case 1:
+                labelClassificazione = "Categoria";
+                break;
+            case 2:
+                labelClassificazione = "Classe";
+                break;
+            case 3:
+                labelClassificazione = "Sottoclasse";
+                break;
+        }
+        parametriTemplate.put("titolo", archivio.getOggetto());
+        parametriTemplate.put("descrizione", archivio.getNote());
+        parametriTemplate.put("categoria", categoria);
+        parametriTemplate.put("codice", archivio.getNumerazioneGerarchica());
+        parametriTemplate.put("classificazione", 
+                String.format("%s %s - %s", labelClassificazione, archivio.getIdTitolo().getClassificazione(), archivio.getIdTitolo().getNome()));
+        parametriTemplate.put("responsabile", archivio.getIdArchivioDetail().getIdPersonaResponsabile().getDescrizione());
+        parametriTemplate.put("unita_responsabile", archivio.getIdArchivioRadice().getIdArchivioDetail().getIdStruttura().getNome());
+        parametriTemplate.put("data_stampa", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        
+        return parametriTemplate;
+    }
+    
+    /**
+     * Dato un idArchivio viene settato a now() il cmapo dataUltimoUtilizzo
+     * dell'archivioInfo
+     * @param idArchivio 
+     */
+    public void updateDataUltimoUtilizzoArchivio(Integer idArchivio) {
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        transactionTemplate.executeWithoutResult(action -> {
+            jPAQueryFactory
+                .update(QArchivioInfo.archivioInfo)
+                .set(QArchivioInfo.archivioInfo.dataUltimoUtilizzo, ZonedDateTime.now())
+                .where(QArchivioInfo.archivioInfo.id.eq(idArchivio))
+                .execute();
+        });
     }
 }

@@ -7,9 +7,9 @@ import it.bologna.ausl.internauta.service.argo.bollovirtuale.BolloVirtualeManage
 import it.bologna.ausl.internauta.service.argo.bollovirtuale.DatoBolloVirtuale;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
-import it.bologna.ausl.internauta.utils.bds.types.CategoriaPermessiStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoEntitaStoredProcedure;
-import it.bologna.ausl.internauta.utils.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.CategoriaPermessiStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.internauta.service.configuration.utils.PostgresConnectionManager;
@@ -342,7 +342,7 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
 
         Azienda azienda = aziendaRepository.findById(Integer.parseInt(idAzienda)).get();
-        AziendaParametriJson parametriAzienda = AziendaParametriJson.parse(objectMapper, azienda.getParametri());
+        AziendaParametriJson parametriAzienda =  azienda.getParametri();
        
         
         String cf = "";
@@ -439,13 +439,13 @@ public class ScrivaniaCustomController implements ControllerHandledExceptions {
             List<ItemMenu> buildMenu = gestioneMenu.buildMenu(persona);
             return new ResponseEntity(objectMapper.writeValueAsString(buildMenu), HttpStatus.OK);
         } catch (Throwable t) {
+            LOGGER.error("",t);
             Report report = new Report();
             report.setTipologia("GET_MENU_SCRIVANIA_ERROR");
-            Map<String, String> additionalData = new HashMap();
+            HashMap<String, String> additionalData = new HashMap<>();
             additionalData.put("message", t.getMessage());
             additionalData.put("toString", t.toString());
-            t.printStackTrace();
-            report.setAdditionalData(objectMapper.writeValueAsString(additionalData));
+            report.setAdditionalData(additionalData);
             reportRepository.save(report);
             return new ResponseEntity("Not so good madafaca :D", HttpStatus.OK);
         }

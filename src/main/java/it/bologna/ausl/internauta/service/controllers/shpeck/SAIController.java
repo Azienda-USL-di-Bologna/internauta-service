@@ -323,11 +323,10 @@ public class SAIController implements ControllerHandledExceptions {
             LOG.error("errore SAI nella sendAndArchiveMail", t);
             Report report = new Report();
             report.setTipologia("SEND_AND_ARCHIVE_MAIL");
-            Map<String, String> additionalData = new HashMap();
+            HashMap<String, String> additionalData = new HashMap();
             additionalData.put("message", t.getMessage());
             additionalData.put("toString", t.toString());
-//            t.printStackTrace();
-            report.setAdditionalData(objectMapper.writeValueAsString(additionalData));
+            report.setAdditionalData(additionalData);
             reportRepository.save(report);
             throw t;
         }

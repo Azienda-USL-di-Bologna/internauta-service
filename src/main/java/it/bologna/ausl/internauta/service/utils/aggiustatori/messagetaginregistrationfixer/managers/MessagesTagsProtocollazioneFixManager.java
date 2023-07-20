@@ -11,14 +11,11 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagReposito
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.factories.DataHolderFactory;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.handlers.MessagesFoldersHandler;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.holders.MessagesTagsProtocollazioneFixDataHolder;
-import it.bologna.ausl.model.entities.baborg.Pec;
-import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageTag;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -105,45 +102,45 @@ public class MessagesTagsProtocollazioneFixManager {
         return additionalData;
     }
 
-    public JSONArray fixDatiProtocollazioneMessaggio(Message message) throws IOException {
-        log.debug("Entrato in fixDatiProtocollazioneMessaggio(" + message.getId() + ")");
-        dataHolder = dataHolderFactory.createNewMessagesTagsProctocollazioneFixDataHolder(message);
-        JSONArray fixedElements = null;
-        MessageTag inRegistrationMessagesTag = dataHolder.getInRegistrationMessagesTag();
-        if (inRegistrationMessagesTag == null) {
-            log.info("Beh, NON ESISTE un tag IN_REGISTRATION per il messaggio " + message.getId());
-            return fixedElements;
-        }
-        MessageTag registeredTag = dataHolder.getRegisteredTag();
-        fixedElements = additionalDataFixManager.verifyAndFixInRegistrationAdditionalData(inRegistrationMessagesTag, registeredTag);
-        if (fixedElements.length() > 0) {
-            log.info("Andiamo ad aggiustare gli additional_data dei vari MessageTag...");
-            JSONArray purifiedAdditionalData = getAdditionalDataRemovingElementiInutili(inRegistrationMessagesTag, fixedElements);
-            log.info("Ora additionalData di MT InRegistration è\n{} ", purifiedAdditionalData.toString(4));
-            inRegistrationMessagesTag.setAdditionalData(purifiedAdditionalData.toString());
-            if (purifiedAdditionalData.length() == 0) {
-                log.info("AdditionalData di MT InRegistration è vuoto, quindi va cancellato");
-                messageTagRepository.delete(inRegistrationMessagesTag);
-            } else {
-                log.info("Aggiorno MT InRegistration {}...", inRegistrationMessagesTag.getId());
-                inRegistrationMessagesTag = messageTagRepository.save(inRegistrationMessagesTag);
-            }
-            if (registeredTag.getAdditionalData() != null && !registeredTag.getAdditionalData().equals("")) {
-                log.info("Salvo MT Registered...");
-                registeredTag = messageTagRepository.save(registeredTag);
-            }
-
-            // decidiamo di spostare la pec in protocollati
-            verificaAndSpostaMessaggioInProtocollatiSeAppartenenteAdAzienda(message, fixedElements);
-
-            // ORA SI SISTEMANO LE PEC CON UUID_MESSAGE UGUALE
-            geminiMailFixing(message, fixedElements);
-
-        } else {
-            log.info("Sembra tutto normale... Quindi niente");
-        }
-        return fixedElements;
-    }
+//    public JSONArray fixDatiProtocollazioneMessaggio(Message message) throws IOException {
+//        log.debug("Entrato in fixDatiProtocollazioneMessaggio(" + message.getId() + ")");
+//        dataHolder = dataHolderFactory.createNewMessagesTagsProctocollazioneFixDataHolder(message);
+//        JSONArray fixedElements = null;
+//        MessageTag inRegistrationMessagesTag = dataHolder.getInRegistrationMessagesTag();
+//        if (inRegistrationMessagesTag == null) {
+//            log.info("Beh, NON ESISTE un tag IN_REGISTRATION per il messaggio " + message.getId());
+//            return fixedElements;
+//        }
+//        MessageTag registeredTag = dataHolder.getRegisteredTag();
+//        fixedElements = additionalDataFixManager.verifyAndFixInRegistrationAdditionalData(inRegistrationMessagesTag, registeredTag);
+//        if (fixedElements.length() > 0) {
+//            log.info("Andiamo ad aggiustare gli additional_data dei vari MessageTag...");
+//            JSONArray purifiedAdditionalData = getAdditionalDataRemovingElementiInutili(inRegistrationMessagesTag, fixedElements);
+//            log.info("Ora additionalData di MT InRegistration è\n{} ", purifiedAdditionalData.toString(4));
+//            inRegistrationMessagesTag.setAdditionalData(purifiedAdditionalData.toString());
+//            if (purifiedAdditionalData.length() == 0) {
+//                log.info("AdditionalData di MT InRegistration è vuoto, quindi va cancellato");
+//                messageTagRepository.delete(inRegistrationMessagesTag);
+//            } else {
+//                log.info("Aggiorno MT InRegistration {}...", inRegistrationMessagesTag.getId());
+//                inRegistrationMessagesTag = messageTagRepository.save(inRegistrationMessagesTag);
+//            }
+//            if (registeredTag.getAdditionalData() != null && !registeredTag.getAdditionalData().equals("")) {
+//                log.info("Salvo MT Registered...");
+//                registeredTag = messageTagRepository.save(registeredTag);
+//            }
+//
+//            // decidiamo di spostare la pec in protocollati
+//            verificaAndSpostaMessaggioInProtocollatiSeAppartenenteAdAzienda(message, fixedElements);
+//
+//            // ORA SI SISTEMANO LE PEC CON UUID_MESSAGE UGUALE
+//            geminiMailFixing(message, fixedElements);
+//
+//        } else {
+//            log.info("Sembra tutto normale... Quindi niente");
+//        }
+//        return fixedElements;
+//    }
 
     public List<Message> getGeminiMails(Message message) {
         List<Message> geminiMails = new ArrayList<>();
@@ -158,57 +155,57 @@ public class MessagesTagsProtocollazioneFixManager {
         return geminiMails;
     }
 
-    private int getMessageTagAdditionalDataArraySize(MessageTag messageTag) {
-        JSONArray jsonArray = new JSONArray((String) messageTag.getAdditionalData());
-        return jsonArray.length();
-    }
+//    private int getMessageTagAdditionalDataArraySize(MessageTag messageTag) {
+//        JSONArray jsonArray = new JSONArray((String) messageTag.getAdditionalData());
+//        return jsonArray.length();
+//    }
 
-    private void verifyAndFixRegisteredMessageTagWithVerifiedElements(MessageTag registeredTag, JSONArray verifiedElements) {
-        JSONArray registererAdditionalData = new JSONArray((String) registeredTag.getAdditionalData());
-        for (int i = 0; i < verifiedElements.length(); i++) {
-            JSONObject additionalDataVerifiedElement = (JSONObject) verifiedElements.get(i);
-            if (!additionalDataFixManager.isDocumentoAlreadyPresenteInRegisteredTag(additionalDataVerifiedElement.getJSONObject("idAzienda"), registeredTag)) {
-                log.info("Devo aggiungere l'elemento al messageTag");
-                registererAdditionalData.put(additionalDataVerifiedElement);
-            }
-        }
-        registeredTag.setAdditionalData(registererAdditionalData.toString());
-    }
+//    private void verifyAndFixRegisteredMessageTagWithVerifiedElements(MessageTag registeredTag, JSONArray verifiedElements) {
+//        JSONArray registererAdditionalData = new JSONArray((String) registeredTag.getAdditionalData());
+//        for (int i = 0; i < verifiedElements.length(); i++) {
+//            JSONObject additionalDataVerifiedElement = (JSONObject) verifiedElements.get(i);
+//            if (!additionalDataFixManager.isDocumentoAlreadyPresenteInRegisteredTag(additionalDataVerifiedElement.getJSONObject("idAzienda"), registeredTag)) {
+//                log.info("Devo aggiungere l'elemento al messageTag");
+//                registererAdditionalData.put(additionalDataVerifiedElement);
+//            }
+//        }
+//        registeredTag.setAdditionalData(registererAdditionalData.toString());
+//    }
 
-    private void geminiMailFixing(Message message, JSONArray verifiedElements) {
-
-        List<Message> geminiMails = getGeminiMails(message);
-        if (geminiMails.size() > 0) {
-            log.info("Mettiamo a posto i messaggi gemelli...");
-            for (Message geminiMail : geminiMails) {
-                log.info("Vediamo di fissare questo: id = {}", geminiMail.getId());
-
-                dataHolder = dataHolderFactory.createNewMessagesTagsProctocollazioneFixDataHolder(geminiMail);
-
-                MessageTag registeredTag = dataHolder.getRegisteredTag();
-
-                verifyAndFixRegisteredMessageTagWithVerifiedElements(registeredTag, verifiedElements);
-
-                MessageTag inRegistrationMessageTag = dataHolder.getInRegistrationMessagesTag();
-
-                if (inRegistrationMessageTag != null) {
-                    JSONArray purifiedAdditionalData = getAdditionalDataRemovingElementiInutili(inRegistrationMessageTag, verifiedElements);
-                    inRegistrationMessageTag.setAdditionalData(purifiedAdditionalData.toString());
-                    if (getMessageTagAdditionalDataArraySize(inRegistrationMessageTag) > 0) {
-                        log.info("Salvo i dati aggiornati di InRegistration MessageTag");
-                        inRegistrationMessageTag = messageTagRepository.save(inRegistrationMessageTag);
-                    } else {
-                        log.info("InRegistration MessageTag {} è vuoto, quindi lo cancello", inRegistrationMessageTag.getId());
-                    }
-                }
-                if (getMessageTagAdditionalDataArraySize(registeredTag) > 0) {
-                    log.info("Salvo i dati aggiornati di Registered MessageTag");
-                    registeredTag = messageTagRepository.save(registeredTag);
-                }
-                verificaAndSpostaMessaggioInProtocollatiSeAppartenenteAdAzienda(message, verifiedElements);
-            }
-        } else {
-            log.info("Nessun altro messaggio da sistemare.");
-        }
-    }
+//    private void geminiMailFixing(Message message, JSONArray verifiedElements) {
+//
+//        List<Message> geminiMails = getGeminiMails(message);
+//        if (geminiMails.size() > 0) {
+//            log.info("Mettiamo a posto i messaggi gemelli...");
+//            for (Message geminiMail : geminiMails) {
+//                log.info("Vediamo di fissare questo: id = {}", geminiMail.getId());
+//
+//                dataHolder = dataHolderFactory.createNewMessagesTagsProctocollazioneFixDataHolder(geminiMail);
+//
+//                MessageTag registeredTag = dataHolder.getRegisteredTag();
+//
+//                verifyAndFixRegisteredMessageTagWithVerifiedElements(registeredTag, verifiedElements);
+//
+//                MessageTag inRegistrationMessageTag = dataHolder.getInRegistrationMessagesTag();
+//
+//                if (inRegistrationMessageTag != null) {
+//                    JSONArray purifiedAdditionalData = getAdditionalDataRemovingElementiInutili(inRegistrationMessageTag, verifiedElements);
+//                    inRegistrationMessageTag.setAdditionalData(purifiedAdditionalData.toString());
+//                    if (getMessageTagAdditionalDataArraySize(inRegistrationMessageTag) > 0) {
+//                        log.info("Salvo i dati aggiornati di InRegistration MessageTag");
+//                        inRegistrationMessageTag = messageTagRepository.save(inRegistrationMessageTag);
+//                    } else {
+//                        log.info("InRegistration MessageTag {} è vuoto, quindi lo cancello", inRegistrationMessageTag.getId());
+//                    }
+//                }
+//                if (getMessageTagAdditionalDataArraySize(registeredTag) > 0) {
+//                    log.info("Salvo i dati aggiornati di Registered MessageTag");
+//                    registeredTag = messageTagRepository.save(registeredTag);
+//                }
+//                verificaAndSpostaMessaggioInProtocollatiSeAppartenenteAdAzienda(message, verifiedElements);
+//            }
+//        } else {
+//            log.info("Nessun altro messaggio da sistemare.");
+//        }
+//    }
 }
