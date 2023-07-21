@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Whitelist;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -136,7 +138,7 @@ public class ToolsUtils {
        
         Map<String, Object> contentText = new HashMap<>();
         contentText.put("text", segnalazioneUtente.getDescrizione());
-        contentText.put("type", "html");
+        contentText.put("type", "text");
         
         List<Map<String, Object>> listParagraphContent = new ArrayList<>(asList(contentText));   
         
