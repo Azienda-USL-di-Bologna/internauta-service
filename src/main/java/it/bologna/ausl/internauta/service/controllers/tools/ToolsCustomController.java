@@ -605,43 +605,71 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             
             // creo il ticket
             if (jsonForJira != null){
-                String credential = Credentials.basic(jiraApiToken.getString("user"), jiraApiToken.getString("token"));
                 OkHttpClient client = new OkHttpClient();
-                okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(okhttp3.MediaType.parse("application/json; charset=utf-8"), jsonForJira.toString());
-                Request requestTicket = new Request.Builder()
-                    .url("https://dilaxia.atlassian.net/rest/api/3/issue/")
-                    .addHeader("Authorization", credential)
-                    .addHeader("Accept", "application/json")
-                    .addHeader("Content-Type", "application/json")
-                    .post(requestBody)
-                    .build();
-                Response response = client.newCall(requestTicket).execute();
-                if (response.code() != 201){
-                    return new ResponseEntity("Errore durante la creazione del ticket di supporto.", HttpStatus.INTERNAL_SERVER_ERROR);
+                String credential = Credentials.basic(jiraApiToken.getString("user"), jiraApiToken.getString("token"));
+                String jiraTicketCreateUrl = null;
+                // ottengo il url per creare il ticket su jira
+                List<ParametroAziende> parametersJiraTicketCreateUrl = parametriAziendaReader.getParameters("jiraTicketCreateUrl");
+                if (!parametersJiraTicketCreateUrl.isEmpty()){
+                    jiraTicketCreateUrl = parametersJiraTicketCreateUrl.get(0).getValore().replaceAll("\"", "");
                 }
-                jiraResponse = new JSONObject(response.body().string());
+                if (jiraTicketCreateUrl != null){
+                    
+                    okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(okhttp3.MediaType.parse("application/json; charset=utf-8"), jsonForJira.toString());
+                    Request requestTicket = new Request.Builder()
+                        .url(jiraTicketCreateUrl)
+                        .addHeader("Authorization", credential)
+                        .addHeader("Accept", "application/json")
+                        .addHeader("Content-Type", "application/json")
+                        .post(requestBody)
+                        .build();
+                    Response response = client.newCall(requestTicket).execute();
+                    if (!response.isSuccessful()){
+                        response.body().close();
+                        return new ResponseEntity("Errore durante la creazione del ticket di supporto.", HttpStatus.INTERNAL_SERVER_ERROR);
+                    }
+                    jiraResponse = new JSONObject(response.body().string());
+                    response.body().close();
+                } else{
+                    return new ResponseEntity("Errore durante la creazione del ticket di supporto.", HttpStatus.INTERNAL_SERVER_ERROR);
+                    
+                }
                 
                 // allego gli allegati
                 if (segnalazioneUtente.getAllegati() != null){
-                    MultipartBody.Builder requestAttachmentsBody = new MultipartBody.Builder();
-                    requestAttachmentsBody.setType(MultipartBody.FORM);
-                    for (MultipartFile multipartFile : segnalazioneUtente.getAllegati()) {
-                        File convFile = new File(System.getProperty("java.io.tmpdir")+"/"+ multipartFile.getOriginalFilename());
-                        multipartFile.transferTo(convFile);
-                        requestAttachmentsBody.addFormDataPart("file", convFile.getName(), okhttp3.RequestBody.create(okhttp3.MediaType.parse("text/plain"), convFile));
+                    String jiraTicketAttachmentsUrl = null;
+                    // ottengo il url per creare il ticket su jira
+                    List<ParametroAziende> parametersJiraTicketAttachmentsUrl = parametriAziendaReader.getParameters("jiraTicketAttachmentsUrl");
+                    if (!parametersJiraTicketAttachmentsUrl.isEmpty()){
+                        jiraTicketAttachmentsUrl = parametersJiraTicketAttachmentsUrl.get(0).getValore().replaceAll("\"", "");
                     }
-                    okhttp3.RequestBody requestAttachmentsBodyBuilded = requestAttachmentsBody.build();
-                    Request requestAttachments = new Request.Builder()
-                            .url("https://dilaxia.atlassian.net/rest/api/3/issue/" + jiraResponse.getString("key") + "/attachments")
-                            .addHeader("Authorization", credential)
-                            .addHeader("X-Atlassian-Token", "no-check")
-                            .post(requestAttachmentsBodyBuilded)
-                            .build();
-                    Response responseAttachments = client.newCall(requestAttachments).execute();
-                    if (responseAttachments.code() != 200){
-                        return new ResponseEntity("Errore durante la creazione del ticket di supporto.", HttpStatus.INTERNAL_SERVER_ERROR);
+                    if (jiraTicketAttachmentsUrl != null){
+                        MultipartBody.Builder requestAttachmentsBody = new MultipartBody.Builder();
+                        requestAttachmentsBody.setType(MultipartBody.FORM);
+                        for (MultipartFile multipartFile : segnalazioneUtente.getAllegati()) {
+                            File convFile = new File(System.getProperty("java.io.tmpdir")+"/"+ multipartFile.getOriginalFilename());
+                            multipartFile.transferTo(convFile);
+                            requestAttachmentsBody.addFormDataPart("file", convFile.getName(), okhttp3.RequestBody.create(okhttp3.MediaType.parse("text/plain"), convFile));
+                        }
+                        okhttp3.RequestBody requestAttachmentsBodyBuilded = requestAttachmentsBody.build();
+                        Request requestAttachments = new Request.Builder()
+                                .url(jiraTicketAttachmentsUrl.replace("$TICKET_KEY$", jiraResponse.getString("key")))
+                                .addHeader("Authorization", credential)
+                                .addHeader("X-Atlassian-Token", "no-check")
+                                .post(requestAttachmentsBodyBuilded)
+                                .build();
+                        Response responseAttachments = client.newCall(requestAttachments).execute();
+                        if (!responseAttachments.isSuccessful()){
+                            responseAttachments.body().close();
+                            return new ResponseEntity("Errore relativo agli allegati del ticket di supporto.", HttpStatus.INTERNAL_SERVER_ERROR);
+                        }
+                        responseAttachments.body().close();
+                    }else{
+                        return new ResponseEntity("Errore relativo agli allegati del ticket di supporto.", HttpStatus.INTERNAL_SERVER_ERROR);
                     }
                 }
+            }else{
+                return new ResponseEntity("Errore durante la creazione del ticket di supporto.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } 
         if (useRedmineForCustomerSupportParamiterValue){
