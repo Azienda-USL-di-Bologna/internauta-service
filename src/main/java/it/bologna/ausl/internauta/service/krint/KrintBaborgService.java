@@ -121,11 +121,20 @@ public class KrintBaborgService {
                     break;
                 case BABORG_UFFICIO_STRUTTURA_PADRE_UPDATE:
                     Struttura strutturaPadreOggetto = (Struttura) oggetto;
-                    idOggetto = strutturaPadreOggetto.getId().toString();
-                    descrizioneOggetto = strutturaPadreOggetto.getNome();
+                    KrintBaborgStruttura krintBaborgStrutturaPadre = null;
+                    if(strutturaPadreOggetto != null) {
+                        idOggetto = strutturaPadreOggetto.getId().toString();
+                        descrizioneOggetto = strutturaPadreOggetto.getNome();
+                         krintBaborgStrutturaPadre = factory.createProjection(KrintBaborgStruttura.class, strutturaPadreOggetto);
+                    } else {
+                        idOggetto = null;
+                        descrizioneOggetto = null;
+                    }
+                    
                     tipoOggetto = Krint.TipoOggettoKrint.BABORG_STRUTTURA;
-                    KrintBaborgStruttura krintBaborgStrutturaPadre = factory.createProjection(KrintBaborgStruttura.class, strutturaPadreOggetto);
                     krintOggetto = objectMapper.convertValue(krintBaborgStrutturaPadre, new TypeReference<HashMap<String, Object>>(){});
+                    
+                    
 //                    jsonKrintOggetto = objectMapper.writeValueAsString(krintBaborgStrutturaPadre);
                     break;
                 case BABORG_UFFICIO_UTENTE_STRUTTURA_LIST_ADD:

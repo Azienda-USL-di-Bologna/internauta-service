@@ -7,39 +7,27 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.eml.handler.EmlHandlerException;
-import it.bologna.ausl.internauta.service.repositories.baborg.CambiamentiAssociazioneRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorkerData;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.StoricoRelazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
-import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.jpa.natiquery.NativeQueryTools;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobReporitory;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.ricalcolopermessiarchivi.RicalcoloPermessiArchiviJobWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
-import it.bologna.ausl.model.entities.baborg.CambiamentiAssociazione;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.utentestruttura.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
-import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.masterjobs.Job;
 import it.bologna.ausl.model.entities.masterjobs.QJob;
-import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
@@ -49,14 +37,11 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -83,7 +68,6 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -98,21 +82,15 @@ import org.supercsv.prefs.CsvPreference;
 @RestController
 @RequestMapping(value = "${internauta.mapping.url.debug}")
 public class BaborgDebugController {
-
+        
     @Autowired
     StrutturaRepository strutturaRepository;
-    
-    @Autowired
-    StoricoRelazioneRepository storicoRelazioneRepository;
     
     @Autowired
     private ParametriAziendeReader parametriAziendeReader;
 
     @Autowired
     PersonaRepository personaRepository;
-    
-    @Autowired
-    UtenteRepository utenteRepository;
 
     @Autowired
     UtenteStrutturaRepository utenteStrutturaRepository;
@@ -123,17 +101,8 @@ public class BaborgDebugController {
     @Autowired
     ObjectMapper objectMapper;
     
-    @Autowired
-    CachedEntities cachedEntities;
-    
-    @Autowired
-    ParametriAziendeReader parametriAziende;
-    
     @PersistenceContext
-    EntityManager entityManager;
-    
-    @Autowired
-    TransactionTemplate transactionTemplate;
+    EntityManager entityManager;   
 
     @Autowired
     ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
@@ -146,15 +115,10 @@ public class BaborgDebugController {
     
     @Autowired
     private JobReporitory jobRepository;
-    
-    @Autowired
-    private DocRepository docRepository;
+
     @Autowired
     private ArchivioRepository archivioRepository;
     
-    @Autowired
-    private CambiamentiAssociazioneRepository cambiamentiAssociazioneRepository;
-
     @Autowired
     @Qualifier(value = "redisMaterjobs")
     protected RedisTemplate redisTemplate;
