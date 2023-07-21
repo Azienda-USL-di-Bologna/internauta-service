@@ -3,9 +3,16 @@ package it.bologna.ausl.internauta.service.controllers.utils;
 import it.bologna.ausl.internauta.service.baborg.utils.BaborgUtils;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.forms.Segnalazione;
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import static java.util.Arrays.asList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import org.json.JSONObject;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -115,5 +122,51 @@ public class ToolsUtils {
     
     public String getStrutturaNameAndAzienda(Struttura s){
         return s.getNome() + "(" + s.getIdAzienda().getNome() + ")";
+    }
+    
+    public JSONObject getJSONForJira(Segnalazione segnalazioneUtente, String codiceProgetto){
+        Map<String, String> reporter = new HashMap<>();
+        reporter.put("accountId", "557058:f58131cb-b67d-43c7-b30d-6b58d40bd077");
+        
+        Map<String, String> issuetype = new HashMap<>();
+        issuetype.put("name", "Support");
+        
+        Map<String, String> project = new HashMap<>();
+        project.put("key", codiceProgetto.replaceAll("\"", ""));
+       
+        Map<String, Object> contentText = new HashMap<>();
+        contentText.put("text", segnalazioneUtente.getDescrizione());
+        contentText.put("type", "html");
+        
+        List<Map<String, Object>> listParagraphContent = new ArrayList<>(asList(contentText));   
+        
+        Map<String, Object> contentParagraph = new HashMap<>();
+        contentParagraph.put("content", listParagraphContent);
+        contentParagraph.put("type", "paragraph");
+        
+        List<Map<String, Object>> listDescriptionContent = new ArrayList<>(asList(contentParagraph));      
+        
+        Map<String, Object> description = new HashMap<>();
+        description.put("content", listDescriptionContent);
+        description.put("type", "doc");
+        description.put("version", 1);
+        
+        
+        
+        
+        Map<String, Object> fields = new HashMap<>();
+        // CAMPI JIRA
+        fields.put("project", project);
+        fields.put("issuetype", issuetype);
+        fields.put("reporter", reporter);
+        // CAMPI SEGNALAZIONE
+        fields.put("summary", segnalazioneUtente.getOggetto());
+        fields.put("description", description);
+        fields.put("customfield_10074", segnalazioneUtente.getTelefono());
+        
+        Map<String, Object> mapJson = new HashMap<>();
+        mapJson.put("fields", fields);
+        
+        return new JSONObject(mapJson);
     }
 }

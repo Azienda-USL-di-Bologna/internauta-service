@@ -1,6 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.tools;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.json.JSONObject;
 import com.mongodb.MongoException;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
-import org.jose4j.json.internal.json_simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +41,7 @@ import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.forms.Segnalazione;
 import it.bologna.ausl.model.entities.scrivania.RichiestaSmartWorking;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -68,6 +68,11 @@ import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import okhttp3.Credentials;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -101,7 +106,7 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     @Autowired
     private CachedEntities cachedEntities;
     @Autowired
-    private ObjectMapper objectMapper;
+    private ParametriAziendeReader parametriAziendaReader;
     @Autowired
     private UtenteRepository utenteRepository;
     @Autowired
@@ -554,107 +559,190 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = "/inviaSegnalazione", method = RequestMethod.POST)
     public ResponseEntity<?> inviaSegnalazione(@Valid @ModelAttribute() Segnalazione segnalazioneUtente,
             BindingResult result,
-            HttpServletRequest request) {
+            HttpServletRequest request) throws IOException {
         projectionsInterceptorLauncher.setRequestParams(null, request);
         if (result.hasErrors()) {
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
         }
-        Integer numeroNuovaSegnalazione = null;
-        if (!redmineTestMode) {
-            try {
-                MiddleMineNewIssueManager middleMineNewIssueManager = MiddleMineManagerFactory.getAndBuildMiddleMineNewIssueManager();
-                ResponseEntity<String> res = middleMineNewIssueManager.postNewIssue(segnalazioneUtente);
-                MiddleMineNewIssueResponseManager resManager = new MiddleMineNewIssueResponseManager();
-                numeroNuovaSegnalazione = resManager.getNewIssueIdByResponse(res);
-                LOGGER.info("Numero segnalazione: " + numeroNuovaSegnalazione);
-                if (numeroNuovaSegnalazione == null) {
-                    LOGGER.error("Errore nella creazione dell'id della segnalazione");
-                }
-            } catch (Exception e) {
-                LOGGER.error("Errore nella creazione della nuova segnlazione: ", e);
+        
+        // variabili che conterranno i dati relativi alle due segnalazioni (JIRA,Redmine) dopo averle create
+        JSONObject jiraResponse = null;
+        Integer numeroNuovaSegnalazioneRedmine = null;
+        
+        // ottengo il parametro che mi dirà se dovro creare il ticket su jira
+        boolean useJiraForCustomerSupportParamiterValue = false;
+        List<ParametroAziende> parametersUseJiraForCustomerSupport = parametriAziendaReader.getParameters("useJiraForCustomerSupport");
+        if (!parametersUseJiraForCustomerSupport.isEmpty()){
+            useJiraForCustomerSupportParamiterValue = parametersUseJiraForCustomerSupport.get(0).getValore().equals("true");
+        }
+        
+        // ottengo il parametro che mi dirà se dovro creare il ticket su redmine
+        boolean useRedmineForCustomerSupportParamiterValue = false;
+        List<ParametroAziende> parametersUseRedmineForCustomerSupport = parametriAziendaReader.getParameters("useRedmineForCustomerSupport");
+        if (!parametersUseRedmineForCustomerSupport.isEmpty()){
+            useRedmineForCustomerSupportParamiterValue = parametersUseRedmineForCustomerSupport.get(0).getValore().equals("true");
+        }
+        
+        
+        if (useJiraForCustomerSupportParamiterValue){
+            // voglio usare jira
+            JSONObject jsonForJira = null;
+            JSONObject jiraApiToken = null;
+            
+            // ottengo il nome dell'azienda e genero il JSON per jira
+            Azienda azienda = aziendaRepository.getByDescrizione(segnalazioneUtente.getAzienda());
+            List<ParametroAziende> parametersCodiciJiraProject = parametriAziendaReader.getParameters("keyBabelFormJiraProject", new Integer[]{azienda.getId()});
+            if (!parametersCodiciJiraProject.isEmpty()){
+                ToolsUtils toolsUtils = new ToolsUtils();
+                jsonForJira = toolsUtils.getJSONForJira(segnalazioneUtente, parametersCodiciJiraProject.get(0).getValore());
             }
-        }
-        // Prendo l'utente loggato
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Utente utente = (Utente) authentication.getPrincipal();
+            
+            // ottengo il token per creare su jira
+            List<ParametroAziende> parametersJiraApiToken = parametriAziendaReader.getParameters("jiraApiToken");
+            if (!parametersJiraApiToken.isEmpty()){
+                jiraApiToken =  new JSONObject(parametersJiraApiToken.get(0).getValore());
+            }
+            
+            // creo il ticket
+            if (jsonForJira != null){
+                String credential = Credentials.basic(jiraApiToken.getString("user"), jiraApiToken.getString("token"));
+                OkHttpClient client = new OkHttpClient();
+                okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(okhttp3.MediaType.parse("application/json; charset=utf-8"), jsonForJira.toString());
+                Request requestTicket = new Request.Builder()
+                    .url("https://dilaxia.atlassian.net/rest/api/3/issue/")
+                    .addHeader("Authorization", credential)
+                    .addHeader("Accept", "application/json")
+                    .addHeader("Content-Type", "application/json")
+                    .post(requestBody)
+                    .build();
+                Response response = client.newCall(requestTicket).execute();
+                if (response.code() != 201){
+                    return new ResponseEntity("Errore durante la creazione del ticket di supporto.", HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+                jiraResponse = new JSONObject(response.body().string());
+                
+                // allego gli allegati
+                if (segnalazioneUtente.getAllegati() != null){
+                    MultipartBody.Builder requestAttachmentsBody = new MultipartBody.Builder();
+                    requestAttachmentsBody.setType(MultipartBody.FORM);
+                    for (MultipartFile multipartFile : segnalazioneUtente.getAllegati()) {
+                        File convFile = new File(System.getProperty("java.io.tmpdir")+"/"+ multipartFile.getOriginalFilename());
+                        multipartFile.transferTo(convFile);
+                        requestAttachmentsBody.addFormDataPart("file", convFile.getName(), okhttp3.RequestBody.create(okhttp3.MediaType.parse("text/plain"), convFile));
+                    }
+                    okhttp3.RequestBody requestAttachmentsBodyBuilded = requestAttachmentsBody.build();
+                    Request requestAttachments = new Request.Builder()
+                            .url("https://dilaxia.atlassian.net/rest/api/3/issue/" + jiraResponse.getString("key") + "/attachments")
+                            .addHeader("Authorization", credential)
+                            .addHeader("X-Atlassian-Token", "no-check")
+                            .post(requestAttachmentsBodyBuilded)
+                            .build();
+                    Response responseAttachments = client.newCall(requestAttachments).execute();
+                    if (responseAttachments.code() != 200){
+                        return new ResponseEntity("Errore durante la creazione del ticket di supporto.", HttpStatus.INTERNAL_SERVER_ERROR);
+                    }
+                }
+            }
+        } 
+        if (useRedmineForCustomerSupportParamiterValue){
+            // voglio usare redmine
+//            Integer numeroNuovaSegnalazione = null;
+            if (!redmineTestMode) {
+                try {
+                    MiddleMineNewIssueManager middleMineNewIssueManager = MiddleMineManagerFactory.getAndBuildMiddleMineNewIssueManager();
+                    ResponseEntity<String> res = middleMineNewIssueManager.postNewIssue(segnalazioneUtente);
+                    MiddleMineNewIssueResponseManager resManager = new MiddleMineNewIssueResponseManager();
+                    numeroNuovaSegnalazioneRedmine = resManager.getNewIssueIdByResponse(res);
+                    LOGGER.info("Numero segnalazione: " + numeroNuovaSegnalazioneRedmine);
+                    if (numeroNuovaSegnalazioneRedmine == null) {
+                        LOGGER.error("Errore nella creazione dell'id della segnalazione");
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("Errore nella creazione della nuova segnlazione: ", e);
+                }
+            }
+            // Prendo l'utente loggato
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            Utente utente = (Utente) authentication.getPrincipal();
 
-        // Build dei campi della mail da inviare
-        String fromName = segnalazioneUtente.getMail();
-        String subject = "";
-        if (numeroNuovaSegnalazione != null) {
-            subject = "(Segnalazione " + numeroNuovaSegnalazione + ") " + segnalazioneUtente.getOggetto();
-        } else {
-            subject = segnalazioneUtente.getOggetto();
-        }
-        List<String> to = Arrays.asList(emailCustomerSupport);
+            // Build dei campi della mail da inviare
+            String fromName = segnalazioneUtente.getMail();
+            String subject = "";
+            if (numeroNuovaSegnalazioneRedmine != null) {
+                subject = "(Segnalazione " + numeroNuovaSegnalazioneRedmine + ") " + segnalazioneUtente.getOggetto();
+            } else {
+                subject = segnalazioneUtente.getOggetto();
+            }
+            List<String> to = Arrays.asList(emailCustomerSupport);
 
-        ToolsUtils toolsUtils = new ToolsUtils();
-        // Build body mail da inviare al servizio assistenza
-        String bodyCustomerSupport = toolsUtils.buildMailForCustomerSupport(segnalazioneUtente, numeroNuovaSegnalazione, baborgUtils);
-        // Build body mail da inviare all'utente
-        String bodyUser = toolsUtils.buildMailForUser(bodyCustomerSupport, numeroNuovaSegnalazione);
-        List<String> replyToUsers = Arrays.asList(fromName);
+            ToolsUtils toolsUtils = new ToolsUtils();
+            // Build body mail da inviare al servizio assistenza
+            String bodyCustomerSupport = toolsUtils.buildMailForCustomerSupport(segnalazioneUtente, numeroNuovaSegnalazioneRedmine, baborgUtils);
+            // Build body mail da inviare all'utente
+            String bodyUser = toolsUtils.buildMailForUser(bodyCustomerSupport, numeroNuovaSegnalazioneRedmine);
+            List<String> replyToUsers = Arrays.asList(fromName);
 
-        List<MultipartFile> allegatiList = null;
-        if (segnalazioneUtente.getAllegati() != null) {
-            allegatiList = Arrays.asList(segnalazioneUtente.getAllegati());
-        }
-        try {
-            simpleMailSenderUtility.sendMail(
-                    utente.getIdAzienda().getId(),
-                    nameCustomerSupport,
-                    subject,
-                    to,
-                    bodyCustomerSupport,
-                    null,
-                    null,
-                    allegatiList,
-                    replyToUsers,
-                    true);
-        } catch (IOException ex) {
-            return new ResponseEntity("Errore durante l'invio della mail al servizio assistenza.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
-        try {
-            List<String> toUser = Arrays.asList(fromName);
-
-            simpleMailSenderUtility.sendMail(
-                    utente.getIdAzienda().getId(),
-                    nameCustomerSupport,
-                    subject,
-                    toUser,
-                    bodyUser,
-                    null,
-                    null,
-                    null,
-                    null,
-                    true);
-        } catch (IOException ex) {
-            return new ResponseEntity("Errore durante l'invio della mail all'utente.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
-        String tipologiaSegnalazione = segnalazioneUtente.getTipologiaSegnalazione();
-        if (StringUtils.hasText(tipologiaSegnalazione) && tipologiaSegnalazione.equals("CORREZIONE_DOCUMENTALE")) {
+            List<MultipartFile> allegatiList = null;
+            if (segnalazioneUtente.getAllegati() != null) {
+                allegatiList = Arrays.asList(segnalazioneUtente.getAllegati());
+            }
             try {
-                List<String> toAutorizzatore = Arrays.asList(segnalazioneUtente.getEmailAutorizzatore());
-                String introPerAutorizzatore = "Questa è una segnalazione di richiesta modifica da parte dell'utente "
-                        + utente.getIdPersona().getDescrizione() + ".\nVedi sotto il dettaglio e rispondi alla mail per autorizzare babelcare a procedere\n\n";
-                bodyCustomerSupport = introPerAutorizzatore + bodyCustomerSupport;
-                List<String> replyToBabelcare = Arrays.asList("babel.care@ausl.bologna.it");
+                simpleMailSenderUtility.sendMail(
+                        utente.getIdAzienda().getId(),
+                        nameCustomerSupport,
+                        subject,
+                        to,
+                        bodyCustomerSupport,
+                        null,
+                        null,
+                        allegatiList,
+                        replyToUsers,
+                        true);
+            } catch (IOException ex) {
+                return new ResponseEntity("Errore durante l'invio della mail al servizio assistenza.", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            try {
+                List<String> toUser = Arrays.asList(fromName);
 
                 simpleMailSenderUtility.sendMail(
                         utente.getIdAzienda().getId(),
                         nameCustomerSupport,
                         subject,
-                        toAutorizzatore,
-                        bodyCustomerSupport,
+                        toUser,
+                        bodyUser,
                         null,
                         null,
-                        allegatiList,
-                        replyToBabelcare,
+                        null,
+                        null,
                         true);
             } catch (IOException ex) {
-                return new ResponseEntity("Errore durante l'invio della mail all'autorizzatore.", HttpStatus.INTERNAL_SERVER_ERROR);
+                return new ResponseEntity("Errore durante l'invio della mail all'utente.", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            String tipologiaSegnalazione = segnalazioneUtente.getTipologiaSegnalazione();
+            if (StringUtils.hasText(tipologiaSegnalazione) && tipologiaSegnalazione.equals("CORREZIONE_DOCUMENTALE")) {
+                try {
+                    List<String> toAutorizzatore = Arrays.asList(segnalazioneUtente.getEmailAutorizzatore());
+                    String introPerAutorizzatore = "Questa è una segnalazione di richiesta modifica da parte dell'utente "
+                            + utente.getIdPersona().getDescrizione() + ".\nVedi sotto il dettaglio e rispondi alla mail per autorizzare babelcare a procedere\n\n";
+                    bodyCustomerSupport = introPerAutorizzatore + bodyCustomerSupport;
+                    List<String> replyToBabelcare = Arrays.asList("babel.care@ausl.bologna.it");
+
+                    simpleMailSenderUtility.sendMail(
+                            utente.getIdAzienda().getId(),
+                            nameCustomerSupport,
+                            subject,
+                            toAutorizzatore,
+                            bodyCustomerSupport,
+                            null,
+                            null,
+                            allegatiList,
+                            replyToBabelcare,
+                            true);
+                } catch (IOException ex) {
+                    return new ResponseEntity("Errore durante l'invio della mail all'autorizzatore.", HttpStatus.INTERNAL_SERVER_ERROR);
+                }
             }
         }
 
