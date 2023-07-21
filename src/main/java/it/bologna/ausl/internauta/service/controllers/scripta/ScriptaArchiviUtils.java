@@ -350,7 +350,7 @@ public class ScriptaArchiviUtils {
             .join(qDocDetail).on(qDocDetail.id.eq(qArchivioDoc.idDoc.id))
             .where(qArchivioDoc.idArchivio.id.eq(archivio.getId())
                     .and(qDocDetail.numeroRegistrazione.isNotNull()
-                            .or(qDocDetail.tipologia.eq(DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString())
+                            .or(qDocDetail.tipologia.eq(DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE)
                                     .and(qArchivioDoc.dataEliminazione.isNull()))))
             .fetch();
         

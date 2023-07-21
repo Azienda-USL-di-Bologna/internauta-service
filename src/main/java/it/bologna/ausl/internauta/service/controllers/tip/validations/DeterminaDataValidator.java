@@ -106,8 +106,15 @@ public class DeterminaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneDetermina.annullato, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: true/false");
             riga.setErrori(erroriImportazione);
         }
-        if (StringUtils.hasText(riga.getDataAnnullamento()) && !validateData(riga.getDataAnnullamento())) {
+        if ((!StringUtils.hasText(riga.getAnnullato()) || !Boolean.parseBoolean(riga.getAnnullato())) && StringUtils.hasText(riga.getDataAnnullamento())) {
+            erroriImportazione.setWarning(ColonneDetermina.dataAnnullamento, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il dato sarà ignorato perché non è stato inserito true nella colonna annullato");
+            riga.setErrori(erroriImportazione);
+        } else if (StringUtils.hasText(riga.getDataAnnullamento()) && !validateData(riga.getDataAnnullamento())) {
             erroriImportazione.setError(ColonneDetermina.dataAnnullamento, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
+            riga.setErrori(erroriImportazione);
+        }
+        if ((!StringUtils.hasText(riga.getAnnullato()) || !Boolean.parseBoolean(riga.getAnnullato())) && StringUtils.hasText(riga.getNoteAnnullamento())) {
+            erroriImportazione.setWarning(ColonneDetermina.noteAnnullamento, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il dato sarà ignorato perché non è stato inserito true nella colonna annullato");
             riga.setErrori(erroriImportazione);
         }
         if (StringUtils.hasText(riga.getDataInvioConservazione()) && !validateData(riga.getDataInvioConservazione())) {
