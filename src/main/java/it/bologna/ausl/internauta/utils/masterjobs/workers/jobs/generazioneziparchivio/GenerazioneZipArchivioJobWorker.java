@@ -10,13 +10,10 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
-import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
 import it.bologna.ausl.internauta.utils.downloader.controllers.DownloaderController;
 import it.bologna.ausl.internauta.utils.downloader.exceptions.DownloaderPluginException;
 import it.bologna.ausl.internauta.utils.downloader.plugin.DownloaderPluginFactory;
-import it.bologna.ausl.internauta.utils.firma.remota.exceptions.http.FirmaRemotaHttpException;
-import it.bologna.ausl.internauta.utils.firma.remota.utils.FirmaRemotaDownloaderUtils;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
@@ -40,7 +37,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.zip.ZipOutputStream;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -132,8 +128,7 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         try {
             Map<String, Object> uploaderPluginParams = downloaderUtils.getUploaderPluginParams(archivioZipName, null);
             Map<String, Object> params = downloaderController.upload(DownloaderPluginFactory.TargetRepository.MinIO, uploaderPluginParams, bis, "/internauta/archivi-zip", archivioZipName);
-            Map<String, Object> downloadParams = downloaderUtils.getDownloaderPluginParams(params, archivioZipName, "application/zip");
-            urlToDownload = downloaderUtils.buildDownloadUrl(archivioZipName, "application/zip", downloadParams, true, downloadUrl, downloadArchivioZipTokenExpireSeconds);
+            urlToDownload = downloaderUtils.buildDownloadUrl(archivioZipName, "application/zip", params, true, downloadUrl, downloadArchivioZipTokenExpireSeconds);
         } catch (DownloaderUtilsException | IOException | AuthorizationUtilsException | NoSuchAlgorithmException |InvalidKeySpecException ex) {
             errorMessage = "Errore nella generazione dell'url per il download";
             log.error(errorMessage, ex);
@@ -164,6 +159,7 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         a.setOggettoEsternoSecondario(archivio.getId().toString());
         a.setTipoOggettoEsternoSecondario("ArchivioInternauta");
         a.setAperta(false);
+        a.setDatiAggiuntivi(new HashMap<>());
         attivitaRepository.saveAndFlush(a);
         
         return null;
