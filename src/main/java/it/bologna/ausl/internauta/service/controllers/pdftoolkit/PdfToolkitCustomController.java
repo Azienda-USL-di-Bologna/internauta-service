@@ -14,10 +14,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -163,10 +160,10 @@ public class PdfToolkitCustomController {
                 log.error(responseMessage);
             } catch (MinIOWrapperException ex) {
                 responseMessage = "Errore durante l'upload su minIo.";
-                log.error(responseMessage);
+                log.error(responseMessage, ex);
             } catch (IOException ex) {
                 responseMessage = "Errore durante la creazione dei file temporanei.";
-                log.error(responseMessage);
+                log.error(responseMessage, ex);
             } finally {
                 if (folderToSave != null && folderToSave.exists())
                     FileSystemUtils.deleteRecursively(folderToSave);
