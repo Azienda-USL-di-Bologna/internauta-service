@@ -23,7 +23,6 @@ import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -132,19 +131,21 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                         for (Object url: urls) {
                             Map compiledUrlMap = new HashMap();
                             Map urlMap = (Map) url;
+                            String assembledUrl = null;
                             if (!urlMap.isEmpty()) {
                                 compiledUrlMap.putAll(urlMap);
-                                String urlAttivita = (String) urlMap.get("url");
+                                if (urlMap.containsKey("url") && urlMap.get("url") != null) {
+                                    String urlAttivita = (String) urlMap.get("url");
+                                    Azienda aziendaTarget; 
+                                    if (attivita.getIdAzienda() != null) {
+                                        aziendaTarget = attivita.getIdAzienda();
+                                    } else {
+                                        aziendaTarget = aziendaLogin;
+                                    }
 
-                                Azienda aziendaTarget; 
-                                if (attivita.getIdAzienda() != null) {
-                                    aziendaTarget = attivita.getIdAzienda();
-                                } else {
-                                    aziendaTarget = aziendaLogin;
+                                    assembledUrl = internautaUtils.getUrl(authenticatedSessionData, urlAttivita, attivita.getIdApplicazione().getId(), aziendaTarget);
                                 }
                                 
-                                String assembledUrl = internautaUtils.getUrl(authenticatedSessionData, urlAttivita, attivita.getIdApplicazione().getId(), aziendaTarget);
-
                                 compiledUrlMap.put("url", assembledUrl);
                                 compiledUrls.add(compiledUrlMap);
                             }
@@ -156,7 +157,9 @@ public class AttivitaInterceptor extends InternautaBaseInterceptor {
                 }
                     
             } catch (Exception ex) {
-                throw new AbortLoadInterceptorException("errore in AttivitaInterceptor in afterSelectQueryInterceptor: ", ex);
+                String errorMessage = "errore in AttivitaInterceptor in afterSelectQueryInterceptor: ";
+                LOGGER.error(errorMessage, ex);
+                throw new AbortLoadInterceptorException(errorMessage, ex);
             }
         }
         return attivita;
