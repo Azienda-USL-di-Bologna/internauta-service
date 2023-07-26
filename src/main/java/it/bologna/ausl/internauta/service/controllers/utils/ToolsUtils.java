@@ -17,6 +17,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Whitelist;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import com.atlassian.renderer.wysiwyg.converter.DefaultWysiwygConverter;
 
 /**
  *
@@ -126,18 +127,20 @@ public class ToolsUtils {
         return s.getNome() + "(" + s.getIdAzienda().getNome() + ")";
     }
     
-    public JSONObject getJSONForJira(Segnalazione segnalazioneUtente, String codiceProgetto){
+    public JSONObject getJSONForJira(Segnalazione segnalazioneUtente, String accountId, String codiceProgetto){
         Map<String, String> reporter = new HashMap<>();
-        reporter.put("accountId", "557058:f58131cb-b67d-43c7-b30d-6b58d40bd077");
+        reporter.put("accountId", accountId);
         
         Map<String, String> issuetype = new HashMap<>();
         issuetype.put("name", "Support");
         
         Map<String, String> project = new HashMap<>();
-        project.put("key", codiceProgetto.replaceAll("\"", ""));
+        project.put("key", codiceProgetto);
        
         Map<String, Object> contentText = new HashMap<>();
-        contentText.put("text", segnalazioneUtente.getDescrizione());
+        DefaultWysiwygConverter wysiwysConverter = new DefaultWysiwygConverter();
+        String descrizioneFormatoWiki = wysiwysConverter.convertXHtmlToWikiMarkup(segnalazioneUtente.getDescrizione());
+        contentText.put("text", descrizioneFormatoWiki);
         contentText.put("type", "text");
         
         List<Map<String, Object>> listParagraphContent = new ArrayList<>(asList(contentText));   
@@ -165,7 +168,10 @@ public class ToolsUtils {
         fields.put("summary", segnalazioneUtente.getOggetto());
         fields.put("description", description);
         fields.put("customfield_10074", segnalazioneUtente.getTelefono());
-        
+        fields.put("customfield_10088", segnalazioneUtente.getStruttura().getNome());
+        fields.put("customfield_10086", segnalazioneUtente.getMail());
+        fields.put("customfield_10087", segnalazioneUtente.getNome() + " " + segnalazioneUtente.getCognome());
+
         Map<String, Object> mapJson = new HashMap<>();
         mapJson.put("fields", fields);
         

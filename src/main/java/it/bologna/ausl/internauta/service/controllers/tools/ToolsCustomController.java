@@ -592,9 +592,12 @@ public class ToolsCustomController implements ControllerHandledExceptions {
             // ottengo il nome dell'azienda e genero il JSON per jira
             Azienda azienda = aziendaRepository.getByDescrizione(segnalazioneUtente.getAzienda());
             List<ParametroAziende> parametersCodiciJiraProject = parametriAziendaReader.getParameters("keyBabelFormJiraProject", new Integer[]{azienda.getId()});
+            List<ParametroAziende> parametersJiraAccountID = parametriAziendaReader.getParameters("jiraAccountID");
             if (!parametersCodiciJiraProject.isEmpty()){
                 ToolsUtils toolsUtils = new ToolsUtils();
-                jsonForJira = toolsUtils.getJSONForJira(segnalazioneUtente, parametersCodiciJiraProject.get(0).getValore());
+                String jiraAccountID = parametersJiraAccountID.get(0).getValore().replaceAll("\"", "");
+                String jiraCodiceProgetto = parametersCodiciJiraProject.get(0).getValore().replaceAll("\"", "");
+                jsonForJira = toolsUtils.getJSONForJira(segnalazioneUtente, jiraAccountID, jiraCodiceProgetto);
             }
             
             // ottengo il token per creare su jira
