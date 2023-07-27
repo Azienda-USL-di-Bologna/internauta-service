@@ -1,11 +1,8 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.generazioneziparchivio;
 
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.eliminaarchiviazioni.*;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerData;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.scripta.Archivio;
-import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
 
 /**
  *
