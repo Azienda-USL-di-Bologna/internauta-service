@@ -129,14 +129,10 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
             List<Utente> utenti = authenticatedSessionData.getPerson().getUtenteList();
             Boolean isCaForAllAziende = Boolean.FALSE;
             for(Utente utente: utenti) {
-                if(utente.getIdAzienda() == aziendaSorgente ) {
+                if(utente.getIdAzienda().getCodice().equalsIgnoreCase(aziendaSorgente.getCodice()) ) {
                     isCaForAllAziende = userInfoService.isCA(utente);
-                } else {
-                    if(utente.getIdAzienda() == aziendaDestinazione) {
-                        isCaForAllAziende = userInfoService.isCA(utente);
-                    } else {
-                        isCaForAllAziende = Boolean.FALSE;
-                    }
+                } else if(utente.getIdAzienda().getCodice().equalsIgnoreCase(aziendaDestinazione.getCodice())) {
+                    isCaForAllAziende = userInfoService.isCA(utente);
                 } 
             }
             if(!isCaForAllAziende) {
@@ -161,11 +157,11 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
                 if(utente.getIdAzienda() == aziendaSorgente ) {
                     isCaForAllAziende = userInfoService.isCA(utente);
                 } else {
-                    if(utente.getIdAzienda() == aziendaDestinazione) {
+                    if(utente.getIdAzienda().getCodice().equalsIgnoreCase(aziendaSorgente.getCodice()) ) {
                         isCaForAllAziende = userInfoService.isCA(utente);
-                    } else {
-                        isCaForAllAziende = Boolean.FALSE;
-                    }
+                    } else if(utente.getIdAzienda().getCodice().equalsIgnoreCase(aziendaDestinazione.getCodice())) {
+                        isCaForAllAziende = userInfoService.isCA(utente);
+                    } 
                 } 
             }
             if(!isCaForAllAziende) {
