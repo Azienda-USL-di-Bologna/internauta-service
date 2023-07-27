@@ -7,8 +7,12 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
@@ -17,6 +21,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -118,7 +123,25 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeCreateEntityInterceptor di Struttura-Unificata");
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
-            throw new AbortSaveInterceptorException();
+            StrutturaUnificata strutturaUnificata = (StrutturaUnificata) entity;
+            Azienda aziendaDestinazione = strutturaUnificata.getIdStrutturaDestinazione().getIdAzienda();
+            Azienda aziendaSorgente = strutturaUnificata.getIdStrutturaSorgente().getIdAzienda();
+            List<Utente> utenti = authenticatedSessionData.getPerson().getUtenteList();
+            Boolean isCaForAllAziende = Boolean.FALSE;
+            for(Utente utente: utenti) {
+                if(utente.getIdAzienda() == aziendaSorgente ) {
+                    isCaForAllAziende = userInfoService.isCA(utente);
+                } else {
+                    if(utente.getIdAzienda() == aziendaDestinazione) {
+                        isCaForAllAziende = userInfoService.isCA(utente);
+                    } else {
+                        isCaForAllAziende = Boolean.FALSE;
+                    }
+                } 
+            }
+            if(!isCaForAllAziende) {
+                throw new AbortSaveInterceptorException();
+            }
         }
 
         return entity;
@@ -129,7 +152,25 @@ public class StrutturaUnificataInterceptor extends InternautaBaseInterceptor {
         LOGGER.info("in: beforeUpdateEntityInterceptor di Struttura-Unificata");
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         if (!userInfoService.isCI(authenticatedSessionData.getUser())) {
-            throw new AbortSaveInterceptorException();
+            StrutturaUnificata strutturaUnificata = (StrutturaUnificata) entity;
+            Azienda aziendaDestinazione = strutturaUnificata.getIdStrutturaDestinazione().getIdAzienda();
+            Azienda aziendaSorgente = strutturaUnificata.getIdStrutturaSorgente().getIdAzienda();
+            List<Utente> utenti = authenticatedSessionData.getPerson().getUtenteList();
+            Boolean isCaForAllAziende = Boolean.FALSE;
+            for(Utente utente: utenti) {
+                if(utente.getIdAzienda() == aziendaSorgente ) {
+                    isCaForAllAziende = userInfoService.isCA(utente);
+                } else {
+                    if(utente.getIdAzienda() == aziendaDestinazione) {
+                        isCaForAllAziende = userInfoService.isCA(utente);
+                    } else {
+                        isCaForAllAziende = Boolean.FALSE;
+                    }
+                } 
+            }
+            if(!isCaForAllAziende) {
+                throw new AbortSaveInterceptorException();
+            }
         }
         StrutturaUnificata strutturaUnificata = (StrutturaUnificata) entity;
         if(strutturaUnificata.getDataAccensioneAttivazione() == null) {
