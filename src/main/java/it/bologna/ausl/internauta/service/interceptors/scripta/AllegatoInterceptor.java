@@ -1,12 +1,15 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.nextsw.common.annotations.NextSdrInterceptor;
@@ -18,6 +21,7 @@ import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.persistence.EntityManager;
@@ -45,8 +49,8 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
     @Autowired
     private PersonaVedenteRepository personaVedenteRepository;
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    @Autowired
+    private UserInfoService userInfoService;
     
     @Autowired
     @Qualifier(value = "customRepositoryEntityMap")
@@ -102,6 +106,7 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
 //        ddv = docDetailViewRepository.getById(doc.getId());
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
         Persona persona = authenticatedSessionData.getPerson();
+        Utente utente = authenticatedSessionData.getUser();
         Boolean pienaVisibilitaUtente = pienaVisibilita(doc, persona);
 //        while (pienaVisibilitaUtente == null) {
 //            LOGGER.warn("sono pienaVisibilitaUtente e sono NULL ");
@@ -112,11 +117,48 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
 //                
 //            }
 //        }
-        if (pienaVisibilitaUtente) {
+        // controllo se si tratta di un documento con visibilità normale
+        if (!doc.getIdDocDetail().getVisibilitaLimitata() && !doc.getIdDocDetail().getRiservato()){
+          // controllo se siamo un attore del documento
+          if (pienaVisibilitaUtente) {
             return entity;
-        } else {
+          // nel caso in cui si tratti di un documento con visibilità limitata controllo se abbiamo il ruolo di osservatore o di Super Demiurgo
+          } else if (userInfoService.isSD(utente) || userInfoService.isOS(utente) || userInfoService.isMOS(utente)){
+            return entity;
+          }else{
             throw new AbortLoadInterceptorException("non posso vedere gli allegati");
+          }
         }
+        // controllo se si tratta di un documento con visibilità limitata
+        if (doc.getIdDocDetail().getVisibilitaLimitata() && !doc.getIdDocDetail().getRiservato()){
+          // controllo se siamo un attore del documento
+          if (pienaVisibilitaUtente) {
+            return entity;
+          // nel caso in cui si tratti di un documento con visibilità limitata controllo se abbiamo il ruolo di osservatore o di Super Demiurgo
+          } else if (userInfoService.isSD(utente) || userInfoService.isOS(utente)){
+            return entity;
+          }else{
+            throw new AbortLoadInterceptorException("non posso vedere gli allegati");
+          }
+        }
+        // controllo se si tratta di un documento riservato
+        if (doc.getIdDocDetail().getRiservato()){
+          // nel caso in cui si tratti di un documento riservato o sono un attore o ho il ruolo SD
+          if (pienaVisibilitaUtente) {
+            return entity;
+          } else if (userInfoService.isSD(utente)){
+            return entity;
+          } else {
+            throw new AbortLoadInterceptorException("non posso vedere gli allegati");
+          }
+        }
+        
+        throw new AbortLoadInterceptorException("non posso vedere gli allegati");
+//        if (pienaVisibilitaUtente) {
+//            return entity;
+//        } else {
+//            throw new AbortLoadInterceptorException("non posso vedere gli allegati");
+//        }
     }
 
     @Override
@@ -156,7 +198,7 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
 //                    .and(QPersonaVedente.personaVedente.idPersona.id.eq(persona.getId()))
 //            )
 //            .fetchOne();
-        return hasPienaVisibilita;
+        return hasPienaVisibilita == null ? false : hasPienaVisibilita;
     }
     
     /**

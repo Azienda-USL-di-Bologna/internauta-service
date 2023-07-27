@@ -52,7 +52,8 @@ public class InternautaConstants {
             codiceAzienda,
             BitPermessoMinimo,
             idArchivio,
-            doNotInclude
+            doNotInclude,
+            predicati
         }
 
         public enum OperationsRequested {

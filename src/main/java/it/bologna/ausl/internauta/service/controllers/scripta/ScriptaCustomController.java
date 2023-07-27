@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
-import com.drew.lang.StringUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import it.bologna.ausl.documentgenerator.GeneratePE;
@@ -155,13 +154,18 @@ import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.services.jobsnotified.JobsNotifiedServiceWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.services.versatore.VersatoreServiceUtils;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
-import it.bologna.ausl.model.entities.masterjobs.QJobNotified;
-import it.bologna.ausl.model.entities.masterjobs.Set;
+import it.bologna.ausl.model.entities.scripta.QDoc;
+import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
+import it.bologna.ausl.model.entities.versatore.Versamento;
+import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.ERRORE_RITENTABILE;
+import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.FORZARE;
 import java.io.File;
 import java.io.FileInputStream;
-import java.nio.file.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.tika.mime.MimeTypeException;
@@ -216,6 +220,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     @Autowired
     private DocRepository docRepository;
 
+    @Autowired
+    private ParametriAziendeReader parametriAziendaReader;
+    
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
 
@@ -565,19 +572,58 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             return false;
         }
     }
+    
+    /**
+     * Scarica il frontespizio di un fascicolo dal archivio specificato.
+     *
+     * @param idArchivio L'ID del archivio da cui scaricare il frontespizio.
+     * @return L'URL del file frontespizio scaricato.
+     * @throws BlackBoxPermissionException  Se si verifica un errore sui permessi.
+     * @throws Http403ResponseException     Se l'utente non ha il permesso di visualizzare l'archivio.
+     * @throws MasterjobsWorkerException    Se si verifica un errore con il masterjobs worker.
+     */
+    @RequestMapping(value = "downloadFrontespizioFascicolo/{idArchivio}", method = RequestMethod.GET)
+    public ResponseEntity<?> downloadFrontespizioFascicolo(
+            @PathVariable(required = true) Integer idArchivio
+    ) throws BlackBoxPermissionException, Http403ResponseException, MasterjobsWorkerException {
+        log.info("downloadFrontespizioFascicolo: {}", idArchivio);
 
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Archivio archivio = archivioRepository.findById(idArchivio).orElseThrow(ResourceNotFoundException::new);
+
+        // Verifica se l'utente ha il permesso di visualizzare l'archivio
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(
+                persona.getId(), 
+                archivio.getId(), 
+                PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
+            throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
+        }
+        // Genera il nome del file da scaricare
+        String codiceAziendaArchivio = archivio.getIdAzienda().getCodice();
+        String fileName = String.format("Frontespizio - %s.pdf", archivio.getNumerazioneGerarchica());
+        
+        // Crea i parametri per il template
+        Map<String, Object> creaParametriTemplate = scriptaArchiviUtils.creaParametriTemplate(archivio);       
+        // Prepara i dati per il worker del reporter
+        ReporterJobWorkerData reporterWorkerData = new ReporterJobWorkerData(codiceAziendaArchivio, codiceAziendaArchivio + "_gd_frontespizio.xhtml", fileName, creaParametriTemplate);       
+        // Ottiene il worker del reporter dal factory dei job master
+        ReporterJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(ReporterJobWorker.class, reporterWorkerData, false);      
+        // Esegue il lavoro del worker del reporter
+        ReporterJobWorkerResult result = (ReporterJobWorkerResult) jobWorker.doWork();
+        
+        return new ResponseEntity(result, HttpStatus.OK);
+    }
     /**
      * Api per il download di un archivio con tutto il suo contenuto.
      *
      * @param idArchivio L'id dell'archivio da scaricare.
      * @param response Http Response.
      * @param request Http request.
-     * @throws Http403ResponseException Eccezioni in caso di mancanza di
-     * permessi.
+     * @throws Http403ResponseException Eccezioni in caso di mancanza di permessi.
      * @throws Http404ResponseException Eccezione lanciata quando il fascicolo
      * da scaricare non ha nè documenti nè figli.
-     * @throws Http500ResponseException Eccezioni in caso di errori nella
-     * generazione del file zip.
+     * @throws Http500ResponseException Eccezioni in caso di errori nella generazione del file zip.
      * @throws BlackBoxPermissionException Errori della blackbox.
      */
     @RequestMapping(value = "downloadArchivioZip/{idArchivio}", method = RequestMethod.GET, produces = "application/zip")
@@ -1357,26 +1403,38 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         return false;
     }
 
+    /**
+     * La delete dell'archivio viene fatta custom così anzichè usare il framework e gli interceptor
+     * perché passando dal framework oltre la delete dell'archivio verrebbero lanciare le delete
+     * di ogni attoreArchivio e dell'archivioDetail. Vogliamo che sia il DB a uccuparsi di queste CASCADE
+     * in quanto lo farà in maniera più performante
+     * @param idArchivio
+     * @param request
+     * @return
+     * @throws BlackBoxPermissionException
+     * @throws Http403ResponseException 
+     */
     @RequestMapping(value = "deleteArchivio", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> deleteArchivio(
-            @RequestParam("idArchivio") String idArchivio,
+            @RequestParam("idArchivio") Integer idArchivio,
             HttpServletRequest request) throws BlackBoxPermissionException, Http403ResponseException {
-        Integer idArchivioInt = Integer.parseInt(idArchivio);
-        Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
+        Optional<Archivio> a = archivioRepository.findById(idArchivio);
         if (a.isPresent()) {
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
             Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.RESPONSABILE) && !scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO)) {
+            if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivio, PermessoArchivio.DecimalePredicato.RESPONSABILE) && !scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivio, PermessoArchivio.DecimalePredicato.VICARIO)) {
                 throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
             }
             Archivio entity = a.get();
-            archivioRepository.delete(entity);
+//            archivioRepository.delete(entity);
 
             boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
             if (iHaveToKrint) {
                 krintScriptaService.writeArchivioDelete(entity, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DELETE);
             }
+            JPAQueryFactory j = new JPAQueryFactory(em);
+            j.delete(QArchivio.archivio).where(QArchivio.archivio.id.eq(idArchivio)).execute();
             return new ResponseEntity("", HttpStatus.OK);
         }
         return new ResponseEntity("", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -1512,7 +1570,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     //numero il nuovo archivio
                     archivioRepository.numeraArchivio(archivio.getId());
                     log.info(String.format("ho numerato l'archivio di %s", archivio.getId()));
-                    scriptaCopyUtils.setNewAttoriArchivio(archivio, em);
+                    scriptaCopyUtils.setNewAttoriArchivio(archivio, archivio.getIdArchivioPadre(), em);
 
                     //grazie al controllo sulla presenza dei figli fatto in precedenza agisco di conseguenza
                     if (haFigli) {
@@ -1534,7 +1592,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     }
                     em.refresh(archivio);
                     for (Archivio archFiglio : archivio.getArchiviFigliList()) {
-                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, em);
+                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, archivio.getIdArchivioPadre(), em);
                     }
                     //ricalcolo i permessi per l'achivio spostato e figli
                     archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
@@ -2013,5 +2071,56 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
+    
+    
+    @RequestMapping(value = "versaDocMassivo", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
+    public ResponseEntity<?> versaDocMassivo(
+            HttpServletRequest request,
+            @RequestParam("idDocs") Integer[] idDocs,
+            @RequestParam("operazione") Versamento.StatoVersamento operazione,
+            @RequestParam("idAzienda") Integer idAzienda
+    ) throws MasterjobsWorkerException, BlackBoxPermissionException {
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+        QDoc qDoc = QDoc.doc;
+        jPAQueryFactory
+                .update(qDoc)
+                .set(qDoc.statoVersamento, operazione.toString())
+                .where(qDoc.id.in(idDocs))
+                .execute();
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+        Map<Integer, Map<String, Object>> aziendeAttiveConParametri = VersatoreServiceUtils.getAziendeAttiveConParametri(parametriAziendaReader, cachedEntities);
+        Map<String, Object> versatoreConfigAziendaValue = aziendeAttiveConParametri.get(idAzienda);
+        String hostId = (String) versatoreConfigAziendaValue.get("hostId");
+        Integer threadPoolSize = (Integer) versatoreConfigAziendaValue.get("threadPoolSize");
+        Map<String,Object> params = (Map<String,Object>) versatoreConfigAziendaValue.get("params");
+        switch (operazione) {
+            case FORZARE:
+                accodatoreVeloce.accodaVersatore(
+                        Arrays.asList(idDocs),
+                        idAzienda,
+                        hostId,
+                        SessioneVersamento.TipologiaVersamento.FORZATURA,
+                        persona.getId(),
+                        threadPoolSize,
+                        params
+                );
+                break;
 
+            case ERRORE_RITENTABILE:
+                accodatoreVeloce.accodaVersatore(
+                        Arrays.asList(idDocs),
+                        idAzienda,
+                        hostId,
+                        SessioneVersamento.TipologiaVersamento.RITENTA,
+                        persona.getId(),
+                        threadPoolSize,
+                        params
+                );
+                break;
+        }
+        return new ResponseEntity("", HttpStatus.OK);
+    }
 }
