@@ -7,6 +7,7 @@ import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
@@ -19,4 +20,7 @@ public interface AziendaRepository extends
         JpaRepository<Azienda, Integer> {
     
     public Azienda findByCodice(String codice);
+    
+    @Query(value = "select * from baborg.aziende where descrizione = ?1", nativeQuery = true)
+    public Azienda getByDescrizione(String descrizione);
 }
