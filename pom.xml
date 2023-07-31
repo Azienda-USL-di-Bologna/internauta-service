@@ -355,6 +355,21 @@
             <version>2.3.31</version>
             <type>jar</type>
         </dependency>
+        
+        <dependency>
+        <groupId>com.atlassian.renderer</groupId>
+        <artifactId>atlassian-renderer</artifactId>
+        <version>8.0.5</version>
+        <exclusions>
+            <exclusion>
+                <!-- This exclusion is necessary if you are in a situation which 
+                     it conflicts, EG: using spring-boot -->
+                <groupId>javax.servlet</groupId>
+                <artifactId>servlet-api</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
+
 
     </dependencies>
     <profiles>
@@ -391,4 +406,21 @@
             </plugin>
         </plugins>
     </build>
+    
+    <repositories>
+        <repository>
+            <!-- https://developer.atlassian.com/docs/advanced-topics/working-with-maven/atlassian-maven-repositories -->
+            <id>atlassian-public</id>
+            <url>https://packages.atlassian.com/maven/repository/public</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+                <checksumPolicy>warn</checksumPolicy>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <checksumPolicy>warn</checksumPolicy>
+            </releases>
+        </repository>
+    </repositories>
 </project>
