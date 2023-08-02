@@ -37,7 +37,11 @@ public class ImportaDaCSVUtils {
     }
 
     public static ZonedDateTime formattattore(Object o) {
+        
         if (o != null) {
+            if  (o.getClass().getName().equals("java.time.ZonedDateTime")){
+                return (ZonedDateTime) o;
+            }
             try {
                 // String format = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
 //                Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(o.toString()).toInstant();
@@ -67,6 +71,7 @@ public class ImportaDaCSVUtils {
             }
 
             try {
+               
                 String time = ((Timestamp) o).toLocalDateTime().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                 Instant toInstant = new SimpleDateFormat("dd/MM/yyyy").parse(time).toInstant();
                 return ZonedDateTime.ofInstant(toInstant, ZoneId.systemDefault());
@@ -108,7 +113,41 @@ public class ImportaDaCSVUtils {
         }
         return elementi.stream().anyMatch(elemento -> ImportaDaCSVUtils.overlap(ImportaDaCSVUtils.formattattore(elemento.get("datain")), ImportaDaCSVUtils.formattattore(elemento.get("datafi")), dataInizio, dataFine));
     }
-
+    
+    /**
+     * 
+     * @param elementi lista di periodi temporali che potrebbero contenere dataInizio, dataFine
+     * @param dataInizio data di inizio dei periodo temporale da controllare
+     * @param dataFine data fine del periodo temporale da controllare e puo essere null
+     * @return false se elementi è vuoto o se la coppia dataInizio, dataFine non è contenuta in nessun periodo di elementi
+     */
+    public static Boolean isPeriodoContenuto(List<Map<String, Object>> elementi, ZonedDateTime dataInizio, ZonedDateTime dataFine) {
+        if (elementi.isEmpty()) {
+            return false;
+        }
+        if (dataInizio == null){
+            return false;
+        }
+        for (Map<String,Object> elemento : elementi){
+            if ((formattattore(elemento.get("datain")).isBefore(dataInizio) || 
+                    formattattore(elemento.get("datain")).isEqual(dataInizio)) && 
+                    (
+                        formattattore(elemento.get("datafi")) == null || 
+                        (
+                         dataFine != null &&
+                            (
+                                formattattore(elemento.get("datafi")).isEqual(dataFine) || 
+                                formattattore(elemento.get("datafi")).isAfter(dataFine)
+                            )
+                        )
+                    )
+                ) {
+                    return true;
+            }
+        }
+        return false;
+    }
+    
     public static Boolean controllaEstremi(ZonedDateTime dataStrutturaInizio, ZonedDateTime dataStrutturaFine, ZonedDateTime dataAppartenenteInizio, ZonedDateTime dataAppartenenteFine) {
         if (dataAppartenenteFine == null) {
             dataAppartenenteFine = ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault());
@@ -196,5 +235,39 @@ public class ImportaDaCSVUtils {
             }
         }
         return false;
+    }
+    
+
+    public static List<Map<String, Object>> mergeTimePeriods(List<Map<String, Object>> periods) {
+        List<Map<String, Object>> mergedPeriods = new ArrayList<>();
+
+        if (periods.isEmpty()) {
+            return mergedPeriods;
+        }
+
+        // Ordina le mappe in base alla data di inizio
+        periods.sort((m1, m2) -> formattattore(m1.get("datain")).compareTo(formattattore(m2.get("datain"))));
+
+        Map<String, Object> currentPeriod = new HashMap<>(periods.get(0));
+
+        for (int i = 1; i < periods.size(); i++) {
+            Map<String, Object> period = periods.get(i);
+            ZonedDateTime currentDataFi = formattattore(currentPeriod.get("datafi"));
+            ZonedDateTime newDataIn = formattattore(period.get("datain"));
+            ZonedDateTime newDataFi = formattattore(period.get("datafi"));
+
+             if (currentDataFi == null || currentDataFi.isEqual(newDataIn) || currentDataFi.plusDays(1).isEqual(newDataIn) || currentDataFi.isAfter(newDataIn) || newDataFi == null) {
+                if (newDataFi == null || currentDataFi == null || currentDataFi.isBefore(newDataFi)) {
+                    currentPeriod.put("datafi", newDataFi);
+                }
+            } else {
+                mergedPeriods.add(currentPeriod);
+                currentPeriod = new HashMap<>(period);
+            }
+        }
+
+        mergedPeriods.add(currentPeriod);
+
+        return mergedPeriods;
     }
 }
