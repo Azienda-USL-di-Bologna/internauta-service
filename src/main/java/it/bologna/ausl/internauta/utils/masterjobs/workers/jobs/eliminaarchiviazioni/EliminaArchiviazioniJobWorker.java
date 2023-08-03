@@ -8,6 +8,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.scripta.Allegato;
@@ -30,26 +31,27 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @MasterjobsWorker
 public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazioniJobWorkerData, JobWorkerResult> {
+
     private static final Logger log = LoggerFactory.getLogger(EliminaArchiviazioniJobWorker.class);
     private final String name = EliminaArchiviazioniJobWorker.class.getSimpleName();
-    
+
     @Autowired
     ReporitoryConnectionManager aziendeConnectionManager;
 
     @Autowired
     AllegatoRepository allegatoRepository;
-    
+
     @Autowired
     DocRepository docRepository;
-    
+
     @Override
     public String getName() {
         return this.name;
     }
-    
+
     @Override
     public JobWorkerResult doRealWork() throws MasterjobsWorkerException {
-        
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         Integer idAzienda = getWorkerData().getIdAzienda();
         Integer tempoEliminaArchiviazioni = getWorkerData().getTempoEliminaArchiviazioni();
         log.info("sono in do doWork() di {} per l'azienda {}", getName(), idAzienda);
@@ -76,12 +78,13 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                 .fetch();
         //faccio la sottrazione tra  due risultati ottentendo così solo quelli che hanno solo cross eliminate logicamnete
         idDocsConCrossEliminateLogicamente.removeAll(idDocsConCrossEliminateLogicamenteEAncheNonEliminate);
-        //elimino tutte le cross di doc aventi solo cross logicamente elimininate 
+        //elimino tutte le cross di doc aventi solo cross logicamente elimininate
         jpaQueryFactory
                 .delete(QArchivioDoc.archivioDoc)
                 .where(QArchivioDoc.archivioDoc.idDoc.id.in(idDocsConCrossEliminateLogicamente))
                 .execute();
-        //pesco tra i doc precedentemente pescati quelli che non derivno dalle pec (quindi per esclusione solo quelli caricati dall'utente) 
+
+        //pesco tra i doc precedentemente pescati quelli che non derivno dalle pec (quindi per esclusione solo quelli caricati dall'utente)
         List<Integer> idDocsConCrossEliminateLogicamenteNonPec = jpaQueryFactory
                 .select(QDoc.doc.id)
                 .from(QDoc.doc)
@@ -89,22 +92,27 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                         QDoc.doc.id.in(idDocsConCrossEliminateLogicamente),
                         QDoc.doc.tipologia.ne(DocDetailInterface.TipologiaDoc.DOCUMENT_PEC.toString())
                 ).fetch();
-        //mi connetto al minio e elimino i file dei dec non pec pescati in precedenza ciclando per ogni doc i suoi allegti e per ogni allegato i suoi dettagli 
+        //mi connetto al minio e elimino i file dei dec non pec pescati in precedenza ciclando per ogni doc i suoi allegti e per ogni allegato i suoi dettagli
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        for(Integer idDoc: idDocsConCrossEliminateLogicamenteNonPec){
+        for (Integer idDoc : idDocsConCrossEliminateLogicamenteNonPec) {
             Doc doc = docRepository.getById(idDoc);
+            try {
+                accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(doc.getId());
+            } catch (MasterjobsWorkerException ex) {
+                log.error("Errore nell'accodamento del mestiere per il calcolo delle persone vedenti");
+            }
             List<Allegato> allegati = jpaQueryFactory
-                .select(QAllegato.allegato)
-                .from(QAllegato.allegato)
-                .where(
-                        QAllegato.allegato.idDoc.id.eq(doc.getId())
-                ).fetch();
-            for(Allegato allegato: allegati){
+                    .select(QAllegato.allegato)
+                    .from(QAllegato.allegato)
+                    .where(
+                            QAllegato.allegato.idDoc.id.eq(doc.getId())
+                    ).fetch();
+            for (Allegato allegato : allegati) {
                 List<Allegato.DettaglioAllegato> allTipiDettagliAllegati = new ArrayList<Allegato.DettaglioAllegato>();
-                if (allegato.getDettagli() != null){
+                if (allegato.getDettagli() != null) {
                     allTipiDettagliAllegati = allegato.getDettagli().getAllTipiDettagliAllegati();
                 }
-                for(Allegato.DettaglioAllegato dettaglioAllegato: allTipiDettagliAllegati){
+                for (Allegato.DettaglioAllegato dettaglioAllegato : allTipiDettagliAllegati) {
                     try {
                         minIOWrapper.deleteByFileId(dettaglioAllegato.getIdRepository());
                     } catch (MinIOWrapperException ex) {
@@ -125,7 +133,7 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                         QDoc.doc.id.in(idDocsConCrossEliminateLogicamenteNonPec),
                         QDoc.doc.idAzienda.id.eq(idAzienda)
                 ).execute();
-   
+
         return null;
     }
 }
