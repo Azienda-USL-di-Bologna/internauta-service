@@ -39,10 +39,6 @@ import it.bologna.ausl.model.entities.tip.QDocumentoDaCollegare;
 import it.bologna.ausl.model.entities.tip.QImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.QSessioneImportazione;
 import it.bologna.ausl.model.entities.tip.SessioneImportazione;
-import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.DELIBERA;
-import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.DETERMINA;
-import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.PROTOCOLLO_IN_ENTRATA;
-import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.PROTOCOLLO_IN_USCITA;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneProtocolloEntrata;
@@ -309,6 +305,142 @@ public class TipTransferManager {
         }
         return errori;
     }
+    
+    /**
+     * Trasferisce un PU in scripta.
+     * Setta tutti i dati nel doc e torna gli errori di importazione in modo che si possa decidere se committare o fare il rollback.
+     * Viene assunto che le righe abbiano già eseguito la validazione
+     * @param doc il doc da riempire, va creato fuori e la funzione lo riempie
+     * @param persona la persona da usare nei campi in cui è obbligatorio passare una persona e questa non è indicata nel CSV (esempio, personaRegistrante)
+     * @param sessioneImportazione la sessioneImportazione che si vuole trasferire
+     * @param importazioneDoc la riga ImportazioneDocumento da trasferire
+     * @return gli eventuali errori importazione
+     */
+    private TipErroriImportazione transferPU(Doc doc, Persona persona, SessioneImportazione sessioneImportazione, ImportazioneDocumento importazioneDoc) {
+
+        TipErroriImportazione errori = importazioneDoc.getErrori();
+        if (errori == null) {
+            errori = new TipErroriImportazione();
+        }
+        // controllo se per caso l'ho già trasferito (cercandolo per registro, numero e anno) e nel caso lo indico come waring e lo salto
+        if (isDocAlreadyPresent(
+                sessioneImportazione.getTipologia(),
+                sessioneImportazione.getIdAzienda(),
+                Integer.valueOf(importazioneDoc.getNumero()),
+                importazioneDoc.getAnno())) {
+            errori.setWarning(ColonneProtocolloEntrata.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
+            errori.setWarning(ColonneProtocolloEntrata.numero, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
+            errori.setWarning(ColonneProtocolloEntrata.anno, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
+        } else { // se non l'ho già trasferito procedo al trasferimento
+
+            // parso la data di registazione
+            ZonedDateTime dataRegistrazione = TipDataValidator.parseData(importazioneDoc.getDataRegistrazione()).atStartOfDay(ZoneId.systemDefault());
+            try {
+                /* importazione campi della registrazione:
+                * registro, numero, anno, dataRegistrazione e adottatoDa
+                */
+                transferRegistrazione(doc, ColonneProtocolloEntrata.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getTipologia(), dataRegistrazione, importazioneDoc);
+            } catch (TipTransferBadDataException ex) {
+                log.error("errore nel trasferimento dei dati di registrazione", ex);
+                errori.setError(ColonneProtocolloEntrata.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+                errori.setError(ColonneProtocolloEntrata.numero, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+                errori.setError(ColonneProtocolloEntrata.anno, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+            }
+
+            // trasferisco i related (mittenti e destinatari)
+
+            // creo la lista di mittenti
+            List<Related> mittenti = buildRelated(
+                persona, 
+                sessioneImportazione.getIdAzienda(),
+                dataRegistrazione,
+                false, 
+                importazioneDoc, 
+                Related.TipoRelated.MITTENTE, 
+                ColonneProtocolloEntrata.mittente, 
+                ColonneProtocolloEntrata.indirizzoMittente, 
+                null);
+//                    try {
+//                    } catch (Throwable ex) {
+//                        log.error("errore nel trasferimento del mittente", ex);
+//                        errori.setError(ColonneProtocolloEntrata.mittente, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+//                        errori.setError(ColonneProtocolloEntrata.indirizzoMittente, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+////                        errori.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+//                    }
+
+            // creo la lista di destinatari A (nel caso PE sono solo strutture per cui passo true al parametro soloStrutture)
+            List<Related>destinatariA = buildRelated(
+                persona,
+                sessioneImportazione.getIdAzienda(),
+                dataRegistrazione,
+                true,
+                importazioneDoc,
+                Related.TipoRelated.A,
+                ColonneProtocolloEntrata.destinatariInterniA,
+                null, 
+                null);
+//                    try {
+//                    }  catch (Throwable ex) {
+//                        log.error("errore nel trasferimento dei destinatari interni A", ex);
+//                        errori.setError(ColonneProtocolloEntrata.destinatariInterniA, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+//                    }
+//                  
+            // creo la lista di destinatari CC (nel caso PE sono solo strutture per cui passo true al parametro soloStrutture)
+            List<Related> destinatariCC = buildRelated(
+                persona,
+                sessioneImportazione.getIdAzienda(),
+                dataRegistrazione,
+                true,
+                importazioneDoc,
+                Related.TipoRelated.CC,
+                ColonneProtocolloEntrata.destinatariInterniA,
+                null, 
+                null);
+//                    try {
+//                    } catch (Throwable ex) {
+//                        log.error("errore nel trasferimento dei destinatari interni CC", ex);
+//                        errori.setError(ColonneProtocolloEntrata.destinatariInterniA, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+//                    }
+
+            // setto i related sul documento
+            List<Related> related = doc.getRelated();
+            if (mittenti != null || destinatariA != null || destinatariCC != null) {
+                if (related == null) {
+                    related = new ArrayList<>();
+                    doc.setRelated(related);
+                }
+                doc.setRelated(related);
+                if (mittenti != null) {
+                    related.addAll(mittenti);
+                }
+                if (destinatariA != null) {
+                    related.addAll(destinatariA);
+                }
+                if (destinatariCC != null) {
+                    related.addAll(destinatariCC);
+                }
+            }
+
+            addInAdditionalData(doc, ColonneProtocolloEntrata.protocolloEsterno, importazioneDoc.getProtocolloEsterno());
+            addInAdditionalData(doc, ColonneProtocolloEntrata.dataProtocolloEsterno, importazioneDoc.getDataProtocolloEsterno());
+            transferVisiblita(doc, importazioneDoc);
+            doc.setOggetto(importazioneDoc.getOggetto());
+            try {
+                transferFascicolazione(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdArchivioDefault(), persona);
+            } catch (TipTransferBadDataException ex) {
+                log.error("errore nel trasferimento delle fascicolazioni", ex);
+                errori.setError(ColonneProtocolloEntrata.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+            }
+            addInAdditionalData(doc, ColonneProtocolloEntrata.classificazione, importazioneDoc.getClassificazione());
+            transferAllegati(doc, importazioneDoc.getAllegati(), sessioneImportazione.getIdAzienda());
+            transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
+            transferAnnullamento(doc, importazioneDoc, persona);
+            transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
+            transferNoteDocumento(doc, importazioneDoc, persona);
+        }
+        return errori;
+    }
+    
     
     /**
      * Se è presente la data di invio conservazione nei dati del CSV, crea il versamento e gliela setta.

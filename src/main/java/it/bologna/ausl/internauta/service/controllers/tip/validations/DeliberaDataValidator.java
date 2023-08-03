@@ -92,6 +92,9 @@ public class DeliberaDataValidator extends TipDataValidator {
         if (StringUtils.hasText(riga.getConservato()) && !validateBoolean(riga.getConservato())) {
             erroriImportazione.setError(ColonneDelibera.conservato, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: true/false");
             riga.setErrori(erroriImportazione);
+        } else if (Boolean.parseBoolean(riga.getConservato()) && !StringUtils.hasText(riga.getDataInvioConservazione())) {
+            erroriImportazione.setError(ColonneDelibera.conservato, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Se si indica che il documento è conservato è necessario inserire la data di conservazione");
+            riga.setErrori(erroriImportazione);
         }
         if (StringUtils.hasText(riga.getCollegamentoPrecedente()) && !validateNumeroDocumentoPrecedente(riga.getCollegamentoPrecedente())) {
             erroriImportazione.setError(ColonneDelibera.collegamentoPrecedente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: numero/yyyy");
