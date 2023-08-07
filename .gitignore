@@ -13,7 +13,6 @@ DOWNLOADER_TEST.p12
 src/main/resources/downloader/Internauta_Downloader_Encription_Private_Key.pk8
 src/main/resources/downloader/Internauta_Downloader_Encription_Private_Key_Test.pk8
 authorizations-utils/
-downloader/
 firma/jnj/firmaJnJInstaller.msi
 application.properties
 nbactions-noTest.xml
