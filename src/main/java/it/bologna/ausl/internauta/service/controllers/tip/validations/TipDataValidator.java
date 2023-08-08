@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
+import org.apache.commons.lang3.EnumUtils;
 
 /**
  * Classe stratta che si occupa della validazione delle importazioni.
@@ -109,7 +110,7 @@ public abstract class TipDataValidator {
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
     public static boolean validateFascicolazioni(String stringaFascicolazioni) {
-        String regex = "^(?:\\d+-\\d+-\\d+/\\d{4}|\\d+-\\d+/\\d{4}|\\d+/\\d{4})(?:#(?:\\d+-\\d+-\\d+/\\d{4}|\\d+-\\d+/\\d{4}|\\d+/\\d{4}))*$";
+        String regex = String.format("^(?:\\d+-\\d+-\\d+/\\d{4}|\\d+-\\d+/\\d{4}|\\d+/\\d{4})(?:%s(?:\\d+-\\d+-\\d+/\\d{4}|\\d+-\\d+/\\d{4}|\\d+/\\d{4}))*$", DEFAULT_STRING_SEPARATOR);
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(stringaFascicolazioni);
         return matcher.matches();
@@ -121,7 +122,7 @@ public abstract class TipDataValidator {
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
     public static boolean validateClassificazione(String stringaClassificazioni) {
-        String regex = "^(\\d+)(\\/\\d+){0,2}(#(\\d+)(\\/\\d+){0,2})*$";
+        String regex = String.format("^(\\d+)(\\/\\d+){0,2}(\\%s(\\d+)(\\/\\d+){0,2})*$", DEFAULT_STRING_SEPARATOR);
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(stringaClassificazioni);
         return matcher.matches();
@@ -183,7 +184,7 @@ public abstract class TipDataValidator {
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
     public static boolean validateNumeroDocumentoPrecedente(String stringaNumeroDocumento) {
-        String regex = "^\\d+\\/\\d{4}$";
+        String regex = String.format("^(\\d+)(\\/\\d{4})\\%s?(\\%s(\\d+)(\\/\\d{4}))*$", DEFAULT_STRING_SEPARATOR, DEFAULT_STRING_SEPARATOR);
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(stringaNumeroDocumento);
         return matcher.matches();
@@ -219,7 +220,7 @@ public abstract class TipDataValidator {
      */
     public static  <E extends Enum<E> & KeyValueEnum> boolean validaEnumConNotazioniPosizionali(String stringa, String separatore, Class<E> enumClass) {
         String[] stringhe = stringa.split(separatore);
-        return Stream.of(stringhe).allMatch(s -> KeyValueEnum.findEnumKeyFromValue(s, enumClass) != null);
+        return Stream.of(stringhe).allMatch(s -> EnumUtils.isValidEnumIgnoreCase(enumClass, s) || KeyValueEnum.findEnumKeyFromValue(s, enumClass) != null);
     }
     
     /**

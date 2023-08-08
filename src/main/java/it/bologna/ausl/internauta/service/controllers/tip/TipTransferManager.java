@@ -23,6 +23,7 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.DocAnnullato;
+import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.DocDoc;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
 import it.bologna.ausl.model.entities.scripta.NotaDoc;
@@ -111,20 +112,19 @@ public class TipTransferManager {
      * @param idSessioneImportazione l'id della sessione da trasferire
      * @throws TipTransferUnexpectedException nel caso di un errore imprevisto. In questo caso sarà tutto rollbackato.
      */
-    public void transferSessione(Long idSessioneImportazione) throws TipTransferUnexpectedException {
+    public void transferSessioneDocumento(Long idSessioneImportazione) throws TipTransferUnexpectedException {
         QImportazioneDocumento qImportazioneDocumento = QImportazioneDocumento.importazioneDocumento;
         QSessioneImportazione qSessioneImportazione = QSessioneImportazione.sessioneImportazione;
         JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
         transactionTemplate.executeWithoutResult(a -> {
-            // carico la Persona di sistema che rappresente la persona TIP
-            Persona personaTIP = nonCachedEntities.getPersonaFromCodiceFiscale(CODICE_FISCALE_PERSONA_TIP);
             
             // per prima cosa estraggo le righe ImportazioneDocumento della sessione
             JPAQuery<ImportazioneDocumento> importazioni = queryFactory
                 .select(qImportazioneDocumento)
                 .from(qImportazioneDocumento)
                 .join(qSessioneImportazione).on(qImportazioneDocumento.idSessioneImportazione.id.eq(qSessioneImportazione.id))
-                .where(qImportazioneDocumento.idSessioneImportazione.id.eq(idSessioneImportazione))
+                .where(qImportazioneDocumento.idSessioneImportazione.id.eq(idSessioneImportazione).and
+                    (qImportazioneDocumento.stato.in(Arrays.asList(ImportazioneDocumento.StatiImportazioneDocumento.IMPORTARE, ImportazioneDocumento.StatiImportazioneDocumento.ANOMALIA))))
                 .fetchAll();
             for (Iterator<ImportazioneDocumento> iterator = importazioni.iterate(); iterator.hasNext();) {
                 ImportazioneDocumento importazioneDoc = iterator.next();
@@ -137,10 +137,16 @@ public class TipTransferManager {
                     // apro una ulteriore transazione in modo da salvare il doc se tutto ok, oppure fare il rollback se c'è un errore
                     transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
                     TipErroriImportazione erroriImportazione = transactionTemplate.execute(innerInnerA -> {
+                        
+                        // carico la Persona di sistema che rappresente la persona TIP
+                        Persona personaTIP = nonCachedEntities.getPersonaFromCodiceFiscale(CODICE_FISCALE_PERSONA_TIP);
                         Doc doc = new Doc();
+                        doc.setIdAzienda(sessioneImportazione.getIdAzienda());
+                        doc.setPregresso(true);
                         TipErroriImportazione errori;
                         switch (sessioneImportazione.getTipologia()) {
                             case PROTOCOLLO_IN_ENTRATA:
+                                doc.setTipologia(DocDetailInterface.TipologiaDoc.PROTOCOLLO_IN_ENTRATA);
                                 errori = transferPE(doc, personaTIP, sessioneImportazione, importazioneDoc);
                                 break;
                             default:
@@ -216,6 +222,7 @@ public class TipTransferManager {
 
             // creo la lista di mittenti
             List<Related> mittenti = buildRelated(
+                doc,
                 persona, 
                 sessioneImportazione.getIdAzienda(),
                 dataRegistrazione,
@@ -235,6 +242,7 @@ public class TipTransferManager {
 
             // creo la lista di destinatari A (nel caso PE sono solo strutture per cui passo true al parametro soloStrutture)
             List<Related>destinatariA = buildRelated(
+                doc,
                 persona,
                 sessioneImportazione.getIdAzienda(),
                 dataRegistrazione,
@@ -252,13 +260,14 @@ public class TipTransferManager {
 //                  
             // creo la lista di destinatari CC (nel caso PE sono solo strutture per cui passo true al parametro soloStrutture)
             List<Related> destinatariCC = buildRelated(
+                doc,
                 persona,
                 sessioneImportazione.getIdAzienda(),
                 dataRegistrazione,
                 true,
                 importazioneDoc,
                 Related.TipoRelated.CC,
-                ColonneProtocolloEntrata.destinatariInterniA,
+                ColonneProtocolloEntrata.destinatariInterniCC,
                 null, 
                 null);
 //                    try {
@@ -351,6 +360,7 @@ public class TipTransferManager {
 
             // creo la lista di mittenti
             List<Related> mittenti = buildRelated(
+                doc,
                 persona, 
                 sessioneImportazione.getIdAzienda(),
                 dataRegistrazione,
@@ -370,6 +380,7 @@ public class TipTransferManager {
 
             // creo la lista di destinatari A (nel caso PE sono solo strutture per cui passo true al parametro soloStrutture)
             List<Related>destinatariA = buildRelated(
+                doc,
                 persona,
                 sessioneImportazione.getIdAzienda(),
                 dataRegistrazione,
@@ -387,6 +398,7 @@ public class TipTransferManager {
 //                  
             // creo la lista di destinatari CC (nel caso PE sono solo strutture per cui passo true al parametro soloStrutture)
             List<Related> destinatariCC = buildRelated(
+                doc,
                 persona,
                 sessioneImportazione.getIdAzienda(),
                 dataRegistrazione,
@@ -564,11 +576,11 @@ public class TipTransferManager {
      * @param sessioneImportazione
      * @param importazioneDocumento l'oggetto contente i campi da trasferire (quello che è stato popolato dal CSV)
      * @param persona la persona da inserire come persona che ha collegato
-     * @return una coppia con il doc che è lo stesso in input, utile per poter concatenare il metodo a qualcos altro e l'eventuale DocumentoDaCollegare creato
+     * @return il doc che è lo stesso in input, utile per poter concatenare il metodo a qualcos altro
      *  devo tornare anche il DocumentoDaCollegare perché nel caso l'importazione è andata a buon fine devo fare il persist
      * @throws TipTransferBadDataException se c'è qualche errore da segnalare all'utente
      */
-    private Pair<Doc, DocumentoDaCollegare> transferPrecedente(Doc doc, SessioneImportazione sessioneImportazione, ImportazioneDocumento importazioneDocumento, Persona persona) throws TipTransferUnexpectedException {
+    private Doc transferPrecedente(Doc doc, SessioneImportazione sessioneImportazione, ImportazioneDocumento importazioneDocumento, Persona persona) throws TipTransferUnexpectedException {
         // per poter settare il precedente il doc deve avere la riga in registri_docs con il numero, se non c'è devo dare errore
         if (StringUtils.hasText(importazioneDocumento.getCollegamentoPrecedente()) && (doc.getRegistroDocList() == null || doc.getRegistroDocList().isEmpty())) {
             String errorMessage = "impossibile inserire il precedente perché c'è un errore nell'importazionde del registro";
@@ -625,52 +637,53 @@ public class TipTransferManager {
             // salvare?
         }
         
-        // Poi passo a cercare e collegare a questo doc il suo precedente
-        String[] precedenteSplitted = importazioneDocumento.getCollegamentoPrecedente().split("/");
-        Integer numeroPrecedente = Integer.valueOf(precedenteSplitted[0]);
-        Integer annoPrecedente = Integer.valueOf(precedenteSplitted[1]);
-        // lo cerco nel db
-        Doc docDestinazione = queryFactory
-            .select(qRegistroDoc.idDoc)
-            .from(qRegistroDoc)
-            .join(qDoc).on(qRegistroDoc.idDoc.id.eq(qDoc.id))
-            .where( qRegistroDoc.idRegistro.id.eq(registroDoc.getIdRegistro().getId())
-                .and(
-                    qRegistroDoc.numero.eq(numeroPrecedente))
-                .and(
-                    qRegistroDoc.anno.eq(annoPrecedente)
+        for (String precedente: importazioneDocumento.getCollegamentoPrecedente().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+            // Poi passo a cercare e collegare a questo doc il suo precedente
+            String[] precedenteSplitted = precedente.split("/");
+            Integer numeroPrecedente = Integer.valueOf(precedenteSplitted[0]);
+            Integer annoPrecedente = Integer.valueOf(precedenteSplitted[1]);
+            // lo cerco nel db
+            Doc docDestinazione = queryFactory
+                .select(qRegistroDoc.idDoc)
+                .from(qRegistroDoc)
+                .join(qDoc).on(qRegistroDoc.idDoc.id.eq(qDoc.id))
+                .where( qRegistroDoc.idRegistro.id.eq(registroDoc.getIdRegistro().getId())
+                    .and(
+                        qRegistroDoc.numero.eq(numeroPrecedente))
+                    .and(
+                        qRegistroDoc.anno.eq(annoPrecedente)
+                    )
                 )
-            )
-            .fetchOne();
-        
-        DocumentoDaCollegare documentoDaCollegare = null;
-        // se lo trovo allora creo il collegamento
-        if (docDestinazione != null) {
-            if (doc.getDocsCollegati() == null) {
-                List docsCollegati = new ArrayList();
-                doc.setDocsCollegati(docsCollegati);
+                .fetchOne();
+
+            DocumentoDaCollegare documentoDaCollegare = null;
+            // se lo trovo allora creo il collegamento
+            if (docDestinazione != null) {
+                if (doc.getDocsCollegati() == null) {
+                    List docsCollegati = new ArrayList();
+                    doc.setDocsCollegati(docsCollegati);
+                }
+                doc.getDocsCollegati().add(new DocDoc(doc, docDestinazione, DocDoc.TipoCollegamentoDoc.PRECEDENTE, persona));
+            } else {
+                /* 
+                se non lo trovo lo inserisco nella tabella documenti_da_collegare.
+                Inserisco il doc come sorgente e il precedente che dovevo inserire, ma che non ho trovato come destinazione. In questo modo, nel momento in cui 
+                verrà importato, sarà creato il collegamento tramite la parte iniziale della funzione.
+                */
+                documentoDaCollegare = new DocumentoDaCollegare();
+                documentoDaCollegare.setIdSessioneImportazione(sessioneImportazione);
+                documentoDaCollegare.setIdRegistroSorgente(registroDoc.getIdRegistro());
+                documentoDaCollegare.setNumeroSorgente(registroDoc.getNumero());
+                documentoDaCollegare.setAnnoSorgente(registroDoc.getAnno());
+                documentoDaCollegare.setIdRegistroDestinazione(registroDoc.getIdRegistro());
+                documentoDaCollegare.setNumeroDestinazione(numeroPrecedente);
+                documentoDaCollegare.setAnnoDestinazione(annoPrecedente);
+                documentoDaCollegare.setTipoCollegamento(DocDoc.TipoCollegamentoDoc.PRECEDENTE);
+                entityManager.persist(documentoDaCollegare);
             }
-            doc.getDocsCollegati().add(new DocDoc(doc, docDestinazione, DocDoc.TipoCollegamentoDoc.PRECEDENTE, persona));
-        } else {
-            /* 
-            se non lo trovo lo inserisco nella tabella documenti_da_collegare.
-            Inserisco il doc come sorgente e il precedente che dovevo inserire, ma che non ho trovato come destinazione. In questo modo, nel momento in cui 
-            verrà importato, sarà creato il collegamento tramite la parte iniziale della funzione.
-            */
-            documentoDaCollegare = new DocumentoDaCollegare();
-            documentoDaCollegare.setIdSessioneImportazione(sessioneImportazione);
-            documentoDaCollegare.setIdRegistroSorgente(registroDoc.getIdRegistro());
-            documentoDaCollegare.setNumeroSorgente(registroDoc.getNumero());
-            documentoDaCollegare.setAnnoSorgente(registroDoc.getAnno());
-            documentoDaCollegare.setIdRegistroDestinazione(registroDoc.getIdRegistro());
-            documentoDaCollegare.setNumeroDestinazione(numeroPrecedente);
-            documentoDaCollegare.setAnnoDestinazione(annoPrecedente);
-            documentoDaCollegare.setTipoCollegamento(DocDoc.TipoCollegamentoDoc.PRECEDENTE);
-            
-            //entityManager.persist(documentoDaCollegare);
         }
         
-        return Pair.of(doc, documentoDaCollegare);
+        return doc;
     }
     
     /**
@@ -692,8 +705,11 @@ public class TipTransferManager {
             doc.setAllegati(allegati);
         }
         String[] allegatiPath = allegatiString.split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
+        int ordinale = 1;
         for (String allegatoPath : allegatiPath) {
             Allegato allegato = new Allegato();
+            allegato.setIdDoc(doc);
+            allegato.setOrdinale(ordinale++);
             Allegato.DettagliAllegato dettagliAllegato = allegato.getDettagli();
             if (dettagliAllegato == null) {
                 dettagliAllegato = new Allegato.DettagliAllegato();
@@ -715,6 +731,7 @@ public class TipTransferManager {
             originale.setNome(fileName);
             originale.setBucket(azienda.getCodice());
             originale.setEstensione(FilenameUtils.getExtension(fileName));
+            allegato.setNome(fileName);
             try {
                 MinIOWrapperFileInfo fileInfo = minIOWrapper.getFileInfoByPathAndFileName(filePath, allegatoPath, azienda.getCodice());
                 if (fileInfo != null) {
@@ -749,8 +766,12 @@ public class TipTransferManager {
    
     /**
      * setta la fascicolazione sulla tabella archivi_doc.
-     * la fascicolazione è indicata nel campo fascicolazione. Se questa non è stata passata o 
-     * è stato passato idFascicoloPregresso(che si riferisce alla fascicolazione sul veccchio sistema) il documento viene inserito nel fascicolo di default.
+     * la fascicolazione è indicata nel campo fascicolazione o idFascicoloPregresso. 
+     * il campo fascicolazione indica la numerazione gerarchica in Babel, se è stato passato viene usato per reperire l'archivio e il doc sarà fascicolato lì, se
+     *  non viene trovato nessun archivio con il dato passato viene restituito un errore e l'importazione della riga viene saltata.
+     * se non è passato fascicolazione, ma viene passato idFascicoloPregresso (che si riferisce alla fascicolazione sul veccchio sistema), viene cercato l'archivio 
+     *  che ha quel dato come id_archivio_importato. Se non viene trovato nessun fascicolo, il documento viene fascicolato nel fascicolo di default.
+     * Se non viene passato nessuno dei due campi indicati sopra, il documento viene fascicolato nel fascicolo di default.
      * @param doc il doc
      * @param importazioneDocumento l'oggetto contente i campi da trasferire (quello che è stato popolato dal CSV)
      * @param azienda l'azienda sulla quale si sta eseguendo l'importazione 
@@ -760,6 +781,7 @@ public class TipTransferManager {
      * @throws TipTransferBadDataException  nel caso che l'archivio indicato nel campo fascicolazione del CSV non esista sul sistema 
      */
     private Doc transferFascicolazione(Doc doc, ImportazioneDocumento importazioneDocumento, Azienda azienda, Archivio archivioDefault, Persona persona) throws TipTransferBadDataException {
+        boolean insertInDefault = true;
         List<ArchivioDoc> archiviDocs = new ArrayList<>();
         if (StringUtils.hasText(importazioneDocumento.getFascicolazione())) {
             String errorMessage = null;
@@ -770,6 +792,7 @@ public class TipTransferManager {
                 if (archivio != null) {
                     ArchivioDoc archivioDoc = new ArchivioDoc(archivio, doc, persona);
                     archiviDocs.add(archivioDoc);
+                    insertInDefault = false;
                 } else { // se non trovo l'archivio scrivo l'errore nella errorMessage, ma non mi fermo in modo da avere l'elenco di tutti gli errori al termine del ciclo
                     if (errorMessage == null) {
                         errorMessage = String.format("archivio con numerazione gerarchica %s non trovato per l'azienda con id %s", 
@@ -786,10 +809,23 @@ public class TipTransferManager {
             if (errorMessage != null) {
                 throw new TipTransferBadDataException(errorMessage);
             }
-            doc.setArchiviDocList(archiviDocs);    
-        } else {
-            doc.setArchiviDocList(Arrays.asList(new ArchivioDoc(archivioDefault, doc, persona)));
+        } else if (StringUtils.hasText(importazioneDocumento.getIdFascicoloPregresso())) {
+            String[] fascicolazioniSplitted = importazioneDocumento.getIdFascicoloPregresso().split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
+            for (String fascicolazione : fascicolazioniSplitted) {
+                Archivio archivio = nonCachedEntities.getArchivioFromIdArchivioImportatoAndIdAzienda(fascicolazione, azienda.getId());
+                if (archivio != null) {
+                    ArchivioDoc archivioDoc = new ArchivioDoc(archivio, doc, persona);
+                    archiviDocs.add(archivioDoc);
+                    insertInDefault = false;
+                } // se non trovo l'archivio non faccio nulla in modo che venga inserito in quello di default
+            }
+        } 
+        
+        if (insertInDefault) {
+            archiviDocs.add(new ArchivioDoc(archivioDefault, doc, persona));
         }
+        doc.setArchiviDocList(archiviDocs);
+        
         return doc;
     }
     
@@ -834,6 +870,16 @@ public class TipTransferManager {
         // carico il registro(se non esiste)
         Registro registroEntity = nonCachedEntities.getRegistro(azienda.getId(), getCodiceRegistroDefault(tipologia));
         
+        // siccome ogni tracciato chiama in modo diverso la struttura registrante, prendo quella non vuota, che verosimilmente sarà quella giusta
+        String nomeStrutturaRegistrazione = null;
+        if (StringUtils.hasText(importazioneDocumento.getPropostoDa())) {
+            nomeStrutturaRegistrazione = importazioneDocumento.getPropostoDa();
+        } else if (StringUtils.hasText(importazioneDocumento.getAdottatoDa())) {
+            nomeStrutturaRegistrazione = importazioneDocumento.getAdottatoDa();
+        } else if (StringUtils.hasText(importazioneDocumento.getProtocollatoDa())) {
+            nomeStrutturaRegistrazione = importazioneDocumento.getProtocollatoDa();
+        }
+        
         if (registroEntity == null)
             throw new TipTransferBadDataException(String.format("registro con codice %s non valido", importazioneDocumento.getRegistro()));
         RegistroDoc registroDoc = new RegistroDoc();
@@ -841,7 +887,8 @@ public class TipTransferManager {
         registroDoc.setNumero(Integer.valueOf(importazioneDocumento.getNumero()));
         registroDoc.setAnno(Integer.valueOf(importazioneDocumento.getAnno()));
         registroDoc.setDataRegistrazione(dataRegistrazione);
-        registroDoc.setIdStrutturaRegistrante(findOrCreateStruttura(importazioneDocumento.getPropostoDa(), azienda, dataRegistrazione));
+        registroDoc.setIdStrutturaRegistrante(findOrCreateStruttura(nomeStrutturaRegistrazione, azienda, dataRegistrazione));
+        registroDoc.setIdDoc(doc);
         doc.setRegistroDocList(Arrays.asList(registroDoc));
 //        entityManager.persist(registroDoc);
         return doc;
@@ -862,6 +909,7 @@ public class TipTransferManager {
      * @return la lista nomeColonnaDescrizione related con relativa spedizione per rappresentare i destinatari/mittenti
      */
     private <E extends Enum<E> & ColonneImportazioneOggetto>  List<Related> buildRelated(
+            Doc doc,
             Persona persona, 
             Azienda azienda,
             ZonedDateTime dataRegistrazione,
@@ -956,6 +1004,7 @@ public class TipTransferManager {
             String possibileIndirizzo = indirizzo != null? indirizzo: descrizione != null? descrizione: nome;
             
             Related related = new Related();
+            related.setIdDoc(doc);
             
             // calcolo il codice mezzo
             Mezzo.CodiciMezzo codiceMezzo;
@@ -997,7 +1046,7 @@ public class TipTransferManager {
             
             // creo il related
             related.setIdPersonaInserente(persona);
-            related.setDescrizione(descrizione != null? descrizione: possibileIndirizzo);
+            related.setDescrizione(descrizione != null? descrizione: nome != null? nome: possibileIndirizzo);
             related.setOrigine(Related.OrigineRelated.ESTERNO);
             related.setTipo(tipoRelated);
 //            entityManager.persist(related);
@@ -1027,7 +1076,7 @@ public class TipTransferManager {
      */
     private <E extends Enum<E> & ColonneImportazioneOggetto> HashMap<String, Object> addInAdditionalData(Doc doc, Enum<E> nomeColonna, String valore) {
         HashMap<String, Object> additionalData = doc.getAdditionalData();
-        if (valore != null) {
+        if (StringUtils.hasText(valore)) {
             if (additionalData == null) {
                 additionalData = new HashMap<>();
                 doc.setAdditionalData(additionalData);
@@ -1119,7 +1168,7 @@ public class TipTransferManager {
            qRegistroDoc.idRegistro.idAzienda.id.eq(azienda.getId()));
         
         Integer selectOne = transactionTemplate.execute(a -> {
-            return queryFactory.selectOne().from(qDoc).where(filter).fetchFirst();
+            return queryFactory.selectOne().from(qRegistroDoc).where(filter).fetchFirst();
         });
         return selectOne != null;
     }

@@ -27,6 +27,7 @@ import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.Mezzo;
+import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scripta.QMezzo;
 import it.bologna.ausl.model.entities.scripta.QRegistro;
 import it.bologna.ausl.model.entities.scripta.Registro;
@@ -238,6 +239,13 @@ public class NonCachedEntities {
     
     public Archivio getArchivioFromNumerazioneGerarchicaAndIdAzienda(String numerazioneGerarchica, Integer idAzienda) {
         return archivioRepository.findByNumerazioneGerarchicaAndIdAzienda(numerazioneGerarchica, idAzienda);
+    }
+    public Archivio getArchivioFromIdArchivioImportatoAndIdAzienda(String idArchivioImportato, Integer idAzienda) {
+        Optional<Archivio> res = archivioRepository.findOne(QArchivio.archivio.idArchivioImportato.eq(idArchivioImportato).and(QArchivio.archivio.idAzienda.id.eq(idAzienda)));
+        if (res.isPresent())
+            return res.get();
+        else
+            return null;
     }
     
     public Mezzo getMezzoFromCodice(Mezzo.CodiciMezzo codice) {

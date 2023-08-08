@@ -13,8 +13,8 @@ public class InternautaCustomPostgresDialect extends CustomPostgresDialect {
 
     public InternautaCustomPostgresDialect() {
         super();
-        this.registerColumnType(Types.ARRAY, GenericArrayUserType.class.getName());
-        registerHibernateType(Types.ARRAY, GenericArrayUserType.class.getName());
+//        this.registerColumnType(Types.ARRAY, GenericArrayUserType.class.getName());
+//        registerHibernateType(Types.ARRAY, GenericArrayUserType.class.getName());
         
         this.registerColumnType(Types.OTHER, JsonNodeBinaryType.class.getName());
         registerHibernateType(Types.OTHER, JsonNodeBinaryType.class.getName());

@@ -110,4 +110,14 @@ public class TipCustomController implements ControllerHandledExceptions {
             }
         }
     }
+    
+    @RequestMapping(value = "transferDocumentiPregressi", method = RequestMethod.GET)
+    public ResponseEntity<?> transferDocumentiPregressi (
+        HttpServletRequest request,
+        @RequestParam(name = "idSessione", required = true) Long idSessione) {
+        
+        TipTransferManager tipTransferManager = new TipTransferManager(entityManager, objectMapper, nonCachedEntities, reporitoryConnectionManager, transactionTemplate);
+        tipTransferManager.transferSessioneDocumento(idSessione);
+        return ResponseEntity.ok("aaa");
+    }
 }

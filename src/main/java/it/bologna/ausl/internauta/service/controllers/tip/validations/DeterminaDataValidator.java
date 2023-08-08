@@ -56,6 +56,10 @@ public class DeterminaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneDetermina.dataAdozione, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
             riga.setErrori(erroriImportazione);
         }
+        if (!StringUtils.hasText(riga.getAdottatoDa())) {
+            erroriImportazione.setError(ColonneDetermina.adottatoDa, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il campo è obbligatorio..");
+            riga.setErrori(erroriImportazione);
+        }
         if (StringUtils.hasText(riga.getNomiDestinatariEsterni()) && StringUtils.hasText(riga.getIndirizziDestinatariEsterni())) {
             if (!validateNotazioniPosizionali(riga.getNomiDestinatariEsterni(), riga.getIndirizziDestinatariEsterni(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
                 erroriImportazione.setError(ColonneDetermina.nomiDestinatariEsterni, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
