@@ -124,7 +124,7 @@ public class TipTransferManager {
                 .from(qImportazioneDocumento)
                 .join(qSessioneImportazione).on(qImportazioneDocumento.idSessioneImportazione.id.eq(qSessioneImportazione.id))
                 .where(qImportazioneDocumento.idSessioneImportazione.id.eq(idSessioneImportazione).and
-                    (qImportazioneDocumento.stato.in(Arrays.asList(ImportazioneDocumento.StatiImportazioneDocumento.IMPORTARE, ImportazioneDocumento.StatiImportazioneDocumento.ANOMALIA))))
+                    (qImportazioneDocumento.stato.in(Arrays.asList(ImportazioneDocumento.StatiImportazioneDocumento.IMPORTARE, ImportazioneDocumento.StatiImportazioneDocumento.ANOMALIA_VALIDAZIONE))))
                 .fetchAll();
             for (Iterator<ImportazioneDocumento> iterator = importazioni.iterate(); iterator.hasNext();) {
                 ImportazioneDocumento importazioneDoc = iterator.next();
@@ -156,7 +156,7 @@ public class TipTransferManager {
                         // calcolo lo stato di importazione per capirere se posso committare o devo fare il rollback
                         ImportazioneDocumento.StatiImportazioneDocumento statoImportazione = errori.getStatoImportazione(importazioneDoc.getStato());
                         // se lo stato è anomalia o importato committo, altrimenti faccio il rollback
-                        if (statoImportazione == ImportazioneDocumento.StatiImportazioneDocumento.ANOMALIA || statoImportazione == ImportazioneDocumento.StatiImportazioneDocumento.IMPORTATO) {
+                        if (statoImportazione == ImportazioneDocumento.StatiImportazioneDocumento.ANOMALIA_IMPORTAZIONE || statoImportazione == ImportazioneDocumento.StatiImportazioneDocumento.IMPORTATO) {
                             entityManager.persist(doc);
                         } else {
                             innerInnerA.setRollbackOnly();
@@ -199,6 +199,7 @@ public class TipTransferManager {
                 sessioneImportazione.getIdAzienda(),
                 Integer.valueOf(importazioneDoc.getNumero()),
                 importazioneDoc.getAnno())) {
+            importazioneDoc.setStato(ImportazioneDocumento.StatiImportazioneDocumento.GIA_IMPORTATO);
             errori.setWarning(ColonneProtocolloEntrata.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
             errori.setWarning(ColonneProtocolloEntrata.numero, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
             errori.setWarning(ColonneProtocolloEntrata.anno, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
