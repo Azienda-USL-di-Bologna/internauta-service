@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import org.apache.commons.lang3.EnumUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * Classe stratta che si occupa della validazione delle importazioni.
@@ -27,6 +28,7 @@ import org.apache.commons.lang3.EnumUtils;
 public abstract class TipDataValidator {
     public static final String FORMATO_DATA = "dd/MM/yyyy";
     public static final String DEFAULT_STRING_SEPARATOR = "#";
+    public static final String DEFAULT_ATTORE_SEPARATOR = ":";
 
     /**
      * torna la classe concreta in base alla tipologia passata
@@ -231,5 +233,28 @@ public abstract class TipDataValidator {
     public static boolean validaAllegati(String stringaAllegati) {
         String regex = "^[^\\*\\?\\<\\>\\|\\:\\\"]*$";
         return stringaAllegati.matches(regex);
+    }
+    
+    /**
+     * Controlla che la stringa degli attori
+     * Questa può essere testo semplice, oppure nel formato complesso "CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome"
+     *  Nel caso sia nel formato complesso, controlla che ogni attore contenga effettivamente i 3 elementi separati da ":"
+     * @param stringaAttori la stringa degli attori
+     * @return true se la stringa è valida, false altrimenti
+     */
+    public static boolean validaAttori(String stringaAttori) {
+        for (String attore: stringaAttori.split(DEFAULT_STRING_SEPARATOR)) {
+            if (attore.contains(DEFAULT_ATTORE_SEPARATOR)) {
+                if (StringUtils.countOccurrencesOf(attore, DEFAULT_ATTORE_SEPARATOR) != 2) {
+                    return false;
+                } else {
+                    String cf = attore.split(DEFAULT_ATTORE_SEPARATOR)[0];
+                    if (StringUtils.hasText(cf) && cf.length() != 16)  {
+                        return false;
+                    } 
+                }
+            }
+        }
+        return true;
     }
 }

@@ -132,6 +132,18 @@ public class DeterminaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneDetermina.allegati, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Gli allegati contengono caratteri non validi. I catatteri non validi sono: *, ?, <, >, |, :, \" ");
             riga.setErrori(erroriImportazione);
         }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getRedattore())) {
+            erroriImportazione.setError(ColonneDetermina.redattore, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getPareri())) {
+            erroriImportazione.setError(ColonneDetermina.pareri, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getFirmatario())) {
+            erroriImportazione.setError(ColonneDetermina.firmatario, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getVisto())) {
+            erroriImportazione.setError(ColonneDetermina.visto, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
         return erroriImportazione;
     }
     

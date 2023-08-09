@@ -6,6 +6,8 @@ import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExcep
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException;
 import it.bologna.ausl.internauta.service.utils.NonCachedEntities;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
 import it.bologna.ausl.model.entities.tip.SessioneImportazione;
 import it.bologna.ausl.model.entities.tip.projections.generated.SessioneImportazioneWithPlainFields;
 import java.io.File;
@@ -53,6 +55,12 @@ public class TipCustomController implements ControllerHandledExceptions {
     
     @Autowired
     private ProjectionFactory projectionFactory;
+    
+    @Autowired
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
+    
+    @Autowired
+    private MasterjobsJobsQueuer masterjobsJobsQueuer;
     
     /**
      * importa il csv nella tabella importazioni_docimenti o importazioni_archivi a seconda della tipologia
@@ -116,7 +124,9 @@ public class TipCustomController implements ControllerHandledExceptions {
         HttpServletRequest request,
         @RequestParam(name = "idSessione", required = true) Long idSessione) {
         
-        TipTransferManager tipTransferManager = new TipTransferManager(entityManager, objectMapper, nonCachedEntities, reporitoryConnectionManager, transactionTemplate);
+        TipTransferManager tipTransferManager = new TipTransferManager(
+                entityManager, objectMapper, nonCachedEntities, reporitoryConnectionManager, 
+                transactionTemplate, masterjobsObjectsFactory, masterjobsJobsQueuer);
         tipTransferManager.transferSessioneDocumento(idSessione);
         return ResponseEntity.ok("aaa");
     }

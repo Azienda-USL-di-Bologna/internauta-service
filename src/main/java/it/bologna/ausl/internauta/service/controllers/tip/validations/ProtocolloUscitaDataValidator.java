@@ -151,6 +151,15 @@ public class ProtocolloUscitaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneProtocolloUscita.allegati, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Gli allegati contengono caratteri non validi. I catatteri non validi sono: *, ?, <, >, |, :, \" ");
             riga.setErrori(erroriImportazione);
         }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getRedattore())) {
+            erroriImportazione.setError(ColonneProtocolloUscita.redattore, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getPareri())) {
+            erroriImportazione.setError(ColonneProtocolloUscita.pareri, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getFirmatari())) {
+            erroriImportazione.setError(ColonneProtocolloUscita.firmatari, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
         return erroriImportazione;
     }
     

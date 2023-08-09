@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.service.controllers.tip;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.querydsl.core.QueryFactory;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -11,16 +12,25 @@ import it.bologna.ausl.internauta.service.controllers.tip.exceptions.TipTransfer
 import it.bologna.ausl.internauta.service.controllers.tip.validations.TipDataValidator;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.service.utils.NonCachedEntities;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.QStruttura;
+import it.bologna.ausl.model.entities.baborg.QUtente;
 import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.masterjobs.JobNotified;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
+import it.bologna.ausl.model.entities.scripta.AttoreDoc;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.DocAnnullato;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
@@ -43,6 +53,7 @@ import it.bologna.ausl.model.entities.tip.SessioneImportazione;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneProtocolloEntrata;
+import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneProtocolloUscita;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
 import it.bologna.ausl.model.entities.versatore.QSessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
@@ -61,9 +72,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import javax.persistence.EntityManager;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,14 +108,21 @@ public class TipTransferManager {
     
     private TipTransferCachedEntities tipTransferCachedEntities;
     
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
+    private MasterjobsJobsQueuer masterjobsJobsQueuer;
+    
     private final ZonedDateTime now = ZonedDateTime.now();
 
-    public TipTransferManager(EntityManager entityManager, ObjectMapper objectMapper, NonCachedEntities nonCachedEntities, ReporitoryConnectionManager reporitoryConnectionManager, TransactionTemplate transactionTemplate) {
+    public TipTransferManager(EntityManager entityManager, ObjectMapper objectMapper, NonCachedEntities nonCachedEntities, 
+            ReporitoryConnectionManager reporitoryConnectionManager, TransactionTemplate transactionTemplate, 
+            MasterjobsObjectsFactory masterjobsObjectsFactory, MasterjobsJobsQueuer masterjobsJobsQueuer) {
         this.entityManager = entityManager;
         this.objectMapper = objectMapper;
         this.nonCachedEntities = nonCachedEntities;
         this.repositoryConnectionManager = reporitoryConnectionManager;
         this.transactionTemplate = transactionTemplate;
+        this.masterjobsObjectsFactory = masterjobsObjectsFactory;
+        this.masterjobsJobsQueuer = masterjobsJobsQueuer;
         this.tipTransferCachedEntities = new TipTransferCachedEntities(entityManager);
     }
     
@@ -161,6 +181,7 @@ public class TipTransferManager {
                         } else {
                             innerInnerA.setRollbackOnly();
                         }
+                        queueJobs(doc.getId());
                         return errori;
                     });
                     
@@ -175,6 +196,16 @@ public class TipTransferManager {
                 });
             }
         });
+    }
+    
+    private void queueJobs(Integer idDoc) {
+        CalcolaPersoneVedentiDocJobWorkerData calcolaPersoneVedentiDocJobWorkerData = new CalcolaPersoneVedentiDocJobWorkerData(idDoc);
+        Map calcolaPersoneVedentiDocJobWorkerDataMap = objectMapper.convertValue(calcolaPersoneVedentiDocJobWorkerData, Map.class);
+        JobNotified jn = new JobNotified();
+        jn.setJobName(CalcolaPersoneVedentiDocJobWorker.class.getSimpleName());
+        jn.setJobData(calcolaPersoneVedentiDocJobWorkerDataMap);
+        jn.setWaitObject(false);
+        entityManager.persist(jn);
     }
     
     /**
@@ -338,9 +369,9 @@ public class TipTransferManager {
                 sessioneImportazione.getIdAzienda(),
                 Integer.valueOf(importazioneDoc.getNumero()),
                 importazioneDoc.getAnno())) {
-            errori.setWarning(ColonneProtocolloEntrata.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
-            errori.setWarning(ColonneProtocolloEntrata.numero, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
-            errori.setWarning(ColonneProtocolloEntrata.anno, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
+            errori.setWarning(ColonneProtocolloUscita.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
+            errori.setWarning(ColonneProtocolloUscita.numero, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
+            errori.setWarning(ColonneProtocolloUscita.anno, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, "documento già importato/presente");
         } else { // se non l'ho già trasferito procedo al trasferimento
 
             // parso la data di registazione
@@ -349,82 +380,47 @@ public class TipTransferManager {
                 /* importazione campi della registrazione:
                 * registro, numero, anno, dataRegistrazione e adottatoDa
                 */
-                transferRegistrazione(doc, ColonneProtocolloEntrata.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getTipologia(), dataRegistrazione, importazioneDoc);
+                transferRegistrazione(doc, ColonneProtocolloUscita.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getTipologia(), dataRegistrazione, importazioneDoc);
             } catch (TipTransferBadDataException ex) {
                 log.error("errore nel trasferimento dei dati di registrazione", ex);
-                errori.setError(ColonneProtocolloEntrata.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
-                errori.setError(ColonneProtocolloEntrata.numero, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
-                errori.setError(ColonneProtocolloEntrata.anno, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+                errori.setError(ColonneProtocolloUscita.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+                errori.setError(ColonneProtocolloUscita.numero, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+                errori.setError(ColonneProtocolloUscita.anno, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
 
-            // trasferisco i related (mittenti e destinatari)
+            // trasferisco i related (destinatari)
 
-            // creo la lista di mittenti
-            List<Related> mittenti = buildRelated(
-                doc,
-                persona, 
-                sessioneImportazione.getIdAzienda(),
-                dataRegistrazione,
-                false, 
-                importazioneDoc, 
-                Related.TipoRelated.MITTENTE, 
-                ColonneProtocolloEntrata.mittente, 
-                ColonneProtocolloEntrata.indirizzoMittente, 
-                null);
-//                    try {
-//                    } catch (Throwable ex) {
-//                        log.error("errore nel trasferimento del mittente", ex);
-//                        errori.setError(ColonneProtocolloEntrata.mittente, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
-//                        errori.setError(ColonneProtocolloEntrata.indirizzoMittente, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
-////                        errori.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
-//                    }
-
-            // creo la lista di destinatari A (nel caso PE sono solo strutture per cui passo true al parametro soloStrutture)
+            // creo la lista di destinatari A (nel caso PU sono sia strutture che contatti per cui passo false al parametro soloStrutture)
             List<Related>destinatariA = buildRelated(
                 doc,
                 persona,
                 sessioneImportazione.getIdAzienda(),
                 dataRegistrazione,
-                true,
+                false,
                 importazioneDoc,
                 Related.TipoRelated.A,
-                ColonneProtocolloEntrata.destinatariInterniA,
-                null, 
-                null);
-//                    try {
-//                    }  catch (Throwable ex) {
-//                        log.error("errore nel trasferimento dei destinatari interni A", ex);
-//                        errori.setError(ColonneProtocolloEntrata.destinatariInterniA, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
-//                    }
-//                  
-            // creo la lista di destinatari CC (nel caso PE sono solo strutture per cui passo true al parametro soloStrutture)
+                ColonneProtocolloUscita.destinatariPrincipali,
+                ColonneProtocolloUscita.indirizziDestinatariPrincipali, 
+                ColonneProtocolloUscita.descrizioneIndirizziPrincipali);
+
+            // creo la lista di destinatari CC (nel caso PU sono sia strutture che contatti per cui passo false al parametro soloStrutture)
             List<Related> destinatariCC = buildRelated(
                 doc,
                 persona,
                 sessioneImportazione.getIdAzienda(),
                 dataRegistrazione,
-                true,
+                false,
                 importazioneDoc,
                 Related.TipoRelated.CC,
-                ColonneProtocolloEntrata.destinatariInterniA,
-                null, 
-                null);
-//                    try {
-//                    } catch (Throwable ex) {
-//                        log.error("errore nel trasferimento dei destinatari interni CC", ex);
-//                        errori.setError(ColonneProtocolloEntrata.destinatariInterniA, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
-//                    }
-
+                ColonneProtocolloUscita.altriDestinatari,
+                ColonneProtocolloUscita.indirizziAltriDestinatari, 
+                ColonneProtocolloUscita.descrizioneAltriIndirizzi);
             // setto i related sul documento
             List<Related> related = doc.getRelated();
-            if (mittenti != null || destinatariA != null || destinatariCC != null) {
+            if (destinatariA != null || destinatariCC != null) {
                 if (related == null) {
                     related = new ArrayList<>();
                     doc.setRelated(related);
-                }
-                doc.setRelated(related);
-                if (mittenti != null) {
-                    related.addAll(mittenti);
                 }
                 if (destinatariA != null) {
                     related.addAll(destinatariA);
@@ -434,24 +430,128 @@ public class TipTransferManager {
                 }
             }
 
-            addInAdditionalData(doc, ColonneProtocolloEntrata.protocolloEsterno, importazioneDoc.getProtocolloEsterno());
-            addInAdditionalData(doc, ColonneProtocolloEntrata.dataProtocolloEsterno, importazioneDoc.getDataProtocolloEsterno());
             transferVisiblita(doc, importazioneDoc);
             doc.setOggetto(importazioneDoc.getOggetto());
             try {
                 transferFascicolazione(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdArchivioDefault(), persona);
             } catch (TipTransferBadDataException ex) {
                 log.error("errore nel trasferimento delle fascicolazioni", ex);
-                errori.setError(ColonneProtocolloEntrata.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
+                errori.setError(ColonneProtocolloUscita.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
-            addInAdditionalData(doc, ColonneProtocolloEntrata.classificazione, importazioneDoc.getClassificazione());
+            addInAdditionalData(doc, ColonneProtocolloUscita.classificazione, importazioneDoc.getClassificazione());
             transferAllegati(doc, importazioneDoc.getAllegati(), sessioneImportazione.getIdAzienda());
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
             transferNoteDocumento(doc, importazioneDoc, persona);
+            transferAttori(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
+            
+            //TODO: pec mittente
         }
         return errori;
+    }
+    
+    /**
+     * Crea gli attori sul doc, a seconda della tipologia del doc che si sta trasferendo gli attori possono essere diversi.
+     * Questa funzione a importa tutti gli attori definiti nei vari campi attori di importazioneDocumento, non considerandone la tipologia, in quanto se per la tipologia
+     * che si sta importando un attore non è previsto su importazioneDocumento il campo corrispondente non sarà popolato
+     * @param doc il doc
+     * @param importazioneDocumento l'oggetto contente i campi da trasferire (quello che è stato popolato dal CSV)
+     * @param azienda l'azienda sulla quale si sta eseguendo l'importazione 
+     * @return lo stesso doc in input, utile per poter concatenare il metodo a qualcos altro
+     */
+    public Doc transferAttori(Doc doc, ImportazioneDocumento importazioneDocumento, Azienda azienda) {
+        List<AttoreDoc> attori = new ArrayList();
+        List<Pair<String, AttoreDoc.RuoloAttoreDoc>> attoreStringAndRuoloList = new ArrayList<>();
+        
+        if (StringUtils.hasText(importazioneDocumento.getRedattore())) {
+            for (String attoreString : importazioneDocumento.getRedattore().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+                attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.REDAZIONE));
+            }
+        }
+        if (StringUtils.hasText(importazioneDocumento.getPareri())) {
+            for (String attoreString : importazioneDocumento.getPareri().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+                attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.PARERI));
+            }
+        }
+        if (StringUtils.hasText(importazioneDocumento.getFirmatari())) {
+            for (String attoreString : importazioneDocumento.getFirmatari().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+                attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.FIRMA));
+            }
+        }
+        if (StringUtils.hasText(importazioneDocumento.getFirmatario())) {
+            for (String attoreString : importazioneDocumento.getFirmatario().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+                attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.FIRMA));
+            }
+        }
+        if (StringUtils.hasText(importazioneDocumento.getProponente())) {
+            for (String attoreString : importazioneDocumento.getFirmatario().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+                attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.FIRMA));
+            }
+        }
+        if (StringUtils.hasText(importazioneDocumento.getVisto())) {
+            for (String attoreString : importazioneDocumento.getVisto().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+                attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.VISTI));
+            }
+        }
+        if (StringUtils.hasText(importazioneDocumento.getDirettoreAmministrativo())) {
+            for (String attoreString : importazioneDocumento.getDirettoreAmministrativo().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+                attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.DIRETTORE_AMMINISTRATIVO));
+            }
+        }
+        if (StringUtils.hasText(importazioneDocumento.getDirettoreSanitario())) {
+            for (String attoreString : importazioneDocumento.getFirmatario().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+                attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.DIRETTORE_SANITARIO));
+            }
+        }
+        if (StringUtils.hasText(importazioneDocumento.getDirettoreGenerale())) {
+            for (String attoreString : importazioneDocumento.getFirmatario().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+                attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.DIRETTORE_GENERALE));
+            }
+        }
+        if (StringUtils.hasText(importazioneDocumento.getVicarioDirettoreGenerale())) {
+            for (String attoreString : importazioneDocumento.getVicarioDirettoreGenerale().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+                attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.VICARIO_DIRETTORE_GENERALE));
+            }
+        }
+        
+        for (Pair<String, AttoreDoc.RuoloAttoreDoc> attoreStringAndRuolo : attoreStringAndRuoloList) {
+            String attoreString = attoreStringAndRuolo.getFirst();
+            String cf = null;
+            String cognome = null;
+            String nome = null;
+            String indefinito = null;
+            if (attoreString.contains(TipDataValidator.DEFAULT_ATTORE_SEPARATOR)) {
+                String[] attoreStringSplitted = attoreString.split(TipDataValidator.DEFAULT_ATTORE_SEPARATOR);
+                if (StringUtils.hasText(attoreStringSplitted[0])) {
+                    cf = attoreStringSplitted[0];
+                }
+                if (StringUtils.hasText(attoreStringSplitted[1])) {
+                    cognome = attoreStringSplitted[1];
+                }
+                if (StringUtils.hasText(attoreStringSplitted[2])) {
+                    nome = attoreStringSplitted[2];
+                }
+            } else {
+                indefinito = attoreString;
+            }
+            
+            Persona persona = findOrCreatePersona(cf, cognome, nome, indefinito, azienda);
+            AttoreDoc attoreDoc = new AttoreDoc();
+            attoreDoc.setIdDoc(doc);
+            attoreDoc.setIdPersona(persona);
+            attoreDoc.setRuolo(attoreStringAndRuolo.getSecond());
+            attori.add(attoreDoc);
+        }
+        if (!attori.isEmpty()) {
+            if (doc.getAttoriList() == null) {
+                doc.setAttoriList(attori);
+            } else {
+                doc.getAttoriList().addAll(attori);
+            }
+        }
+        
+        return doc;
     }
     
     
@@ -1128,6 +1228,80 @@ public class TipTransferManager {
             .orderBy(qStruttura.attiva.desc(), qStruttura.dataAttivazione.desc())
             .fetchOne();
         return struttura;
+    }
+    
+    /**
+     * Cerca la persona:
+     *  se viene passato il cf allora la cerca solo per cf,
+     *  altrimenti la cerca per nome e cognome,
+     *  altrimenti, se viene passato il campo "altro", considera che "altro" possa essere cognome + nome, oppure lo username
+     * @param cf
+     * @param cognome
+     * @param nome
+     * @param altro considera che possa essere cognome + nome, oppure lo username
+     * @param azienda
+     * @return la persona, se viene trovata, altrimenti null
+     */
+    private Persona findOrCreatePersona(String cf, String cognome, String nome, String altro, Azienda azienda) {
+        Persona persona = findPersona(cf, altro);
+        if (persona == null) {
+            if (cognome == null && nome == null && altro != null) {
+                if (altro.contains(" ")) {
+                    String[] split = altro.split(" ", 2);
+                    cognome = split[0];
+                    nome = split[1];
+                } else {
+                    cognome = altro;
+                    nome = altro;
+                }
+            }
+            if (cf == null) {
+                cf = RandomStringUtils.randomAlphanumeric(16);
+            }
+            persona = new Persona();
+            persona.setNome(nome);
+            persona.setCognome(cognome);
+            persona.setCodiceFiscale(cf);
+            persona.setAttiva(false);
+            persona.setDescrizione(cognome + " " + nome);
+            persona.setIdAziendaDefault(azienda);
+            
+            Utente utente = new Utente();
+            utente.setIdInquadramento("tip");
+            utente.setUsername(cf);
+            utente.setAttivo(false);
+            utente.setIdAzienda(azienda);
+            utente.setIdPersona(persona);
+            
+            persona.setUtenteList(Arrays.asList(utente));
+            
+            entityManager.persist(persona);
+        }
+        return persona;
+    }
+    
+    /**
+     * Cerca la persona:
+     *  se viene passato il cf allora la cerca solo per cf,
+     *  altrimenti se viene passato lo username cerca la persona corrispondente all'utente che ha quello username
+     * @param cf
+     * @param username
+     * @return la persona, se viene trovata, altrimenti null
+     */
+    private Persona findPersona(String cf, String username) {
+        Persona persona = null;
+        QPersona qPersona = QPersona.persona;
+        QUtente qUtente = QUtente.utente;
+        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+        if (cf != null) {
+            BooleanExpression filter = qPersona.codiceFiscale.equalsIgnoreCase(cf);
+            persona = queryFactory.select(qPersona).from(qPersona).where(filter).fetchOne();
+        } else if (username != null) {
+            BooleanExpression filter = qUtente.username.equalsIgnoreCase(username);
+            persona = queryFactory.select(qUtente.idPersona).from(qUtente).where(filter).fetchOne();
+        }
+        
+        return persona;
     }
     
     /**

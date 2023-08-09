@@ -127,6 +127,30 @@ public class DeliberaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneDelibera.allegati, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Gli allegati contengono caratteri non validi. I catatteri non validi sono: *, ?, <, >, |, :, \" ");
             riga.setErrori(erroriImportazione);
         }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getRedattore())) {
+            erroriImportazione.setError(ColonneDelibera.redattore, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getPareri())) {
+            erroriImportazione.setError(ColonneDelibera.pareri, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getProponente())) {
+            erroriImportazione.setError(ColonneDelibera.proponente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getVisto())) {
+            erroriImportazione.setError(ColonneDelibera.visto, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getDirettoreAmministrativo())) {
+            erroriImportazione.setError(ColonneDelibera.direttoreAmministrativo, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getDirettoreSanitario())) {
+            erroriImportazione.setError(ColonneDelibera.direttoreSanitario, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getDirettoreGenerale())) {
+            erroriImportazione.setError(ColonneDelibera.direttoreGenerale, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
+        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getVicarioDirettoreGenerale())) {
+            erroriImportazione.setError(ColonneDelibera.vicarioDirettoreGenerale, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
+        }
         return erroriImportazione;
     }
     
