@@ -48,17 +48,24 @@ public class ChiamateATrasformatore {
             Integer IdUtente,
             String note) throws Throwable {
         String url = "";
+        String app = "";
         Azienda azienda = null;
         try {
             azienda = cachedEntities.getAzienda(idAzienda);
-            List<ParametroAziende> parameters = parametriAziende.getParameters("urlTrasformatore", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
-            if (parameters != null && !parameters.isEmpty()) {
-                url = parametriAziende.getValue(parameters.get(0), new TypeReference<String>() {
+            List<ParametroAziende> parametersUrl = parametriAziende.getParameters("urlTrasformatore", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
+            if (parametersUrl != null && !parametersUrl.isEmpty()) {
+                url = parametriAziende.getValue(parametersUrl.get(0), new TypeReference<String>() {
+                });
+
+            }
+            List<ParametroAziende> parametersApp = parametriAziende.getParameters("appTrasformatore", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
+            if (parametersApp != null && !parametersApp.isEmpty()) {
+                app = parametriAziende.getValue(parametersApp.get(0), new TypeReference<String>() {
                 });
 
             }
             Map<String, Object> hm = new HashMap();
-            hm.put("app", "avec");
+            hm.put("app", app);
             hm.put("codice_ente", azienda.getCodice());
             hm.put("ribalta_argo", ribaltaArgo);
             hm.put("ribalta_internauta", ribaltaInternauta);
