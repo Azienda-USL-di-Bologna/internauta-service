@@ -855,11 +855,11 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     }
 
     private void saveRegistriDoc(Map<String, Object> resObj, Doc doc, Persona loggedPersona) throws JsonProcessingException {
-        Integer numeroProtocollo = Integer.parseInt((String) resObj.get("numeroProtocollo"));
+        Integer numeroProtocollo = Integer.valueOf((String) resObj.get("numeroProtocollo"));
         Integer annoProtocollo = (Integer) resObj.get("annoProtocollo");
         String numeroPropostaConAnno = (String) resObj.get("numeroProposta");
-        Integer numeroProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[1]);
-        Integer annoProposta = Integer.parseInt(numeroPropostaConAnno.split("-")[0]);
+        Integer numeroProposta = Integer.valueOf(numeroPropostaConAnno.split("-")[1]);
+        Integer annoProposta = Integer.valueOf(numeroPropostaConAnno.split("-")[0]);
         Integer idStrutturaProtocollante = (Integer) resObj.get("idStrutturaProtocollante");
 
         Struttura struttura = nonCachedEntities.getStruttura(idStrutturaProtocollante);
@@ -1196,7 +1196,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         List<Integer> idDocList = new ArrayList();
         try {
             for (MultipartFile file : files) {
-                Doc doc = new Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE.toString());
+                Doc doc = new Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE);
                 doc = docRepository.save(doc);
                 em.refresh(doc);
                 idDocList.add(doc.getId());
@@ -2087,7 +2087,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         QDoc qDoc = QDoc.doc;
         jPAQueryFactory
                 .update(qDoc)
-                .set(qDoc.statoVersamento, operazione.toString())
+                .set(qDoc.statoVersamento, operazione)
                 .where(qDoc.id.in(idDocs))
                 .execute();
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);

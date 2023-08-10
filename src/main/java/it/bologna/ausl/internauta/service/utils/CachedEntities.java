@@ -253,7 +253,7 @@ public class CachedEntities {
     @Cacheable(value = "registroAzienda", key = "{#idAzienda, #codice.toString()}")
     public Registro getRegistro(Integer idAzienda, Registro.CodiceRegistro codice) {
         QRegistro qRegistro = QRegistro.registro;
-        BooleanExpression filtro = qRegistro.codice.eq(codice.toString())
+        BooleanExpression filtro = qRegistro.codice.eq(codice)
                 .and(qRegistro.idAzienda.id.eq(idAzienda));
         Optional<Registro> registro = registroRepository.findOne(filtro);
         if (registro.isPresent()) {
