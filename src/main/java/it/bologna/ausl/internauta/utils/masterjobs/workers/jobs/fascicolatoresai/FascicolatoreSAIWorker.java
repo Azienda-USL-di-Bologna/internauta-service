@@ -6,6 +6,7 @@ import it.bologna.ausl.internauta.service.argo.utils.gd.FascicoloGddocUtils;
 import it.bologna.ausl.internauta.service.argo.utils.gd.FascicoloUtils;
 import it.bologna.ausl.internauta.service.argo.utils.gd.GddocUtils;
 import it.bologna.ausl.internauta.service.argo.utils.gd.SottoDocumentiUtils;
+import it.bologna.ausl.internauta.service.authorization.jwt.AuthorizationUtils;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaArchiviUtils;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
@@ -26,6 +27,7 @@ import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.shpeck.Message;
@@ -90,6 +92,9 @@ public class FascicolatoreSAIWorker extends JobWorker<FascicolatoreSAIWorkerData
     
     private Message message;
     
+    @Autowired
+    private AuthorizationUtils authorizationUtils;
+    
     @Override
     public String getName() {
         return this.name;
@@ -146,6 +151,8 @@ public class FascicolatoreSAIWorker extends JobWorker<FascicolatoreSAIWorkerData
             Persona persona = personaRepository.findByCodiceFiscale("SAI");
             Utente utente = utenteRepository.getById(getWorkerData().getIdUtente());
             Azienda azienda = aziendaRepository.getById(getWorkerData().getIdAzienda());
+            
+            authorizationUtils.insertInContext(utente, 0, null, Applicazione.Applicazioni.scripta.toString(), false);
             
             Integer idDoc = scriptaArchiviUtils.archiveMessage(message, null, archivio, persona, azienda, utente);
             
