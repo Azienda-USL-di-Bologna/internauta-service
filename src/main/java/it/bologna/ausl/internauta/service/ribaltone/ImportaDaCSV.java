@@ -627,7 +627,7 @@ public class ImportaDaCSV {
                         boolean anomali = false;
                         mapError = new HashMap<>();
                         riga = mapReader.getLineNumber();
-                        log.info("getLineNumber: " + mapReader.getLineNumber());
+//                        log.info("getLineNumber: " + mapReader.getLineNumber());
                         // Inserisco la riga
                         MdrAnagrafica mAn = new MdrAnagrafica();
 //                      preparo la mappa di errore

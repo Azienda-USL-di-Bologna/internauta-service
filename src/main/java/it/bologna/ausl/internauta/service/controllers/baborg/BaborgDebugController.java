@@ -1,5 +1,8 @@
 package it.bologna.ausl.internauta.service.controllers.baborg;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -28,7 +31,9 @@ import it.bologna.ausl.model.entities.masterjobs.QJob;
 import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -50,6 +55,11 @@ import javax.persistence.EntityManager;
 import javax.persistence.JoinColumn;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
+import org.apache.commons.csv.QuoteMode;
+import org.hibernate.Session;
+import org.hibernate.jdbc.Work;
+import org.postgresql.PGConnection;
+import org.postgresql.PGNotification;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -61,6 +71,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.supercsv.io.CsvMapReader;
+import org.supercsv.io.ICsvMapReader;
+import org.supercsv.prefs.CsvPreference;
 
 /**
  *
@@ -259,10 +272,41 @@ public class BaborgDebugController {
     
     @RequestMapping(value = "test6", method = RequestMethod.GET)
     @Transactional(rollbackFor = Throwable.class)
-    public Integer test6(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
-//        return docRepository.numeraDoc(1548, 304295, 1064625);
-        archivioRepository.numeraTuttiDocumentsArchivioRadice(440, 304295, 1064625);
-        return 1;
+    public void test6(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
+        try (
+                Reader csvReader = new FileReader("csvTest.csv");
+//                CSVParser csvParser = new CSVParser(csvReader, CSVFormat.DEFAULT.withDelimiter(';').withHeader())) {
+                CSVParser csvParser = new CSVParser(csvReader,  CSVFormat.DEFAULT.builder()
+                        .setDelimiter(';')
+                        .setQuote('"')
+                        .setQuoteMode(QuoteMode.MINIMAL)
+                        .setRecordSeparator("\r\n")
+                        .setHeader().build())) {
+
+            Map<String, String> map = new HashMap<>();
+            for (CSVRecord csvRecord : csvParser) {
+                for (Map.Entry<String, Integer> entry : csvParser.getHeaderMap().entrySet()) {
+                    String header = entry.getKey();
+                    int columnIndex = entry.getValue();
+                    String value = csvRecord.get(columnIndex);
+                    map.put(header, value);
+                }
+                System.out.println(map.toString());
+            }
+            
+//            CsvPreference SEMICOLON_DELIMITED = new CsvPreference.Builder('"', ';', "\r\n").build();
+//            ICsvMapReader mapReader = new CsvMapReader(csvReader, SEMICOLON_DELIMITED);
+//            String[] headers = new String[] {
+//                "col1",
+//                "col2",
+//                "col3",
+//                "col4",
+//            };
+//            Map<String, String> row;
+//            while ((row = mapReader.read()) != null) {
+//                System.out.println(row.toString());
+//            }
+        }
     }
     
     @RequestMapping(value = "testgus", method = RequestMethod.GET)
