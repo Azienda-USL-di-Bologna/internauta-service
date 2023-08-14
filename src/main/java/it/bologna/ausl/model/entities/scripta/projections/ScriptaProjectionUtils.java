@@ -76,11 +76,13 @@ public class ScriptaProjectionUtils {
     
     public List<String> getDescrizionePersonaVicarioList(ArchivioDetailInterface archivioDetail){
         List<String> descrizioneVicariList = new ArrayList<>();
-        if(archivioDetail != null){
+        if (archivioDetail != null) {
             Integer[] idVicari = archivioDetail.getIdVicari();
-            descrizioneVicariList = Stream.of(idVicari).map((idPersonaVicario) -> {
-                return cachedEntities.getPersona(idPersonaVicario).getDescrizione();
-            }).collect(Collectors.toList());
+            if (idVicari != null && idVicari.length > 0) {
+                descrizioneVicariList = Stream.of(idVicari).map((idPersonaVicario) -> {
+                    return cachedEntities.getPersona(idPersonaVicario).getDescrizione();
+                }).collect(Collectors.toList());
+            }
         }
         return descrizioneVicariList;
     }
