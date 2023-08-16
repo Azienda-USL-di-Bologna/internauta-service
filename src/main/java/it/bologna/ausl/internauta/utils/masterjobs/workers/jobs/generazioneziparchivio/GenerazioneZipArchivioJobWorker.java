@@ -9,6 +9,7 @@ import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseExcepti
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
 import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
 import it.bologna.ausl.internauta.utils.downloader.controllers.DownloaderController;
@@ -75,6 +76,9 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
     PersonaRepository personaRepository;
     
     @Autowired
+    ArchivioRepository archivioRepository;
+    
+    @Autowired
     private DownloaderController downloaderController;
     
     @Autowired
@@ -91,9 +95,12 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
     
     @Override
     public JobWorkerResult doRealWork() throws MasterjobsWorkerException {
+        log.info("fuck you");
         //ricavo i dati necessari dal workerData
-        Persona persona = getWorkerData().getPersona();
-        Archivio archivio = getWorkerData().getArchivio();
+        Integer idPersona = getWorkerData().getIdPersona();
+        Persona persona = personaRepository.getById(idPersona);
+        Integer idArchivio = getWorkerData().getIdArchivio();
+        Archivio archivio = archivioRepository.getById(idArchivio);
         String downloadUrl = getWorkerData().getDownloadUrl();
      
         //calcolo numero e filename da utilizzare sucessivamente per il salvataggio e scaricamento dello zip

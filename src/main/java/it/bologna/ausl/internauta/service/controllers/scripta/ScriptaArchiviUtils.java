@@ -339,13 +339,15 @@ public class ScriptaArchiviUtils {
     public void buildArchivio(Archivio archivio, String archivioName, Persona persona, ZipOutputStream zipOut, 
             JPAQueryFactory jPAQueryFactory, MinIOWrapper minIOWrapper) throws IOException, Http404ResponseException {
         
+        // mi assicuro che al persona ottenuta via parametro abbia il permesso visualizza sull'archivio da scaricare
         if (!personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
             return;
         }
         
         QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
         QDocDetail qDocDetail = QDocDetail.docDetail;          
-
+        
+        // query con cui ottengo la lista dei docs da cui prendere gli allegati da scaricare 
         List<Doc> docsDaZippare = jPAQueryFactory
             .select(qArchivioDoc.idDoc)
             .from(qArchivioDoc)
@@ -356,6 +358,7 @@ public class ScriptaArchiviUtils {
                                     .and(qArchivioDoc.dataEliminazione.isNull()))))
             .fetch();
         
+        // ottengo gli archivi figli 
         List<Archivio> archiviFigli = archivioRepository.findByIdArchivioPadre(archivio);
         
         // Controlla che sia la prima iterazione del metodo ricorsivo
@@ -363,6 +366,7 @@ public class ScriptaArchiviUtils {
         if (docsDaZippare.isEmpty() && archiviFigli.isEmpty() && archivioName.equals(""))
             throw new Http404ResponseException("2", "Non ci sono elementi nel fascicolo selezionato.");
         
+        // ciclo i figli e per ognuno di loro chiamo ricorsivamente questa funzione (buildArchivio)
         for (Archivio archivioFiglio : archiviFigli) {
             String numerazione = archivioFiglio.getNumerazioneGerarchica().substring(0, archivioFiglio.getNumerazioneGerarchica().indexOf("/"));
             String archivioFiglioName = String.format("%s%s-%s/", archivioName, numerazione, archivioFiglio.getOggetto().trim());
@@ -371,6 +375,7 @@ public class ScriptaArchiviUtils {
             zipOut.closeEntry();
         }
         
+        // ciclo i docs ottenuti dalla query di prima per estrarne gli allegati da zippare
         List<Allegato> allegatiDaZippare = new ArrayList<>();
         for (Doc doc: docsDaZippare) {
             List<Allegato> allegati = doc.getAllegati();
@@ -380,17 +385,49 @@ public class ScriptaArchiviUtils {
                     Allegato.TipoAllegato.REGISTRO_GIORNALIERO).contains(a.getTipo())).collect(Collectors.toList()));
         }
         
+        // ciclo gli allegati da zippare e li inserisco uno a uno dentro lo zip
         for (Allegato allegato : allegatiDaZippare) {
             try {
-                String allegatoName = String.format("%s%s", archivioName, allegato.getDettagli().getOriginale().getNome());               
-                int pos = allegatoName.lastIndexOf(".");
-                if (pos == - 1) {
-                    allegatoName = String.format("%s.%s", allegatoName, allegato.getDettagli().getOriginale().getEstensione());
+                if (allegato != null){
+                    if (allegato.getDettagli() != null){
+                        LOG.info(allegato.getId().toString());
+                        if (allegato.getDettagli().getOriginale() != null){
+                            if (allegato.getDettagli().getOriginale().getNome() != null){
+                                String allegatoName = String.format("%s%s", archivioName, allegato.getDettagli().getOriginale().getNome());               
+                                int pos = allegatoName.lastIndexOf(".");
+                                if (pos == - 1) {
+                                    allegatoName = String.format("%s.%s", allegatoName, allegato.getDettagli().getOriginale().getEstensione());
+                                }
+
+                                InputStream inputStream = (InputStream) minIOWrapper.getByFileId(allegato.getDettagli().getOriginale().getIdRepository());
+                                zipOut.putNextEntry(new ZipEntry(allegatoName));
+
+                                byte[] buffer = new byte[1024*8];
+                                int length;
+                                while ((length = inputStream.read(buffer)) > 0) {
+                                    zipOut.write(buffer, 0, length);
+                                }
+
+                                inputStream.close();
+                                zipOut.closeEntry();
+                            }else{
+                                LOG.error("allegato.getDettagli().getOriginale() null");
+                            }
+                        }else{
+                            LOG.error("allegato.getDettagli().getOriginale() null");
+                        }
+                    }else{
+                        LOG.error("allegato.getDettagli() null");
+                    }
+                }else{
+                    LOG.error("allegato null");
                 }
-                zipOut.putNextEntry(new ZipEntry(allegatoName));
-                StreamUtils.copy((InputStream) minIOWrapper.getByFileId(allegato.getDettagli().getOriginale().getIdRepository()), zipOut);
+                
             } catch (MinIOWrapperException ex) {
                 LOG.error("Errore durante il reperimento del file da MinIO.");
+            } catch (IOException e) {
+                LOG.error("Errore durante le operazioni di salvataggio dell'allegato nello zip.");
+                e.printStackTrace();
             }
         }        
     }
