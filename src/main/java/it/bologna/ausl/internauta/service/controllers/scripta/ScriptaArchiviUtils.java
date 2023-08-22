@@ -51,6 +51,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -66,6 +68,8 @@ import java.util.zip.ZipOutputStream;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -399,17 +403,25 @@ public class ScriptaArchiviUtils {
                                     allegatoName = String.format("%s.%s", allegatoName, allegato.getDettagli().getOriginale().getEstensione());
                                 }
 
-                                InputStream inputStream = (InputStream) minIOWrapper.getByFileId(allegato.getDettagli().getOriginale().getIdRepository());
-                                zipOut.putNextEntry(new ZipEntry(allegatoName));
-
-                                byte[] buffer = new byte[1024*8];
-                                int length;
-                                while ((length = inputStream.read(buffer)) > 0) {
-                                    zipOut.write(buffer, 0, length);
+                                try (InputStream inputStream = (InputStream) minIOWrapper.getByFileId(allegato.getDettagli().getOriginale().getIdRepository())) {
+                                   zipOut.putNextEntry(new ZipEntry(allegatoName));
+                                    
+                                    byte[] buffer = new byte[1024*8];
+                                    int length;
+                                    while ((length = inputStream.read(buffer)) > 0) {
+                                        zipOut.write(buffer, 0, length);
+                                    }
+                                    zipOut.closeEntry();
                                 }
 
-                                inputStream.close();
-                                zipOut.closeEntry();
+
+//                                    zipOut.putNextEntry(new ZipEntry(allegatoName));
+//                                    
+//                                    byte[] buffer = new byte[1024*8];
+//                                    int length;
+//                                    while ((length = inputStream.read(buffer)) > 0) {
+//                                        zipOut.write(buffer, 0, length);
+//                                    }
                             }else{
                                 LOG.error("allegato.getDettagli().getOriginale() null");
                             }

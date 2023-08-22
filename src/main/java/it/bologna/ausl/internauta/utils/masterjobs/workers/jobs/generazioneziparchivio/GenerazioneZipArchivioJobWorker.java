@@ -30,6 +30,9 @@ import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
@@ -38,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.zip.ZipOutputStream;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -117,9 +121,13 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         //creo lo zip, prima come outstream poi lo converto in inputstream
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
-        ByteArrayOutputStream byteOutStream = new ByteArrayOutputStream();
-        try (ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(byteOutStream))) {
+//        ByteArrayOutputStream byteOutStream = new ByteArrayOutputStream();
+        try (FileOutputStream fos = new FileOutputStream(archivioZipName);
+                ZipOutputStream zipOut = new ZipOutputStream(fos)) {
             scriptaArchiviUtils.buildArchivio(archivio, "", persona, zipOut, jPAQueryFactory, minIOWrapper);
+            zipOut.finish();
+            zipOut.close();
+            fos.close();
         } catch (IOException ex) {
             errorMessage = "errore nella generazione dell'archivio";
             log.error(errorMessage, ex);
@@ -127,14 +135,16 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         } catch (Http404ResponseException ex) {
             log.error(ex.getMessage(), ex);
             throw new MasterjobsWorkerException(ex.getMessage(), ex);
-        }
+        } 
         
-        ByteArrayInputStream bis = new ByteArrayInputStream(byteOutStream.toByteArray());
+//        ByteArrayInputStream bis = new ByteArrayInputStream(byteOutStream.toByteArray());
+        
+
         //carico e ottengo il url per il download con token valido per un minuto
         String urlToDownload = null;
-        try {
+        try (FileInputStream fis = new FileInputStream(archivioZipName)){
             Map<String, Object> uploaderPluginParams = downloaderUtils.getUploaderPluginParams(archivioZipName, null);
-            Map<String, Object> params = downloaderController.upload(DownloaderPluginFactory.TargetRepository.MinIO, uploaderPluginParams, bis, "/internauta/archivi-zip", archivioZipName);
+            Map<String, Object> params = downloaderController.upload(DownloaderPluginFactory.TargetRepository.MinIO, uploaderPluginParams, fis, "/internauta/archivi-zip", archivioZipName);
             urlToDownload = downloaderUtils.buildDownloadUrl(archivioZipName, "application/zip", params, true, downloadUrl, downloadArchivioZipTokenExpireSeconds);
         } catch (DownloaderUtilsException | IOException | AuthorizationUtilsException | NoSuchAlgorithmException |InvalidKeySpecException ex) {
             errorMessage = "Errore nella generazione dell'url per il download";
@@ -168,7 +178,7 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         a.setAperta(false);
         a.setDatiAggiuntivi(new HashMap<>());
         attivitaRepository.saveAndFlush(a);
-        
+        log.info("job finito!");
         return null;
     }
     
