@@ -30,6 +30,7 @@ import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -127,7 +128,6 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
             scriptaArchiviUtils.buildArchivio(archivio, "", persona, zipOut, jPAQueryFactory, minIOWrapper);
             zipOut.finish();
             zipOut.close();
-            fos.close();
         } catch (IOException ex) {
             errorMessage = "errore nella generazione dell'archivio";
             log.error(errorMessage, ex);
@@ -154,6 +154,11 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
             errorMessage = "Errore nell'upload su MinIO";
             log.error(errorMessage, ex);
             throw new MasterjobsWorkerException(errorMessage, ex);
+        } finally {
+            File f = new File(archivioZipName);
+            if (f.exists()) {
+                f.delete();
+            }
         }
         //genero la nofica che apparirà sulla scivania con il link per il download e della nuova applicazione
         Applicazione app = applicazioneRepository.getById("downloader");
