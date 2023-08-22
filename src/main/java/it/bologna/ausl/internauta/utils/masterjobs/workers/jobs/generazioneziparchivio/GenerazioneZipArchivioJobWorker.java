@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.zip.ZipOutputStream;
 import javax.persistence.EntityManager;
@@ -100,17 +101,16 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
     
     @Override
     public JobWorkerResult doRealWork() throws MasterjobsWorkerException {
-        log.info("fuck you");
+        log.info("sono in do doWork() di {}", getName());
         //ricavo i dati necessari dal workerData
         Integer idPersona = getWorkerData().getIdPersona();
         Persona persona = personaRepository.getById(idPersona);
         Integer idArchivio = getWorkerData().getIdArchivio();
         Archivio archivio = archivioRepository.getById(idArchivio);
         String downloadUrl = getWorkerData().getDownloadUrl();
+        
      
-        //calcolo numero e filename da utilizzare sucessivamente per il salvataggio e scaricamento dello zip
-        String numero = archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/"));
-        String archivioZipName = String.format("%s-%d-%s.zip", numero, archivio.getAnno(), archivio.getOggetto().trim());
+        // ottengo il tempo di durata del token dalla tabella configurazione.parametri_aziende
         Azienda aziendaArch = aziendaRepository.getById(archivio.getIdAzienda().getId());
         Integer downloadArchivioZipTokenExpireSeconds = downloaderUtils.getTokenExpireSeconds();
         List<ParametroAziende> parameters = parametriAziende.getParameters("downloadArchivioZipTokenExpireSeconds", new Integer[]{aziendaArch.getId()});
@@ -118,48 +118,58 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
             downloadArchivioZipTokenExpireSeconds = parametriAziende.getValue(parameters.get(0), Integer.class);
         }
         
-        String errorMessage;
-        MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-        //creo lo zip, prima come outstream poi lo converto in inputstream
-        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
-//        ByteArrayOutputStream byteOutStream = new ByteArrayOutputStream();
-        try (FileOutputStream fos = new FileOutputStream(archivioZipName);
-                ZipOutputStream zipOut = new ZipOutputStream(fos)) {
-            scriptaArchiviUtils.buildArchivio(archivio, "", persona, zipOut, jPAQueryFactory, minIOWrapper);
-            zipOut.finish();
-            zipOut.close();
-        } catch (IOException ex) {
-            errorMessage = "errore nella generazione dell'archivio";
-            log.error(errorMessage, ex);
-            throw new MasterjobsWorkerException(errorMessage, ex);
-        } catch (Http404ResponseException ex) {
-            log.error(ex.getMessage(), ex);
-            throw new MasterjobsWorkerException(ex.getMessage(), ex);
-        } 
-        
-//        ByteArrayInputStream bis = new ByteArrayInputStream(byteOutStream.toByteArray());
-        
-
-        //carico e ottengo il url per il download con token valido per un minuto
+        // calcolo numero e filename con un uuid nel nome per evitare che nello stesso momento
+        // un altro processo dello stesso job mi legga/scriva lo stesso file corrompendo i dati
+        String numero = archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/"));
+        String archivioZipName = String.format("%s$%s-%d-%s.zip", UUID.randomUUID().toString(), numero, archivio.getAnno(), archivio.getOggetto().trim());
+       
+        // preparo la stringa per l'url per scaricare lo zip
         String urlToDownload = null;
+
+        
         try (FileInputStream fis = new FileInputStream(archivioZipName)){
+            MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
+            JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+            // creo lo zip wrappando un FileOutputStream cosicché posso salvarlo su disco e non tenerlo in memoria 
+            // evitando così la possibilità di out of range data da fascicoli, o singoli allegati, troppo grossi
+            try (FileOutputStream fos = new FileOutputStream(archivioZipName);
+                    ZipOutputStream zipOut = new ZipOutputStream(fos)) {
+                log.info("parto a creare lo zip");
+                scriptaArchiviUtils.buildArchivio(archivio, "", persona, zipOut, jPAQueryFactory, minIOWrapper);
+                zipOut.finish();
+                zipOut.close();
+            } catch (IOException ex) {
+                String errorMessage = "errore nella generazione dell'archivio";
+                log.error(errorMessage, ex);
+                throw new MasterjobsWorkerException(errorMessage, ex);
+            } catch (Http404ResponseException ex) {
+                log.error(ex.getMessage(), ex);
+                throw new MasterjobsWorkerException(ex.getMessage(), ex);
+            }
+            log.info("zip concluso correttamente, procedo a salvarlo su minio e generare il link per scaricarlo");
+            // leggo lo zip scritto in locale come FileInputStream e succesivamente
+            // lo carico su minio e ottengo l'url per il download con token valido per un giorno
             Map<String, Object> uploaderPluginParams = downloaderUtils.getUploaderPluginParams(archivioZipName, null);
             Map<String, Object> params = downloaderController.upload(DownloaderPluginFactory.TargetRepository.MinIO, uploaderPluginParams, fis, "/internauta/archivi-zip", archivioZipName);
             urlToDownload = downloaderUtils.buildDownloadUrl(archivioZipName, "application/zip", params, true, downloadUrl, downloadArchivioZipTokenExpireSeconds);
         } catch (DownloaderUtilsException | IOException | AuthorizationUtilsException | NoSuchAlgorithmException |InvalidKeySpecException ex) {
-            errorMessage = "Errore nella generazione dell'url per il download";
+            String errorMessage = "Errore nella generazione dell'url per il download";
             log.error(errorMessage, ex);
             throw new MasterjobsWorkerException(errorMessage, ex);
         } catch (DownloaderPluginException ex) {
-            errorMessage = "Errore nell'upload su MinIO";
+            String errorMessage = "Errore nell'upload su MinIO";
             log.error(errorMessage, ex);
             throw new MasterjobsWorkerException(errorMessage, ex);
         } finally {
+            log.info("elimino lo zip");
+            // una volta finito di lavorare con il file dello zip lo cancello da locale
             File f = new File(archivioZipName);
             if (f.exists()) {
                 f.delete();
             }
         }
+        
+        log.info("genero l'attività");
         //genero la nofica che apparirà sulla scivania con il link per il download e della nuova applicazione
         Applicazione app = applicazioneRepository.getById("downloader");
         Attivita a = new Attivita(null, archivio.getIdAzienda(), Attivita.TipoAttivita.NOTIFICA.toString(), ZonedDateTime.now(), ZonedDateTime.now());
@@ -168,9 +178,8 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         urlsMap.put("label", "Scarica");
         List<HashMap<String,String>> listaUrls = new ArrayList(); 
         listaUrls.add(urlsMap);
-//        a.setUrls(String.format("[{\"url\": \"%s\", \"label\": \"Scarica\"}]", urlToDownload));
         a.setUrls(listaUrls);
-        a.setDescrizione("Archivio zip generato per lo scaricamento asincrono");
+        a.setDescrizione("Fascicolo zip");
         a.setIdApplicazione(app);
         a.setIdAzienda(aziendaArch);
         a.setIdPersona(personaRepository.getById(persona.getId()));

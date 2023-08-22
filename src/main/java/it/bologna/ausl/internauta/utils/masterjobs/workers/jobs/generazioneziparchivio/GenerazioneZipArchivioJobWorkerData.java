@@ -13,8 +13,6 @@ public class GenerazioneZipArchivioJobWorkerData extends JobWorkerData{
     private Integer idPersona;
     private Integer idArchivio;
     private String downloadUrl;
-//    private String uploadUrl;
-//    private String note;
 
     public GenerazioneZipArchivioJobWorkerData() { }
 
