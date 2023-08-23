@@ -1,8 +1,9 @@
 package it.bologna.ausl.model.entities.scripta.projections;
 
 import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.NotaDoc;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AttoreDocWithIdPersona;
-import it.bologna.ausl.model.entities.scripta.projections.generated.DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndIdAziendaAndIdPersonaCreazioneAndMittentiAndRegistroDocListAndRelated;
+import it.bologna.ausl.model.entities.scripta.projections.generated.DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndIdAziendaAndIdPersonaCreazioneAndMittentiAndNotaDocListAndRegistroDocListAndRelated;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
@@ -12,7 +13,7 @@ import org.springframework.data.rest.core.config.Projection;
  * @author gdm
  */
 @Projection(name = "DocWithAll", types = Doc.class)
-public interface DocWithAll extends DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndIdAziendaAndIdPersonaCreazioneAndMittentiAndRegistroDocListAndRelated {
+public interface DocWithAll extends DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndIdAziendaAndIdPersonaCreazioneAndMittentiAndNotaDocListAndRegistroDocListAndRelated {
 
     @Override
     @Value("#{@scriptaProjectionUtils.filterRelatedWithUltimaSpedizione(target.getRelated(), 'MITTENTE')}")
@@ -50,11 +51,23 @@ public interface DocWithAll extends DocWithAllegatiAndArchiviDocListAndAttoriLis
     
     @Value("#{@scriptaProjectionUtils.filterAttoreDocList(target.getAttoriList(), 'VISTI')}")
     public List<AttoreDocWithIdPersona> getVistatori();
-
+    
+    @Value("#{@scriptaProjectionUtils.filterNotaDocList(target.getNotaDocList(), 'ANNULLAMENTO')}")
+    public List<NotaDoc> getNotaAnnullamento();
+    
+    @Value("#{@scriptaProjectionUtils.filterNotaDocList(target.getNotaDocList(), 'VERSAMENTO')}")
+    public List<NotaDoc> getNotaVersamento();
+    
+    @Value("#{@scriptaProjectionUtils.filterNotaDocList(target.getNotaDocList(), 'DOCUMENTO')}")
+    public List<NotaDoc> getNotaDocumento();
+    
+    @Value("#{@scriptaProjectionUtils.filterNotaDocList(target.getNotaDocList(), 'FLUSSO')}")
+    public List<NotaDoc> getNotaFlusso();
+    
     @Override    
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getRegistroDocList', 'RegistroDocWithIdRegistro')}")
     public Object getRegistroDocList();
-    
+        
     @Override    
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getArchiviDocList', 'CustomArchivioDocWithIdTitolo')}")
     public Object getArchiviDocList();
