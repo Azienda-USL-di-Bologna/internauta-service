@@ -7,6 +7,7 @@ import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetailInterface;
 import it.bologna.ausl.model.entities.scripta.AttoreDoc;
+import it.bologna.ausl.model.entities.scripta.DocAnnullato;
 import it.bologna.ausl.model.entities.scripta.NotaDoc;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
@@ -133,5 +134,9 @@ public class ScriptaProjectionUtils {
             }
         }
         return null;
+    }
+    
+    public boolean getAnnullato(List<DocAnnullato> docAnnullatoList){
+        return !(docAnnullatoList == null || docAnnullatoList.isEmpty());
     }
 }

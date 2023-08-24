@@ -3,7 +3,7 @@ package it.bologna.ausl.model.entities.scripta.projections;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.NotaDoc;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AttoreDocWithIdPersona;
-import it.bologna.ausl.model.entities.scripta.projections.generated.DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndIdAziendaAndIdPersonaCreazioneAndMittentiAndNotaDocListAndRegistroDocListAndRelated;
+import it.bologna.ausl.model.entities.scripta.projections.generated.DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndDocAnnullatoListAndIdAziendaAndIdPersonaCreazioneAndMittentiAndNotaDocListAndRegistroDocListAndRelated;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
@@ -13,7 +13,7 @@ import org.springframework.data.rest.core.config.Projection;
  * @author gdm
  */
 @Projection(name = "DocWithAll", types = Doc.class)
-public interface DocWithAll extends DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndIdAziendaAndIdPersonaCreazioneAndMittentiAndNotaDocListAndRegistroDocListAndRelated {
+public interface DocWithAll extends DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndDocAnnullatoListAndIdAziendaAndIdPersonaCreazioneAndMittentiAndNotaDocListAndRegistroDocListAndRelated {
 
     @Override
     @Value("#{@scriptaProjectionUtils.filterRelatedWithUltimaSpedizione(target.getRelated(), 'MITTENTE')}")
@@ -26,14 +26,6 @@ public interface DocWithAll extends DocWithAllegatiAndArchiviDocListAndAttoriLis
     @Override
     @Value("#{@scriptaProjectionUtils.filterRelatedWithUltimaSpedizione(target.getRelated(), 'CC')}")
     public List<CustomRelatedWithUltimaSpedizione> getCoinvolti();
-    
-//    @Override
-//    @Value("#{@scriptaProjectionUtils.filterRelated(target.getRelated(), 'A')}")
-//    public List<Related> getCompetenti();
-//
-//    @Override
-//    @Value("#{@scriptaProjectionUtils.filterRelated(target.getRelated(), 'CC')}")
-//    public List<Related> getCoinvolti();
     
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getAllegati', 'AllegatoWithIdAllegatoPadre', @projectionsInterceptorLauncher.buildSort('asc', 'ordinale'))}")
     @Override
@@ -71,6 +63,9 @@ public interface DocWithAll extends DocWithAllegatiAndArchiviDocListAndAttoriLis
     @Override    
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getArchiviDocList', 'CustomArchivioDocWithIdTitolo')}")
     public Object getArchiviDocList();
+    
+    @Value("#{@scriptaProjectionUtils.getAnnullato(target.getDocAnnullatoList())}")
+    public boolean getAnnullato();
     
     
 }
