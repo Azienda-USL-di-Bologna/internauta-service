@@ -220,8 +220,41 @@ public class Appartenenti {
     public static List<Integer> codiciMatricoleConAppFunzionaliENonDirette(Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali, Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti) {
         List<Integer> codiciMatricoleConAppFunzionaliENonDirette = new ArrayList<>();
         for (Integer codiceMatricola : appartenentiFunzionali.keySet()) {
+            
             if (!appartenentiDiretti.containsKey(codiceMatricola)) {
-                codiciMatricoleConAppFunzionaliENonDirette.add(codiceMatricola);
+                if (!codiciMatricoleConAppFunzionaliENonDirette.contains(codiceMatricola)){
+                    codiciMatricoleConAppFunzionaliENonDirette.add(codiceMatricola);
+                }
+            }
+            //devo valutare anche l'arco temporale
+            if (appartenentiDiretti.containsKey(codiceMatricola)){
+                Map<Integer, List<Map<String, Object>>> struttureConAfferenzaDirettaDiX = appartenentiDiretti.get(codiceMatricola);
+//                ciclo tutte le afferenze funzionali
+//                per ogni afferenza controllo che sia nell'arco temporale di una diretta
+                Map<Integer, List<Map<String, Object>>> struttureConAfferenzaFunzionaleDiX = appartenentiFunzionali.get(codiceMatricola);
+                List<Map<String,Object>> resultConPeriodiUniti = new ArrayList();
+                for (Integer idCasellaDiretta : struttureConAfferenzaDirettaDiX.keySet()){
+                    resultConPeriodiUniti.addAll(struttureConAfferenzaDirettaDiX.get(idCasellaDiretta));
+                }
+                resultConPeriodiUniti = ImportaDaCSVUtils.mergeTimePeriods(resultConPeriodiUniti);
+                for (Integer idCasella : struttureConAfferenzaFunzionaleDiX.keySet()) {
+                    Boolean periodoFunzionaleIsOk = false;
+                    List<Map<String, Object>> periodiTemporaliAfferenzaFunzionale = struttureConAfferenzaFunzionaleDiX.get(idCasella);
+                    
+                    for (Map<String, Object> periodoTemporale : periodiTemporaliAfferenzaFunzionale){
+                        if (ImportaDaCSVUtils.isPeriodoContenuto(
+                                    resultConPeriodiUniti,
+                                    ImportaDaCSVUtils.formattattore(periodoTemporale.get("datain")),
+                                    ImportaDaCSVUtils.formattattore(periodoTemporale.get("datafi")))){
+                                periodoFunzionaleIsOk = true;
+                        }
+                    }
+                    if (!periodoFunzionaleIsOk && !codiciMatricoleConAppFunzionaliENonDirette.contains(codiceMatricola)){
+                        codiciMatricoleConAppFunzionaliENonDirette.add(codiceMatricola);
+                    } 
+                    
+                    
+                }
             }
         }
         return codiciMatricoleConAppFunzionaliENonDirette;

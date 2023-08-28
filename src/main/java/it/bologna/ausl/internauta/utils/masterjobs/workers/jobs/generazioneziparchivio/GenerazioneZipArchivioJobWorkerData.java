@@ -10,37 +10,32 @@ import it.bologna.ausl.model.entities.scripta.Archivio;
  */
 public class GenerazioneZipArchivioJobWorkerData extends JobWorkerData{
     
-    private Persona persona;
-    private Archivio archivio;
+    private Integer idPersona;
+    private Integer idArchivio;
     private String downloadUrl;
-    private String uploadUrl;
-    private String note;
 
     public GenerazioneZipArchivioJobWorkerData() { }
 
-    public GenerazioneZipArchivioJobWorkerData(Persona persona, Archivio archivio, String downloadUrl, String uploadUrl, String note) {
-        this.persona = persona;
-        this.archivio = archivio;
+    public GenerazioneZipArchivioJobWorkerData(Integer idPersona, Integer idArchivio, String downloadUrl) {
+        this.idPersona = idPersona;
+        this.idArchivio = idArchivio;
         this.downloadUrl = downloadUrl;
-        this.uploadUrl = uploadUrl;
-        this.note = note;
+    }
+    
+    public Integer getIdPersona() {
+        return idPersona;
     }
 
-
-    public Persona getPersona() {
-        return persona;
+    public void setIdPersona(Integer idPersona) {
+        this.idPersona = idPersona;
     }
 
-    public void setPersona(Persona persona) {
-        this.persona = persona;
+    public Integer getIdArchivio() {
+        return idArchivio;
     }
 
-    public Archivio getArchivio() {
-        return archivio;
-    }
-
-    public void setArchivio(Archivio archivio) {
-        this.archivio = archivio;
+    public void setIdArchivio(Integer idArchivio) {
+        this.idArchivio = idArchivio;
     }
 
     public String getDownloadUrl() {
@@ -50,21 +45,4 @@ public class GenerazioneZipArchivioJobWorkerData extends JobWorkerData{
     public void setDownloadUrl(String downloadUrl) {
         this.downloadUrl = downloadUrl;
     }
-
-    public String getUploadUrl() {
-        return uploadUrl;
-    }
-
-    public void setUploadUrl(String uploadUrl) {
-        this.uploadUrl = uploadUrl;
-    }
-
-    public String getNote() {
-        return note;
-    }
-
-    public void setNote(String note) {
-        this.note = note;
-    }
-    
 }
