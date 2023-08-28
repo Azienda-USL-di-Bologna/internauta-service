@@ -109,7 +109,14 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         Archivio archivio = archivioRepository.getById(idArchivio);
         String downloadUrl = getWorkerData().getDownloadUrl();
         
-     
+        // calcolo numero e filename con un uuid nel nome per evitare che nello stesso momento
+        // un altro processo dello stesso job mi legga/scriva lo stesso file corrompendo i dati
+        String numerazioneGerarchicaFascicolo = archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/"));
+        String archivioZipNameUnivoco = String.format("%s$%s-%d-%s.zip", UUID.randomUUID().toString(), numerazioneGerarchicaFascicolo, archivio.getAnno(), archivio.getOggetto().trim());
+        
+        // tolgo l'uuid dal nome dell'allegato 
+        String archivioZipName = archivioZipNameUnivoco.substring(archivioZipNameUnivoco.lastIndexOf("$") + 1);
+        
         // ottengo il tempo di durata del token dalla tabella configurazione.parametri_aziende
         Azienda aziendaArch = aziendaRepository.getById(archivio.getIdAzienda().getId());
         Integer downloadArchivioZipTokenExpireSeconds = downloaderUtils.getTokenExpireSeconds();
@@ -117,41 +124,30 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         if (parameters != null && !parameters.isEmpty()) {
             downloadArchivioZipTokenExpireSeconds = parametriAziende.getValue(parameters.get(0), Integer.class);
         }
-        
-        // calcolo numero e filename con un uuid nel nome per evitare che nello stesso momento
-        // un altro processo dello stesso job mi legga/scriva lo stesso file corrompendo i dati
-        String numero = archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/"));
-        String archivioZipName = String.format("%s$%s-%d-%s.zip", UUID.randomUUID().toString(), numero, archivio.getAnno(), archivio.getOggetto().trim());
        
         // preparo la stringa per l'url per scaricare lo zip
         String urlToDownload = null;
-
         
-        try (FileInputStream fis = new FileInputStream(archivioZipName)){
-            MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-            JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+        try {
             // creo lo zip wrappando un FileOutputStream cosicché posso salvarlo su disco e non tenerlo in memoria 
             // evitando così la possibilità di out of range data da fascicoli, o singoli allegati, troppo grossi
-            try (FileOutputStream fos = new FileOutputStream(archivioZipName);
-                    ZipOutputStream zipOut = new ZipOutputStream(fos)) {
+            try (FileOutputStream fos = new FileOutputStream(archivioZipNameUnivoco)) {
                 log.info("parto a creare lo zip");
-                scriptaArchiviUtils.buildArchivio(archivio, "", persona, zipOut, jPAQueryFactory, minIOWrapper);
-                zipOut.finish();
-                zipOut.close();
+                scriptaArchiviUtils.createZipArchivio(archivio, persona, fos);
             } catch (IOException ex) {
                 String errorMessage = "errore nella generazione dell'archivio";
                 log.error(errorMessage, ex);
                 throw new MasterjobsWorkerException(errorMessage, ex);
-            } catch (Http404ResponseException ex) {
-                log.error(ex.getMessage(), ex);
-                throw new MasterjobsWorkerException(ex.getMessage(), ex);
             }
+            FileInputStream fis = new FileInputStream(archivioZipNameUnivoco);
             log.info("zip concluso correttamente, procedo a salvarlo su minio e generare il link per scaricarlo");
             // leggo lo zip scritto in locale come FileInputStream e succesivamente
             // lo carico su minio e ottengo l'url per il download con token valido per un giorno
+            // a questi metodi passo archivioZipName al posto di archivioZipNameUnivoco perché il secondo contiene un uuid
             Map<String, Object> uploaderPluginParams = downloaderUtils.getUploaderPluginParams(archivioZipName, null);
             Map<String, Object> params = downloaderController.upload(DownloaderPluginFactory.TargetRepository.MinIO, uploaderPluginParams, fis, "/internauta/archivi-zip", archivioZipName);
             urlToDownload = downloaderUtils.buildDownloadUrl(archivioZipName, "application/zip", params, true, downloadUrl, downloadArchivioZipTokenExpireSeconds);
+            fis.close();
         } catch (DownloaderUtilsException | IOException | AuthorizationUtilsException | NoSuchAlgorithmException |InvalidKeySpecException ex) {
             String errorMessage = "Errore nella generazione dell'url per il download";
             log.error(errorMessage, ex);
@@ -163,11 +159,13 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         } finally {
             log.info("elimino lo zip");
             // una volta finito di lavorare con il file dello zip lo cancello da locale
-            File f = new File(archivioZipName);
+            File f = new File(archivioZipNameUnivoco);
             if (f.exists()) {
                 f.delete();
             }
         }
+        
+        
         
         log.info("genero l'attività");
         //genero la nofica che apparirà sulla scivania con il link per il download e della nuova applicazione
