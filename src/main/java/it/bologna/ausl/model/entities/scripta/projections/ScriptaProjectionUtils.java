@@ -7,6 +7,8 @@ import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetailInterface;
 import it.bologna.ausl.model.entities.scripta.AttoreDoc;
+import it.bologna.ausl.model.entities.scripta.DocAnnullato;
+import it.bologna.ausl.model.entities.scripta.NotaDoc;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.scripta.projections.generated.SpedizioneWithIdMezzo;
@@ -74,13 +76,23 @@ public class ScriptaProjectionUtils {
         }
     }
     
+    public List<NotaDoc> filterNotaDocList(List<NotaDoc> noteDoc, String tipoNota) {
+        if (noteDoc != null) {
+            return noteDoc.stream().filter(notaDoc -> notaDoc.getTipo().toString().equals(tipoNota)).collect(Collectors.toList());
+        } else {
+            return null;
+        }
+    }
+    
     public List<String> getDescrizionePersonaVicarioList(ArchivioDetailInterface archivioDetail){
         List<String> descrizioneVicariList = new ArrayList<>();
-        if(archivioDetail != null){
+        if (archivioDetail != null) {
             Integer[] idVicari = archivioDetail.getIdVicari();
-            descrizioneVicariList = Stream.of(idVicari).map((idPersonaVicario) -> {
-                return cachedEntities.getPersona(idPersonaVicario).getDescrizione();
-            }).collect(Collectors.toList());
+            if (idVicari != null && idVicari.length > 0) {
+                descrizioneVicariList = Stream.of(idVicari).map((idPersonaVicario) -> {
+                    return cachedEntities.getPersona(idPersonaVicario).getDescrizione();
+                }).collect(Collectors.toList());
+            }
         }
         return descrizioneVicariList;
     }
@@ -122,5 +134,9 @@ public class ScriptaProjectionUtils {
             }
         }
         return null;
+    }
+    
+    public boolean getAnnullato(List<DocAnnullato> docAnnullatoList){
+        return !(docAnnullatoList == null || docAnnullatoList.isEmpty());
     }
 }
