@@ -15,8 +15,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 @NextSdrRepository(repositoryPath = "${baborg.mapping.url.root}/profili", defaultProjection = ProfiliWithPlainFields.class)
 @RepositoryRestResource(collectionResourceRel = "profili", path = "profili", exported = false, excerptProjection = ProfiliWithPlainFields.class)
 public interface ProfiliRepository extends
-        NextSdrQueryDslRepository<Profili, Integer, QProfili>,
-        JpaRepository<Profili, Integer> {
+        NextSdrQueryDslRepository<Profili, String, QProfili>,
+        JpaRepository<Profili, String> {
     
-    public Profili findById(String id);
 }

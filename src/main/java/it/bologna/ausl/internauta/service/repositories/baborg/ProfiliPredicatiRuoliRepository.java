@@ -18,6 +18,4 @@ public interface ProfiliPredicatiRuoliRepository extends
         NextSdrQueryDslRepository<ProfiliPredicatiRuoli, Integer, QProfiliPredicatiRuoli>,
         JpaRepository<ProfiliPredicatiRuoli, Integer> {
     
-    
-    
 }
