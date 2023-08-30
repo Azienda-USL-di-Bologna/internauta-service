@@ -319,19 +319,23 @@ public class ScriptaArchiviUtils {
 
             // ciclo i figli e per ognuno di loro chiamo ricorsivamente questa funzione (buildArchivio)
             for (Archivio archivioFiglio : archiviFigli) {
-                String numerazioneGerarchicaFiglio = archivioFiglio.getNumerazioneGerarchica().substring(0, archivioFiglio.getNumerazioneGerarchica().indexOf("/"));
-                String pathFiglio = String.format("%s-%s/", numerazioneGerarchicaFiglio, archivioFiglio.getOggetto().trim());
-                zipOut.putNextEntry(new ZipEntry(pathFiglio));
-                zipOut.closeEntry();
-                writeDocForArchivioZip(zipOut, archivioFiglio.getId(), pathFiglio);
-                // ottengo gli archivi nipoti 
-                List<Archivio> archiviNipoti = archivioRepository.findByIdArchivioPadre(archivioFiglio);
-                for (Archivio archivioNipote : archiviNipoti) {
-                    String numerazioneGerarchicaNipote = archivioNipote.getNumerazioneGerarchica().substring(0, archivioNipote.getNumerazioneGerarchica().indexOf("/"));
-                    String pathNipote = String.format("%s%s-%s/", pathFiglio, numerazioneGerarchicaNipote, archivioNipote.getOggetto().trim());
-                    zipOut.putNextEntry(new ZipEntry(pathNipote));
+                if (!archivioFiglio.getStato().equals(Archivio.StatoArchivio.BOZZA)){
+                    String numerazioneGerarchicaFiglio = archivioFiglio.getNumerazioneGerarchica().substring(0, archivioFiglio.getNumerazioneGerarchica().indexOf("/"));
+                    String pathFiglio = String.format("%s-%s/", numerazioneGerarchicaFiglio, archivioFiglio.getOggetto().trim());
+                    zipOut.putNextEntry(new ZipEntry(pathFiglio));
                     zipOut.closeEntry();
-                    writeDocForArchivioZip(zipOut, archivioNipote.getId(), pathNipote);
+                    writeDocForArchivioZip(zipOut, archivioFiglio.getId(), pathFiglio);
+                    // ottengo gli archivi nipoti 
+                    List<Archivio> archiviNipoti = archivioRepository.findByIdArchivioPadre(archivioFiglio);
+                    for (Archivio archivioNipote : archiviNipoti) {
+                        if (!archivioNipote.getStato().equals(Archivio.StatoArchivio.BOZZA)){
+                            String numerazioneGerarchicaNipote = archivioNipote.getNumerazioneGerarchica().substring(0, archivioNipote.getNumerazioneGerarchica().indexOf("/"));
+                            String pathNipote = String.format("%s%s-%s/", pathFiglio, numerazioneGerarchicaNipote, archivioNipote.getOggetto().trim());
+                            zipOut.putNextEntry(new ZipEntry(pathNipote));
+                            zipOut.closeEntry();
+                            writeDocForArchivioZip(zipOut, archivioNipote.getId(), pathNipote);
+                        }
+                    }
                 }
             }
 

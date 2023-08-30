@@ -18,5 +18,5 @@ public interface ProfiliRepository extends
         NextSdrQueryDslRepository<Profili, Integer, QProfili>,
         JpaRepository<Profili, Integer> {
     
-    public Profili findByIdProfilo(String idProfilo);
+    public Profili findById(String id);
 }
