@@ -9,6 +9,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ProfiliPredicatiRuoliRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ProfiliRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
@@ -36,10 +37,11 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  * @author mido
  */
+@MasterjobsWorker
 public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData, JobWorkerResult> {
 
     private static final Logger log = LoggerFactory.getLogger(CambioProfiloJobWorker.class);
-    private final String name = CalcolaGerarchiaArchivioJobWorker.class.getSimpleName();
+    private final String name = CambioProfiloJobWorker.class.getSimpleName();
 
     @Autowired
     private AziendaRepository aziendaRepository;
@@ -198,7 +200,7 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
     }
 
     private List<ProfiliPredicatiRuoli> processProfiliPredicatiRuoli(String profilo, List<String> predicati, List<Ruolo> ruoli) {
-        Profili profiloObj = profiliRepository.findByIdProfilo(profilo);
+        Profili profiloObj = profiliRepository.findById(profilo);
         BooleanExpression profiloExpr = QProfili.profili.eq(profiloObj);
         Iterable<ProfiliPredicatiRuoli> pprList = profiliPredicatiRuoliRepository.findAll(profiloExpr);
         List<ProfiliPredicatiRuoli> ppr = new ArrayList<>();
