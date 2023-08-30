@@ -1,6 +1,8 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.cambioprofilo;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
@@ -20,6 +22,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Profili;
 import it.bologna.ausl.model.entities.baborg.ProfiliPredicatiRuoli;
 import it.bologna.ausl.model.entities.baborg.QProfili;
+import it.bologna.ausl.model.entities.baborg.QProfiliPredicatiRuoli;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
@@ -199,13 +202,21 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
         return this.name;
     }
 
+
     private List<ProfiliPredicatiRuoli> processProfiliPredicatiRuoli(String profilo, List<String> predicati, List<Ruolo> ruoli) {
-        Profili profiloObj = profiliRepository.findById(profilo);
-        BooleanExpression profiloExpr = QProfili.profili.eq(profiloObj);
-        Iterable<ProfiliPredicatiRuoli> pprList = profiliPredicatiRuoliRepository.findAll(profiloExpr);
+        
+        BooleanExpression profiloExpr = QProfiliPredicatiRuoli.profiliPredicatiRuoli.idProfilo.id.eq(profilo);
+//        Iterable<ProfiliPredicatiRuoli> pprList = profiliPredicatiRuoliRepository.findAll(profiloExpr);
+        
+        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+        List<ProfiliPredicatiRuoli> predicatiRuoliDelProfilo = queryFactory
+                .select(QProfiliPredicatiRuoli.profiliPredicatiRuoli)
+                .from(QProfiliPredicatiRuoli.profiliPredicatiRuoli)
+                .where(profiloExpr)
+                .fetch();
         List<ProfiliPredicatiRuoli> ppr = new ArrayList<>();
-        if (pprList != null) {
-            for (ProfiliPredicatiRuoli pprTmp : pprList) {
+        if (predicatiRuoliDelProfilo != null) {
+            for (ProfiliPredicatiRuoli pprTmp : predicatiRuoliDelProfilo) {
 
                 if (pprTmp.getIdRuolo() != null) {
                     ruoli.add(pprTmp.getIdRuolo());
