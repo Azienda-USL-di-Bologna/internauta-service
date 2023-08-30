@@ -1,5 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.tip.validations;
 
+import it.bologna.ausl.internauta.service.controllers.tip.exceptions.TipImportBadDataException;
 import it.bologna.ausl.model.entities.tip.ImportazioneOggetto;
 import it.bologna.ausl.model.entities.tip.SessioneImportazione;
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.DELIBERA;
@@ -10,6 +11,7 @@ import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaP
 import it.bologna.ausl.model.entities.tip.data.KeyValueEnum;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.regex.Matcher;
@@ -155,6 +157,15 @@ public abstract class TipDataValidator {
     }
     
     /**
+     * Converte una LocalDate in una stringa nel formato ISO contenente anche l'ora (a mezzanotte)
+     * @param date la data da convertire
+     * @return una stringa nel formato ISO contenente anche l'ora (a mezzanotte)
+     */
+    public static String dateToISOLocalDateTimeString(LocalDate date) {
+        return date.atStartOfDay(ZoneId.of("Europe/Rome")).format(DateTimeFormatter.ISO_DATE_TIME);
+    }
+    
+    /**
      * Valida la stringa rappresentante un anno nel formato yyyy
      * @param stringaAnno la stringa da validare
      * @return true se la stringa è nel formato corretto, false altrimenti
@@ -198,7 +209,23 @@ public abstract class TipDataValidator {
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
     public static boolean validateBoolean(String stringaBoolean) {
-        return stringaBoolean.equalsIgnoreCase("true") || stringaBoolean.equalsIgnoreCase("false");
+        return stringaBoolean.equalsIgnoreCase("true") || stringaBoolean.equalsIgnoreCase("si") || stringaBoolean.equalsIgnoreCase("sì") || stringaBoolean.equalsIgnoreCase("false") || stringaBoolean.equalsIgnoreCase("no");
+    }
+    
+    /**
+     * Torna il boolean rappresentato dalla stringa. Considera anche i valori si e no oltre al true e false
+     * @param stringaBoolean la stringa da convertire
+     * @return
+     * @throws TipImportBadDataException 
+     */
+    public static boolean parseBoolean(String stringaBoolean) throws TipImportBadDataException {
+        if (stringaBoolean.equalsIgnoreCase("true") || stringaBoolean.equalsIgnoreCase("si") || stringaBoolean.equalsIgnoreCase("sì")) {
+            return true;
+        } else if (stringaBoolean.equalsIgnoreCase("false") || stringaBoolean.equalsIgnoreCase("no")) {
+            return false;
+        } else {
+            throw new TipImportBadDataException(String.format("il valore %s non è nel formato corretto e non è possibile capire se indica un valore positivo o negativo", stringaBoolean));
+        }
     }
     
     /**
