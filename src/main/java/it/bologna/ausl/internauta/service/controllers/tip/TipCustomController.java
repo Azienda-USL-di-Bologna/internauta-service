@@ -119,7 +119,7 @@ public class TipCustomController implements ControllerHandledExceptions {
         }
     }
     
-    @RequestMapping(value = "transferDocumentiPregressi", method = RequestMethod.POST)
+    @RequestMapping(value = "transferDocumentiPregressi", method = RequestMethod.GET)
     public ResponseEntity<?> transferDocumentiPregressi (
         HttpServletRequest request,
         @RequestParam(name = "idSessione", required = true) Long idSessione) {
