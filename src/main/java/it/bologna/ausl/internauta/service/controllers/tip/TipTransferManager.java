@@ -77,6 +77,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.persistence.EntityManager;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -1104,10 +1106,58 @@ public class TipTransferManager {
         }
         String[] allegatiPath = allegatiString.split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
         int ordinale = 1;
+        Pattern pattern = Pattern.compile(TipDataValidator.REGEX_PREFISSI_ALLEGATI, Pattern.MULTILINE);
         for (String allegatoPath : allegatiPath) {
+            Allegato.TipoAllegato tipoAllegato = Allegato.TipoAllegato.ALLEGATO;
+            Allegato.SottotipoAllegato sottoTipoAllegato = null;
+            HashMap<String, Object> additionalData = null;
+            /*
+            ogni allegato potrebbe avere un prefisso che ne identifica il tipo (es. VER__<numero_versione>, RIC_ACC__, RIC_CONS__, RIC_ERR__, ALL_INT_)
+            quindi per prima cosa controllo se c'è il prefisso con una regex e nel caso lo gestisco
+            */
+            Matcher matcher = pattern.matcher(allegatoPath);
+            if (matcher.find()) { // se entro vuol dire che c'è un prefisso
+                String prefissoString = matcher.group(0);
+                /*
+                se il prefisso è quello della versione (VER__<numero_versione>) lo gestisco:
+                 setto il tipo e il sottotipo corretti
+                 leggo il numero versione e creo gli additionalData da inserire sull'allegato
+                */
+                if (prefissoString.startsWith(TipDataValidator.PrefissiAllegati.VER__.toString())) {
+                    tipoAllegato = Allegato.TipoAllegato.ANNESSO;
+                    sottoTipoAllegato = Allegato.SottotipoAllegato.DELIBERA_NO_OMISSIS;
+                    additionalData = new HashMap();
+                    Integer versione = Integer.valueOf(prefissoString.replace(prefissoString, ""));
+                    additionalData.put("versione", versione);
+                } else { // in questo switch gestisco i casi delle ricevute pec, si gestiscono settando il tipo e il sottotipo corretto
+                    TipDataValidator.PrefissiAllegati prefisso = TipDataValidator.PrefissiAllegati.valueOf(prefissoString);
+                    switch (prefisso) {
+                        case RIC_ACC__:
+                            tipoAllegato = Allegato.TipoAllegato.ANNESSO;
+                            sottoTipoAllegato = Allegato.SottotipoAllegato.RICEVUTA_ACCETTAZIONE_PEC;
+                            break;
+                        case RIC_CONS__:
+                            tipoAllegato = Allegato.TipoAllegato.ANNESSO;
+                            sottoTipoAllegato = Allegato.SottotipoAllegato.RICEVUTA_CONSEGNA_PEC;
+                            break;
+                        case RIC_ERR__:
+                            tipoAllegato = Allegato.TipoAllegato.ANNESSO;
+                            sottoTipoAllegato = Allegato.SottotipoAllegato.RICEVUTA_ERRORE_PEC;
+                            break;
+                    }
+                }
+                // rimuovo il prefisso dal path
+                allegatoPath = allegatoPath.replace(prefissoString, "");
+            }
+            
             Allegato allegato = new Allegato();
             allegato.setIdDoc(doc);
             allegato.setOrdinale(ordinale++);
+            allegato.setTipo(tipoAllegato);
+            allegato.setSottotipo(sottoTipoAllegato);
+            if (additionalData != null) {
+                allegato.setAdditionalData(additionalData);
+            }
             Allegato.DettagliAllegato dettagliAllegato = allegato.getDettagli();
             if (dettagliAllegato == null) {
                 dettagliAllegato = new Allegato.DettagliAllegato();

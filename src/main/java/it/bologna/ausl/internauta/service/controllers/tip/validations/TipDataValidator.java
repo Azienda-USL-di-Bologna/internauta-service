@@ -31,6 +31,10 @@ public abstract class TipDataValidator {
     public static final String FORMATO_DATA = "dd/MM/yyyy";
     public static final String DEFAULT_STRING_SEPARATOR = "#";
     public static final String DEFAULT_ATTORE_SEPARATOR = ":";
+    public static final String REGEX_PREFISSI_ALLEGATI = "VER__\\d+__|RIC_ACC__|RIC_CONS__|RIC_ERR__|ALL_INT__";
+    public static enum PrefissiAllegati {
+        VER__, RIC_ACC__, RIC_CONS__, RIC_ERR__, ALL_INT__
+    }
 
     /**
      * torna la classe concreta in base alla tipologia passata
