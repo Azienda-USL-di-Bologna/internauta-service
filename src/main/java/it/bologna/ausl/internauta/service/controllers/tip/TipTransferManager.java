@@ -1443,7 +1443,7 @@ public class TipTransferManager {
             descrizioniSplitted = descrizioni.split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
             lenght = descrizioniSplitted.length;
         }
-        if (StringUtils.hasText(importazioneDocumento.getMezzo())) {
+        if (!soloStrutture && StringUtils.hasText(importazioneDocumento.getMezzo())) {
             mezziSplitted = importazioneDocumento.getMezzo().split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
         }
         
