@@ -19,7 +19,7 @@ public class ProtocolloUscitaDataValidator extends TipDataValidator {
     public TipErroriImportazione validate(ImportazioneOggetto rigaImportazione) {
         TipErroriImportazione erroriImportazione = new TipErroriImportazione();
         ImportazioneDocumento riga = (ImportazioneDocumento) rigaImportazione;
-        if(!StringUtils.hasText(riga.getRegistro()) && !EnumUtils.isValidEnumIgnoreCase(Registro.CodiceRegistro.class, riga.getRegistro())) {
+        if (StringUtils.hasText(riga.getRegistro()) && !EnumUtils.isValidEnumIgnoreCase(Registro.CodiceRegistro.class, riga.getRegistro())) {
             erroriImportazione.setError(
                     ColonneProtocolloUscita.registro, 
                     TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
@@ -83,7 +83,7 @@ public class ProtocolloUscitaDataValidator extends TipDataValidator {
         }
         
         if (!StringUtils.hasText(riga.getProtocollatoDa())) {
-            erroriImportazione.setError(ColonneProtocolloUscita.protocollatoDa, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il campo è obbligatorio..");
+            erroriImportazione.setError(ColonneProtocolloUscita.protocollatoDa, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il campo è obbligatorio.");
             riga.setErrori(erroriImportazione);
         }
         if ( (!StringUtils.hasText(riga.getIdFascicoloPregresso()) && !StringUtils.hasText(riga.getFascicolazione()))) {
