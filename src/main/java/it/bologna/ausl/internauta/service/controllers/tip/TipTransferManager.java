@@ -1098,116 +1098,118 @@ public class TipTransferManager {
      * @throws TipTransferUnexpectedException 
      */
     private Doc transferAllegati(Doc doc, String allegatiString, Azienda azienda) throws TipTransferUnexpectedException {
-        MinIOWrapper minIOWrapper = repositoryConnectionManager.getMinIOWrapper();
-        List<Allegato> allegati = doc.getAllegati();
-        if (allegati == null) {
-            allegati = new ArrayList<>();
-            doc.setAllegati(allegati);
-        }
-        String[] allegatiPath = allegatiString.split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
-        int ordinale = 1;
-        Pattern pattern = Pattern.compile(TipDataValidator.REGEX_PREFISSI_ALLEGATI, Pattern.MULTILINE);
-        for (String allegatoPath : allegatiPath) {
-            Allegato.TipoAllegato tipoAllegato = Allegato.TipoAllegato.ALLEGATO;
-            Allegato.SottotipoAllegato sottoTipoAllegato = null;
-            HashMap<String, Object> additionalData = null;
-            /*
-            ogni allegato potrebbe avere un prefisso che ne identifica il tipo (es. VER__<numero_versione>, RIC_ACC__, RIC_CONS__, RIC_ERR__, ALL_INT_)
-            quindi per prima cosa controllo se c'è il prefisso con una regex e nel caso lo gestisco
-            */
-            Matcher matcher = pattern.matcher(allegatoPath);
-            if (matcher.find()) { // se entro vuol dire che c'è un prefisso
-                String prefissoString = matcher.group(0);
+        if (StringUtils.hasText(allegatiString)) {
+            MinIOWrapper minIOWrapper = repositoryConnectionManager.getMinIOWrapper();
+            List<Allegato> allegati = doc.getAllegati();
+            if (allegati == null) {
+                allegati = new ArrayList<>();
+                doc.setAllegati(allegati);
+            }
+            String[] allegatiPath = allegatiString.split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
+            int ordinale = 1;
+            Pattern pattern = Pattern.compile(TipDataValidator.REGEX_PREFISSI_ALLEGATI, Pattern.MULTILINE);
+            for (String allegatoPath : allegatiPath) {
+                Allegato.TipoAllegato tipoAllegato = Allegato.TipoAllegato.ALLEGATO;
+                Allegato.SottotipoAllegato sottoTipoAllegato = null;
+                HashMap<String, Object> additionalData = null;
                 /*
-                se il prefisso è quello della versione (VER__<numero_versione>) lo gestisco:
-                 setto il tipo e il sottotipo corretti
-                 leggo il numero versione e creo gli additionalData da inserire sull'allegato
+                ogni allegato potrebbe avere un prefisso che ne identifica il tipo (es. VER__<numero_versione>, RIC_ACC__, RIC_CONS__, RIC_ERR__, ALL_INT_)
+                quindi per prima cosa controllo se c'è il prefisso con una regex e nel caso lo gestisco
                 */
-                if (prefissoString.startsWith(TipDataValidator.PrefissiAllegati.VER__.toString())) {
-                    tipoAllegato = Allegato.TipoAllegato.ANNESSO;
-                    sottoTipoAllegato = Allegato.SottotipoAllegato.DELIBERA_NO_OMISSIS;
-                    additionalData = new HashMap();
-                    Integer versione = Integer.valueOf(prefissoString.replace(prefissoString, ""));
-                    additionalData.put("versione", versione);
-                } else { // in questo switch gestisco i casi delle ricevute pec, si gestiscono settando il tipo e il sottotipo corretto
-                    TipDataValidator.PrefissiAllegati prefisso = TipDataValidator.PrefissiAllegati.valueOf(prefissoString);
-                    switch (prefisso) {
-                        case RIC_ACC__:
-                            tipoAllegato = Allegato.TipoAllegato.ANNESSO;
-                            sottoTipoAllegato = Allegato.SottotipoAllegato.RICEVUTA_ACCETTAZIONE_PEC;
-                            break;
-                        case RIC_CONS__:
-                            tipoAllegato = Allegato.TipoAllegato.ANNESSO;
-                            sottoTipoAllegato = Allegato.SottotipoAllegato.RICEVUTA_CONSEGNA_PEC;
-                            break;
-                        case RIC_ERR__:
-                            tipoAllegato = Allegato.TipoAllegato.ANNESSO;
-                            sottoTipoAllegato = Allegato.SottotipoAllegato.RICEVUTA_ERRORE_PEC;
-                            break;
+                Matcher matcher = pattern.matcher(allegatoPath);
+                if (matcher.find()) { // se entro vuol dire che c'è un prefisso
+                    String prefissoString = matcher.group(0);
+                    /*
+                    se il prefisso è quello della versione (VER__<numero_versione>) lo gestisco:
+                     setto il tipo e il sottotipo corretti
+                     leggo il numero versione e creo gli additionalData da inserire sull'allegato
+                    */
+                    if (prefissoString.startsWith(TipDataValidator.PrefissiAllegati.VER__.toString())) {
+                        tipoAllegato = Allegato.TipoAllegato.ANNESSO;
+                        sottoTipoAllegato = Allegato.SottotipoAllegato.DELIBERA_NO_OMISSIS;
+                        additionalData = new HashMap();
+                        Integer versione = Integer.valueOf(prefissoString.replace(prefissoString, ""));
+                        additionalData.put("versione", versione);
+                    } else { // in questo switch gestisco i casi delle ricevute pec, si gestiscono settando il tipo e il sottotipo corretto
+                        TipDataValidator.PrefissiAllegati prefisso = TipDataValidator.PrefissiAllegati.valueOf(prefissoString);
+                        switch (prefisso) {
+                            case RIC_ACC__:
+                                tipoAllegato = Allegato.TipoAllegato.ANNESSO;
+                                sottoTipoAllegato = Allegato.SottotipoAllegato.RICEVUTA_ACCETTAZIONE_PEC;
+                                break;
+                            case RIC_CONS__:
+                                tipoAllegato = Allegato.TipoAllegato.ANNESSO;
+                                sottoTipoAllegato = Allegato.SottotipoAllegato.RICEVUTA_CONSEGNA_PEC;
+                                break;
+                            case RIC_ERR__:
+                                tipoAllegato = Allegato.TipoAllegato.ANNESSO;
+                                sottoTipoAllegato = Allegato.SottotipoAllegato.RICEVUTA_ERRORE_PEC;
+                                break;
+                        }
                     }
+                    // rimuovo il prefisso dal path
+                    allegatoPath = allegatoPath.replace(prefissoString, "");
                 }
-                // rimuovo il prefisso dal path
-                allegatoPath = allegatoPath.replace(prefissoString, "");
-            }
-            
-            Allegato allegato = new Allegato();
-            allegato.setIdDoc(doc);
-            allegato.setOrdinale(ordinale++);
-            allegato.setTipo(tipoAllegato);
-            allegato.setSottotipo(sottoTipoAllegato);
-            if (additionalData != null) {
-                allegato.setAdditionalData(additionalData);
-            }
-            Allegato.DettagliAllegato dettagliAllegato = allegato.getDettagli();
-            if (dettagliAllegato == null) {
-                dettagliAllegato = new Allegato.DettagliAllegato();
-                allegato.setDettagli(dettagliAllegato);
-            }
-            Allegato.DettaglioAllegato originale = dettagliAllegato.getOriginale();
-            if (originale == null) {
-                originale = new Allegato.DettaglioAllegato();
-                dettagliAllegato.setOriginale(originale);
-            }
-            
-            File allegatoFile = new File(allegatoPath);
-            String filePath = allegatoFile.getParent();
-            
-            // il separatore di path deve essere sempre "/", questo lo dovrà fare anche caricango
-            filePath = filePath.replace("\\", "/");
-            String fileName = allegatoFile.getName();
-            
-            originale.setNome(fileName);
-            originale.setBucket(azienda.getCodice());
-            originale.setEstensione(FilenameUtils.getExtension(fileName));
-            allegato.setNome(fileName);
-            try {
-                MinIOWrapperFileInfo fileInfo = minIOWrapper.getFileInfoByPathAndFileName(filePath, allegatoPath, azienda.getCodice());
-                if (fileInfo != null) {
-                    File tempFile = File.createTempFile(originale.getNome(), originale.getEstensione());
-                    tempFile.deleteOnExit();
-                    try (InputStream is = minIOWrapper.getByFileId(fileInfo.getFileId())) {
-                        try (FileOutputStream os = new FileOutputStream(tempFile)) {
-                            IOUtils.copy(is, os);
-                            try (FileInputStream fis = new FileInputStream(tempFile)) {
-                                originale.setHashSha256(org.apache.commons.codec.digest.DigestUtils.sha256Hex(fis));
+
+                Allegato allegato = new Allegato();
+                allegato.setIdDoc(doc);
+                allegato.setOrdinale(ordinale++);
+                allegato.setTipo(tipoAllegato);
+                allegato.setSottotipo(sottoTipoAllegato);
+                if (additionalData != null) {
+                    allegato.setAdditionalData(additionalData);
+                }
+                Allegato.DettagliAllegato dettagliAllegato = allegato.getDettagli();
+                if (dettagliAllegato == null) {
+                    dettagliAllegato = new Allegato.DettagliAllegato();
+                    allegato.setDettagli(dettagliAllegato);
+                }
+                Allegato.DettaglioAllegato originale = dettagliAllegato.getOriginale();
+                if (originale == null) {
+                    originale = new Allegato.DettaglioAllegato();
+                    dettagliAllegato.setOriginale(originale);
+                }
+
+                File allegatoFile = new File(allegatoPath);
+                String filePath = allegatoFile.getParent();
+
+                // il separatore di path deve essere sempre "/", questo lo dovrà fare anche caricango
+                filePath = filePath.replace("\\", "/");
+                String fileName = allegatoFile.getName();
+
+                originale.setNome(fileName);
+                originale.setBucket(azienda.getCodice());
+                originale.setEstensione(FilenameUtils.getExtension(fileName));
+                allegato.setNome(fileName);
+                try {
+                    MinIOWrapperFileInfo fileInfo = minIOWrapper.getFileInfoByPathAndFileName(filePath, allegatoPath, azienda.getCodice());
+                    if (fileInfo != null) {
+                        File tempFile = File.createTempFile(originale.getNome(), originale.getEstensione());
+                        tempFile.deleteOnExit();
+                        try (InputStream is = minIOWrapper.getByFileId(fileInfo.getFileId())) {
+                            try (FileOutputStream os = new FileOutputStream(tempFile)) {
+                                IOUtils.copy(is, os);
+                                try (FileInputStream fis = new FileInputStream(tempFile)) {
+                                    originale.setHashSha256(org.apache.commons.codec.digest.DigestUtils.sha256Hex(fis));
+                                }
+                                originale.setMimeType(FileUtilities.getMimeTypeFromPath(tempFile.getAbsolutePath()));
                             }
-                            originale.setMimeType(FileUtilities.getMimeTypeFromPath(tempFile.getAbsolutePath()));
+                        } finally {
+                            if (tempFile != null && tempFile.exists()) {
+                                tempFile.delete();
+                            }
                         }
-                    } finally {
-                        if (tempFile != null && tempFile.exists()) {
-                            tempFile.delete();
-                        }
+                        originale.setIdRepository(fileInfo.getFileId());
+                        originale.setBucket(fileInfo.getBucketName());
+                        originale.setHashMd5(fileInfo.getMd5());
                     }
-                    originale.setIdRepository(fileInfo.getFileId());
-                    originale.setBucket(fileInfo.getBucketName());
-                    originale.setHashMd5(fileInfo.getMd5());
+                } catch (MinIOWrapperException | IOException | MimeTypeException ex) {
+                    String errorMessage = String.format("errore nel calcolo dei dettagli allegato del file %s", allegatoPath);
+                    log.error(errorMessage, ex);
+                    throw new TipTransferUnexpectedException(errorMessage, ex);
                 }
-            } catch (MinIOWrapperException | IOException | MimeTypeException ex) {
-                String errorMessage = String.format("errore nel calcolo dei dettagli allegato del file %s", allegatoPath);
-                log.error(errorMessage, ex);
-                throw new TipTransferUnexpectedException(errorMessage, ex);
+                allegati.add(allegato);
             }
-            allegati.add(allegato);
         }
         return doc;
     }
