@@ -139,7 +139,7 @@ public class TipImportManager {
                 if (sessioneImportazione != null) { // se trovo la sessione devo usare per forza la stessa tipologia, altrimenti torno errore
                     if (tipologia != sessioneImportazione.getTipologia()) {
                         String errorMessage =String.format(
-                                "non è possibili importare tipologie diverse all'interno della stessa sessione. Tipologia sessione %s, tipologia passata %s", 
+                                "non è possibile importare tipologie diverse all'interno della stessa sessione. Tipologia sessione %s, tipologia passata %s", 
                                 sessioneImportazione.getTipologia(), tipologia);
                         log.error(errorMessage);
                         throw new Http400ResponseException("04", errorMessage);

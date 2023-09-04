@@ -648,17 +648,12 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         String scheme = request.getScheme();
         String hostname = CommonUtils.getHostname(request);
         Integer port = request.getServerPort();
+        
+        
 
         String downloadUrl = this.configParams.getDownloaderUrl(scheme, hostname, port);
-        String uploaderUrl = this.configParams.getUploaderUrl(scheme, hostname, port);
-        GenerazioneZipArchivioJobWorkerData data = new GenerazioneZipArchivioJobWorkerData(
-                persona,
-                archivio,
-                downloadUrl,
-                uploaderUrl,
-                "Servizio per generare lo zip dell'archivio e fornire il download"
-        );
-        GenerazioneZipArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
+        GenerazioneZipArchivioJobWorkerData data = new GenerazioneZipArchivioJobWorkerData(persona.getId(), archivio.getId(), downloadUrl);
+        GenerazioneZipArchivioJobWorker worker = (GenerazioneZipArchivioJobWorker) masterjobsObjectsFactory.getJobWorker(
                 GenerazioneZipArchivioJobWorker.class,
                 data,
                 false
@@ -668,7 +663,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     worker,
                     null,
                     null,
-                    Applicazione.Applicazioni.gedi.toString(),
+                    Applicazione.Applicazioni.scripta.toString(),
                     false,
                     it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL
             );

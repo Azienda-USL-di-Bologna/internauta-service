@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.cambioprofilo;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
@@ -9,37 +10,40 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ProfiliPredicatiRuoliRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ProfiliRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolagerarchiaarchivio.CalcolaGerarchiaArchivioJobWorker;
 import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
-import it.bologna.ausl.model.entities.baborg.Profili;
 import it.bologna.ausl.model.entities.baborg.ProfiliPredicatiRuoli;
-import it.bologna.ausl.model.entities.baborg.QProfili;
+import it.bologna.ausl.model.entities.baborg.QProfiliPredicatiRuoli;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.persistence.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 
 /**
  *
  * @author mido
  */
+@MasterjobsWorker
 public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData, JobWorkerResult> {
 
     private static final Logger log = LoggerFactory.getLogger(CambioProfiloJobWorker.class);
-    private final String name = CalcolaGerarchiaArchivioJobWorker.class.getSimpleName();
+    private final String name = CambioProfiloJobWorker.class.getSimpleName();
 
     @Autowired
     private AziendaRepository aziendaRepository;
@@ -58,6 +62,13 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
 
     @Autowired
     private PermissionManager permissionManager;
+    
+    @Value("${internauta.cache.redis.prefix}")
+    private String prefixInternauta;
+
+    @Autowired
+    @Qualifier(value = "redisCache")
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Override
     protected JobWorkerResult doRealWork() throws MasterjobsWorkerException {
@@ -100,7 +111,9 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
                 predicatiNew.removeAll(predicatiOldC);
                 pprDaAttivare = pprNews.stream().filter(pprNew -> predicatiNew.contains(pprNew.getPredicato())).collect(Collectors.toList());
             }
-
+            
+            // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
+            cleanUtenteStrutturaCache(utente);
         }
         if (profilNew != null) {
             Object soggetto = new Object();
@@ -188,22 +201,43 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
             utente.setBitRuoli(sommaRuoliUtente);
             personaRepository.save(persona);
             utenteRepository.save(utente);
+            
+            // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
+            cleanUtenteStrutturaCache(utente);
         }
         return null;
     }
+    
+    
+    private void cleanUtenteStrutturaCache(Utente utente) {
+        String prefix = "getPermessiFilteredByAdditionalData__ribaltorg__*";
+        String params = prefixInternauta + prefix + "::" + utente.toString() + "*";
+        log.info(String.format("pulisco la cache di utente_struttura con la chiave: %s", params));
+        Set<String> keys = redisTemplate.keys(params);
+        redisTemplate.delete(keys);
+    }
+    
 
     @Override
     public String getName() {
         return this.name;
     }
 
+
     private List<ProfiliPredicatiRuoli> processProfiliPredicatiRuoli(String profilo, List<String> predicati, List<Ruolo> ruoli) {
-        Profili profiloObj = profiliRepository.findByIdProfilo(profilo);
-        BooleanExpression profiloExpr = QProfili.profili.eq(profiloObj);
-        Iterable<ProfiliPredicatiRuoli> pprList = profiliPredicatiRuoliRepository.findAll(profiloExpr);
+        
+        BooleanExpression profiloExpr = QProfiliPredicatiRuoli.profiliPredicatiRuoli.idProfilo.id.eq(profilo);
+//        Iterable<ProfiliPredicatiRuoli> pprList = profiliPredicatiRuoliRepository.findAll(profiloExpr);
+        
+        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+        List<ProfiliPredicatiRuoli> predicatiRuoliDelProfilo = queryFactory
+                .select(QProfiliPredicatiRuoli.profiliPredicatiRuoli)
+                .from(QProfiliPredicatiRuoli.profiliPredicatiRuoli)
+                .where(profiloExpr)
+                .fetch();
         List<ProfiliPredicatiRuoli> ppr = new ArrayList<>();
-        if (pprList != null) {
-            for (ProfiliPredicatiRuoli pprTmp : pprList) {
+        if (predicatiRuoliDelProfilo != null) {
+            for (ProfiliPredicatiRuoli pprTmp : predicatiRuoliDelProfilo) {
 
                 if (pprTmp.getIdRuolo() != null) {
                     ruoli.add(pprTmp.getIdRuolo());
