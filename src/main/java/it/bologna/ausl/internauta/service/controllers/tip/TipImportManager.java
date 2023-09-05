@@ -325,6 +325,7 @@ public class TipImportManager {
                         queryFactory
                             .update(qImportazioneDocumento)
                             .set(qImportazioneDocumento.stato, statoValidazione)
+                            .set(qImportazioneDocumento.errori, error)
                             .where(qImportazioneDocumento.id.eq(importazioneDocumento.getId()))
                             .execute();
                     });

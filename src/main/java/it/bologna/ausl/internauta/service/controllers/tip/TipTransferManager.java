@@ -82,6 +82,7 @@ import java.util.regex.Pattern;
 import javax.persistence.EntityManager;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.slf4j.Logger;
@@ -256,6 +257,8 @@ public class TipTransferManager {
         if (errori == null) {
             errori = new TipErroriImportazione();
         }
+        Registro.CodiceRegistro codiceRegistro = getCodiceRegistroDefault(sessioneImportazione.getTipologia());
+        
         // controllo se per caso l'ho già trasferito (cercandolo per registro, numero e anno) e nel caso lo indico come waring e lo salto
         if (isDocAlreadyPresent(
                 sessioneImportazione.getTipologia(),
@@ -272,7 +275,7 @@ public class TipTransferManager {
                 /* importazione campi della registrazione:
                 * registro, numero, anno, dataRegistrazione/dataAdozione e adottatoDa
                 */
-                transferRegistrazione(doc, ColonneProtocolloEntrata.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), sessioneImportazione.getTipologia(), importazioneDoc);
+                transferRegistrazione(doc, ColonneProtocolloEntrata.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), codiceRegistro, importazioneDoc);
             } catch (TipTransferBadDataException ex) {
                 log.error("errore nel trasferimento dei dati di registrazione", ex);
                 errori.setError(ColonneProtocolloEntrata.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
@@ -365,7 +368,7 @@ public class TipTransferManager {
                 errori.setError(ColonneProtocolloEntrata.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
             addInAdditionalData(doc, ColonneProtocolloEntrata.classificazione, importazioneDoc.getClassificazione());
-            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
+            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
@@ -390,6 +393,8 @@ public class TipTransferManager {
         if (errori == null) {
             errori = new TipErroriImportazione();
         }
+        Registro.CodiceRegistro codiceRegistro = getCodiceRegistroDefault(sessioneImportazione.getTipologia());
+        
         // controllo se per caso l'ho già trasferito (cercandolo per registro, numero e anno) e nel caso lo indico come waring e lo salto
         if (isDocAlreadyPresent(
                 sessioneImportazione.getTipologia(),
@@ -405,7 +410,7 @@ public class TipTransferManager {
                 /* importazione campi della registrazione:
                 * registro, numero, anno, dataRegistrazione/dataAdozione e adottatoDa
                 */
-                transferRegistrazione(doc, ColonneProtocolloUscita.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), sessioneImportazione.getTipologia(), importazioneDoc);
+                transferRegistrazione(doc, ColonneProtocolloUscita.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), codiceRegistro, importazioneDoc);
             } catch (TipTransferBadDataException ex) {
                 log.error("errore nel trasferimento dei dati di registrazione", ex);
                 errori.setError(ColonneProtocolloUscita.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
@@ -462,7 +467,7 @@ public class TipTransferManager {
                 errori.setError(ColonneProtocolloUscita.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
             addInAdditionalData(doc, ColonneProtocolloUscita.classificazione, importazioneDoc.getClassificazione());
-            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
+            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
@@ -489,6 +494,8 @@ public class TipTransferManager {
         if (errori == null) {
             errori = new TipErroriImportazione();
         }
+        
+        Registro.CodiceRegistro codiceRegistro = getCodiceRegistroDefault(sessioneImportazione.getTipologia());
         // controllo se per caso l'ho già trasferito (cercandolo per registro, numero e anno) e nel caso lo indico come waring e lo salto
         if (isDocAlreadyPresent(
                 sessioneImportazione.getTipologia(),
@@ -505,7 +512,7 @@ public class TipTransferManager {
                 * importazione campi della registrazione:
                 * registro, numero, anno, dataRegistrazione/dataAdozione e adottatoDa
                 */
-                transferRegistrazione(doc, ColonneDetermina.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), sessioneImportazione.getTipologia(), importazioneDoc);
+                transferRegistrazione(doc, ColonneDetermina.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), codiceRegistro, importazioneDoc);
             } catch (TipTransferBadDataException ex) {
                 log.error("errore nel trasferimento dei dati di registrazione", ex);
                 errori.setError(ColonneDetermina.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
@@ -568,7 +575,7 @@ public class TipTransferManager {
                 errori.setError(ColonneDetermina.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
             addInAdditionalData(doc, ColonneDetermina.classificazione, importazioneDoc.getClassificazione());
-            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
+            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
@@ -595,6 +602,8 @@ public class TipTransferManager {
         if (errori == null) {
             errori = new TipErroriImportazione();
         }
+        Registro.CodiceRegistro codiceRegistro = getCodiceRegistroDefault(sessioneImportazione.getTipologia());
+        
         // controllo se per caso l'ho già trasferito (cercandolo per registro, numero e anno) e nel caso lo indico come waring e lo salto
         if (isDocAlreadyPresent(
                 sessioneImportazione.getTipologia(),
@@ -611,7 +620,7 @@ public class TipTransferManager {
                 * importazione campi della registrazione:
                 * registro, numero, anno, dataRegistrazione/dataAdozione e adottatoDa
                 */
-                transferRegistrazione(doc, ColonneDelibera.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), sessioneImportazione.getTipologia(), importazioneDoc);
+                transferRegistrazione(doc, ColonneDelibera.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), codiceRegistro, importazioneDoc);
             } catch (TipTransferBadDataException ex) {
                 log.error("errore nel trasferimento dei dati di registrazione", ex);
                 errori.setError(ColonneDelibera.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
@@ -674,7 +683,7 @@ public class TipTransferManager {
                 errori.setError(ColonneDelibera.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
             addInAdditionalData(doc, ColonneDelibera.classificazione, importazioneDoc.getClassificazione());
-            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
+            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
@@ -1096,7 +1105,7 @@ public class TipTransferManager {
      * @return lo stesso doc in input, utile per poter concatenare il metodo a qualcos altro
      * @throws TipTransferUnexpectedException 
      */
-    private Doc transferAllegati(Doc doc, ImportazioneDocumento importazioneDocumento, Azienda azienda) throws TipTransferUnexpectedException {
+    private Doc transferAllegati(Doc doc, ImportazioneDocumento importazioneDocumento, Azienda azienda, Registro.CodiceRegistro codiceRegistro) throws TipTransferUnexpectedException {
         String allegatiString = importazioneDocumento.getAllegati();
         if (StringUtils.hasText(allegatiString)) {
             MinIOWrapper minIOWrapper = repositoryConnectionManager.getMinIOWrapper();
@@ -1127,7 +1136,7 @@ public class TipTransferManager {
                     if (prefissoString.startsWith(ImportazioneDocumento.PrefissiAllegati.VER__.toString())) {
                         tipoAllegato = Allegato.TipoAllegato.ANNESSO;
                         sottoTipoAllegato = Allegato.SottotipoAllegato.DELIBERA_NO_OMISSIS;
-                        Integer versione = Integer.valueOf(prefissoString.replace(prefissoString, ""));
+                        Integer versione = Integer.valueOf(prefissoString.replaceAll("[^0-9]", ""));
                         additionalData.put("versione", versione);
                     } else { // in questo switch gestisco i casi delle ricevute pec, si gestiscono settando il tipo e il sottotipo corretto
                         ImportazioneDocumento.PrefissiAllegati prefisso = ImportazioneDocumento.PrefissiAllegati.valueOf(prefissoString);
@@ -1217,6 +1226,7 @@ public class TipTransferManager {
                 costa nulla e magari poi si riveleranno utili
                 */
                 additionalData.put("path", allegatoPath);
+                additionalData.put("registro", codiceRegistro.toString());
                 additionalData.put("numero", importazioneDocumento.getNumero());
                 additionalData.put("anno", importazioneDocumento.getAnno());
                 allegato.setAdditionalData(additionalData);
@@ -1322,7 +1332,7 @@ public class TipTransferManager {
      * @return lo stesso doc in input, utile per poter concatenare il metodo a qualcos altro
      * @throws TipTransferBadDataException nel caso il registro indicato non sia tra quelli consentiti dall'enum Registro.CodiceRegistro
      */
-    private <E extends Enum<E> & ColonneImportazioneOggetto> Doc transferRegistrazione(Doc doc, Enum<E> colonnaRegistro, Azienda azienda, Struttura strutturaDefault, SessioneImportazione.TipologiaPregresso tipologia, ImportazioneDocumento importazioneDocumento) throws TipTransferBadDataException {
+    private <E extends Enum<E> & ColonneImportazioneOggetto> Doc transferRegistrazione(Doc doc, Enum<E> colonnaRegistro, Azienda azienda, Struttura strutturaDefault, Registro.CodiceRegistro codiceRegistro, ImportazioneDocumento importazioneDocumento) throws TipTransferBadDataException {
         
         ZonedDateTime dataRegistrazione = null;
         if (StringUtils.hasText(importazioneDocumento.getDataRegistrazione())) {
@@ -1337,7 +1347,7 @@ public class TipTransferManager {
         }
         
         // carico il registro(se non esiste)
-        Registro registroEntity = nonCachedEntities.getRegistro(azienda.getId(), getCodiceRegistroDefault(tipologia));
+        Registro registroEntity = nonCachedEntities.getRegistro(azienda.getId(), codiceRegistro);
         
         // siccome ogni tracciato chiama in modo diverso la struttura registrante, prendo quella non vuota, che verosimilmente sarà quella giusta
         String nomeStrutturaRegistrazione = null;
@@ -1491,11 +1501,15 @@ public class TipTransferManager {
             Mezzo.CodiciMezzo codiceMezzo;
             Related.OrigineRelated origine = Related.OrigineRelated.ESTERNO;
             if (StringUtils.hasText(mezzoTip)) {
-                /* 
+                /*
                 se mi è stato passato nel CSV calcolo il codice mezzo che mi servirà dopo per istanziare l'entità.
                 Sono sicuro che sia tra quelli consentiti perché l'ho controllato in fase di validazione
-                */
-                codiceMezzo = KeyValueEnum.findEnumKeyFromValue(mezzoTip, ColonneImportazioneOggettoEnums.MezziConsentiti.class).getCodiceMezzoScripta();
+                 */
+                ColonneImportazioneOggettoEnums.MezziConsentiti mezzoEnum = EnumUtils.getEnumIgnoreCase(ColonneImportazioneOggettoEnums.MezziConsentiti.class, mezzoTip);
+                if (mezzoEnum == null) {
+                    mezzoEnum = KeyValueEnum.findEnumKeyFromValue(mezzoTip, ColonneImportazioneOggettoEnums.MezziConsentiti.class);
+                }
+                codiceMezzo = mezzoEnum.getCodiceMezzoScripta();
             } else {
                 // se non mi è stato passato lo deduco
                 codiceMezzo = Mezzo.CodiciMezzo.POSTA_ORDINARIA; // il caso di default è posta ordinaria
