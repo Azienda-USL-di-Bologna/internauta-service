@@ -103,8 +103,8 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
             List<String> predicatiOldC = new ArrayList<>(predicatiOld);
             predicatiOld.removeAll(predicatiNew);
 
-            deletePermissions(predicatiOld, persona);
-            deletePermissions(predicatiOld, utente);
+            deletePermissions(pprOld, predicatiOld, persona);
+            deletePermissions(pprOld, predicatiOld, utente);
 
             //accendo i nuovi permessi che hanno predicati in profilo new e non in old
             if (profilNew != null) {
@@ -112,8 +112,8 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
                 pprDaAttivare = pprNews.stream().filter(pprNew -> predicatiNew.contains(pprNew.getPredicato())).collect(Collectors.toList());
             }
             
-            // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
-            cleanUtenteStrutturaCache(utente);
+//            // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
+//            cleanUtenteStrutturaCache(utente);
         }
         if (profilNew != null) {
             Object soggetto = new Object();
@@ -202,19 +202,29 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
             personaRepository.save(persona);
             utenteRepository.save(utente);
             
-            // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
-            cleanUtenteStrutturaCache(utente);
+//            // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
+//            cleanUtenteStrutturaCache(utente);
         }
+        
+        // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
+        cleanUtenteStrutturaCache(utente);
         return null;
     }
     
     
     private void cleanUtenteStrutturaCache(Utente utente) {
-        String prefix = "getPermessiFilteredByAdditionalData__ribaltorg__*";
-        String params = prefixInternauta + prefix + "::" + utente.toString() + "*";
+        String prefix = "getPermessiFilteredByAdditionalData__ribaltorg__";
+        String params = prefixInternauta + prefix + "::" + utente.toString().replace("[", "\\[").replace("]", "\\]") + "*";
         log.info(String.format("pulisco la cache di utente_struttura con la chiave: %s", params));
         Set<String> keys = redisTemplate.keys(params);
         redisTemplate.delete(keys);
+        
+        // gestione storico
+        prefix = "getPermessiFilteredByAdditionalDataByIdUtente__ribaltorg__";
+        params = prefixInternauta + prefix + "::" + utente.getId() + "*";
+        log.info(String.format("pulisco la cache di utente_struttura_storico con la chiave: %s", params));
+        Set<String> keys2 = redisTemplate.keys(params);
+        redisTemplate.delete(keys2);
     }
     
 
@@ -250,11 +260,15 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
         return ppr;
     }
 
-    private void deletePermissions(List<String> predicati, Object entitySoggetto) throws MasterjobsWorkerException {
+    private void deletePermissions(List<ProfiliPredicatiRuoli> pprs, List<String> predicati, Object entitySoggetto) throws MasterjobsWorkerException {
         if (predicati != null) {
             for (String predicato : predicati) {
                 try {
-                    permissionManager.deletePermission(entitySoggetto, null, predicato, null, null, null, null, null);
+                    for (ProfiliPredicatiRuoli ppr : pprs) {
+                        if (ppr.getPredicato().equalsIgnoreCase(predicato)) {
+                            permissionManager.deletePermission(entitySoggetto, null, predicato, null, null, null, ppr.getTipoAmbito().toString(), ppr.getTipoPermesso().toString());
+                        }
+                    }
                 } catch (BlackBoxPermissionException ex) {
                     String errorMsg;
                     try {
