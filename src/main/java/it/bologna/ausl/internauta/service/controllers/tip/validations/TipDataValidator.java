@@ -1,6 +1,9 @@
 package it.bologna.ausl.internauta.service.controllers.tip.validations;
 
 import it.bologna.ausl.internauta.service.controllers.tip.exceptions.TipImportBadDataException;
+import static it.bologna.ausl.model.entities.tip.ImportazioneDocumento.DEFAULT_ATTORE_SEPARATOR;
+import static it.bologna.ausl.model.entities.tip.ImportazioneDocumento.DEFAULT_STRING_SEPARATOR;
+import static it.bologna.ausl.model.entities.tip.ImportazioneDocumento.FORMATO_DATA;
 import it.bologna.ausl.model.entities.tip.ImportazioneOggetto;
 import it.bologna.ausl.model.entities.tip.SessioneImportazione;
 import static it.bologna.ausl.model.entities.tip.SessioneImportazione.TipologiaPregresso.DELIBERA;
@@ -28,13 +31,6 @@ import org.springframework.util.StringUtils;
  * @author gdm
  */
 public abstract class TipDataValidator {
-    public static final String FORMATO_DATA = "dd/MM/yyyy";
-    public static final String DEFAULT_STRING_SEPARATOR = "#";
-    public static final String DEFAULT_ATTORE_SEPARATOR = ":";
-    public static final String REGEX_PREFISSI_ALLEGATI = "VER__\\d+__|RIC_ACC__|RIC_CONS__|RIC_ERR__|ALL_INT__";
-    public static enum PrefissiAllegati {
-        VER__, RIC_ACC__, RIC_CONS__, RIC_ERR__, ALL_INT__
-    }
 
     /**
      * torna la classe concreta in base alla tipologia passata

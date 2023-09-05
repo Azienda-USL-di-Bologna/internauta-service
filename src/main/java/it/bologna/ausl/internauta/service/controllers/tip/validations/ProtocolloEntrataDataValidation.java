@@ -70,7 +70,7 @@ public class ProtocolloEntrataDataValidation extends TipDataValidator {
         } else if (
                 StringUtils.hasText(riga.getMittente()) && 
                 StringUtils.hasText(riga.getIndirizzoMittente()) &&  
-                !validateNotazioniPosizionali(riga.getMittente(), riga.getIndirizzoMittente(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+                !validateNotazioniPosizionali(riga.getMittente(), riga.getIndirizzoMittente(), ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {
             erroriImportazione.setError(ColonneProtocolloEntrata.mittente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                     String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloEntrata.indirizzoMittente.toString()));
             erroriImportazione.setError(ColonneProtocolloEntrata.indirizzoMittente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
@@ -80,16 +80,16 @@ public class ProtocolloEntrataDataValidation extends TipDataValidator {
             erroriImportazione.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "il campo è obbligatorio.");
             riga.setErrori(erroriImportazione);
         } else {
-            if (StringUtils.hasText(riga.getMittente()) && !validateNotazioniPosizionali(riga.getMezzo(), riga.getMittente(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+            if (StringUtils.hasText(riga.getMittente()) && !validateNotazioniPosizionali(riga.getMezzo(), riga.getMittente(), ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {
                 erroriImportazione.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                     String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloEntrata.mittente.toString()));
             }
-            if (StringUtils.hasText(riga.getIndirizzoMittente()) && !validateNotazioniPosizionali(riga.getMezzo(), riga.getIndirizzoMittente(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+            if (StringUtils.hasText(riga.getIndirizzoMittente()) && !validateNotazioniPosizionali(riga.getMezzo(), riga.getIndirizzoMittente(), ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {
                 erroriImportazione.setError(ColonneProtocolloEntrata.mezzo, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                     String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloEntrata.indirizzoMittente.toString()));
             }
              
-            if (!TipDataValidator.validaEnumConNotazioniPosizionali(riga.getMezzo(), TipDataValidator.DEFAULT_STRING_SEPARATOR, ColonneImportazioneOggettoEnums.MezziConsentiti.class)) {
+            if (!TipDataValidator.validaEnumConNotazioniPosizionali(riga.getMezzo(), ImportazioneDocumento.DEFAULT_STRING_SEPARATOR, ColonneImportazioneOggettoEnums.MezziConsentiti.class)) {
                 erroriImportazione.setError(ColonneProtocolloEntrata.mezzo,
                         TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE,
                         String.format("valore non valido, i valori validi sono: %s", Arrays.asList(ColonneImportazioneOggettoEnums.MezziConsentiti.values())));

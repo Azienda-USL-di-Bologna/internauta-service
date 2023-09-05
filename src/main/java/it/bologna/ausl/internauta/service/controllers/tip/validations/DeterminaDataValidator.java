@@ -56,7 +56,7 @@ public class DeterminaDataValidator extends TipDataValidator {
             riga.setErrori(erroriImportazione);
         }
         if (StringUtils.hasText(riga.getNomiDestinatariEsterni()) && StringUtils.hasText(riga.getIndirizziDestinatariEsterni())) {
-            if (!validateNotazioniPosizionali(riga.getNomiDestinatariEsterni(), riga.getIndirizziDestinatariEsterni(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+            if (!validateNotazioniPosizionali(riga.getNomiDestinatariEsterni(), riga.getIndirizziDestinatariEsterni(), ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {
                 erroriImportazione.setError(ColonneDetermina.nomiDestinatariEsterni, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                         String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneDetermina.indirizziDestinatariEsterni.toString()));
                 erroriImportazione.setError(ColonneDetermina.indirizziDestinatariEsterni, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
