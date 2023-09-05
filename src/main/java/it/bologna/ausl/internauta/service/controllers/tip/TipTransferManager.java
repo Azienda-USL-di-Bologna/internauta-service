@@ -57,6 +57,7 @@ import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.C
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneDetermina;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneProtocolloEntrata;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneProtocolloUscita;
+import it.bologna.ausl.model.entities.tip.data.KeyValueEnum;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
 import it.bologna.ausl.model.entities.versatore.QSessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
@@ -1169,14 +1170,14 @@ public class TipTransferManager {
                 allegatoPath = allegatoPath.replace("\\", "/");
                 // se per caso trovo c:/qualcosa lo trasformo in c/qualcosa (è capitato in passato) anche se non dovrebbe succedere perché non passerebbe la validazione
                 allegatoPath = allegatoPath.replaceAll("(^[aA-zZ]):", "/$1");
-                File allegatoFile = new File(allegatoPath);
-                String filePath = allegatoFile.getParent();
+                File allegatoFakeFileForMinIO = new File(allegatoPath);
+                String filePath = allegatoFakeFileForMinIO.getParent();
                 if (filePath.startsWith("/"))
                     filePath = ImportazioneDocumento.MINIO_DOCS_ROOT_PATH + filePath;
                 else
                     filePath = ImportazioneDocumento.MINIO_DOCS_ROOT_PATH + "/" + filePath;
-
-                String fileName = allegatoFile.getName();
+                filePath = filePath.replace("\\", "/"); // lo devo rifare perché la new File se siamo su windows cambia i separatori
+                String fileName = allegatoFakeFileForMinIO.getName();
 
                 originale.setNome(fileName);
                 originale.setBucket(azienda.getCodice());
@@ -1494,7 +1495,7 @@ public class TipTransferManager {
                 se mi è stato passato nel CSV calcolo il codice mezzo che mi servirà dopo per istanziare l'entità.
                 Sono sicuro che sia tra quelli consentiti perché l'ho controllato in fase di validazione
                 */
-                codiceMezzo = ColonneImportazioneOggettoEnums.MezziConsentiti.valueOf(mezzoTip).getCodiceMezzoScripta();
+                codiceMezzo = KeyValueEnum.findEnumKeyFromValue(mezzoTip, ColonneImportazioneOggettoEnums.MezziConsentiti.class).getCodiceMezzoScripta();
             } else {
                 // se non mi è stato passato lo deduco
                 codiceMezzo = Mezzo.CodiciMezzo.POSTA_ORDINARIA; // il caso di default è posta ordinaria
