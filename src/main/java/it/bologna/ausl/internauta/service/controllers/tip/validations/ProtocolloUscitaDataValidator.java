@@ -55,13 +55,13 @@ public class ProtocolloUscitaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneProtocolloUscita.destinatariPrincipali, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "È obbligatorio almeno un destinatario principale.");
             riga.setErrori(erroriImportazione);
         } else {
-            if (StringUtils.hasText(riga.getIndirizziDestinatariPrincipali()) && !validateNotazioniPosizionali(riga.getDestinatariPrincipali(), riga.getIndirizziDestinatariPrincipali(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+            if (StringUtils.hasText(riga.getIndirizziDestinatariPrincipali()) && !validateNotazioniPosizionali(riga.getDestinatariPrincipali(), riga.getIndirizziDestinatariPrincipali(), ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {
                 erroriImportazione.setError(ColonneProtocolloUscita.destinatariPrincipali, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                         String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloUscita.indirizziDestinatariPrincipali.toString()));
                 erroriImportazione.setError(ColonneProtocolloUscita.indirizziDestinatariPrincipali, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                             String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloUscita.destinatariPrincipali.toString()));
             }
-            if (StringUtils.hasText(riga.getDescrizioneIndirizziPrincipali()) && !validateNotazioniPosizionali(riga.getDestinatariPrincipali(), riga.getDescrizioneIndirizziPrincipali(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+            if (StringUtils.hasText(riga.getDescrizioneIndirizziPrincipali()) && !validateNotazioniPosizionali(riga.getDestinatariPrincipali(), riga.getDescrizioneIndirizziPrincipali(), ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {
                 erroriImportazione.setError(ColonneProtocolloUscita.destinatariPrincipali, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                         String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloUscita.descrizioneIndirizziPrincipali.toString()));
                 erroriImportazione.setError(ColonneProtocolloUscita.descrizioneIndirizziPrincipali, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
@@ -69,13 +69,13 @@ public class ProtocolloUscitaDataValidator extends TipDataValidator {
             }
         }
         
-        if (StringUtils.hasText(riga.getAltriDestinatari()) && StringUtils.hasText(riga.getIndirizziAltriDestinatari()) && !validateNotazioniPosizionali(riga.getAltriDestinatari(), riga.getIndirizziAltriDestinatari(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+        if (StringUtils.hasText(riga.getAltriDestinatari()) && StringUtils.hasText(riga.getIndirizziAltriDestinatari()) && !validateNotazioniPosizionali(riga.getAltriDestinatari(), riga.getIndirizziAltriDestinatari(), ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {
                     erroriImportazione.setError(ColonneProtocolloUscita.altriDestinatari, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                             String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloUscita.indirizziAltriDestinatari.toString()));
                     erroriImportazione.setError(ColonneProtocolloUscita.indirizziAltriDestinatari, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                             String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloUscita.altriDestinatari.toString()));
         } 
-        if (StringUtils.hasText(riga.getAltriDestinatari()) && StringUtils.hasText(riga.getDescrizioneAltriIndirizzi()) && !validateNotazioniPosizionali(riga.getAltriDestinatari(), riga.getDescrizioneAltriIndirizzi(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+        if (StringUtils.hasText(riga.getAltriDestinatari()) && StringUtils.hasText(riga.getDescrizioneAltriIndirizzi()) && !validateNotazioniPosizionali(riga.getAltriDestinatari(), riga.getDescrizioneAltriIndirizzi(), ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {
                     erroriImportazione.setError(ColonneProtocolloUscita.altriDestinatari, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                             String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneProtocolloUscita.descrizioneAltriIndirizzi.toString()));
                     erroriImportazione.setError(ColonneProtocolloUscita.descrizioneAltriIndirizzi, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
