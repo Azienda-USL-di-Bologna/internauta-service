@@ -1,7 +1,6 @@
 package it.bologna.ausl.internauta.service.controllers.tip;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.querydsl.core.QueryFactory;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -58,6 +57,7 @@ import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.C
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneDetermina;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneProtocolloEntrata;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneProtocolloUscita;
+import it.bologna.ausl.model.entities.tip.data.KeyValueEnum;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
 import it.bologna.ausl.model.entities.versatore.QSessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
@@ -82,6 +82,7 @@ import java.util.regex.Pattern;
 import javax.persistence.EntityManager;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.slf4j.Logger;
@@ -99,8 +100,6 @@ public class TipTransferManager {
     private static final Logger log = LoggerFactory.getLogger(TipTransferManager.class);
     
     private final String CODICE_FISCALE_PERSONA_TIP = "TIP";
-    
-    private final String MINIO_DOCS_ROOT_PATH = "docs";
     
     private final EntityManager entityManager;
     
@@ -258,6 +257,8 @@ public class TipTransferManager {
         if (errori == null) {
             errori = new TipErroriImportazione();
         }
+        Registro.CodiceRegistro codiceRegistro = getCodiceRegistroDefault(sessioneImportazione.getTipologia());
+        
         // controllo se per caso l'ho già trasferito (cercandolo per registro, numero e anno) e nel caso lo indico come waring e lo salto
         if (isDocAlreadyPresent(
                 sessioneImportazione.getTipologia(),
@@ -274,7 +275,7 @@ public class TipTransferManager {
                 /* importazione campi della registrazione:
                 * registro, numero, anno, dataRegistrazione/dataAdozione e adottatoDa
                 */
-                transferRegistrazione(doc, ColonneProtocolloEntrata.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), sessioneImportazione.getTipologia(), importazioneDoc);
+                transferRegistrazione(doc, ColonneProtocolloEntrata.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), codiceRegistro, importazioneDoc);
             } catch (TipTransferBadDataException ex) {
                 log.error("errore nel trasferimento dei dati di registrazione", ex);
                 errori.setError(ColonneProtocolloEntrata.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
@@ -367,7 +368,7 @@ public class TipTransferManager {
                 errori.setError(ColonneProtocolloEntrata.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
             addInAdditionalData(doc, ColonneProtocolloEntrata.classificazione, importazioneDoc.getClassificazione());
-            transferAllegati(doc, importazioneDoc.getAllegati(), sessioneImportazione.getIdAzienda());
+            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
@@ -392,6 +393,8 @@ public class TipTransferManager {
         if (errori == null) {
             errori = new TipErroriImportazione();
         }
+        Registro.CodiceRegistro codiceRegistro = getCodiceRegistroDefault(sessioneImportazione.getTipologia());
+        
         // controllo se per caso l'ho già trasferito (cercandolo per registro, numero e anno) e nel caso lo indico come waring e lo salto
         if (isDocAlreadyPresent(
                 sessioneImportazione.getTipologia(),
@@ -407,7 +410,7 @@ public class TipTransferManager {
                 /* importazione campi della registrazione:
                 * registro, numero, anno, dataRegistrazione/dataAdozione e adottatoDa
                 */
-                transferRegistrazione(doc, ColonneProtocolloUscita.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), sessioneImportazione.getTipologia(), importazioneDoc);
+                transferRegistrazione(doc, ColonneProtocolloUscita.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), codiceRegistro, importazioneDoc);
             } catch (TipTransferBadDataException ex) {
                 log.error("errore nel trasferimento dei dati di registrazione", ex);
                 errori.setError(ColonneProtocolloUscita.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
@@ -464,7 +467,7 @@ public class TipTransferManager {
                 errori.setError(ColonneProtocolloUscita.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
             addInAdditionalData(doc, ColonneProtocolloUscita.classificazione, importazioneDoc.getClassificazione());
-            transferAllegati(doc, importazioneDoc.getAllegati(), sessioneImportazione.getIdAzienda());
+            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
@@ -491,6 +494,8 @@ public class TipTransferManager {
         if (errori == null) {
             errori = new TipErroriImportazione();
         }
+        
+        Registro.CodiceRegistro codiceRegistro = getCodiceRegistroDefault(sessioneImportazione.getTipologia());
         // controllo se per caso l'ho già trasferito (cercandolo per registro, numero e anno) e nel caso lo indico come waring e lo salto
         if (isDocAlreadyPresent(
                 sessioneImportazione.getTipologia(),
@@ -507,7 +512,7 @@ public class TipTransferManager {
                 * importazione campi della registrazione:
                 * registro, numero, anno, dataRegistrazione/dataAdozione e adottatoDa
                 */
-                transferRegistrazione(doc, ColonneDetermina.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), sessioneImportazione.getTipologia(), importazioneDoc);
+                transferRegistrazione(doc, ColonneDetermina.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), codiceRegistro, importazioneDoc);
             } catch (TipTransferBadDataException ex) {
                 log.error("errore nel trasferimento dei dati di registrazione", ex);
                 errori.setError(ColonneDetermina.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
@@ -570,7 +575,7 @@ public class TipTransferManager {
                 errori.setError(ColonneDetermina.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
             addInAdditionalData(doc, ColonneDetermina.classificazione, importazioneDoc.getClassificazione());
-            transferAllegati(doc, importazioneDoc.getAllegati(), sessioneImportazione.getIdAzienda());
+            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
@@ -597,6 +602,8 @@ public class TipTransferManager {
         if (errori == null) {
             errori = new TipErroriImportazione();
         }
+        Registro.CodiceRegistro codiceRegistro = getCodiceRegistroDefault(sessioneImportazione.getTipologia());
+        
         // controllo se per caso l'ho già trasferito (cercandolo per registro, numero e anno) e nel caso lo indico come waring e lo salto
         if (isDocAlreadyPresent(
                 sessioneImportazione.getTipologia(),
@@ -613,7 +620,7 @@ public class TipTransferManager {
                 * importazione campi della registrazione:
                 * registro, numero, anno, dataRegistrazione/dataAdozione e adottatoDa
                 */
-                transferRegistrazione(doc, ColonneDelibera.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), sessioneImportazione.getTipologia(), importazioneDoc);
+                transferRegistrazione(doc, ColonneDelibera.registro, sessioneImportazione.getIdAzienda(), sessioneImportazione.getIdStrutturaDefault(), codiceRegistro, importazioneDoc);
             } catch (TipTransferBadDataException ex) {
                 log.error("errore nel trasferimento dei dati di registrazione", ex);
                 errori.setError(ColonneDelibera.registro, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
@@ -676,7 +683,7 @@ public class TipTransferManager {
                 errori.setError(ColonneDelibera.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
             addInAdditionalData(doc, ColonneDelibera.classificazione, importazioneDoc.getClassificazione());
-            transferAllegati(doc, importazioneDoc.getAllegati(), sessioneImportazione.getIdAzienda());
+            transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
@@ -762,52 +769,52 @@ public class TipTransferManager {
         List<Pair<String, AttoreDoc.RuoloAttoreDoc>> attoreStringAndRuoloList = new ArrayList<>();
         
         if (StringUtils.hasText(importazioneDocumento.getRedattore())) {
-            for (String attoreString : importazioneDocumento.getRedattore().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getRedattore().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.REDAZIONE));
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getPareri())) {
-            for (String attoreString : importazioneDocumento.getPareri().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getPareri().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.PARERI));
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getFirmatari())) {
-            for (String attoreString : importazioneDocumento.getFirmatari().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getFirmatari().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.FIRMA));
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getFirmatario())) {
-            for (String attoreString : importazioneDocumento.getFirmatario().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getFirmatario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.FIRMA));
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getProponente())) {
-            for (String attoreString : importazioneDocumento.getFirmatario().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getFirmatario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.FIRMA));
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getVisto())) {
-            for (String attoreString : importazioneDocumento.getVisto().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getVisto().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.VISTI));
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getDirettoreAmministrativo())) {
-            for (String attoreString : importazioneDocumento.getDirettoreAmministrativo().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getDirettoreAmministrativo().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.DIRETTORE_AMMINISTRATIVO));
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getDirettoreSanitario())) {
-            for (String attoreString : importazioneDocumento.getFirmatario().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getFirmatario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.DIRETTORE_SANITARIO));
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getDirettoreGenerale())) {
-            for (String attoreString : importazioneDocumento.getFirmatario().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getFirmatario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.DIRETTORE_GENERALE));
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getVicarioDirettoreGenerale())) {
-            for (String attoreString : importazioneDocumento.getVicarioDirettoreGenerale().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getVicarioDirettoreGenerale().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.VICARIO_DIRETTORE_GENERALE));
             }
         }
@@ -818,8 +825,8 @@ public class TipTransferManager {
             String cognome = null;
             String nome = null;
             String indefinito = null;
-            if (attoreString.contains(TipDataValidator.DEFAULT_ATTORE_SEPARATOR)) {
-                String[] attoreStringSplitted = attoreString.split(TipDataValidator.DEFAULT_ATTORE_SEPARATOR);
+            if (attoreString.contains(ImportazioneDocumento.DEFAULT_ATTORE_SEPARATOR)) {
+                String[] attoreStringSplitted = attoreString.split(ImportazioneDocumento.DEFAULT_ATTORE_SEPARATOR);
                 if (StringUtils.hasText(attoreStringSplitted[0])) {
                     cf = attoreStringSplitted[0];
                 }
@@ -1036,7 +1043,7 @@ public class TipTransferManager {
         }
         
         if (StringUtils.hasText(importazioneDocumento.getCollegamentoPrecedente())) {
-            for (String precedente: importazioneDocumento.getCollegamentoPrecedente().split(TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+            for (String precedente: importazioneDocumento.getCollegamentoPrecedente().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {
                 // Poi passo a cercare e collegare a questo doc il suo precedente
                 String[] precedenteSplitted = precedente.split("/");
                 Integer numeroPrecedente = Integer.valueOf(precedenteSplitted[0]);
@@ -1092,12 +1099,14 @@ public class TipTransferManager {
      * sia quello in cui non è ancora stato importato.
      * Nel primo caso, scrive tutti i metadati, leggengo il file da MinIO, nel secondo crea solo quelli che o è possibile dedurre e poi sarà Caricongo a calcolare gli alti.
      * @param doc il doc
+     * @param importazioneDocumento l'oggetto contente i campi da trasferire (quello che è stato popolato dal CSV)
      * @param allegatiString la stringa degli allegati da trasferire
      * @param azienda l'azienda sulla quale si sta eseguendo l'importazione 
      * @return lo stesso doc in input, utile per poter concatenare il metodo a qualcos altro
      * @throws TipTransferUnexpectedException 
      */
-    private Doc transferAllegati(Doc doc, String allegatiString, Azienda azienda) throws TipTransferUnexpectedException {
+    private Doc transferAllegati(Doc doc, ImportazioneDocumento importazioneDocumento, Azienda azienda, Registro.CodiceRegistro codiceRegistro) throws TipTransferUnexpectedException {
+        String allegatiString = importazioneDocumento.getAllegati();
         if (StringUtils.hasText(allegatiString)) {
             MinIOWrapper minIOWrapper = repositoryConnectionManager.getMinIOWrapper();
             List<Allegato> allegati = doc.getAllegati();
@@ -1105,13 +1114,13 @@ public class TipTransferManager {
                 allegati = new ArrayList<>();
                 doc.setAllegati(allegati);
             }
-            String[] allegatiPath = allegatiString.split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
+            String[] allegatiPath = allegatiString.split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR);
             int ordinale = 1;
-            Pattern pattern = Pattern.compile(TipDataValidator.REGEX_PREFISSI_ALLEGATI, Pattern.MULTILINE);
+            Pattern pattern = Pattern.compile(ImportazioneDocumento.REGEX_PREFISSI_ALLEGATI, Pattern.MULTILINE);
             for (String allegatoPath : allegatiPath) {
                 Allegato.TipoAllegato tipoAllegato = Allegato.TipoAllegato.ALLEGATO;
                 Allegato.SottotipoAllegato sottoTipoAllegato = null;
-                HashMap<String, Object> additionalData = null;
+                HashMap<String, Object> additionalData = new HashMap();
                 /*
                 ogni allegato potrebbe avere un prefisso che ne identifica il tipo (es. VER__<numero_versione>, RIC_ACC__, RIC_CONS__, RIC_ERR__, ALL_INT_)
                 quindi per prima cosa controllo se c'è il prefisso con una regex e nel caso lo gestisco
@@ -1124,14 +1133,13 @@ public class TipTransferManager {
                      setto il tipo e il sottotipo corretti
                      leggo il numero versione e creo gli additionalData da inserire sull'allegato
                     */
-                    if (prefissoString.startsWith(TipDataValidator.PrefissiAllegati.VER__.toString())) {
+                    if (prefissoString.startsWith(ImportazioneDocumento.PrefissiAllegati.VER__.toString())) {
                         tipoAllegato = Allegato.TipoAllegato.ANNESSO;
                         sottoTipoAllegato = Allegato.SottotipoAllegato.DELIBERA_NO_OMISSIS;
-                        additionalData = new HashMap();
-                        Integer versione = Integer.valueOf(prefissoString.replace(prefissoString, ""));
+                        Integer versione = Integer.valueOf(prefissoString.replaceAll("[^0-9]", ""));
                         additionalData.put("versione", versione);
                     } else { // in questo switch gestisco i casi delle ricevute pec, si gestiscono settando il tipo e il sottotipo corretto
-                        TipDataValidator.PrefissiAllegati prefisso = TipDataValidator.PrefissiAllegati.valueOf(prefissoString);
+                        ImportazioneDocumento.PrefissiAllegati prefisso = ImportazioneDocumento.PrefissiAllegati.valueOf(prefissoString);
                         switch (prefisso) {
                             case RIC_ACC__:
                                 tipoAllegato = Allegato.TipoAllegato.ANNESSO;
@@ -1156,9 +1164,6 @@ public class TipTransferManager {
                 allegato.setOrdinale(ordinale++);
                 allegato.setTipo(tipoAllegato);
                 allegato.setSottotipo(sottoTipoAllegato);
-                if (additionalData != null) {
-                    allegato.setAdditionalData(additionalData);
-                }
                 Allegato.DettagliAllegato dettagliAllegato = allegato.getDettagli();
                 if (dettagliAllegato == null) {
                     dettagliAllegato = new Allegato.DettagliAllegato();
@@ -1170,19 +1175,25 @@ public class TipTransferManager {
                     dettagliAllegato.setOriginale(originale);
                 }
 
-                File allegatoFile = new File(allegatoPath);
-                String filePath = allegatoFile.getParent();
-
                 // il separatore di path deve essere sempre "/", questo lo dovrà fare anche caricango
-                filePath = filePath.replace("\\", "/");
-                String fileName = allegatoFile.getName();
+                allegatoPath = allegatoPath.replace("\\", "/");
+                // se per caso trovo c:/qualcosa lo trasformo in c/qualcosa (è capitato in passato) anche se non dovrebbe succedere perché non passerebbe la validazione
+                allegatoPath = allegatoPath.replaceAll("(^[aA-zZ]):", "/$1");
+                File allegatoFakeFileForMinIO = new File(allegatoPath);
+                String filePath = allegatoFakeFileForMinIO.getParent();
+                if (filePath.startsWith("/"))
+                    filePath = ImportazioneDocumento.MINIO_DOCS_ROOT_PATH + filePath;
+                else
+                    filePath = ImportazioneDocumento.MINIO_DOCS_ROOT_PATH + "/" + filePath;
+                filePath = filePath.replace("\\", "/"); // lo devo rifare perché la new File se siamo su windows cambia i separatori
+                String fileName = allegatoFakeFileForMinIO.getName();
 
                 originale.setNome(fileName);
                 originale.setBucket(azienda.getCodice());
                 originale.setEstensione(FilenameUtils.getExtension(fileName));
                 allegato.setNome(fileName);
                 try {
-                    MinIOWrapperFileInfo fileInfo = minIOWrapper.getFileInfoByPathAndFileName(filePath, allegatoPath, azienda.getCodice());
+                    MinIOWrapperFileInfo fileInfo = minIOWrapper.getFileInfoByPathAndFileName(filePath, fileName, azienda.getCodice());
                     if (fileInfo != null) {
                         File tempFile = File.createTempFile(originale.getNome(), originale.getEstensione());
                         tempFile.deleteOnExit();
@@ -1202,12 +1213,23 @@ public class TipTransferManager {
                         originale.setIdRepository(fileInfo.getFileId());
                         originale.setBucket(fileInfo.getBucketName());
                         originale.setHashMd5(fileInfo.getMd5());
+                        originale.setDimensioneByte(fileInfo.getSize());
                     }
                 } catch (MinIOWrapperException | IOException | MimeTypeException ex) {
                     String errorMessage = String.format("errore nel calcolo dei dettagli allegato del file %s", allegatoPath);
                     log.error(errorMessage, ex);
                     throw new TipTransferUnexpectedException(errorMessage, ex);
                 }
+                /*
+                scrivo negli additionalData i dati per poter reperire l'allegato quando sarà lanciata l'importaizone dei file
+                se l'importazione dei file è stata già lanciata scrivo comunque i dati negli additionalData anche se non dovrebbero servire. Lo faccio perché non
+                costa nulla e magari poi si riveleranno utili
+                */
+                additionalData.put("path", allegatoPath);
+                additionalData.put("registro", codiceRegistro.toString());
+                additionalData.put("numero", importazioneDocumento.getNumero());
+                additionalData.put("anno", importazioneDocumento.getAnno());
+                allegato.setAdditionalData(additionalData);
                 allegati.add(allegato);
             }
         }
@@ -1235,7 +1257,7 @@ public class TipTransferManager {
         List<ArchivioDoc> archiviDocs = new ArrayList<>();
         if (StringUtils.hasText(importazioneDocumento.getFascicolazione())) {
             String errorMessage = null;
-            String[] fascicolazioniSplitted = importazioneDocumento.getFascicolazione().split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
+            String[] fascicolazioniSplitted = importazioneDocumento.getFascicolazione().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR);
             for (String fascicolazione : fascicolazioniSplitted) {
                 Archivio archivio = nonCachedEntities.getArchivioFromNumerazioneGerarchicaAndIdAzienda(fascicolazione, azienda.getId());
     
@@ -1260,7 +1282,7 @@ public class TipTransferManager {
                 throw new TipTransferBadDataException(errorMessage);
             }
         } else if (StringUtils.hasText(importazioneDocumento.getIdFascicoloPregresso())) {
-            String[] fascicolazioniSplitted = importazioneDocumento.getIdFascicoloPregresso().split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
+            String[] fascicolazioniSplitted = importazioneDocumento.getIdFascicoloPregresso().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR);
             for (String fascicolazione : fascicolazioniSplitted) {
                 Archivio archivio = nonCachedEntities.getArchivioFromIdArchivioImportatoAndIdAzienda(fascicolazione, azienda.getId());
                 if (archivio != null) {
@@ -1310,7 +1332,7 @@ public class TipTransferManager {
      * @return lo stesso doc in input, utile per poter concatenare il metodo a qualcos altro
      * @throws TipTransferBadDataException nel caso il registro indicato non sia tra quelli consentiti dall'enum Registro.CodiceRegistro
      */
-    private <E extends Enum<E> & ColonneImportazioneOggetto> Doc transferRegistrazione(Doc doc, Enum<E> colonnaRegistro, Azienda azienda, Struttura strutturaDefault, SessioneImportazione.TipologiaPregresso tipologia, ImportazioneDocumento importazioneDocumento) throws TipTransferBadDataException {
+    private <E extends Enum<E> & ColonneImportazioneOggetto> Doc transferRegistrazione(Doc doc, Enum<E> colonnaRegistro, Azienda azienda, Struttura strutturaDefault, Registro.CodiceRegistro codiceRegistro, ImportazioneDocumento importazioneDocumento) throws TipTransferBadDataException {
         
         ZonedDateTime dataRegistrazione = null;
         if (StringUtils.hasText(importazioneDocumento.getDataRegistrazione())) {
@@ -1325,7 +1347,7 @@ public class TipTransferManager {
         }
         
         // carico il registro(se non esiste)
-        Registro registroEntity = nonCachedEntities.getRegistro(azienda.getId(), getCodiceRegistroDefault(tipologia));
+        Registro registroEntity = nonCachedEntities.getRegistro(azienda.getId(), codiceRegistro);
         
         // siccome ogni tracciato chiama in modo diverso la struttura registrante, prendo quella non vuota, che verosimilmente sarà quella giusta
         String nomeStrutturaRegistrazione = null;
@@ -1434,19 +1456,19 @@ public class TipTransferManager {
         String[] mezziSplitted = null;
         int lenght = 0;
         if (StringUtils.hasText(nomi)) {
-            nomiSplitted = nomi.split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
+            nomiSplitted = nomi.split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR);
             lenght = nomiSplitted.length;
         }
         if (StringUtils.hasText(indirizzi)) {
-            indirizziSplitted = indirizzi.split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
+            indirizziSplitted = indirizzi.split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR);
             lenght = indirizziSplitted.length;
         }
         if (StringUtils.hasText(descrizioni)) {
-            descrizioniSplitted = descrizioni.split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
+            descrizioniSplitted = descrizioni.split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR);
             lenght = descrizioniSplitted.length;
         }
         if (!soloStrutture && StringUtils.hasText(importazioneDocumento.getMezzo())) {
-            mezziSplitted = importazioneDocumento.getMezzo().split(TipDataValidator.DEFAULT_STRING_SEPARATOR);
+            mezziSplitted = importazioneDocumento.getMezzo().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR);
         }
         
         // sono sicuro che tutti gli array hanno lo stesso numero di elementi perché altrimenti viene dato errore in fase di validazione dell'importazione
@@ -1479,11 +1501,15 @@ public class TipTransferManager {
             Mezzo.CodiciMezzo codiceMezzo;
             Related.OrigineRelated origine = Related.OrigineRelated.ESTERNO;
             if (StringUtils.hasText(mezzoTip)) {
-                /* 
+                /*
                 se mi è stato passato nel CSV calcolo il codice mezzo che mi servirà dopo per istanziare l'entità.
                 Sono sicuro che sia tra quelli consentiti perché l'ho controllato in fase di validazione
-                */
-                codiceMezzo = ColonneImportazioneOggettoEnums.MezziConsentiti.valueOf(mezzoTip).getCodiceMezzoScripta();
+                 */
+                ColonneImportazioneOggettoEnums.MezziConsentiti mezzoEnum = EnumUtils.getEnumIgnoreCase(ColonneImportazioneOggettoEnums.MezziConsentiti.class, mezzoTip);
+                if (mezzoEnum == null) {
+                    mezzoEnum = KeyValueEnum.findEnumKeyFromValue(mezzoTip, ColonneImportazioneOggettoEnums.MezziConsentiti.class);
+                }
+                codiceMezzo = mezzoEnum.getCodiceMezzoScripta();
             } else {
                 // se non mi è stato passato lo deduco
                 codiceMezzo = Mezzo.CodiciMezzo.POSTA_ORDINARIA; // il caso di default è posta ordinaria
