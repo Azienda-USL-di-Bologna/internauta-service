@@ -134,7 +134,8 @@ public class ManageMessageRegistrationUtils {
                 // leggo gli additional data del messaggio in stado di in registrazione
                 if (messageTagInRegistration != null && messageTagInRegistration.getAdditionalData() != null) {
                     try {
-                        AdditionalDataRegistration initialAdditionalData = (AdditionalDataRegistration) messageTagInRegistration.getAdditionalData();
+                        List<AdditionalDataShpeck> lista = messageTagRegistered.getAdditionalData();
+                        AdditionalDataRegistration initialAdditionalData = (AdditionalDataRegistration) lista.get(0);
                         initialAdditionalDataArrayInRegistration.add(initialAdditionalData);
                     } catch (Throwable ex) {
 
@@ -147,7 +148,8 @@ public class ManageMessageRegistrationUtils {
                 // leggo gli additional data del messaggio in stato di registrati
                 if (messageTagRegistered != null && messageTagRegistered.getAdditionalData() != null) {
                     try {
-                        AdditionalDataRegistration initialAdditionalData = (AdditionalDataRegistration) messageTagRegistered.getAdditionalData();
+                        List<AdditionalDataShpeck> lista = messageTagRegistered.getAdditionalData();
+                        AdditionalDataRegistration initialAdditionalData = (AdditionalDataRegistration) lista.get(0);
                         initialAdditionalDataArrayRegistered.add(initialAdditionalData);
                     } catch (Throwable ex) {
                         LOG.warn("Non riuscito a convertire in AdditionalDataRegistration il messaggio in stato registrati, probabilmente è una lista", ex);

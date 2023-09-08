@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteres
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
@@ -23,6 +24,7 @@ import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -172,9 +174,14 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
                 for (ParametroAziende parametro : fascicoliParlanti) {
                     if (parametriAziende.getValue(parametro, Boolean.class)) {
                         Integer[] idAziendeParlanti = parametro.getIdAziende();
-                        List<Integer> idAziendeParlantiList = Arrays.asList(idAziendeParlanti);//IntStream.of(Arrays.stream(idAziendeParlanti).mapToInt(Integer::intValue).toArray()).boxed().collect(Collectors.toCollection(ArrayList::new));
+                        List<Integer> idAziendeParlantiList = new ArrayList(Arrays.asList(idAziendeParlanti));//IntStream.of(Arrays.stream(idAziendeParlanti).mapToInt(Integer::intValue).toArray()).boxed().collect(Collectors.toCollection(ArrayList::new));
 //                idAziendeParlantiList.addAll(Arrays.asList(idAziendeParlanti));
 //                List<Integer> idAziendeParlantiList = Arrays.stream(idAziendeParlanti).boxed().collect(Collectors.toList());
+
+                        // Dalla lsita di aziende Parlanti devo togliere glie ventuali elementi in cui sono un AG. Dato che un AG deve sempre poter vedere gli archivi della sua azienda.
+                        List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
+                        idAziendeParlantiList.removeAll(idAziendaListDoveAG);
+
                         List<Integer> idAziendaFiltranti = getIdAziendeFiltranti();
                         if (idAziendaFiltranti == null && !idAziendeParlantiList.isEmpty()) {
                             throw new AbortLoadInterceptorException("Si sta cercando su una azienda con fascicoli parlanti. Questo non è permesso");

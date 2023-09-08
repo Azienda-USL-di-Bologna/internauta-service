@@ -190,7 +190,7 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
             
             if(!userInfoService.isCA(user) && !userInfoService.isCI(user) ) {
                 filter = qdocdetailview.tipologia.ne(
-                    DocDetail.TipologiaDoc.DOCUMENT_REGISTRO.toString()
+                    DocDetail.TipologiaDoc.DOCUMENT_REGISTRO
                 ).and(filter);
             }
             

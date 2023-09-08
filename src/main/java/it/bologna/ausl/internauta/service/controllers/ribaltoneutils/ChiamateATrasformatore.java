@@ -37,7 +37,7 @@ public class ChiamateATrasformatore {
 
     @Autowired
     private ParametriAziendeReader parametriAziende;
-
+    
     public void lanciaTrasformatore(
             Integer idAzienda,
             Boolean ribaltaArgo,
@@ -79,10 +79,11 @@ public class ChiamateATrasformatore {
             okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                     okhttp3.MediaType.get("application/json; charset=utf-8"),
                     objectMapper.writeValueAsString(hm));
+
             OkHttpClient client = new OkHttpClient.Builder()
-                    .connectTimeout(300, TimeUnit.SECONDS) // connection timeout
-                    .writeTimeout(300, TimeUnit.SECONDS) // (probabilmente non serve, ma mettiamolo lo stesso)
-                    .readTimeout(300, TimeUnit.SECONDS) // socket timeout
+                    .connectTimeout(600, TimeUnit.SECONDS) // connection timeout
+                    .writeTimeout(600, TimeUnit.SECONDS) // (probabilmente non serve, ma mettiamolo lo stesso)
+                    .readTimeout(600, TimeUnit.SECONDS) // socket timeout
                     .build();
 
             Request request = new Request.Builder()

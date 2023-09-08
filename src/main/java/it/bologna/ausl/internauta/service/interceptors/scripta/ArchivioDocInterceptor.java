@@ -10,6 +10,10 @@ import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRecenteRe
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
@@ -27,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,11 +58,17 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
     ArchivioRecenteRepository archivioRecenteRepository;
 
     @Autowired
+    private MasterjobsJobsQueuer masterjobsJobsQueuer;
+
+    @Autowired
+    private MasterjobsObjectsFactory masterjobsObjectsFactory;
+
+    @Autowired
     private KrintUtils krintUtils;
 
     @Autowired
     private KrintScriptaService krintScriptaService;
-    
+
     @Autowired
     private ScriptaArchiviUtils scriptaArchiviUtils;
 
@@ -144,9 +155,17 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
         Persona persona = user.getIdPersona();
 
         ArchivioDoc archivioDoc = (ArchivioDoc) entity;
-        
+
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+
+        try {
+            accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(archivioDoc.getIdDoc().getId());
+        } catch (MasterjobsWorkerException ex) {
+            LOGGER.error("Errore nell'accodamento del mestiere per il calcolo delle persone vedenti");
+        }
+
         scriptaArchiviUtils.updateDataUltimoUtilizzoArchivio(archivioDoc.getIdArchivio().getId());
-        
+
 //        archiviDiInteresseRepository.aggiungiArchivioRecente(archivioDoc.getIdArchivio().getIdArchivioRadice().getId(), persona.getId());
         /*
         ZonedDateTime data_recentezza = ZonedDateTime.now();
@@ -173,18 +192,26 @@ public class ArchivioDocInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object afterUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         ArchivioDoc archivioDoc = (ArchivioDoc) entity;
-        
+
         scriptaArchiviUtils.updateDataUltimoUtilizzoArchivio(archivioDoc.getIdArchivio().getId());
-        
+
         return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
     }
 
     @Override
     public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         ArchivioDoc archivioDoc = (ArchivioDoc) entity;
-        
+
         scriptaArchiviUtils.updateDataUltimoUtilizzoArchivio(archivioDoc.getIdArchivio().getId());
-        
+
+        AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
+
+        try {
+            accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(archivioDoc.getIdDoc().getId());
+        } catch (MasterjobsWorkerException ex) {
+            LOGGER.error("Errore nell'accodamento del mestiere per il calcolo delle persone vedenti");
+        }
+
         super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
     }
 }
