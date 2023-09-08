@@ -923,12 +923,18 @@ public class TipTransferManager {
      * @return lo stesso doc in input, utile per poter concatenare il metodo a qualcos altro
      */
     private Doc transferNoteDocumento(Doc doc, ImportazioneDocumento importazioneDocumento, Persona persona) {
-        if (StringUtils.hasText(importazioneDocumento.getNote())) {
+        if (StringUtils.hasText(importazioneDocumento.getNote()) || StringUtils.hasText(importazioneDocumento.getAnnotazioni())) {
             if (doc.getNotaDocList() == null) {
                 doc.setNotaDocList(new ArrayList<>());
             }
-            NotaDoc notaDoc = new NotaDoc(doc, persona, NotaDoc.TipoNotaDoc.DOCUMENTO, importazioneDocumento.getNote(), now);
-            doc.getNotaDocList().add(notaDoc);
+            if (StringUtils.hasText(importazioneDocumento.getNote())) {
+                NotaDoc notaDoc = new NotaDoc(doc, persona, NotaDoc.TipoNotaDoc.DOCUMENTO, importazioneDocumento.getNote(), now);
+                doc.getNotaDocList().add(notaDoc);
+            }
+            if (StringUtils.hasText(importazioneDocumento.getAnnotazioni())) {
+                NotaDoc notaDoc = new NotaDoc(doc, persona, NotaDoc.TipoNotaDoc.DOCUMENTO, importazioneDocumento.getAnnotazioni(), now);
+                doc.getNotaDocList().add(notaDoc);
+            }
         }
         return doc;
     }
