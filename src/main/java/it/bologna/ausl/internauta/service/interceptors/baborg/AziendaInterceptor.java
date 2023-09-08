@@ -1,22 +1,19 @@
 package it.bologna.ausl.internauta.service.interceptors.baborg;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
-import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.repositories.ribaltoneutils.RibaltoneDaLanciareRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.Collection;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,20 +22,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @NextSdrInterceptor(name = "azienda-interceptor")
-public class AziendaInterceptor extends InternautaBaseInterceptor{
+public class AziendaInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(AziendaInterceptor.class);
-    
-    @Autowired
-    PersonaRepository personaRepository;
-    
-    @Autowired
-    UserInfoService userInfoService;
-    
-    @Autowired
-    RibaltoneDaLanciareRepository ribaltoneDaLanciareRepository;
-    
-    @Autowired
-    ObjectMapper objectMapper;
     
     @Override
     public Class getTargetEntityClass() {
@@ -89,10 +74,12 @@ public class AziendaInterceptor extends InternautaBaseInterceptor{
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         Azienda azienda = (Azienda) entity;
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
-//        LOGGER.info("authenticatedSessionData.isFromInternet(): " + authenticatedSessionData.isFromInternet());
+        
+        AziendaParametriJson aziendaParametriJson = azienda.getParametri();
+        
         if (authenticatedSessionData.isFromInternet()) {
             try {
-                AziendaParametriJson aziendaParametriJson = azienda.getParametri();
+                
                 aziendaParametriJson.setBasePath(aziendaParametriJson.getInternetBasePath());
                 aziendaParametriJson.setLogoutUrl(aziendaParametriJson.getInternetLogoutUrl());
                 azienda.setParametri(aziendaParametriJson);
@@ -100,11 +87,14 @@ public class AziendaInterceptor extends InternautaBaseInterceptor{
                 LOGGER.error("errore nel reperimento di isFromInternet", ex);
             }
         }
-//        try {
-//            LOGGER.info(objectMapper.writeValueAsString(azienda));
-//        } catch (JsonProcessingException ex) {
-//            LOGGER.error("errore nella stampa dell'azienda", ex);
-//        }
+        
+        // Non voglio che al fontend arrivino i dati della colonna dei parametri se non solo alcuni specifici
+        AziendaParametriJson nonHiddenParameters = new AziendaParametriJson();
+        nonHiddenParameters.setBasePath(aziendaParametriJson.getBasePath());
+        nonHiddenParameters.setLogoutUrl(aziendaParametriJson.getLogoutUrl());
+        
+        azienda.setParametri(nonHiddenParameters);
+        
         return azienda;
     }
 
@@ -116,32 +106,13 @@ public class AziendaInterceptor extends InternautaBaseInterceptor{
         }
         return entities;
     }
+    
+    @Override
+    public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        throw new AbortSaveInterceptorException("Non si può cancellare una azienda");
+    }
 
-//    @Override
-//    public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
-//        Azienda aziendaNow = (Azienda) entity;
-//        System.out.println("----------");
-//        System.out.println(aziendaNow.getPecList());
-//        System.out.println("----------");
-//        try {
-//            beforeUpdateEntityApplier.beforeUpdateApply(oldEntity -> {
-//                Azienda aziendaBefore = (Azienda) oldEntity;
-//                System.out.println(aziendaBefore.getDescrizione());
-//                System.out.println(aziendaBefore.getPecList());
-//                System.out.println(aziendaNow.getDescrizione());
-//                System.out.println(aziendaNow.getPecList());
-//            });
-//        } catch (NoSuchMethodException ex) {
-//            java.util.logging.Logger.getLogger(AziendaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-//        } catch (IllegalAccessException ex) {
-//            java.util.logging.Logger.getLogger(AziendaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-//        } catch (IllegalArgumentException ex) {
-//            java.util.logging.Logger.getLogger(AziendaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-//        } catch (InvocationTargetException ex) {
-//            java.util.logging.Logger.getLogger(AziendaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        return entity;
-//    }
+    
 }
     
 
