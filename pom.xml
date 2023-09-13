@@ -357,18 +357,18 @@
         </dependency>
         
         <dependency>
-        <groupId>com.atlassian.renderer</groupId>
-        <artifactId>atlassian-renderer</artifactId>
-        <version>8.0.5</version>
-        <exclusions>
-            <exclusion>
-                <!-- This exclusion is necessary if you are in a situation which 
-                     it conflicts, EG: using spring-boot -->
-                <groupId>javax.servlet</groupId>
-                <artifactId>servlet-api</artifactId>
-            </exclusion>
-        </exclusions>
-    </dependency>
+            <groupId>com.atlassian.renderer</groupId>
+            <artifactId>atlassian-renderer</artifactId>
+            <version>9.0.2</version>
+            <exclusions>
+                <exclusion>
+                    <!-- This exclusion is necessary if you are in a situation which 
+                         it conflicts, EG: using spring-boot -->
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
 
     </dependencies>
