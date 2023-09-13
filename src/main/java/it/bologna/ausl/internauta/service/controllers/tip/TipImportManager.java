@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.service.controllers.tip;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.PathBuilder;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.tip.validations.TipDataValidator;
@@ -15,7 +16,9 @@ import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
+import it.bologna.ausl.model.entities.tip.ImportazioneDocumento.StatiImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.ImportazioneOggetto;
+import it.bologna.ausl.model.entities.tip.QImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.QSessioneImportazione;
 import it.bologna.ausl.model.entities.tip.SessioneImportazione;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
@@ -29,6 +32,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import javax.persistence.EntityManager;
 import org.apache.commons.csv.CSVFormat;
@@ -139,7 +143,7 @@ public class TipImportManager {
                 if (sessioneImportazione != null) { // se trovo la sessione devo usare per forza la stessa tipologia, altrimenti torno errore
                     if (tipologia != sessioneImportazione.getTipologia()) {
                         String errorMessage =String.format(
-                                "non è possibili importare tipologie diverse all'interno della stessa sessione. Tipologia sessione %s, tipologia passata %s", 
+                                "non è possibile importare tipologie diverse all'interno della stessa sessione. Tipologia sessione %s, tipologia passata %s", 
                                 sessioneImportazione.getTipologia(), tipologia);
                         log.error(errorMessage);
                         throw new Http400ResponseException("04", errorMessage);
@@ -278,6 +282,71 @@ public class TipImportManager {
         }
     }
     
+    /**
+     * Esegue la validazione su una sessione, utile se si vuole rivalidare una sessione in seguito a dei cambiamenti sulle righe di ImportazioneDocuemto
+     * @param idSessione la sessione da validare
+     * @return la sessione validata
+     * @throws Http500ResponseException 
+     */
+    public SessioneImportazione validateSessione(Long idSessione) throws Http500ResponseException {
+                
+        QImportazioneDocumento qImportazioneDocumento = QImportazioneDocumento.importazioneDocumento;
+        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+        
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
+        SessioneImportazione sessioneImportazione = transactionTemplate.execute(a -> {
+
+            SessioneImportazione res =  entityManager.find(SessioneImportazione.class, idSessione);
+            TipDataValidator tipDataValidator = TipDataValidator.getTipDataValidator(res.getTipologia());
+
+            JPAQuery<ImportazioneDocumento> importazioni =  queryFactory
+                .select(qImportazioneDocumento)
+                .from(qImportazioneDocumento)
+                .where(
+                    qImportazioneDocumento.idSessioneImportazione.id.eq(idSessione).and(
+                    qImportazioneDocumento.stato.in(
+                        StatiImportazioneDocumento.VALIDARE, 
+                        StatiImportazioneDocumento.ERRORE_VALIDAZIONE, 
+                        StatiImportazioneDocumento.ANOMALIA_VALIDAZIONE)
+                    )
+                )
+                .fetchAll();
+
+            for (Iterator<ImportazioneDocumento> iterator = importazioni.iterate(); iterator.hasNext();) {
+                ImportazioneDocumento importazioneDocumento = iterator.next();
+                try {
+                     // valida la riga e setta nel campo errori il risultato della validazione
+                    TipErroriImportazione error = tipDataValidator.validate(importazioneDocumento);
+                    // calcola lo stato di validazione
+                    ImportazioneDocumento.StatiImportazioneDocumento statoValidazione = error.getStatoValidazione();
+                    importazioneDocumento.setStato(statoValidazione);
+                    transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+                    transactionTemplate.executeWithoutResult(innerA -> {
+                        queryFactory
+                            .update(qImportazioneDocumento)
+                            .set(qImportazioneDocumento.stato, statoValidazione)
+                            .set(qImportazioneDocumento.errori, error)
+                            .where(qImportazioneDocumento.id.eq(importazioneDocumento.getId()))
+                            .execute();
+                    });
+                    log.info(String.format("controllo validazione della riga con id %s terminato con stato %s", importazioneDocumento.getId(), statoValidazione));
+
+                } catch (Exception ex) {
+                    String errorMessage = String.format("errore nel controllo validazione della riga con id %s", importazioneDocumento.getId());
+                    log.error(errorMessage, ex);
+                }
+            }
+            return res;
+        });
+        return sessioneImportazione;
+    }
+    
+    /**
+     * crea una mappa che ha come chiavi gli header del csv e come valori i rispettivi valori
+     * @param csvParser
+     * @param csvRecord
+     * @return 
+     */    
     /**
      * crea una mappa che ha come chiavi gli header del csv e come valori i rispettivi valori
      * @param csvParser

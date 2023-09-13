@@ -120,7 +120,7 @@ public class TipCustomController implements ControllerHandledExceptions {
     }
     
     @RequestMapping(value = "transferDocumentiPregressi", method = RequestMethod.GET)
-    public ResponseEntity<?> transferDocumentiPregressi (
+    public void transferDocumentiPregressi (
         HttpServletRequest request,
         @RequestParam(name = "idSessione", required = true) Long idSessione) {
         
@@ -128,6 +128,17 @@ public class TipCustomController implements ControllerHandledExceptions {
                 entityManager, objectMapper, nonCachedEntities, reporitoryConnectionManager, 
                 transactionTemplate, masterjobsObjectsFactory, masterjobsJobsQueuer);
         tipTransferManager.transferSessioneDocumento(idSessione);
-        return ResponseEntity.ok("aaa");
+    }
+    
+    @RequestMapping(value = "validateSessione", method = RequestMethod.GET)
+    public ResponseEntity<?> validateSessione (
+        HttpServletRequest request,
+        @RequestParam(name = "idSessione", required = true) Long idSessione) throws HttpInternautaResponseException {
+        
+        TipImportManager tipImportManager = new TipImportManager(entityManager, objectMapper, nonCachedEntities, reporitoryConnectionManager, transactionTemplate);
+        SessioneImportazione sessioneImportazione = tipImportManager.validateSessione(idSessione);
+        
+        // torna la sessione creata/usata con la projection SessioneImportazioneWithPlainFields
+        return ResponseEntity.ok(projectionFactory.createProjection(SessioneImportazioneWithPlainFields.class, sessioneImportazione)); 
     }
 }

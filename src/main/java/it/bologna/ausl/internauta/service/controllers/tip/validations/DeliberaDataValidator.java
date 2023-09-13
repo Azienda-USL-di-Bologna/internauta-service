@@ -19,7 +19,7 @@ public class DeliberaDataValidator extends TipDataValidator {
     public TipErroriImportazione validate(ImportazioneOggetto rigaImportazione) {
         TipErroriImportazione erroriImportazione = new TipErroriImportazione();
         ImportazioneDocumento riga = (ImportazioneDocumento) rigaImportazione;
-        if(!StringUtils.hasText(riga.getRegistro()) && !EnumUtils.isValidEnumIgnoreCase(Registro.CodiceRegistro.class, riga.getRegistro())) {
+        if(StringUtils.hasText(riga.getRegistro()) && !EnumUtils.isValidEnumIgnoreCase(Registro.CodiceRegistro.class, riga.getRegistro())) {
             erroriImportazione.setError(
                     ColonneDelibera.registro, 
                     TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
@@ -52,11 +52,11 @@ public class DeliberaDataValidator extends TipDataValidator {
             riga.setErrori(erroriImportazione);
         }
         if (!StringUtils.hasText(riga.getPropostoDa())) {
-            erroriImportazione.setError(ColonneDelibera.propostoDa, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il campo è obbligatorio..");
+            erroriImportazione.setWarning(ColonneDelibera.propostoDa, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Non è stata specificata la struttura, sarà usata quella di default");
             riga.setErrori(erroriImportazione);
         }
         if (StringUtils.hasText(riga.getNomiDestinatariEsterni()) && StringUtils.hasText(riga.getIndirizziDestinatariEsterni())) {
-            if (!validateNotazioniPosizionali(riga.getNomiDestinatariEsterni(), riga.getIndirizziDestinatariEsterni(), TipDataValidator.DEFAULT_STRING_SEPARATOR)) {
+            if (!validateNotazioniPosizionali(riga.getNomiDestinatariEsterni(), riga.getIndirizziDestinatariEsterni(), ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {
                 erroriImportazione.setError(ColonneDelibera.nomiDestinatariEsterni, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
                         String.format ("Il campo deve avere lo stesso numero di elementi di %s", ColonneDelibera.indirizziDestinatariEsterni.toString()));
                 erroriImportazione.setError(ColonneDelibera.indirizziDestinatariEsterni, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
