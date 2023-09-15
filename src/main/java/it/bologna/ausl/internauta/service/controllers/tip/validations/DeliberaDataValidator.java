@@ -104,7 +104,7 @@ public class DeliberaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneDelibera.collegamentoPrecedente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: numero/yyyy");
             riga.setErrori(erroriImportazione);
         }
-        if ((StringUtils.hasText(riga.getAnnullato()) || !Boolean.parseBoolean(riga.getAnnullato())) && !validateBoolean(riga.getAnnullato())) {
+        if (StringUtils.hasText(riga.getAnnullato()) && !validateBoolean(riga.getAnnullato())) {
             erroriImportazione.setError(ColonneDelibera.annullato, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: true/false");
             riga.setErrori(erroriImportazione);
         }
