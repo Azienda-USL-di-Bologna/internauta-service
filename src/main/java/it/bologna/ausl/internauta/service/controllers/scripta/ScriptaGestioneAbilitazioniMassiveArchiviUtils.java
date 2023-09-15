@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -14,7 +15,6 @@ import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.MassiveActionLog;
 import it.bologna.ausl.model.entities.scripta.QArchivioDetail;
 import java.time.ZonedDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityManager;
@@ -47,7 +47,7 @@ public class ScriptaGestioneAbilitazioniMassiveArchiviUtils {
     @Autowired
     private MassiveActionLogRepository massiveActionLogRepository;
     
-    public Integer[] getFilteredIdsArchivi(Integer idAzienda, Predicate predicate, Integer[] ids) {
+    public Integer[] getFilteredIdsArchivi(Integer idAzienda, Predicate predicate, Integer[] ids, Integer[] notIds) {
         // Preparo gli ids archivi su cui andremo ad agire. Li filtro per livello 1 e idAzienda
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
         QArchivioDetail qArchivioDetail = QArchivioDetail.archivioDetail;
@@ -57,10 +57,14 @@ public class ScriptaGestioneAbilitazioniMassiveArchiviUtils {
         
         if (ids == null || ids.length == 0) {
             // Caso in cui gli ids li devo ricavare dal predicato
+            BooleanExpression notTheseArchivi = qArchivioDetail.id.notIn(notIds);
+            if (notIds == null) {
+                notTheseArchivi = Expressions.asBoolean(true).isTrue();
+            }
             List<Integer> idsCalcolati = jPAQueryFactory
                     .select(qArchivioDetail.id)
                     .from(qArchivioDetail)
-                    .where(aziendaCorretta.and(livelloUno).and(predicate))
+                    .where(aziendaCorretta.and(livelloUno).and(notTheseArchivi).and(predicate))
                     .fetch();
             idsArchivi = idsCalcolati.toArray(new Integer[idsCalcolati.size()]);
         } else {

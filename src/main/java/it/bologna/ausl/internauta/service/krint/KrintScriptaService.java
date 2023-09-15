@@ -7,7 +7,6 @@ import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepositor
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.model.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileInfo;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.logs.Krint;
@@ -465,30 +464,36 @@ public class KrintScriptaService {
     
     
     public void writeSostituzioneResponsabileDaAmministratoreGedi(
-            SostizioneMassivaResponsabileInfo info,
-            HashMap<String, Object> sameInfo,
+//            SostizioneMassivaResponsabileInfo info,
+            Map<String, Object> sameInfo,
             OperazioneKrint.CodiceOperazione operazione
     ) {
         try {
             // Informazioni oggetto contenitore
-            HashMap<String, Object> krintArchivio = new HashMap();
-            krintArchivio.put("id", info.getIdArchivio());
-            krintArchivio.put("numerazioneGerarchica", info.getNumerazioneGerarchica());
+            Map<String, Object> krintArchivio = new HashMap();
+            krintArchivio.put("id", sameInfo.get("idArchivio"));
+            krintArchivio.put("numerazioneGerarchica", sameInfo.get("numerazioneGerarchica"));
             
             krintService.writeKrintRow(
-                    info.getIdAttoreArchivioNewResponsabile().toString(), // idOggetto
+//                    info.getIdAttoreArchivioNewResponsabile().toString(), // idOggetto
+                    sameInfo.get("idAttoreArchivioNewResponsabile").toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ATTORE_ARCHIVIO, // tipoOggetto
-                    info.getDescrizioneNewResponsabile(), // descrizioneOggetto
+//                    info.getDescrizioneNewResponsabile(), // descrizioneOggetto
+                    sameInfo.get("descrizioneNewResponsabile").toString(), // descrizioneOggetto
                     sameInfo, // informazioniOggetto
-                    info.getIdArchivio().toString(), // Da qui si ripete ma per il conenitore
+//                    info.getIdArchivio().toString(), // Da qui si ripete ma per il conenitore
+                    sameInfo.get("idArchivio").toString(), // Da qui si ripete ma per il conenitore
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
-                    info.getNumerazioneGerarchica(),
+//                    info.getNumerazioneGerarchica(),
+                    sameInfo.get("numerazioneGerarchica").toString(),
                     krintArchivio,
                     operazione
             );
         } catch (Exception ex) {
-            log.error("Errore nella writeAttoreArchivioUpdate con archivio " + info.getIdAttoreArchivioNewResponsabile().toString(), ex);
-            krintService.writeKrintError(info.getIdAttoreArchivioNewResponsabile(), "writeSostituzioneResponsabileDaAmministratoreGedi", operazione);
+            log.error("Errore nella writeAttoreArchivioUpdate con archivio " + sameInfo.get("idAttoreArchivioNewResponsabile").toString(), ex);
+            krintService.writeKrintError((Integer) sameInfo.get("idAttoreArchivioNewResponsabile"), "writeSostituzioneResponsabileDaAmministratoreGedi", operazione);
+//            log.error("Errore nella writeAttoreArchivioUpdate con archivio " + info.getIdAttoreArchivioNewResponsabile().toString(), ex);
+//            krintService.writeKrintError(info.getIdAttoreArchivioNewResponsabile(), "writeSostituzioneResponsabileDaAmministratoreGedi", operazione);
         }
     }
 }

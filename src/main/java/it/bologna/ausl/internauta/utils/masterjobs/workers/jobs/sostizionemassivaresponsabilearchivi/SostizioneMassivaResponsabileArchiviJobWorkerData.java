@@ -18,8 +18,20 @@ public class SostizioneMassivaResponsabileArchiviJobWorkerData extends JobWorker
     private Integer idStrutturaNuovoResponsabile;
     private Integer idMassiveActionLog;
     private Integer idPersonaOperazione;
+    private Integer idUtenteOperazione;
+    private Integer idAzienda;
 
     public SostizioneMassivaResponsabileArchiviJobWorkerData() {
+    }
+
+    public SostizioneMassivaResponsabileArchiviJobWorkerData(Integer[] idsArchivi, Integer idPersonaNuovoResponsabile, Integer idStrutturaNuovoResponsabile, Integer idMassiveActionLog, Integer idPersonaOperazione, Integer idUtenteOperazione, Integer idAzienda) {
+        this.idsArchivi = idsArchivi;
+        this.idPersonaNuovoResponsabile = idPersonaNuovoResponsabile;
+        this.idStrutturaNuovoResponsabile = idStrutturaNuovoResponsabile;
+        this.idMassiveActionLog = idMassiveActionLog;
+        this.idPersonaOperazione = idPersonaOperazione;
+        this.idUtenteOperazione = idUtenteOperazione;
+        this.idAzienda = idAzienda;
     }
 
     public Integer[] getIdsArchivi() {
@@ -61,4 +73,21 @@ public class SostizioneMassivaResponsabileArchiviJobWorkerData extends JobWorker
     public void setIdPersonaOperazione(Integer idPersonaOperazione) {
         this.idPersonaOperazione = idPersonaOperazione;
     }
+
+    public Integer getIdUtenteOperazione() {
+        return idUtenteOperazione;
+    }
+
+    public void setIdUtenteOperazione(Integer idUtenteOperazione) {
+        this.idUtenteOperazione = idUtenteOperazione;
+    }
+
+    public Integer getIdAzienda() {
+        return idAzienda;
+    }
+
+    public void setIdAzienda(Integer idAzienda) {
+        this.idAzienda = idAzienda;
+    }
+    
 }

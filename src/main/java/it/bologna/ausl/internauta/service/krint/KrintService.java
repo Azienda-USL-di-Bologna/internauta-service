@@ -67,11 +67,11 @@ public class KrintService {
             String idOggetto,
             Krint.TipoOggettoKrint tipoOggetto,
             String descrizioneOggetto,
-            HashMap<String, Object> informazioniOggetto,
+            Map<String, Object> informazioniOggetto,
             String idOggettoContenitore,
             Krint.TipoOggettoKrint tipoOggettoContenitore,
             String descrizioneOggettoContenitore,
-            HashMap<String, Object> informazioniOggettocontenitore,
+            Map<String, Object> informazioniOggettocontenitore,
             OperazioneKrint.CodiceOperazione codiceOperazione) throws Exception {
 
         try {

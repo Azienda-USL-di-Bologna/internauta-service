@@ -161,16 +161,15 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersoneve
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerResult;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileInfo;
-//import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorker;
-//import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.versatore.VersatoreServiceUtils;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.logs.MassiveActionLog;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
+import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.QDoc;
-import it.bologna.ausl.model.entities.scripta.projections.generated.ArchivioDetailWithPlainFields;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.Versamento;
 import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.ERRORE_RITENTABILE;
@@ -178,7 +177,6 @@ import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersament
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
-import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.tika.mime.MimeTypeException;
@@ -2151,6 +2149,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> sostituisciResponsabileArchivioMassivo(
             @QuerydslPredicate(root = ArchivioDetail.class) Predicate predicate,
+            @RequestParam(required = false, name = "notIds") Integer[] notIds,
             HttpServletRequest request,
             @RequestParam(required = false, name = "ids") Integer[] ids,
             @RequestParam(required = true, name = "idPersonaNuovoResponsabile") Integer idPersonaNuovoResponsabile,
@@ -2173,6 +2172,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Map<String, Object> parameters = new HashMap();
         parameters.put("idsParameters", ids);
         parameters.put("predicate", predicate.toString());
+        parameters.put("notIds", notIds);
         parameters.put("idAziendaRiferimento", idAziendaRiferimento);
         parameters.put("idPersonaNuovoResponsabile", idPersonaNuovoResponsabile);
         parameters.put("idStrutturaNuovoResponsabile", idStrutturaNuovoResponsabile);
@@ -2181,33 +2181,28 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         
         
         // Inserisco il job per la sosituzione
-//        SostizioneMassivaResponsabileArchiviJobWorkerData sostizioneMassivaResponsabileArchiviJobWorkerData = 
-//                new SostizioneMassivaResponsabileArchiviJobWorkerData(idsArchivi, idPersonaResponsabile, idStrutturaResponsabile, idMassiveActionLog);
-//        SostizioneMassivaResponsabileArchiviJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
-//                SostizioneMassivaResponsabileArchiviJobWorker.class, 
-//                SostizioneMassivaResponsabileArchiviJobWorkerData, 
-//                false
-//        );
-//        try {
-//            String app = null;
-//            if (applicazione != null) app = applicazione.getId();
-//            masterjobsJobsQueuer.queue(
-//                    jobWorker,
-//                    objectId, 
-//                    objectType, 
-//                    app, 
-//                    true, // waitForObject
-//                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST,
-//                    true
-//            );
-//        } catch (MasterjobsQueuingException ex) {
-//            String errorMessage = String.format("Errore nell'accodamento di %s", SostizioneMassivaResponsabileArchiviJobWorker.class.getSimpleName());
-//            log.error(errorMessage, ex);
-//            throw new MasterjobsWorkerException(errorMessage, ex);
-//        }
-        
+        SostizioneMassivaResponsabileArchiviJobWorkerData sostizioneMassivaResponsabileArchiviJobWorkerData = new SostizioneMassivaResponsabileArchiviJobWorkerData(
+                idsArchivi, 
+                idPersonaNuovoResponsabile, 
+                idStrutturaNuovoResponsabile, 
+                idMassiveActionLog, 
+                authenticatedUserProperties.getPerson().getId(), 
+                authenticatedUserProperties.getUser().getId(), 
+                idAziendaRiferimento
+        );
+
+        Map sostizioneMassivaResponsabileArchiviJobWorkerDataMap = objectMapper.convertValue(sostizioneMassivaResponsabileArchiviJobWorkerData, Map.class);
+        JobNotified jn = new JobNotified();
+        jn.setJobName("SostizioneMassivaResponsabileArchiviJobWorker");
+        jn.setJobData(sostizioneMassivaResponsabileArchiviJobWorkerDataMap);
+        jn.setWaitObject(false);
+        jn.setApp(app.getId());
+        jn.setPriority(Set.SetPriority.NORMAL);
+        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
+        jobNotifiedRepository.save(jn);
+                
         Map<String, Object> response = new HashMap();
-        response.put("idsSize", ids.length);
+        //response.put("idsSize", ids.length);
         
         return ResponseEntity.ok(response);
     }

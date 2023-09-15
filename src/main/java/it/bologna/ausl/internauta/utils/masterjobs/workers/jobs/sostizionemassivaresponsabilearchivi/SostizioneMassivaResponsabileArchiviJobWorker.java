@@ -1,26 +1,39 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bologna.ausl.internauta.service.authorization.jwt.AuthorizationUtils;
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.MassiveActionLogRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
+import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
+import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessigerarchiaarchivio.CalcoloPermessiGerarchiaArchivioJobWorkerData;
+import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Persona;
+import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.MassiveActionLog;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.masterjobs.JobNotified;
+import it.bologna.ausl.model.entities.masterjobs.Set;
+import it.bologna.ausl.model.entities.scrivania.Attivita;
+import it.bologna.ausl.model.entities.scrivania.Attivita.TipoAttivita;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +53,16 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
     private final String name = SostizioneMassivaResponsabileArchiviJobWorker.class.getSimpleName();
     
     @Autowired
-    private PersonaVedenteRepository personaVedenteRepository;
+    private AziendaRepository aziendaRepository;
+    
+    @Autowired
+    private UtenteRepository utenteRepository;
+    
+    @Autowired
+    private PersonaRepository personaRepository;
+    
+    @Autowired
+    private StrutturaRepository strutturaRepository;
     
     @Autowired
     private AttoreArchivioRepository attoreArchivioRepository;
@@ -51,11 +73,20 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
     @Autowired
     private KrintScriptaService krintScriptaService;
     
-    @PersistenceContext
-    private EntityManager em;
+    @Autowired
+    private AttivitaRepository attivitaRepository;
+    
+    @Autowired
+    private ApplicazioneRepository applicazioneRepository;
+    
+    @Autowired
+    private AuthorizationUtils authorizationUtils;
     
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private JobNotifiedRepository jobNotifiedRepository;
 
     @Override
     public String getName() {
@@ -72,45 +103,94 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         Integer idStrutturaNuovoResponsabile = data.getIdStrutturaNuovoResponsabile();
         Integer idMassiveActionLog = data.getIdMassiveActionLog();
         Integer idPersonaOperazione = data.getIdPersonaOperazione();
+        Integer idUtenteOperazione = data.getIdUtenteOperazione();
+        Integer idAzienda = data.getIdAzienda();
+        Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
+        
+        Utente utenteOperazione = utenteRepository.getById(idUtenteOperazione);
+        Persona personaNuovoResponsabile = personaRepository.getById(idPersonaNuovoResponsabile);
+        Struttura strutturaNuovoResponsabile = strutturaRepository.getById(idStrutturaNuovoResponsabile);
+        Azienda azienda = aziendaRepository.getById(idAzienda);
+        Persona personaOperazione = personaRepository.getById(idPersonaOperazione);
+        
+        // Setto come utente loggato l'utente amministratore gedi che effettua l'operazione
+        authorizationUtils.insertInContext(utenteOperazione, 0, null, Applicazione.Applicazioni.scripta.toString(), false);
         
         log.info(String.format("PARAMETRI. idPersonaNuovoResponsabile: %1$s, idStrutturaNuovoResponsabile: %2$s, idMassiveActionLog: %3$s, idPersonaOperazione: %4$s, totaleArchivi: %5$s", 
                 idPersonaNuovoResponsabile, idStrutturaNuovoResponsabile, idMassiveActionLog, idPersonaOperazione, idsArchivi.length));
 
         // CASO A. Non faccio update ma delete e insert perché voglio sfruttare i trigger per far aggiornare i permessi sulla blackbox.
-        List<Map<String, Object>> idsCasoAMap = attoreArchivioRepository.sostituisciResponsabile(idsArchivi, idPersonaNuovoResponsabile, idStrutturaNuovoResponsabile);
-        List<SostizioneMassivaResponsabileInfo> idsCasoA = objectMapper.convertValue(idsCasoAMap, new TypeReference<List<SostizioneMassivaResponsabileInfo>>(){});
-        // TODO: Controllare perché non si riesce a convertire direttamente in List<SostizioneMassivaResponsabileInfo> (serve converter?)
-        log.info(String.format("Num archivi con responsabile sostituito: %1$s", idsCasoA.size()));
+        List<Map<String, Object>> idsCasoAMap = attoreArchivioRepository.sostituisciResponsabile(
+                idsArchivi, 
+                idPersonaNuovoResponsabile, 
+                idStrutturaNuovoResponsabile,
+                personaNuovoResponsabile.getDescrizione(),
+                strutturaNuovoResponsabile.getNome());
+        log.info(String.format("Num archivi con responsabile sostituito: %1$s", idsCasoAMap.size()));
 
         // CASO B.
-        Set<Integer> idsCasoB = attoreArchivioRepository.aggiornaStrutturaResponsabile(idsArchivi, idPersonaNuovoResponsabile, idStrutturaNuovoResponsabile);
-        // TODO: Questa parte è da finire
-        log.info(String.format("Num archivi con struttura responsabile aggiornata: %1$s", idsCasoB.size()));
+        List<HashMap<String, Object>> idsCasoBMap = attoreArchivioRepository.aggiornaStrutturaResponsabile(
+                idsArchivi, 
+                idPersonaNuovoResponsabile, 
+                idStrutturaNuovoResponsabile,
+                strutturaNuovoResponsabile.getNome());
+        log.info(String.format("Num archivi con struttura responsabile aggiornata: %1$s", idsCasoBMap.size()));
 
-        // CASO C.
         List<Integer> idsArchiviList = new ArrayList(Arrays.asList(idsArchivi));
-        idsArchiviList.removeAll(idsCasoA);
-        idsArchiviList.removeAll(idsCasoB);
-        log.info(String.format("Num archivi non modificati: %1$s", idsArchiviList.size()));
-        
+
         // Ciclo i CASI A e per ogni archivio faccio il krint
         log.info(String.format("Faccio il krint dei responsabili sostituiti"));
         for (Map<String, Object> info : idsCasoAMap) {
-//            krintScriptaService.writeSostituzioneResponsabileDaAmministratoreGedi(
-//                    idsCasoA,
-//                    info,
-//                    OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_UPDATE_RESPONSABILE_GESTIONE_MASSIVA
-//            );
+            krintScriptaService.writeSostituzioneResponsabileDaAmministratoreGedi(
+                    info,
+                    OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_UPDATE_RESPONSABILE_GESTIONE_MASSIVA
+            );
+            idsArchiviList.remove((Integer) info.get("idArchivio")); // per il CASO C
+            
+            // Visto il cambiamento effettuato vogliamo rialcolare i permessi sull'archivio etc
+            JobNotified jn = new JobNotified();
+            jn.setJobName("CalcoloPermessiGerarchiaArchivioJobWorker");
+            jn.setJobData(objectMapper.convertValue(new CalcoloPermessiGerarchiaArchivioJobWorkerData(
+                (Integer) info.get("idArchivio")
+            ), Map.class));
+            jn.setWaitObject(false);
+            jn.setApp(app.getId());
+            jn.setPriority(Set.SetPriority.NORMAL);
+            jn.setSkipIfAlreadyPresent(Boolean.TRUE);
+            jobNotifiedRepository.save(jn);
         }
         
         // Ciclo i CASI B e per ogni archivio faccio il krint
         log.info(String.format("Faccio il krint delle strutture aggiornate"));
+        for (HashMap<String, Object> info : idsCasoBMap) {
+            krintScriptaService.writeSostituzioneResponsabileDaAmministratoreGedi(
+                    info,
+                    OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_UPDATE_STRUTTURA_GESTIONE_MASSIVA
+            );
+            idsArchiviList.remove((Integer) info.get("idArchivio")); // per il CASO C
+        }
+        
+        // CASO C. Man mano che ciclavo le mappe del caso A e B ho creato la lista archivi del caso C
+        log.info(String.format("Num archivi non modificati: %1$s", idsArchiviList.size()));
         
         // Inserisco la notifica per l'AG
         log.info(String.format("Inserisco la notifica per l'AG"));
+        String oggettoAttivita = String.format( "La modifica massiva della responsabilità di %1$s fascicoli e relativi sottofascicoli è avvenuta con successo.", idsArchivi.length);
+        if (!idsCasoAMap.isEmpty()) {
+            oggettoAttivita = oggettoAttivita + String.format( " %1$s fascicoli hanno cambiato responsabile.", idsCasoAMap.size());
+        }
+        if (!idsCasoBMap.isEmpty()) {
+            oggettoAttivita = oggettoAttivita + String.format( " %1$s fascicoli hanno cambiato struttura.", idsCasoBMap.size());
+        }
+        if (!idsArchiviList.isEmpty()) {
+            oggettoAttivita = oggettoAttivita + String.format( " %1$s fascicoli non hanno subito modifiche.", idsArchiviList.size());
+        }
+        insertAttivita(azienda, personaOperazione, oggettoAttivita, app);
         
         // Inserisco la notifica per il nuovo responsabile
         log.info(String.format("Inserisco la notifica il nuovo responsabile"));
+        oggettoAttivita = String.format( "Hai ricevuto la responsabilità su %1$s fascicoli dall'amministratore %2$s.", idsCasoAMap.size(), personaOperazione.getDescrizione());
+        insertAttivita(azienda, personaNuovoResponsabile, oggettoAttivita, app);
         
         // Aggiorno la massiveActionLog
         log.info(String.format("Aggiorno la massiveActionLog"));
@@ -120,8 +200,8 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         if (additionalData == null) {
             additionalData = new HashMap();
         }
-        additionalData.put("responsabiliSostituiti", idsCasoA.size());
-        additionalData.put("struttureResponsabileSostituite", idsCasoB.size());
+        additionalData.put("responsabiliSostituiti", idsCasoAMap.size());
+        additionalData.put("struttureResponsabileSostituite", idsCasoBMap.size());
         additionalData.put("fascicoliNonAggiornati", idsArchiviList.size());
         m.setAdditionalData(additionalData);
         massiveActionLogRepository.save(m);
@@ -133,9 +213,24 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
 
     @Override
     public boolean isExecutable() {
-        ZonedDateTime.now();
+        return true; // Per il momento lo eseguiamo subito perché dobbiamo fare la presentazione.
         // Controllo se now è tra le 7 e le 18, se si torno false se no torno true
-        // Aggiiungere List<SostizioneMassivaResponsabileInfo> al notified job.
-        return super.isExecutable(); // TODO
+//        ZonedDateTime now = ZonedDateTime.now();
+//        LocalTime oraCorrente = now.toLocalTime();
+//        LocalTime inizioOrario = LocalTime.of(7, 0);   // 7:00
+//        LocalTime fineOrario = LocalTime.of(18, 0);    // 18:00
+//        return !(oraCorrente.isAfter(inizioOrario) && oraCorrente.isBefore(fineOrario));
+    }
+    
+    private void insertAttivita(Azienda azienda, Persona persona, String oggetto, Applicazione app) {
+        Attivita a = new Attivita();
+        a.setIdAzienda(azienda);
+        a.setIdPersona(persona);
+        a.setIdApplicazione(app);
+        a.setTipo(TipoAttivita.NOTIFICA.toString().toLowerCase());
+        a.setOggetto(oggetto);
+        a.setDescrizione("Sostituzione massiva responsabile");
+        a.setProvenienza("Amministrazione Gedi");
+        attivitaRepository.saveAndFlush(a);
     }
 }
