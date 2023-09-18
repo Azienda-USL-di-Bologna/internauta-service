@@ -34,15 +34,15 @@ public interface AttoreArchivioRepository extends
                 + " FROM responsabili_old i"
                 + " RETURNING id_archivio, id as idAttoreArchivioNewResponsabile "
         + ") SELECT DISTINCT "
-                + "o.id_archivio as idArchivio, "
-                + "id_persona as idPersonaOldResponsabile, "
-                + "descrizione as descrizioneOldResponsabile, "
-                + "?2 as idPersonaNewResponsabile, "
-                + "?3 as idStrutturaNewResponsabile,  "
-                + "?4 as descrizioneNewResponsabile, "
-                + "?5 as descrizioneStrutturaNewResponsabile, "
-                + "idAttoreArchivioNewResponsabile, "
-                + "a.numerazione_gerarchica as numerazioneGerarchica"
+                + "o.id_archivio as \"idArchivio\", "
+                + "id_persona as \"idPersonaOldResponsabile\", "
+                + "descrizione as \"descrizioneOldResponsabile\", "
+                + "?2 as \"idPersonaNewResponsabile\", "
+                + "?3 as \"idStrutturaNewResponsabile\",  "
+                + "?4 as \"descrizioneNewResponsabile\", "
+                + "?5 as \"descrizioneStrutturaNewResponsabile\", "
+                + "idAttoreArchivioNewResponsabile AS \"idAttoreArchivioNewResponsabile\", "
+                + "a.numerazione_gerarchica as \"numerazioneGerarchica\""
             + " FROM responsabili_old o"
             + " JOIN responsabili_new n ON n.id_archivio = o.id_archivio"
             + " JOIN scripta.archivi a ON a.id = n.id_archivio", 
@@ -63,15 +63,15 @@ public interface AttoreArchivioRepository extends
         + " AND a.id = aa.id_archivio"
         + " AND aa.id_struttura = s.id"
         + " RETURNING "
-                + " aa.id_archivio as idArchivio, "
-                + " a.numerazione_gerarchica as numerazioneGerarchica, "
-                + " s.id AS idStrutturaOldResponsabile, "
-                + " s.nome AS descrizioneStrutturaOldResponsabile, "
-                + " aa.id as idAttoreArchivioNewResponsabile, "
-                + " ?3 AS idStrutturaNewResponsabile, "
-                + " ?4 AS descrizioneStrutturaNewResponsabile ", 
+                + " aa.id_archivio as \"idArchivio\", "
+                + " a.numerazione_gerarchica as \"numerazioneGerarchica\", "
+                + " s.id AS \"idStrutturaOldResponsabile\", "
+                + " s.nome AS \"descrizioneStrutturaOldResponsabile\", "
+                + " aa.id as \"idAttoreArchivioNewResponsabile\", "
+                + " ?3 AS \"idStrutturaNewResponsabile\", "
+                + " ?4 AS \"descrizioneStrutturaNewResponsabile\" ", 
         nativeQuery = true)
-    public List<HashMap<String, Object>> aggiornaStrutturaResponsabile(
+    public List<Map<String, Object>> aggiornaStrutturaResponsabile(
             Integer[] idsArchivi,
             Integer idPersonaResponsabile,
             Integer idStrutturaResponsabile,

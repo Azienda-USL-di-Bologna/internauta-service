@@ -464,36 +464,31 @@ public class KrintScriptaService {
     
     
     public void writeSostituzioneResponsabileDaAmministratoreGedi(
-//            SostizioneMassivaResponsabileInfo info,
-            Map<String, Object> sameInfo,
+            HashMap<String, Object> sameInfo,
             OperazioneKrint.CodiceOperazione operazione
     ) {
         try {
             // Informazioni oggetto contenitore
-            Map<String, Object> krintArchivio = new HashMap();
+            HashMap<String, Object> krintArchivio = new HashMap();
             krintArchivio.put("id", sameInfo.get("idArchivio"));
             krintArchivio.put("numerazioneGerarchica", sameInfo.get("numerazioneGerarchica"));
             
+            log.info("STO LOGGANDO IL KRINT");
             krintService.writeKrintRow(
-//                    info.getIdAttoreArchivioNewResponsabile().toString(), // idOggetto
                     sameInfo.get("idAttoreArchivioNewResponsabile").toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ATTORE_ARCHIVIO, // tipoOggetto
-//                    info.getDescrizioneNewResponsabile(), // descrizioneOggetto
                     sameInfo.get("descrizioneNewResponsabile").toString(), // descrizioneOggetto
                     sameInfo, // informazioniOggetto
-//                    info.getIdArchivio().toString(), // Da qui si ripete ma per il conenitore
                     sameInfo.get("idArchivio").toString(), // Da qui si ripete ma per il conenitore
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
-//                    info.getNumerazioneGerarchica(),
                     sameInfo.get("numerazioneGerarchica").toString(),
                     krintArchivio,
                     operazione
             );
+            log.info("KRINT LOGGATO");
         } catch (Exception ex) {
-            log.error("Errore nella writeAttoreArchivioUpdate con archivio " + sameInfo.get("idAttoreArchivioNewResponsabile").toString(), ex);
+            log.error("Errore nella writeSostituzioneResponsabileDaAmministratoreGedi con archivio " + sameInfo.get("idAttoreArchivioNewResponsabile").toString(), ex);
             krintService.writeKrintError((Integer) sameInfo.get("idAttoreArchivioNewResponsabile"), "writeSostituzioneResponsabileDaAmministratoreGedi", operazione);
-//            log.error("Errore nella writeAttoreArchivioUpdate con archivio " + info.getIdAttoreArchivioNewResponsabile().toString(), ex);
-//            krintService.writeKrintError(info.getIdAttoreArchivioNewResponsabile(), "writeSostituzioneResponsabileDaAmministratoreGedi", operazione);
         }
     }
 }

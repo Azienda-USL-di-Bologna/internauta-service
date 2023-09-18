@@ -57,9 +57,9 @@ public class ScriptaGestioneAbilitazioniMassiveArchiviUtils {
         
         if (ids == null || ids.length == 0) {
             // Caso in cui gli ids li devo ricavare dal predicato
-            BooleanExpression notTheseArchivi = qArchivioDetail.id.notIn(notIds);
-            if (notIds == null) {
-                notTheseArchivi = Expressions.asBoolean(true).isTrue();
+            BooleanExpression notTheseArchivi = Expressions.asBoolean(true).isTrue();
+            if (notIds != null) {
+                notTheseArchivi = qArchivioDetail.id.notIn(notIds);
             }
             List<Integer> idsCalcolati = jPAQueryFactory
                     .select(qArchivioDetail.id)

@@ -67,11 +67,11 @@ public class KrintService {
             String idOggetto,
             Krint.TipoOggettoKrint tipoOggetto,
             String descrizioneOggetto,
-            Map<String, Object> informazioniOggetto,
+            HashMap<String, Object> informazioniOggetto,
             String idOggettoContenitore,
             Krint.TipoOggettoKrint tipoOggettoContenitore,
             String descrizioneOggettoContenitore,
-            Map<String, Object> informazioniOggettocontenitore,
+            HashMap<String, Object> informazioniOggettocontenitore,
             OperazioneKrint.CodiceOperazione codiceOperazione) throws Exception {
 
         try {
@@ -85,6 +85,7 @@ public class KrintService {
 
             // recupero l'operazioneVersionata con quel codiceOperazione e con la versione più alta
             OperazioneKrint operazioneKrint = cachedEntities.getOperazioneKrint(codiceOperazione);
+            LOGGER.error("operazioneKrint: " + operazioneKrint.getId().toString());
             OperazioneVersionataKrint operazioneVersionataKrint
                     = operazioneVersionataKrinRepository.findFirstByIdOperazioneIdOrderByVersioneDesc(operazioneKrint.getId()).orElse(null);
             if(idOggetto != null) {
@@ -104,6 +105,7 @@ public class KrintService {
             krint.setInformazioniOggettoContenitore(informazioniOggettocontenitore);
 
             krint.setIdOperazioneVersionata(operazioneVersionataKrint);
+            LOGGER.error("operazioneversionata: " + operazioneVersionataKrint.getId().toString());
 
             Utente utenteReale = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getRealUser() != null
                     ? nonCachedEntities.getUtente(authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getRealUser().getId())

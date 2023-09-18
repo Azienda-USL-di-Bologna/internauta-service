@@ -1,8 +1,10 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.authorization.jwt.AuthorizationUtils;
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
@@ -11,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.configurazione.Applicazio
 import it.bologna.ausl.internauta.service.repositories.logs.MassiveActionLogRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
+import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
@@ -87,6 +90,12 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
     
     @Autowired
     private JobNotifiedRepository jobNotifiedRepository;
+    
+    @Autowired
+    private KrintUtils krintUtils;
+    
+    @Autowired
+    private HttpSessionData httpSessionData;
 
     @Override
     public String getName() {
@@ -126,21 +135,23 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
                 idStrutturaNuovoResponsabile,
                 personaNuovoResponsabile.getDescrizione(),
                 strutturaNuovoResponsabile.getNome());
+        List<HashMap<String, Object>> idsCasoAHashMap = objectMapper.convertValue(idsCasoAMap, new TypeReference<List<HashMap<String, Object>>>(){});
         log.info(String.format("Num archivi con responsabile sostituito: %1$s", idsCasoAMap.size()));
 
         // CASO B.
-        List<HashMap<String, Object>> idsCasoBMap = attoreArchivioRepository.aggiornaStrutturaResponsabile(
+        List<Map<String, Object>> idsCasoBMap = attoreArchivioRepository.aggiornaStrutturaResponsabile(
                 idsArchivi, 
                 idPersonaNuovoResponsabile, 
                 idStrutturaNuovoResponsabile,
                 strutturaNuovoResponsabile.getNome());
+        List<HashMap<String, Object>> idsCasoBHashMap = objectMapper.convertValue(idsCasoBMap, new TypeReference<List<HashMap<String, Object>>>(){});
         log.info(String.format("Num archivi con struttura responsabile aggiornata: %1$s", idsCasoBMap.size()));
 
         List<Integer> idsArchiviList = new ArrayList(Arrays.asList(idsArchivi));
 
         // Ciclo i CASI A e per ogni archivio faccio il krint
         log.info(String.format("Faccio il krint dei responsabili sostituiti"));
-        for (Map<String, Object> info : idsCasoAMap) {
+        for (HashMap<String, Object> info : idsCasoAHashMap) {
             krintScriptaService.writeSostituzioneResponsabileDaAmministratoreGedi(
                     info,
                     OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_UPDATE_RESPONSABILE_GESTIONE_MASSIVA
@@ -162,7 +173,7 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         
         // Ciclo i CASI B e per ogni archivio faccio il krint
         log.info(String.format("Faccio il krint delle strutture aggiornate"));
-        for (HashMap<String, Object> info : idsCasoBMap) {
+        for (HashMap<String, Object> info : idsCasoBHashMap) {
             krintScriptaService.writeSostituzioneResponsabileDaAmministratoreGedi(
                     info,
                     OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_UPDATE_STRUTTURA_GESTIONE_MASSIVA
@@ -175,21 +186,37 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         
         // Inserisco la notifica per l'AG
         log.info(String.format("Inserisco la notifica per l'AG"));
-        String oggettoAttivita = String.format( "La modifica massiva della responsabilità di %1$s fascicoli e relativi sottofascicoli è avvenuta con successo.", idsArchivi.length);
+        String oggettoAttivita = "";
+        if (idsArchivi.length == 1) 
+            oggettoAttivita = String.format( "La modifica massiva della responsabilità di un fascicolo e relativi sottofascicoli è avvenuta con successo.");
+        else
+            oggettoAttivita = String.format( "La modifica massiva della responsabilità di %1$s fascicoli e relativi sottofascicoli è avvenuta con successo.", idsArchivi.length);
         if (!idsCasoAMap.isEmpty()) {
-            oggettoAttivita = oggettoAttivita + String.format( " %1$s fascicoli hanno cambiato responsabile.", idsCasoAMap.size());
+            if (idsCasoAMap.size() == 1)
+                oggettoAttivita = oggettoAttivita + String.format( " Un fascicolo ha cambiato responsabile.");
+            else
+                oggettoAttivita = oggettoAttivita + String.format( " %1$s fascicoli hanno cambiato responsabile.", idsCasoAMap.size());
         }
         if (!idsCasoBMap.isEmpty()) {
-            oggettoAttivita = oggettoAttivita + String.format( " %1$s fascicoli hanno cambiato struttura.", idsCasoBMap.size());
+            if (idsCasoBMap.size() == 1) 
+                oggettoAttivita = oggettoAttivita + String.format( " Un fascicolo ha cambiato struttura.");
+            else
+                oggettoAttivita = oggettoAttivita + String.format( " %1$s fascicoli hanno cambiato struttura.", idsCasoBMap.size());
         }
         if (!idsArchiviList.isEmpty()) {
-            oggettoAttivita = oggettoAttivita + String.format( " %1$s fascicoli non hanno subito modifiche.", idsArchiviList.size());
+            if (idsArchiviList.size() == 1)
+                oggettoAttivita = oggettoAttivita + String.format( " Un fascicolo non ha subito modifiche.");
+            else
+                oggettoAttivita = oggettoAttivita + String.format( " %1$s fascicoli non hanno subito modifiche.", idsArchiviList.size());
         }
         insertAttivita(azienda, personaOperazione, oggettoAttivita, app);
         
         // Inserisco la notifica per il nuovo responsabile
         log.info(String.format("Inserisco la notifica il nuovo responsabile"));
-        oggettoAttivita = String.format( "Hai ricevuto la responsabilità su %1$s fascicoli dall'amministratore %2$s.", idsCasoAMap.size(), personaOperazione.getDescrizione());
+        if (idsCasoAMap.size() == 1)
+            oggettoAttivita = String.format( "Hai ricevuto la responsabilità su un fascicolo dall'amministratore %2$s.", idsCasoAMap.size(), personaOperazione.getDescrizione());
+        else
+            oggettoAttivita = String.format( "Hai ricevuto la responsabilità su %1$s fascicoli dall'amministratore %2$s.", idsCasoAMap.size(), personaOperazione.getDescrizione());
         insertAttivita(azienda, personaNuovoResponsabile, oggettoAttivita, app);
         
         // Aggiorno la massiveActionLog
@@ -205,6 +232,10 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         additionalData.put("fascicoliNonAggiornati", idsArchiviList.size());
         m.setAdditionalData(additionalData);
         massiveActionLogRepository.save(m);
+        
+        log.info(String.format("Effettuo il salvataggio dei krint creati"));
+        krintUtils.saveAllKrintsInSessionData();
+        httpSessionData.resetDataMap();
         
         log.info(String.format("Job finito"));
         

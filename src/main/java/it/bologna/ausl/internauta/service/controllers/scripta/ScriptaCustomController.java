@@ -2167,7 +2167,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
         }
         
-        Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids);
+        Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
 
         Map<String, Object> parameters = new HashMap();
         parameters.put("idsParameters", ids);
@@ -2211,11 +2211,12 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> modificaVicariAndPermessiArchivioMassivo(
             @QuerydslPredicate(root = ArchivioDetail.class) Predicate predicate,
+            @RequestParam(required = false, name = "notIds") Integer[] notIds,
             Pageable pageable,
             HttpServletRequest request,
             @RequestParam(required = false, name = "ids") Integer[] ids,
             @RequestParam(required = true, name = "vicariAndPermessi") Map<String, Object> vicariAndPermessi,
-            @RequestParam(required = true, name = "idAzienda") Integer idAzienda
+            @RequestParam(required = true, name = "idAzienda") Integer idAziendaRiferimento
     ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
             
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -2224,16 +2225,17 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         
         // Controlli di sicurezza
         List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
-        if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAzienda)) {
+        if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAziendaRiferimento)) {
             throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
         }
         
-        Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAzienda, predicate, ids);
+        Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
 
         Map<String, Object> parameters = new HashMap();
         parameters.put("idsParameters", ids);
         parameters.put("predicate", predicate.toString());
-        parameters.put("idAzienda", idAzienda);
+        parameters.put("notIds", notIds);
+        parameters.put("idAziendaRiferimento", idAziendaRiferimento);
         parameters.put("vicariAndPermessi", vicariAndPermessi);
         
         scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_VICARI_E_PERMESSI);
