@@ -2162,10 +2162,12 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
         
         // Controlli di sicurezza
+        // Sono AG per l'azienda?
         List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
         if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAziendaRiferimento)) {
             throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
         }
+        // Persona e struttura esistono e fanno parte dell'azienda?
         
         Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
 

@@ -13,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.logs.MassiveActionLogRepo
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.MassiveActionLog;
+import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.QArchivioDetail;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -53,6 +54,7 @@ public class ScriptaGestioneAbilitazioniMassiveArchiviUtils {
         QArchivioDetail qArchivioDetail = QArchivioDetail.archivioDetail;
         BooleanExpression aziendaCorretta = qArchivioDetail.idAzienda.id.eq(idAzienda);
         BooleanExpression livelloUno = qArchivioDetail.livello.eq(1);
+        BooleanExpression noBozze = qArchivioDetail.stato.ne(Archivio.StatoArchivio.BOZZA.toString());
         Integer[] idsArchivi;
         
         if (ids == null || ids.length == 0) {
@@ -61,10 +63,11 @@ public class ScriptaGestioneAbilitazioniMassiveArchiviUtils {
             if (notIds != null) {
                 notTheseArchivi = qArchivioDetail.id.notIn(notIds);
             }
+            
             List<Integer> idsCalcolati = jPAQueryFactory
                     .select(qArchivioDetail.id)
                     .from(qArchivioDetail)
-                    .where(aziendaCorretta.and(livelloUno).and(notTheseArchivi).and(predicate))
+                    .where(aziendaCorretta.and(livelloUno).and(noBozze).and(notTheseArchivi).and(predicate))
                     .fetch();
             idsArchivi = idsCalcolati.toArray(new Integer[idsCalcolati.size()]);
         } else {
@@ -72,7 +75,7 @@ public class ScriptaGestioneAbilitazioniMassiveArchiviUtils {
             List<Integer> idsCalcolati = jPAQueryFactory
                     .select(qArchivioDetail.id)
                     .from(qArchivioDetail)
-                    .where(aziendaCorretta.and(livelloUno).and(qArchivioDetail.id.in(ids)))
+                    .where(aziendaCorretta.and(livelloUno).and(noBozze).and(qArchivioDetail.id.in(ids)))
                     .fetch();
             idsArchivi = idsCalcolati.toArray(new Integer[idsCalcolati.size()]);
         }
