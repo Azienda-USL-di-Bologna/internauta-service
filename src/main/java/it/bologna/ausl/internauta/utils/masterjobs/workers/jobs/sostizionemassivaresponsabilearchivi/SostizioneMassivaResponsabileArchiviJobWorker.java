@@ -128,13 +128,17 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         log.info(String.format("PARAMETRI. idPersonaNuovoResponsabile: %1$s, idStrutturaNuovoResponsabile: %2$s, idMassiveActionLog: %3$s, idPersonaOperazione: %4$s, totaleArchivi: %5$s", 
                 idPersonaNuovoResponsabile, idStrutturaNuovoResponsabile, idMassiveActionLog, idPersonaOperazione, idsArchivi.length));
 
+        String idsArchiviString = Arrays.toString(idsArchivi);
+        idsArchiviString = idsArchiviString.substring(1, idsArchiviString.length() - 1);
+        
         // CASO A. Non faccio update ma delete e insert perché voglio sfruttare i trigger per far aggiornare i permessi sulla blackbox.
         List<Map<String, Object>> idsCasoAMap = attoreArchivioRepository.sostituisciResponsabile(
                 idsArchivi, 
                 idPersonaNuovoResponsabile, 
                 idStrutturaNuovoResponsabile,
                 personaNuovoResponsabile.getDescrizione(),
-                strutturaNuovoResponsabile.getNome());
+                strutturaNuovoResponsabile.getNome(),
+                idsArchiviString);
         List<HashMap<String, Object>> idsCasoAHashMap = objectMapper.convertValue(idsCasoAMap, new TypeReference<List<HashMap<String, Object>>>(){});
         log.info(String.format("Num archivi con responsabile sostituito: %1$s", idsCasoAMap.size()));
 

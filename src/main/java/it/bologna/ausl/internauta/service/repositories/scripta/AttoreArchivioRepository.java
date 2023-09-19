@@ -32,7 +32,8 @@ public interface AttoreArchivioRepository extends
                 + " INSERT INTO scripta.attori_archivi (id_archivio, id_persona, id_struttura, ruolo)"
                 + " SELECT DISTINCT i.id_archivio, ?2, ?3, 'RESPONSABILE'\\:\\:scripta.ruolo_attore_archivio"
 //                + " FROM responsabili_old i"
-                + " FROM unnest(ARRAY[?1]) AS i(id_archivio)"
+                + " FROM UNNEST(STRING_TO_ARRAY(?6, ',')\\:\\:integer[]) AS i(id_archivio)"
+                + " WHERE NOT EXISTS (SELECT 1 FROM scripta.attori_archivi att WHERE att.id_archivio = i.id_archivio AND ruolo = 'RESPONSABILE'\\:\\:scripta.ruolo_attore_archivio)"
                 + " RETURNING id_archivio, id as idAttoreArchivioNewResponsabile "
         + ") SELECT DISTINCT "
                 + "o.id_archivio as \"idArchivio\", "
@@ -53,7 +54,8 @@ public interface AttoreArchivioRepository extends
             Integer idPersonaNuovoResponsabile,
             Integer idStrutturaResponsabile,
             String descrizioneNewResponsabile,
-            String descrizioneStrutturaNewResponsabile
+            String descrizioneStrutturaNewResponsabile,
+            String idsArchiviString
     );
     
     @Query(value = 
@@ -71,7 +73,7 @@ public interface AttoreArchivioRepository extends
                 + " aa.id as \"idAttoreArchivioNewResponsabile\", "
                 + " ?3 AS \"idStrutturaNewResponsabile\", "
                 + " ?5 AS \"descrizioneStrutturaNewResponsabile\", "
-                + " ?4 AS \"descrizioneNewResponsabile\", ",
+                + " ?4 AS \"descrizioneNewResponsabile\" ",
         nativeQuery = true)
     public List<Map<String, Object>> aggiornaStrutturaResponsabile(
             Integer[] idsArchivi,
