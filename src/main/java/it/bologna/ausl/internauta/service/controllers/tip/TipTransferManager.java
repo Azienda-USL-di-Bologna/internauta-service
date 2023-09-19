@@ -789,7 +789,7 @@ public class TipTransferManager {
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getProponente())) {
-            for (String attoreString : importazioneDocumento.getFirmatario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getProponente().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.FIRMA));
             }
         }
@@ -804,12 +804,12 @@ public class TipTransferManager {
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getDirettoreSanitario())) {
-            for (String attoreString : importazioneDocumento.getFirmatario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getDirettoreSanitario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.DIRETTORE_SANITARIO));
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getDirettoreGenerale())) {
-            for (String attoreString : importazioneDocumento.getFirmatario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getDirettoreGenerale().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.DIRETTORE_GENERALE));
             }
         }
