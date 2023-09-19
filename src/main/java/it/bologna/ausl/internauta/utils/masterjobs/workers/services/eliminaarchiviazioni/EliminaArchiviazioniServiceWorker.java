@@ -57,17 +57,17 @@ public class EliminaArchiviazioniServiceWorker extends ServiceWorker {
                 tempoEliminaArchiviazioni = parametriAziende.getValue(parameters.get(0), Integer.class);
                 log.info("il tempo di permanenza delle archiviazioni logicamente eliminate è di {} giorni", tempoEliminaArchiviazioni);
                 if (tempoEliminaArchiviazioni >= 0) {
-                EliminaArchiviazioniJobWorkerData eliminaArchiviazioniJobWorkerData = new EliminaArchiviazioniJobWorkerData(azienda.getId(), tempoEliminaArchiviazioni, "servizio Notturno");
-                EliminaArchiviazioniJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(EliminaArchiviazioniJobWorker.class, eliminaArchiviazioniJobWorkerData, false);
-                try {
-                    super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.gedi.toString(), false, Set.SetPriority.NORMAL);
+                    EliminaArchiviazioniJobWorkerData eliminaArchiviazioniJobWorkerData = new EliminaArchiviazioniJobWorkerData(azienda.getId(), tempoEliminaArchiviazioni, "servizio Notturno");
+                    EliminaArchiviazioniJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(EliminaArchiviazioniJobWorker.class, eliminaArchiviazioniJobWorkerData, false);
+                    try {
+                        super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.gedi.toString(), false, Set.SetPriority.NORMAL);
 
-                } catch (MasterjobsQueuingException ex) {
-                    String errorMessage = "errore nell'accodamento del job di trasformazione";
-                    log.error(errorMessage);
-                    throw new MasterjobsWorkerException(errorMessage, ex);
+                    } catch (MasterjobsQueuingException ex) {
+                        String errorMessage = "errore nell'accodamento del job di trasformazione";
+                        log.error(errorMessage);
+                        throw new MasterjobsWorkerException(errorMessage, ex);
+                    }
                 }
-            }
             }
         }
         log.info(String.format("end %s...", getName()));

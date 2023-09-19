@@ -62,7 +62,7 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
 
     @Autowired
     private PermissionManager permissionManager;
-    
+
     @Value("${internauta.cache.redis.prefix}")
     private String prefixInternauta;
 
@@ -79,7 +79,7 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
 
         //carico la persona a cui devo spegnere/accendere i permessi/ruoli
         Persona persona = personaRepository.findById(getWorkerData().getIdPersona()).get();
-        
+
         //carico l'utente a cui devo spegnere/accendere i permessi/ruoli
         Utente utente = utenteRepository.findByIdAziendaAndIdPersona(azienda, persona);
 //      carico tutti i predicati dei permessi che servono al profilo nuovo
@@ -111,10 +111,8 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
                 predicatiNew.removeAll(predicatiOldC);
                 pprDaAttivare = pprNews.stream().filter(pprNew -> predicatiNew.contains(pprNew.getPredicato())).collect(Collectors.toList());
             }
-            
-//            // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
-//            cleanUtenteStrutturaCache(utente);
         }
+
         if (profilNew != null) {
             Object soggetto = new Object();
             Object oggetto = new Object();
@@ -124,101 +122,97 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
             }
             //se non è vuoto devo attivare alcuni permessi
             if (!pprDaAttivare.isEmpty()) {
-
+                //setto il ruolo a 1 (utente generico)
+                Integer sommaRuoliUtente = 1;
+                Integer sommaRuoliPersona = 1;
                 for (ProfiliPredicatiRuoli ppr : pprDaAttivare) {
-                    if (null == ppr.getTipoSoggetto()) {
-                        String errorMsg = "Errore nell'inserimento del permesso Tipologia soggetto non riconosciuto " + ppr.getTipoSoggetto().toString();
-                        log.error(errorMsg);
-                        throw new MasterjobsWorkerException(errorMsg);
-                    } else //creo il soggetto per la blackbox
-                        switch (ppr.getTipoSoggetto()) {
-                            case UTENTE:
-                                soggetto = utente;
-                                break;
-                            case PERSONA:
-                                //se il tipo di soggetto è PERSONA
-                                soggetto = persona;
-                                break;
-                            default:
-                                String errorMsg = "Errore nell'inserimento del permesso Tipologia soggetto non riconosciuto " + ppr.getTipoSoggetto().toString();
-                                log.error(errorMsg);
-                                throw new MasterjobsWorkerException(errorMsg);
-                    }
+                    if (ppr.getPredicato() != null) {
+                        if (null == ppr.getTipoSoggetto()) {
+                            String errorMsg = "Errore nell'inserimento del permesso Tipologia soggetto non riconosciuto " + ppr.getTipoSoggetto().toString();
+                            log.error(errorMsg);
+                            throw new MasterjobsWorkerException(errorMsg);
+                        } else {
+                            //creo il soggetto per la blackbox
+                            switch (ppr.getTipoSoggetto()) {
+                                case UTENTE:
+                                    soggetto = utente;
+                                    break;
+                                case PERSONA:
+                                    //se il tipo di soggetto è PERSONA
+                                    soggetto = persona;
+                                    break;
+                                default:
+                                    String errorMsg = "Errore nell'inserimento del permesso Tipologia soggetto non riconosciuto " + ppr.getTipoSoggetto().toString();
+                                    log.error(errorMsg);
+                                    throw new MasterjobsWorkerException(errorMsg);
+                            }
+                        }
 
-
-                    if (null== ppr.getTipoOggetto()) {
-                        String errorMsg = "Errore nell'inserimento del permesso Tipologia soggetto non riconosciuto " + ppr.getTipoSoggetto().toString();
-                        log.error(errorMsg);
-                        throw new MasterjobsWorkerException(errorMsg);
-                    } else {
-                        //creo l'oggetto per la blackbox
-                        switch (ppr.getTipoOggetto()) {
-                            case STRUTTURE:
-                                for (UtenteStruttura us : utente.getUtenteStrutturaList()){
-                                    if (us.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.DIRETTA){
-                                        oggetto = us.getIdStruttura();
+                        if (null == ppr.getTipoOggetto()) {
+                            String errorMsg = "Errore nell'inserimento del permesso Tipologia soggetto non riconosciuto " + ppr.getTipoSoggetto().toString();
+                            log.error(errorMsg);
+                            throw new MasterjobsWorkerException(errorMsg);
+                        } else {
+                            //creo l'oggetto per la blackbox
+                            switch (ppr.getTipoOggetto()) {
+                                case STRUTTURE:
+                                    for (UtenteStruttura us : utente.getUtenteStrutturaList()) {
+                                        if (us.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.DIRETTA) {
+                                            oggetto = us.getIdStruttura();
+                                        }
                                     }
-                                }   
-                                break;
-                            case ARCHIVI:
-                            case PEC:
-                            case UTENTI:
-                            case CONTATTI:
-                            default:
-                                String errorMsg = "Errore nell'inserimento del permesso Tipologia soggetto non riconosciuto " + ppr.getTipoSoggetto().toString();
-                                log.error(errorMsg);
-                                throw new MasterjobsWorkerException(errorMsg);
+                                    break;
+                                case ARCHIVI:
+                                case PEC:
+                                case UTENTI:
+                                case CONTATTI:
+                                default:
+                                    String errorMsg = "Errore nell'inserimento del permesso Tipologia soggetto non riconosciuto " + ppr.getTipoSoggetto().toString();
+                                    log.error(errorMsg);
+                                    throw new MasterjobsWorkerException(errorMsg);
+                            }
+                        }
+
+                        try {
+                            permissionManager.insertSimplePermission(soggetto, oggetto, ppr.getPredicato(), null, false, false, ppr.getTipoAmbito().toString(), ppr.getTipoPermesso().toString());
+                        } catch (BlackBoxPermissionException ex) {
+                            String errorMsg = "Errore nell'inserimento del permesso qualcosa è andato storto";
+                            log.error(errorMsg, ex);
+                            throw new MasterjobsWorkerException(errorMsg, ex);
+                        }
+                    } else {
+                        //inizio a gestire la parte di ruoli
+                        //qui non devo tenere conto delle date
+                        //aggiungo al valore del ruolo quello che serve per il profilo
+                        if (ppr.getIdRuolo() != null) {
+                            if (ppr.getTipoSoggetto().equals(ProfiliPredicatiRuoli.TipoSoggetto.UTENTE)) {
+                                sommaRuoliUtente += ppr.getIdRuolo().getMascheraBit();
+                            } else {
+                                sommaRuoliPersona += ppr.getIdRuolo().getMascheraBit();
+                            }
                         }
                     }
-
-                    try {
-                        permissionManager.insertSimplePermission(soggetto, oggetto,ppr.getPredicato(), null, false, false, ppr.getTipoAmbito().toString(), ppr.getTipoPermesso().toString());
-                    } catch (BlackBoxPermissionException ex) {
-                        String errorMsg = "Errore nell'inserimento del permesso qualcosa è andato storto";
-                        log.error(errorMsg, ex);
-                        throw new MasterjobsWorkerException(errorMsg, ex);
-                    }
                 }
-            }
-
-            //inizio a gestire la parte di ruoli
-            //qui non devo tenere conto delle date
-            //setto il ruolo a 1 (utente generico)
-            Integer sommaRuoliUtente = 1;
-            Integer sommaRuoliPersona = 1;
-            for (ProfiliPredicatiRuoli ppr : pprNews) {
-                //aggiungo al valore del ruolo quello che serve per il profilo
-                if (ppr.getIdRuolo() != null ) {
-                    if (ppr.getTipoSoggetto().equals(ProfiliPredicatiRuoli.TipoSoggetto.UTENTE)) {
-                        sommaRuoliUtente += ppr.getIdRuolo().getMascheraBit();
-                    } else {
-                        sommaRuoliPersona += ppr.getIdRuolo().getMascheraBit();
-                    }
-                }
-            }
-            //setto il ruolo ottenuto sulla persona / sull'utente e salvo
-            persona.setBitRuoli(sommaRuoliPersona);
-            utente.setBitRuoli(sommaRuoliUtente);
-            personaRepository.save(persona);
-            utenteRepository.save(utente);
-            
-//            // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
-//            cleanUtenteStrutturaCache(utente);
+                //setto il ruolo ottenuto sulla persona / sull'utente e salvo
+                persona.setBitRuoli(sommaRuoliPersona);
+                utente.setBitRuoli(sommaRuoliUtente);
+                personaRepository.save(persona);
+                utenteRepository.save(utente);
+            }            
         }
-        
+
         // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
         cleanUtenteStrutturaCache(utente);
         return null;
     }
-    
-    
+
     private void cleanUtenteStrutturaCache(Utente utente) {
         String prefix = "getPermessiFilteredByAdditionalData__ribaltorg__";
         String params = prefixInternauta + prefix + "::" + utente.toString().replace("[", "\\[").replace("]", "\\]") + "*";
         log.info(String.format("pulisco la cache di utente_struttura con la chiave: %s", params));
         Set<String> keys = redisTemplate.keys(params);
         redisTemplate.delete(keys);
-        
+
         // gestione storico
         prefix = "getPermessiFilteredByAdditionalDataByIdUtente__ribaltorg__";
         params = prefixInternauta + prefix + "::" + utente.getId() + "*";
@@ -226,19 +220,17 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
         Set<String> keys2 = redisTemplate.keys(params);
         redisTemplate.delete(keys2);
     }
-    
 
     @Override
     public String getName() {
         return this.name;
     }
 
-
     private List<ProfiliPredicatiRuoli> processProfiliPredicatiRuoli(String profilo, List<String> predicati, List<Ruolo> ruoli) {
-        
+
         BooleanExpression profiloExpr = QProfiliPredicatiRuoli.profiliPredicatiRuoli.idProfilo.id.eq(profilo);
 //        Iterable<ProfiliPredicatiRuoli> pprList = profiliPredicatiRuoliRepository.findAll(profiloExpr);
-        
+
         JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
         List<ProfiliPredicatiRuoli> predicatiRuoliDelProfilo = queryFactory
                 .select(QProfiliPredicatiRuoli.profiliPredicatiRuoli)
