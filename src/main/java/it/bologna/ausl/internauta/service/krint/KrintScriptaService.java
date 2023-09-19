@@ -473,7 +473,6 @@ public class KrintScriptaService {
             krintArchivio.put("id", sameInfo.get("idArchivio"));
             krintArchivio.put("numerazioneGerarchica", sameInfo.get("numerazioneGerarchica"));
             
-            log.info("STO LOGGANDO IL KRINT");
             krintService.writeKrintRow(
                     sameInfo.get("idAttoreArchivioNewResponsabile").toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ATTORE_ARCHIVIO, // tipoOggetto
@@ -485,7 +484,6 @@ public class KrintScriptaService {
                     krintArchivio,
                     operazione
             );
-            log.info("KRINT LOGGATO");
         } catch (Exception ex) {
             log.error("Errore nella writeSostituzioneResponsabileDaAmministratoreGedi con archivio " + sameInfo.get("idAttoreArchivioNewResponsabile").toString(), ex);
             krintService.writeKrintError((Integer) sameInfo.get("idAttoreArchivioNewResponsabile"), "writeSostituzioneResponsabileDaAmministratoreGedi", operazione);

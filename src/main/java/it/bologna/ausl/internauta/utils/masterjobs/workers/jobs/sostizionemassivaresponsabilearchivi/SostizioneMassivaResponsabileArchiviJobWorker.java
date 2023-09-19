@@ -143,6 +143,7 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
                 idsArchivi, 
                 idPersonaNuovoResponsabile, 
                 idStrutturaNuovoResponsabile,
+                personaNuovoResponsabile.getDescrizione(),
                 strutturaNuovoResponsabile.getNome());
         List<HashMap<String, Object>> idsCasoBHashMap = objectMapper.convertValue(idsCasoBMap, new TypeReference<List<HashMap<String, Object>>>(){});
         log.info(String.format("Num archivi con struttura responsabile aggiornata: %1$s", idsCasoBMap.size()));
