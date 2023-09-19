@@ -152,6 +152,7 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.MassiveActionLogRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRepository;
@@ -218,6 +219,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private MessageRepository messageRepository;
+    
+    @Autowired
+    private StrutturaRepository strutturaRepository;
 
     @Autowired
     private PermissionManager permissionManager;
@@ -2168,6 +2172,16 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
         }
         // Persona e struttura esistono e fanno parte dell'azienda?
+        Persona personaResponsabile = personaRepository.getById(idPersonaNuovoResponsabile);
+        Struttura strutturaResponsabile = strutturaRepository.getById(idStrutturaNuovoResponsabile);
+        if (personaResponsabile == null || strutturaResponsabile == null) {
+            throw new Http403ResponseException("2", "responsabile e struttura non trovato");
+        }
+        List<Utente> utenteList = personaResponsabile.getUtenteList();
+        boolean utenteInAzienda = utenteList.stream().anyMatch(u -> u.getIdAzienda().getId().equals(idAziendaRiferimento) && u.getAttivo().equals(true));
+        if (!utenteInAzienda || !strutturaResponsabile.getIdAzienda().getId().equals(idAziendaRiferimento)) {
+            throw new Http403ResponseException("2", "responsabile e struttura non fanno parte dell'azienda");
+        }
         
         Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
 

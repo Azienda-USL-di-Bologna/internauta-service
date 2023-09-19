@@ -216,14 +216,17 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         }
         insertAttivita(azienda, personaOperazione, oggettoAttivita, app);
         
-        // Inserisco la notifica per il nuovo responsabile
-        log.info(String.format("Inserisco la notifica il nuovo responsabile"));
-        if (idsCasoAMap.size() == 1)
-            oggettoAttivita = String.format( "Hai ricevuto la responsabilità su un fascicolo dall'amministratore %2$s.", idsCasoAMap.size(), personaOperazione.getDescrizione());
-        else
-            oggettoAttivita = String.format( "Hai ricevuto la responsabilità su %1$s fascicoli dall'amministratore %2$s.", idsCasoAMap.size(), personaOperazione.getDescrizione());
-        insertAttivita(azienda, personaNuovoResponsabile, oggettoAttivita, app);
-        
+        if (idsCasoAMap.size() > 0) {
+            // Inserisco la notifica per il nuovo responsabile
+            log.info(String.format("Inserisco la notifica il nuovo responsabile"));
+            if (idsCasoAMap.size() == 1)
+                oggettoAttivita = String.format( "Hai ricevuto la responsabilità su un fascicolo dall'amministratore %2$s.", idsCasoAMap.size(), personaOperazione.getDescrizione());
+            else
+                oggettoAttivita = String.format( "Hai ricevuto la responsabilità su %1$s fascicoli dall'amministratore %2$s.", idsCasoAMap.size(), personaOperazione.getDescrizione());
+            insertAttivita(azienda, personaNuovoResponsabile, oggettoAttivita, app);
+        } else {
+            log.info(String.format("Nessun fascicolo ha ricevuto il nuovo responsabile."));
+        }
         // Aggiorno la massiveActionLog
         log.info(String.format("Aggiorno la massiveActionLog"));
         MassiveActionLog m = massiveActionLogRepository.getById(idMassiveActionLog);

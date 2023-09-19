@@ -36,17 +36,17 @@ public interface AttoreArchivioRepository extends
                 + " WHERE NOT EXISTS (SELECT 1 FROM scripta.attori_archivi att WHERE att.id_archivio = i.id_archivio AND ruolo = 'RESPONSABILE'\\:\\:scripta.ruolo_attore_archivio)"
                 + " RETURNING id_archivio, id as idAttoreArchivioNewResponsabile "
         + ") SELECT DISTINCT "
-                + "o.id_archivio as \"idArchivio\", "
-                + "id_persona as \"idPersonaOldResponsabile\", "
-                + "descrizione as \"descrizioneOldResponsabile\", "
+                + "n.id_archivio as \"idArchivio\", "
+                + "o.id_persona as \"idPersonaOldResponsabile\", "
+                + "COALESCE(o.descrizione, 'nessuno') as \"descrizioneOldResponsabile\", "
                 + "?2 as \"idPersonaNewResponsabile\", "
                 + "?3 as \"idStrutturaNewResponsabile\",  "
                 + "?4 as \"descrizioneNewResponsabile\", "
                 + "?5 as \"descrizioneStrutturaNewResponsabile\", "
                 + "idAttoreArchivioNewResponsabile AS \"idAttoreArchivioNewResponsabile\", "
                 + "a.numerazione_gerarchica as \"numerazioneGerarchica\""
-            + " FROM responsabili_old o"
-            + " JOIN responsabili_new n ON n.id_archivio = o.id_archivio"
+            + " FROM responsabili_new n"
+            + " LEFT JOIN responsabili_old o ON n.id_archivio = o.id_archivio"
             + " JOIN scripta.archivi a ON a.id = n.id_archivio", 
         nativeQuery = true)
     public List<Map<String, Object>> sostituisciResponsabile(
