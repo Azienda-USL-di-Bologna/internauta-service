@@ -68,7 +68,7 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
     public JobWorkerResult doRealWork() throws MasterjobsWorkerException {
         Integer idAzienda = getWorkerData().getIdAzienda();
         Integer tempoEliminaArchiviazioni = getWorkerData().getTempoEliminaArchiviazioni();
-        log.info("sono in do doWork() di {} per l'azienda {}", getName(), idAzienda);
+        log.info("sono in do doWork() di {} per l'azienda {} v2", getName(), idAzienda);
         // tutte le operazioni sul db (non minio) saranno fatte in transazione separata e committate subito!!!
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         
