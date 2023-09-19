@@ -69,8 +69,8 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
         Integer idAzienda = getWorkerData().getIdAzienda();
         Integer tempoEliminaArchiviazioni = getWorkerData().getTempoEliminaArchiviazioni();
         log.info("sono in do doWork() di {} per l'azienda {}", getName(), idAzienda);
+        // tutte le operazioni sul db (non minio) saranno fatte in transazione separata e committate subito!!!
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-        JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
         
         // pesco tutte le righe di archivio_docs eliminate logicamente prima di tot giorni quanto deciso dal paramentro
         Predicate predicatoArchiviDocsDaEliminare = QArchivioDoc.archivioDoc.dataEliminazione.isNotNull()
@@ -107,7 +107,9 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                             .and(QArchivioDoc.archivioDoc.dataEliminazione.isNull()
                                         .or(QArchivioDoc.archivioDoc.dataEliminazione.after(ZonedDateTime.now().minusDays(tempoEliminaArchiviazioni))));
         
-                    Iterable<ArchivioDoc> achiviDocsNonEliminati = archivioDocRepository.findAll(predicatoAchiviDocsNonEliminati);
+                    Iterable<ArchivioDoc> achiviDocsNonEliminati = transactionTemplate.execute(a -> {
+                        return archivioDocRepository.findAll(predicatoAchiviDocsNonEliminati);
+                    });
                     Iterator<ArchivioDoc> iteratorAchiviDocsNonEliminati = achiviDocsNonEliminati.iterator();
                     // se non ha altre archiviazioni valide e se è un DOCUMENT_UTENTE elimino il doc
                     if(!iteratorAchiviDocsNonEliminati.hasNext() && docDaTrattare.getTipologia().equals(DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE)) {
@@ -115,49 +117,57 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
                         log.info("il doc {} non ha archiviazioni ancora valide ed è DOCUMENT_UTENTE, quindi procedo ad eliminarlo", docDaTrattare.getId());
                         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
                         // ottengo tutti gli allegati del doc preso in causa
-                        List<Allegato> allegati = docDaTrattare.getAllegati();
-                        if (allegati.isEmpty()) {
+                        Predicate predicatoAllegatiDelDoc = QAllegato.allegato.idDoc.id.eq(docDaTrattare.getId());
+        
+                        Iterable<Allegato> allegatiDelDoc = transactionTemplate.execute(a -> {
+                            return allegatoRepository.findAll(predicatoAllegatiDelDoc);
+                        });
+                        Iterator<Allegato> iteratorAllegatiDelDoc = allegatiDelDoc.iterator();
+                        // conrollo che il doc abbia effetivamente allegati
+                        if (!iteratorAllegatiDelDoc.hasNext()) {
                             log.info("non ho trovato allegati per il doc {}", docDaTrattare.getId());
-                        }
-                            
-                        // ciclo tutti gli allegati del doc preso in causa
-                        for (Allegato allegato : allegati) {
-                            List<Allegato.DettaglioAllegato> allTipiDettagliAllegati = new ArrayList<>();
-                            if (allegato.getDettagli() != null) {
-                                allTipiDettagliAllegati = allegato.getDettagli().getAllTipiDettagliAllegati();
-                            }
-                            // ciclo tutti i dettagli dell'allegato del doc preso in causa
-                            for (Allegato.DettaglioAllegato dettaglioAllegato : allTipiDettagliAllegati) {
-                                try {
-                                    // elimino il file da minio del dettaglio dell'allegato del doc preso in causa
-                                    minIOWrapper.deleteByFileId(dettaglioAllegato.getIdRepository());
-                                    log.info("ho eliminato l'allegato {} del doc {} dal minio",allegato.getId(), docDaTrattare.getId());
-                                } catch (MinIOWrapperException ex) {
-                                    log.error("errore nella delete del'allegato {} del doc {} dal minio",allegato.getId(), docDaTrattare.getId());
-                                    // ritorno l'eccezione così da non eliminare la riga sul db dell'allegato del doc preso in causa 
-                                    throw new Exception(ex);
+                        } else {
+                            // ciclo tutti gli allegati del doc preso in causa
+                            for (Allegato allegato : allegatiDelDoc) {
+                                List<Allegato.DettaglioAllegato> allTipiDettagliAllegati = new ArrayList<>();
+                                if (allegato.getDettagli() != null) {
+                                    allTipiDettagliAllegati = allegato.getDettagli().getAllTipiDettagliAllegati();
                                 }
+                                // ciclo tutti i dettagli dell'allegato del doc preso in causa
+                                for (Allegato.DettaglioAllegato dettaglioAllegato : allTipiDettagliAllegati) {
+                                    try {
+                                        // elimino il file da minio del dettaglio dell'allegato del doc preso in causa
+                                        minIOWrapper.deleteByFileId(dettaglioAllegato.getIdRepository());
+                                        log.info("ho eliminato l'allegato {} del doc {} dal minio",allegato.getId(), docDaTrattare.getId());
+                                    } catch (MinIOWrapperException ex) {
+                                        log.error("errore nella delete del'allegato {} del doc {} dal minio",allegato.getId(), docDaTrattare.getId());
+                                        // ritorno l'eccezione così da non eliminare la riga sul db dell'allegato del doc preso in causa 
+                                        throw new Exception(ex);
+                                    }
+                                }
+                                // se seono arrivato qui vuol dire che ho eliminato tutti i file dell'allegato dal db,
+                                // ergo posso eliminare la riga dell'allegato
+                                log.info("elimino l'allegato {} del doc {} dal db", allegato.getId(), docDaTrattare.getId());
+                                transactionTemplate.executeWithoutResult(a -> {
+                                    allegatoRepository.delete(allegato);
+                                });
                             }
-                            // se seono arrivato qui vuol dire che ho eliminato tutti i file dell'allegato dal db,
-                            // ergo posso eliminare la riga dell'allegato
-                            log.info("elimino l'allegato {} del doc {} dal db", allegato.getId(), docDaTrattare.getId());
-                            transactionTemplate.executeWithoutResult(a -> {
-                                allegatoRepository.delete(allegato);
-                            });
                         }
-                        // arrivato a questo punto sono certo di aver eliminato tutti gli allegati del doc preso in causa ergo posso eliminare pure lui
+                        // arrivato a questo punto sono certo di aver eliminato tutti gli allegati del doc preso in causa dal db e minio 
+                        // ergo posso eliminare pure il doc stesso
                         log.info("elimino il doc {} dal db", docDaTrattare.getId());
                         transactionTemplate.executeWithoutResult(a -> {
                             docRepository.deleteById(docDaTrattare.getId());
                         });
                     } else if (!docDaTrattare.getTipologia().equals(DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE)){
                         log.info("non faccio nulla per il doc {} poiché non è un DOCUMENT_UTENTE", docDaTrattare.getId());
+                        // calcolo le persone vedente poiché ho eliminato l'archiviazione
                         personaVedenteRepository.calcolaPersoneVedenti(docDaTrattare.getId());
                     } else {
                         log.info("non faccio nulla per il doc {} poiché ancora usato", docDaTrattare.getId());
+                        // calcolo le persone vedente poiché ho eliminato l'archiviazione
                         personaVedenteRepository.calcolaPersoneVedenti(docDaTrattare.getId());
                     }
-                    
                 } catch (Exception ex) {
                     log.error("errore nella delete dell'archivio_docs ".concat(archivioDoc.getId().toString()), ex );
                 }
@@ -169,6 +179,4 @@ public class EliminaArchiviazioniJobWorker extends JobWorker<EliminaArchiviazion
         log.info("job finito");
         return null;
     }
-    
-    
 }
