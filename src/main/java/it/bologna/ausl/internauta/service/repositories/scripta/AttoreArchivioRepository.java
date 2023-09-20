@@ -6,7 +6,6 @@ import it.bologna.ausl.model.entities.scripta.projections.generated.AttoreArchiv
 import it.nextsw.common.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;

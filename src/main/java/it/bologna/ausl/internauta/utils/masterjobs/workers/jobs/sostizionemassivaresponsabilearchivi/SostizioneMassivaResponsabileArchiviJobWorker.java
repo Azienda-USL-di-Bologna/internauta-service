@@ -32,6 +32,7 @@ import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import it.bologna.ausl.model.entities.scrivania.Attivita.TipoAttivita;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -121,6 +122,7 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         Struttura strutturaNuovoResponsabile = strutturaRepository.getById(idStrutturaNuovoResponsabile);
         Azienda azienda = aziendaRepository.getById(idAzienda);
         Persona personaOperazione = personaRepository.getById(idPersonaOperazione);
+        MassiveActionLog m = massiveActionLogRepository.getById(idMassiveActionLog);
         
         // Setto come utente loggato l'utente amministratore gedi che effettua l'operazione
         authorizationUtils.insertInContext(utenteOperazione, 0, null, Applicazione.Applicazioni.scripta.toString(), false);
@@ -192,10 +194,16 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         // Inserisco la notifica per l'AG
         log.info(String.format("Inserisco la notifica per l'AG"));
         String oggettoAttivita = "";
+        ZonedDateTime dataOraOperazione = m.getInsertionDate();
+        DateTimeFormatter formatterData = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        String dataFormattata = dataOraOperazione.format(formatterData);
+        DateTimeFormatter formatterOrario = DateTimeFormatter.ofPattern("HH:mm");
+        String orarioFormattato = dataOraOperazione.format(formatterOrario);
+        
         if (idsArchivi.length == 1) 
-            oggettoAttivita = String.format( "La modifica massiva della responsabilità di un fascicolo e relativi sottofascicoli è avvenuta con successo.");
+            oggettoAttivita = String.format( "La modifica massiva che hai richiesto il %1$s alle %2$s della responsabilità di un fascicolo e relativi sottofascicoli è avvenuta con successo.", dataFormattata, orarioFormattato);
         else
-            oggettoAttivita = String.format( "La modifica massiva della responsabilità di %1$s fascicoli e relativi sottofascicoli è avvenuta con successo.", idsArchivi.length);
+            oggettoAttivita = String.format( "La modifica massiva che hai richiesto il %1$s alle %2$s della responsabilità di %3$s fascicoli e relativi sottofascicoli è avvenuta con successo.", dataFormattata, orarioFormattato, idsArchivi.length);
         if (!idsCasoAMap.isEmpty()) {
             if (idsCasoAMap.size() == 1)
                 oggettoAttivita = oggettoAttivita + String.format( " Un fascicolo ha cambiato responsabile.");
@@ -229,7 +237,6 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         }
         // Aggiorno la massiveActionLog
         log.info(String.format("Aggiorno la massiveActionLog"));
-        MassiveActionLog m = massiveActionLogRepository.getById(idMassiveActionLog);
         m.setCompletionDate(ZonedDateTime.now());
         Map<String, Object> additionalData = m.getAdditionalData();
         if (additionalData == null) {
