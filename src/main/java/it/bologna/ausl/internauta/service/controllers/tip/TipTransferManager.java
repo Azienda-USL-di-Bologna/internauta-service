@@ -905,6 +905,7 @@ public class TipTransferManager {
             versamento.setDataInserimento(TipDataValidator.parseData(importazioneDocumento.getDataInvioConservazione()).atStartOfDay(ZoneId.systemDefault()));
             versamento.setIgnora(true);
             versamento.setForzabile(false);
+            versamento.setStato(Versamento.StatoVersamento.VERSATO);
             versamento.setForzabileConcordato(false);
             if (doc.getVersamentiList() == null) {
                 doc.setVersamentiList(new ArrayList<>());
