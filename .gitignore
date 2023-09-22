@@ -20,3 +20,4 @@ application_aovr.properties
 firma/jnj/client-info.json
 firma/remota/infocert/azeroSSL.p12
 firma/test.pdf
+resources/reporter

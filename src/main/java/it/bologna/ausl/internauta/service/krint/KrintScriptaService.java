@@ -461,4 +461,32 @@ public class KrintScriptaService {
         HashMap<String, Object> map = objectMapper.readValue(jsonKrintArchivio, HashMap.class);
         return map;
     }
+    
+    
+    public void writeSostituzioneResponsabileDaAmministratoreGedi(
+            HashMap<String, Object> sameInfo,
+            OperazioneKrint.CodiceOperazione operazione
+    ) {
+        try {
+            // Informazioni oggetto contenitore
+            HashMap<String, Object> krintArchivio = new HashMap();
+            krintArchivio.put("id", sameInfo.get("idArchivio"));
+            krintArchivio.put("numerazioneGerarchica", sameInfo.get("numerazioneGerarchica"));
+            
+            krintService.writeKrintRow(
+                    sameInfo.get("idAttoreArchivioNewResponsabile").toString(), // idOggetto
+                    Krint.TipoOggettoKrint.SCRIPTA_ATTORE_ARCHIVIO, // tipoOggetto
+                    sameInfo.get("descrizioneNewResponsabile").toString(), // descrizioneOggetto
+                    sameInfo, // informazioniOggetto
+                    sameInfo.get("idArchivio").toString(), // Da qui si ripete ma per il conenitore
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
+                    sameInfo.get("numerazioneGerarchica").toString(),
+                    krintArchivio,
+                    operazione
+            );
+        } catch (Exception ex) {
+            log.error("Errore nella writeSostituzioneResponsabileDaAmministratoreGedi con archivio " + sameInfo.get("idAttoreArchivioNewResponsabile").toString(), ex);
+            krintService.writeKrintError((Integer) sameInfo.get("idAttoreArchivioNewResponsabile"), "writeSostituzioneResponsabileDaAmministratoreGedi", operazione);
+        }
+    }
 }

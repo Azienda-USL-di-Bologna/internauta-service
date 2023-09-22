@@ -53,6 +53,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -151,24 +152,38 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
+import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
+import it.bologna.ausl.internauta.service.repositories.logs.MassiveActionLogRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRepository;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.versatore.VersatoreServiceUtils;
+import it.bologna.ausl.model.entities.baborg.Ruolo;
+import it.bologna.ausl.model.entities.logs.MassiveActionLog;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
+import it.bologna.ausl.model.entities.masterjobs.Set;
+import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.Versamento;
 import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.ERRORE_RITENTABILE;
 import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.FORZARE;
+import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.tika.mime.MimeTypeException;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.querydsl.binding.QuerydslPredicate;
+import org.springframework.http.MediaType;
 
 /**
  *
@@ -186,6 +201,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private ConfigParams configParams;
+    
+    @Autowired
+    private ApplicazioneRepository applicazioneRepository;
 
     @Autowired
     private CachedEntities cachedEntities;
@@ -201,6 +219,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private MessageRepository messageRepository;
+    
+    @Autowired
+    private StrutturaRepository strutturaRepository;
 
     @Autowired
     private PermissionManager permissionManager;
@@ -246,6 +267,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private PecRepository pecRepository;
+    
+    @Autowired
+    private AttoreArchivioRepository attoreArchivioRepository;
 
     @PersistenceContext
     private EntityManager em;
@@ -300,6 +324,12 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     
     @Autowired
     private JobNotifiedRepository jobNotifiedRepository;
+    
+    @Autowired
+    private MassiveActionLogRepository massiveActionLogRepository;
+    
+    @Autowired
+    private ScriptaGestioneAbilitazioniMassiveArchiviUtils scriptaGestioneAbilitazioniMassiveArchiviUtils;
 
     @Autowired
     private KrintScriptaService krintScriptaService;
@@ -2117,5 +2147,159 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 break;
         }
         return new ResponseEntity("", HttpStatus.OK);
+    }
+    
+    @RequestMapping(value = {"sostituisciResponsabileArchivioMassivo"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> sostituisciResponsabileArchivioMassivo(
+            @QuerydslPredicate(root = ArchivioDetail.class) Predicate predicate,
+            @RequestParam(required = false, name = "notIds") Integer[] notIds,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "ids") Integer[] ids,
+            @RequestParam(required = true, name = "idPersonaNuovoResponsabile") Integer idPersonaNuovoResponsabile,
+            @RequestParam(required = true, name = "idStrutturaNuovoResponsabile") Integer idStrutturaNuovoResponsabile,
+            @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento
+    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
+        
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
+        
+        // Controlli di sicurezza
+        // Sono AG per l'azienda?
+        List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
+        if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAziendaRiferimento)) {
+            throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
+        }
+        // Persona e struttura esistono e fanno parte dell'azienda?
+        Persona personaResponsabile = personaRepository.getById(idPersonaNuovoResponsabile);
+        Struttura strutturaResponsabile = strutturaRepository.getById(idStrutturaNuovoResponsabile);
+        if (personaResponsabile == null || strutturaResponsabile == null) {
+            throw new Http403ResponseException("2", "responsabile e struttura non trovato");
+        }
+        List<Utente> utenteList = personaResponsabile.getUtenteList();
+        boolean utenteInAzienda = utenteList.stream().anyMatch(u -> u.getIdAzienda().getId().equals(idAziendaRiferimento) && u.getAttivo().equals(true));
+        if (!utenteInAzienda || !strutturaResponsabile.getIdAzienda().getId().equals(idAziendaRiferimento)) {
+            throw new Http403ResponseException("2", "responsabile e struttura non fanno parte dell'azienda");
+        }
+        
+        Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
+
+        Map<String, Object> parameters = new HashMap();
+        parameters.put("idsParameters", ids);
+        parameters.put("predicate", predicate.toString());
+        parameters.put("notIds", notIds);
+        parameters.put("idAziendaRiferimento", idAziendaRiferimento);
+        parameters.put("idPersonaNuovoResponsabile", idPersonaNuovoResponsabile);
+        parameters.put("idStrutturaNuovoResponsabile", idStrutturaNuovoResponsabile);
+        
+        Integer idMassiveActionLog = scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_RESPONSABILE);
+        
+        
+        // Inserisco il job per la sosituzione
+        SostizioneMassivaResponsabileArchiviJobWorkerData sostizioneMassivaResponsabileArchiviJobWorkerData = new SostizioneMassivaResponsabileArchiviJobWorkerData(
+                idsArchivi, 
+                idPersonaNuovoResponsabile, 
+                idStrutturaNuovoResponsabile, 
+                idMassiveActionLog, 
+                authenticatedUserProperties.getPerson().getId(), 
+                authenticatedUserProperties.getUser().getId(), 
+                idAziendaRiferimento
+        );
+
+        Map sostizioneMassivaResponsabileArchiviJobWorkerDataMap = objectMapper.convertValue(sostizioneMassivaResponsabileArchiviJobWorkerData, Map.class);
+        JobNotified jn = new JobNotified();
+        jn.setJobName("SostizioneMassivaResponsabileArchiviJobWorker");
+        jn.setJobData(sostizioneMassivaResponsabileArchiviJobWorkerDataMap);
+        jn.setWaitObject(false);
+        jn.setApp(app.getId());
+        jn.setPriority(Set.SetPriority.NORMAL);
+        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
+        jobNotifiedRepository.save(jn);
+                
+        Map<String, Object> response = new HashMap();
+        //response.put("idsSize", ids.length);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    @RequestMapping(value = {"modificaVicariAndPermessiArchivioMassivo"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> modificaVicariAndPermessiArchivioMassivo(
+            @QuerydslPredicate(root = ArchivioDetail.class) Predicate predicate,
+            @RequestParam(required = false, name = "notIds") Integer[] notIds,
+            Pageable pageable,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "ids") Integer[] ids,
+            @RequestParam(required = true, name = "vicariAndPermessi") Map<String, Object> vicariAndPermessi,
+            @RequestParam(required = true, name = "idAzienda") Integer idAziendaRiferimento
+    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
+            
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
+        
+        // Controlli di sicurezza
+        List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
+        if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAziendaRiferimento)) {
+            throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
+        }
+        
+        Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
+
+        Map<String, Object> parameters = new HashMap();
+        parameters.put("idsParameters", ids);
+        parameters.put("predicate", predicate.toString());
+        parameters.put("notIds", notIds);
+        parameters.put("idAziendaRiferimento", idAziendaRiferimento);
+        parameters.put("vicariAndPermessi", vicariAndPermessi);
+        
+        scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_VICARI_E_PERMESSI);
+        
+        // Inserisco il job per dare/togliere le abilitazioni
+        // TODO..
+        
+        Map<String, Object> response = new HashMap();
+        response.put("idsSize", ids.length);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    @RequestMapping(value = {"copiaTrasferisciAbilitazioniArchiviMassivo"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> copiaTrasferisciAbilitazioniArchiviMassivo(
+            HttpServletRequest request,
+            @RequestParam(required = true, name = "operationType") MassiveActionLog.OperationType operationType,
+            @RequestParam(required = true, name = "idAzienda") Integer idAzienda,
+            @RequestParam(required = true, name = "idPersonaSorgente") Integer idPersonaSorgente,
+            @RequestParam(required = true, name = "idPersonaDestinazione") Integer idPersonaDestinazione
+    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
+            
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
+        
+        // Controlli di sicurezza
+        List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
+        if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAzienda)) {
+            throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
+        }
+        
+        // TODO: check operationType sia o COPIA_ABILITAZIONI o TRASFERISCI_ABILITAZIONI
+        
+        Map<String, Object> parameters = new HashMap();
+        parameters.put("idPersonaSorgente", idPersonaSorgente);
+        parameters.put("idPersonaDestinazione", idPersonaDestinazione);
+        parameters.put("idAzienda", idAzienda);
+        parameters.put("operationType", operationType);
+        
+        scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(null, parameters, operationType);
+        
+        // Inserisco il job per copiare/trasferire le abilitazioni
+        // TODO..
+        
+        Map<String, Object> response = new HashMap();
+        
+        return ResponseEntity.ok(response);
     }
 }

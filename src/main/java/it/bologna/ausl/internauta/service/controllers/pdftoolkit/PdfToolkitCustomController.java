@@ -150,11 +150,13 @@ public class PdfToolkitCustomController {
                 log.info("Caricamento resource su minIO");
                 uploadToMinIO(folderToSave, folderToSave, minIOWrapper, codiceAzienda, bucket);
                 
-                log.info("Upload dei resources completato. Sposto i file nella cartella di lavoro...");
-                File[] listFiles = folderToSave.listFiles();
-                for (File listFile : listFiles) {
-                    FileSystemUtils.copyRecursively(listFile.toPath(), Paths.get(System.getProperty("java.io.tmpdir") + listFile.getName()));
-                }
+                // Questa parte non serve più in quanto il job del reporter gira sul service di internauta e non sugli AS
+                // In quanto saranno lì poi i templates in locale. Si potrà sistemare nel caso questo metodo diventa un Job.
+//                log.info("Upload dei resources completato. Sposto i file nella cartella di lavoro...");
+//                File[] listFiles = folderToSave.listFiles();
+//                for (File listFile : listFiles) {
+//                    FileSystemUtils.copyRecursively(listFile.toPath(), Paths.get(System.getProperty("java.io.tmpdir") + listFile.getName()));
+//                }
             } catch (ExtractorException ex) {
                 responseMessage = "Errore durante l'estrazione del file zip.";
                 log.error(responseMessage);
