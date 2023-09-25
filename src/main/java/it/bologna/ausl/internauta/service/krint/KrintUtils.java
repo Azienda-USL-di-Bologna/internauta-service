@@ -11,14 +11,22 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.model.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.internauta.service.repositories.diagnostica.ReportRepository;
+import it.bologna.ausl.internauta.service.repositories.logs.KrintRepository;
+import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.model.entities.baborg.Struttura;
+import it.bologna.ausl.model.entities.diagnostica.Report;
+import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import org.jose4j.json.internal.json_simple.JSONObject;
 import org.jose4j.json.internal.json_simple.parser.JSONParser;
 import org.jose4j.json.internal.json_simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +36,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class KrintUtils {
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(KrintUtils.class);
 
     @Autowired
     private StrutturaRepository strutturaRepository;
@@ -42,7 +52,16 @@ public class KrintUtils {
     private KrintScriptaService krintScriptaService;
     
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
+    
+    @Autowired
+    private HttpSessionData httpSessionData;
+
+    @Autowired
+    private KrintRepository krintRepository;
+    
+    @Autowired
+    private ReportRepository reportRepository;
 
     public Boolean doIHaveToKrint(HttpServletRequest request) {
         String header = request.getHeader("krint");
@@ -296,5 +315,60 @@ public class KrintUtils {
         return  idSoggettoAttuale.equals(idSoggettoNuovo) &&
                 !idProvenienzaAttuale.equals(idProvenienzaNuovo) && 
                 !permessiDaAggiungereTemp.stream().filter(p -> "NON_PROPAGATO".equals(p.getPredicato())).findFirst().isPresent();
+    }
+    
+    
+    public void saveAllKrintsInSessionData() {
+        List<Krint> krintList = (List<Krint>) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.KRINT_ROWS);
+
+        if (krintList != null && krintList.size() > 0) {
+            try {
+                krintList.forEach(k -> krintRepository.save(k));
+            } catch (Exception e) {
+                Report report = new Report();
+                report.setTipologia("KRINT_ERROR");
+                HashMap<String, String> additionalData = new HashMap();
+                additionalData.put("message", "KRINT ERROR: errore nel salvataggio di una riga di krint");
+                additionalData.put("errorMessage", e.getMessage());
+                //String mapAsString = additionalData.keySet().stream().map(key -> "\"" + key + "\":\"" + additionalData.get(key) + "\"").collect(Collectors.joining(", ", "{", "}"));
+                report.setAdditionalData(additionalData);
+                reportRepository.save(report);
+                LOGGER.error("KRINT ERROR: errore nel salvataggio di una riga di krint", e);
+            }
+        }
+
+        List<KrintError> krintErrorList = (List<KrintError>) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.KRINT_ERRORS);
+
+        if (krintErrorList != null && krintErrorList.size() > 0) {
+            try {
+                krintErrorList.forEach(k -> {
+                    String s = String.format("KRINT ERROR: idUtente: %s, idRealUser: %s, idOggetto: %s, functionName: %s, codiceOperazione: %s",
+                                k.getIdUtente() == null ? "null" : k.getIdUtente().toString(),
+                                k.getIdRealUser() == null ? "null" : k.getIdRealUser().toString(),
+                                k.getIdOggetto() == null ? "null" : k.getIdOggetto().toString(),
+                                k.getFunctionName() == null ? "null" : k.getFunctionName(),
+                                k.getCodiceOperazione() == null ? "null" : k.getCodiceOperazione().toString());
+                    LOGGER.error(s);
+                    Report report = new Report();
+                    report.setTipologia("KRINT_ERROR_LOG");
+                    HashMap<String, String> additionalData = new HashMap();
+                    additionalData.put("message", "KRINT ERROR LOG: scrittura del log del krint error");
+                    additionalData.put("errorMessage", s);
+                    //String mapAsString = additionalData.keySet().stream().map(key -> "\"" + key + "\":\"" + additionalData.get(key) + "\"").collect(Collectors.joining(", ", "{", "}"));
+                    report.setAdditionalData(additionalData);
+                    reportRepository.save(report);
+                });
+            } catch (Exception e) {
+                Report report = new Report();
+                report.setTipologia("KRINT_ERROR_LOG_ERROR");
+                HashMap<String, String> additionalData = new HashMap();
+                additionalData.put("message", "KRINT ERROR: errore nella scrittura del log del krint error");
+                additionalData.put("errorMessage", e.getMessage());
+                //String mapAsString = additionalData.keySet().stream().map(key -> "\"" + key + "\":\"" + additionalData.get(key) + "\"").collect(Collectors.joining(", ", "{", "}"));
+                report.setAdditionalData(additionalData);
+                reportRepository.save(report);
+                LOGGER.error("KRINT ERROR: errore nella scrittura del log del krint error");
+            }
+        }
     }
 }

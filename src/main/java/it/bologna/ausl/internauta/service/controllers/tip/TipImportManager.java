@@ -22,6 +22,8 @@ import it.bologna.ausl.model.entities.tip.QImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.QSessioneImportazione;
 import it.bologna.ausl.model.entities.tip.SessioneImportazione;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto;
+import static it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggetto.getColumnsEnum;
+import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
 import it.bologna.ausl.model.entities.versatore.QSessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
@@ -31,8 +33,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityManager;
 import org.apache.commons.csv.CSVFormat;
@@ -102,14 +107,46 @@ public class TipImportManager {
             File csv) throws HttpInternautaResponseException {
         
         csvImportAndValidate(null, idAzienda, tipologia, idStrutturaDefault, idArchivioDefault, separatore, idVicarioDefault, csv);
-     }
+    }
+    
+    /**
+     * Controlla se gli header del csv sono tutti quelli che ci si aspetta per quella tipologia (vengono reperiti dagli enum in ColonneImportazioneOggettoEnums)
+     * @param separatore
+     * @param csv
+     * @param tipologia
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException 
+     */
+    private List<String> validateCsvColums(String separatore, File csv, SessioneImportazione.TipologiaPregresso tipologia) throws FileNotFoundException, IOException {
+        try (
+            Reader csvReader = new FileReader(csv);
+            CSVParser csvParser = getCSVParser(csvReader, separatore);
+        ) {
+            List<String> headersNotFound = new ArrayList<>();
+            List<String> headerNames = csvParser.getHeaderNames();
+            
+            Class aEnum = getColumnsEnum(tipologia);
+            Object[] enumConstants = aEnum.getEnumConstants();
+            ColonneImportazioneOggetto[] columns = (ColonneImportazioneOggetto[]) enumConstants;
+            for (ColonneImportazioneOggetto column : columns) {
+                if (!column.equals(column.getErroriColumn())) {
+                    boolean headerFound = headerNames.stream().anyMatch(h -> h.equalsIgnoreCase(column.toString()) || column.getValue().contains(h.toLowerCase()));
+                    if (!headerFound) {
+                        headersNotFound.add(column.toString());
+                    }
+                }
+            }
+            return headersNotFound;
+        }
+    }
     
     /**
      * esegue l'importazione e la validazione nella tabella di mezzo (importazioni_documenti o importazioni_archivi a seconda che si stia eseguendo un'importazione di documenti o archivi).ogni riga del csv viene letta, validata e salvata sulla tabella.
      * Il commit avviene ad ogni riga.
- La validazione produce un json che viene inserito nella campo errori. Inoltra a seconda della validazione ogni riga avrà uno stato che ne indicherà la possibilità di essere trasferita o meno
- E' possibile creare una nuova sessione di importazione, oppure aggiungere righe a una sessione già esistente.
-  Se viene passato un idSessione, le righe vengono aggiunte alla sessione indicata, altrimenti, se viene passato null, verrà creata una nuova sessione.
+        La validazione produce un json che viene inserito nella campo errori. Inoltra a seconda della validazione ogni riga avrà uno stato che ne indicherà la possibilità di essere trasferita o meno
+        E' possibile creare una nuova sessione di importazione, oppure aggiungere righe a una sessione già esistente.
+         Se viene passato un idSessione, le righe vengono aggiunte alla sessione indicata, altrimenti, se viene passato null, verrà creata una nuova sessione.
      * 
      * @param idSessione la sessione a cui aggiungere le righe da importare, se null ne viene creata una nuova
      * @param idAzienda l'azienda per cui si sta eseguendo l'importazione, la sessione apparterrà all'azienda passata
@@ -134,6 +171,13 @@ public class TipImportManager {
         ZonedDateTime now = ZonedDateTime.now();
         SessioneImportazione sessioneImportazione;
         try {
+            
+            List<String> notFoundHeaders = validateCsvColums(separatore, csv, tipologia);
+            if (notFoundHeaders != null && !notFoundHeaders.isEmpty()) {
+                String errorMessage = String.format("non sono stati trovati i seguenti headers: %s", Arrays.toString(notFoundHeaders.toArray()));
+                throw new Http500ResponseException("02", errorMessage);
+            }
+            
             // non si può usare l'azienda cached, perché deve essere attacata all'entityManager per poter essere inserita come foreignKey della sessione
             Azienda azienda = nonCachedEntities.getAzienda(idAzienda);
             
@@ -203,6 +247,17 @@ public class TipImportManager {
         
     }
     
+    private CSVParser getCSVParser(Reader fileReader, String separatore) throws FileNotFoundException, IOException {
+        CSVParser csvParser = new CSVParser(fileReader,  CSVFormat.DEFAULT.builder()
+            .setDelimiter(separatore)
+            .setQuote('"')
+            .setQuoteMode(QuoteMode.MINIMAL)
+            .setRecordSeparator("\r\n")
+            .setAllowMissingColumnNames(true)
+            .setHeader().build());
+        return csvParser;
+    }
+    
     /**
      * Per ogni riga del csv esegue la validazione e la scrittura sul DB.
      * il csv viene anche salvato sul repository (minIO)
@@ -222,15 +277,8 @@ public class TipImportManager {
         TipDataValidator tipDataValidator = TipDataValidator.getTipDataValidator(tipologia);
         try (
                 Reader csvReader = new FileReader(csvFile);
-                CSVParser csvParser = new CSVParser(csvReader,  CSVFormat.DEFAULT.builder()
-                    .setDelimiter(separatore)
-                    .setQuote('"')
-                    .setQuoteMode(QuoteMode.MINIMAL)
-                    .setRecordSeparator("\r\n")
-                    .setAllowMissingColumnNames(true)
-                    .setHeader().build())
+                CSVParser csvParser = getCSVParser(csvReader, separatore);
             ) {
-
             // come prima cosa salva la sessione
             transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
             transactionTemplate.executeWithoutResult(a -> {
