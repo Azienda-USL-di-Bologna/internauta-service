@@ -25,3 +25,5 @@ firma/jnj/client-info.json
 firma/remota/infocert/azeroSSL.p12
 firma/test.pdf
 resources/reporter
+downloader/DOWNLOADER_TEST.crt
+downloader/Internauta_Downloader_Encryption_Public_Key_Test.pem
