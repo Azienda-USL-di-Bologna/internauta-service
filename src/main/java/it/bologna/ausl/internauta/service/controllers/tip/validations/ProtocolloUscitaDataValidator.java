@@ -117,7 +117,7 @@ public class ProtocolloUscitaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneProtocolloUscita.riservato, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: true/false");
             riga.setErrori(erroriImportazione);
         }
-        if (StringUtils.hasText(riga.getRiservato()) && StringUtils.hasText(riga.getVisibilitaLimitata())) {
+        if (StringUtils.hasText(riga.getRiservato()) && parseBoolean(riga.getRiservato()) && StringUtils.hasText(riga.getVisibilitaLimitata())) {
             erroriImportazione.setWarning(
                 ColonneProtocolloUscita.visibilitaLimitata, 
                 TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 

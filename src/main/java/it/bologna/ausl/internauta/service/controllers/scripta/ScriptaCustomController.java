@@ -421,10 +421,11 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 // L'utente ha diritto di vedere l'allegato in questione?
                 AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
                 Persona person = authenticatedSessionData.getPerson();
+                Utente user = authenticatedSessionData.getUser();
                 QPersonaVedente qPersonaVedente = QPersonaVedente.personaVedente;
                 BooleanExpression filter = qPersonaVedente.idPersona.id.eq(person.getId()).and(qPersonaVedente.pienaVisibilita.eq(Boolean.TRUE).and(qPersonaVedente.idDocDetail.id.eq(allegato.getIdDoc().getId())));
                 Optional<PersonaVedente> personaVedente = personaVedenteRepository.findOne(filter);
-                if (!personaVedente.isPresent()) {
+                if (!personaVedente.isPresent() && !(user.getRuoliUtentiPersona().containsKey(Ruolo.CodiciRuolo.IP.toString()) && allegato.getIdDoc().getPregresso())) {
                     throw new Http403ResponseException("0", "L'utente non ha piena visibilità sul documento dell'allegato. Non può quindi vederlo");
                 }
 
@@ -433,7 +434,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
                 try {
                     dettaglioAllegato = dettagli.getDettaglioAllegato(tipoDettaglioAllegato);
-                } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+                } catch (Throwable ex) {
                     log.info("errore nel recuperare il metodo get del tipo dettaglio allegato richiesto", ex);
                     throw new Http500ResponseException("1", "Errore generico, probabile dato malformato");
                 }
