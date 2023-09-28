@@ -162,6 +162,7 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         for (HashMap<String, Object> info : idsCasoAHashMap) {
             krintScriptaService.writeSostituzioneResponsabileDaAmministratoreGedi(
                     info,
+                    idMassiveActionLog,
                     OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_UPDATE_RESPONSABILE_GESTIONE_MASSIVA
             );
             idsArchiviList.remove((Integer) info.get("idArchivio")); // per il CASO C
@@ -184,6 +185,7 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         for (HashMap<String, Object> info : idsCasoBHashMap) {
             krintScriptaService.writeSostituzioneResponsabileDaAmministratoreGedi(
                     info,
+                    idMassiveActionLog,
                     OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_UPDATE_STRUTTURA_GESTIONE_MASSIVA
             );
             idsArchiviList.remove((Integer) info.get("idArchivio")); // per il CASO C

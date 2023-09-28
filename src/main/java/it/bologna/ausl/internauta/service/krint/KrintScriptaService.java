@@ -468,6 +468,7 @@ public class KrintScriptaService {
     
     public void writeSostituzioneResponsabileDaAmministratoreGedi(
             HashMap<String, Object> sameInfo,
+            Integer idMassiveActionLog,
             OperazioneKrint.CodiceOperazione operazione
     ) {
         try {
@@ -475,6 +476,7 @@ public class KrintScriptaService {
             HashMap<String, Object> krintArchivio = new HashMap();
             krintArchivio.put("id", sameInfo.get("idArchivio"));
             krintArchivio.put("numerazioneGerarchica", sameInfo.get("numerazioneGerarchica"));
+            krintArchivio.put("idMassiveActionLog", idMassiveActionLog);
             
             krintService.writeKrintRow(
                     sameInfo.get("idAttoreArchivioNewResponsabile").toString(), // idOggetto
@@ -495,23 +497,20 @@ public class KrintScriptaService {
     
     /**
      * Esempio di frase del log: 
-     * L'amministratore Bingo Bongo ha modificato le abilitazioni del fascicolo. 
-     * Ha reso vicari gli utenti Cassandra Cassetti, Pel Dicarota. 
-     * Ha rimosso i vicari Gino Formaggino. 
-     * Ha dato i permessi VISUALIZZA a Tania Lania, Peppa Pig; 
-     * MODIFICA a Santi Numi; 
-     * ELIMINA a Trovato Nascosto. 
-     * Ha tolto i permessi a Fernandello Mio.
-     * 
-     * La frase del log verrà per lo più costruita a mano qui e non sarà quindi usato il metodo standard. 
+     * L'amministratore Bingo Bongo ha modificato le abilitazioni del fascicolo.Ha reso vicari gli utenti Cassandra Cassetti, Pel Dicarota.Ha rimosso i vicari Gino Formaggino.Ha dato i permessi VISUALIZZA a Tania Lania, Peppa Pig; 
+ MODIFICA a Santi Numi; 
+ ELIMINA a Trovato Nascosto.Ha tolto i permessi a Fernandello Mio.La frase del log verrà per lo più costruita a mano qui e non sarà quindi usato il metodo standard. 
      * Questo perché ci sono liste e voci da mostrare o meno in determinate condizioni.
-     * Il motore del krint oggi non supporterebbe tale costruzione della frase.
-     * 
+ Il motore del krint oggi non supporterebbe tale costruzione della frase.
      * @param idArchivio
-     * @param operazione 
+     * @param idMassiveActionLog
+     * @param infoArchivio
+     * @param mappaPersone
+     * @param operazione
      */
     public void writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi(
             Integer idArchivio,
+            Integer idMassiveActionLog,
             InfoArchivio infoArchivio,
             Map<Integer, InfoPersona> mappaPersone,
             OperazioneKrint.CodiceOperazione operazione
@@ -553,6 +552,7 @@ public class KrintScriptaService {
             HashMap<String, Object> infoOggetto = new HashMap();
             infoOggetto.put("descrizioneAzione", descrizioneAzione);
             infoOggetto.put("infoArchivio", infoArchivio);
+            infoOggetto.put("idMassiveActionLog", idMassiveActionLog);
             
             krintService.writeKrintRow(
                     idArchivio.toString(), // idOggetto

@@ -159,6 +159,7 @@ import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRep
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.GestioneMassivaAbilitazioniArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerResult;
@@ -2224,7 +2225,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         return ResponseEntity.ok(response);
     }
     
-    @RequestMapping(value = {"modificaVicariAndPermessiArchivioMassivo"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = {"modificaVicariAndPermessiArchivioMassivo"}, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> modificaVicariAndPermessiArchivioMassivo(
             @QuerydslPredicate(root = ArchivioDetail.class) Predicate predicate,
@@ -2232,8 +2233,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             Pageable pageable,
             HttpServletRequest request,
             @RequestParam(required = false, name = "ids") Integer[] ids,
-            @RequestParam(required = true, name = "abilitazioniRichieste") InfoAbilitazioniMassiveArchivi abilitazioniRichieste,
-            @RequestParam(required = true, name = "idAzienda") Integer idAziendaRiferimento
+            @RequestBody(required = true) InfoAbilitazioniMassiveArchivi abilitazioniRichieste,
+            @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento
     ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
             
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -2286,10 +2287,27 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         parameters.put("idAziendaRiferimento", idAziendaRiferimento);
         parameters.put("abilitazioniRichieste", abilitazioniRichieste);
         
-        scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_VICARI_E_PERMESSI);
+        Integer idMassiveActionLog = scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_VICARI_E_PERMESSI);
         
         // Inserisco il job per dare/togliere le abilitazioni
-        // TODO..
+        GestioneMassivaAbilitazioniArchiviJobWorkerData gestioneMassivaAbilitazioniArchiviJobWorkerData = new GestioneMassivaAbilitazioniArchiviJobWorkerData(
+                idsArchivi, 
+                abilitazioniRichieste,
+                idMassiveActionLog, 
+                authenticatedUserProperties.getPerson().getId(), 
+                authenticatedUserProperties.getUser().getId(), 
+                idAziendaRiferimento
+        );
+
+        Map gestioneMassivaAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(gestioneMassivaAbilitazioniArchiviJobWorkerData, Map.class);
+        JobNotified jn = new JobNotified();
+        jn.setJobName("GestioneMassivaAbilitazioniArchiviJobWorker");
+        jn.setJobData(gestioneMassivaAbilitazioniArchiviJobWorkerDataMap);
+        jn.setWaitObject(false);
+        jn.setApp(app.getId());
+        jn.setPriority(Set.SetPriority.NORMAL);
+        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
+        jobNotifiedRepository.save(jn);
         
         Map<String, Object> response = new HashMap();
         
@@ -2301,7 +2319,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     public ResponseEntity<?> copiaTrasferisciAbilitazioniArchiviMassivo(
             HttpServletRequest request,
             @RequestParam(required = true, name = "operationType") MassiveActionLog.OperationType operationType,
-            @RequestParam(required = true, name = "idAzienda") Integer idAzienda,
+            @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento,
             @RequestParam(required = true, name = "idPersonaSorgente") Integer idPersonaSorgente,
             @RequestParam(required = true, name = "idPersonaDestinazione") Integer idPersonaDestinazione
     ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
@@ -2312,7 +2330,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         
         // Controlli di sicurezza
         List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
-        if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAzienda)) {
+        if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAziendaRiferimento)) {
             throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
         }
         
@@ -2321,7 +2339,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Map<String, Object> parameters = new HashMap();
         parameters.put("idPersonaSorgente", idPersonaSorgente);
         parameters.put("idPersonaDestinazione", idPersonaDestinazione);
-        parameters.put("idAzienda", idAzienda);
+        parameters.put("idAzienda", idAziendaRiferimento);
         parameters.put("operationType", operationType);
         
         scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(null, parameters, operationType);

@@ -128,7 +128,7 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         String idsArchiviString = Arrays.toString(idsArchivi);
         idsArchiviString = idsArchiviString.substring(1, idsArchiviString.length() - 1);
         
-        String idsPersoneVicariDaAggiungereString = abilitazioniRichieste.getIdPersonaVicariDaAggiungere().stream().map(String::valueOf).collect(Collectors.joining(","));
+        
         
         // Mi preparo due mappe che conterranno tutte le info utili per poi creare notifiche e krint
         Map<Integer, InfoArchivio> mappaArchivi = buildInitalArchiviMap(idsArchivi); // es: 1818118: {vicariAggiunti:[], vicariEliminati:[], permessiPersonaAggiunti: {VISUALIZZA: [], MODIFICA: [], ELIMINA: []}, permessiPersonaRimossi}
@@ -141,26 +141,32 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
                  idMassiveActionLog, idPersonaOperazione, idsArchivi.length));
 
         // Eliminazione vicari
-        List<Map<String, Object>> vicariRimossi = attoreArchivioRepository.deleteVicari(idsArchivi, abilitazioniRichieste.getIdPersonaVicariDaRimuovere());
-        for (Map<String, Object> vicarioRimosso : vicariRimossi) {
-            InfoArchivio infoArchivio = mappaArchivi.get((Integer)vicarioRimosso.get("idArchivio"));
-            infoArchivio.getVicariEliminati().add((Integer)vicarioRimosso.get("idPersona"));
-            
-            InfoPersona infoPersona = mappaPersone.get((Integer)vicarioRimosso.get("idPersona"));
-            infoPersona.getVicariatiPerduti().add((Integer)vicarioRimosso.get("idArchivio"));
+        List<Integer> idPersonaVicariDaRimuovere = abilitazioniRichieste.getIdPersonaVicariDaRimuovere();
+        if (idPersonaVicariDaRimuovere != null) {
+            List<Map<String, Object>> vicariRimossi = attoreArchivioRepository.deleteVicari(idsArchivi, idPersonaVicariDaRimuovere.toArray(new Integer[0]));
+            for (Map<String, Object> vicarioRimosso : vicariRimossi) {
+                InfoArchivio infoArchivio = mappaArchivi.get((Integer)vicarioRimosso.get("idArchivio"));
+                infoArchivio.getVicariEliminati().add((Integer)vicarioRimosso.get("idPersona"));
+
+                InfoPersona infoPersona = mappaPersone.get((Integer)vicarioRimosso.get("idPersona"));
+                infoPersona.getVicariatiPerduti().add((Integer)vicarioRimosso.get("idArchivio"));
+            }
         }
         
         // Eliminazione permessi
         // TODO
-        
         // Inserimento vicari
-        List<Map<String, Object>> vicariInseriti = attoreArchivioRepository.insertVicari(idsArchiviString, idsPersoneVicariDaAggiungereString);
-        for (Map<String, Object> vicarioInserito : vicariInseriti) {
-            InfoArchivio infoArchivio = mappaArchivi.get((Integer)vicarioInserito.get("idArchivio"));
-            infoArchivio.getVicariAggiunti().add((Integer)vicarioInserito.get("idPersona"));
-            
-            InfoPersona infoPersona = mappaPersone.get((Integer)vicarioInserito.get("idPersona"));
-            infoPersona.getVicariatiOttenuti().add((Integer)vicarioInserito.get("idArchivio"));
+        List<Integer> idPersonaVicariDaAggiungere = abilitazioniRichieste.getIdPersonaVicariDaAggiungere();
+        if (idPersonaVicariDaAggiungere != null) {
+            String idsPersoneVicariDaAggiungereString = idPersonaVicariDaAggiungere.stream().map(String::valueOf).collect(Collectors.joining(","));
+            List<Map<String, Object>> vicariInseriti = attoreArchivioRepository.insertVicari(idsArchiviString, idsPersoneVicariDaAggiungereString);
+            for (Map<String, Object> vicarioInserito : vicariInseriti) {
+                InfoArchivio infoArchivio = mappaArchivi.get((Integer)vicarioInserito.get("idArchivio"));
+                infoArchivio.getVicariAggiunti().add((Integer)vicarioInserito.get("idPersona"));
+
+                InfoPersona infoPersona = mappaPersone.get((Integer)vicarioInserito.get("idPersona"));
+                infoPersona.getVicariatiOttenuti().add((Integer)vicarioInserito.get("idArchivio"));
+            }
         }
         
         // Inserimento permessi
@@ -171,7 +177,13 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         for (Map.Entry<Integer, InfoArchivio> entry : mappaArchivi.entrySet()) {
             Integer idArchivio = entry.getKey();
             InfoArchivio info = entry.getValue();
-            krintScriptaService.writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi(idArchivio, info, mappaPersone, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_GESTIONE_MASSIVA_ABILITAZIONI);
+            krintScriptaService.writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi(
+                    idArchivio, 
+                    idMassiveActionLog,
+                    info, 
+                    mappaPersone, 
+                    OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_GESTIONE_MASSIVA_ABILITAZIONI
+            );
         }
         
         // NOTIFICHE IN SCRIVANIA
@@ -197,6 +209,7 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
                     oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di un fascicolo che ti coinvolgono.", personaOperazione.getDescrizione());
                 else
                     oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di %2$s fascicoli che ti coinvolgono.", personaOperazione.getDescrizione(), idArchiviCoinvolti.size());
+                insertAttivita(azienda, personaOperazione, oggettoAttivita, app);
             }
         }
         
@@ -263,10 +276,14 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
     private Map<Integer, InfoPersona> buildInitialPersoneMap(InfoAbilitazioniMassiveArchivi abilitazioniRichieste) {
         Map<Integer, InfoPersona> mappaPersone = new HashMap();
         HashSet<Integer> idsPersone = new HashSet();
-        idsPersone.addAll(abilitazioniRichieste.getIdPersonaPermessiDaRimuovere());
-        idsPersone.addAll(abilitazioniRichieste.getIdPersonaVicariDaAggiungere());
-        idsPersone.addAll(abilitazioniRichieste.getIdPersonaVicariDaRimuovere());
-        idsPersone.addAll(abilitazioniRichieste.getPermessiPersonaDaAggiungere().stream().map(p -> p.getIdPersona()).collect(Collectors.toList()));
+        if (abilitazioniRichieste.getIdPersonaPermessiDaRimuovere() != null) 
+            idsPersone.addAll(abilitazioniRichieste.getIdPersonaPermessiDaRimuovere());
+        if (abilitazioniRichieste.getIdPersonaVicariDaAggiungere() != null) 
+            idsPersone.addAll(abilitazioniRichieste.getIdPersonaVicariDaAggiungere());
+        if (abilitazioniRichieste.getIdPersonaVicariDaRimuovere() != null) 
+            idsPersone.addAll(abilitazioniRichieste.getIdPersonaVicariDaRimuovere());
+        if (abilitazioniRichieste.getPermessiPersonaDaAggiungere() != null) 
+            idsPersone.addAll(abilitazioniRichieste.getPermessiPersonaDaAggiungere().stream().map(p -> p.getIdPersona()).collect(Collectors.toList()));
         
         QPersona qPersona = QPersona.persona;
         JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);

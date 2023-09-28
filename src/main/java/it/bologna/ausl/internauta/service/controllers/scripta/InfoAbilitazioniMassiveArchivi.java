@@ -1,11 +1,15 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 /**
  *
  * @author gusgus
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class InfoAbilitazioniMassiveArchivi {
     private List<Integer> idPersonaVicariDaAggiungere;
     private List<Integer> idPersonaVicariDaRimuovere;
