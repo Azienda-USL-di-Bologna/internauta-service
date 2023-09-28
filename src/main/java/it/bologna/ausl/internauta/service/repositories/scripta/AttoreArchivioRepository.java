@@ -82,4 +82,29 @@ public interface AttoreArchivioRepository extends
             String descrizioneNewResponsabile,
             String descrizioneStrutturaNewResponsabile
     );
+    
+    @Query(value = 
+        "   DELETE FROM scripta.attori_archivi aa"
+        + " WHERE aa.id_archivio IN (?1) AND aa.id_persona IN (?2) AND aa.ruolo = 'VICARIO'\\:\\:scripta.ruolo_attore_archivio"
+        + " RETURNING "
+                + " aa.id_archivio as \"idArchivio\", "
+                + " a.id_persona as \"idPersona\" ",
+        nativeQuery = true)
+    public List<Map<String, Object>> deleteVicari(
+            Integer[] idsArchivi,
+            List<Integer> idVicari
+    );
+    
+    @Query(value = 
+        "   INSERT INTO scripta.attori_archivi (id_archivio, id_persona, ruolo)"
+        + " SELECT DISTINCT a.id_archivio, p.id_persona, 'VICARIO'\\:\\:scripta.ruolo_attore_archivio"
+        + " FROM UNNEST(STRING_TO_ARRAY(?1, ',')\\:\\:integer[]) AS a(id_archivio),"
+        + "      UNNEST(STRING_TO_ARRAY(?2, ',')\\:\\:integer[]) AS p(id_persona)"
+        + " WHERE NOT EXISTS (SELECT 1 FROM scripta.attori_archivi att WHERE att.id_archivio = a.id_archivio AND att.id_persona = p.id_persona AND att.ruolo = 'VICARIO'\\:\\:scripta.ruolo_attore_archivio)"
+        + " RETURNING id_archivio as idArcivio, id_persona as idPersona ",
+        nativeQuery = true)
+    public List<Map<String, Object>> insertVicari(
+            String idsArchiviString,
+            String idsPersoneString
+    );
 }

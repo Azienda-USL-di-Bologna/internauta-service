@@ -2180,7 +2180,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         List<Utente> utenteList = personaResponsabile.getUtenteList();
         boolean utenteInAzienda = utenteList.stream().anyMatch(u -> u.getIdAzienda().getId().equals(idAziendaRiferimento) && u.getAttivo().equals(true));
         if (!utenteInAzienda || !strutturaResponsabile.getIdAzienda().getId().equals(idAziendaRiferimento)) {
-            throw new Http403ResponseException("2", "responsabile e struttura non fanno parte dell'azienda");
+            throw new Http403ResponseException("3", "responsabile e struttura non fanno parte dell'azienda");
         }
         
         Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
@@ -2231,7 +2231,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             Pageable pageable,
             HttpServletRequest request,
             @RequestParam(required = false, name = "ids") Integer[] ids,
-            @RequestParam(required = true, name = "vicariAndPermessi") Map<String, Object> vicariAndPermessi,
+            @RequestParam(required = true, name = "abilitazioniRichieste") InfoAbilitazioniMassiveArchivi abilitazioniRichieste,
             @RequestParam(required = true, name = "idAzienda") Integer idAziendaRiferimento
     ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
             
@@ -2240,9 +2240,40 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
         
         // Controlli di sicurezza
+        // Sono AG per l'azienda?
         List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
         if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAziendaRiferimento)) {
             throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
+        }
+        // Vicari da aggiungere appartengono ad azienda
+        List<Integer> idPersonaVicariDaAggiungere = abilitazioniRichieste.getIdPersonaVicariDaAggiungere();
+        if (idPersonaVicariDaAggiungere != null) {
+            for (Integer idPersonaVicario : idPersonaVicariDaAggiungere) {
+                Persona personaVicario = personaRepository.getById(idPersonaVicario);
+                if (personaVicario == null) {
+                    throw new Http403ResponseException("2", "vicario non trovato");
+                }
+                List<Utente> utenteList = personaVicario.getUtenteList();
+                boolean utenteInAzienda = utenteList.stream().anyMatch(u -> u.getIdAzienda().getId().equals(idAziendaRiferimento) && u.getAttivo().equals(true));
+                if (!utenteInAzienda) {
+                    throw new Http403ResponseException("3", "vicario non fa parte dell'azienda");
+                }
+            }
+        }
+        // Persone dei permessi da aggiungere appartengono ad azienda
+        List<InfoAbilitazioniMassiveArchivi.PermessoPersona> permessiPersonaDaAggiungere = abilitazioniRichieste.getPermessiPersonaDaAggiungere();
+        if (permessiPersonaDaAggiungere != null) {
+            for (InfoAbilitazioniMassiveArchivi.PermessoPersona idPersonapermesso : permessiPersonaDaAggiungere) {
+                Persona personaVicario = personaRepository.getById(idPersonapermesso.getIdPersona());
+                if (personaVicario == null) {
+                    throw new Http403ResponseException("4", "persona con permesso non trovata");
+                }
+                List<Utente> utenteList = personaVicario.getUtenteList();
+                boolean utenteInAzienda = utenteList.stream().anyMatch(u -> u.getIdAzienda().getId().equals(idAziendaRiferimento) && u.getAttivo().equals(true));
+                if (!utenteInAzienda) {
+                    throw new Http403ResponseException("5", "persona con permesso non fa parte dell'azienda");
+                }
+            }
         }
         
         Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
@@ -2252,7 +2283,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         parameters.put("predicate", predicate.toString());
         parameters.put("notIds", notIds);
         parameters.put("idAziendaRiferimento", idAziendaRiferimento);
-        parameters.put("vicariAndPermessi", vicariAndPermessi);
+        parameters.put("abilitazioniRichieste", abilitazioniRichieste);
         
         scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_VICARI_E_PERMESSI);
         
@@ -2260,7 +2291,6 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         // TODO..
         
         Map<String, Object> response = new HashMap();
-        response.put("idsSize", ids.length);
         
         return ResponseEntity.ok(response);
     }

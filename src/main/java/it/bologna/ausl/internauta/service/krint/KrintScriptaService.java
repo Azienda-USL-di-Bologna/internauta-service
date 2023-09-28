@@ -7,6 +7,8 @@ import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepositor
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.model.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.InfoArchivio;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.InfoPersona;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.logs.Krint;
@@ -21,6 +23,7 @@ import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -487,6 +490,84 @@ public class KrintScriptaService {
         } catch (Exception ex) {
             log.error("Errore nella writeSostituzioneResponsabileDaAmministratoreGedi con archivio " + sameInfo.get("idAttoreArchivioNewResponsabile").toString(), ex);
             krintService.writeKrintError((Integer) sameInfo.get("idAttoreArchivioNewResponsabile"), "writeSostituzioneResponsabileDaAmministratoreGedi", operazione);
+        }
+    }
+    
+    /**
+     * Esempio di frase del log: 
+     * L'amministratore Bingo Bongo ha modificato le abilitazioni del fascicolo. 
+     * Ha reso vicari gli utenti Cassandra Cassetti, Pel Dicarota. 
+     * Ha rimosso i vicari Gino Formaggino. 
+     * Ha dato i permessi VISUALIZZA a Tania Lania, Peppa Pig; 
+     * MODIFICA a Santi Numi; 
+     * ELIMINA a Trovato Nascosto. 
+     * Ha tolto i permessi a Fernandello Mio.
+     * 
+     * La frase del log verrà per lo più costruita a mano qui e non sarà quindi usato il metodo standard. 
+     * Questo perché ci sono liste e voci da mostrare o meno in determinate condizioni.
+     * Il motore del krint oggi non supporterebbe tale costruzione della frase.
+     * 
+     * @param idArchivio
+     * @param operazione 
+     */
+    public void writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi(
+            Integer idArchivio,
+            InfoArchivio infoArchivio,
+            Map<Integer, InfoPersona> mappaPersone,
+            OperazioneKrint.CodiceOperazione operazione
+    ) {
+        try {
+            // Informazioni oggetto contenitore
+            HashMap<String, Object> krintArchivio = new HashMap();
+            krintArchivio.put("id", idArchivio);
+            krintArchivio.put("numerazioneGerarchica", infoArchivio.getNumerazioneGerarchica());
+            
+            // Costuisco la frase del log
+            String descrizioneAzione = "";
+            // Frase dell'aggiunta vicari
+            List<Integer> vicariAggiunti = infoArchivio.getVicariAggiunti();
+            if (!vicariAggiunti.isEmpty()) {
+                descrizioneAzione = descrizioneAzione + " Ha reso vicari gli utenti: ";
+                for (Integer vicarioAggiunto : vicariAggiunti) {
+                    InfoPersona vicario = mappaPersone.get(vicarioAggiunto);
+                    descrizioneAzione = descrizioneAzione + vicario.getDescrizione() + ", ";
+                }
+                descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ".";
+            }
+            // Frase della rimozione vicari
+            List<Integer> vicariEliminati = infoArchivio.getVicariEliminati();
+            if (!vicariEliminati.isEmpty()) {
+                descrizioneAzione = descrizioneAzione + " Ha rimosso i vicarii: ";
+                for (Integer vicarioRimosso : vicariEliminati) {
+                    InfoPersona vicario = mappaPersone.get(vicarioRimosso);
+                    descrizioneAzione = descrizioneAzione + vicario.getDescrizione() + ", ";
+                }
+                descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ".";
+            }
+            // Frase dell'aggiunta permessi 
+            // TODO
+            
+            // Frase della rimozione permessi
+            // TODO
+            
+            HashMap<String, Object> infoOggetto = new HashMap();
+            infoOggetto.put("descrizioneAzione", descrizioneAzione);
+            infoOggetto.put("infoArchivio", infoArchivio);
+            
+            krintService.writeKrintRow(
+                    idArchivio.toString(), // idOggetto
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
+                    infoArchivio.getNumerazioneGerarchica(), // descrizioneOggetto
+                    infoOggetto, // informazioniOggetto
+                    idArchivio.toString(), // Da qui si ripete ma per il conenitore
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
+                    infoArchivio.getNumerazioneGerarchica(),
+                    krintArchivio,
+                    operazione
+            );
+        } catch (Exception ex) {
+            log.error("Errore nella writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi con archivio " + idArchivio.toString(), ex);
+            krintService.writeKrintError(idArchivio, "writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi", operazione);
         }
     }
 }
