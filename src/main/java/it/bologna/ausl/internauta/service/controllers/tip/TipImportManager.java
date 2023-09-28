@@ -171,7 +171,7 @@ public class TipImportManager {
             
             List<String> notFoundHeaders = validateCsvColums(separatore, csv, tipologia);
             if (notFoundHeaders != null && !notFoundHeaders.isEmpty()) {
-                String errorMessage = String.format("non sono stati trovati i seguenti headers: %s", Arrays.toString(notFoundHeaders.toArray()));
+                String errorMessage = String.format("non sono stati trovati i seguenti headers: %s . Controllare che la tipologia selezionata sia quella corretta.", Arrays.toString(notFoundHeaders.toArray()));
                 throw new Http500ResponseException("02", errorMessage);
             }
             
