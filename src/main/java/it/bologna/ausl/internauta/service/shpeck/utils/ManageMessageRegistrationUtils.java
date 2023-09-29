@@ -134,7 +134,7 @@ public class ManageMessageRegistrationUtils {
                 // leggo gli additional data del messaggio in stado di in registrazione
                 if (messageTagInRegistration != null && messageTagInRegistration.getAdditionalData() != null) {
                     try {
-                        List<AdditionalDataShpeck> lista = messageTagRegistered.getAdditionalData();
+                        List<AdditionalDataShpeck> lista = messageTagInRegistration.getAdditionalData();
                         AdditionalDataRegistration initialAdditionalData = (AdditionalDataRegistration) lista.get(0);
                         initialAdditionalDataArrayInRegistration.add(initialAdditionalData);
                     } catch (Throwable ex) {
