@@ -522,24 +522,27 @@ public class KrintScriptaService {
             krintArchivio.put("numerazioneGerarchica", infoArchivio.getNumerazioneGerarchica());
             
             // Costuisco la frase del log
+            boolean almenoUnCambiamentoAvvenuto = false; // Diventa true se c'è stato almeno una vera modifica
             String descrizioneAzione = "";
             // Frase dell'aggiunta vicari
             List<Integer> vicariAggiunti = infoArchivio.getVicariAggiunti();
             if (!vicariAggiunti.isEmpty()) {
-                descrizioneAzione = descrizioneAzione + " Ha reso vicari gli utenti: ";
+                almenoUnCambiamentoAvvenuto = true;
+                descrizioneAzione = descrizioneAzione + "<br>Ha reso vicari gli utenti: ";
                 for (Integer vicarioAggiunto : vicariAggiunti) {
                     InfoPersona vicario = mappaPersone.get(vicarioAggiunto);
-                    descrizioneAzione = descrizioneAzione + vicario.getDescrizione() + ", ";
+                    descrizioneAzione = descrizioneAzione + "<b>" + vicario.getDescrizione() + "</b>, ";
                 }
                 descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ".";
             }
             // Frase della rimozione vicari
             List<Integer> vicariEliminati = infoArchivio.getVicariEliminati();
             if (!vicariEliminati.isEmpty()) {
-                descrizioneAzione = descrizioneAzione + " Ha rimosso i vicarii: ";
+                almenoUnCambiamentoAvvenuto = true;
+                descrizioneAzione = descrizioneAzione + "<br>Ha rimosso i vicari: ";
                 for (Integer vicarioRimosso : vicariEliminati) {
                     InfoPersona vicario = mappaPersone.get(vicarioRimosso);
-                    descrizioneAzione = descrizioneAzione + vicario.getDescrizione() + ", ";
+                    descrizioneAzione = descrizioneAzione + "<b>" + vicario.getDescrizione() + "</b>, ";
                 }
                 descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ".";
             }
@@ -549,22 +552,24 @@ public class KrintScriptaService {
             // Frase della rimozione permessi
             // TODO
             
-            HashMap<String, Object> infoOggetto = new HashMap();
-            infoOggetto.put("descrizioneAzione", descrizioneAzione);
-            infoOggetto.put("infoArchivio", infoArchivio);
-            infoOggetto.put("idMassiveActionLog", idMassiveActionLog);
-            
-            krintService.writeKrintRow(
-                    idArchivio.toString(), // idOggetto
-                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
-                    infoArchivio.getNumerazioneGerarchica(), // descrizioneOggetto
-                    infoOggetto, // informazioniOggetto
-                    idArchivio.toString(), // Da qui si ripete ma per il conenitore
-                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
-                    infoArchivio.getNumerazioneGerarchica(),
-                    krintArchivio,
-                    operazione
-            );
+            if (almenoUnCambiamentoAvvenuto) {
+                HashMap<String, Object> infoOggetto = new HashMap();
+                infoOggetto.put("descrizioneAzione", descrizioneAzione);
+                infoOggetto.put("infoArchivio", infoArchivio);
+                infoOggetto.put("idMassiveActionLog", idMassiveActionLog);
+
+                krintService.writeKrintRow(
+                        idArchivio.toString(), // idOggetto
+                        Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
+                        infoArchivio.getNumerazioneGerarchica(), // descrizioneOggetto
+                        infoOggetto, // informazioniOggetto
+                        idArchivio.toString(), // Da qui si ripete ma per il conenitore
+                        Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
+                        infoArchivio.getNumerazioneGerarchica(),
+                        krintArchivio,
+                        operazione
+                );
+            }
         } catch (Exception ex) {
             log.error("Errore nella writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi con archivio " + idArchivio.toString(), ex);
             krintService.writeKrintError(idArchivio, "writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi", operazione);

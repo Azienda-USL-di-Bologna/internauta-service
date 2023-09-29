@@ -188,16 +188,31 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
                     mappaPersone, 
                     OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_GESTIONE_MASSIVA_ABILITAZIONI
             );
+            
+            // Visto il cambiamento effettuato vogliamo ricalcolare i permessi sull'archivio etc
+            JobNotified jn = new JobNotified();
+            jn.setJobName("CalcoloPermessiGerarchiaArchivioJobWorker");
+            jn.setJobData(objectMapper.convertValue(new CalcoloPermessiGerarchiaArchivioJobWorkerData(idArchivio), Map.class));
+            jn.setWaitObject(false);
+            jn.setApp(app.getId());
+            jn.setPriority(Set.SetPriority.NORMAL);
+            jn.setSkipIfAlreadyPresent(Boolean.TRUE);
+            jobNotifiedRepository.save(jn);
         }
         
         // NOTIFICHE IN SCRIVANIA
         log.info(String.format("Notifico l'AG"));
         // Notifica all'AG
         String oggettoAttivita = "";
+        ZonedDateTime dataOraOperazione = m.getInsertionDate();
+        DateTimeFormatter formatterData = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        String dataFormattata = dataOraOperazione.format(formatterData);
+        DateTimeFormatter formatterOrario = DateTimeFormatter.ofPattern("HH:mm");
+        String orarioFormattato = dataOraOperazione.format(formatterOrario);
         if (idsArchivi.length == 1) 
-            oggettoAttivita = "La modifica massiva di vicari e permessi di un fascicolo e relativi sottofascicoli è avvenuta con successo.";
+            oggettoAttivita = String.format("La modifica massiva, che hai richiesto il %1$s alle %2$s, di vicari e permessi di un fascicolo e relativi sottofascicoli è avvenuta con successo.", dataFormattata, orarioFormattato);
         else
-            oggettoAttivita = String.format("La modifica massiva di vicari e permessi di %1$s fascicoli e relativi sottofascicoli è avvenuta con successo.", idsArchivi.length);
+            oggettoAttivita = String.format("La modifica massiva, che hai richiesto il %1$s alle %2$s, di vicari e permessi di %3$s fascicoli e relativi sottofascicoli è avvenuta con successo.", dataFormattata, orarioFormattato, idsArchivi.length);
         insertAttivita(azienda, personaOperazione, oggettoAttivita, app);
         
         log.info(String.format("Notifico i vari utenti"));
@@ -215,7 +230,7 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
                     oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di un fascicolo che ti coinvolgono.", personaOperazione.getDescrizione());
                 else
                     oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di %2$s fascicoli che ti coinvolgono.", personaOperazione.getDescrizione(), idArchiviCoinvolti.size());
-                insertAttivita(azienda, personaOperazione, oggettoAttivita, app);
+                insertAttivita(azienda, info.getPersona(), oggettoAttivita, app);
             }
         }
         
@@ -305,15 +320,16 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
             idsPersone.addAll(abilitazioniRichieste.getPermessiPersonaDaAggiungere().stream().map(p -> p.getIdPersona()).collect(Collectors.toList()));
         
         QPersona qPersona = QPersona.persona;
-        JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
-        List<Tuple> infoPersone = jpaQueryFactory
-                .select(qPersona.id, qPersona.descrizione)
-                .from(qPersona)
-                .where(qPersona.id.in(idsPersone))
-                .fetch();
-        for (Tuple infoPersona : infoPersone) {
-            InfoPersona info = new InfoPersona(infoPersona.get(qPersona.descrizione), new ArrayList(), new ArrayList(), null, new ArrayList(), new ArrayList());
-            mappaPersone.put(infoPersona.get(qPersona.id), info);
+//        JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
+//        List<Tuple> infoPersone = jpaQueryFactory
+//                .select(qPersona.id, qPersona.descrizione)
+//                .from(qPersona)
+//                .where(qPersona.id.in(idsPersone))
+//                .fetch();
+        Iterable<Persona> persone = personaRepository.findAll(qPersona.id.in(idsPersone));
+        for (Persona persona : persone) {
+            InfoPersona info = new InfoPersona(persona.getDescrizione(), new ArrayList(), new ArrayList(), null, new ArrayList(), new ArrayList(), persona);
+            mappaPersone.put(persona.getId(), info);
         }
         
         return mappaPersone;

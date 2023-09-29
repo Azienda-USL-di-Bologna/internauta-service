@@ -204,9 +204,9 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         String orarioFormattato = dataOraOperazione.format(formatterOrario);
         
         if (idsArchivi.length == 1) 
-            oggettoAttivita = String.format( "La modifica massiva che hai richiesto il %1$s alle %2$s della responsabilità di un fascicolo e relativi sottofascicoli è avvenuta con successo.", dataFormattata, orarioFormattato);
+            oggettoAttivita = String.format( "La modifica massiva, che hai richiesto il %1$s alle %2$s, della responsabilità di un fascicolo e relativi sottofascicoli è avvenuta con successo.", dataFormattata, orarioFormattato);
         else
-            oggettoAttivita = String.format( "La modifica massiva che hai richiesto il %1$s alle %2$s della responsabilità di %3$s fascicoli e relativi sottofascicoli è avvenuta con successo.", dataFormattata, orarioFormattato, idsArchivi.length);
+            oggettoAttivita = String.format( "La modifica massiva, che hai richiesto il %1$s alle %2$s, della responsabilità di %3$s fascicoli e relativi sottofascicoli è avvenuta con successo.", dataFormattata, orarioFormattato, idsArchivi.length);
         if (!idsCasoAMap.isEmpty()) {
             if (idsCasoAMap.size() == 1)
                 oggettoAttivita = oggettoAttivita + String.format( " Un fascicolo ha cambiato responsabile.");
