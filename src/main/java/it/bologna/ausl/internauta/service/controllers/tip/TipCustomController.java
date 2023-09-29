@@ -141,4 +141,12 @@ public class TipCustomController implements ControllerHandledExceptions {
         // torna la sessione creata/usata con la projection SessioneImportazioneWithPlainFields
         return ResponseEntity.ok(projectionFactory.createProjection(SessioneImportazioneWithPlainFields.class, sessioneImportazione)); 
     }
+    @RequestMapping(value = "csvError", method = RequestMethod.GET)
+    public ResponseEntity<?> csvError (
+        HttpServletRequest request,
+        @RequestParam(name = "idSessione", required = true) Long idSessione) throws HttpInternautaResponseException {
+        TipImportManager tipImportManager = new TipImportManager(entityManager, objectMapper, nonCachedEntities, reporitoryConnectionManager, transactionTemplate);
+        SessioneImportazione sessioneImportazione = tipImportManager.validateSessione(idSessione);
+         return ResponseEntity.ok(projectionFactory.createProjection(SessioneImportazioneWithPlainFields.class, sessioneImportazione)); 
+    }
 }
