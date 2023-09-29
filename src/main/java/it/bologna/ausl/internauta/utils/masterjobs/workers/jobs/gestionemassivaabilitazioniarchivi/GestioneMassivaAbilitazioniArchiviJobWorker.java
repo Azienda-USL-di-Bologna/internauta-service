@@ -129,7 +129,7 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         idsArchiviString = idsArchiviString.substring(1, idsArchiviString.length() - 1);
         
         
-        
+        log.info(String.format("Creo la mappa archivi e la mappa persone"));
         // Mi preparo due mappe che conterranno tutte le info utili per poi creare notifiche e krint
         Map<Integer, InfoArchivio> mappaArchivi = buildInitalArchiviMap(idsArchivi); // es: 1818118: {vicariAggiunti:[], vicariEliminati:[], permessiPersonaAggiunti: {VISUALIZZA: [], MODIFICA: [], ELIMINA: []}, permessiPersonaRimossi}
         Map<Integer, InfoPersona> mappaPersone = buildInitialPersoneMap(abilitazioniRichieste); // es: 9383721; {vicariatiOttenuti:[], vicariatiPerduti:[], permessiOttenuti: ??, permessiPerduti: []}                
@@ -137,9 +137,10 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         // Setto come utente loggato l'utente amministratore gedi che effettua l'operazione
         authorizationUtils.insertInContext(utenteOperazione, 0, null, Applicazione.Applicazioni.scripta.toString(), false);
         
-        log.info(String.format("PARAMETRI. idMassiveActionLog: %1$s, idPersonaOperazione: %2$s, totaleArchivi: %3$s", 
-                 idMassiveActionLog, idPersonaOperazione, idsArchivi.length));
+        log.info(String.format("PARAMETRI. idMassiveActionLog: %1$s, idPersonaOperazione: %2$s, totaleArchivi: %3$s, totalePersone: %4$s", 
+                 idMassiveActionLog, idPersonaOperazione, idsArchivi.length, mappaArchivi.size()));
 
+        log.info(String.format("Eliminazione vicari"));
         // Eliminazione vicari
         List<Integer> idPersonaVicariDaRimuovere = abilitazioniRichieste.getIdPersonaVicariDaRimuovere();
         if (idPersonaVicariDaRimuovere != null) {
@@ -155,6 +156,8 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         
         // Eliminazione permessi
         // TODO
+        
+        log.info(String.format("Inserimento vicari"));
         // Inserimento vicari
         List<Integer> idPersonaVicariDaAggiungere = abilitazioniRichieste.getIdPersonaVicariDaAggiungere();
         if (idPersonaVicariDaAggiungere != null) {
@@ -173,6 +176,7 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         // TODO
         // NB: Nella mappa mappaPersone la chiave predicatoPermessoOttenuto è vuota. Durante questo processo di inserimento deve venir riempita questa proprietà
         
+        log.info(String.format("krinto"));
         // KRINT
         for (Map.Entry<Integer, InfoArchivio> entry : mappaArchivi.entrySet()) {
             Integer idArchivio = entry.getKey();
@@ -187,6 +191,7 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         }
         
         // NOTIFICHE IN SCRIVANIA
+        log.info(String.format("Notifico l'AG"));
         // Notifica all'AG
         String oggettoAttivita = "";
         if (idsArchivi.length == 1) 
@@ -195,6 +200,7 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
             oggettoAttivita = String.format("La modifica massiva di vicari e permessi di %1$s fascicoli e relativi sottofascicoli è avvenuta con successo.", idsArchivi.length);
         insertAttivita(azienda, personaOperazione, oggettoAttivita, app);
         
+        log.info(String.format("Notifico i vari utenti"));
         // Notifiche agli utenti coinvolti
         for (Map.Entry<Integer, InfoPersona> entry : mappaPersone.entrySet()) {
             Integer idPersona = entry.getKey();
@@ -212,6 +218,19 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
                 insertAttivita(azienda, personaOperazione, oggettoAttivita, app);
             }
         }
+        
+        // Aggiorno la massiveActionLog
+        log.info(String.format("Aggiorno la massiveActionLog"));
+        m.setCompletionDate(ZonedDateTime.now());
+//        Map<String, Object> additionalData = m.getAdditionalData();
+//        if (additionalData == null) {
+//            additionalData = new HashMap();
+//        }
+//        additionalData.put("responsabiliSostituiti", idsCasoAMap.size());
+//        additionalData.put("struttureResponsabileSostituite", idsCasoBMap.size());
+//        additionalData.put("fascicoliNonAggiornati", idsArchiviList.size());
+//        m.setAdditionalData(additionalData);
+        massiveActionLogRepository.save(m);
         
         log.info(String.format("Effettuo il salvataggio dei krint creati"));
         krintUtils.saveAllKrintsInSessionData();
