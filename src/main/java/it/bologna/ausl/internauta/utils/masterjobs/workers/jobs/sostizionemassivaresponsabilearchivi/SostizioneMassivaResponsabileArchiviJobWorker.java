@@ -162,6 +162,7 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         for (HashMap<String, Object> info : idsCasoAHashMap) {
             krintScriptaService.writeSostituzioneResponsabileDaAmministratoreGedi(
                     info,
+                    idMassiveActionLog,
                     OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_UPDATE_RESPONSABILE_GESTIONE_MASSIVA
             );
             idsArchiviList.remove((Integer) info.get("idArchivio")); // per il CASO C
@@ -184,6 +185,7 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
         for (HashMap<String, Object> info : idsCasoBHashMap) {
             krintScriptaService.writeSostituzioneResponsabileDaAmministratoreGedi(
                     info,
+                    idMassiveActionLog,
                     OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_UPDATE_STRUTTURA_GESTIONE_MASSIVA
             );
             idsArchiviList.remove((Integer) info.get("idArchivio")); // per il CASO C
@@ -260,13 +262,13 @@ public class SostizioneMassivaResponsabileArchiviJobWorker extends JobWorker<Sos
 
     @Override
     public boolean isExecutable() {
-//        return true; // Per il momento lo eseguiamo subito perché dobbiamo fare la presentazione.
+        return true; // Per il momento lo eseguiamo subito perché dobbiamo fare la presentazione.
         // Controllo se now è tra le 7 e le 18, se si torno false se no torno true
-        ZonedDateTime now = ZonedDateTime.now();
-        LocalTime oraCorrente = now.toLocalTime();
-        LocalTime inizioOrario = LocalTime.of(7, 0);   // 7:00
-        LocalTime fineOrario = LocalTime.of(18, 0);    // 18:00
-        return !(oraCorrente.isAfter(inizioOrario) && oraCorrente.isBefore(fineOrario));
+//        ZonedDateTime now = ZonedDateTime.now();
+//        LocalTime oraCorrente = now.toLocalTime();
+//        LocalTime inizioOrario = LocalTime.of(7, 0);   // 7:00
+//        LocalTime fineOrario = LocalTime.of(18, 0);    // 18:00
+//        return !(oraCorrente.isAfter(inizioOrario) && oraCorrente.isBefore(fineOrario));
     }
     
     private void insertAttivita(Azienda azienda, Persona persona, String oggetto, Applicazione app) {

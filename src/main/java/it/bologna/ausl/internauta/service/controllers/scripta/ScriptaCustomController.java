@@ -159,6 +159,7 @@ import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRep
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.GestioneMassivaAbilitazioniArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerResult;
@@ -2181,7 +2182,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         List<Utente> utenteList = personaResponsabile.getUtenteList();
         boolean utenteInAzienda = utenteList.stream().anyMatch(u -> u.getIdAzienda().getId().equals(idAziendaRiferimento) && u.getAttivo().equals(true));
         if (!utenteInAzienda || !strutturaResponsabile.getIdAzienda().getId().equals(idAziendaRiferimento)) {
-            throw new Http403ResponseException("2", "responsabile e struttura non fanno parte dell'azienda");
+            throw new Http403ResponseException("3", "responsabile e struttura non fanno parte dell'azienda");
         }
         
         Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
@@ -2224,7 +2225,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         return ResponseEntity.ok(response);
     }
     
-    @RequestMapping(value = {"modificaVicariAndPermessiArchivioMassivo"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = {"modificaVicariAndPermessiArchivioMassivo"}, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> modificaVicariAndPermessiArchivioMassivo(
             @QuerydslPredicate(root = ArchivioDetail.class) Predicate predicate,
@@ -2232,8 +2233,95 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             Pageable pageable,
             HttpServletRequest request,
             @RequestParam(required = false, name = "ids") Integer[] ids,
-            @RequestParam(required = true, name = "vicariAndPermessi") Map<String, Object> vicariAndPermessi,
-            @RequestParam(required = true, name = "idAzienda") Integer idAziendaRiferimento
+            @RequestBody(required = true) InfoAbilitazioniMassiveArchivi abilitazioniRichieste,
+            @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento
+    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
+            
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
+        
+        // Controlli di sicurezza
+        // Sono AG per l'azienda?
+        List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
+        if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAziendaRiferimento)) {
+            throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
+        }
+        // Vicari da aggiungere appartengono ad azienda
+        List<Integer> idPersonaVicariDaAggiungere = abilitazioniRichieste.getIdPersonaVicariDaAggiungere();
+        if (idPersonaVicariDaAggiungere != null) {
+            for (Integer idPersonaVicario : idPersonaVicariDaAggiungere) {
+                Persona personaVicario = personaRepository.getById(idPersonaVicario);
+                if (personaVicario == null) {
+                    throw new Http403ResponseException("2", "vicario non trovato");
+                }
+                List<Utente> utenteList = personaVicario.getUtenteList();
+                boolean utenteInAzienda = utenteList.stream().anyMatch(u -> u.getIdAzienda().getId().equals(idAziendaRiferimento) && u.getAttivo().equals(true));
+                if (!utenteInAzienda) {
+                    throw new Http403ResponseException("3", "vicario non fa parte dell'azienda");
+                }
+            }
+        }
+        // Persone dei permessi da aggiungere appartengono ad azienda
+        List<InfoAbilitazioniMassiveArchivi.PermessoPersona> permessiPersonaDaAggiungere = abilitazioniRichieste.getPermessiPersonaDaAggiungere();
+        if (permessiPersonaDaAggiungere != null) {
+            for (InfoAbilitazioniMassiveArchivi.PermessoPersona idPersonapermesso : permessiPersonaDaAggiungere) {
+                Persona personaVicario = personaRepository.getById(idPersonapermesso.getIdPersona());
+                if (personaVicario == null) {
+                    throw new Http403ResponseException("4", "persona con permesso non trovata");
+                }
+                List<Utente> utenteList = personaVicario.getUtenteList();
+                boolean utenteInAzienda = utenteList.stream().anyMatch(u -> u.getIdAzienda().getId().equals(idAziendaRiferimento) && u.getAttivo().equals(true));
+                if (!utenteInAzienda) {
+                    throw new Http403ResponseException("5", "persona con permesso non fa parte dell'azienda");
+                }
+            }
+        }
+        
+        Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
+
+        Map<String, Object> parameters = new HashMap();
+        parameters.put("idsParameters", ids);
+        parameters.put("predicate", predicate.toString());
+        parameters.put("notIds", notIds);
+        parameters.put("idAziendaRiferimento", idAziendaRiferimento);
+        parameters.put("abilitazioniRichieste", abilitazioniRichieste);
+        
+        Integer idMassiveActionLog = scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_VICARI_E_PERMESSI);
+        
+        // Inserisco il job per dare/togliere le abilitazioni
+        GestioneMassivaAbilitazioniArchiviJobWorkerData gestioneMassivaAbilitazioniArchiviJobWorkerData = new GestioneMassivaAbilitazioniArchiviJobWorkerData(
+                idsArchivi, 
+                abilitazioniRichieste,
+                idMassiveActionLog, 
+                authenticatedUserProperties.getPerson().getId(), 
+                authenticatedUserProperties.getUser().getId(), 
+                idAziendaRiferimento
+        );
+
+        Map gestioneMassivaAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(gestioneMassivaAbilitazioniArchiviJobWorkerData, Map.class);
+        JobNotified jn = new JobNotified();
+        jn.setJobName("GestioneMassivaAbilitazioniArchiviJobWorker");
+        jn.setJobData(gestioneMassivaAbilitazioniArchiviJobWorkerDataMap);
+        jn.setWaitObject(false);
+        jn.setApp(app.getId());
+        jn.setPriority(Set.SetPriority.NORMAL);
+        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
+        jobNotifiedRepository.save(jn);
+        
+        Map<String, Object> response = new HashMap();
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    @RequestMapping(value = {"copiaTrasferisciAbilitazioniArchiviMassivo"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Transactional(rollbackFor = {Error.class})
+    public ResponseEntity<?> copiaTrasferisciAbilitazioniArchiviMassivo(
+            HttpServletRequest request,
+            @RequestParam(required = true, name = "operationType") MassiveActionLog.OperationType operationType,
+            @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento,
+            @RequestParam(required = true, name = "idPersonaSorgente") Integer idPersonaSorgente,
+            @RequestParam(required = true, name = "idPersonaDestinazione") Integer idPersonaDestinazione
     ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
             
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
@@ -2246,52 +2334,12 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
         }
         
-        Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
-
-        Map<String, Object> parameters = new HashMap();
-        parameters.put("idsParameters", ids);
-        parameters.put("predicate", predicate.toString());
-        parameters.put("notIds", notIds);
-        parameters.put("idAziendaRiferimento", idAziendaRiferimento);
-        parameters.put("vicariAndPermessi", vicariAndPermessi);
-        
-        scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_VICARI_E_PERMESSI);
-        
-        // Inserisco il job per dare/togliere le abilitazioni
-        // TODO..
-        
-        Map<String, Object> response = new HashMap();
-        response.put("idsSize", ids.length);
-        
-        return ResponseEntity.ok(response);
-    }
-    
-    @RequestMapping(value = {"copiaTrasferisciAbilitazioniArchiviMassivo"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = {Error.class})
-    public ResponseEntity<?> copiaTrasferisciAbilitazioniArchiviMassivo(
-            HttpServletRequest request,
-            @RequestParam(required = true, name = "operationType") MassiveActionLog.OperationType operationType,
-            @RequestParam(required = true, name = "idAzienda") Integer idAzienda,
-            @RequestParam(required = true, name = "idPersonaSorgente") Integer idPersonaSorgente,
-            @RequestParam(required = true, name = "idPersonaDestinazione") Integer idPersonaDestinazione
-    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
-            
-        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-        Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-        Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
-        
-        // Controlli di sicurezza
-        List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
-        if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAzienda)) {
-            throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
-        }
-        
         // TODO: check operationType sia o COPIA_ABILITAZIONI o TRASFERISCI_ABILITAZIONI
         
         Map<String, Object> parameters = new HashMap();
         parameters.put("idPersonaSorgente", idPersonaSorgente);
         parameters.put("idPersonaDestinazione", idPersonaDestinazione);
-        parameters.put("idAzienda", idAzienda);
+        parameters.put("idAzienda", idAziendaRiferimento);
         parameters.put("operationType", operationType);
         
         scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(null, parameters, operationType);
