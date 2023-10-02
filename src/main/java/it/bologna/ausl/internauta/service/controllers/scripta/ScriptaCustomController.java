@@ -75,7 +75,6 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AllegatoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRecenteRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDiInteresseRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDocRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocRepository;
@@ -113,7 +112,6 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDetailRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.NoteVersamentoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
@@ -154,8 +152,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
-import it.bologna.ausl.internauta.service.repositories.logs.MassiveActionLogRepository;
-import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRepository;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
@@ -163,7 +159,6 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaa
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerResult;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.versatore.VersatoreServiceUtils;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
@@ -228,9 +223,6 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     private PermissionManager permissionManager;
 
     @Autowired
-    private NoteVersamentoRepository noteVersamentoRepository;
-
-    @Autowired
     private ScriptaArchiviUtils scriptaArchiviUtils;
 
     @Autowired
@@ -247,9 +239,6 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
-
-    @Autowired
-    private ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
     @Autowired
     private ArchivioRecenteRepository archivioRecenteRepository;
@@ -269,9 +258,6 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     @Autowired
     private PecRepository pecRepository;
     
-    @Autowired
-    private AttoreArchivioRepository attoreArchivioRepository;
-
     @PersistenceContext
     private EntityManager em;
 
@@ -325,10 +311,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     
     @Autowired
     private JobNotifiedRepository jobNotifiedRepository;
-    
-    @Autowired
-    private MassiveActionLogRepository massiveActionLogRepository;
-    
+        
     @Autowired
     private ScriptaGestioneAbilitazioniMassiveArchiviUtils scriptaGestioneAbilitazioniMassiveArchiviUtils;
 

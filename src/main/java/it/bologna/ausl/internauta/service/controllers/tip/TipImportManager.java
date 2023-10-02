@@ -385,13 +385,7 @@ public class TipImportManager {
         });
         return sessioneImportazione;
     }
-    
-    /**
-     * crea una mappa che ha come chiavi gli header del csv e come valori i rispettivi valori
-     * @param csvParser
-     * @param csvRecord
-     * @return 
-     */    
+      
     /**
      * crea una mappa che ha come chiavi gli header del csv e come valori i rispettivi valori
      * @param csvParser
@@ -412,7 +406,7 @@ public class TipImportManager {
     /**
      * Crea la riga della tabella di importazione (importazioni_documenti/importazione_archivi a seconda della tipologia)
      * @param <T>
-     * @param tipologia la tipolia dell'importazione
+     * @param tipologia la tipologia dell'importazione
      * @param csvRowMap la mappa rappresentante la riga del csv
      * @return un oggetto  di tipo ImportazioniDocumento o ImportazioniArchivio a seconda della tipologia (entrambi implementando l'interfaccia ImportazioneOggetto)
      */

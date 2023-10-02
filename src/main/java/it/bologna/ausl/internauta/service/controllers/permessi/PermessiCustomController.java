@@ -21,12 +21,9 @@ import it.bologna.ausl.internauta.service.exceptions.http.Http409ResponseExcepti
 import it.bologna.ausl.internauta.service.exceptions.http.HttpInternautaResponseException;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.permessi.PermessoError;
-import it.bologna.ausl.internauta.service.repositories.baborg.AfferenzaStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.Permessi.Ambiti.PECG;
