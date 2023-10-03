@@ -408,8 +408,7 @@ public class TipImportManager {
     }
 
     /**
-     * crea una mappa che ha come chiavi gli header del csv e come valori i
-     * rispettivi valori
+     * crea una mappa che ha come chiavi gli header del csv e come valori i rispettivi valori
      *
      * @param csvParser
      * @param csvRecord
@@ -452,8 +451,14 @@ public class TipImportManager {
             // reperisce il valore enum corretto a seconda dell'header
             ColonneImportazioneOggetto colonnaEnum = ColonneImportazioneOggetto.findKey(headerName, tipologia);
             if (colonnaEnum != null) {
-                // se trovo il campo, ne setto il valore tramite il wrapper istanziato prima
-                wrapper.setPropertyValue(colonnaEnum.toString(), csvRowMap.get(headerName));
+                /* 
+                se trovo il campo, ne setto il valore tramite il wrapper istanziato prima
+                ignorando la colonna errore cosi che se qualcuno carica il csv di errore 
+                noi lo prendiamo bene lo stesso
+                */
+                if (colonnaEnum != colonnaEnum.getErroriColumn()){
+                    wrapper.setPropertyValue(colonnaEnum.toString(), csvRowMap.get(headerName));
+                }    
             } else { // se non lo trovo, stampo un errore e lo ignoro
                 log.error(String.format("header csv %s non previsto dal tracciato, il campo sarà ignorato", headerName));
             }
