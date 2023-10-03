@@ -7,18 +7,27 @@ import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
-import it.bologna.ausl.internauta.service.InternautaApplication;
+import it.bologna.ausl.internauta.service.controllers.tip.validations.TipDataValidator;
+import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
+import it.bologna.ausl.model.entities.tip.SessioneImportazione;
 import java.util.Map;
-import java.util.Set;
+import javax.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 /**
  *
  * @author Top
  */
+@Component
 public class TipUtils {
+    
+    @Autowired
+    EntityManager entityManager;
+            
     private static final Logger log = LoggerFactory.getLogger(TipUtils.class);
 
     /**
@@ -124,5 +133,16 @@ public class TipUtils {
             }
         }
         return res;
+    }
+    
+    
+    public static ImportazioneDocumento validateRow(SessioneImportazione sessione, ImportazioneDocumento importazioneDocumento) {
+        TipDataValidator tipDataValidator = TipDataValidator.getTipDataValidator(sessione.getTipologia());
+        TipErroriImportazione error = tipDataValidator.validate(importazioneDocumento);
+        // calcola lo stato di validazione
+        ImportazioneDocumento.StatiImportazioneDocumento statoValidazione = error.getStatoValidazione();
+        importazioneDocumento.setStato(statoValidazione);
+        
+        return importazioneDocumento;
     }
 }
