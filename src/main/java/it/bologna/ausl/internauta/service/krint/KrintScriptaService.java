@@ -565,9 +565,9 @@ public class KrintScriptaService {
                 List<Integer> elimina = permessiPersonaAggiunti.get("ELIMINA");
                 if (!visualizza.isEmpty() || !modifica.isEmpty() || !elimina.isEmpty()) {
                     almenoUnCambiamentoAvvenuto = true;
-                    descrizioneAzione = descrizioneAzione + "<br>Ha dato i seguenti permessi: ";
+                    descrizioneAzione = descrizioneAzione + "<br>Ha dato i seguenti permessi:";
                     if (!visualizza.isEmpty()) {
-                        descrizioneAzione = descrizioneAzione + "<b>VISUALIZZA</b> a ";
+                        descrizioneAzione = descrizioneAzione + " <b>VISUALIZZA</b> a ";
                         for (Integer idPersona : visualizza) {
                             InfoPersona persona = mappaPersone.get(idPersona);
                             descrizioneAzione = descrizioneAzione + "<b>" + persona.getDescrizione() + "</b>, ";
@@ -575,7 +575,7 @@ public class KrintScriptaService {
                         descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ";";
                     }
                     if (!modifica.isEmpty()) {
-                        descrizioneAzione = descrizioneAzione + "<b>MODIFICA</b> a ";
+                        descrizioneAzione = descrizioneAzione + " <b>MODIFICA</b> a ";
                         for (Integer idPersona : modifica) {
                             InfoPersona persona = mappaPersone.get(idPersona);
                             descrizioneAzione = descrizioneAzione + "<b>" + persona.getDescrizione() + "</b>, ";
@@ -583,7 +583,7 @@ public class KrintScriptaService {
                         descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ";";
                     }
                     if (!elimina.isEmpty()) {
-                        descrizioneAzione = descrizioneAzione + "<b>ELIMINA</b> a ";
+                        descrizioneAzione = descrizioneAzione + " <b>ELIMINA</b> a ";
                         for (Integer idPersona : elimina) {
                             InfoPersona persona = mappaPersone.get(idPersona);
                             descrizioneAzione = descrizioneAzione + "<b>" + persona.getDescrizione() + "</b>, ";

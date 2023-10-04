@@ -120,6 +120,7 @@ public interface PermessoRepository extends
         "	AND pp.ambito = 'SCRIPTA'\\:\\:permessi.ambito_permesso\n" +
         "	AND pp.propaga_oggetto = TRUE\n" +
         "	AND pp.id_predicato = (SELECT v.id_predicato FROM valori_utili v)\n" +
+        "       AND pp.attivo_dal < now() AND (pp.attivo_al IS NULL OR pp.attivo_al > now())\n" +
         "    )\n" +
         "),\n" +        
         "inserimento AS (" + 
