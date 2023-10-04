@@ -236,7 +236,7 @@ public abstract class TipDataValidator {
      * @return true se le due stringhe hanno lo stesso numero di elementi, false altrimenti
      */
     public static boolean validateNotazioniPosizionali(String stringa1, String stringa2, String separatore) {
-        return stringa2.split(separatore).length == stringa2.split(separatore).length;
+        return stringa1.split(separatore).length == stringa2.split(separatore).length;
     }
     
     /**
