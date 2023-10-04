@@ -51,9 +51,9 @@ public class InfoAbilitazioniMassiveArchivi {
         this.idPersonaPermessiDaRimuovere = idPersonaPermessiDaRimuovere;
     }
     
-    public class PermessoPersona {
+    public static class PermessoPersona {
         private Integer idPersona;
-        private String permesso;
+        private String predicato;
         private Integer idStruttura;
 
         public PermessoPersona() {
@@ -67,12 +67,12 @@ public class InfoAbilitazioniMassiveArchivi {
             this.idPersona = idPersona;
         }
 
-        public String getPermesso() {
-            return permesso;
+        public String getPredicato() {
+            return predicato;
         }
 
-        public void setPermesso(String permesso) {
-            this.permesso = permesso;
+        public void setPredicato(String predicato) {
+            this.predicato = predicato;
         }
 
         public Integer getIdStruttura() {

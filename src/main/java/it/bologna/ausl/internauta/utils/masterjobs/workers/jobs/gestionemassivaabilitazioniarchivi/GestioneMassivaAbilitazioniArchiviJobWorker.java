@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -14,6 +13,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.MassiveActionLogRepository;
+import it.bologna.ausl.internauta.service.repositories.permessi.PermessoRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.AttoreArchivioRepository;
 import it.bologna.ausl.internauta.service.repositories.scrivania.AttivitaRepository;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
@@ -26,7 +26,6 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessig
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
-import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.MassiveActionLog;
@@ -37,7 +36,6 @@ import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import it.bologna.ausl.model.entities.scrivania.Attivita.TipoAttivita;
-import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -74,6 +72,9 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
     
     @Autowired
     private AttoreArchivioRepository attoreArchivioRepository;
+    
+    @Autowired
+    private PermessoRepository permessoRepository;
     
     @Autowired
     private MassiveActionLogRepository massiveActionLogRepository;
@@ -154,8 +155,19 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
             }
         }
         
+        log.info(String.format("Eliminazione permessi"));
         // Eliminazione permessi
-        // TODO
+        List<Integer> idPersonaPermessiDaRimuovere = abilitazioniRichieste.getIdPersonaPermessiDaRimuovere();
+        if (idPersonaPermessiDaRimuovere != null) {
+            List<Map<String, Object>> permessiSpenti = permessoRepository.spegniPermessiArchiviGestioneMassiva(idsArchivi, idPersonaPermessiDaRimuovere.toArray(new Integer[0]));
+            for (Map<String, Object> permessoSpento : permessiSpenti) {
+                InfoArchivio infoArchivio = mappaArchivi.get((Integer)permessoSpento.get("idArchivio"));
+                infoArchivio.getPermessiPersonaRimossi().add((Integer)permessoSpento.get("idPersona"));
+
+                InfoPersona infoPersona = mappaPersone.get((Integer)permessoSpento.get("idPersona"));
+                infoPersona.getPermessiPerduti().add((Integer)permessoSpento.get("idArchivio"));
+            }
+        }
         
         log.info(String.format("Inserimento vicari"));
         // Inserimento vicari
@@ -172,9 +184,28 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
             }
         }
         
+        log.info(String.format("Inserimento permessi"));
         // Inserimento permessi
-        // TODO
-        // NB: Nella mappa mappaPersone la chiave predicatoPermessoOttenuto è vuota. Durante questo processo di inserimento deve venir riempita questa proprietà
+        List<InfoAbilitazioniMassiveArchivi.PermessoPersona> permessiPersonaDaAggiungere = abilitazioniRichieste.getPermessiPersonaDaAggiungere();
+        if (permessiPersonaDaAggiungere != null) {
+            for (InfoAbilitazioniMassiveArchivi.PermessoPersona permessoPersona : permessiPersonaDaAggiungere) {
+                Integer idPersona = permessoPersona.getIdPersona();
+                Integer idStrutturaVeicolante = permessoPersona.getIdStruttura();
+                String predicato = permessoPersona.getPredicato();
+                permessoRepository.spegniPermessiArchiviGestioneMassivaPreservandoneAlcuni(idPersona, idsArchivi, predicato, idStrutturaVeicolante);
+                List<Map<String, Object>> permessiInseriti = permessoRepository.insertPermessiArchiviGestioneMassiva(idPersona, idStrutturaVeicolante, predicato, idsArchiviString);
+                if (permessiInseriti != null) {
+                    for (Map<String, Object> permessoInserito : permessiInseriti) {
+                        InfoArchivio infoArchivio = mappaArchivi.get((Integer)permessoInserito.get("idArchivio"));
+                        infoArchivio.getPermessiPersonaAggiunti().get(predicato).add(idPersona);
+
+                        InfoPersona infoPersona = mappaPersone.get(idPersona);
+                        infoPersona.getPermessiOttenuti().add((Integer)permessoInserito.get("idArchivio"));
+                        infoPersona.setPredicatoPermessoOttenuto(predicato);
+                    }
+                }
+            }
+        }
         
         log.info(String.format("krinto"));
         // KRINT

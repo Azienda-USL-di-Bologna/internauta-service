@@ -524,17 +524,6 @@ public class KrintScriptaService {
             // Costuisco la frase del log
             boolean almenoUnCambiamentoAvvenuto = false; // Diventa true se c'è stato almeno una vera modifica
             String descrizioneAzione = "";
-            // Frase dell'aggiunta vicari
-            List<Integer> vicariAggiunti = infoArchivio.getVicariAggiunti();
-            if (!vicariAggiunti.isEmpty()) {
-                almenoUnCambiamentoAvvenuto = true;
-                descrizioneAzione = descrizioneAzione + "<br>Ha reso vicari gli utenti: ";
-                for (Integer vicarioAggiunto : vicariAggiunti) {
-                    InfoPersona vicario = mappaPersone.get(vicarioAggiunto);
-                    descrizioneAzione = descrizioneAzione + "<b>" + vicario.getDescrizione() + "</b>, ";
-                }
-                descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ".";
-            }
             // Frase della rimozione vicari
             List<Integer> vicariEliminati = infoArchivio.getVicariEliminati();
             if (!vicariEliminati.isEmpty()) {
@@ -546,11 +535,64 @@ public class KrintScriptaService {
                 }
                 descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ".";
             }
-            // Frase dell'aggiunta permessi 
-            // TODO
-            
+            // Frase dell'aggiunta vicari
+            List<Integer> vicariAggiunti = infoArchivio.getVicariAggiunti();
+            if (!vicariAggiunti.isEmpty()) {
+                almenoUnCambiamentoAvvenuto = true;
+                descrizioneAzione = descrizioneAzione + "<br>Ha reso vicari gli utenti: ";
+                for (Integer vicarioAggiunto : vicariAggiunti) {
+                    InfoPersona vicario = mappaPersone.get(vicarioAggiunto);
+                    descrizioneAzione = descrizioneAzione + "<b>" + vicario.getDescrizione() + "</b>, ";
+                }
+                descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ".";
+            }
             // Frase della rimozione permessi
-            // TODO
+            List<Integer> permessiPersonaRimossi = infoArchivio.getPermessiPersonaRimossi();
+            if (!permessiPersonaRimossi.isEmpty()) {
+                almenoUnCambiamentoAvvenuto = true;
+                descrizioneAzione = descrizioneAzione + "<br>Ha rimosso i permessi agli utenti: ";
+                for (Integer idPersona : permessiPersonaRimossi) {
+                    InfoPersona persona = mappaPersone.get(idPersona);
+                    descrizioneAzione = descrizioneAzione + "<b>" + persona.getDescrizione() + "</b>, ";
+                }
+                descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ".";
+            }
+            // Frase dell'aggiunta permessi
+            Map<String, List<Integer>> permessiPersonaAggiunti = infoArchivio.getPermessiPersonaAggiunti();
+            if (permessiPersonaAggiunti != null) {
+                List<Integer> visualizza = permessiPersonaAggiunti.get("VISUALIZZA");
+                List<Integer> modifica = permessiPersonaAggiunti.get("MODIFICA");
+                List<Integer> elimina = permessiPersonaAggiunti.get("ELIMINA");
+                if (!visualizza.isEmpty() || !modifica.isEmpty() || !elimina.isEmpty()) {
+                    almenoUnCambiamentoAvvenuto = true;
+                    descrizioneAzione = descrizioneAzione + "<br>Ha dato i seguenti permessi: ";
+                    if (!visualizza.isEmpty()) {
+                        descrizioneAzione = descrizioneAzione + "<b>VISUALIZZA</b> a ";
+                        for (Integer idPersona : visualizza) {
+                            InfoPersona persona = mappaPersone.get(idPersona);
+                            descrizioneAzione = descrizioneAzione + "<b>" + persona.getDescrizione() + "</b>, ";
+                        }
+                        descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ";";
+                    }
+                    if (!modifica.isEmpty()) {
+                        descrizioneAzione = descrizioneAzione + "<b>MODIFICA</b> a ";
+                        for (Integer idPersona : modifica) {
+                            InfoPersona persona = mappaPersone.get(idPersona);
+                            descrizioneAzione = descrizioneAzione + "<b>" + persona.getDescrizione() + "</b>, ";
+                        }
+                        descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ";";
+                    }
+                    if (!elimina.isEmpty()) {
+                        descrizioneAzione = descrizioneAzione + "<b>ELIMINA</b> a ";
+                        for (Integer idPersona : elimina) {
+                            InfoPersona persona = mappaPersone.get(idPersona);
+                            descrizioneAzione = descrizioneAzione + "<b>" + persona.getDescrizione() + "</b>, ";
+                        }
+                        descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ";";
+                    }
+                    descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 1) + ".";
+                }
+            }
             
             if (almenoUnCambiamentoAvvenuto) {
                 HashMap<String, Object> infoOggetto = new HashMap();
