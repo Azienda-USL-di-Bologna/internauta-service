@@ -142,7 +142,7 @@ public class TipUtils {
         // calcola lo stato di validazione
         ImportazioneDocumento.StatiImportazioneDocumento statoValidazione = error.getStatoValidazione();
         importazioneDocumento.setStato(statoValidazione);
-        
+        importazioneDocumento.setErrori(error);
         return importazioneDocumento;
     }
 }
