@@ -159,7 +159,7 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         // Eliminazione permessi
         List<Integer> idPersonaPermessiDaRimuovere = abilitazioniRichieste.getIdPersonaPermessiDaRimuovere();
         if (idPersonaPermessiDaRimuovere != null) {
-            List<Map<String, Object>> permessiSpenti = permessoRepository.spegniPermessiArchiviGestioneMassiva(idsArchivi, idPersonaPermessiDaRimuovere.toArray(new Integer[0]));
+            List<Map<String, Object>> permessiSpenti = permessoRepository.spegniPermessiArchiviGestioneMassiva(idPersonaPermessiDaRimuovere.toArray(new Integer[0]), idsArchivi);
             for (Map<String, Object> permessoSpento : permessiSpenti) {
                 InfoArchivio infoArchivio = mappaArchivi.get((Integer)permessoSpento.get("idArchivio"));
                 infoArchivio.getPermessiPersonaRimossi().add((Integer)permessoSpento.get("idPersona"));
