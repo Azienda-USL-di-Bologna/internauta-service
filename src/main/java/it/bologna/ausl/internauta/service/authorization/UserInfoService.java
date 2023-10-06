@@ -63,6 +63,7 @@ import java.util.HashSet;
 import java.util.stream.Stream;
 import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgUtenteStruttura;
+import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniPersona;
 import org.json.JSONObject;
 import org.springframework.beans.factory.BeanFactory;
 
@@ -1343,10 +1344,10 @@ public class UserInfoService {
     public KrintBaborgPersona getPersonaKrint(Utente utente) {
         return factory.createProjection(KrintBaborgPersona.class, utente.getIdPersona());
     }
-//
-//    public KrintBaborgPersona getPersonaKrint(Utente utente) {
-//        return  factory.createProjection(KrintBaborgPersona.class, utente.getIdPersona());
-//    }
+
+    public KrintInformazioniPersona getInformazioniPersonaKrint(Utente utente) {
+        return  factory.createProjection(KrintInformazioniPersona.class, utente.getIdPersona());
+    }
 
     @Cacheable(value = "getUtenteProcton", key = "{#idPersona, #codiceAzienda}")
     public UtenteProcton getUtenteProcton(Integer idPersona, String codiceAzienda) throws Http404ResponseException {
