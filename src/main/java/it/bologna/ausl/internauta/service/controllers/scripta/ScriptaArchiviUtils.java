@@ -78,7 +78,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.util.StreamUtils;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+
 
 /**
  *
@@ -308,10 +311,11 @@ public class ScriptaArchiviUtils {
         
         // creo lo zip wrappando un FileOutputStream cosicché posso salvarlo su disco e non tenerlo in memoria 
         // evitando così la possibilità di out of range data da fascicoli, o singoli allegati, troppo grossi
-        try (ZipOutputStream zipOut = new ZipOutputStream(fos)) {
+        try (ZipOutputStream zipOut = new ZipOutputStream(fos, StandardCharsets.UTF_8)) {
             LOG.info("parto a creare lo zip");
             // mi assicuro che al persona ottenuta via parametro abbia il permesso visualizza sull'archivio da scaricare
             if (!personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
+                LOG.info("User doesn't have permission");
                 return;
             }
             // ottengo gli archivi figli 
@@ -319,16 +323,21 @@ public class ScriptaArchiviUtils {
 
             // ciclo i figli e per ognuno di loro chiamo ricorsivamente questa funzione (buildArchivio)
             for (Archivio archivioFiglio : archiviFigli) {
-                if (!archivioFiglio.getStato().equals(Archivio.StatoArchivio.BOZZA)){
+                boolean hasPermissionPassaggioFiglio = personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivioFiglio.getId(), PermessoArchivio.DecimalePredicato.PASSAGGIO);
+                if (!archivioFiglio.getStato().equals(Archivio.StatoArchivio.BOZZA) && hasPermissionPassaggioFiglio){
                     String numerazioneGerarchicaFiglio = archivioFiglio.getNumerazioneGerarchica().substring(0, archivioFiglio.getNumerazioneGerarchica().indexOf("/"));
                     String pathFiglio = String.format("%s-%s/", numerazioneGerarchicaFiglio, archivioFiglio.getOggetto().trim());
                     zipOut.putNextEntry(new ZipEntry(pathFiglio));
                     zipOut.closeEntry();
-                    writeDocForArchivioZip(zipOut, archivioFiglio.getId(), pathFiglio);
+                    boolean hasPermissionVisualizza = personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivioFiglio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA );
+                    if (hasPermissionVisualizza) {
+                        writeDocForArchivioZip(zipOut, archivioFiglio.getId(), pathFiglio);
+                    }
                     // ottengo gli archivi nipoti 
                     List<Archivio> archiviNipoti = archivioRepository.findByIdArchivioPadre(archivioFiglio);
                     for (Archivio archivioNipote : archiviNipoti) {
-                        if (!archivioNipote.getStato().equals(Archivio.StatoArchivio.BOZZA)){
+                        boolean hasPermissionVisualizzaNipote = personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivioNipote.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA);
+                        if (!archivioNipote.getStato().equals(Archivio.StatoArchivio.BOZZA) && hasPermissionVisualizzaNipote){
                             String numerazioneGerarchicaNipote = archivioNipote.getNumerazioneGerarchica().substring(0, archivioNipote.getNumerazioneGerarchica().indexOf("/"));
                             String pathNipote = String.format("%s%s-%s/", pathFiglio, numerazioneGerarchicaNipote, archivioNipote.getOggetto().trim());
                             zipOut.putNextEntry(new ZipEntry(pathNipote));
@@ -339,7 +348,9 @@ public class ScriptaArchiviUtils {
                 }
             }
 
-            writeDocForArchivioZip(zipOut, archivio.getId(), "");
+            if (personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
+                writeDocForArchivioZip(zipOut, archivio.getId(), "");
+            }
 
             zipOut.finish();
             zipOut.close();
@@ -391,12 +402,14 @@ public class ScriptaArchiviUtils {
                     }
 
                     try (InputStream inputStream = (InputStream) minIOWrapper.getByFileId(allegato.getDettagli().getOriginale().getIdRepository())) {
-                       zipOut.putNextEntry(new ZipEntry(allegatoName));
+                        Reader input = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+                        zipOut.putNextEntry(new ZipEntry(allegatoName));
 
-                        byte[] buffer = new byte[1024*8];
+                        byte[] bufferByte = new byte[1024*8];
+                        char[] bufferChar = new char[1024*8];
                         int length;
-                        while ((length = inputStream.read(buffer)) > 0) {
-                            zipOut.write(buffer, 0, length);
+                        while ((length = input.read(bufferChar, 0, bufferChar.length)) > 0) {
+                            zipOut.write(bufferByte, 0, length);
                         }
                         zipOut.closeEntry();
                     }

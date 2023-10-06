@@ -26,6 +26,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.scripta.Archivio;
+import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
@@ -50,6 +51,9 @@ import javax.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
+import java.io.OutputStreamWriter;
 
 /**
  *
@@ -117,6 +121,9 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         // tolgo l'uuid dal nome dell'allegato 
         String archivioZipName = archivioZipNameUnivoco.substring(archivioZipNameUnivoco.lastIndexOf("$") + 1);
         
+        if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
+                return null;
+            }
         // ottengo il tempo di durata del token dalla tabella configurazione.parametri_aziende
         Azienda aziendaArch = aziendaRepository.getById(archivio.getIdAzienda().getId());
         Integer downloadArchivioZipTokenExpireSeconds = downloaderUtils.getTokenExpireSeconds();
