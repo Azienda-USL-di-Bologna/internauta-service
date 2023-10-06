@@ -22,7 +22,6 @@ import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniUtente;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,7 +78,7 @@ public class KrintService {
 
             Integer idSessione = authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getIdSessionLog(); // TODO: mettere idSessione corretto
             KrintInformazioniUtente krintInformazioniUtente = factory.createProjection(KrintInformazioniUtente.class, utente);
-            HashMap<String, Object> mapKrintInformazioniUtente = objectMapper.convertValue(utente, new TypeReference<HashMap<String, Object>>() {
+            HashMap<String, Object> mapKrintInformazioniUtente = objectMapper.convertValue(krintInformazioniUtente, new TypeReference<HashMap<String, Object>>() {
             });
             Krint krint = new Krint(idSessione, authenticatedSessionDataBuilder.getAuthenticatedUserProperties().getApplicazione(), utente.getId(), utente.getIdPersona().getDescrizione(), mapKrintInformazioniUtente);
 
