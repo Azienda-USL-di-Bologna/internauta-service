@@ -2,7 +2,6 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.StringPath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -44,16 +43,11 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageInterface;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -63,18 +57,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -114,9 +103,6 @@ public class ScriptaArchiviUtils {
     
     @Autowired
     private DocRepository docRepository;
-
-    @Autowired
-    private ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
     @Autowired
     private ScriptaUtils scriptaUtils;
@@ -313,24 +299,20 @@ public class ScriptaArchiviUtils {
         // evitando così la possibilità di out of range data da fascicoli, o singoli allegati, troppo grossi
         try (ZipOutputStream zipOut = new ZipOutputStream(fos, StandardCharsets.UTF_8)) {
             LOG.info("parto a creare lo zip");
-            // mi assicuro che al persona ottenuta via parametro abbia il permesso visualizza sull'archivio da scaricare
-            if (!personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
-                LOG.info("User doesn't have permission");
-                return;
-            }
             // ottengo gli archivi figli 
             List<Archivio> archiviFigli = archivioRepository.findByIdArchivioPadre(archivio);
 
             // ciclo i figli e per ognuno di loro chiamo ricorsivamente questa funzione (buildArchivio)
             for (Archivio archivioFiglio : archiviFigli) {
                 boolean hasPermissionPassaggioFiglio = personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivioFiglio.getId(), PermessoArchivio.DecimalePredicato.PASSAGGIO);
-                if (!archivioFiglio.getStato().equals(Archivio.StatoArchivio.BOZZA) && hasPermissionPassaggioFiglio){
+                boolean hasPermissionVisualizzaFiglio = personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivioFiglio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA);
+                if (!archivioFiglio.getStato().equals(Archivio.StatoArchivio.BOZZA) && (hasPermissionPassaggioFiglio || hasPermissionVisualizzaFiglio)) {
                     String numerazioneGerarchicaFiglio = archivioFiglio.getNumerazioneGerarchica().substring(0, archivioFiglio.getNumerazioneGerarchica().indexOf("/"));
                     String pathFiglio = String.format("%s-%s/", numerazioneGerarchicaFiglio, archivioFiglio.getOggetto().trim());
                     zipOut.putNextEntry(new ZipEntry(pathFiglio));
                     zipOut.closeEntry();
-                    boolean hasPermissionVisualizza = personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivioFiglio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA );
-                    if (hasPermissionVisualizza) {
+                    
+                    if (hasPermissionVisualizzaFiglio) {
                         writeDocForArchivioZip(zipOut, archivioFiglio.getId(), pathFiglio);
                     }
                     // ottengo gli archivi nipoti 
@@ -348,10 +330,8 @@ public class ScriptaArchiviUtils {
                 }
             }
 
-            if (personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
-                writeDocForArchivioZip(zipOut, archivio.getId(), "");
-            }
-
+            writeDocForArchivioZip(zipOut, archivio.getId(), "");
+ 
             zipOut.finish();
             zipOut.close();
 
@@ -419,10 +399,9 @@ public class ScriptaArchiviUtils {
                 }
                 
             } catch (MinIOWrapperException ex) {
-                LOG.error("Errore durante il reperimento del file da MinIO.");
+                LOG.error("Errore durante il reperimento del file da MinIO.", ex);
             } catch (IOException e) {
-                LOG.error("Errore durante le operazioni di salvataggio dell'allegato nello zip.");
-                e.printStackTrace();
+                LOG.error("Errore durante le operazioni di salvataggio dell'allegato nello zip.", e);
             }
         }        
     }

@@ -1,11 +1,9 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.generazioneziparchivio;
 
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaArchiviUtils;
 import it.bologna.ausl.internauta.service.downloader.utils.DownloaderUtils;
 import it.bologna.ausl.internauta.service.exceptions.DownloaderUtilsException;
-import it.bologna.ausl.internauta.service.exceptions.http.Http404ResponseException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
@@ -20,7 +18,6 @@ import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerEx
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
-import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
@@ -28,12 +25,8 @@ import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
@@ -44,16 +37,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.zip.ZipOutputStream;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import java.nio.charset.StandardCharsets;
-import java.nio.ByteBuffer;
-import java.io.OutputStreamWriter;
 
 /**
  *
@@ -63,9 +51,6 @@ import java.io.OutputStreamWriter;
 public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArchivioJobWorkerData, JobWorkerResult> {
     private static final Logger log = LoggerFactory.getLogger(GenerazioneZipArchivioJobWorker.class);
     private final String name = GenerazioneZipArchivioJobWorker.class.getSimpleName();
-    
-    @Autowired
-    ReporitoryConnectionManager aziendeConnectionManager;
     
     @Autowired
     DownloaderUtils downloaderUtils;
@@ -94,10 +79,6 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
     @Autowired
     private ParametriAziendeReader parametriAziende;    
     
-    @PersistenceContext
-    private EntityManager em;
-    
-    
     @Override
     public String getName() {
         return this.name;
@@ -122,8 +103,8 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         String archivioZipName = archivioZipNameUnivoco.substring(archivioZipNameUnivoco.lastIndexOf("$") + 1);
         
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
-                return null;
-            }
+            return null;
+        }
         // ottengo il tempo di durata del token dalla tabella configurazione.parametri_aziende
         Azienda aziendaArch = aziendaRepository.getById(archivio.getIdAzienda().getId());
         Integer downloadArchivioZipTokenExpireSeconds = downloaderUtils.getTokenExpireSeconds();
