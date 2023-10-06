@@ -163,12 +163,15 @@ public class UserInfoService {
      * @param aziendaPath
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
-    public Utente loadUtente(String username, String aziendaPath) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath, #onlyActive}")
+    public Utente loadUtente(String username, String aziendaPath, Boolean onlyActive) {
         Utente res = null;
         Azienda azienda = cachedEntities.getAziendaFromPath(aziendaPath);
         if (azienda != null && username != null) {
             BooleanExpression utenteFilter = QUtente.utente.username.eq(username).and(QUtente.utente.idAzienda.id.eq(azienda.getId()));
+            if (onlyActive) {
+                utenteFilter = utenteFilter.and(QUtente.utente.attivo.eq(true));
+            } 
             Optional<Utente> utenteOp = utenteRepository.findOne(utenteFilter);
             if (utenteOp.isPresent()) {
                 res = utenteOp.get();
@@ -191,8 +194,8 @@ public class UserInfoService {
      * @param username
      * @param aziendaPath
      */
-    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
-    public void loadUtenteRemoveCache(String username, String aziendaPath) {
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath, #onlyActive}")
+    public void loadUtenteRemoveCache(String username, String aziendaPath, Boolean onlyActive) {
     }
 
     /**

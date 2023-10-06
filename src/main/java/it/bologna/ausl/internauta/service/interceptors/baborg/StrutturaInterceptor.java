@@ -361,9 +361,9 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
         boolean isEliminata = (!struttura.getAttiva() && (strutturaOld.getAttiva()));
-        boolean isChangedStrutturaPadre = struttura.getIdStrutturaPadre() == null ? strutturaOld.getIdStrutturaPadre() != null : !struttura.getIdStrutturaPadre().equals(strutturaOld.getIdStrutturaPadre());
-        boolean isChangedNome = struttura.getNome() == null ? strutturaOld.getNome() != null : !struttura.getNome().equals(strutturaOld.getNome());
-        boolean isChangedAttributiStruttura = struttura.getAttributiStruttura() == null ? strutturaOld.getAttributiStruttura() != null : !struttura.getAttributiStruttura().equals(strutturaOld.getAttributiStruttura());
+        boolean isChangedStrutturaPadre = strutturaOld.getIdStrutturaPadre() == null && struttura.getIdStrutturaPadre() != null ? true : strutturaOld.getIdStrutturaPadre() != null && !struttura.getIdStrutturaPadre().getId().equals(strutturaOld.getIdStrutturaPadre().getId());
+        boolean isChangedNome = strutturaOld.getNome() == null && struttura.getNome() != null ? true : !struttura.getNome().equals(strutturaOld.getNome());
+        boolean isChangedAttributiStruttura = strutturaOld.getAttributiStruttura() == null && struttura.getAttributiStruttura() != null ? true : !struttura.getAttributiStruttura().getIdTipologiaStruttura().equals(strutturaOld.getAttributiStruttura().getIdTipologiaStruttura());
         if (krintUtils.doIHaveToKrint(request)) {
             if (struttura.getUfficio()) {
                 if (isChangedNome) {
@@ -544,6 +544,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                 if (storicoRelazioneVecchia.isPresent()) {
                     if (storicoRelazioneVecchia.get().getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
                         storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.get().getId());
+                        storicoRelazioneRepository.flush();
                         StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
                         storicoRelazioneRepository.save(storicoRelazione);
                     } else {

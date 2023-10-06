@@ -60,12 +60,10 @@ import it.bologna.ausl.model.entities.scripta.QTitolo;
 import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Smistamento;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
-import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
 import it.bologna.ausl.model.entities.scripta.Titolo;
 import it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView;
 import it.bologna.ausl.model.entities.scripta.views.DocDetailView;
 import it.bologna.ausl.model.entities.scripta.views.QArchivioDetailView;
-import it.bologna.ausl.model.entities.tip.SessioneImportazione;
 
 @RestController
 @RequestMapping(value = "${scripta.mapping.url.root}")

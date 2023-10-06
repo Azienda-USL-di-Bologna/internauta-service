@@ -251,11 +251,11 @@ public class GestioneMenu {
             Utente utente) throws BlackBoxPermissionException, IOException {
         livello++;
         for (Bmenu voce : voci) {
-            LOGGER.info("Buildo la voce " + voce.getDescrizione());
+            //LOGGER.info("Buildo la voce " + voce.getDescrizione());
             ItemMenu menuPadre = buildaVoce(menu, voce, utente);
             
             if (!voce.getFoglia()) {
-                LOGGER.info("Passo ai suoi figli");
+                //LOGGER.info("Passo ai suoi figli");
                 if (menuPadre.getChildren() == null) {
                     menuPadre.setChildren(new ArrayList());
                 }
