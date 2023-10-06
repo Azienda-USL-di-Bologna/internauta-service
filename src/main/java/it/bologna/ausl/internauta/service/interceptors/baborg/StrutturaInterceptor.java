@@ -394,18 +394,18 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             if (struttura.getUfficio()) {
                 if (isChangedNome) {
                     String nomeOld = strutturaOld.getNome();
-//                    krintBaborgService.writeUfficioUpdate(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_NOME_UPDATE, nomeOld);
+                    krintBaborgService.writeUfficioUpdate(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_NOME_UPDATE, nomeOld);
                 }
                 if (isChangedStrutturaPadre && !isChangedNome ) {
                     Struttura strutturaPadre = struttura.getIdStrutturaPadre();
-//                    krintBaborgService.writeUfficioUpdate(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_STRUTTURA_PADRE_UPDATE, strutturaPadre);
+                    krintBaborgService.writeUfficioUpdate(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_STRUTTURA_PADRE_UPDATE, strutturaPadre);
                 }
                 if (isChangedAttributiStruttura) {
                     AttributiStruttura attributiStruttura = struttura.getAttributiStruttura();
-//                    krintBaborgService.writeUfficioUpdate(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_ATTRIBUTI_STRUTTURA_UPDATE, attributiStruttura);
+                    krintBaborgService.writeUfficioUpdate(struttura, OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_ATTRIBUTI_STRUTTURA_UPDATE, attributiStruttura);
                 }
                 if (isEliminata) {
-//                    krintBaborgService.writeUfficioDelete(struttura, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DELETE);
+                    krintBaborgService.writeUfficioDelete(struttura, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_DELETE);
                 }
             }
         }
