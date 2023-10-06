@@ -361,9 +361,35 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
         boolean isEliminata = (!struttura.getAttiva() && (strutturaOld.getAttiva()));
-        boolean isChangedStrutturaPadre = strutturaOld.getIdStrutturaPadre() == null && struttura.getIdStrutturaPadre() != null ? true : strutturaOld.getIdStrutturaPadre() != null && !struttura.getIdStrutturaPadre().getId().equals(strutturaOld.getIdStrutturaPadre().getId());
-        boolean isChangedNome = strutturaOld.getNome() == null && struttura.getNome() != null ? true : !struttura.getNome().equals(strutturaOld.getNome());
-        boolean isChangedAttributiStruttura = strutturaOld.getAttributiStruttura() == null && struttura.getAttributiStruttura() != null ? true : !struttura.getAttributiStruttura().getIdTipologiaStruttura().equals(strutturaOld.getAttributiStruttura().getIdTipologiaStruttura());
+        boolean isChangedStrutturaPadre = true;
+        // controllo se entrambi sono null --> in tal caso sono sicuro non sia cambiata la struttura padre
+        if (strutturaOld.getIdStrutturaPadre() == null && struttura.getIdStrutturaPadre() == null) {
+            isChangedStrutturaPadre = false;
+        }
+        // controllo se entrambi sono !null 
+        // in tal caso controllo se le due strutture sono le stesse in caso contrario sono sicuro non sia cambiata la struttura padre
+        if ((strutturaOld.getIdStrutturaPadre() != null && struttura.getIdStrutturaPadre() != null) && struttura.getIdStrutturaPadre().getId().equals(strutturaOld.getIdStrutturaPadre().getId())) {
+            isChangedStrutturaPadre = false;
+        }
+        // negli altri due casi possibili 
+        // (old == null && new == !null e old == !null && new == null)
+        // sono sicuro sia cambiata la struttura padre
+        
+        boolean isChangedNome = !struttura.getNome().equals(strutturaOld.getNome());
+        boolean isChangedAttributiStruttura = true;
+        // controllo se entrambi sono null --> in tal caso sono sicuro non sia cambiata la tipologia
+        if (strutturaOld.getAttributiStruttura() == null && struttura.getAttributiStruttura() == null) {
+            isChangedAttributiStruttura = false;
+        }
+        // controllo se entrambi sono !null 
+        // in tal caso controllo se le due tipologia sono le stesse in caso contrario sono sicuro non sia cambiata la tipologia
+        if ((strutturaOld.getAttributiStruttura() != null && struttura.getAttributiStruttura() != null) && struttura.getAttributiStruttura().getIdTipologiaStruttura().equals(strutturaOld.getAttributiStruttura().getIdTipologiaStruttura())) {
+            isChangedAttributiStruttura = false;
+        }
+        // negli altri due casi possibili 
+        // (old == null && new == !null e old == !null && new == null)
+        // sono sicuro sia cambiata la tipologia
+        
         if (krintUtils.doIHaveToKrint(request)) {
             if (struttura.getUfficio()) {
                 if (isChangedNome) {
