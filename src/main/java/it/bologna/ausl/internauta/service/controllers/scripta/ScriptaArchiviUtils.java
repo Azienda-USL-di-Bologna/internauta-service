@@ -35,6 +35,7 @@ import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
+import it.bologna.ausl.model.entities.scripta.QAllegato;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
@@ -346,31 +347,40 @@ public class ScriptaArchiviUtils {
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
         QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
-        QDocDetail qDocDetail = QDocDetail.docDetail;          
+        QDocDetail qDocDetail = QDocDetail.docDetail; 
+        QAllegato qAllegato = QAllegato.allegato;
 
         // query con cui ottengo la lista dei docs da cui prendere gli allegati da scaricare 
-        List<Doc> docsDaZippare = jPAQueryFactory
-            .select(qArchivioDoc.idDoc)
+        List<Allegato> allegatiDaZippareFromDoc = jPAQueryFactory
+            .select(qAllegato)
             .from(qArchivioDoc)
             .join(qDocDetail).on(qDocDetail.id.eq(qArchivioDoc.idDoc.id))
+            .join(qAllegato).on(qDocDetail.id.eq(qAllegato.idDoc.id))
             .where(qArchivioDoc.idArchivio.id.eq(idArchivio)
                     .and(qDocDetail.numeroRegistrazione.isNotNull()
                             .or(qDocDetail.tipologia.eq(DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE)
-                                    .and(qArchivioDoc.dataEliminazione.isNull()))))
+                        .and(qArchivioDoc.dataEliminazione.isNull()))
+                    )
+                    .and(qAllegato.tipo.notIn(Arrays.asList(Allegato.TipoAllegato.ANNESSO,
+                            Allegato.TipoAllegato.ANNOTAZIONE,
+                            Allegato.TipoAllegato.REGISTRO_GIORNALIERO)
+                    ))
+                    .and(qAllegato.idAllegatoPadre.isNull())
+            )
             .fetch();
         
         // ciclo i docs ottenuti dalla query di prima per estrarne gli allegati da zippare
-        List<Allegato> allegatiDaZippare = new ArrayList<>();
-        for (Doc doc: docsDaZippare) {
-            List<Allegato> allegati = doc.getAllegati();
-            allegatiDaZippare.addAll(allegati.stream().filter((a) -> !Arrays.asList(
-                    Allegato.TipoAllegato.ANNESSO,
-                    Allegato.TipoAllegato.ANNOTAZIONE, 
-                    Allegato.TipoAllegato.REGISTRO_GIORNALIERO).contains(a.getTipo())).collect(Collectors.toList()));
-        }
+//        List<Allegato> allegatiDaZippare = new ArrayList<>();
+//        for (Doc doc: docsDaZippare) {
+//            List<Allegato> allegati = doc.getAllegati();
+//            allegatiDaZippare.addAll(allegati.stream().filter((a) -> !Arrays.asList(
+//                    Allegato.TipoAllegato.ANNESSO,
+//                    Allegato.TipoAllegato.ANNOTAZIONE, 
+//                    Allegato.TipoAllegato.REGISTRO_GIORNALIERO).contains(a.getTipo())).collect(Collectors.toList()));
+//        }
         
         // ciclo gli allegati da zippare e li inserisco uno a uno dentro lo zip
-        for (Allegato allegato : allegatiDaZippare) {
+        for (Allegato allegato : allegatiDaZippareFromDoc) {
             try {
                 if (allegato.getDettagli() != null){
                     LOG.info("lavoro sull'allegato {}", allegato.getId().toString());
