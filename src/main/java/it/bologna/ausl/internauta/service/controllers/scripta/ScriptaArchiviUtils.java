@@ -2,7 +2,6 @@
 package it.bologna.ausl.internauta.service.controllers.scripta;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.StringPath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -36,6 +35,7 @@ import it.bologna.ausl.model.entities.scripta.Doc;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.MessageDoc;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
+import it.bologna.ausl.model.entities.scripta.QAllegato;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
@@ -44,16 +44,11 @@ import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageInterface;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataArchiviation;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -63,22 +58,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.util.StreamUtils;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+
 
 /**
  *
@@ -111,9 +104,6 @@ public class ScriptaArchiviUtils {
     
     @Autowired
     private DocRepository docRepository;
-
-    @Autowired
-    private ArchivioDiInteresseRepository archivioDiInteresseRepository;
 
     @Autowired
     private ScriptaUtils scriptaUtils;
@@ -308,27 +298,29 @@ public class ScriptaArchiviUtils {
         
         // creo lo zip wrappando un FileOutputStream cosicché posso salvarlo su disco e non tenerlo in memoria 
         // evitando così la possibilità di out of range data da fascicoli, o singoli allegati, troppo grossi
-        try (ZipOutputStream zipOut = new ZipOutputStream(fos)) {
+        try (ZipOutputStream zipOut = new ZipOutputStream(fos, StandardCharsets.UTF_8)) {
             LOG.info("parto a creare lo zip");
-            // mi assicuro che al persona ottenuta via parametro abbia il permesso visualizza sull'archivio da scaricare
-            if (!personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
-                return;
-            }
             // ottengo gli archivi figli 
             List<Archivio> archiviFigli = archivioRepository.findByIdArchivioPadre(archivio);
 
             // ciclo i figli e per ognuno di loro chiamo ricorsivamente questa funzione (buildArchivio)
             for (Archivio archivioFiglio : archiviFigli) {
-                if (!archivioFiglio.getStato().equals(Archivio.StatoArchivio.BOZZA)){
+                boolean hasPermissionPassaggioFiglio = personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivioFiglio.getId(), PermessoArchivio.DecimalePredicato.PASSAGGIO);
+                boolean hasPermissionVisualizzaFiglio = personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivioFiglio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA);
+                if (!archivioFiglio.getStato().equals(Archivio.StatoArchivio.BOZZA) && (hasPermissionPassaggioFiglio || hasPermissionVisualizzaFiglio)) {
                     String numerazioneGerarchicaFiglio = archivioFiglio.getNumerazioneGerarchica().substring(0, archivioFiglio.getNumerazioneGerarchica().indexOf("/"));
                     String pathFiglio = String.format("%s-%s/", numerazioneGerarchicaFiglio, archivioFiglio.getOggetto().trim());
                     zipOut.putNextEntry(new ZipEntry(pathFiglio));
                     zipOut.closeEntry();
-                    writeDocForArchivioZip(zipOut, archivioFiglio.getId(), pathFiglio);
+                    
+                    if (hasPermissionVisualizzaFiglio) {
+                        writeDocForArchivioZip(zipOut, archivioFiglio.getId(), pathFiglio);
+                    }
                     // ottengo gli archivi nipoti 
                     List<Archivio> archiviNipoti = archivioRepository.findByIdArchivioPadre(archivioFiglio);
                     for (Archivio archivioNipote : archiviNipoti) {
-                        if (!archivioNipote.getStato().equals(Archivio.StatoArchivio.BOZZA)){
+                        boolean hasPermissionVisualizzaNipote = personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivioNipote.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA);
+                        if (!archivioNipote.getStato().equals(Archivio.StatoArchivio.BOZZA) && hasPermissionVisualizzaNipote){
                             String numerazioneGerarchicaNipote = archivioNipote.getNumerazioneGerarchica().substring(0, archivioNipote.getNumerazioneGerarchica().indexOf("/"));
                             String pathNipote = String.format("%s%s-%s/", pathFiglio, numerazioneGerarchicaNipote, archivioNipote.getOggetto().trim());
                             zipOut.putNextEntry(new ZipEntry(pathNipote));
@@ -340,7 +332,7 @@ public class ScriptaArchiviUtils {
             }
 
             writeDocForArchivioZip(zipOut, archivio.getId(), "");
-
+ 
             zipOut.finish();
             zipOut.close();
 
@@ -355,31 +347,40 @@ public class ScriptaArchiviUtils {
         MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
         QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
-        QDocDetail qDocDetail = QDocDetail.docDetail;          
+        QDocDetail qDocDetail = QDocDetail.docDetail; 
+        QAllegato qAllegato = QAllegato.allegato;
 
         // query con cui ottengo la lista dei docs da cui prendere gli allegati da scaricare 
-        List<Doc> docsDaZippare = jPAQueryFactory
-            .select(qArchivioDoc.idDoc)
+        List<Allegato> allegatiDaZippareFromDoc = jPAQueryFactory
+            .select(qAllegato)
             .from(qArchivioDoc)
             .join(qDocDetail).on(qDocDetail.id.eq(qArchivioDoc.idDoc.id))
+            .join(qAllegato).on(qDocDetail.id.eq(qAllegato.idDoc.id))
             .where(qArchivioDoc.idArchivio.id.eq(idArchivio)
                     .and(qDocDetail.numeroRegistrazione.isNotNull()
                             .or(qDocDetail.tipologia.eq(DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE)
-                                    .and(qArchivioDoc.dataEliminazione.isNull()))))
+                        .and(qArchivioDoc.dataEliminazione.isNull()))
+                    )
+                    .and(qAllegato.tipo.notIn(Arrays.asList(Allegato.TipoAllegato.ANNESSO,
+                            Allegato.TipoAllegato.ANNOTAZIONE,
+                            Allegato.TipoAllegato.REGISTRO_GIORNALIERO)
+                    ))
+                    .and(qAllegato.idAllegatoPadre.isNull())
+            )
             .fetch();
         
         // ciclo i docs ottenuti dalla query di prima per estrarne gli allegati da zippare
-        List<Allegato> allegatiDaZippare = new ArrayList<>();
-        for (Doc doc: docsDaZippare) {
-            List<Allegato> allegati = doc.getAllegati();
-            allegatiDaZippare.addAll(allegati.stream().filter((a) -> !Arrays.asList(
-                    Allegato.TipoAllegato.ANNESSO,
-                    Allegato.TipoAllegato.ANNOTAZIONE, 
-                    Allegato.TipoAllegato.REGISTRO_GIORNALIERO).contains(a.getTipo())).collect(Collectors.toList()));
-        }
+//        List<Allegato> allegatiDaZippare = new ArrayList<>();
+//        for (Doc doc: docsDaZippare) {
+//            List<Allegato> allegati = doc.getAllegati();
+//            allegatiDaZippare.addAll(allegati.stream().filter((a) -> !Arrays.asList(
+//                    Allegato.TipoAllegato.ANNESSO,
+//                    Allegato.TipoAllegato.ANNOTAZIONE, 
+//                    Allegato.TipoAllegato.REGISTRO_GIORNALIERO).contains(a.getTipo())).collect(Collectors.toList()));
+//        }
         
         // ciclo gli allegati da zippare e li inserisco uno a uno dentro lo zip
-        for (Allegato allegato : allegatiDaZippare) {
+        for (Allegato allegato : allegatiDaZippareFromDoc) {
             try {
                 if (allegato.getDettagli() != null){
                     LOG.info("lavoro sull'allegato {}", allegato.getId().toString());
@@ -391,12 +392,14 @@ public class ScriptaArchiviUtils {
                     }
 
                     try (InputStream inputStream = (InputStream) minIOWrapper.getByFileId(allegato.getDettagli().getOriginale().getIdRepository())) {
-                       zipOut.putNextEntry(new ZipEntry(allegatoName));
+                        Reader input = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+                        zipOut.putNextEntry(new ZipEntry(allegatoName));
 
-                        byte[] buffer = new byte[1024*8];
+                        byte[] bufferByte = new byte[1024*8];
+                        char[] bufferChar = new char[1024*8];
                         int length;
-                        while ((length = inputStream.read(buffer)) > 0) {
-                            zipOut.write(buffer, 0, length);
+                        while ((length = input.read(bufferChar, 0, bufferChar.length)) > 0) {
+                            zipOut.write(bufferByte, 0, length);
                         }
                         zipOut.closeEntry();
                     }
@@ -406,10 +409,9 @@ public class ScriptaArchiviUtils {
                 }
                 
             } catch (MinIOWrapperException ex) {
-                LOG.error("Errore durante il reperimento del file da MinIO.");
+                LOG.error("Errore durante il reperimento del file da MinIO.", ex);
             } catch (IOException e) {
-                LOG.error("Errore durante le operazioni di salvataggio dell'allegato nello zip.");
-                e.printStackTrace();
+                LOG.error("Errore durante le operazioni di salvataggio dell'allegato nello zip.", e);
             }
         }        
     }

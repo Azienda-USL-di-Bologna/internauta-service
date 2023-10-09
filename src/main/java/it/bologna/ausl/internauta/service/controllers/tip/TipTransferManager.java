@@ -1630,7 +1630,7 @@ public class TipTransferManager {
             .select(qStruttura)
             .from(qStruttura)
             .where(qStruttura.nome.equalsIgnoreCase(nome).and(qStruttura.idAzienda.id.eq(azienda.getId())))
-            .orderBy(qStruttura.attiva.desc(), qStruttura.dataAttivazione.desc())
+            .orderBy(qStruttura.attiva.desc(), qStruttura.dataAttivazione.desc()).limit(1)
             .fetchOne();
         return struttura;
     }

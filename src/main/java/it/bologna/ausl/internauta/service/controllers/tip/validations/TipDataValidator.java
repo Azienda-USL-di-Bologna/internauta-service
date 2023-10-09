@@ -209,7 +209,7 @@ public abstract class TipDataValidator {
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
     public static boolean validateBoolean(String stringaBoolean) {
-        return stringaBoolean.equalsIgnoreCase("true") || stringaBoolean.equalsIgnoreCase("si") || stringaBoolean.equalsIgnoreCase("sì") || stringaBoolean.equalsIgnoreCase("false") || stringaBoolean.equalsIgnoreCase("no");
+        return stringaBoolean.equalsIgnoreCase("true") || stringaBoolean.equalsIgnoreCase("si") || stringaBoolean.equalsIgnoreCase("vero") || stringaBoolean.equalsIgnoreCase("sì") || stringaBoolean.equalsIgnoreCase("false") || stringaBoolean.equalsIgnoreCase("no")|| stringaBoolean.equalsIgnoreCase("falso");
     }
     
     /**
@@ -219,9 +219,9 @@ public abstract class TipDataValidator {
      * @throws TipImportBadDataException 
      */
     public static boolean parseBoolean(String stringaBoolean) throws TipImportBadDataException {
-        if (stringaBoolean.equalsIgnoreCase("true") || stringaBoolean.equalsIgnoreCase("si") || stringaBoolean.equalsIgnoreCase("sì")) {
+        if (stringaBoolean.equalsIgnoreCase("true") || stringaBoolean.equalsIgnoreCase("si") || stringaBoolean.equalsIgnoreCase("sì") || stringaBoolean.equalsIgnoreCase("vero")) {
             return true;
-        } else if (stringaBoolean.equalsIgnoreCase("false") || stringaBoolean.equalsIgnoreCase("no")) {
+        } else if (stringaBoolean.equalsIgnoreCase("false") || stringaBoolean.equalsIgnoreCase("no") || stringaBoolean.equalsIgnoreCase("falso")) {
             return false;
         } else {
             throw new TipImportBadDataException(String.format("il valore %s non è nel formato corretto e non è possibile capire se indica un valore positivo o negativo", stringaBoolean));
@@ -236,7 +236,7 @@ public abstract class TipDataValidator {
      * @return true se le due stringhe hanno lo stesso numero di elementi, false altrimenti
      */
     public static boolean validateNotazioniPosizionali(String stringa1, String stringa2, String separatore) {
-        return stringa2.split(separatore).length == stringa2.split(separatore).length;
+        return stringa1.split(separatore).length == stringa2.split(separatore).length;
     }
     
     /**
