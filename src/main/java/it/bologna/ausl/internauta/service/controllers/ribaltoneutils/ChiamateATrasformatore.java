@@ -37,7 +37,7 @@ public class ChiamateATrasformatore {
 
     @Autowired
     private ParametriAziendeReader parametriAziende;
-
+    
     public void lanciaTrasformatore(
             Integer idAzienda,
             Boolean ribaltaArgo,
@@ -48,17 +48,24 @@ public class ChiamateATrasformatore {
             Integer IdUtente,
             String note) throws Throwable {
         String url = "";
+        String app = "";
         Azienda azienda = null;
         try {
             azienda = cachedEntities.getAzienda(idAzienda);
-            List<ParametroAziende> parameters = parametriAziende.getParameters("urlTrasformatore", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
-            if (parameters != null && !parameters.isEmpty()) {
-                url = parametriAziende.getValue(parameters.get(0), new TypeReference<String>() {
+            List<ParametroAziende> parametersUrl = parametriAziende.getParameters("urlTrasformatore", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
+            if (parametersUrl != null && !parametersUrl.isEmpty()) {
+                url = parametriAziende.getValue(parametersUrl.get(0), new TypeReference<String>() {
+                });
+
+            }
+            List<ParametroAziende> parametersApp = parametriAziende.getParameters("appTrasformatore", new Integer[]{azienda.getId()}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
+            if (parametersApp != null && !parametersApp.isEmpty()) {
+                app = parametriAziende.getValue(parametersApp.get(0), new TypeReference<String>() {
                 });
 
             }
             Map<String, Object> hm = new HashMap();
-            hm.put("app", "avec");
+            hm.put("app", app);
             hm.put("codice_ente", azienda.getCodice());
             hm.put("ribalta_argo", ribaltaArgo);
             hm.put("ribalta_internauta", ribaltaInternauta);
@@ -72,10 +79,11 @@ public class ChiamateATrasformatore {
             okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(
                     okhttp3.MediaType.get("application/json; charset=utf-8"),
                     objectMapper.writeValueAsString(hm));
+
             OkHttpClient client = new OkHttpClient.Builder()
-                    .connectTimeout(300, TimeUnit.SECONDS) // connection timeout
-                    .writeTimeout(300, TimeUnit.SECONDS) // (probabilmente non serve, ma mettiamolo lo stesso)
-                    .readTimeout(300, TimeUnit.SECONDS) // socket timeout
+                    .connectTimeout(600, TimeUnit.SECONDS) // connection timeout
+                    .writeTimeout(600, TimeUnit.SECONDS) // (probabilmente non serve, ma mettiamolo lo stesso)
+                    .readTimeout(600, TimeUnit.SECONDS) // socket timeout
                     .build();
 
             Request request = new Request.Builder()

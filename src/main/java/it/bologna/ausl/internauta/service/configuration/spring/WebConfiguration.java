@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.service.configuration.spring;
 
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.interceptors.RequestInterceptor;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.diagnostica.ReportRepository;
 import it.bologna.ausl.internauta.service.repositories.logs.KrintRepository;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
@@ -34,6 +35,9 @@ public class WebConfiguration implements WebMvcConfigurer {
     
     @Autowired
     private ReportRepository reportRepository;
+    
+    @Autowired
+    private KrintUtils krintUtils;
 
     @Autowired
     private ReporitoryConnectionManager reporitoryConnectionManager;
@@ -58,6 +62,6 @@ public class WebConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new RequestInterceptor(httpSessionData, krintRepository, reportRepository, memoryAnalizerService, reporitoryConnectionManager));
+        registry.addInterceptor(new RequestInterceptor(httpSessionData, krintUtils, memoryAnalizerService, reporitoryConnectionManager));
     }
 }

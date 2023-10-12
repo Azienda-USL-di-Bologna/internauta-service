@@ -19,6 +19,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.DocDetail;
+import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.PersonaVedente;
 import it.bologna.ausl.model.entities.scripta.QDocDetail;
@@ -99,11 +100,11 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         initialPredicate = qdoclist.numeroRegistrazione.isNull().and(initialPredicate);
                         initialPredicate = qdoclist.annullato.isFalse().and(initialPredicate);
                         initialPredicate = qdoclist.stato.in(
-                                Arrays.asList(new String[]{
-                                    DocDetail.StatoDoc.CONTROLLO_SEGRETERIA.toString(),
-                                    DocDetail.StatoDoc.PARERE.toString(),
-                                    DocDetail.StatoDoc.FIRMA.toString()
-                                })).and(initialPredicate);
+                            Arrays.asList(new DocDetailInterface.StatoDoc[]{
+                                DocDetailInterface.StatoDoc.CONTROLLO_SEGRETERIA,
+                                DocDetailInterface.StatoDoc.PARERE,
+                                DocDetailInterface.StatoDoc.FIRMA
+                            })).and(initialPredicate);
                         break;
                     case VisualizzaTabIFirmato:
                         initialPredicate = buildFilterPerStruttureDelSegretario(persona).and(initialPredicate);
@@ -116,7 +117,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         
                         
                         initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
-                        initialPredicate = (qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE.toString()).or(qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE_RITENTABILE.toString()))).and(initialPredicate);
+                        initialPredicate = (qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE).or(qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE_RITENTABILE))).and(initialPredicate);
                         break;
                     case VisualizzaTabRegistrazioni:
                         if (!userInfoService.isSD(user)) {
@@ -141,7 +142,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         //I remove te security filters for this case since I am filtering with permesso of persona
                         addSafetyFilters = false;
                         // Check if we are filtering on an Archive the user can see with a minimum permission of VISUALIZZA
-                        Integer idArchivio = Integer.parseInt(additionalData.get(AdditionalData.Keys.idArchivio.toString()));
+                        Integer idArchivio = Integer.valueOf(additionalData.get(AdditionalData.Keys.idArchivio.toString()));
                         
                         QPermessoArchivio permessoArchivio = QPermessoArchivio.permessoArchivio;
                         BooleanExpression filterUserhasPermission = permessoArchivio.idArchivioDetail.id.eq(idArchivio).and(
@@ -155,11 +156,11 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         }
                         
                         initialPredicate = qdoclist.tipologia.notIn(
-                            Arrays.asList(new String[]{
-                                DocDetail.TipologiaDoc.DELIBERA.toString(),
-                                DocDetail.TipologiaDoc.DETERMINA.toString(),
-                                DocDetail.TipologiaDoc.PROTOCOLLO_IN_ENTRATA.toString(),
-                                DocDetail.TipologiaDoc.PROTOCOLLO_IN_USCITA.toString()
+                            Arrays.asList(new DocDetailInterface.TipologiaDoc[]{
+                                DocDetailInterface.TipologiaDoc.DELIBERA,
+                                DocDetailInterface.TipologiaDoc.DETERMINA,
+                                DocDetailInterface.TipologiaDoc.PROTOCOLLO_IN_ENTRATA,
+                                DocDetailInterface.TipologiaDoc.PROTOCOLLO_IN_USCITA
                             })).or(qdoclist.numeroRegistrazione.isNotNull()).and(initialPredicate);
                         Integer[] idArchivi = new Integer[]{idArchivio};
                         BooleanExpression archivioFilter = Expressions.booleanTemplate(
@@ -309,7 +310,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
             
             if(!userInfoService.isCA(user) && !userInfoService.isCI(user) ) {
                 filter = qdoclist.tipologia.ne(
-                    DocDetail.TipologiaDoc.DOCUMENT_REGISTRO.toString()
+                    DocDetail.TipologiaDoc.DOCUMENT_REGISTRO
                 ).and(filter);
             }
             
