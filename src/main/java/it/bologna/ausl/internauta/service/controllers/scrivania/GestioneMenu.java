@@ -152,8 +152,8 @@ public class GestioneMenu {
         if (voce.getPermessiSufficienti() == null && voce.getRuoliSufficienti() == null) {
             return true;
         }
-        if ((permessiDiFlusso != null && !Collections.disjoint(Arrays.asList(voce.getPermessiSufficienti()), permessiDiFlusso))
-                || (ruoli != null && !Collections.disjoint(Arrays.asList(voce.getRuoliSufficienti()), ruoli))) {
+        if ((permessiDiFlusso != null && voce.getPermessiSufficienti() != null && !Collections.disjoint(Arrays.asList(voce.getPermessiSufficienti()), permessiDiFlusso))
+                || (ruoli != null && voce.getRuoliSufficienti() != null && !Collections.disjoint(Arrays.asList(voce.getRuoliSufficienti()), ruoli))) {
             return true;
         }
         Map<String, List<Ruolo>> ruoliPerModuli = userInfoService.getRuoliPerModuli(utente, Boolean.TRUE);
@@ -251,11 +251,11 @@ public class GestioneMenu {
             Utente utente) throws BlackBoxPermissionException, IOException {
         livello++;
         for (Bmenu voce : voci) {
-            LOGGER.info("Buildo la voce " + voce.getDescrizione());
+            //LOGGER.info("Buildo la voce " + voce.getDescrizione());
             ItemMenu menuPadre = buildaVoce(menu, voce, utente);
             
             if (!voce.getFoglia()) {
-                LOGGER.info("Passo ai suoi figli");
+                //LOGGER.info("Passo ai suoi figli");
                 if (menuPadre.getChildren() == null) {
                     menuPadre.setChildren(new ArrayList());
                 }

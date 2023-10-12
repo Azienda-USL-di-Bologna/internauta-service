@@ -145,7 +145,11 @@ public class MessaggeroCustomController {
         
         BooleanExpression myMessageFilter = perTuttiFilter.or(aziendeFilter).or(struttureFilter).or(personeFilter);
         
-        BooleanExpression notSeenFilter = QAmministrazioneMessaggio.amministrazioneMessaggio.id.notIn(person.getMessaggiVisti());
+        Integer[] messaggiVisti = person.getMessaggiVisti();
+        if (messaggiVisti == null) {
+            messaggiVisti = new Integer[0];
+        }
+        BooleanExpression notSeenFilter = QAmministrazioneMessaggio.amministrazioneMessaggio.id.notIn(messaggiVisti);
         
         BooleanExpression applicazioniFilter = Expressions.booleanTemplate("tools.array_overlap({0}, string_to_array({1}, ','))=true", QAmministrazioneMessaggio.amministrazioneMessaggio.idApplicazioni, applicazione.toString());
         

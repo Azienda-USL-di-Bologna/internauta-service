@@ -63,6 +63,7 @@ import java.util.HashSet;
 import java.util.stream.Stream;
 import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgUtenteStruttura;
+import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniPersona;
 import org.json.JSONObject;
 import org.springframework.beans.factory.BeanFactory;
 
@@ -162,12 +163,15 @@ public class UserInfoService {
      * @param aziendaPath
      * @return
      */
-    @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
-    public Utente loadUtente(String username, String aziendaPath) {
+    @Cacheable(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath, #onlyActive}")
+    public Utente loadUtente(String username, String aziendaPath, Boolean onlyActive) {
         Utente res = null;
         Azienda azienda = cachedEntities.getAziendaFromPath(aziendaPath);
         if (azienda != null && username != null) {
             BooleanExpression utenteFilter = QUtente.utente.username.eq(username).and(QUtente.utente.idAzienda.id.eq(azienda.getId()));
+            if (onlyActive) {
+                utenteFilter = utenteFilter.and(QUtente.utente.attivo.eq(true));
+            } 
             Optional<Utente> utenteOp = utenteRepository.findOne(utenteFilter);
             if (utenteOp.isPresent()) {
                 res = utenteOp.get();
@@ -190,8 +194,8 @@ public class UserInfoService {
      * @param username
      * @param aziendaPath
      */
-    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath}")
-    public void loadUtenteRemoveCache(String username, String aziendaPath) {
+    @CacheEvict(value = "userInfo__ribaltorg__", key = "{#username, #aziendaPath, #onlyActive}")
+    public void loadUtenteRemoveCache(String username, String aziendaPath, Boolean onlyActive) {
     }
 
     /**
@@ -1157,6 +1161,52 @@ public class UserInfoService {
         }
         return false;
     }
+    
+    /**
+     * Controlla se l'utente è un Osservatore (OS).
+     * Questo ruolo non da molto all'utente. Vedere BabelMan.
+     * @param modulo Il modulo del ruolo.
+     * @return true o false.
+     */
+    @Cacheable(value = "getRuoliIIsOS__ribaltorg__", key = "{#user.getId()}")
+    public boolean isOS(Utente user) {
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
+        boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.OS.toString());
+        if (containsKey) {
+            List<String> get = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.OS.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString());
+            if (get != null) {
+                return get.contains(user.getIdAzienda().getCodice());
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Controlla se l'utente è un Mini-Osservatore (MOS).
+     * Questo ruolo non da molto all'utente. Vedere BabelMan.
+     * @param modulo Il modulo del ruolo.
+     * @return true o false.
+     */
+    @Cacheable(value = "getRuoliIIsMOS__ribaltorg__", key = "{#user.getId()}")
+    public boolean isMOS(Utente user) {
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
+        boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.MOS.toString());
+        if (containsKey) {
+            List<String> get = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.MOS.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString());
+            if (get != null) {
+                return get.contains(user.getIdAzienda().getCodice());
+            }
+        }
+        return false;
+    }
+    
+    
 
     /**
      * Torna "true" se l'utente è CA di almeno un'azienda.
@@ -1297,10 +1347,10 @@ public class UserInfoService {
     public KrintBaborgPersona getPersonaKrint(Utente utente) {
         return factory.createProjection(KrintBaborgPersona.class, utente.getIdPersona());
     }
-//
-//    public KrintBaborgPersona getPersonaKrint(Utente utente) {
-//        return  factory.createProjection(KrintBaborgPersona.class, utente.getIdPersona());
-//    }
+
+    public KrintInformazioniPersona getInformazioniPersonaKrint(Utente utente) {
+        return  factory.createProjection(KrintInformazioniPersona.class, utente.getIdPersona());
+    }
 
     @Cacheable(value = "getUtenteProcton", key = "{#idPersona, #codiceAzienda}")
     public UtenteProcton getUtenteProcton(Integer idPersona, String codiceAzienda) throws Http404ResponseException {

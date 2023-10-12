@@ -10,7 +10,6 @@ import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.ArchivioRecente;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.AttoreDoc;
-//import it.bologna.ausl.model.entities.scripta.DettaglioAllegato;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
