@@ -241,7 +241,7 @@ public class LoginController {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
 
-        if (utente.getIdAzienda().getCodice().equals("050109")) {
+        if (userLogin.passToken == null && utente.getIdAzienda().getCodice().equals("050109")) {
             String md5DaCalcolare = userLogin.username + "/" + userLogin.password;
             if (!DigestUtils.md5Hex(md5DaCalcolare).toUpperCase().equals(utente.getPasswordHash().toUpperCase())) {
                 return new ResponseEntity(HttpStatus.FORBIDDEN);
