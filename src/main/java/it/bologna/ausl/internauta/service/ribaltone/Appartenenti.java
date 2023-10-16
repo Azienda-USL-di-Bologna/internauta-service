@@ -217,9 +217,9 @@ public class Appartenenti {
         return false;
     }
 
-    public static List<Integer> codiciMatricoleConAppFunzionaliENonDirette(Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali, Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti) {
-        List<Integer> codiciMatricoleConAppFunzionaliENonDirette = new ArrayList<>();
-        for (Integer codiceMatricola : appartenentiFunzionali.keySet()) {
+    public static List<String> codiciMatricoleConAppFunzionaliENonDirette(Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali, Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti) {
+        List<String> codiciMatricoleConAppFunzionaliENonDirette = new ArrayList<>();
+        for (String codiceMatricola : appartenentiFunzionali.keySet()) {
             
             if (!appartenentiDiretti.containsKey(codiceMatricola)) {
                 if (!codiciMatricoleConAppFunzionaliENonDirette.contains(codiceMatricola)){
@@ -272,8 +272,8 @@ public class Appartenenti {
             ZonedDateTime datain,
             ZonedDateTime datafi,
             Boolean controlloZeroUno,
-            Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti,
-            Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali,
+            Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti,
+            Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali,
             ICsvMapReader mapReader,
             List<Integer> righeAnomaleFunzionali,
             List<Integer> righeAnomaleDirette) {
@@ -290,7 +290,7 @@ public class Appartenenti {
             if (appartenentiMap.get("codice_ente") != null && !appartenentiMap.get("codice_ente").toString().trim().equals("") && appartenentiMap.get("codice_ente") != "") {
                 boolean codiceEnteEndsWith = appartenentiMap.get("codice_ente").toString().endsWith("01");
                 if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")) {
-                    Map<Integer, List<Map<String, Object>>> appDiretto = appartenentiDiretti.get(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
+                    Map<Integer, List<Map<String, Object>>> appDiretto = appartenentiDiretti.get(appartenentiMap.get("codice_matricola").toString());
                     //controlloZeroUno true controlla solo le afferenze degli gli appartententi che hanno codice ente che finisce con 01
                     if (codiceEnteEndsWith && controlloZeroUno) {
 
@@ -306,7 +306,7 @@ public class Appartenenti {
                             periodoDaCasellare.put("riga", mapReader.getLineNumber());
                             periodoCasellato.add(periodoDaCasellare);
                             appDiretto.put(idCasellaInt, periodoCasellato);
-                            appartenentiDiretti.put(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), appDiretto);
+                            appartenentiDiretti.put(appartenentiMap.get("codice_matricola").toString(), appDiretto);
                         } else {
                             Boolean afferenzaDiretta = false;
                             //l'appartenente c'è devo ciclare su tutte le strutture per verificare che non abbia piu afferenze dirette
@@ -376,7 +376,7 @@ public class Appartenenti {
                             periodoDaCasellare.put("riga", mapReader.getLineNumber());
                             periodoCasellato.add(periodoDaCasellare);
                             appDiretto.put(idCasellaInt, periodoCasellato);
-                            appartenentiDiretti.put(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), appDiretto);
+                            appartenentiDiretti.put(appartenentiMap.get("codice_matricola").toString(), appDiretto);
                         } else {
                             Boolean afferenzaDiretta = false;
 
@@ -412,7 +412,7 @@ public class Appartenenti {
                             periodoDaCasellare.put("riga", mapReader.getLineNumber());
                             periodoCasellato.add(periodoDaCasellare);
                             appDiretto.put(idCasellaInt, periodoCasellato);
-                            appartenentiDiretti.put(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), appDiretto);
+                            appartenentiDiretti.put(appartenentiMap.get("codice_matricola").toString(), appDiretto);
                         } else {
                             Boolean afferenzaDiretta = false;
 
@@ -436,7 +436,7 @@ public class Appartenenti {
                         }
                     }
                 } else {
-                    Map<Integer, List<Map<String, Object>>> appFunzionale = appartenentiFunzionali.get(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()));
+                    Map<Integer, List<Map<String, Object>>> appFunzionale = appartenentiFunzionali.get(appartenentiMap.get("codice_matricola").toString());
                     if (appFunzionale == null) {
                         //non ho quella matricola nella mappa
                         //adda crea tutto
@@ -448,7 +448,7 @@ public class Appartenenti {
                         periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
                         periodoDaCasellare.put("riga", mapReader.getLineNumber());
                         periodoCasellato.add(periodoDaCasellare);
-                        appartenentiFunzionali.put(Integer.parseInt(appartenentiMap.get("codice_matricola").toString()), appFunzionale);
+                        appartenentiFunzionali.put(appartenentiMap.get("codice_matricola").toString(), appFunzionale);
                     } else {
                         List<Map<String, Object>> periodoCasellato = appFunzionale.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
                         if (periodoCasellato == null) {
@@ -490,7 +490,7 @@ public class Appartenenti {
         //adesso controllo che la riga di appartenenza diretta o funzionale non abbia sovrapposizioni temporali cross afferenza 
         if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")) {
             if (appartenentiMap.get("codice_matricola") != null && !appartenentiMap.get("codice_matricola").toString().trim().equals("")) {
-                Integer codiceMatricola = Integer.parseInt(appartenentiMap.get("codice_matricola").toString());
+                String codiceMatricola = appartenentiMap.get("codice_matricola").toString();
                 if (appartenentiFunzionali.containsKey(codiceMatricola)) {
                     if (appartenentiMap.get("id_casella") != null && !appartenentiMap.get("id_casella").toString().trim().equals("")) {
                         Integer idCasellaApp = Integer.parseInt(appartenentiMap.get("id_casella").toString());
@@ -510,7 +510,7 @@ public class Appartenenti {
         }
         if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("F")) {
             if (appartenentiMap.get("codice_matricola") != null && !appartenentiMap.get("codice_matricola").toString().trim().equals("")) {
-                Integer codiceMatricola = Integer.parseInt(appartenentiMap.get("codice_matricola").toString());
+                String codiceMatricola = appartenentiMap.get("codice_matricola").toString();
                 if (appartenentiDiretti.containsKey(codiceMatricola)) {
                     if (appartenentiMap.get("id_casella") != null && !appartenentiMap.get("id_casella").toString().trim().equals("")) {
                         Integer idCasellaApp = Integer.parseInt(appartenentiMap.get("id_casella").toString());
