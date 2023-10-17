@@ -1,10 +1,12 @@
 package it.bologna.ausl.internauta.service.controllers.rubrica.inad;
 
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
+import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,12 +27,16 @@ public class InadController implements ControllerHandledExceptions{
     
     private static final Logger log = LoggerFactory.getLogger(InadController.class);
     
+    @Autowired
+    public InadManager inadManager;
+    
     @RequestMapping(value = "extract", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> extract(
             @RequestParam("cf") String cf,
             @RequestParam("idAzienda") Integer idAzienda, 
-            HttpServletRequest request){
+            HttpServletRequest request) throws AuthorizationUtilsException{
         
+        inadManager.extract(idAzienda, cf);
     
         
     return new ResponseEntity(null, HttpStatus.OK);
