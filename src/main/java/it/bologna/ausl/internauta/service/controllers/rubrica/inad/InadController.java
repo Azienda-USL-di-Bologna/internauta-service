@@ -24,8 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class InadController implements ControllerHandledExceptions{
     
     private static final Logger log = LoggerFactory.getLogger(InadController.class);
-    private static String ALG = "RS256";
-    private static String TYP = "JWT";
     
     @RequestMapping(value = "extract", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> extract(
