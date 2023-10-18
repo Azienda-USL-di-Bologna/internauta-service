@@ -428,10 +428,10 @@ public class ImportaDaCSV {
                     nRigheAnomale = 0;
                     List<Map<String, Object>> listAppartenentiMap = new ArrayList<>();
                     Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
-                    //integer1 appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
-                    Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti = new HashMap<>();
-                    //integer1 appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
-                    Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali = new HashMap<>();
+                    //String codiceMatricola appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
+                    Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti = new HashMap<>();
+                    //String codiceMatricola appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
+                    Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali = new HashMap<>();
                     // Delete delle righe da sostituire
                     predicateAzienda = QMdrAppartenenti.mdrAppartenenti.idAzienda.id.eq(idAzienda);
                     mdrAppartenentiRepository.deleteByIdAzienda(idAzienda);
@@ -540,11 +540,11 @@ public class ImportaDaCSV {
                     }
                     
                     //se ho il caso in cui non ho appartenenti diretti per qualche appatenente funzionale
-                    List<Integer> codiciMatricoleConAppFunzionaliENonDirette = Appartenenti.codiciMatricoleConAppFunzionaliENonDirette(appartenentiFunzionali, appartenentiDiretti);
+                    List<String> codiciMatricoleConAppFunzionaliENonDirette = Appartenenti.codiciMatricoleConAppFunzionaliENonDirette(appartenentiFunzionali, appartenentiDiretti);
                     riga = 2;
                                       
                     for (Map<String, Object> appMapWithErrorAndAnomalia : listAppartenentiMap) {
-                        if (codiciMatricoleConAppFunzionaliENonDirette.contains(Integer.parseInt(appMapWithErrorAndAnomalia.get("codice_matricola").toString()))) {
+                        if (codiciMatricoleConAppFunzionaliENonDirette.contains(appMapWithErrorAndAnomalia.get("codice_matricola").toString())) {
                             appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con appartenenze funzionali ma senza appartenente dirette");
                             nRigheAnomale++;
                             anomalia = true;
@@ -785,11 +785,10 @@ public class ImportaDaCSV {
 //                        nRigheAnomale = tipoR == null ? nRigheAnomale++ : nRigheAnomale;
 
 //                      CODICE ENTE
-                        String CodiceEnte = ImportaDaCSVUtils.checkCodiceEnte(responsabiliMap, mapError, codiceAzienda);
-                        mR.setCodiceEnte(CodiceEnte);
-                        anomalia = Objects.equals(CodiceEnte, codiceAzienda) ? true : anomalia;
-                        anomaliaRiga = Objects.equals(CodiceEnte, codiceAzienda) ? true : anomaliaRiga;
-                        //nRigheAnomale = Objects.equals(CodiceEnte, codiceAzienda) ? nRigheAnomale++ : nRigheAnomale;
+                        String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(responsabiliMap, mapError, codiceAzienda);
+                        mR.setCodiceEnte(codiceEnte);
+                        anomalia = codiceEnte.startsWith(codiceAzienda) ? anomalia : true;
+                        anomaliaRiga = codiceEnte.startsWith(codiceAzienda) ? anomalia : true;
 
                         mR.setIdAzienda(azienda);
                         if (!anomaliaRiga) {
