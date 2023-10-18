@@ -36,10 +36,10 @@ public class InadController implements ControllerHandledExceptions{
             @RequestParam("idAzienda") Integer idAzienda, 
             HttpServletRequest request) throws AuthorizationUtilsException{
         
-        inadManager.extract(idAzienda, cf);
+        InadExtractResponse extract = inadManager.extract(idAzienda, cf);
     
         
-    return new ResponseEntity(null, HttpStatus.OK);
+    return new ResponseEntity(extract, HttpStatus.OK);
     }
 // /verify/{codice_fiscale}
     
