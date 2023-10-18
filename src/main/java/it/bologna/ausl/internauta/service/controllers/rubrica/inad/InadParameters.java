@@ -52,6 +52,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import okhttp3.FormBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.jose4j.base64url.internal.apache.commons.codec.binary.Base64;
 
 /**
@@ -70,8 +75,8 @@ public class InadParameters {
     private String subject;
     private String audience;
     private String urlVoucher;
-    private String alg;
-    private String typ;
+    private JWSAlgorithm alg;
+    private JOSEObjectType typ;
     private Integer delta;
     private String urlDocomicilioDigitale;
     private String purposeId;
@@ -126,19 +131,19 @@ public class InadParameters {
         this.urlVoucher = urlVoucher;
     }
 
-    public String getAlg() {
+    public JWSAlgorithm getAlg() {
         return alg;
     }
 
-    public void setAlg(String alg) {
+    public void setAlg(JWSAlgorithm alg) {
         this.alg = alg;
     }
 
-    public String getTyp() {
+    public JOSEObjectType getTyp() {
         return typ;
     }
 
-    public void setTyp(String typ) {
+    public void setTyp(JOSEObjectType typ) {
         this.typ = typ;
     }
 
@@ -165,7 +170,6 @@ public class InadParameters {
     public void setPurposeId(String purposeId) {
         this.purposeId = purposeId;
     }
-    
 
     @JsonIgnore
     public static InadParameters build(Integer idAzienda, ParametriAziendeReader parametriAziendeReader, ObjectMapper objectMapper) throws JsonProcessingException {
@@ -176,6 +180,9 @@ public class InadParameters {
         if (parameters.size() == 1) {
             ParametroAziende parametroAziende = parameters.get(0);
             InadParameters inadParameters = objectMapper.convertValue(objectMapper.readTree(parametroAziende.getValore()), InadParameters.class);
+//            if (idAzienda ==3){
+//            inadParameters.setKeyPath("authorizations-utils/client-test-keypair.rsa.pk8");
+//            }
             return inadParameters;
         }
         return null;
@@ -189,15 +196,15 @@ public class InadParameters {
      * @return clientAssertion
      */
     @JsonIgnore
-    public String generateClientAssertion() throws AuthorizationUtilsException, KeyStoreException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeySpecException {
+    public String generateClientAssertion(Integer idAzienda) throws AuthorizationUtilsException, KeyStoreException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeySpecException {
         String clientAssertion = "";
         try {
             PrivateKey privateKeyFromPath = getPrivateKeyFromPath(this.getKeyPath());
-            clientAssertion = makeJWT(privateKeyFromPath);
+            clientAssertion = makeJWT(privateKeyFromPath, idAzienda);
             return clientAssertion;
         } catch (JOSEException ex) {
             Logger.getLogger(InadParameters.class.getName()).log(Level.SEVERE, null, ex);
-        }finally{
+        } finally {
             return clientAssertion;
         }
     }
@@ -216,40 +223,33 @@ public class InadParameters {
         return keyFactory.generatePrivate(keySpec);
     }
 
-    private String makeJWT(PrivateKey privateKey) throws JOSEException {
+    private String makeJWT(PrivateKey privateKey,Integer idAzienda) throws JOSEException {
 
-        String kid = "JmyAHtpYZYryoqfzCaXnThaXZl0cdOM25AZKcR5kEvE"; // Sostituisci con il tuo kid
-        kid = this.getKid();
-        
         JWSAlgorithm alg = JWSAlgorithm.RS256;
         JOSEObjectType typ = JOSEObjectType.JWT;
-        
-        String issuer = "10570c94-074b-47cc-acc1-68daa677ce92"; // Sostituisci con il tuo issuer
-        issuer = this.getIssuer();
-        String subject = "10570c94-074b-47cc-acc1-68daa677ce92"; // Sostituisci con il tuo subject
-        subject = this.getSubject();
-        String audience = "auth.uat.interop.pagopa.it/client-assertion"; // Sostituisci con il tuo audience
-        audience = this.getAudience();
-        
+
         UUID jti = UUID.randomUUID(); // Sostituisci con il tuo jti
         Instant issued = Instant.now(); // Tempo di emissione (timestamp in formato Unix)
         Instant expire_in = issued.plus(this.getDelta(), ChronoUnit.MINUTES);
-        String purposeId = "d411bc9d-fc78-4373-8148-f5a5d08d63c1"; // Sostituisci con il tuo purposeId
-        purposeId = this.getPurposeId();
 
-        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .issuer(issuer)
-                .subject(subject)
-                .audience(audience)
+        JWTClaimsSet.Builder claimBuild = new JWTClaimsSet.Builder()
+                .issuer(this.getIssuer())
+                .subject(this.getSubject())
+                .audience(this.getAudience())
                 .jwtID(jti.toString())
                 .issueTime(new Date(issued.toEpochMilli()))
-                .expirationTime(new Date(expire_in.toEpochMilli()))
-                .claim("purposeId", purposeId)
-                .build();
+                .expirationTime(new Date(expire_in.toEpochMilli()));
+                
+        
+        if (idAzienda != 3){
+        claimBuild.claim("purposeId", this.getPurposeId());
+        }
+        
+        JWTClaimsSet claimsSet = claimBuild.build();
 
         // Crea un oggetto JWSHeader con gli header personalizzati
         JWSHeader header = new JWSHeader.Builder(alg)
-                .keyID(kid)
+                .keyID(this.getKid())
                 .type(typ)
                 .build();
 
@@ -266,6 +266,45 @@ public class InadParameters {
         String jwtString = signedJWT.serialize();
 
         return jwtString;
+    }
+
+    @JsonIgnore
+    String getToken(String clientAssertion) {
+//        headersJWT = {'Content-Type': 'application/x-www-form-urlencoded'}       
+//        payloadJWT = {'client_id': issuer,
+//                  'client_assertion': client_assertion,
+//                  'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+//                  'grant_type': 'client_credentials'
+//                  }
+//       jwt_response = requests.post(url=url_voucher, data=payloadJWT, headers=headersJWT)
+        OkHttpClient client = new OkHttpClient();
+
+        // Costruisco il body della post
+        RequestBody requestBody = new FormBody.Builder()
+                .add("client_id", issuer)
+                .add("client_assertion", clientAssertion)
+                .add("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+                .add("grant_type", "client_credentials")
+                .build();
+
+        Request request = new Request.Builder()
+                .url(this.getUrlVoucher())
+                .post(requestBody)
+                .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                .build();
+        String token = "";
+        try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful()) {
+                String responseBody = response.body().string();
+                System.out.println("Response: " + responseBody);
+            } else {
+                // Gestione degli errori qui
+                System.err.println("Errore: " + response.code() + " - " + response.message());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return token;
     }
 
 }
