@@ -86,7 +86,7 @@ public class InadController implements ControllerHandledExceptions{
             InadExtractResponse responseObj = new InadExtractResponse();
             DigitalAddress digitalAddress = new DigitalAddress();
             UsageInfo usageInfo = new UsageInfo();
-            digitalAddress.setDigitalAddress("chiarabellapec@pec.it");
+            digitalAddress.setDigitalAddress("pippopiudipippobaudo@pec.it");
             digitalAddress.setPracticedProfession("POCOPROFESSIONISTAMOLTOLIBERO");
             usageInfo.setDateEndValidity(ZonedDateTime.now());
             usageInfo.setMotivation("CESSAZIONE_VOLONTARIA");
@@ -99,7 +99,7 @@ public class InadController implements ControllerHandledExceptions{
             List<DigitalAddress> digitalAddresses = responseObj.getDigitalAddresses();
             
             
-            List<DettaglioContatto> dettagliContattoDaRitornare = new ArrayList<>();
+            List<Email> EmailContattoDaRitornare = new ArrayList<>();
 
             //se trovo dei domini digitali li metto dentro una lista di indirizzi che poi confronto
             //con i dettagli contatto già presenti sulla rubrica
@@ -120,8 +120,7 @@ public class InadController implements ControllerHandledExceptions{
                             //controllo che sia già un domicilio digitale, sennò lo rendo tale
                             if (!dc.getDomicilioDigitale()) {
                                 dc.setDomicilioDigitale(Boolean.TRUE);
-                                dettaglioContattoRepository.save(dc);
-                                dettagliContattoDaRitornare.add(dc);
+                                EmailContattoDaRitornare.add(dc.getEmail());
                             }
                         } else {
                             
@@ -129,45 +128,55 @@ public class InadController implements ControllerHandledExceptions{
                             //nel caso lo setto come non dominio digitale
                             if (dc.getDomicilioDigitale()) {
                                 dc.setDomicilioDigitale(Boolean.FALSE);
-                                dettaglioContattoRepository.save(dc);
-                                dettagliContattoDaRitornare.add(dc);
+                                EmailContattoDaRitornare.add(dc.getEmail());
                             }
                         }
                     }
                 }
                 
+                if(!EmailContattoDaRitornare.isEmpty()) {
+                    for(Email emailContatto : EmailContattoDaRitornare) {
+                        dettaglioContattoRepository.save(emailContatto.getIdDettaglioContatto());
+                    }
+                }
                 //aggiungo il dettaglio del domicilio digitale al contatto
                 if (isIndirizzoDaAggiungere) {
-                    DettaglioContatto dettaglioDomicilioDigitale = new DettaglioContatto();
-                    dettaglioDomicilioDigitale.setDescrizione(indirizzoDomicilioDigitale);
-                    dettaglioDomicilioDigitale.setIdContatto(contattoDaVerificare);
-                    dettaglioDomicilioDigitale.setDomicilioDigitale(Boolean.TRUE);
-                    dettaglioContattoRepository.save(dettaglioDomicilioDigitale);
-                    dettagliContattoDaRitornare.add(dettaglioDomicilioDigitale);
                     
                     Email emailDaAggiungere = new Email();
                     emailDaAggiungere.setEmail(indirizzoDomicilioDigitale);
                     emailDaAggiungere.setDescrizione(indirizzoDomicilioDigitale);
-                    emailDaAggiungere.setIdDettaglioContatto(dettaglioDomicilioDigitale);
                     emailDaAggiungere.setIdContatto(contattoDaVerificare);
                     emailDaAggiungere.setPec(Boolean.TRUE);
-                    emailDaAggiungere.setPrincipale(dettaglioDomicilioDigitale.getPrincipale());
-                    emailRepository.save(emailDaAggiungere);
+                    emailDaAggiungere.setProvenienza("inad");
+                    emailDaAggiungere.setPrincipale(Boolean.FALSE);
                     
-
+                    
+                    DettaglioContatto dettaglioDomicilioDigitale = new DettaglioContatto();
+                    dettaglioDomicilioDigitale.setDescrizione(indirizzoDomicilioDigitale);
+                    dettaglioDomicilioDigitale.setIdContatto(contattoDaVerificare);
+                    dettaglioDomicilioDigitale.setDomicilioDigitale(Boolean.TRUE);
+                    dettaglioDomicilioDigitale.setEmail(emailDaAggiungere);
+                    emailDaAggiungere.setIdDettaglioContatto(dettaglioDomicilioDigitale);
+                    
+                    
+                    emailRepository.save(emailDaAggiungere);
+                    dettaglioContattoRepository.save(dettaglioDomicilioDigitale);
+                    
+                    EmailContattoDaRitornare.add(emailDaAggiungere);
                 }
                    
             } else {
                 for (DettaglioContatto dc: contattoDaVerificare.getDettaglioContattoList()) {
                     if (dc.getDomicilioDigitale()) {
                         dc.setDomicilioDigitale(Boolean.FALSE);
-                        dettagliContattoDaRitornare.add(dc);
+                        dettaglioContattoRepository.save(dc);
+                        EmailContattoDaRitornare.add(dc.getEmail());
                     }
                 }
                 
             }
             
-            return new ResponseEntity(dettagliContattoDaRitornare,  HttpStatus.OK);
+            return new ResponseEntity(EmailContattoDaRitornare,  HttpStatus.OK);
 
         }
  
