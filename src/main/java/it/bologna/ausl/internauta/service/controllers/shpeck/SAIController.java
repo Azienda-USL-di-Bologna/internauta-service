@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.controllers.shpeck;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.eml.handler.EmlHandlerAttachment;
@@ -14,7 +13,6 @@ import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExcep
 import it.bologna.ausl.internauta.service.exceptions.http.Http400ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http403ResponseException;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
-import it.bologna.ausl.internauta.service.exceptions.http.HttpResponseRuntimeException;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicolazioneGddocException;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.sai.FascicoloPadreNotDefinedException;
@@ -63,7 +61,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.apache.commons.codec.digest.MessageDigestAlgorithms;
 import org.apache.commons.validator.routines.EmailValidator;
@@ -86,9 +83,6 @@ public class SAIController implements ControllerHandledExceptions {
     @Autowired
     private ReportRepository reportRepository;
     
-    @Autowired
-    private ObjectMapper objectMapper;
-
     @Autowired
     private CommonUtils nextSdrCommonUtils;
 
