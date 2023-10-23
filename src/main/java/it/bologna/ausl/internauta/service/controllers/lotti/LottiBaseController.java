@@ -46,8 +46,8 @@ public class LottiBaseController extends BaseCrudController {
         return restControllerEngine;
     }
     
-    @RequestMapping(value = {"partecipante", "partecipante/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> partecipante(
+    @RequestMapping(value = {"componente", "componente/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> componente(
             @QuerydslPredicate(root = Componente.class) Predicate predicate,
             Pageable pageable,
             @RequestParam(required = false) String projection,
