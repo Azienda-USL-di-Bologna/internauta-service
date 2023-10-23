@@ -12,8 +12,8 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
  *
  * @author QB
  */
-@NextSdrRepository(repositoryPath = "${lotti.mapping.url.root}/partecipante", defaultProjection = ComponenteWithIdRuolo.class)
-@RepositoryRestResource(collectionResourceRel = "partecipante", path = "partecipante", exported = false, excerptProjection = ComponenteWithIdRuolo.class)
-public interface PartecipanteRepository extends 
+@NextSdrRepository(repositoryPath = "${lotti.mapping.url.root}/componente", defaultProjection = ComponenteWithIdRuolo.class)
+@RepositoryRestResource(collectionResourceRel = "componente", path = "componente", exported = false, excerptProjection = ComponenteWithIdRuolo.class)
+public interface ComponenteRepository extends 
         NextSdrQueryDslRepository<Componente, Integer, QComponente>, 
         JpaRepository<Componente, Integer> {}
