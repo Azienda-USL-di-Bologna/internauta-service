@@ -99,7 +99,7 @@ public class InadController implements ControllerHandledExceptions{
             List<DigitalAddress> digitalAddresses = responseObj.getDigitalAddresses();
             
             
-            List<Email> EmailContattoDaRitornare = new ArrayList<>();
+            List<Email> emailContattoDaRitornare = new ArrayList<>();
 
             //se trovo dei domini digitali li metto dentro una lista di indirizzi che poi confronto
             //con i dettagli contatto già presenti sulla rubrica
@@ -120,7 +120,7 @@ public class InadController implements ControllerHandledExceptions{
                             //controllo che sia già un domicilio digitale, sennò lo rendo tale
                             if (!dc.getDomicilioDigitale()) {
                                 dc.setDomicilioDigitale(Boolean.TRUE);
-                                EmailContattoDaRitornare.add(dc.getEmail());
+                                emailContattoDaRitornare.add(dc.getEmail());
                             }
                         } else {
                             
@@ -128,14 +128,14 @@ public class InadController implements ControllerHandledExceptions{
                             //nel caso lo setto come non dominio digitale
                             if (dc.getDomicilioDigitale()) {
                                 dc.setDomicilioDigitale(Boolean.FALSE);
-                                EmailContattoDaRitornare.add(dc.getEmail());
+                                emailContattoDaRitornare.add(dc.getEmail());
                             }
                         }
                     }
                 }
                 
-                if(!EmailContattoDaRitornare.isEmpty()) {
-                    for(Email emailContatto : EmailContattoDaRitornare) {
+                if(!emailContattoDaRitornare.isEmpty()) {
+                    for(Email emailContatto : emailContattoDaRitornare) {
                         dettaglioContattoRepository.save(emailContatto.getIdDettaglioContatto());
                     }
                 }
@@ -162,7 +162,7 @@ public class InadController implements ControllerHandledExceptions{
                     emailRepository.save(emailDaAggiungere);
                     dettaglioContattoRepository.save(dettaglioDomicilioDigitale);
                     
-                    EmailContattoDaRitornare.add(emailDaAggiungere);
+                    emailContattoDaRitornare.add(emailDaAggiungere);
                 }
                    
             } else {
@@ -170,13 +170,13 @@ public class InadController implements ControllerHandledExceptions{
                     if (dc.getDomicilioDigitale()) {
                         dc.setDomicilioDigitale(Boolean.FALSE);
                         dettaglioContattoRepository.save(dc);
-                        EmailContattoDaRitornare.add(dc.getEmail());
+                        emailContattoDaRitornare.add(dc.getEmail());
                     }
                 }
                 
             }
             
-            return new ResponseEntity(EmailContattoDaRitornare,  HttpStatus.OK);
+            return new ResponseEntity(emailContattoDaRitornare,  HttpStatus.OK);
 
         }
  
