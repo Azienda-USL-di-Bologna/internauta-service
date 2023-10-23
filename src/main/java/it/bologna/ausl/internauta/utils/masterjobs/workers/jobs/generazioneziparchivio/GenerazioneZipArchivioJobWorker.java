@@ -99,6 +99,8 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         String numerazioneGerarchicaFascicolo = archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/"));
         String archivioZipNameUnivoco = String.format("%s$%s-%d-%s.zip", UUID.randomUUID().toString(), numerazioneGerarchicaFascicolo, archivio.getAnno(), archivio.getOggetto().trim());
         
+        archivioZipNameUnivoco = archivioZipNameUnivoco.replace("/", "-");
+        
         // tolgo l'uuid dal nome dell'allegato 
         String archivioZipName = archivioZipNameUnivoco.substring(archivioZipNameUnivoco.lastIndexOf("$") + 1);
         
