@@ -243,6 +243,9 @@ public class RubricaCustomController implements ControllerHandledExceptions {
         return new ResponseEntity(contattiTrovati, HttpStatus.OK);
     }
 
+    
+    
+  
     /**
      * Questa funzione si collega al db locale argo per fare una ricerca tra le
      * mail. Query copiata da inde e non controllata.
