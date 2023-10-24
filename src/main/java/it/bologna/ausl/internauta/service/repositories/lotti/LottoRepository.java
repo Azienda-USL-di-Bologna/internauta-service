@@ -1,6 +1,6 @@
 package it.bologna.ausl.internauta.service.repositories.lotti;
 
-import it.bologna.ausl.model.entities.lotti.projections.generated.LottoWithGruppiListAndIdContraenteAndIdTipologia;
+import it.bologna.ausl.model.entities.lotti.projections.generated.LottoWithGruppiListAndIdContraenteAndIdDocAndIdTipologia;
 import it.bologna.ausl.model.entities.lotti.Lotto;
 import it.bologna.ausl.model.entities.lotti.QLotto;
 import it.nextsw.common.data.annotations.NextSdrRepository;
@@ -16,8 +16,8 @@ import java.util.Optional;
  *
  * @author QB
  */
-@NextSdrRepository(repositoryPath = "${lotti.mapping.url.root}/lotto", defaultProjection = LottoWithGruppiListAndIdContraenteAndIdTipologia.class)
-@RepositoryRestResource(collectionResourceRel = "lotto", path = "lotto", exported = false, excerptProjection = LottoWithGruppiListAndIdContraenteAndIdTipologia.class)
+@NextSdrRepository(repositoryPath = "${lotti.mapping.url.root}/lotto", defaultProjection = LottoWithGruppiListAndIdContraenteAndIdDocAndIdTipologia.class)
+@RepositoryRestResource(collectionResourceRel = "lotto", path = "lotto", exported = false, excerptProjection = LottoWithGruppiListAndIdContraenteAndIdDocAndIdTipologia.class)
 public interface LottoRepository extends 
         NextSdrQueryDslRepository<Lotto, Integer, QLotto>,
         JpaRepository<Lotto, Integer> {
