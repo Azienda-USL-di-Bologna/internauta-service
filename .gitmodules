@@ -1,0 +1,30 @@
+[submodule "submodules/next-spring-data-rest-framework"]
+	path = submodules/next-spring-data-rest-framework
+	url = git@bitbucket.org:dilaxia/babel-next-spring-data-rest-framework.git
+	branch = .
+	fetchRecurseSubmodules = true
+	ignore = none
+[submodule "submodules/jenesis-projections-generator"]
+	path = submodules/jenesis-projections-generator
+	url = git@bitbucket.org:dilaxia/babel-jenesis-projections-generator.git
+	branch = .
+	fetchRecurseSubmodules = true
+	ignore = none
+[submodule "submodules/internauta-utils"]
+	path = submodules/internauta-utils
+	url = git@bitbucket.org:dilaxia/babel-internauta-utils.git
+	branch = .
+	fetchRecurseSubmodules = true
+	ignore = none
+[submodule "submodules/internauta-model"]
+	path = submodules/internauta-model
+	url = git@bitbucket.org:dilaxia/babel-internauta-model.git
+	branch = .
+	fetchRecurseSubmodules = true
+	ignore = none
+[submodule "submodules/blackbox-permessi"]
+	path = submodules/blackbox-permessi
+	url = git@bitbucket.org:dilaxia/babel-blackbox-permessi.git
+	branch = .
+	fetchRecurseSubmodules = true
+	ignore = none
