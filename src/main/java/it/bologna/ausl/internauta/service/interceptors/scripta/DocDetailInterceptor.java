@@ -18,6 +18,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.scripta.DocDetail;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
@@ -111,8 +112,13 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
                         break;
                     case VisualizzaTabErroriVersamento:
-                        
-                        List<Integer> codiceAziendaListDoveSonoRV = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.RV);
+                        List<Integer> codiceAziendaListDoveSonoRV = new ArrayList<>();
+                        if(userInfoService.isSD(user)) {
+                            List<CustomAziendaLogin> aziendaListDoveSonoRV = userInfoService.getAllAziendeCustomLogin(user, true);
+                            codiceAziendaListDoveSonoRV = aziendaListDoveSonoRV.stream().map(CustomAziendaLogin::getId).collect(Collectors.toList());
+                        } else {
+                            codiceAziendaListDoveSonoRV = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.RV);
+                        }
                         initialPredicate = qdoclist.idAzienda.id.in(codiceAziendaListDoveSonoRV).and(initialPredicate);
                         initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
                         initialPredicate = (qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE)

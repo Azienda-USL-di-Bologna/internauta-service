@@ -1109,6 +1109,17 @@ public class UserInfoService {
 
         return aziende;
     }
+    
+    @Cacheable(value = "getAziendeWherePersonaIsRV__ribaltorg__", key = "{#persona.getId()}")
+    public List<Azienda> getAziendeWherePersonaIsRV(Persona persona) {
+        List<Azienda> aziende = null;
+
+        aziende = persona.getUtenteList().stream().filter(
+                utente -> getRuoliPerModuli(utente, false).get(Ruolo.ModuliRuolo.GENERALE.toString()).stream().anyMatch(ruolo -> ruolo.getNomeBreve() == Ruolo.CodiciRuolo.RV)
+        ).map(utente -> utente.getIdAzienda()).collect(Collectors.toList());
+
+        return aziende;
+    }
 
     @Cacheable(value = "aziendaFromIdUtente__ribaltorg__", key = "{#idUtente}")
     public Azienda getAziendaFromIdUtente(Integer idUtente) {
@@ -1177,6 +1188,28 @@ public class UserInfoService {
         boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.OS.toString());
         if (containsKey) {
             List<String> get = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.OS.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString());
+            if (get != null) {
+                return get.contains(user.getIdAzienda().getCodice());
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Controlla se l'utente è un Responsabile Versamenti (RV).Questo ruolo fa sì che l'utente si possa occupare dei versamenti quindi deve poter vedere tutto.
+     * Vedere BabelMan.
+     * @param user
+     * @return true o false.
+     */
+    @Cacheable(value = "getRuoliIIsRV__ribaltorg__", key = "{#user.getId()}")
+    public boolean isRV(Utente user) {
+        if (user.getRuoliUtentiPersona() == null) {
+            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
+        }
+        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
+        boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.RV.toString());
+        if (containsKey) {
+            List<String> get = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.RV.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString());
             if (get != null) {
                 return get.contains(user.getIdAzienda().getCodice());
             }
