@@ -20,6 +20,7 @@ import it.bologna.ausl.internauta.service.repositories.gru.MdrTrasformazioniRepo
 import it.bologna.ausl.internauta.service.repositories.mdrsporco.MdrTrasformazioniSporcheRepository;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.gru.MdrAnagrafica;
@@ -366,7 +367,7 @@ public class ImportaDaCSV {
      * it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteRigheException
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = BaborgCSVAnomaliaException.class, propagation = Propagation.REQUIRES_NEW)
-    public String csvTransactionalReadDeleteInsert(MultipartFile file, String tipo, String codiceAzienda, Integer idAzienda) throws BaborgCSVBloccanteException, BaborgCSVAnomaliaException, MongoWrapperException, BaborgCSVBloccanteRigheException {
+    public String csvTransactionalReadDeleteInsert(MultipartFile file, String tipo, String codiceAzienda, Integer idAzienda, Integer idUtente) throws BaborgCSVBloccanteException, BaborgCSVAnomaliaException, MongoWrapperException, BaborgCSVBloccanteRigheException {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
         String nameCsv = sdf.format(timestamp) + "_Error_" + tipo + ".csv";
@@ -959,6 +960,11 @@ public class ImportaDaCSV {
                 break;
 
                 case "TRASFORMAZIONI": {
+                    java.util.Optional<Utente> utenteOpt = utenteRepository.findById(idUtente);
+                    Utente utente = null;
+                    if (utenteOpt.isPresent()) {
+                        utente = utenteOpt.get();
+                    }
                     
                     nRigheDB = mdrTrasformazioniRepository.countRow(idAzienda);
                     anomalia = false;
@@ -980,14 +986,20 @@ public class ImportaDaCSV {
                     //Reading with CsvMapReader
                     Map<String, Object> trasformazioniMap;
                     while ((trasformazioniMap = mapReader.read(headers, processors)) != null) {
-                        if (salvaSuMdrSporco){
+                        if (salvaSuMdrSporco && !utente.getUsername().equals("RIBALTONE")){
                             Integer lastProgressivoRiga = mdrTrasformazioniSporcheRepository.getLastProgressivoRiga(idAzienda);
                             lastProgressivoRiga +=1;
                             MdrTrasformazioniSporche mdrTrasfSporca = new MdrTrasformazioniSporche();
                             
                             mdrTrasfSporca.setProgressivoRiga(lastProgressivoRiga);
                             mdrTrasfSporca.setIdCasellaPartenza(Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()));
-                            mdrTrasfSporca.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                            
+                            if (trasformazioniMap.get("id_casella_arrivo") != null && !trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")){
+                                    mdrTrasfSporca.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                            } else {
+                                mdrTrasfSporca.setIdCasellaArrivo(null);
+                            }
+                            
                             mdrTrasfSporca.setDataTrasformazione(ImportaDaCSVUtils.formattattore(trasformazioniMap.get("data_trasformazione")));
                             mdrTrasfSporca.setMotivo(trasformazioniMap.get("motivo").toString());
                             mdrTrasfSporca.setDatainPartenza(ImportaDaCSVUtils.formattattore(trasformazioniMap.get("datain_partenza")));
@@ -998,6 +1010,7 @@ public class ImportaDaCSV {
                             mapWriter.write(trasformazioniMap, headersGenerator(tipo), getProcessors(tipo));
                             
                         } else {
+                            // sono un utente RIBALTONE o sono un utente di azienda con parametro 'salvasuMdrSporco' spento
                             log.info("mapReader.getLineNumber()" + mapReader.getLineNumber());
                             Boolean tempi_ok = true;
                             Boolean dataTrasformazione = true;
@@ -1076,7 +1089,12 @@ public class ImportaDaCSV {
                                 bloccante = true;
                                 //non ci sta un motivo copio paripari id casella di arrivo non ho elementi per sapere se ci dovrebbe o meno essere qualcosa
                                 mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
-                                mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                if (trasformazioniMap.get("id_casella_arrivo") != null && !trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")){
+                                    mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                } else {
+                                    mT.setIdCasellaArrivo(null);
+                                }
+                                
                             } else {
                                 mapError.put("motivo", trasformazioniMap.get("motivo"));
                                 mT.setMotivo(trasformazioniMap.get("motivo").toString());
