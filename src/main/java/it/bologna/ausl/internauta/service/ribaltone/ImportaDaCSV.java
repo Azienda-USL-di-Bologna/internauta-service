@@ -393,7 +393,7 @@ public class ImportaDaCSV {
             //        Reading with CsvMapReader
             //        Reading file with CsvMapReader
 
-            InputStreamReader inputFileStreamReader = new InputStreamReader(file.getInputStream());
+            InputStreamReader inputFileStreamReader = new InputStreamReader(file.getInputStream(), "UTF-8");
             CsvPreference SEMICOLON_DELIMITED = new CsvPreference.Builder('"', ';', "\r\n").build();
             mapReader = new CsvMapReader(inputFileStreamReader, SEMICOLON_DELIMITED);
             mapReader.getHeader(true);
