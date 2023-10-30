@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
-import it.bologna.ausl.blackbox.PermissionManager;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
@@ -12,6 +12,7 @@ import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintRubricaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
@@ -37,6 +38,9 @@ import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -70,9 +74,6 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     private KrintRubricaService krintRubricaService;
 
     @Autowired
-    private PermissionManager permissionManager;
-
-    @Autowired
     private ParametriAziendeReader parametriAziende;
 
     @Autowired
@@ -88,7 +89,13 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     private DettaglioContattoRepository dettaglioContattoRepository;
     
     @Autowired
-    private EmailRepository emailRepository;  
+    private EmailRepository emailRepository; 
+    
+    @Autowired
+    private InadManager inadManager;
+    
+    @Autowired
+    private AziendaRepository aziendaRepository;
 
     @Override
     public Class getTargetEntityClass() {
@@ -163,9 +170,6 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)) {
                 if (isModificato) {
                     krintRubricaService.writeGroupUpdate(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_UPDATE);
-                    contatto.setContattiConDomiciliDigitaliModificati(
-                            rubricaInterceptorUtils.getContattiConDDdelGruppo(contatto)
-                    );
                 }
                 if (isRiservatoChanged) {
                     krintRubricaService.writeGroupRiservato(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_RISERVATO);
@@ -173,6 +177,9 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 if (isEliminato) {
                     krintRubricaService.writeGroupDelete(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_DELETE);
                 }
+                contatto.setContattiConDomiciliDigitaliModificati(
+                            rubricaInterceptorUtils.getContattiConDDdelGruppo(contatto)
+                    );
             } else if (contatto.getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
                 if (isModificato) {
                     krintRubricaService.writeContactUpdate(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_UPDATE);
@@ -186,7 +193,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             }
         }
 
-        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+        return super.afterUpdateEntityInterceptor(contatto, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
     public boolean isContactModified(Contatto contatto, Contatto contattoOld) {
@@ -253,6 +260,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
         Contatto contatto = (Contatto) entity;
 
@@ -265,6 +273,8 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         }
 
         Integer idAzienda = authenticatedUserProperties.getUser().getIdAzienda().getId();
+        Azienda azienda = aziendaRepository.findById(idAzienda).get();
+        
         try {
             manageFlagDaVerificarePerUpdate(contatto, beforeUpdateEntityApplier, idAzienda);
         } catch (JsonProcessingException | BeforeUpdateEntityApplierException ex) {
@@ -274,15 +284,18 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)){
             List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
             for (GruppiContatti gruppoContatto : contattiDelGruppoList) {
-                Contatto idContatto = gruppoContatto.getIdContatto(); 
-                if (idContatto.getCodiceFiscale() != null && !idContatto.getCodiceFiscale().equals("")){
-                    Email domiciliDigitali = InadManager.getDomicilioDigitaleFromCF(
-                            idContatto, 
-                            dettaglioContattoRepository, 
-                        emailRepository).get(0);
+                try {
+                    Contatto idContatto = gruppoContatto.getIdContatto();
+                    Email emailDomicilioDigitale = inadManager.getAlwaysAndSaveDomicilioDigitale(idContatto.getId());
+                    if (emailDomicilioDigitale != null){
+                        if (!Objects.equals(gruppoContatto.getIdDettaglioContatto().getId(), emailDomicilioDigitale.getIdDettaglioContatto().getId())){
+                            gruppoContatto.setIdDettaglioContatto(emailDomicilioDigitale.getIdDettaglioContatto());
+                        }
+                    }
                     //da testare perche è brutto.
-                    gruppoContatto.setIdDettaglioContatto(domiciliDigitali.getIdDettaglioContatto());
-                }         
+                } catch (BlackBoxPermissionException ex) {
+                    LOGGER.error("errore nella getAlwaysAndSaveDomicilioDigitale", ex);
+                }
             }
         }
         

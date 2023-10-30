@@ -1,7 +1,5 @@
 package it.bologna.ausl.internauta.service.controllers.rubrica.inad;
 
-import com.querydsl.core.types.dsl.StringPath;
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
@@ -12,14 +10,8 @@ import it.bologna.ausl.internauta.service.repositories.rubrica.EmailRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
-import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
-import it.bologna.ausl.model.entities.rubrica.QEmail;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
@@ -52,19 +44,10 @@ public class InadController implements ControllerHandledExceptions{
     private CachedEntities cachedEntities;
     
     @Autowired
-    private ContattoRepository contattoRepository;
-    
-    @Autowired
-    private DettaglioContattoRepository dettaglioContattoRepository;
-    
-    @Autowired
-    private EmailRepository emailRepository;
-
-    @PersistenceContext
-    private EntityManager entityManager;
-    
-    @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    private InadManager inadManager;
     
     /**
      * Questa funzione torna sempre il domicilio giditale. Se già presente lo torna, se non presente, richiama la funzione getAndSaveDomicilioDigitale 
@@ -79,26 +62,7 @@ public class InadController implements ControllerHandledExceptions{
             @RequestParam("idContatto") Integer idContatto,
             HttpServletRequest request) throws BlackBoxPermissionException{
         
-        QEmail qEmail = QEmail.email1;
-        QDettaglioContatto qDettaglioContatto = QDettaglioContatto.dettaglioContatto;
-        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
-        Email domicilioDigitale = jPAQueryFactory
-                .select(qEmail)
-                .from(qEmail).join(qDettaglioContatto).on(qEmail.idDettaglioContatto.id.eq(qDettaglioContatto.id))
-                .where(qEmail.idContatto.id.eq(idContatto).and(qDettaglioContatto.domicilioDigitale.eq(true)))
-                .fetchOne();
-        if (domicilioDigitale == null) {
-            AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
-            Utente utente = authenticatedUserProperties.getUser();
-            Azienda azienda = cachedEntities.getAzienda(utente.getIdAzienda().getId());
-            List<Email> domiciliDigitali = getAndSaveEmailDomicilioDigitale(idContatto, azienda);
-            if (domiciliDigitali != null && !domiciliDigitali.isEmpty()) {
-                Optional<Email> domicilioDigitaleOp = domiciliDigitali.stream().filter(dd -> dd.getIdDettaglioContatto().getDomicilioDigitale().equals(true)).findFirst();
-                if (domicilioDigitaleOp.isPresent()) {
-                    domicilioDigitale = domicilioDigitaleOp.get();
-                }
-            }
-        }
+        Email domicilioDigitale = inadManager.getAlwaysAndSaveDomicilioDigitale(idContatto);
         return new ResponseEntity(domicilioDigitale,  HttpStatus.OK);
     }
     
@@ -113,29 +77,13 @@ public class InadController implements ControllerHandledExceptions{
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
         Azienda azienda = cachedEntities.getAzienda(utente.getIdAzienda().getId());
-        List<Email> domiciliDigitali = getAndSaveEmailDomicilioDigitale(idContatto, azienda);
+        
+        List<Email> domiciliDigitali = inadManager.getAndSaveEmailDomicilioDigitale(idContatto, azienda);
         
         return new ResponseEntity(domiciliDigitali,  HttpStatus.OK);
 
     }
 // /verify/{codice_fiscale}
     
-    public List<Email> getAndSaveEmailDomicilioDigitale(Integer idContatto, Azienda azienda) {
-
-        Contatto contattoDaVerificare = contattoRepository.getById(idContatto);
-        String codiceFiscaleContatto = contattoDaVerificare.getCodiceFiscale();
-        
-        if(codiceFiscaleContatto != null && !"".equals(codiceFiscaleContatto)) {
-
-            List<Email> emailContattoDaRitornare = InadManager.getDomicilioDigitaleFromCF(
-                    contattoDaVerificare, 
-                    dettaglioContattoRepository,
-                    emailRepository);
-            
-            return emailContattoDaRitornare;
-
-        }
- 
-        return null; 
-    }
+    
 }
