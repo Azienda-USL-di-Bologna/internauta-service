@@ -67,7 +67,7 @@ public class InadController implements ControllerHandledExceptions{
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
     
     /**
-     * Questa funzione torna sempre il domicilio giditale. Se gi‡ presente lo torna, se non presente, richiama la funzione getAndSaveDomicilioDigitale 
+     * Questa funzione torna sempre il domicilio giditale. Se gi√† presente lo torna, se non presente, richiama la funzione getAndSaveDomicilioDigitale 
      * che lo chiede all'inad e lo salva
      * @param idContatto
      * @param request
