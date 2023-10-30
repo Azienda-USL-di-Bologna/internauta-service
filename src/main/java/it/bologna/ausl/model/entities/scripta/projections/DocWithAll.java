@@ -5,6 +5,8 @@ import it.bologna.ausl.model.entities.scripta.NotaDoc;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AttoreDocWithIdPersona;
 import it.bologna.ausl.model.entities.scripta.projections.generated.RegistroDocWithIdRegistroAndIdStrutturaRegistrante;
 import it.bologna.ausl.model.entities.scripta.projections.generated.DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndDocAnnullatoListAndIdAziendaAndIdPersonaCreazioneAndMittentiAndNotaDocListAndRegistroDocListAndRelated;
+import it.bologna.ausl.model.entities.scripta.projections.generated.DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndDocAnnullatoListAndIdAziendaAndIdPersonaCreazioneAndMittentiAndNotaDocListAndRegistroDocListAndRelatedAndVersamentiList;
+import java.time.ZonedDateTime;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.rest.core.config.Projection;
@@ -15,7 +17,7 @@ import org.springframework.data.rest.core.config.Projection;
  * @author gdm
  */
 @Projection(name = "DocWithAll", types = Doc.class)
-public interface DocWithAll extends DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndDocAnnullatoListAndIdAziendaAndIdPersonaCreazioneAndMittentiAndNotaDocListAndRegistroDocListAndRelated {
+public interface DocWithAll extends DocWithAllegatiAndArchiviDocListAndAttoriListAndCoinvoltiAndCompetentiAndDocAnnullatoListAndIdAziendaAndIdPersonaCreazioneAndMittentiAndNotaDocListAndRegistroDocListAndRelatedAndVersamentiList {
 
     @Override
     @Value("#{@scriptaProjectionUtils.filterRelatedWithUltimaSpedizione(target.getRelated(), 'MITTENTE')}")
@@ -57,6 +59,9 @@ public interface DocWithAll extends DocWithAllegatiAndArchiviDocListAndAttoriLis
     
     @Value("#{@scriptaProjectionUtils.filterNotaDocList(target.getNotaDocList(), 'FLUSSO')}")
     public List<NotaDoc> getNotaFlusso();
+    
+    @Value("#{@scriptaProjectionUtils.filterUltimoVersamento(target.getVersamentiList())}")
+    public ZonedDateTime getDataUltimoVersamento();
     
     @Override    
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getRegistroDocList', 'RegistroDocWithIdRegistroAndIdStrutturaRegistrante')}")

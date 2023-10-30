@@ -13,7 +13,9 @@ import it.bologna.ausl.model.entities.scripta.Related;
 import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.scripta.projections.generated.SpedizioneWithIdMezzo;
 import it.bologna.ausl.model.entities.versatore.QVersamentoAllegato;
+import it.bologna.ausl.model.entities.versatore.Versamento;
 import it.bologna.ausl.model.entities.versatore.VersamentoAllegato;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -60,6 +62,19 @@ public class ScriptaProjectionUtils {
         return res;
     }
 
+    public ZonedDateTime filterUltimoVersamento(List<Versamento> versamentiList){
+        Versamento versamentoRecente = null;
+        if (versamentiList != null && !versamentiList.isEmpty()){
+            versamentoRecente = versamentiList.stream().max(
+                    (versamento1, versamento2)->versamento1.getDataInserimento().compareTo(versamento2.getDataInserimento())
+            ).orElse(null);
+        }
+        if (versamentoRecente != null ){
+            return versamentoRecente.getDataInserimento();
+        }
+        return null;
+    }
+    
     public List<Related> filterRelated(List<Related> related, String tipo) {
         if (related != null) {
             return related.stream().filter(r -> r.getTipo().toString().equals(tipo)).collect(Collectors.toList());

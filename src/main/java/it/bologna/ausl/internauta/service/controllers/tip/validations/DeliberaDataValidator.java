@@ -1,12 +1,9 @@
 package it.bologna.ausl.internauta.service.controllers.tip.validations;
 
-import it.bologna.ausl.model.entities.scripta.Registro;
 import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.ImportazioneOggetto;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneDelibera;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
-import java.util.Arrays;
-import org.apache.commons.lang3.EnumUtils;
 import org.springframework.util.StringUtils;
 
 /**
@@ -19,13 +16,13 @@ public class DeliberaDataValidator extends TipDataValidator {
     public TipErroriImportazione validate(ImportazioneOggetto rigaImportazione) {
         TipErroriImportazione erroriImportazione = new TipErroriImportazione();
         ImportazioneDocumento riga = (ImportazioneDocumento) rigaImportazione;
-        if(StringUtils.hasText(riga.getRegistro()) && !EnumUtils.isValidEnumIgnoreCase(Registro.CodiceRegistro.class, riga.getRegistro())) {
-            erroriImportazione.setError(
-                    ColonneDelibera.registro, 
-                    TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
-                    String.format("valore non valido, i valori validi sono: %s", Arrays.asList(Registro.CodiceRegistro.values())));
-            riga.setErrori(erroriImportazione);
-        }
+//        if(StringUtils.hasText(riga.getRegistro()) && !EnumUtils.isValidEnumIgnoreCase(Registro.CodiceRegistro.class, riga.getRegistro())) {
+//            erroriImportazione.setError(
+//                    ColonneDelibera.registro, 
+//                    TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
+//                    String.format("valore non valido, i valori validi sono: %s", Arrays.asList(Registro.CodiceRegistro.values())));
+//            riga.setErrori(erroriImportazione);
+//        }
         if (!StringUtils.hasText(riga.getNumero())) {
             erroriImportazione.setError(ColonneDelibera.numero, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il campo è obbligatorio.");
             riga.setErrori(erroriImportazione);

@@ -19,6 +19,7 @@ import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
+import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -220,8 +221,18 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
         
         return entity; //To change body of generated methods, choose Tools | Templates.
     }
-    
-    
+
+    @Override
+    public void afterDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
+        UtenteStruttura utenteStrutturaNuovo = (UtenteStruttura) entity;
+        if (krintUtils.doIHaveToKrint(request)) {
+            if (utenteStrutturaNuovo.getIdStruttura().getUfficio()) {
+                krintBaborgService.writeUfficioUpdate(utenteStrutturaNuovo.getIdStruttura(), OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_UTENTE_STRUTTURA_LIST_REMOVE, utenteStrutturaNuovo);
+            }
+        }
+        super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
+    }
+
 
 //    @Override
 //    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {

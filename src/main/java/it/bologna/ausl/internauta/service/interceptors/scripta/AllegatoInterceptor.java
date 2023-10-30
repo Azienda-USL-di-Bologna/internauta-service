@@ -118,7 +118,7 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
 //            }
 //        }
         // controllo se si tratta di un documento con visibilità normale
-        if (!doc.getIdDocDetail().getVisibilitaLimitata() && !doc.getIdDocDetail().getRiservato()){
+        if (doc.getVisibilita() == Doc.VisibilitaDoc.NORMALE){
           // controllo se siamo un attore del documento
           if (pienaVisibilitaUtente) {
             return entity;

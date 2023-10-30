@@ -54,7 +54,7 @@ public class ScriptaGestioneAbilitazioniMassiveArchiviUtils {
         QArchivioDetail qArchivioDetail = QArchivioDetail.archivioDetail;
         BooleanExpression aziendaCorretta = qArchivioDetail.idAzienda.id.eq(idAzienda);
         BooleanExpression livelloUno = qArchivioDetail.livello.eq(1);
-        BooleanExpression soloAperti = qArchivioDetail.stato.ne(Archivio.StatoArchivio.APERTO.toString());
+        BooleanExpression soloAperti = qArchivioDetail.stato.eq(Archivio.StatoArchivio.APERTO.toString());
 //        BooleanExpression noBozze = qArchivioDetail.stato.ne(Archivio.StatoArchivio.BOZZA.toString());
 //        BooleanExpression noChiusi = qArchivioDetail.stato.ne(Archivio.StatoArchivio.CHIUSO.toString());
 //        BooleanExpression noPrechiusi = qArchivioDetail.stato.ne(Archivio.StatoArchivio.PRECHIUSO.toString());
