@@ -788,7 +788,7 @@ public class ImportaDaCSV {
                         String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(responsabiliMap, mapError, codiceAzienda);
                         mR.setCodiceEnte(codiceEnte);
                         anomalia = codiceEnte.startsWith(codiceAzienda) ? anomalia : true;
-                        anomaliaRiga = codiceEnte.startsWith(codiceAzienda) ? anomalia : true;
+                        anomaliaRiga = codiceEnte.startsWith(codiceAzienda) ? anomaliaRiga : true;
 
                         mR.setIdAzienda(azienda);
                         if (!anomaliaRiga) {
