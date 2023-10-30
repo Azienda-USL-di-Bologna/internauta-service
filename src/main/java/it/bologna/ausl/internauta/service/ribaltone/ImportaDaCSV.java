@@ -49,7 +49,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import org.slf4j.Logger;
@@ -789,7 +788,7 @@ public class ImportaDaCSV {
                         String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(responsabiliMap, mapError, codiceAzienda);
                         mR.setCodiceEnte(codiceEnte);
                         anomalia = codiceEnte.startsWith(codiceAzienda) ? anomalia : true;
-                        anomaliaRiga = codiceEnte.startsWith(codiceAzienda) ? anomalia : true;
+                        anomaliaRiga = codiceEnte.startsWith(codiceAzienda) ? anomaliaRiga : true;
 
                         mR.setIdAzienda(azienda);
                         if (!anomaliaRiga) {
