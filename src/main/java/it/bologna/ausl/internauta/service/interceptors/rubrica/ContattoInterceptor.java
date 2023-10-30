@@ -8,12 +8,15 @@ import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintRubricaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
+import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
+import it.bologna.ausl.internauta.service.repositories.rubrica.EmailRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
@@ -24,6 +27,8 @@ import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
+import it.bologna.ausl.model.entities.rubrica.Email;
+import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
@@ -78,6 +83,12 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     private RubricaInterceptorUtils rubricaInterceptorUtils;
+    
+    @Autowired
+    private DettaglioContattoRepository dettaglioContattoRepository;
+    
+    @Autowired
+    private EmailRepository emailRepository;  
 
     @Override
     public Class getTargetEntityClass() {
@@ -152,6 +163,9 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)) {
                 if (isModificato) {
                     krintRubricaService.writeGroupUpdate(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_UPDATE);
+                    contatto.setContattiConDomiciliDigitaliModificati(
+                            rubricaInterceptorUtils.getContattiConDDdelGruppo(contatto)
+                    );
                 }
                 if (isRiservatoChanged) {
                     krintRubricaService.writeGroupRiservato(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_RISERVATO);
@@ -256,7 +270,23 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         } catch (JsonProcessingException | BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
         }
-
+        //metti dettagli domicilio digitale
+        if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)){
+            List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
+            for (GruppiContatti gruppoContatto : contattiDelGruppoList) {
+                Contatto idContatto = gruppoContatto.getIdContatto(); 
+                if (idContatto.getCodiceFiscale() != null && !idContatto.getCodiceFiscale().equals("")){
+                    Email domiciliDigitali = InadManager.getDomicilioDigitaleFromCF(
+                            idContatto, 
+                            dettaglioContattoRepository, 
+                        emailRepository).get(0);
+                    //da testare perche è brutto.
+                    gruppoContatto.setIdDettaglioContatto(domiciliDigitali.getIdDettaglioContatto());
+                }         
+            }
+        }
+        
+        
         return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
