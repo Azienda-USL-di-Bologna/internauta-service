@@ -5,10 +5,7 @@
  */
 package it.bologna.ausl.internauta.service.interceptors.rubrica;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.CaseFormat;
-import com.querydsl.core.types.EntityPath;
-import com.querydsl.core.types.Path;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -18,23 +15,17 @@ import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.BlackBoxConstants;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
-import it.bologna.ausl.internauta.service.krint.KrintRubricaService;
-import it.bologna.ausl.internauta.service.krint.KrintUtils;
-import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
-import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
-import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.ContattoInterface;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
-import it.bologna.ausl.model.entities.rubrica.QContatto;
-import it.bologna.ausl.model.entities.rubrica.views.ContattoConDettaglioPrincipale;
+import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -55,32 +46,10 @@ public class RubricaInterceptorUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(RubricaInterceptorUtils.class);
 
     @Autowired
-    private ContattoRepository contattoRepository;
-
-    @Autowired
-    private PersonaRepository personaRepository;
-
-    @Autowired
-    private UtenteRepository utenteRepository;
-
-    @Autowired
     private UserInfoService userInfoService;
 
     @Autowired
-    private KrintRubricaService krintRubricaService;
-
-    @Autowired
     private PermissionManager permissionManager;
-
-    @Autowired
-    private ParametriAziendeReader parametriAziende;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
-    private KrintUtils krintUtils;
-
 
     public Predicate addFilterVisibilita(
                 AuthenticatedSessionData authenticatedSessionData, 
@@ -88,18 +57,8 @@ public class RubricaInterceptorUtils {
                 Class<? extends ContattoInterface> contattoClass,
                 Boolean isDettaglioContatto,
                 List<Persona> personeDiCuiVedoIProtoconattiList) throws AbortLoadInterceptorException {
-        LOGGER.info("authenticatedSessionData");
-        LOGGER.info(authenticatedSessionData.getPerson().getDescrizione());
-        LOGGER.info(authenticatedSessionData.getUser().getUsername());
-        LOGGER.info("initialPredicate");
-        LOGGER.info(initialPredicate.toString());
-        LOGGER.info(contattoClass.getCanonicalName());
-        LOGGER.info("personeDiCuiVedoIProtoconattiList");
-        for (Persona persona : personeDiCuiVedoIProtoconattiList) {
-            LOGGER.info(persona.getDescrizione());
-            
-        }
-                
+        LOGGER.info("scattato interceptor addFilterVisibilita");
+        
         Utente loggedUser = authenticatedSessionData.getUser();
         List<Azienda> aziendePersona = userInfoService.getAziendePersona(loggedUser.getIdPersona());
         PathBuilder<?> contatto;
@@ -138,7 +97,7 @@ public class RubricaInterceptorUtils {
     }
 
     public List<Integer> getIdContattiRiservatiVisbili(AuthenticatedSessionData authenticatedSessionData) throws AbortLoadInterceptorException {
-
+        LOGGER.info("scattato interceptor getIdContattiRiservatiVisbili");
         List<PermessoEntitaStoredProcedure> contattiWithStandardPermissions;
         try {
             List<Object> struttureUtente = userInfoService.getUtenteStrutturaList(authenticatedSessionData.getUser(), true).stream().map(us -> us.getIdStruttura()).collect(Collectors.toList());
@@ -164,6 +123,7 @@ public class RubricaInterceptorUtils {
     }
 
     public List<Persona> personeDiCuiVedoIProtocontatti(AuthenticatedSessionData authenticatedSessionData) throws AbortLoadInterceptorException {
+        LOGGER.info("scattato interceptor personeDiCuiVedoIProtocontatti");
         List<Persona> personeDiCuiVedoIProtoconattiList;
         try {
             personeDiCuiVedoIProtoconattiList = userInfoService
@@ -177,8 +137,9 @@ public class RubricaInterceptorUtils {
         return personeDiCuiVedoIProtoconattiList;
     }
 
-    public Predicate addFiltriPerContattiChePossoVedere(AuthenticatedSessionData authenticatedSessionData, List<Persona> personeDiCuiVedoIProtoconattiList,Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass,Class<ContattoInterface> tipoContattoIgnoto) throws AbortLoadInterceptorException {
         // AGGIUNGO I FILTRI DI SICUREZZA PER GARANTIRE CHE L'UTENTE NON VEDA CONTATTI CHE NON PUO' VEDERE
+    public Predicate addFiltriPerContattiChePossoVedere(AuthenticatedSessionData authenticatedSessionData, List<Persona> personeDiCuiVedoIProtoconattiList,Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass,Class<ContattoInterface> tipoContattoIgnoto) throws AbortLoadInterceptorException {
+        LOGGER.info("scattato interceptor addFiltriPerContattiChePossoVedere");
         initialPredicate = addFilterVisibilita(
                 authenticatedSessionData,
                 initialPredicate,  
@@ -246,5 +207,22 @@ public class RubricaInterceptorUtils {
     PathBuilder<?> getQObjectFromClass(Class<?> targetEntityClass) {
         
         return new PathBuilder(targetEntityClass, CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_CAMEL,targetEntityClass.getSimpleName()));
+    }
+    
+    
+    public List<Contatto> getContattiConDDdelGruppo(Contatto idGruppo) {
+        List<Contatto> contattiDaTornare = new ArrayList<>(); 
+        List<GruppiContatti> contattiDelGruppoList = idGruppo.getContattiDelGruppoList();
+        if (contattiDelGruppoList != null) {
+            for (GruppiContatti gruppiContatti : contattiDelGruppoList) {
+                List<DettaglioContatto> dettaglioContattoList = gruppiContatti.getIdContatto().getDettaglioContattoList();
+                for (DettaglioContatto dettaglioContatto : dettaglioContattoList) {
+                    if (dettaglioContatto.getDomicilioDigitale()){
+                        contattiDaTornare.add(gruppiContatti.getIdContatto());
+                    }
+                }
+            }
+        }
+    return contattiDaTornare;
     }
 }

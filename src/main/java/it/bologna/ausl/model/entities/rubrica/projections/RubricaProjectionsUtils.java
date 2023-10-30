@@ -7,6 +7,9 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
+import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
+import it.bologna.ausl.internauta.service.repositories.rubrica.EmailRepository;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
@@ -18,9 +21,12 @@ import it.bologna.ausl.model.entities.logs.projections.KrintRubricaGruppoContatt
 import it.bologna.ausl.model.entities.permessi.Entita;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
+import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithPlainFields;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +58,12 @@ public class RubricaProjectionsUtils {
     
     @Autowired
     private AziendaRepository aziendaRepository;
+    
+    @Autowired
+    DettaglioContattoRepository dettaglioContattoRepository;
+    
+    @Autowired
+    EmailRepository emailRepository;    
     
     private static final Logger LOGGER = LoggerFactory.getLogger(RubricaProjectionsUtils.class);
     
@@ -159,5 +171,13 @@ public class RubricaProjectionsUtils {
             return projectionFactory.createProjection(CustomContattoWithIdStrutturaAndIdPersona.class, idContatto);
         }
         return null;
+    }
+    
+    public List<DettaglioContattoWithPlainFields> getDettaglioContattoListWithDomicilioDigitale(Contatto contatto) {
+        InadManager.getDomicilioDigitaleFromCF(contatto, dettaglioContattoRepository, emailRepository);
+        List<DettaglioContatto> dettagliContattiList = contatto.getDettaglioContattoList();
+        List<DettaglioContattoWithPlainFields> dettaglioContattoWithPlainFieldsList = dettagliContattiList.stream().map(dc -> projectionFactory.createProjection(DettaglioContattoWithPlainFields.class, dc)).collect(Collectors.toList());
+
+        return dettaglioContattoWithPlainFieldsList;
     }
 }
