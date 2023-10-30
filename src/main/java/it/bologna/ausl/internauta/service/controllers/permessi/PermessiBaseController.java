@@ -51,7 +51,7 @@ public class PermessiBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QAmbitoSemantico.ambitoSemantico, AmbitoSemantico.class);
         return ResponseEntity.ok(resource);
@@ -64,7 +64,7 @@ public class PermessiBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, IllegalArgumentException, IllegalAccessException, EntityReflectionException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QPredicato.predicato1, Predicato.class);
         return ResponseEntity.ok(resource);

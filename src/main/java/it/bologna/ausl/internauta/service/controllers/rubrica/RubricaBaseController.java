@@ -55,7 +55,7 @@ public class RubricaBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QContatto.contatto, Contatto.class);
         return ResponseEntity.ok(resource);
@@ -68,7 +68,7 @@ public class RubricaBaseController extends BaseCrudController {
         @RequestParam(required = false) String projection,
         @PathVariable(required = false) Integer id,
         HttpServletRequest request,
-        @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+        @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
     Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QContattoConDettaglioPrincipale.contattoConDettaglioPrincipale, ContattoConDettaglioPrincipale.class);
     return ResponseEntity.ok(resource);
@@ -81,7 +81,7 @@ public class RubricaBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QDettaglioContatto.dettaglioContatto, DettaglioContatto.class);
         return ResponseEntity.ok(resource);
@@ -94,7 +94,7 @@ public class RubricaBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QEmail.email1, Email.class);
         return ResponseEntity.ok(resource);
@@ -107,7 +107,7 @@ public class RubricaBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QIndirizzo.indirizzo, Indirizzo.class);
         return ResponseEntity.ok(resource);
@@ -120,7 +120,7 @@ public class RubricaBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QTelefono.telefono, Telefono.class);
         return ResponseEntity.ok(resource);
@@ -133,7 +133,7 @@ public class RubricaBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QGruppiContatti.gruppiContatti, GruppiContatti.class);
         return ResponseEntity.ok(resource);

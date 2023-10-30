@@ -53,7 +53,7 @@ public class RibaltoneUtilsBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QStoricoAttivazione.storicoAttivazione, StoricoAttivazione.class);
         return ResponseEntity.ok(resource);
@@ -67,7 +67,7 @@ public class RibaltoneUtilsBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
         
 //        ribaltoneDaLanciareRepository.sendNotifyInternauta(azienda.getCodice(), Boolean.TRUE, Boolean.TRUE, "Servizio notturno");
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QRibaltoneDaLanciare.ribaltoneDaLanciare, RibaltoneDaLanciare.class);
