@@ -25,7 +25,7 @@ import redis.clients.jedis.JedisPoolConfig;
  */
 @Component
 public class MasterChefUtils {
-    public static enum PrimusCommands {refreshActivities, refreshBoxDatiDiArchivio, refreshDestinatari, refreshLotti, showMessage, logout};
+    public static enum PrimusCommands {refreshActivities, refreshBoxDatiDiArchivio, refreshDestinatari, showMessage, logout};
     private static final Logger log = LoggerFactory.getLogger(MasterChefUtils.class);
 
     private volatile ConcurrentMap<String, JedisPool> jpm = new ConcurrentHashMap<>(5);
