@@ -4,16 +4,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
-import it.bologna.ausl.blackbox.PermissionManager;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintRubricaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
+import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
+import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
+import it.bologna.ausl.internauta.service.repositories.rubrica.EmailRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
@@ -24,6 +28,8 @@ import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
+import it.bologna.ausl.model.entities.rubrica.Email;
+import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
@@ -32,6 +38,7 @@ import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -65,9 +72,6 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     private KrintRubricaService krintRubricaService;
 
     @Autowired
-    private PermissionManager permissionManager;
-
-    @Autowired
     private ParametriAziendeReader parametriAziende;
 
     @Autowired
@@ -78,6 +82,12 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     private RubricaInterceptorUtils rubricaInterceptorUtils;
+        
+    @Autowired
+    private InadManager inadManager;
+    
+    @Autowired
+    private AziendaRepository aziendaRepository;
 
     @Override
     public Class getTargetEntityClass() {
@@ -159,6 +169,9 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 if (isEliminato) {
                     krintRubricaService.writeGroupDelete(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_DELETE);
                 }
+//                contatto.setContattiConDomiciliDigitaliModificati(
+//                            rubricaInterceptorUtils.getContattiConDDdelGruppo(contatto)
+//                    );
             } else if (contatto.getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
                 if (isModificato) {
                     krintRubricaService.writeContactUpdate(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_UPDATE);
@@ -172,7 +185,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
             }
         }
 
-        return super.afterUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+        return super.afterUpdateEntityInterceptor(contatto, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
     public boolean isContactModified(Contatto contatto, Contatto contattoOld) {
@@ -239,9 +252,14 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Object beforeUpdateEntityInterceptor(Object entity, BeforeUpdateEntityApplier beforeUpdateEntityApplier, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
+        
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
         Contatto contatto = (Contatto) entity;
-
+        List<ParametroAziende> parameters = parametriAziende.getParameters("recuperaDomicilioDigitaleInad", contatto.getIdAziende(), new String[]{Applicazione.Applicazioni.rubrica.toString()});
+        Boolean recuperaDomicilioDigitaleInad = false;
+        if (parameters != null && !parameters.isEmpty()) {
+            recuperaDomicilioDigitaleInad = parametriAziende.getValue(parameters.get(0), Boolean.class);
+        }
         Contatto oldContatto;
         try {
             oldContatto = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, Contatto.class);
@@ -251,13 +269,20 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         }
 
         Integer idAzienda = authenticatedUserProperties.getUser().getIdAzienda().getId();
+        Azienda azienda = aziendaRepository.findById(idAzienda).get();
+        
         try {
             manageFlagDaVerificarePerUpdate(contatto, beforeUpdateEntityApplier, idAzienda);
         } catch (JsonProcessingException | BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
         }
-
-        return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+        //inserisco i dettagli domicilio digitale dove possibile
+        if (recuperaDomicilioDigitaleInad){
+            contatto = rubricaInterceptorUtils.setDomiciliDigitaliInGruppo(contatto);
+        }
+        
+        
+        return super.beforeUpdateEntityInterceptor(contatto, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
     public void manageFlagDaVerificarePerUpdate(Contatto contatto, BeforeUpdateEntityApplier oldContattoApplier, Integer idAzienda) throws JsonProcessingException, BeforeUpdateEntityApplierException, AbortSaveInterceptorException {

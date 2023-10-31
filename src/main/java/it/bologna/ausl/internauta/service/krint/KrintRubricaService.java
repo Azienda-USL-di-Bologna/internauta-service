@@ -185,8 +185,7 @@ public class KrintRubricaService {
         try {
             KrintRubricaGruppoContatto krintRubricaGruppoContatto = factory.createProjection(KrintRubricaGruppoContatto.class, gruppoContatto);
 //            String jsonKrintGruppo = objectMapper.writeValueAsString(krintRubricaGruppoContatto);
-            HashMap<String, Object> krintRubricaGruppoContattoMap = objectMapper.convertValue(krintRubricaGruppoContatto, new TypeReference<HashMap<String, Object>>() {
-            });
+            HashMap<String, Object> krintRubricaGruppoContattoMap = objectMapper.convertValue(krintRubricaGruppoContatto, new TypeReference<HashMap<String, Object>>() {});
             krintService.writeKrintRow(
                     gruppoContatto.getId().toString(),
                     Krint.TipoOggettoKrint.RUBRICA_GRUPPO_CONTATTO,

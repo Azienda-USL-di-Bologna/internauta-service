@@ -15,5 +15,5 @@ public interface CustomContattoWithIdStrutturaAndIdPersona extends ContattoWithI
 
     @Override
     @Value("#{@projectionsInterceptorLauncher.lanciaInterceptor(target, 'getIdStruttura', 'StrutturaWithIdAzienda')}")
-    public StrutturaWithIdAzienda getIdStruttura();
+    public StrutturaWithIdAzienda getIdStruttura(); 
 }
