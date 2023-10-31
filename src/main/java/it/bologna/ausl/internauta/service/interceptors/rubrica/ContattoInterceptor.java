@@ -39,8 +39,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -84,13 +82,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
     
     @Autowired
     private RubricaInterceptorUtils rubricaInterceptorUtils;
-    
-    @Autowired
-    private DettaglioContattoRepository dettaglioContattoRepository;
-    
-    @Autowired
-    private EmailRepository emailRepository; 
-    
+        
     @Autowired
     private InadManager inadManager;
     
@@ -177,9 +169,9 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 if (isEliminato) {
                     krintRubricaService.writeGroupDelete(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_GROUP_DELETE);
                 }
-                contatto.setContattiConDomiciliDigitaliModificati(
-                            rubricaInterceptorUtils.getContattiConDDdelGruppo(contatto)
-                    );
+//                contatto.setContattiConDomiciliDigitaliModificati(
+//                            rubricaInterceptorUtils.getContattiConDDdelGruppo(contatto)
+//                    );
             } else if (contatto.getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
                 if (isModificato) {
                     krintRubricaService.writeContactUpdate(contatto, OperazioneKrint.CodiceOperazione.RUBRICA_CONTACT_UPDATE);
@@ -263,7 +255,11 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
         Contatto contatto = (Contatto) entity;
-
+        List<ParametroAziende> parameters = parametriAziende.getParameters("recuperaDomicilioDigitaleInad", contatto.getIdAziende(), new String[]{Applicazione.Applicazioni.rubrica.toString()});
+        Boolean recuperaDomicilioDigitaleInad = false;
+        if (parameters != null && !parameters.isEmpty()) {
+            recuperaDomicilioDigitaleInad = parametriAziende.getValue(parameters.get(0), Boolean.class);
+        }
         Contatto oldContatto;
         try {
             oldContatto = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, Contatto.class);
@@ -280,27 +276,13 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         } catch (JsonProcessingException | BeforeUpdateEntityApplierException ex) {
             throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
         }
-        //metti dettagli domicilio digitale
-        if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)){
-            List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
-            for (GruppiContatti gruppoContatto : contattiDelGruppoList) {
-                try {
-                    Contatto idContatto = gruppoContatto.getIdContatto();
-                    Email emailDomicilioDigitale = inadManager.getAlwaysAndSaveDomicilioDigitale(idContatto.getId());
-                    if (emailDomicilioDigitale != null){
-                        if (!Objects.equals(gruppoContatto.getIdDettaglioContatto().getId(), emailDomicilioDigitale.getIdDettaglioContatto().getId())){
-                            gruppoContatto.setIdDettaglioContatto(emailDomicilioDigitale.getIdDettaglioContatto());
-                        }
-                    }
-                    //da testare perche è brutto.
-                } catch (BlackBoxPermissionException ex) {
-                    LOGGER.error("errore nella getAlwaysAndSaveDomicilioDigitale", ex);
-                }
-            }
+        //inserisco i dettagli domicilio digitale dove possibile
+        if (recuperaDomicilioDigitaleInad){
+            contatto = rubricaInterceptorUtils.setDomiciliDigitaliInGruppo(contatto);
         }
         
         
-        return super.beforeUpdateEntityInterceptor(entity, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
+        return super.beforeUpdateEntityInterceptor(contatto, beforeUpdateEntityApplier, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
     public void manageFlagDaVerificarePerUpdate(Contatto contatto, BeforeUpdateEntityApplier oldContattoApplier, Integer idAzienda) throws JsonProcessingException, BeforeUpdateEntityApplierException, AbortSaveInterceptorException {

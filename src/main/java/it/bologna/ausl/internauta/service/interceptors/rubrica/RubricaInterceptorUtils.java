@@ -17,18 +17,21 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.ContattoInterface;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
+import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -50,6 +53,9 @@ public class RubricaInterceptorUtils {
 
     @Autowired
     private PermissionManager permissionManager;
+    
+    @Autowired
+    private InadManager inadManager;
 
     public Predicate addFilterVisibilita(
                 AuthenticatedSessionData authenticatedSessionData, 
@@ -225,4 +231,39 @@ public class RubricaInterceptorUtils {
         }
     return contattiDaTornare;
     }
+    
+    /**
+     * funzione che dato un contatto di tipo gruppo cicla tutti i contatti e i 
+     * dettagli contenuti e inserisce dove possibile i domicili digitali
+     * @param contatto di tipo gruppo
+     * @return contatto contatto modificato con campo transient valorizzato
+     */
+    public Contatto setDomiciliDigitaliInGruppo(Contatto contatto){
+        if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)){
+            List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
+            List<Contatto> contattiConDomiciliDigitaliModificati = new ArrayList();
+            for (GruppiContatti gruppoContatto : contattiDelGruppoList) {
+                try {
+                    Contatto idContatto = gruppoContatto.getIdContatto();
+                    Email emailDomicilioDigitale = inadManager.getAlwaysAndSaveDomicilioDigitale(idContatto.getId());
+                    if (emailDomicilioDigitale != null){
+                        if (!Objects.equals(gruppoContatto.getIdDettaglioContatto().getId(), 
+                                emailDomicilioDigitale.getIdDettaglioContatto().getId()) &&
+                            !gruppoContatto.getIdDettaglioContatto().getDescrizione()
+                                    .equals(emailDomicilioDigitale.getIdDettaglioContatto().getDescrizione())
+                           ){
+                            gruppoContatto.setIdDettaglioContatto(emailDomicilioDigitale.getIdDettaglioContatto());
+                            contattiConDomiciliDigitaliModificati.add(emailDomicilioDigitale.getIdContatto());
+                        }
+                    }
+                } catch (BlackBoxPermissionException ex) {
+                    LOGGER.error("errore nella getAlwaysAndSaveDomicilioDigitale", ex);
+                    return null;
+                }
+            }
+            contatto.setContattiConDomiciliDigitaliModificati(contattiConDomiciliDigitaliModificati);
+        }
+        return contatto;
+    }
+    
 }
