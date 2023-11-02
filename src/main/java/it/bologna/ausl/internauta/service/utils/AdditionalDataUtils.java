@@ -21,7 +21,7 @@ public class AdditionalDataUtils {
     // es: additionalData=dataRiferimento=1586854870098,param2=val2
     public Map<String, String> getAdditionalData() {
         if (request != null) {
-            String additionaDataString = request.getParameter("additionalData");
+            String additionaDataString = request.getParameter("$additionalData");
             if (StringUtils.hasText(additionaDataString)) {
                 return parseAdditionalDataIntoMap(additionaDataString);
             }

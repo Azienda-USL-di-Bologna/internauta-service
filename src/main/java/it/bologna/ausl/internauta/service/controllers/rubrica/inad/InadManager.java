@@ -14,6 +14,7 @@ import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReade
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
+import it.bologna.ausl.model.entities.rubrica.Contatto.TipoContatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
@@ -73,7 +74,7 @@ public class InadManager {
                 && !"".equals(codiceFiscaleContatto)
                 && !contattoDaVerificare.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)
                 && !contattoDaVerificare.getProvenienza().equals("INTERNO")
-                && Arrays.asList(new Contatto.TipoContatto[]{Contatto.TipoContatto.FORNITORE, Contatto.TipoContatto.VARIO}).contains(contattoDaVerificare.getTipo())
+                && (contattoDaVerificare.getTipo() == null || Arrays.asList(new Contatto.TipoContatto[]{TipoContatto.FORNITORE, TipoContatto.FORNITORE, TipoContatto.VARIO}).contains(contattoDaVerificare.getTipo()))
                 && !contattoDaVerificare.getProvenienza().equals("trigger_contatto_from_struttura")
                 && !contattoDaVerificare.getProvenienza().equals("ribaltorg_strutture")
                 && !contattoDaVerificare.getProvenienza().equals("ribaltorg_persone")) {
