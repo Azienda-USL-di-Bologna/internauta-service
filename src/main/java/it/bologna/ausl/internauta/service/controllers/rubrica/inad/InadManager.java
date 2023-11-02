@@ -20,6 +20,7 @@ import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.QEmail;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -72,8 +73,7 @@ public class InadManager {
                 && !"".equals(codiceFiscaleContatto)
                 && !contattoDaVerificare.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)
                 && !contattoDaVerificare.getProvenienza().equals("INTERNO")
-                && !contattoDaVerificare.getProvenienza().equals("GAAC")
-                && !contattoDaVerificare.getProvenienza().equals("IPA")
+                && Arrays.asList(new Contatto.TipoContatto[]{Contatto.TipoContatto.FORNITORE, Contatto.TipoContatto.VARIO}).contains(contattoDaVerificare.getTipo())
                 && !contattoDaVerificare.getProvenienza().equals("trigger_contatto_from_struttura")
                 && !contattoDaVerificare.getProvenienza().equals("ribaltorg_strutture")
                 && !contattoDaVerificare.getProvenienza().equals("ribaltorg_persone")) {
