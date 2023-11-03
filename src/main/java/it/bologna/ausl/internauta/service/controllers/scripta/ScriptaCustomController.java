@@ -409,7 +409,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 QPersonaVedente qPersonaVedente = QPersonaVedente.personaVedente;
                 BooleanExpression filter = qPersonaVedente.idPersona.id.eq(person.getId()).and(qPersonaVedente.pienaVisibilita.eq(Boolean.TRUE).and(qPersonaVedente.idDocDetail.id.eq(allegato.getIdDoc().getId())));
                 Optional<PersonaVedente> personaVedente = personaVedenteRepository.findOne(filter);
-                if (!personaVedente.isPresent() && !(user.getRuoliUtentiPersona().containsKey(Ruolo.CodiciRuolo.IP.toString()) && allegato.getIdDoc().getPregresso())) {
+                if (!personaVedente.isPresent() && !(user.getRuoliUtentiPersona().containsKey(Ruolo.CodiciRuolo.IP.toString()) && allegato.getIdDoc().getPregresso()) && !(user.getRuoliUtentiPersona().containsKey(Ruolo.CodiciRuolo.RV.toString()))) {
                     throw new Http403ResponseException("0", "L'utente non ha piena visibilità sul documento dell'allegato. Non può quindi vederlo");
                 }
 
