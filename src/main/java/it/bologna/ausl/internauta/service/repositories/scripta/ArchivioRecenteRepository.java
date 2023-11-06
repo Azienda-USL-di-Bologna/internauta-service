@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.scripta;
 import it.bologna.ausl.model.entities.scripta.ArchivioRecente;
 import it.bologna.ausl.model.entities.scripta.QArchivioRecente;
 import it.bologna.ausl.model.entities.scripta.projections.generated.ArchivioRecenteWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.Optional;

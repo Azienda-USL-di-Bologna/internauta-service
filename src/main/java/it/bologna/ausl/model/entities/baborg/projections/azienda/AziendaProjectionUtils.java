@@ -50,7 +50,7 @@ public class AziendaProjectionUtils {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Applicazione.Applicazioni applicazione = authenticatedSessionData.getApplicazione();
 
-        Map<String, Object> parametri = parametriAziende.getAllAziendaApplicazioneParameters(applicazione.toString(), azienda.getId());
+        Map<String, Object> parametri = parametriAziende.getAllAziendaApplicazioneParameters(applicazione.toString(), azienda.getId(), false);
 
         return parametri;
     }
@@ -113,6 +113,8 @@ public class AziendaProjectionUtils {
      * contengono informazioni sensibili
      *
      * @return
+     * @throws java.io.IOException
+     * @throws it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException
      */
     public Map<String, String> getParametriAziendaFrontEnd() throws IOException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();

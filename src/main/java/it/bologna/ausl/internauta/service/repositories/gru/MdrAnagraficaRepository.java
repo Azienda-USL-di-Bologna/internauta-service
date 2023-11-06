@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.gru;
 import it.bologna.ausl.model.entities.gru.MdrAnagrafica;
 import it.bologna.ausl.model.entities.gru.QMdrAnagrafica;
 import it.bologna.ausl.model.entities.gru.projections.generated.MdrAnagraficaWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.List;
 import java.util.Map;
