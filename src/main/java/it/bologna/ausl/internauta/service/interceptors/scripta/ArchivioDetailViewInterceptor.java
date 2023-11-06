@@ -47,7 +47,10 @@ public class ArchivioDetailViewInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArchivioDetailViewInterceptor.class);
     
     @Autowired
-    UserInfoService userInfoService;
+    private UserInfoService userInfoService;
+    
+    @Autowired
+    private ScriptaInterceptorUtils scriptaInterceptorUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -76,7 +79,7 @@ public class ArchivioDetailViewInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
-        
+        initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(ArchivioDetailView.class, "dataCreazioneArchivio").and(initialPredicate);
         return initialPredicate;
     }
 

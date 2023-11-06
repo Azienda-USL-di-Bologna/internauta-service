@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.SubQueryExpression;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -14,7 +13,6 @@ import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioR
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData.OperationsRequested.VisualizzaTabRegistrazioni;
-import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -62,25 +60,19 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
     }
 
     @Autowired
-    UserInfoService userInfoService;
-
-    @Autowired
-    PersonaRepository personaRepository;
+    private UserInfoService userInfoService;
     
     @Autowired
-    PersonaVedenteRepository personaVedenteRepository;
+    private PersonaVedenteRepository personaVedenteRepository;
     
     @Autowired
-    PermessoArchivioRepository permessoArchivioRepository;
+    private PermessoArchivioRepository permessoArchivioRepository;
     
     @Autowired
-    InternautaUtils internautaUtils;
+    private DocDetailInterceptorUtils docDetailInterceptorUtils;
     
     @Autowired
-    ObjectMapper objectMapper;
-    
-    @Autowired
-    DocDetailInterceptorUtils docDetailInterceptorUtils;
+    private ScriptaInterceptorUtils scriptaInterceptorUtils;
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
@@ -269,8 +261,8 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         qPersonaVedente.pienaVisibilita.eq(Expressions.TRUE),
                         qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
                         qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
-                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
-//                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione),
+                        scriptaInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
                     );
             SubQueryExpression<Long> queryPersoneVedenteSenzaObbligoPienaVisbilita = 
                     select(qPersonaVedente.id)
@@ -279,8 +271,8 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         qPersonaVedente.idPersona.id.eq(persona.getId()),
                         qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
                         qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
-                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
-//                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione),
+                        scriptaInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
                     );
             BooleanExpression pienaVisibilita = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteConPienaVisibilita);
             BooleanExpression personaVedente = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteSenzaObbligoPienaVisbilita);//idPersona.id.eq(persona.getId());
