@@ -1,13 +1,10 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
-import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
-import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Persona; 
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -46,19 +43,13 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
     }
 
     @Autowired
-    UserInfoService userInfoService;
+    private UserInfoService userInfoService;
 
     @Autowired
-    PersonaRepository personaRepository;
-
+    private DocDetailInterceptorUtils docDetailInterceptorUtils;
+    
     @Autowired
-    InternautaUtils internautaUtils;
-
-    @Autowired
-    ObjectMapper objectMapper;
-
-    @Autowired
-    DocDetailInterceptorUtils docDetailInterceptorUtils;
+    private ScriptaInterceptorUtils scriptaInterceptorUtils;
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
@@ -66,7 +57,7 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
 //        QDocDetailView qdoclistView = QDocDetailView.docDetailView;
         
         initialPredicate = safetyFilters().and(initialPredicate);
-//        initialPredicate = docDetailInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc").and(initialPredicate);
+        initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc").and(initialPredicate);
 
 //        InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
 
