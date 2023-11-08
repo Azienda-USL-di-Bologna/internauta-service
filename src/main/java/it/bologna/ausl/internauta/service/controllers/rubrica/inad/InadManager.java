@@ -72,7 +72,7 @@ public class InadManager {
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
-    public List<Email> getAndSaveEmailDomicilioDigitale(Integer idContatto, Azienda azienda) {
+    public List<Email> getAndSaveEmailDomicilioDigitale(Integer idContatto, Azienda azienda) throws AuthorizationUtilsException {
 
         Contatto contattoDaVerificare = contattoRepository.getById(idContatto);
         String codiceFiscaleContatto = contattoDaVerificare.getCodiceFiscale();
@@ -86,7 +86,8 @@ public class InadManager {
                 && !contattoDaVerificare.getProvenienza().equals("ribaltorg_strutture")
                 && !contattoDaVerificare.getProvenienza().equals("ribaltorg_persone")) {
 
-            List<Email> emailContattoDaRitornare = InadManager.getDomicilioDigitaleFromCF(
+            List<Email> emailContattoDaRitornare = getDomicilioDigitaleFromCF(
+                    azienda,
                     contattoDaVerificare,
                     dettaglioContattoRepository,
                     emailRepository);
@@ -96,7 +97,7 @@ public class InadManager {
         return null;
     }
 
-    public Email getAlwaysAndSaveDomicilioDigitale(Integer idContatto) throws BlackBoxPermissionException {
+    public Email getAlwaysAndSaveDomicilioDigitale(Integer idContatto) throws BlackBoxPermissionException, AuthorizationUtilsException {
         QEmail qEmail = QEmail.email1;
         QDettaglioContatto qDettaglioContatto = QDettaglioContatto.dettaglioContatto;
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
@@ -120,15 +121,16 @@ public class InadManager {
         return domicilioDigitale;
     }
 
-    public static List<Email> getDomicilioDigitaleFromCF(
+    public List<Email> getDomicilioDigitaleFromCF(
+            Azienda azienda,
             Contatto contattoDaVerificare,
             DettaglioContattoRepository dettaglioContattoRepository,
-            EmailRepository emailRepository) {
+            EmailRepository emailRepository) throws AuthorizationUtilsException {
         //chiedo a inad i contatti del codice fiscale 
-//            InadExtractResponse responseObj = InadManager.extract(codiceFiscaleContatto, azienda.getId());
+            InadExtractResponse responseObj = extract( azienda.getId(),contattoDaVerificare.getCodiceFiscale());
 
 //          finchè non funziona la chiamata ad inad ne faccio una finta
-        InadExtractResponse responseObj = new InadExtractResponse();
+        //InadExtractResponse responseObj = new InadExtractResponse();
         DigitalAddress digitalAddress = new DigitalAddress();
         UsageInfo usageInfo = new UsageInfo();
         digitalAddress.setDigitalAddress("pippopiudipippobaudo@pec.it");
@@ -233,11 +235,11 @@ public class InadManager {
 
         try {
             //inizio a generare il clientAssertion
-            InadParameters inadParameters = InadParameters.build(idAzienda, parametriAziendeReader, objectMapper);
+            InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
             String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
             //inizio a generare il jwt da mandare a 
             String tokenJWT = inadParameters.getToken(clientAssertion);
-            
+
             InadExtractResponse inadExtractResponse = new InadExtractResponse();
             inadExtractResponse.setCodiceFiscale(clientAssertion);
             return inadExtractResponse;
