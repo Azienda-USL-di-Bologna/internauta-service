@@ -66,10 +66,6 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
         return entities;
     }
     
-    
-    
-    
-
     /**
      *
      * Ogni volta che viene aggiunta una firma remota bisogna controllare: -
@@ -213,7 +209,8 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
             }
         }
     }
-
+    
+   
     /*
     * Creazione delle informazioni utente per il Provider Aruba
     * prende in input il json con gli additionaldata che vengono dall'oggetto firmapersona
