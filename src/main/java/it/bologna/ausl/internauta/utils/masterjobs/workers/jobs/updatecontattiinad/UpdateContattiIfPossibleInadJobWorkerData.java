@@ -15,12 +15,14 @@ public class UpdateContattiIfPossibleInadJobWorkerData extends JobWorkerData {
     private static final Logger LOGGER = LoggerFactory.getLogger(UpdateContattiIfPossibleInadJobWorkerData.class);
 
     private String idRequest;
+    private Integer idAzienda;
 
     public UpdateContattiIfPossibleInadJobWorkerData() {
     }
 
-    public UpdateContattiIfPossibleInadJobWorkerData(String idRequest) {
+    public UpdateContattiIfPossibleInadJobWorkerData(String idRequest, Integer idAzienda) {
         this.idRequest = idRequest;
+        this.idAzienda = idAzienda;
     }
 
     public String getIdRequest() {
@@ -30,4 +32,13 @@ public class UpdateContattiIfPossibleInadJobWorkerData extends JobWorkerData {
     public void setIdRequest(String idRequest) {
         this.idRequest = idRequest;
     }
+
+    public Integer getIdAzienda() {
+        return idAzienda;
+    }
+
+    public void setIdAzienda(Integer idAzienda) {
+        this.idAzienda = idAzienda;
+    }
+    
 }

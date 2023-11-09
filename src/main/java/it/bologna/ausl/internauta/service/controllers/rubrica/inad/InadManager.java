@@ -6,11 +6,11 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
+import it.bologna.ausl.internauta.service.configuration.utils.HttpClientManager;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.EmailRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
-import static it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData.Keys.idAzienda;
 import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
@@ -23,6 +23,7 @@ import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import it.bologna.ausl.model.entities.rubrica.QEmail;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
@@ -35,9 +36,16 @@ import java.util.List;
 import java.util.Optional;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
 
 /**
  *
@@ -71,6 +79,9 @@ public class InadManager {
 
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    private HttpClientManager httpClientManager;
 
     public List<Email> getAndSaveEmailDomicilioDigitale(Integer idContatto, Azienda azienda) throws AuthorizationUtilsException {
 
@@ -239,9 +250,29 @@ public class InadManager {
             String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
             //inizio a generare il jwt da mandare a 
             String tokenJWT = inadParameters.getToken(clientAssertion);
-
+            URI uri = new URIBuilder(inadParameters.getUrlDocomicilioDigitale() + "/" + codiceFiscale)
+                    .addParameter("practicalReference", "abc")
+                    .build();
+            
+            Request request = new Request.Builder()
+                .url(uri.toString())
+                .addHeader("accept", "application/json")
+                .addHeader("Authorization", "Bearer " + tokenJWT)
+                .build();
+            
+            OkHttpClient httpClient = httpClientManager.getHttpClient();
+            Call call = httpClient.newCall(request);
             InadExtractResponse inadExtractResponse = new InadExtractResponse();
             inadExtractResponse.setCodiceFiscale(clientAssertion);
+            try (Response response = call.execute();) {
+                int responseCode = response.code();
+                if (response.isSuccessful()) {
+                    ResponseBody body = response.body();
+                    inadExtractResponse = objectMapper.convertValue(body, InadExtractResponse.class);
+                } else {
+                    LOGGER.error("errore nella extract dei domicili digitali chiamata fallita");
+                }
+            }
             return inadExtractResponse;
         } catch (Exception ex) {
             LOGGER.error("errore nella extract dei domicili digitali", ex);
@@ -257,7 +288,7 @@ public class InadManager {
      */
     public InadListDigitalAddressResponse requestToExtractDomiciliDigitaliFromCodiciFiscali(List<String> codiciFiscali, Integer idAzienda) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, InvalidKeySpecException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException{
         
-        InadParameters inadParameters = InadParameters.build(idAzienda, parametriAziendeReader, objectMapper);
+        InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
         String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
         //inizio a generare il jwt da mandare a 
         String tokenJWT = inadParameters.getToken(clientAssertion);
@@ -273,8 +304,8 @@ public class InadManager {
      * @param idInadListDigitalAddressResponse id ritornato dalla requestToExtractDomiciliDigitaliFromCodiciFiscali
      * 
      */
-    public InadListDigitalAddressResponse statusRequestToExtractDomiciliDigitali(String idInadListDigitalAddressResponse) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, InvalidKeySpecException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException{
-        InadParameters inadParameters = InadParameters.build(idAzienda, parametriAziendeReader, objectMapper);
+    public InadListDigitalAddressResponse statusRequestToExtractDomiciliDigitali(String idInadListDigitalAddressResponse, Integer idAzienda) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, InvalidKeySpecException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException{
+        InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
         String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
         //inizio a generare il jwt da mandare a 
         String tokenJWT = inadParameters.getToken(clientAssertion);
@@ -288,8 +319,9 @@ public class InadManager {
      * @return lista di domicli digitali in formato InadExtractResponse
      * 
      */
-    public List<InadExtractResponse> extractMultiDomiciliDigitaliFromCodiciFiscali(String idInadListDigitalAddressResponse) {
-        InadParameters inadParameters = InadParameters.build(idAzienda, parametriAziendeReader, objectMapper);
+    public List<InadExtractResponse> extractMultiDomiciliDigitaliFromCodiciFiscali(String idInadListDigitalAddressResponse, Integer idAzienda) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException, InvalidKeySpecException {
+        
+        InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
         String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
         //inizio a generare il jwt da mandare a 
         String tokenJWT = inadParameters.getToken(clientAssertion);
@@ -307,15 +339,17 @@ public class InadManager {
         List<DigitalAddress> digitalAddresses = inadExtractResponse.getDigitalAddresses();
 
         List<Email> emailContattoDaRitornare = new ArrayList<>();
+        
+        Contatto contatto = contattoRepository.findByCodiceFiscale(inadExtractResponse.getCodiceFiscale()).get(0);
 
         //se trovo dei domini digitali li metto dentro una lista di indirizzi che poi confronto
         //con i dettagli contatto già presenti sulla rubrica
         //se l'indirizzo esiste già, controllo che sia già segnato come contatto digitale
         //se l'indirizzo non esiste, creo il dettagli contatto giusto 
-        if (!digitalAddresses.isEmpty()) {
+        if (contatto!= null) {
             String indirizzoDomicilioDigitale = digitalAddresses.get(0).getDigitalAddress();
 
-            List<DettaglioContatto> dettagliContatto = contattoDaVerificare.getDettaglioContattoList();
+            List<DettaglioContatto> dettagliContatto = contatto.getDettaglioContattoList();
             //l'unico caso in cui non è da aggiungere è se lo abbiamo già
             Boolean isIndirizzoDaAggiungere = true;
 
@@ -353,7 +387,7 @@ public class InadManager {
                 Email emailDaAggiungere = new Email();
                 emailDaAggiungere.setEmail(indirizzoDomicilioDigitale);
                 emailDaAggiungere.setDescrizione(indirizzoDomicilioDigitale);
-                emailDaAggiungere.setIdContatto(contattoDaVerificare);
+                emailDaAggiungere.setIdContatto(contatto);
                 emailDaAggiungere.setPec(Boolean.TRUE);
                 emailDaAggiungere.setProvenienza("inad");
                 emailDaAggiungere.setPrincipale(Boolean.FALSE);
@@ -361,7 +395,7 @@ public class InadManager {
                 DettaglioContatto dettaglioDomicilioDigitale = new DettaglioContatto();
                 dettaglioDomicilioDigitale.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
                 dettaglioDomicilioDigitale.setDescrizione(indirizzoDomicilioDigitale);
-                dettaglioDomicilioDigitale.setIdContatto(contattoDaVerificare);
+                dettaglioDomicilioDigitale.setIdContatto(contatto);
                 dettaglioDomicilioDigitale.setDomicilioDigitale(Boolean.TRUE);
                 dettaglioDomicilioDigitale.setEmail(emailDaAggiungere);
                 emailDaAggiungere.setIdDettaglioContatto(dettaglioDomicilioDigitale);
@@ -373,7 +407,7 @@ public class InadManager {
             }
 
         } else {
-            for (DettaglioContatto dc : contattoDaVerificare.getDettaglioContattoList()) {
+            for (DettaglioContatto dc : contatto.getDettaglioContattoList()) {
                 if (dc.getDomicilioDigitale()) {
                     dc.setDomicilioDigitale(Boolean.FALSE);
                     dettaglioContattoRepository.save(dc);

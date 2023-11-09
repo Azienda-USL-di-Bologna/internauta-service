@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.updatecontattii
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadListDigitalAddressResponse;
 import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
+import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
@@ -12,7 +13,14 @@ import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.rubrica.QContatto;
 import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.List;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +53,7 @@ public class UpdateContattiInadJobWorker extends JobWorker<UpdateContattiInadJob
         log.info(String.format("job %s started", getName()));
         
         UpdateContattiInadJobWorkerData workerData = getWorkerData();
+        Integer idAzienda = workerData.getIdAzienda();
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
         QDettaglioContatto qDettaglioContatto = QDettaglioContatto.dettaglioContatto;
         QContatto qContatto = QContatto.contatto;
@@ -57,10 +66,10 @@ public class UpdateContattiInadJobWorker extends JobWorker<UpdateContattiInadJob
             .limit(workerData.getNumeroContattiDaAggiornare())
             .fetch();
         
-        InadListDigitalAddressResponse response = inadManager.requestToExtractDomiciliDigitaliFromCodiciFiscali(cfDaAggiornare);
-        
-        UpdateContattiIfPossibleInadJobWorkerData updateContattiIfPossibleInadJobWorkerData = new UpdateContattiIfPossibleInadJobWorkerData(response.getId());
-        UpdateContattiIfPossibleInadJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(
+        try {
+            InadListDigitalAddressResponse response = inadManager.requestToExtractDomiciliDigitaliFromCodiciFiscali(cfDaAggiornare, idAzienda);
+            UpdateContattiIfPossibleInadJobWorkerData updateContattiIfPossibleInadJobWorkerData = new UpdateContattiIfPossibleInadJobWorkerData(response.getId(), idAzienda);
+            UpdateContattiIfPossibleInadJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(
                 UpdateContattiIfPossibleInadJobWorker.class,
                 updateContattiIfPossibleInadJobWorkerData,
                 false);
@@ -71,6 +80,9 @@ public class UpdateContattiInadJobWorker extends JobWorker<UpdateContattiInadJob
                 log.error(errorMessage);
                 throw new MasterjobsWorkerException(errorMessage, ex);
             }
+        } catch (Exception ex) {
+            log.error("errore nella requestToExtractDomiciliDigitaliFromCodiciFiscali", ex);
+        }
         
         log.info(String.format("job %s ended", getName()));
 

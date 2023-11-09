@@ -15,12 +15,14 @@ public class UpdateContattiInadJobWorkerData extends JobWorkerData {
     private static final Logger LOGGER = LoggerFactory.getLogger(UpdateContattiInadJobWorkerData.class);
     
     Integer numeroContattiDaAggiornare;
+    Integer idAzienda;
     
     public UpdateContattiInadJobWorkerData() {
     }
 
-    public UpdateContattiInadJobWorkerData(Integer numeroContattiDaAggiornare) {
+    public UpdateContattiInadJobWorkerData(Integer numeroContattiDaAggiornare, Integer idAzienda) {
         this.numeroContattiDaAggiornare = numeroContattiDaAggiornare;
+        this.idAzienda = idAzienda;
     }
     
     public Integer getNumeroContattiDaAggiornare() {
@@ -30,7 +32,13 @@ public class UpdateContattiInadJobWorkerData extends JobWorkerData {
     public void setNumeroContattiDaAggiornare(Integer numeroContattiDaAggiornare) {
         this.numeroContattiDaAggiornare = numeroContattiDaAggiornare;
     }
-    
-    
 
+    public Integer getIdAzienda() {
+        return idAzienda;
+    }
+
+    public void setIdAzienda(Integer idAzienda) {
+        this.idAzienda = idAzienda;
+    }
+    
 }

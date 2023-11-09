@@ -254,6 +254,7 @@ public class InadParameters {
 //                  'grant_type': 'client_credentials'
 //                  }
 //       jwt_response = requests.post(url=url_voucher, data=payloadJWT, headers=headersJWT)
+
         OkHttpClient client = new OkHttpClient();
 
         // Costruisco il body della post
