@@ -16,9 +16,11 @@ import it.bologna.ausl.model.entities.configurazione.FirmePersona;
 import it.bologna.ausl.model.entities.firma.DominioAruba;
 import it.nextsw.common.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
+import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -48,6 +50,25 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
     public Class getTargetEntityClass() {
         return FirmePersona.class;
     }
+
+    @Override
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        FirmePersona firmaPersona = (FirmePersona)entity;
+        firmaPersona.set$additionalData(firmaPersona.getAdditionalData());
+        return firmaPersona;
+    }
+
+    @Override
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        for (Object entity : entities) {
+            afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
+        }
+        return entities;
+    }
+    
+    
+    
+    
 
     /**
      *
