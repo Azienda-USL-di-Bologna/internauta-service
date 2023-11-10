@@ -22,7 +22,7 @@ import it.bologna.ausl.model.entities.scripta.ArchivioDiInteresse;
 import it.bologna.ausl.model.entities.scripta.QArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.QArchivioDiInteresse;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.ArrayList;

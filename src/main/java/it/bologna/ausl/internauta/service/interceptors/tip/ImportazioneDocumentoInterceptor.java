@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.interceptors.tip;
 import it.bologna.ausl.internauta.service.controllers.tip.TipUtils;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.Map;

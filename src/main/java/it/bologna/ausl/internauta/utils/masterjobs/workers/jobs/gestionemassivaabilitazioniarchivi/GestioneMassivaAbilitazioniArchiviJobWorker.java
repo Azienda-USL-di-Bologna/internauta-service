@@ -246,24 +246,25 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
             oggettoAttivita = String.format("La modifica massiva, che hai richiesto il %1$s alle %2$s, di vicari e permessi di %3$s fascicoli e relativi sottofascicoli è avvenuta con successo.", dataFormattata, orarioFormattato, idsArchivi.length);
         insertAttivita(azienda, personaOperazione, oggettoAttivita, app);
         
-        log.info(String.format("Notifico i vari utenti"));
-        // Notifiche agli utenti coinvolti
-        for (Map.Entry<Integer, InfoPersona> entry : mappaPersone.entrySet()) {
-            Integer idPersona = entry.getKey();
-            InfoPersona info = entry.getValue();
-            HashSet<Integer> idArchiviCoinvolti = new HashSet();
-            idArchiviCoinvolti.addAll(info.getPermessiOttenuti());
-            idArchiviCoinvolti.addAll(info.getPermessiPerduti());
-            idArchiviCoinvolti.addAll(info.getVicariatiOttenuti());
-            idArchiviCoinvolti.addAll(info.getVicariatiPerduti());
-            if (!idArchiviCoinvolti.isEmpty()) {
-                if (idArchiviCoinvolti.size() == 1) 
-                    oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di un fascicolo che ti coinvolgono.", personaOperazione.getDescrizione());
-                else
-                    oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di %2$s fascicoli che ti coinvolgono.", personaOperazione.getDescrizione(), idArchiviCoinvolti.size());
-                insertAttivita(azienda, info.getPersona(), oggettoAttivita, app);
-            }
-        }
+        // Commentato in quanto non più voluto (ma funzionanete se serve rimetterlo)
+//        log.info(String.format("Notifico i vari utenti"));
+//        // Notifiche agli utenti coinvolti
+//        for (Map.Entry<Integer, InfoPersona> entry : mappaPersone.entrySet()) {
+//            Integer idPersona = entry.getKey();
+//            InfoPersona info = entry.getValue();
+//            HashSet<Integer> idArchiviCoinvolti = new HashSet();
+//            idArchiviCoinvolti.addAll(info.getPermessiOttenuti());
+//            idArchiviCoinvolti.addAll(info.getPermessiPerduti());
+//            idArchiviCoinvolti.addAll(info.getVicariatiOttenuti());
+//            idArchiviCoinvolti.addAll(info.getVicariatiPerduti());
+//            if (!idArchiviCoinvolti.isEmpty()) {
+//                if (idArchiviCoinvolti.size() == 1) 
+//                    oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di un fascicolo che ti coinvolgono.", personaOperazione.getDescrizione());
+//                else
+//                    oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di %2$s fascicoli che ti coinvolgono.", personaOperazione.getDescrizione(), idArchiviCoinvolti.size());
+//                insertAttivita(azienda, info.getPersona(), oggettoAttivita, app);
+//            }
+//        }
         
         // Aggiorno la massiveActionLog
         log.info(String.format("Aggiorno la massiveActionLog"));

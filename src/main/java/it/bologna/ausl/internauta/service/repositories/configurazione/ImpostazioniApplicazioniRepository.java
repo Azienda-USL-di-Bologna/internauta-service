@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.configurazione;
 import it.bologna.ausl.model.entities.configurazione.ImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configurazione.QImpostazioniApplicazioni;
 import it.bologna.ausl.model.entities.configurazione.projections.generated.ImpostazioniApplicazioniWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;

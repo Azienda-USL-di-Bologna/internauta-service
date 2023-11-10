@@ -12,7 +12,7 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.bologna.ausl.model.entities.ribaltoneutils.QRibaltoneDaLanciare;
 import it.bologna.ausl.model.entities.ribaltoneutils.RibaltoneDaLanciare;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.List;
 import java.util.Map;

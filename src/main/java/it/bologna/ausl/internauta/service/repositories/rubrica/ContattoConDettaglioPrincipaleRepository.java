@@ -4,7 +4,7 @@ import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.views.ContattoConDettaglioPrincipale;
 import it.bologna.ausl.model.entities.rubrica.views.QContattoConDettaglioPrincipale;
 import it.bologna.ausl.model.entities.rubrica.views.projections.generated.ContattoConDettaglioPrincipaleWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.List;
