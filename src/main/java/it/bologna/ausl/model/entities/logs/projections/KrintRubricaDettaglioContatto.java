@@ -15,7 +15,7 @@ public interface KrintRubricaDettaglioContatto{
     String getDescrizione();
     Boolean getPrincipale();
 
-    @Value("#{target.getTipo().name()}") 
+    @Value("#{target.getTipo() != null? target.getTipo().name(): null}") 
     String getTipo();
 
     Boolean getEliminato();
