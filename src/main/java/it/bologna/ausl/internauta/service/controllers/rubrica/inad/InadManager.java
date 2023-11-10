@@ -121,20 +121,20 @@ public class InadManager {
 //            InadExtractResponse responseObj = InadManager.extract(codiceFiscaleContatto, azienda.getId());
 
 //          finchè non funziona la chiamata ad inad ne faccio una finta
-        InadExtractResponse responseObj = new InadExtractResponse();
-        DigitalAddress digitalAddress = new DigitalAddress();
-        UsageInfo usageInfo = new UsageInfo();
-        digitalAddress.setDigitalAddress("pippopiudipippobaudo@pec.it");
-        digitalAddress.setPracticedProfession("POCOPROFESSIONISTAMOLTOLIBERO");
-        usageInfo.setDateEndValidity(ZonedDateTime.now());
-        usageInfo.setMotivation("CESSAZIONE_VOLONTARIA");
-        digitalAddress.setUsageInfo(usageInfo);
-        responseObj.setCodiceFiscale("LZZCHR97M43A944X");
-        List<DigitalAddress> digitalAddresses2 = new ArrayList<>();
-        digitalAddresses2.add(digitalAddress);
-        responseObj.setDigitalAddresses(digitalAddresses2);
+//        InadExtractResponse responseObj = new InadExtractResponse();
+//        DigitalAddress digitalAddress = new DigitalAddress();
+//        UsageInfo usageInfo = new UsageInfo();
+//        digitalAddress.setDigitalAddress("pippopiudipippobaudo@pec.it");
+//        digitalAddress.setPracticedProfession("POCOPROFESSIONISTAMOLTOLIBERO");
+//        usageInfo.setDateEndValidity(ZonedDateTime.now());
+//        usageInfo.setMotivation("CESSAZIONE_VOLONTARIA");
+//        digitalAddress.setUsageInfo(usageInfo);
+//        responseObj.setCodiceFiscale("LZZCHR97M43A944X");
+//        List<DigitalAddress> digitalAddresses2 = new ArrayList<>();
+//        digitalAddresses2.add(digitalAddress);
+//        responseObj.setDigitalAddresses(digitalAddresses2);
 
-        List<DigitalAddress> digitalAddresses = responseObj.getDigitalAddresses();
+//        List<DigitalAddress> digitalAddresses = responseObj.getDigitalAddresses();
 
         List<Email> emailContattoDaRitornare = new ArrayList<>();
 
@@ -142,76 +142,76 @@ public class InadManager {
         //con i dettagli contatto già presenti sulla rubrica
         //se l'indirizzo esiste già, controllo che sia già segnato come contatto digitale
         //se l'indirizzo non esiste, creo il dettagli contatto giusto 
-        if (!digitalAddresses.isEmpty()) {
-            String indirizzoDomicilioDigitale = digitalAddresses.get(0).getDigitalAddress();
-
-            List<DettaglioContatto> dettagliContatto = contattoDaVerificare.getDettaglioContattoList();
-            //l'unico caso in cui non è da aggiungere è se lo abbiamo già
-            Boolean isIndirizzoDaAggiungere = true;
-
-            if (!dettagliContatto.isEmpty()) {
-                for (DettaglioContatto dc : dettagliContatto) {
-
-                    //controllo che sia già un domicilio digitale, sennò lo rendo tale
-                    if (indirizzoDomicilioDigitale.equals(dc.getDescrizione())) {
-                        isIndirizzoDaAggiungere = false;
-
-                        if (!dc.getDomicilioDigitale()) {
-                            dc.setDomicilioDigitale(Boolean.TRUE);
-                            emailContattoDaRitornare.add(dc.getEmail());
-                        }
-                    } else {
-
-                        //controllo non ci sia un altro dettaglio che è un domicilio digitale,
-                        //nel caso lo setto come non dominio digitale
-                        if (dc.getDomicilioDigitale()) {
-                            dc.setDomicilioDigitale(Boolean.FALSE);
-                            emailContattoDaRitornare.add(dc.getEmail());
-                        }
-                    }
-                }
-            }
-
-            if (!emailContattoDaRitornare.isEmpty()) {
-                for (Email emailContatto : emailContattoDaRitornare) {
-                    dettaglioContattoRepository.save(emailContatto.getIdDettaglioContatto());
-                }
-            }
-            //aggiungo il dettaglio del domicilio digitale al contatto
-            if (isIndirizzoDaAggiungere) {
-
-                Email emailDaAggiungere = new Email();
-                emailDaAggiungere.setEmail(indirizzoDomicilioDigitale);
-                emailDaAggiungere.setDescrizione(indirizzoDomicilioDigitale);
-                emailDaAggiungere.setIdContatto(contattoDaVerificare);
-                emailDaAggiungere.setPec(Boolean.TRUE);
-                emailDaAggiungere.setProvenienza("inad");
-                emailDaAggiungere.setPrincipale(Boolean.FALSE);
-
-                DettaglioContatto dettaglioDomicilioDigitale = new DettaglioContatto();
-                dettaglioDomicilioDigitale.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
-                dettaglioDomicilioDigitale.setDescrizione(indirizzoDomicilioDigitale);
-                dettaglioDomicilioDigitale.setIdContatto(contattoDaVerificare);
-                dettaglioDomicilioDigitale.setDomicilioDigitale(Boolean.TRUE);
-                dettaglioDomicilioDigitale.setEmail(emailDaAggiungere);
-                emailDaAggiungere.setIdDettaglioContatto(dettaglioDomicilioDigitale);
-
-                emailRepository.save(emailDaAggiungere);
-                dettaglioContattoRepository.save(dettaglioDomicilioDigitale);
-
-                emailContattoDaRitornare.add(emailDaAggiungere);
-            }
-
-        } else {
-            for (DettaglioContatto dc : contattoDaVerificare.getDettaglioContattoList()) {
-                if (dc.getDomicilioDigitale()) {
-                    dc.setDomicilioDigitale(Boolean.FALSE);
-                    dettaglioContattoRepository.save(dc);
-                    emailContattoDaRitornare.add(dc.getEmail());
-                }
-            }
-
-        }
+//        if (!digitalAddresses.isEmpty()) {
+//            String indirizzoDomicilioDigitale = digitalAddresses.get(0).getDigitalAddress();
+//
+//            List<DettaglioContatto> dettagliContatto = contattoDaVerificare.getDettaglioContattoList();
+//            //l'unico caso in cui non è da aggiungere è se lo abbiamo già
+//            Boolean isIndirizzoDaAggiungere = true;
+//
+//            if (!dettagliContatto.isEmpty()) {
+//                for (DettaglioContatto dc : dettagliContatto) {
+//
+//                    //controllo che sia già un domicilio digitale, sennò lo rendo tale
+//                    if (indirizzoDomicilioDigitale.equals(dc.getDescrizione())) {
+//                        isIndirizzoDaAggiungere = false;
+//
+//                        if (!dc.getDomicilioDigitale()) {
+//                            dc.setDomicilioDigitale(Boolean.TRUE);
+//                            emailContattoDaRitornare.add(dc.getEmail());
+//                        }
+//                    } else {
+//
+//                        //controllo non ci sia un altro dettaglio che è un domicilio digitale,
+//                        //nel caso lo setto come non dominio digitale
+//                        if (dc.getDomicilioDigitale()) {
+//                            dc.setDomicilioDigitale(Boolean.FALSE);
+//                            emailContattoDaRitornare.add(dc.getEmail());
+//                        }
+//                    }
+//                }
+//            }
+//
+//            if (!emailContattoDaRitornare.isEmpty()) {
+//                for (Email emailContatto : emailContattoDaRitornare) {
+//                    dettaglioContattoRepository.save(emailContatto.getIdDettaglioContatto());
+//                }
+//            }
+//            //aggiungo il dettaglio del domicilio digitale al contatto
+//            if (isIndirizzoDaAggiungere) {
+//
+//                Email emailDaAggiungere = new Email();
+//                emailDaAggiungere.setEmail(indirizzoDomicilioDigitale);
+//                emailDaAggiungere.setDescrizione(indirizzoDomicilioDigitale);
+//                emailDaAggiungere.setIdContatto(contattoDaVerificare);
+//                emailDaAggiungere.setPec(Boolean.TRUE);
+//                emailDaAggiungere.setProvenienza("inad");
+//                emailDaAggiungere.setPrincipale(Boolean.FALSE);
+//
+//                DettaglioContatto dettaglioDomicilioDigitale = new DettaglioContatto();
+//                dettaglioDomicilioDigitale.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
+//                dettaglioDomicilioDigitale.setDescrizione(indirizzoDomicilioDigitale);
+//                dettaglioDomicilioDigitale.setIdContatto(contattoDaVerificare);
+//                dettaglioDomicilioDigitale.setDomicilioDigitale(Boolean.TRUE);
+//                dettaglioDomicilioDigitale.setEmail(emailDaAggiungere);
+//                emailDaAggiungere.setIdDettaglioContatto(dettaglioDomicilioDigitale);
+//
+//                emailRepository.save(emailDaAggiungere);
+//                dettaglioContattoRepository.save(dettaglioDomicilioDigitale);
+//
+//                emailContattoDaRitornare.add(emailDaAggiungere);
+//            }
+//
+//        } else {
+//            for (DettaglioContatto dc : contattoDaVerificare.getDettaglioContattoList()) {
+//                if (dc.getDomicilioDigitale()) {
+//                    dc.setDomicilioDigitale(Boolean.FALSE);
+//                    dettaglioContattoRepository.save(dc);
+//                    emailContattoDaRitornare.add(dc.getEmail());
+//                }
+//            }
+//
+//        }
         return emailContattoDaRitornare;
     }
 
