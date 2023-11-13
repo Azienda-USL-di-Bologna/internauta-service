@@ -155,7 +155,7 @@ public class InadParameters {
     }
 
     @JsonIgnore
-    public static InadParameters build(Integer idAzienda, ParametriAziendeReader parametriAziendeReader, ObjectMapper objectMapper) throws JsonProcessingException {
+    public static InadParameters buildParameters(Integer idAzienda, ParametriAziendeReader parametriAziendeReader, ObjectMapper objectMapper) throws JsonProcessingException {
         List<ParametroAziende> parameters = parametriAziendeReader.getParameters(
                 "inad",
                 new Integer[]{idAzienda},
@@ -183,8 +183,7 @@ public class InadParameters {
         String clientAssertion = "";
         try {
             PrivateKey privateKeyFromPath = getPrivateKeyFromPath(this.getKeyPath());
-            clientAssertion = makeJWT(privateKeyFromPath, idAzienda);
-            return clientAssertion;
+            clientAssertion = makeClientAssertion(privateKeyFromPath, idAzienda);
         } catch (JOSEException ex) {
             Logger.getLogger(InadParameters.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
@@ -206,7 +205,7 @@ public class InadParameters {
         return keyFactory.generatePrivate(keySpec);
     }
 
-    private String makeJWT(PrivateKey privateKey,Integer idAzienda) throws JOSEException {
+    private String makeClientAssertion(PrivateKey privateKey,Integer idAzienda) throws JOSEException {
 
         JWSAlgorithm alg = JWSAlgorithm.RS256;
         JOSEObjectType typ = JOSEObjectType.JWT;
@@ -215,20 +214,15 @@ public class InadParameters {
         Instant issued = Instant.now(); // Tempo di emissione (timestamp in formato Unix)
         Instant expire_in = issued.plus(this.getDelta(), ChronoUnit.MINUTES);
 
-        JWTClaimsSet.Builder claimBuild = new JWTClaimsSet.Builder()
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .issuer(this.getIssuer())
                 .subject(this.getSubject())
                 .audience(this.getAudience())
                 .jwtID(jti.toString())
                 .issueTime(new Date(issued.toEpochMilli()))
-                .expirationTime(new Date(expire_in.toEpochMilli()));
-                
-        
-        if (idAzienda != 3){
-        claimBuild.claim("purposeId", this.getPurposeId());
-        }
-        
-        JWTClaimsSet claimsSet = claimBuild.build();
+                .expirationTime(new Date(expire_in.toEpochMilli()))
+                .claim("purposeId", this.getPurposeId())
+                .build();
 
         // Crea un oggetto JWSHeader con gli header personalizzati
         JWSHeader header = new JWSHeader.Builder(alg)

@@ -18,6 +18,7 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
+import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -238,7 +239,7 @@ public class RubricaInterceptorUtils {
      * @param contatto di tipo gruppo
      * @return contatto contatto modificato con campo transient valorizzato
      */
-    public Contatto setDomiciliDigitaliInGruppo(Contatto contatto){
+    public Contatto setDomiciliDigitaliInGruppo(Contatto contatto) throws AuthorizationUtilsException, AuthorizationUtilsException, AuthorizationUtilsException{
         if (contatto.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)){
             List<GruppiContatti> contattiDelGruppoList = contatto.getContattiDelGruppoList();
             List<Contatto> contattiConDomiciliDigitaliModificati = new ArrayList();

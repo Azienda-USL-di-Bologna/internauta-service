@@ -20,6 +20,7 @@ import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContatto
 import it.bologna.ausl.internauta.service.repositories.rubrica.EmailRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -278,7 +280,11 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         }
         //inserisco i dettagli domicilio digitale dove possibile
         if (recuperaDomicilioDigitaleInad){
-            contatto = rubricaInterceptorUtils.setDomiciliDigitaliInGruppo(contatto);
+            try {
+                contatto = rubricaInterceptorUtils.setDomiciliDigitaliInGruppo(contatto);
+            } catch (AuthorizationUtilsException ex) {
+                LOGGER.error("errore nel set del domicilio digitale", ex);
+            }
         }
         
         

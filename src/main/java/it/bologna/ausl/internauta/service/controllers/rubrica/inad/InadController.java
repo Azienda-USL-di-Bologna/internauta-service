@@ -5,14 +5,18 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.rubrica.Email;
+import it.bologna.ausl.model.entities.rubrica.projections.generated.EmailWithIdContattoAndIdDettaglioContatto;
+import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -44,21 +48,29 @@ public class InadController implements ControllerHandledExceptions{
     @Autowired
     private InadManager inadManager;
     
+    @Autowired
+    private ProjectionFactory projectionFactory;
+    
+    @Autowired
+    private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
+    
     /**
-     * Questa funzione torna sempre il domicilio giditale. Se già presente lo torna, se non presente, richiama la funzione getAndSaveDomicilioDigitale 
-     * che lo chiede all'inad e lo salva
+     * Questa funzione torna sempre il domicilio giditale.Se già presente lo torna, se non presente, richiama la funzione getAndSaveDomicilioDigitale 
+ che lo chiede all'inad e lo salva
      * @param idContatto
      * @param request
      * @return
      * @throws BlackBoxPermissionException 
+     * @throws it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException 
      */
     @RequestMapping(value = "getAndSaveDomicilioDigitale", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Email> getAndSaveDomicilioDigitale(
+    public ResponseEntity<EmailWithIdContattoAndIdDettaglioContatto> getAndSaveDomicilioDigitale(
             @RequestParam("idContatto") Integer idContatto,
-            HttpServletRequest request) throws BlackBoxPermissionException{
-        
+            HttpServletRequest request) throws BlackBoxPermissionException, AuthorizationUtilsException{
+        projectionsInterceptorLauncher.setRequestParams(null, request);
         Email domicilioDigitale = inadManager.getAlwaysAndSaveDomicilioDigitale(idContatto);
-        return new ResponseEntity(domicilioDigitale,  HttpStatus.OK);
+        
+        return new ResponseEntity(projectionFactory.createProjection(EmailWithIdContattoAndIdDettaglioContatto.class, domicilioDigitale),  HttpStatus.OK);
     }
     
     
@@ -67,7 +79,7 @@ public class InadController implements ControllerHandledExceptions{
     @RequestMapping(value = "getDomicilioDigitaleFromCF", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getDomicilioDigitaleFromCF(
             @RequestParam("idContatto") Integer idContatto,
-            HttpServletRequest request) throws BlackBoxPermissionException{
+            HttpServletRequest request) throws BlackBoxPermissionException, AuthorizationUtilsException{
         
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
@@ -78,7 +90,12 @@ public class InadController implements ControllerHandledExceptions{
         return new ResponseEntity(domiciliDigitali,  HttpStatus.OK);
 
     }
+    
 // /verify/{codice_fiscale}
-    
-    
+    @RequestMapping(value = "extract", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public InadExtractResponse extract(
+        @RequestParam("cf") String cf,
+        @RequestParam("idAzienda") Integer idAzienda) throws AuthorizationUtilsException{
+    return inadManager.extract(idAzienda, cf);
+    }
 }
