@@ -24,6 +24,7 @@ import it.bologna.ausl.model.entities.rubrica.QEmail;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
@@ -32,13 +33,17 @@ import java.security.spec.InvalidKeySpecException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import okhttp3.Call;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.apache.http.client.utils.URIBuilder;
@@ -82,7 +87,25 @@ public class InadManager {
     
     @Autowired
     private HttpClientManager httpClientManager;
+    
+    private enum DomicilioDigitalePath{
+        extract("/extract/"),
+        verify("/verify/"),
+        listDigitalAddress(""),
+        listDigitalAddressState(""),
+        listDigitalAddressResponse("");
+        
+        private final String pathInad;
 
+        DomicilioDigitalePath(String pathInad) {
+            this.pathInad = pathInad;
+        }
+
+        public String getDomicilioDigitalePath() {
+            return pathInad;
+        }
+    }
+    
     public List<Email> getAndSaveEmailDomicilioDigitale(Integer idContatto, Azienda azienda) throws AuthorizationUtilsException {
 
         Contatto contattoDaVerificare = contattoRepository.getById(idContatto);
@@ -250,25 +273,29 @@ public class InadManager {
             String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
             //inizio a generare il jwt da mandare a 
             String tokenJWT = inadParameters.getToken(clientAssertion);
-            URI uri = new URIBuilder(inadParameters.getUrlDocomicilioDigitale() + "/" + codiceFiscale)
-                    .addParameter("practicalReference", "abc")
-                    .build();
+            URI uri = new URIBuilder(
+                    inadParameters.getUrlDocomicilioDigitale() + 
+                    DomicilioDigitalePath.extract + 
+                    codiceFiscale
+                ).addParameter("practicalReference", "abc")
+                .build();
             
             Request request = new Request.Builder()
+                .get()
                 .url(uri.toString())
                 .addHeader("accept", "application/json")
                 .addHeader("Authorization", "Bearer " + tokenJWT)
                 .build();
             
             OkHttpClient httpClient = httpClientManager.getHttpClient();
-            Call call = httpClient.newCall(request);
             InadExtractResponse inadExtractResponse = new InadExtractResponse();
             inadExtractResponse.setCodiceFiscale(clientAssertion);
+            Call call = httpClient.newCall(request);
             try (Response response = call.execute();) {
                 int responseCode = response.code();
                 if (response.isSuccessful()) {
                     ResponseBody body = response.body();
-                    inadExtractResponse = objectMapper.convertValue(body, InadExtractResponse.class);
+                    inadExtractResponse = objectMapper.readValue(body.byteStream(), InadExtractResponse.class);
                 } else {
                     LOGGER.error("errore nella extract dei domicili digitali chiamata fallita");
                 }
@@ -284,17 +311,57 @@ public class InadManager {
      * 
      * Funzione che fa la richiesta per ottenere la lista di domicili digitali dai loro codifi fiscali
      * @param codiciFiscali per i quali si vuole avere il relativo domicilio digitale
+     * @param idAzienda
+     * @return null se la chiamata non da 202
+     * @throws com.fasterxml.jackson.core.JsonProcessingException
+     * @throws it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException
+     * @throws java.security.KeyStoreException
+     * @throws java.security.spec.InvalidKeySpecException
+     * @throws java.security.cert.CertificateException
+     * @throws java.security.UnrecoverableKeyException
+     * @throws java.io.FileNotFoundException
+     * @throws java.security.NoSuchAlgorithmException
+     * @throws java.net.URISyntaxException
      * 
      */
-    public InadListDigitalAddressResponse requestToExtractDomiciliDigitaliFromCodiciFiscali(List<String> codiciFiscali, Integer idAzienda) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, InvalidKeySpecException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException{
+    public InadListDigitalAddressResponse requestToExtractDomiciliDigitaliFromCodiciFiscali(List<String> codiciFiscali, Integer idAzienda) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, InvalidKeySpecException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException, URISyntaxException{
         
         InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
         String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
         //inizio a generare il jwt da mandare a 
         String tokenJWT = inadParameters.getToken(clientAssertion);
         //FACCIO LA httpcall
-            
-        return null;
+        URI uri = new URIBuilder(inadParameters.getUrlDocomicilioDigitale() + 
+                    DomicilioDigitalePath.listDigitalAddress
+                ).build();
+        MediaType mediaType = MediaType.parse("application/json");
+        Map<String,Object> bodyMap = new HashMap();
+        bodyMap.put("codiciFiscali", codiciFiscali);
+        bodyMap.put("praticalReference","abd");
+        RequestBody body = RequestBody.create(mediaType,objectMapper.writeValueAsBytes(bodyMap));
+        Request request = new Request.Builder()
+                .post(body)
+                .url(uri.toString())
+                .addHeader("accept", "application/json")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer " + tokenJWT)
+                .build();
+        
+        OkHttpClient httpClient = httpClientManager.getHttpClient();
+        Call call = httpClient.newCall(request);
+        InadListDigitalAddressResponse inadListDigitalAddressResponse = null;
+        try (Response response = call.execute();) {
+            Integer responseCode = response.code();
+            if (responseCode == 202) {
+                inadListDigitalAddressResponse = objectMapper.readValue(response.body().byteStream(), InadListDigitalAddressResponse.class);
+            } else {
+                LOGGER.error("errore nella extract dei domicili digitali chiamata fallita");
+            }
+        }catch (Exception ex) {
+            LOGGER.error("errore nella extract dei domicili digitali chiamata fallita",ex);
+        }
+        
+        return inadListDigitalAddressResponse;
     } 
     
     /**
@@ -302,31 +369,101 @@ public class InadManager {
      * Funzione che restituisce lo stato di avanzamento della richiesta di estrazione di n domicili digitali
      * quando lo status è DISPONIBILE allora si puo procedere con l'effettiva estrazione
      * @param idInadListDigitalAddressResponse id ritornato dalla requestToExtractDomiciliDigitaliFromCodiciFiscali
-     * 
+     * @param idAzienda
+     * @return
+     * @throws JsonProcessingException
+     * @throws AuthorizationUtilsException
+     * @throws KeyStoreException
+     * @throws InvalidKeySpecException
+     * @throws UnrecoverableKeyException
+     * @throws IOException
+     * @throws FileNotFoundException
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
+     * @throws URISyntaxException 
      */
-    public InadListDigitalAddressResponse statusRequestToExtractDomiciliDigitali(String idInadListDigitalAddressResponse, Integer idAzienda) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, InvalidKeySpecException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException{
+    public InadListDigitalAddressResponse statusRequestToExtractDomiciliDigitali(String idInadListDigitalAddressResponse, Integer idAzienda) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, InvalidKeySpecException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException, URISyntaxException{
         InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
         String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
         //inizio a generare il jwt da mandare a 
         String tokenJWT = inadParameters.getToken(clientAssertion);
         //FACCIO LA httpcall
-        return null;
+        
+        URI uri = new URIBuilder(inadParameters.getUrlDocomicilioDigitale() + 
+                    DomicilioDigitalePath.listDigitalAddressState + idInadListDigitalAddressResponse
+                ).build();
+        
+        Request request = new Request.Builder()
+                .get()
+                .url(uri.toString())
+                .addHeader("accept", "application/json")
+                .addHeader("Authorization", "Bearer " + tokenJWT)
+                .build();
+        
+        OkHttpClient httpClient = httpClientManager.getHttpClient();
+        Call call = httpClient.newCall(request);
+        InadListDigitalAddressResponse inadListDigitalAddressResponse = null;
+        try (Response response = call.execute();) {
+            if (response.isSuccessful()) {
+                inadListDigitalAddressResponse = objectMapper.readValue(response.body().byteStream(), InadListDigitalAddressResponse.class);
+            } else {
+                LOGGER.error("errore nella extract dei domicili digitali chiamata fallita");
+            }
+        }catch (Exception ex) {
+            LOGGER.error("errore nella extract dei domicili digitali chiamata fallita",ex);
+        }
+        return inadListDigitalAddressResponse;
     }
     
     /**
      * 
      * @param idInadListDigitalAddressResponse id ritornato dalla requestToExtractDomiciliDigitaliFromCodiciFiscali
+     * @param idAzienda
      * @return lista di domicli digitali in formato InadExtractResponse
-     * 
+     * @throws JsonProcessingException
+     * @throws AuthorizationUtilsException
+     * @throws KeyStoreException
+     * @throws UnrecoverableKeyException
+     * @throws IOException
+     * @throws FileNotFoundException
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeySpecException
+     * @throws URISyntaxException 
      */
-    public List<InadExtractResponse> extractMultiDomiciliDigitaliFromCodiciFiscali(String idInadListDigitalAddressResponse, Integer idAzienda) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public List<InadExtractResponse> extractMultiDomiciliDigitaliFromCodiciFiscali(String idInadListDigitalAddressResponse, Integer idAzienda) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException, InvalidKeySpecException, URISyntaxException {
         
         InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
         String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
         //inizio a generare il jwt da mandare a 
         String tokenJWT = inadParameters.getToken(clientAssertion);
         //FACCIO LA httpcall
-        return null;
+        
+        URI uri = new URIBuilder(inadParameters.getUrlDocomicilioDigitale() + 
+                    DomicilioDigitalePath.listDigitalAddressResponse + idInadListDigitalAddressResponse
+                ).build();
+        
+        Request request = new Request.Builder()
+                .get()
+                .url(uri.toString())
+                .addHeader("accept", "application/json")
+                .addHeader("Authorization", "Bearer " + tokenJWT)
+                .build();
+        
+        OkHttpClient httpClient = httpClientManager.getHttpClient();
+        Call call = httpClient.newCall(request);
+        List<InadExtractResponse> inadExtractResponseList = null;
+        try (Response response = call.execute();) {
+            if (response.isSuccessful()) {
+                inadExtractResponseList = objectMapper.readValue(response.body().byteStream(), List.class);
+            } else {
+                LOGGER.error("errore nella extract dei domicili digitali chiamata fallita");
+            }
+        }catch (Exception ex) {
+            LOGGER.error("errore nella extract dei domicili digitali chiamata fallita",ex);
+        }
+        
+        return inadExtractResponseList;
     }
     
     /**
