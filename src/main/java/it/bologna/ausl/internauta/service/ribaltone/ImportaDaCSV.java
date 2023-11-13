@@ -850,6 +850,7 @@ public class ImportaDaCSV {
                         mS.setDatafi(datafi);
                         datafiString = datafi != null ? UtilityFunctions.getZonedDateTimeString(datafi) : null;
 
+                        // controlla che la casella sia coerente, altrimenti ritorna ""
                         String id_casella = Strutture.checkIdCasella(strutturaMap, mapError, mapReader.getLineNumber(), strutturaCheckDateMap);
                         mS.setIdCasella(id_casella.equals("") ? null : Integer.parseInt(id_casella));
                         bloccante = id_casella.equals("") ? true : bloccante;
@@ -890,7 +891,10 @@ public class ImportaDaCSV {
                         nRigheCSV = mapReader.getRowNumber();
                     }
 
-                    //struttura padre non trovata
+                    /**
+                     * prende la lista di strutture con le loro date di inizio e fine.
+                     * questa lista verrà utilizzata per il controllo dei padri
+                     */                    
                     Map<Integer, List<Map<String, Object>>> listaStrutture = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
 
                     mapWriter.close();
