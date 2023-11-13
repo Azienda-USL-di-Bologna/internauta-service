@@ -50,7 +50,7 @@ public class AziendaProjectionUtils {
         AuthenticatedSessionData authenticatedSessionData = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Applicazione.Applicazioni applicazione = authenticatedSessionData.getApplicazione();
 
-        Map<String, Object> parametri = parametriAziende.getAllAziendaApplicazioneParameters(applicazione.toString(), azienda.getId());
+        Map<String, Object> parametri = parametriAziende.getAllAziendaApplicazioneParameters(applicazione.toString(), azienda.getId(), true);
 
         return parametri;
     }
