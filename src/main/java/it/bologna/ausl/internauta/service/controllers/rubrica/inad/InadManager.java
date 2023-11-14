@@ -30,7 +30,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -91,9 +90,9 @@ public class InadManager {
     private enum DomicilioDigitalePath{
         extract("/extract/"),
         verify("/verify/"),
-        listDigitalAddress(""),
-        listDigitalAddressState(""),
-        listDigitalAddressResponse("");
+        listDigitalAddress("/listDigitalAddress/"),
+        listDigitalAddressState("/listDigitalAddress/state/"),
+        listDigitalAddressResponse("/listDigitalAddress/response/");
         
         private final String pathInad;
 
@@ -160,102 +159,13 @@ public class InadManager {
             Contatto contattoDaVerificare,
             DettaglioContattoRepository dettaglioContattoRepository,
             EmailRepository emailRepository) throws AuthorizationUtilsException {
-        //chiedo a inad i contatti del codice fiscale 
+            //chiedo a inad i contatti del codice fiscale 
+            
             InadExtractResponse responseObj = extract( azienda.getId(),contattoDaVerificare.getCodiceFiscale());
-
-//          finchè non funziona la chiamata ad inad ne faccio una finta
-        //InadExtractResponse responseObj = new InadExtractResponse();
-        DigitalAddress digitalAddress = new DigitalAddress();
-        UsageInfo usageInfo = new UsageInfo();
-        digitalAddress.setDigitalAddress("pippopiudipippobaudo@pec.it");
-        digitalAddress.setPracticedProfession("POCOPROFESSIONISTAMOLTOLIBERO");
-        usageInfo.setDateEndValidity(ZonedDateTime.now());
-        usageInfo.setMotivation("CESSAZIONE_VOLONTARIA");
-        digitalAddress.setUsageInfo(usageInfo);
-        responseObj.setCodiceFiscale("LZZCHR97M43A944X");
-        List<DigitalAddress> digitalAddresses2 = new ArrayList<>();
-        digitalAddresses2.add(digitalAddress);
-        responseObj.setDigitalAddresses(digitalAddresses2);
-
-        List<DigitalAddress> digitalAddresses = responseObj.getDigitalAddresses();
-
-        List<Email> emailContattoDaRitornare = new ArrayList<>();
-
-        //se trovo dei domini digitali li metto dentro una lista di indirizzi che poi confronto
-        //con i dettagli contatto già presenti sulla rubrica
-        //se l'indirizzo esiste già, controllo che sia già segnato come contatto digitale
-        //se l'indirizzo non esiste, creo il dettagli contatto giusto 
-        if (!digitalAddresses.isEmpty()) {
-            String indirizzoDomicilioDigitale = digitalAddresses.get(0).getDigitalAddress();
-
-            List<DettaglioContatto> dettagliContatto = contattoDaVerificare.getDettaglioContattoList();
-            //l'unico caso in cui non è da aggiungere è se lo abbiamo già
-            Boolean isIndirizzoDaAggiungere = true;
-
-            if (!dettagliContatto.isEmpty()) {
-                for (DettaglioContatto dc : dettagliContatto) {
-
-                    //controllo che sia già un domicilio digitale, sennò lo rendo tale
-                    if (indirizzoDomicilioDigitale.equals(dc.getDescrizione())) {
-                        isIndirizzoDaAggiungere = false;
-
-                        if (!dc.getDomicilioDigitale()) {
-                            dc.setDomicilioDigitale(Boolean.TRUE);
-                            emailContattoDaRitornare.add(dc.getEmail());
-                        }
-                    } else {
-
-                        //controllo non ci sia un altro dettaglio che è un domicilio digitale,
-                        //nel caso lo setto come non dominio digitale
-                        if (dc.getDomicilioDigitale()) {
-                            dc.setDomicilioDigitale(Boolean.FALSE);
-                            emailContattoDaRitornare.add(dc.getEmail());
-                        }
-                    }
-                }
-            }
-
-            if (!emailContattoDaRitornare.isEmpty()) {
-                for (Email emailContatto : emailContattoDaRitornare) {
-                    dettaglioContattoRepository.save(emailContatto.getIdDettaglioContatto());
-                }
-            }
-            //aggiungo il dettaglio del domicilio digitale al contatto
-            if (isIndirizzoDaAggiungere) {
-
-                Email emailDaAggiungere = new Email();
-                emailDaAggiungere.setEmail(indirizzoDomicilioDigitale);
-                emailDaAggiungere.setDescrizione(indirizzoDomicilioDigitale);
-                emailDaAggiungere.setIdContatto(contattoDaVerificare);
-                emailDaAggiungere.setPec(Boolean.TRUE);
-                emailDaAggiungere.setProvenienza("inad");
-                emailDaAggiungere.setPrincipale(Boolean.FALSE);
-
-                DettaglioContatto dettaglioDomicilioDigitale = new DettaglioContatto();
-                dettaglioDomicilioDigitale.setTipo(DettaglioContatto.TipoDettaglio.EMAIL);
-                dettaglioDomicilioDigitale.setDescrizione(indirizzoDomicilioDigitale);
-                dettaglioDomicilioDigitale.setIdContatto(contattoDaVerificare);
-                dettaglioDomicilioDigitale.setDomicilioDigitale(Boolean.TRUE);
-                dettaglioDomicilioDigitale.setEmail(emailDaAggiungere);
-                emailDaAggiungere.setIdDettaglioContatto(dettaglioDomicilioDigitale);
-
-                emailRepository.save(emailDaAggiungere);
-                dettaglioContattoRepository.save(dettaglioDomicilioDigitale);
-
-                emailContattoDaRitornare.add(emailDaAggiungere);
-            }
-
-        } else {
-            for (DettaglioContatto dc : contattoDaVerificare.getDettaglioContattoList()) {
-                if (dc.getDomicilioDigitale()) {
-                    dc.setDomicilioDigitale(Boolean.FALSE);
-                    dettaglioContattoRepository.save(dc);
-                    emailContattoDaRitornare.add(dc.getEmail());
-                }
-            }
-
-        }
-        return emailContattoDaRitornare;
+            
+            updateOrCreateDettaglioContattoFromInadExtractResponse(responseObj);
+            Contatto contattoVerificato = contattoRepository.findById(contattoDaVerificare.getId()).get();
+        return contattoVerificato.getEmailList();
     }
     /**
      * 
@@ -274,7 +184,7 @@ public class InadManager {
             //inizio a generare il jwt da mandare a 
             String tokenJWT = inadParameters.getToken(clientAssertion);
             URI uri = new URIBuilder(
-                    inadParameters.getUrlDocomicilioDigitale() + 
+                    inadParameters.getConnection().getUrlDocomicilioDigitale() + 
                     DomicilioDigitalePath.extract + 
                     codiceFiscale
                 ).addParameter("practicalReference", "abc")
@@ -331,7 +241,7 @@ public class InadManager {
         //inizio a generare il jwt da mandare a 
         String tokenJWT = inadParameters.getToken(clientAssertion);
         //FACCIO LA httpcall
-        URI uri = new URIBuilder(inadParameters.getUrlDocomicilioDigitale() + 
+        URI uri = new URIBuilder(inadParameters.getConnection().getUrlDocomicilioDigitale() + 
                     DomicilioDigitalePath.listDigitalAddress
                 ).build();
         MediaType mediaType = MediaType.parse("application/json");
@@ -382,14 +292,14 @@ public class InadManager {
      * @throws NoSuchAlgorithmException
      * @throws URISyntaxException 
      */
-    public InadListDigitalAddressResponse statusRequestToExtractDomiciliDigitali(String idInadListDigitalAddressResponse, Integer idAzienda) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, InvalidKeySpecException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException, URISyntaxException{
+    public InadListDigitalAddressResponse statusRequestToExtractDomiciliDigitali(String idInadListDigitalAddressResponse, Integer idAzienda) throws JsonProcessingException, AuthorizationUtilsException, KeyStoreException, InvalidKeySpecException, UnrecoverableKeyException, IOException, FileNotFoundException, CertificateException, NoSuchAlgorithmException, URISyntaxException, InadException{
         InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
         String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
         //inizio a generare il jwt da mandare a 
         String tokenJWT = inadParameters.getToken(clientAssertion);
         //FACCIO LA httpcall
         
-        URI uri = new URIBuilder(inadParameters.getUrlDocomicilioDigitale() + 
+        URI uri = new URIBuilder(inadParameters.getConnection().getUrlDocomicilioDigitale() + 
                     DomicilioDigitalePath.listDigitalAddressState + idInadListDigitalAddressResponse
                 ).build();
         
@@ -404,13 +314,17 @@ public class InadManager {
         Call call = httpClient.newCall(request);
         InadListDigitalAddressResponse inadListDigitalAddressResponse = null;
         try (Response response = call.execute();) {
-            if (response.isSuccessful()) {
+            if (response.isSuccessful() || response.code() == 303) {
                 inadListDigitalAddressResponse = objectMapper.readValue(response.body().byteStream(), InadListDigitalAddressResponse.class);
             } else {
-                LOGGER.error("errore nella extract dei domicili digitali chiamata fallita");
+                String errore = "errore nella extract dei domicili digitali chiamata fallita";
+                LOGGER.error(errore);
+                throw new InadException(errore);
             }
         }catch (Exception ex) {
-            LOGGER.error("errore nella extract dei domicili digitali chiamata fallita",ex);
+            String errore = "errore nella extract dei domicili digitali chiamata fallita";
+            LOGGER.error(errore,ex);
+            throw new InadException(errore, ex);
         }
         return inadListDigitalAddressResponse;
     }
@@ -439,7 +353,7 @@ public class InadManager {
         String tokenJWT = inadParameters.getToken(clientAssertion);
         //FACCIO LA httpcall
         
-        URI uri = new URIBuilder(inadParameters.getUrlDocomicilioDigitale() + 
+        URI uri = new URIBuilder(inadParameters.getConnection().getUrlDocomicilioDigitale() + 
                     DomicilioDigitalePath.listDigitalAddressResponse + idInadListDigitalAddressResponse
                 ).build();
         

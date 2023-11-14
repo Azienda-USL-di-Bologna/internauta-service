@@ -3,7 +3,6 @@ package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.updatecontattii
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadListDigitalAddressResponse;
 import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
-import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
@@ -13,14 +12,7 @@ import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.rubrica.QContatto;
 import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.security.spec.InvalidKeySpecException;
 import java.util.List;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,13 +32,7 @@ public class UpdateContattiInadJobWorker extends JobWorker<UpdateContattiInadJob
     @Override
     public String getName() {
         return getClass().getSimpleName();
-    }
-
-    @Override
-    public boolean isExecutable() {
-       return true;
-    }
-    
+    }    
     
     @Override
     public JobWorkerResult doRealWork() throws MasterjobsWorkerException {
@@ -72,7 +58,8 @@ public class UpdateContattiInadJobWorker extends JobWorker<UpdateContattiInadJob
             UpdateContattiIfPossibleInadJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(
                 UpdateContattiIfPossibleInadJobWorker.class,
                 updateContattiIfPossibleInadJobWorkerData,
-                false);
+                false,
+                120000);
             try {
                 super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.gedi.toString(), false, Set.SetPriority.NORMAL);
             } catch (MasterjobsQueuingException ex) {

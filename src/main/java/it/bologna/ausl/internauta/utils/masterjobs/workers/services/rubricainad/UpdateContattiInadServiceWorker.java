@@ -1,6 +1,8 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.services.rubricainad;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadParameters;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
@@ -11,10 +13,10 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.services.ServiceWorke
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
-import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import java.util.List;
 import javax.persistence.EntityManager;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,12 @@ public class UpdateContattiInadServiceWorker extends ServiceWorker {
     @Autowired
     private EntityManager entityManager;
     
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    @Autowired
+    private InadParameters inadParameters;
+    
     private String name = UpdateContattiInadServiceWorker.class.getSimpleName();
     
     @Override
@@ -41,7 +49,7 @@ public class UpdateContattiInadServiceWorker extends ServiceWorker {
     }
     
     @Override
-    public WorkerResult doWork() throws MasterjobsWorkerException {
+    public WorkerResult doWork() throws MasterjobsWorkerException{
         log.info("sono il " + getName() + " e sto funzionando...");
         
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
@@ -52,22 +60,28 @@ public class UpdateContattiInadServiceWorker extends ServiceWorker {
             .fetch();
         
         for (Integer idAzienda : idAziende) {
-            List<ParametroAziende> parameters = parametriAziendaReader.getParameters(ParametriAziendeReader.ParametriAzienda.numeroContattiInadAggiornabili, new Integer[]{idAzienda});
-            
-            if(!parameters.isEmpty()){
-                Integer numeroContattiInadAggiornabili = Integer.valueOf(parameters.get(0).getValore());
+            //controllo enabled su parametri recupero anche numeroContattiInadAggiornabili
+            InadParameters buildedParameters = null;
+            try {
+                
+                buildedParameters = inadParameters.buildParameters(idAzienda, parametriAziendaReader, objectMapper);
+            } catch (JsonProcessingException ex) {
+                throw new MasterjobsWorkerException("fallito il build dei parametri inad", ex);
+            }
+            if(buildedParameters != null && buildedParameters.getEnabled()){
+                Integer numeroContattiInadAggiornabili = buildedParameters.getNumeroContattiAggiornabili();
+                        
                 //aggiungere il workerData col parametro 
                 UpdateContattiInadJobWorkerData updateContattiInadJobWorkerData = new UpdateContattiInadJobWorkerData(numeroContattiInadAggiornabili, idAzienda);
                 UpdateContattiInadJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(
                             UpdateContattiInadJobWorker.class, 
                             updateContattiInadJobWorkerData, 
                             false);
-                
                 try {
                     super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.gedi.toString(), false, Set.SetPriority.NORMAL);
                 } catch (MasterjobsQueuingException ex) {
                     String errorMessage = "errore nell'accodamento del job di" + getName();
-                    log.error(errorMessage);
+                    log.error(errorMessage, ex);
                     throw new MasterjobsWorkerException(errorMessage, ex);
                 }
             }
