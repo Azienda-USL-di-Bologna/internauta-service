@@ -25,6 +25,8 @@ import it.bologna.ausl.model.entities.scripta.Doc;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -615,6 +617,78 @@ public class KrintScriptaService {
         } catch (Exception ex) {
             log.error("Errore nella writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi con archivio " + idArchivio.toString(), ex);
             krintService.writeKrintError(idArchivio, "writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi", operazione);
+        }
+    }
+    
+    
+    /**
+     * Andiamo a loggare l'evento massivo di copia o di trasferimento delle abiltiazioni
+     * negli archivi. Le frasi tipiche saranno ad esempio:
+     * - L'amministratore Bingo Bongo ha copiato le abilitazioni sul fascicolo di Trovato Nascosto dandole a Fernandello Mio. Le abilitazioni ottenute da Fernandello Mio sono: Vicario, Elimina.
+     * - L'amministratore Bingo Bongo ha trasferito le abilitazioni sul fascicolo di Trovato Nascosto dandole a Fernandello Mio. Le abilitazioni ottenute da Fernandello Mio sono: Responsabile, Vicario, Elimina.
+     * In caso di trasferimento dove il destinario aveva già le abilitazioni:
+     * - L'amministratore Bingo Bongo ha trasferito le abilitazioni sul fascicolo di Trovato Nascosto dandole a Fernandello Mio. Fernandello Mio non ha ottenuto ulteriori abilitazioni oltre a quelle già possedute.
+     * @param idArchivio
+     * @param personaSorgente
+     * @param personaDestinazione
+     * @param abilitazioniAggiunte
+     * @param numerazioneGerarchica
+     * @param idMassiveActionLog
+     * @param idArchivioRadice
+     * @param operazione 
+     */
+    public void writeCopiaTrasferimentoAbilitazioniArchivi(
+            Integer idArchivio,
+            Persona personaSorgente,
+            Persona personaDestinazione,
+            List<String> abilitazioniAggiunte,
+            String numerazioneGerarchica,
+            Integer idArchivioRadice,
+            Integer idMassiveActionLog,
+            OperazioneKrint.CodiceOperazione operazione
+    ) {
+        try {
+            String descrizioneAzione = null;
+            if (operazione.equals(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_TRASFERIMENTO_MASSIVO_ABILITAZIONI)) {
+                if (abilitazioniAggiunte.isEmpty()) {
+                    descrizioneAzione = String.format("<b>%1$s</b> non ha ottenuto ulteriori abilitazioni oltre a quelle già possedute.", personaDestinazione.getDescrizione());
+                } else {
+                    descrizioneAzione = String.format("Le abilitazioni ottenute da <b>%1$s</b> sono: <b>" + String.join("</b>, ", abilitazioniAggiunte) + "</b>.", personaDestinazione.getDescrizione());
+                }
+            } else {
+                descrizioneAzione = String.format("Le abilitazioni ottenute da <b>%1$s</b> sono: <b>" + String.join("</b>, ", abilitazioniAggiunte) + "</b>.", personaDestinazione.getDescrizione());
+            }
+            
+            // Informazioni oggetto contenitore
+            HashMap<String, Object> krintArchivio = new HashMap();
+            krintArchivio.put("idArchivio", idArchivio);
+            krintArchivio.put("numerazioneGerarchica", numerazioneGerarchica);
+            krintArchivio.put("idMassiveActionLog", idMassiveActionLog);
+            krintArchivio.put("idPersonaSorgente", personaSorgente.getId());
+            krintArchivio.put("descrizionePersonaSorgente", personaSorgente.getDescrizione());
+            krintArchivio.put("idPersonaDestinazione", personaDestinazione.getId());
+            krintArchivio.put("descrizionePersonaDestinazione", personaDestinazione.getDescrizione());
+            krintArchivio.put("abilitazioniAggiunte", abilitazioniAggiunte);
+            krintArchivio.put("descrizioneAzione", descrizioneAzione);
+            
+            Pattern pattern = Pattern.compile("(\\d+)-?(\\d+)?-?(\\d+)?(\\/)(\\d+)");
+            Matcher matcher = pattern.matcher(numerazioneGerarchica);
+            String numerazioneGerarchicaRadice = matcher.replaceAll("$1/$5");
+            
+            krintService.writeKrintRow(
+                    idArchivio.toString(), // idOggetto
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
+                    numerazioneGerarchica, // descrizioneOggetto
+                    krintArchivio, // informazioniOggetto
+                    idArchivioRadice.toString(), // Da qui si ripete ma per il conenitore
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
+                    numerazioneGerarchicaRadice,
+                    krintArchivio,
+                    operazione
+            );
+        } catch (Exception ex) {
+            log.error("Errore nella writeCopiaTrasferimentoAbilitazioniArchivi con archivio " + idArchivio.toString(), ex);
+            krintService.writeKrintError(idArchivio, "writeCopiaTrasferimentoAbilitazioniArchivi", operazione);
         }
     }
 }
