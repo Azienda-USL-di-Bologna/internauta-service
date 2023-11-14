@@ -262,7 +262,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         }
         Boolean recuperaDomicilioDigitaleInad = false;
         if (buildParameters != null){
-            recuperaDomicilioDigitaleInad=buildParameters.getEnabled();
+            recuperaDomicilioDigitaleInad = buildParameters.getEnabled();
         }
         
         Contatto oldContatto;

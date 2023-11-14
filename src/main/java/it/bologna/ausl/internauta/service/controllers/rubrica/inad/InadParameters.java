@@ -41,6 +41,7 @@ import okhttp3.Response;
 import org.jose4j.base64url.internal.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 /**
  *
@@ -48,6 +49,7 @@ import org.slf4j.LoggerFactory;
  * parametri per le chiamate
  *
  */
+@Component
 public class InadParameters {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(InadParameters.class);
