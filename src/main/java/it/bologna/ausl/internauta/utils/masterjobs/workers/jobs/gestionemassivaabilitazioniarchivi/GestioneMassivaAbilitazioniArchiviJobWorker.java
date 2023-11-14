@@ -145,7 +145,7 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         // Eliminazione vicari
         List<Integer> idPersonaVicariDaRimuovere = abilitazioniRichieste.getIdPersonaVicariDaRimuovere();
         if (idPersonaVicariDaRimuovere != null) {
-            List<Map<String, Object>> vicariRimossi = attoreArchivioRepository.deleteVicari(idsArchivi, idPersonaVicariDaRimuovere.toArray(new Integer[0]));
+            List<Map<String, Object>> vicariRimossi = attoreArchivioRepository.deleteVicariByIdArchiviAndIdPersone(idsArchivi, idPersonaVicariDaRimuovere.toArray(new Integer[0]));
             for (Map<String, Object> vicarioRimosso : vicariRimossi) {
                 InfoArchivio infoArchivio = mappaArchivi.get((Integer)vicarioRimosso.get("idArchivio"));
                 infoArchivio.getVicariEliminati().add((Integer)vicarioRimosso.get("idPersona"));
@@ -156,7 +156,6 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         }
         
         log.info(String.format("Eliminazione permessi"));
-        // Eliminazione permessi
         List<Integer> idPersonaPermessiDaRimuovere = abilitazioniRichieste.getIdPersonaPermessiDaRimuovere();
         if (idPersonaPermessiDaRimuovere != null) {
             List<Map<String, Object>> permessiSpenti = permessoRepository.spegniPermessiArchiviGestioneMassiva(idPersonaPermessiDaRimuovere.toArray(new Integer[0]), idsArchivi);
@@ -170,7 +169,6 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         }
         
         log.info(String.format("Inserimento vicari"));
-        // Inserimento vicari
         List<Integer> idPersonaVicariDaAggiungere = abilitazioniRichieste.getIdPersonaVicariDaAggiungere();
         if (idPersonaVicariDaAggiungere != null) {
             String idsPersoneVicariDaAggiungereString = idPersonaVicariDaAggiungere.stream().map(String::valueOf).collect(Collectors.joining(","));
@@ -185,7 +183,6 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         }
         
         log.info(String.format("Inserimento permessi"));
-        // Inserimento permessi
         List<InfoAbilitazioniMassiveArchivi.PermessoPersona> permessiPersonaDaAggiungere = abilitazioniRichieste.getPermessiPersonaDaAggiungere();
         if (permessiPersonaDaAggiungere != null) {
             for (InfoAbilitazioniMassiveArchivi.PermessoPersona permessoPersona : permessiPersonaDaAggiungere) {
