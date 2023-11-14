@@ -4,11 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
-import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
+import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadParameters;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintRubricaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
@@ -16,8 +16,6 @@ import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
-import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
-import it.bologna.ausl.internauta.service.repositories.rubrica.EmailRepository;
 import it.bologna.ausl.internauta.service.rubrica.utils.similarity.SqlSimilarityResults;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
@@ -29,8 +27,6 @@ import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
-import it.bologna.ausl.model.entities.rubrica.Email;
-import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
@@ -39,8 +35,6 @@ import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -87,6 +81,9 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         
     @Autowired
     private InadManager inadManager;
+    
+    @Autowired
+    private InadParameters inadParameteres;
     
     @Autowired
     private AziendaRepository aziendaRepository;
@@ -257,11 +254,17 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         
         AuthenticatedSessionData authenticatedUserProperties = getAuthenticatedUserProperties();
         Contatto contatto = (Contatto) entity;
-        List<ParametroAziende> parameters = parametriAziende.getParameters("recuperaDomicilioDigitaleInad", contatto.getIdAziende(), new String[]{Applicazione.Applicazioni.rubrica.toString()});
-        Boolean recuperaDomicilioDigitaleInad = false;
-        if (parameters != null && !parameters.isEmpty()) {
-            recuperaDomicilioDigitaleInad = parametriAziende.getValue(parameters.get(0), Boolean.class);
+        InadParameters buildParameters = null;
+        try {
+            buildParameters = inadParameteres.buildParameters(authenticatedUserProperties.getUser().getIdAzienda().getId(), parametriAziende, objectMapper);
+        } catch (JsonProcessingException ex) {
+            LOGGER.error("errore nel reperimento degli inad parameter",ex);
         }
+        Boolean recuperaDomicilioDigitaleInad = false;
+        if (buildParameters != null){
+            recuperaDomicilioDigitaleInad = buildParameters.getEnabled();
+        }
+        
         Contatto oldContatto;
         try {
             oldContatto = super.getBeforeUpdateEntity(beforeUpdateEntityApplier, Contatto.class);

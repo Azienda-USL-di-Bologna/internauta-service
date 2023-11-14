@@ -1,5 +1,7 @@
 package it.bologna.ausl.model.entities.rubrica.projections;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
@@ -10,9 +12,11 @@ import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
+import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadParameters;
 import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
 import it.bologna.ausl.internauta.service.repositories.rubrica.EmailRepository;
 import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
@@ -24,12 +28,11 @@ import it.bologna.ausl.model.entities.logs.projections.KrintRubricaGruppoContatt
 import it.bologna.ausl.model.entities.permessi.Entita;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.DettaglioContatto;
-import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.GruppiContatti;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.DettaglioContattoWithPlainFields;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +73,15 @@ public class RubricaProjectionsUtils {
     
     @Autowired
     private InadManager inadManager;
+    
+    @Autowired
+    private InadParameters inadParameters;
+    
+    @Autowired
+    private ParametriAziendeReader parametriAziendeReader;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
     
     @Autowired
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
@@ -192,11 +204,24 @@ public class RubricaProjectionsUtils {
         if (authenticatedUserProperties == null){
             return null;
         }else {
-            inadManager.getDomicilioDigitaleFromCF(
-                    authenticatedUserProperties.getUser().getIdAzienda(),
-                    contatto, 
-                    dettaglioContattoRepository, 
-                    emailRepository);    
+            
+            Boolean controllaDomiciliDigitali = false;
+            
+            try {
+                InadParameters buildParameters = inadParameters.buildParameters(authenticatedUserProperties.getUser().getIdAzienda().getId(), parametriAziendeReader, objectMapper);
+                controllaDomiciliDigitali = buildParameters.getEnabled();
+            } catch (JsonProcessingException ex) {
+                LOGGER.error("errore nel reperimento dei parametri inad",ex);
+            }
+            
+            if (controllaDomiciliDigitali){
+                inadManager.getDomicilioDigitaleFromCF(
+                        authenticatedUserProperties.getUser().getIdAzienda(),
+                        contatto, 
+                        dettaglioContattoRepository, 
+                        emailRepository);
+            }
+            
             List<DettaglioContatto> dettagliContattiList = contatto.getDettaglioContattoList();
             List<DettaglioContattoWithPlainFields> dettaglioContattoWithPlainFieldsList = dettagliContattiList.stream().map(dc -> projectionFactory.createProjection(DettaglioContattoWithPlainFields.class, dc)).collect(Collectors.toList());    
             return dettaglioContattoWithPlainFieldsList;
