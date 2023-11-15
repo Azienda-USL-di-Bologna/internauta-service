@@ -1105,6 +1105,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
      * it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException
      */
     @RequestMapping(value = "calcolaPermessiEsplicitiGerarchiaArchivio", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> calcolaPermessiEsplicitiGerarchiaArchivio(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
             HttpServletRequest request) throws MasterjobsWorkerException {
