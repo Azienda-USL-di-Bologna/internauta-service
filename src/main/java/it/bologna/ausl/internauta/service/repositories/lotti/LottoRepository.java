@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 
+import java.util.List;
+import java.util.Optional;
+
 /**
  *
  * @author QB
@@ -21,4 +24,7 @@ public interface LottoRepository extends
     
     @Query(value = "select * from lotti.lotti where cig = ?1", nativeQuery = true)
     public Lotto findByCIG(String cig);
+
+    @Query(value = "select * from lotti.lotti where id_doc IN (SELECT dd.id FROM scripta.docs_details dd WHERE guid_documento = ?1)", nativeQuery = true)
+    public List<Lotto> findByGuidDocumento(String guidDocumento);
 }
