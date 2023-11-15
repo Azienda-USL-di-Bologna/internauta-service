@@ -424,8 +424,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 }
 
                 response.setHeader("X-Frame-Options", "sameorigin");
-                response.setHeader("Content-Disposition", ";filename=" + allegato.getNome() + ".pdf");
-
+                String nomeAllegato = allegato.getNome().replaceAll("([^\\wàèìùòé\\-. \\n]+)", "_");
+                response.setHeader("Content-Disposition", ";filename=" + nomeAllegato + ".pdf");
+                
                 if (dettaglioAllegato == null) {
                     if (tipoDettaglioAllegato.equals(Allegato.DettagliAllegato.TipoDettaglioAllegato.CONVERTITO)) {
                         // File mai convertito, lo converto e lo scarico
