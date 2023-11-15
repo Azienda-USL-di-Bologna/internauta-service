@@ -69,8 +69,11 @@ public class InadController implements ControllerHandledExceptions{
             HttpServletRequest request) throws BlackBoxPermissionException, AuthorizationUtilsException{
         projectionsInterceptorLauncher.setRequestParams(null, request);
         Email domicilioDigitale = inadManager.getAlwaysAndSaveDomicilioDigitale(idContatto);
-        
-        return new ResponseEntity(projectionFactory.createProjection(EmailWithIdContattoAndIdDettaglioContatto.class, domicilioDigitale),  HttpStatus.OK);
+        if (domicilioDigitale!= null) {
+            return new ResponseEntity(projectionFactory.createProjection(EmailWithIdContattoAndIdDettaglioContatto.class, domicilioDigitale),  HttpStatus.OK);
+        } else {
+            return null;
+        }
     }
     
     

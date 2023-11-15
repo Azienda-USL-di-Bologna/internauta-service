@@ -161,6 +161,7 @@ public class InadManager {
             EmailRepository emailRepository) throws AuthorizationUtilsException {
             //chiedo a inad i contatti del codice fiscale 
             
+            
             InadExtractResponse responseObj = extract( azienda.getId(),contattoDaVerificare.getCodiceFiscale());
             
             updateOrCreateDettaglioContattoFromInadExtractResponse(responseObj);
@@ -180,37 +181,39 @@ public class InadManager {
         try {
             //inizio a generare il clientAssertion
             InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
-            String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
-            //inizio a generare il jwt da mandare a 
-            String tokenJWT = inadParameters.getToken(clientAssertion);
-            URI uri = new URIBuilder(
-                    inadParameters.getConnection().getUrlDocomicilioDigitale() + 
-                    DomicilioDigitalePath.extract + 
-                    codiceFiscale
-                ).addParameter("practicalReference", "abc")
-                .build();
-            
-            Request request = new Request.Builder()
-                .get()
-                .url(uri.toString())
-                .addHeader("accept", "application/json")
-                .addHeader("Authorization", "Bearer " + tokenJWT)
-                .build();
-            
-            OkHttpClient httpClient = httpClientManager.getHttpClient();
-            InadExtractResponse inadExtractResponse = new InadExtractResponse();
-            inadExtractResponse.setCodiceFiscale(clientAssertion);
-            Call call = httpClient.newCall(request);
-            try (Response response = call.execute();) {
-                int responseCode = response.code();
-                if (response.isSuccessful()) {
-                    ResponseBody body = response.body();
-                    inadExtractResponse = objectMapper.readValue(body.byteStream(), InadExtractResponse.class);
-                } else {
-                    LOGGER.error("errore nella extract dei domicili digitali chiamata fallita");
+            if (inadParameters.getEnabled()) {
+                String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
+                //inizio a generare il jwt da mandare a 
+                String tokenJWT = inadParameters.getToken(clientAssertion);
+                URI uri = new URIBuilder(
+                        inadParameters.getConnection().getUrlDocomicilioDigitale() + 
+                        DomicilioDigitalePath.extract + 
+                        codiceFiscale
+                    ).addParameter("practicalReference", "abc")
+                    .build();
+
+                Request request = new Request.Builder()
+                    .get()
+                    .url(uri.toString())
+                    .addHeader("accept", "application/json")
+                    .addHeader("Authorization", "Bearer " + tokenJWT)
+                    .build();
+
+                OkHttpClient httpClient = httpClientManager.getHttpClient();
+                InadExtractResponse inadExtractResponse = new InadExtractResponse();
+                inadExtractResponse.setCodiceFiscale(clientAssertion);
+                Call call = httpClient.newCall(request);
+                try (Response response = call.execute();) {
+                    int responseCode = response.code();
+                    if (response.isSuccessful()) {
+                        ResponseBody body = response.body();
+                        inadExtractResponse = objectMapper.readValue(body.byteStream(), InadExtractResponse.class);
+                    } else {
+                        LOGGER.error("errore nella extract dei domicili digitali chiamata fallita");
+                    }
                 }
+                return inadExtractResponse;
             }
-            return inadExtractResponse;
         } catch (Exception ex) {
             LOGGER.error("errore nella extract dei domicili digitali", ex);
         }
