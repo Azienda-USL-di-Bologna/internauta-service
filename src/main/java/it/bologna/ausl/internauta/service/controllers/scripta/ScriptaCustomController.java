@@ -8,9 +8,10 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
-import it.bologna.ausl.internauta.service.repositories.lotti.ContraenteRepository;
 import it.bologna.ausl.internauta.service.repositories.lotti.LottoRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.PdfAReporter;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.result.ReporterJobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.result.UrlAndUuidResult;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
@@ -145,7 +146,6 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.copiatrasferisci
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.GestioneMassivaAbilitazioniArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerResult;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.versatore.VersatoreServiceUtils;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
@@ -158,8 +158,6 @@ import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.projections.generated.DocDocWithPlainFields;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.Versamento;
-import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.ERRORE_RITENTABILE;
-import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.FORZARE;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -2449,8 +2447,6 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
         PdfAReporter jobWorker = masterjobsObjectsFactory.getJobWorker(PdfAReporter.class, data, false);
 
-        ReporterJobWorkerResult result = (ReporterJobWorkerResult) jobWorker.doWork();
-
-        return new ResponseEntity<>(result, HttpStatus.OK);
+        return new ResponseEntity<>((UrlAndUuidResult) jobWorker.doWork(), HttpStatus.OK);
     }
 }
