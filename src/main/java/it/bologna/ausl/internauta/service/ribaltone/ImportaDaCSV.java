@@ -989,7 +989,7 @@ public class ImportaDaCSV {
                     //Reading with CsvMapReader
                     Map<String, Object> trasformazioniMap;
                     while ((trasformazioniMap = mapReader.read(headers, processors)) != null) {
-                        if (salvaSuMdrSporco && !utente.getUsername().equals("RIBALTONE")){
+                        if (salvaSuMdrSporco && !utente.getUsername().equals("RIBALTONE") && !utente.getUsername().equalsIgnoreCase("bds")){
                             Integer lastProgressivoRiga = mdrTrasformazioniSporcheRepository.getLastProgressivoRiga(idAzienda);
                             if (lastProgressivoRiga != null) {
                                 lastProgressivoRiga +=1;
@@ -1078,9 +1078,12 @@ public class ImportaDaCSV {
     //                      CODICE ENTE
                             String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(trasformazioniMap, mapError, codiceAzienda);
                             mT.setCodiceEnte(codiceEnte);
-                            anomalia = codiceEnte.equals(codiceAzienda) ? true : anomalia;
-                            nRigheAnomale = codiceEnte.equals(codiceAzienda) ? nRigheAnomale++ : nRigheAnomale;
-
+                            if (!codiceEnte.equals(codiceAzienda)) {
+                                anomalia = true;
+                                nRigheAnomale++;
+                                mapError.put("ERRORE", mapError.get("ERRORE") + "codice ente diverso da quello atteso");
+                            } 
+                            
     //                      MOTIVO
                             if (trasformazioniMap.get("motivo") == null
                                     || trasformazioniMap.get("motivo").toString().trim().equals("")
