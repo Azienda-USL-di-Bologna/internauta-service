@@ -6,6 +6,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
+import it.bologna.ausl.internauta.model.bds.types.CategoriaPermessiStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
@@ -296,6 +297,8 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
         
         permessiBlackBoxPersonaSorgente = permessiBlackBoxPersonaSorgente.stream().filter(p -> idArchiviFiltrati.contains(p.getOggetto().getIdProvenienza())).collect(Collectors.toList());
         
+        
+        
         // Mi creo delle mappe molto utili
         Map<Integer, String> mappaArchiviConPermessoPiuAltoPersonaSorgente = getMappaArchiviConPermessoPiuAltoDaPermessiBlackBox(permessiBlackBoxPersonaSorgente);
         Map<Integer, PermessoEntitaStoredProcedure> mappaArchiviConOggettoneBlackBoxCorrispondenteSorgente = getMappaArchiviConOggettoneBlackBoxCorrispondente(permessiBlackBoxPersonaSorgente);
@@ -375,7 +378,7 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
             if (devoInserireIlNuovoPermesso) {
                 archiviInfo.get(idArchivio).getAbilitazioniAggiunte().add(predicatoPiuAltoSorgente);
                 
-                PermessoEntitaStoredProcedure nuovoOggettone = null;
+                PermessoEntitaStoredProcedure nuovoOggettone;
                 
                 if (oggettoneDestinazione != null) {
                     /**
@@ -397,21 +400,49 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                     oggettoneDestinazione.getCategorie().get(0).setPermessi(permessiFiltrati);
                     nuovoOggettone = oggettoneDestinazione;
                 } else {
-                    /* La destianzione non ha già qualche permesso su questo archivio, 
-                       allora costusisco io l'oggettone, lo faccio prendendo quello della sorgente modifcandolo opportunamente
+                    /* La destinazione non ha già qualche permesso su questo archivio, 
+                       allora costusisco io l'oggettone
                     */
-                    oggettoneSorgente.setSoggetto(entitaSoggetto);
-                    oggettoneSorgente.getCategorie().get(0).setPermessi(Arrays.asList(new PermessoStoredProcedure[]{
-                        createPermessoStoredProcedure(
-                                predicatoPiuAltoSorgente,
-                                predicatoSorgentePropagato,
-                                strutturaVeicolante
-                        )
-                    }));
-                    nuovoOggettone = oggettoneSorgente;
+                    EntitaStoredProcedure entitaOggetto = new EntitaStoredProcedure(
+                            oggettoneSorgente.getOggetto().getIdProvenienza(), 
+                            oggettoneSorgente.getOggetto().getSchema(), 
+                            oggettoneSorgente.getOggetto().getTable()
+                    );
+                    nuovoOggettone = new PermessoEntitaStoredProcedure(
+                            entitaSoggetto,
+                            entitaOggetto,
+                            Arrays.asList(new CategoriaPermessiStoredProcedure[]{
+                                new CategoriaPermessiStoredProcedure(
+                                        "SCRIPTA", 
+                                        "ARCHIVIO", 
+                                        Arrays.asList(new PermessoStoredProcedure[]{
+                                            createPermessoStoredProcedure(
+                                                    predicatoPiuAltoSorgente,
+                                                    predicatoSorgentePropagato,
+                                                    strutturaVeicolante
+                                            )
+                                        })
+                                )}
+                            )
+                    );
+//                    oggettoneSorgente.setSoggetto(entitaSoggetto);
+//                    oggettoneSorgente.getCategorie().get(0).setPermessi(Arrays.asList(new PermessoStoredProcedure[]{
+//                        createPermessoStoredProcedure(
+//                                predicatoPiuAltoSorgente,
+//                                predicatoSorgentePropagato,
+//                                strutturaVeicolante
+//                        )
+//                    }));
+//                    nuovoOggettone = oggettoneSorgente;
                 }
                 
                 permessiDaSalvare.add(nuovoOggettone);
+                
+                // Altra cosa che devo fare in caso di TRASFERIMENTO, è spegnere i permessi della sorgente
+                if (operationType.equals(MassiveActionLog.OperationType.TRASFERISCI_ABILITAZIONI)) {
+                    oggettoneSorgente.getCategorie().get(0).setPermessi(new ArrayList());
+                    permessiDaSalvare.add(oggettoneSorgente);
+                }
             }
         }
         

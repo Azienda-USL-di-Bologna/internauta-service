@@ -36,6 +36,7 @@ import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import it.bologna.ausl.model.entities.scrivania.Attivita.TipoAttivita;
+import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -287,13 +288,13 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
 
     @Override
     public boolean isExecutable() {
-        return true; // Per il momento lo eseguiamo subito perché dobbiamo fare la presentazione.
+//        return true; // Per il momento lo eseguiamo subito perché dobbiamo fare la presentazione.
         // Controllo se now è tra le 7 e le 18, se si torno false se no torno true
-//        ZonedDateTime now = ZonedDateTime.now();
-//        LocalTime oraCorrente = now.toLocalTime();
-//        LocalTime inizioOrario = LocalTime.of(7, 0);   // 7:00
-//        LocalTime fineOrario = LocalTime.of(18, 0);    // 18:00
-//        return !(oraCorrente.isAfter(inizioOrario) && oraCorrente.isBefore(fineOrario));
+        ZonedDateTime now = ZonedDateTime.now();
+        LocalTime oraCorrente = now.toLocalTime();
+        LocalTime inizioOrario = LocalTime.of(7, 0);   // 7:00
+        LocalTime fineOrario = LocalTime.of(18, 0);    // 18:00
+        return !(oraCorrente.isAfter(inizioOrario) && oraCorrente.isBefore(fineOrario));
     }
     
     private void insertAttivita(Azienda azienda, Persona persona, String oggetto, Applicazione app) {
