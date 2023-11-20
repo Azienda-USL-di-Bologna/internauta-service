@@ -993,6 +993,8 @@ public class TipTransferManager {
      * @throws TipTransferBadDataException se c'è qualche errore da segnalare all'utente
      */
     private Doc transferPrecedente(Doc doc, SessioneImportazione sessioneImportazione, ImportazioneDocumento importazioneDocumento, Persona persona) throws TipTransferUnexpectedException {
+        
+        entityManager.persist(doc);
         // per poter settare il precedente il doc deve avere la riga in registri_docs con il numero, se non c'è devo dare errore
         if (StringUtils.hasText(importazioneDocumento.getCollegamentoPrecedente()) && (doc.getRegistroDocList() == null || doc.getRegistroDocList().isEmpty())) {
             String errorMessage = "impossibile inserire il precedente perché c'è un errore nell'importazione del registro";
@@ -1045,8 +1047,8 @@ public class TipTransferManager {
                     docSorgente.setDocsCollegati(docsCollegati);
                 }
                 docSorgente.getDocsCollegati().add(new DocDoc(docSorgente, doc, DocDoc.TipoCollegamentoDoc.PRECEDENTE, persona));
+                entityManager.persist(docSorgente);
             }
-            // salvare?
         }
         
         if (StringUtils.hasText(importazioneDocumento.getCollegamentoPrecedente())) {
