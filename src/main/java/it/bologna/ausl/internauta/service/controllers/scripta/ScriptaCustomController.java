@@ -2309,13 +2309,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento,
             @RequestParam(required = true, name = "idPersonaSorgente") Integer idPersonaSorgente,
             @RequestParam(required = true, name = "idPersonaDestinazione") Integer idPersonaDestinazione,
-            @RequestParam(required = false, name = "idStrutturaNuovoResponsabile") Integer idStrutturaNuovoResponsabile
-    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException, MasterjobsWorkerInitializationException, MasterjobsWorkerException {
+            @RequestParam(required = false, name = "idStrutturaDestinazione") Integer idStrutturaDestinazione
+    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException, MasterjobsWorkerInitializationException, MasterjobsWorkerException, MasterjobsQueuingException {
         
         log.info("Richiesta di copia/trasferimento abilitazioni archvi");
         
-        log.info(String.format("PARAMETRI. operationType: %1$s, idAziendaRiferimento: %2$s, idPersonaSorgente: %3$s, idPersonaDestinazione: %4$s, idStrutturaNuovoResponsabile %5$s", 
-                operationType, idAziendaRiferimento, idPersonaSorgente, idPersonaDestinazione, idStrutturaNuovoResponsabile));
+        log.info(String.format("PARAMETRI. operationType: %1$s, idAziendaRiferimento: %2$s, idPersonaSorgente: %3$s, idPersonaDestinazione: %4$s, idStrutturaDestinazione %5$s", 
+                operationType, idAziendaRiferimento, idPersonaSorgente, idPersonaDestinazione, idStrutturaDestinazione));
         
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
@@ -2363,7 +2363,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 operationType, 
                 idPersonaSorgente, 
                 idPersonaDestinazione, 
-                idStrutturaNuovoResponsabile, 
+                idStrutturaDestinazione, 
                 idMassiveActionLog, 
                 authenticatedUserProperties.getPerson().getId(), 
                 authenticatedUserProperties.getUser().getId(), 
@@ -2372,22 +2372,31 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         );
          
         // Esecuzione sincrono per fare delle prove
-//        CopiaTrasferisciAbilitazioniArchiviJobWorker worker = (CopiaTrasferisciAbilitazioniArchiviJobWorker) masterjobsObjectsFactory.getJobWorker(
-//                CopiaTrasferisciAbilitazioniArchiviJobWorker.class,
-//                copiaTrasferisciAbilitazioniArchiviJobWorkerData,
-//                false
-//        );
+        CopiaTrasferisciAbilitazioniArchiviJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
+                CopiaTrasferisciAbilitazioniArchiviJobWorker.class,
+                copiaTrasferisciAbilitazioniArchiviJobWorkerData,
+                false
+        );
+        masterjobsJobsQueuer.queueInJobsNotified(
+                    jobWorker,
+                    null, // ObjectID 
+                    null, 
+                    app.getId(), 
+                    false, // waitForObject
+                    Set.SetPriority.NORMAL,
+                    false
+            );
 //        worker.doWork();
     
-        Map copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(copiaTrasferisciAbilitazioniArchiviJobWorkerData, Map.class);
-        JobNotified jn = new JobNotified();
-        jn.setJobName("CopiaTrasferisciAbilitazioniArchiviJobWorker");
-        jn.setJobData(copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap);
-        jn.setWaitObject(false);
-        jn.setApp(app.getId());
-        jn.setPriority(Set.SetPriority.NORMAL);
-        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
-        jobNotifiedRepository.save(jn);
+//        Map copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(copiaTrasferisciAbilitazioniArchiviJobWorkerData, Map.class);
+//        JobNotified jn = new JobNotified();
+//        jn.setJobName("CopiaTrasferisciAbilitazioniArchiviJobWorker");
+//        jn.setJobData(copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap);
+//        jn.setWaitObject(false);
+//        jn.setApp(app.getId());
+//        jn.setPriority(Set.SetPriority.NORMAL);
+//        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
+//        jobNotifiedRepository.save(jn);
         
         Map<String, Object> response = new HashMap();
         
