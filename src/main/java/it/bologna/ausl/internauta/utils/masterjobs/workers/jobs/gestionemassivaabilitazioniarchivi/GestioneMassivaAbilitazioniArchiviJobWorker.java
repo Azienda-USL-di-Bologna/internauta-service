@@ -36,6 +36,7 @@ import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
 import it.bologna.ausl.model.entities.scrivania.Attivita.TipoAttivita;
+import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -145,7 +146,7 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         // Eliminazione vicari
         List<Integer> idPersonaVicariDaRimuovere = abilitazioniRichieste.getIdPersonaVicariDaRimuovere();
         if (idPersonaVicariDaRimuovere != null) {
-            List<Map<String, Object>> vicariRimossi = attoreArchivioRepository.deleteVicari(idsArchivi, idPersonaVicariDaRimuovere.toArray(new Integer[0]));
+            List<Map<String, Object>> vicariRimossi = attoreArchivioRepository.deleteVicariByIdArchiviAndIdPersone(idsArchivi, idPersonaVicariDaRimuovere.toArray(new Integer[0]));
             for (Map<String, Object> vicarioRimosso : vicariRimossi) {
                 InfoArchivio infoArchivio = mappaArchivi.get((Integer)vicarioRimosso.get("idArchivio"));
                 infoArchivio.getVicariEliminati().add((Integer)vicarioRimosso.get("idPersona"));
@@ -156,7 +157,6 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         }
         
         log.info(String.format("Eliminazione permessi"));
-        // Eliminazione permessi
         List<Integer> idPersonaPermessiDaRimuovere = abilitazioniRichieste.getIdPersonaPermessiDaRimuovere();
         if (idPersonaPermessiDaRimuovere != null) {
             List<Map<String, Object>> permessiSpenti = permessoRepository.spegniPermessiArchiviGestioneMassiva(idPersonaPermessiDaRimuovere.toArray(new Integer[0]), idsArchivi);
@@ -170,7 +170,6 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         }
         
         log.info(String.format("Inserimento vicari"));
-        // Inserimento vicari
         List<Integer> idPersonaVicariDaAggiungere = abilitazioniRichieste.getIdPersonaVicariDaAggiungere();
         if (idPersonaVicariDaAggiungere != null) {
             String idsPersoneVicariDaAggiungereString = idPersonaVicariDaAggiungere.stream().map(String::valueOf).collect(Collectors.joining(","));
@@ -185,7 +184,6 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
         }
         
         log.info(String.format("Inserimento permessi"));
-        // Inserimento permessi
         List<InfoAbilitazioniMassiveArchivi.PermessoPersona> permessiPersonaDaAggiungere = abilitazioniRichieste.getPermessiPersonaDaAggiungere();
         if (permessiPersonaDaAggiungere != null) {
             for (InfoAbilitazioniMassiveArchivi.PermessoPersona permessoPersona : permessiPersonaDaAggiungere) {
@@ -246,24 +244,25 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
             oggettoAttivita = String.format("La modifica massiva, che hai richiesto il %1$s alle %2$s, di vicari e permessi di %3$s fascicoli e relativi sottofascicoli è avvenuta con successo.", dataFormattata, orarioFormattato, idsArchivi.length);
         insertAttivita(azienda, personaOperazione, oggettoAttivita, app);
         
-        log.info(String.format("Notifico i vari utenti"));
-        // Notifiche agli utenti coinvolti
-        for (Map.Entry<Integer, InfoPersona> entry : mappaPersone.entrySet()) {
-            Integer idPersona = entry.getKey();
-            InfoPersona info = entry.getValue();
-            HashSet<Integer> idArchiviCoinvolti = new HashSet();
-            idArchiviCoinvolti.addAll(info.getPermessiOttenuti());
-            idArchiviCoinvolti.addAll(info.getPermessiPerduti());
-            idArchiviCoinvolti.addAll(info.getVicariatiOttenuti());
-            idArchiviCoinvolti.addAll(info.getVicariatiPerduti());
-            if (!idArchiviCoinvolti.isEmpty()) {
-                if (idArchiviCoinvolti.size() == 1) 
-                    oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di un fascicolo che ti coinvolgono.", personaOperazione.getDescrizione());
-                else
-                    oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di %2$s fascicoli che ti coinvolgono.", personaOperazione.getDescrizione(), idArchiviCoinvolti.size());
-                insertAttivita(azienda, info.getPersona(), oggettoAttivita, app);
-            }
-        }
+        // Commentato in quanto non più voluto (ma funzionanete se serve rimetterlo)
+//        log.info(String.format("Notifico i vari utenti"));
+//        // Notifiche agli utenti coinvolti
+//        for (Map.Entry<Integer, InfoPersona> entry : mappaPersone.entrySet()) {
+//            Integer idPersona = entry.getKey();
+//            InfoPersona info = entry.getValue();
+//            HashSet<Integer> idArchiviCoinvolti = new HashSet();
+//            idArchiviCoinvolti.addAll(info.getPermessiOttenuti());
+//            idArchiviCoinvolti.addAll(info.getPermessiPerduti());
+//            idArchiviCoinvolti.addAll(info.getVicariatiOttenuti());
+//            idArchiviCoinvolti.addAll(info.getVicariatiPerduti());
+//            if (!idArchiviCoinvolti.isEmpty()) {
+//                if (idArchiviCoinvolti.size() == 1) 
+//                    oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di un fascicolo che ti coinvolgono.", personaOperazione.getDescrizione());
+//                else
+//                    oggettoAttivita = String.format("L'amministratore %1$s ha modificato le abilitazioni di %2$s fascicoli che ti coinvolgono.", personaOperazione.getDescrizione(), idArchiviCoinvolti.size());
+//                insertAttivita(azienda, info.getPersona(), oggettoAttivita, app);
+//            }
+//        }
         
         // Aggiorno la massiveActionLog
         log.info(String.format("Aggiorno la massiveActionLog"));
@@ -289,13 +288,13 @@ public class GestioneMassivaAbilitazioniArchiviJobWorker extends JobWorker<Gesti
 
     @Override
     public boolean isExecutable() {
-        return true; // Per il momento lo eseguiamo subito perché dobbiamo fare la presentazione.
+//        return true; // Per il momento lo eseguiamo subito perché dobbiamo fare la presentazione.
         // Controllo se now è tra le 7 e le 18, se si torno false se no torno true
-//        ZonedDateTime now = ZonedDateTime.now();
-//        LocalTime oraCorrente = now.toLocalTime();
-//        LocalTime inizioOrario = LocalTime.of(7, 0);   // 7:00
-//        LocalTime fineOrario = LocalTime.of(18, 0);    // 18:00
-//        return !(oraCorrente.isAfter(inizioOrario) && oraCorrente.isBefore(fineOrario));
+        ZonedDateTime now = ZonedDateTime.now();
+        LocalTime oraCorrente = now.toLocalTime();
+        LocalTime inizioOrario = LocalTime.of(7, 0);   // 7:00
+        LocalTime fineOrario = LocalTime.of(18, 0);    // 18:00
+        return !(oraCorrente.isAfter(inizioOrario) && oraCorrente.isBefore(fineOrario));
     }
     
     private void insertAttivita(Azienda azienda, Persona persona, String oggetto, Applicazione app) {

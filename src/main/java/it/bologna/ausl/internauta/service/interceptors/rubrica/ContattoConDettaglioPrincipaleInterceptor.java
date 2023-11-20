@@ -29,7 +29,7 @@ import it.bologna.ausl.model.entities.rubrica.ContattoInterface;
 import it.bologna.ausl.model.entities.rubrica.QContatto;
 import it.bologna.ausl.model.entities.rubrica.views.ContattoConDettaglioPrincipale;
 import it.bologna.ausl.model.entities.rubrica.views.QContattoConDettaglioPrincipale;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.List;
 import java.util.Map;

@@ -132,7 +132,7 @@ public class InternautaUtils {
     private String buildContextInformations(String url, Persona realPerson, Persona person, Azienda aziendaUser, Integer idSessionLog) {
 
         if (person.getCodiceFiscale() != null && person.getCodiceFiscale().length() > 0) {
-            url += (url.length() > 0 && url.startsWith("?")) ? "&utente=" : "?utente=";
+            url += (url.length() > 0 && url.contains("?")) ? "&utente=" : "?utente=";
             url += person.getCodiceFiscale(); // non so se serve alle applicazioni INDE o a internauta o a tutti e 2
         }
 

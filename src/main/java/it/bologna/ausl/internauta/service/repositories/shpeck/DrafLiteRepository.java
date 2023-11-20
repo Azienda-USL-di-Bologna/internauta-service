@@ -8,7 +8,7 @@ package it.bologna.ausl.internauta.service.repositories.shpeck;
 import it.bologna.ausl.model.entities.shpeck.views.DraftLite;
 import it.bologna.ausl.model.entities.shpeck.views.QDraftLite;
 import it.bologna.ausl.model.entities.shpeck.views.projections.generated.DraftLiteWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;

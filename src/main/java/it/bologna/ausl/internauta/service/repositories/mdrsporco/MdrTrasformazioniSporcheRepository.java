@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.mdrsporco;
 import it.bologna.ausl.model.entities.mdrsporco.MdrTrasformazioniSporche;
 import it.bologna.ausl.model.entities.mdrsporco.QMdrTrasformazioniSporche;
 import it.bologna.ausl.model.entities.mdrsporco.projections.generated.MdrTrasformazioniSporcheWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

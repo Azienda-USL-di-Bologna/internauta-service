@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.messaggero;
 import it.bologna.ausl.model.entities.messaggero.QTemplateMessaggio;
 import it.bologna.ausl.model.entities.messaggero.TemplateMessaggio;
 import it.bologna.ausl.model.entities.messaggero.projections.generated.TemplateMessaggioWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
