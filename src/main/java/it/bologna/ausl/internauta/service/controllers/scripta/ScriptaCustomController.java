@@ -2309,7 +2309,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento,
             @RequestParam(required = true, name = "idPersonaSorgente") Integer idPersonaSorgente,
             @RequestParam(required = true, name = "idPersonaDestinazione") Integer idPersonaDestinazione,
-            @RequestParam(required = false, name = "idStrutturaDestinazione") Integer idStrutturaDestinazione
+            @RequestParam(required = true, name = "idStrutturaDestinazione") Integer idStrutturaDestinazione
     ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException, MasterjobsWorkerInitializationException, MasterjobsWorkerException, MasterjobsQueuingException {
         
         log.info("Richiesta di copia/trasferimento abilitazioni archvi");
