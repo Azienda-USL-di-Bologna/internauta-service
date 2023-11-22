@@ -7,6 +7,7 @@ import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.blackbox.utils.UtilityFunctions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
+import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadException;
 import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
 import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadParameters;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
@@ -285,7 +286,7 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
         if (recuperaDomicilioDigitaleInad){
             try {
                 contatto = rubricaInterceptorUtils.setDomiciliDigitaliInGruppo(contatto);
-            } catch (AuthorizationUtilsException ex) {
+            } catch (AuthorizationUtilsException | InadException ex) {
                 LOGGER.error("errore nel set del domicilio digitale", ex);
             }
         }

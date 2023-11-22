@@ -30,12 +30,15 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import okhttp3.Call;
@@ -105,7 +108,7 @@ public class InadManager {
         }
     }
     
-    public List<Email> getAndSaveEmailDomicilioDigitale(Integer idContatto, Azienda azienda) throws AuthorizationUtilsException {
+    public List<Email> getAndSaveEmailDomicilioDigitale(Integer idContatto, Azienda azienda) throws AuthorizationUtilsException, InadException {
 
         Contatto contattoDaVerificare = contattoRepository.getById(idContatto);
         String codiceFiscaleContatto = contattoDaVerificare.getCodiceFiscale();
@@ -114,7 +117,7 @@ public class InadManager {
                 && !"".equals(codiceFiscaleContatto)
                 && !contattoDaVerificare.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)
                 && !contattoDaVerificare.getProvenienza().equals("INTERNO")
-                && (contattoDaVerificare.getTipo() == null || Arrays.asList(new Contatto.TipoContatto[]{TipoContatto.FORNITORE, TipoContatto.FORNITORE, TipoContatto.VARIO}).contains(contattoDaVerificare.getTipo()))
+                && (contattoDaVerificare.getTipo() == null || Arrays.asList(new Contatto.TipoContatto[]{TipoContatto.PERSONA_FISICA, TipoContatto.FORNITORE, TipoContatto.VARIO}).contains(contattoDaVerificare.getTipo()))
                 && !contattoDaVerificare.getProvenienza().equals("trigger_contatto_from_struttura")
                 && !contattoDaVerificare.getProvenienza().equals("ribaltorg_strutture")
                 && !contattoDaVerificare.getProvenienza().equals("ribaltorg_persone")) {
@@ -130,7 +133,7 @@ public class InadManager {
         return null;
     }
 
-    public Email getAlwaysAndSaveDomicilioDigitale(Integer idContatto) throws BlackBoxPermissionException, AuthorizationUtilsException {
+    public Email getAlwaysAndSaveDomicilioDigitale(Integer idContatto) throws BlackBoxPermissionException, AuthorizationUtilsException, InadException {
         QEmail qEmail = QEmail.email1;
         QDettaglioContatto qDettaglioContatto = QDettaglioContatto.dettaglioContatto;
         JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
@@ -158,62 +161,94 @@ public class InadManager {
             Azienda azienda,
             Contatto contattoDaVerificare,
             DettaglioContattoRepository dettaglioContattoRepository,
-            EmailRepository emailRepository) throws AuthorizationUtilsException {
-            //chiedo a inad i contatti del codice fiscale 
+            EmailRepository emailRepository) throws InadException {
+            InadParameters inadParameters = null;
+            try {
+                //chiedo a inad i contatti del codice fiscale
+                inadParameters = InadParameters.buildParameters(azienda.getId(), parametriAziendeReader, objectMapper);
+            } catch (Exception ex) {
+                String message = "errore nel recupero dei parametri inad";
+                LOGGER.error(message, ex);
+                throw new InadException(message, ex);
+            }
+            InadExtractResponse inadExtractResponse = null;
+            if (inadParameters.getEnabled()) {
+                if (inadParameters.getSimulation()) {
+                    inadExtractResponse = extractTemp(azienda.getId(),contattoDaVerificare.getCodiceFiscale());
+                } else {
+                    inadExtractResponse = extract(azienda.getId(),contattoDaVerificare.getCodiceFiscale(), inadParameters);
+                }
+            }
             
-            
-            InadExtractResponse responseObj = extract( azienda.getId(),contattoDaVerificare.getCodiceFiscale());
-            
-            updateOrCreateDettaglioContattoFromInadExtractResponse(responseObj);
+            updateOrCreateDettaglioContattoFromInadExtractResponse(inadExtractResponse);
             Contatto contattoVerificato = contattoRepository.findById(contattoDaVerificare.getId()).get();
-        return contattoVerificato.getEmailList();
+            return contattoVerificato.getEmailList();
+        
     }
+    
+        
+    public  InadExtractResponse extractTemp(Integer idAzienda, String codiceFiscale) {
+        
+        InadExtractResponse responseObj = new InadExtractResponse();
+        DigitalAddress digitalAddress = new DigitalAddress();
+        UsageInfo usageInfo = new UsageInfo();
+        digitalAddress.setDigitalAddress(codiceFiscale.trim().toLowerCase() + "@pec.it");
+        digitalAddress.setPracticedProfession("POCOPROFESSIONISTAMOLTOLIBERO");
+        usageInfo.setDateEndValidity(ZonedDateTime.now());
+        usageInfo.setMotivation("CESSAZIONE_VOLONTARIA");
+        digitalAddress.setUsageInfo(usageInfo);
+        responseObj.setCodiceFiscale(codiceFiscale);
+        List<DigitalAddress> digitalAddresses2 = new ArrayList<>();
+        digitalAddresses2.add(digitalAddress);
+        responseObj.setDigitalAddresses(digitalAddresses2);
+        return responseObj;
+    }
+    
+    
     /**
      * 
      * funzione che dato un codice fiscale e l'azienda abilitata all'inad restituisce un domicilio digitale
      * @param idAzienda
      * @param codiceFiscale
+     * @param inadParameters
      * @return ritorna un InadExtractResponse
-     * @throws AuthorizationUtilsException 
      */
-    public InadExtractResponse extract(Integer idAzienda, String codiceFiscale) throws AuthorizationUtilsException {
+    public InadExtractResponse extract(Integer idAzienda, String codiceFiscale, InadParameters inadParameters) {
 
         try {
-            //inizio a generare il clientAssertion
-            InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
-            if (inadParameters.getEnabled()) {
-                String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
-                //inizio a generare il jwt da mandare a 
-                String tokenJWT = inadParameters.getToken(clientAssertion);
-                URI uri = new URIBuilder(
-                        inadParameters.getConnection().getUrlDocomicilioDigitale() + 
-                        DomicilioDigitalePath.extract + 
-                        codiceFiscale
-                    ).addParameter("practicalReference", "abc")
-                    .build();
 
-                Request request = new Request.Builder()
-                    .get()
-                    .url(uri.toString())
-                    .addHeader("accept", "application/json")
-                    .addHeader("Authorization", "Bearer " + tokenJWT)
-                    .build();
+            String clientAssertion = inadParameters.generateClientAssertion(idAzienda);
+            //inizio a generare il jwt da mandare a 
+            String tokenJWT = inadParameters.getToken(clientAssertion);
+            URI uri = new URIBuilder(
+                    inadParameters.getConnection().getUrlDocomicilioDigitale() + 
+                    DomicilioDigitalePath.extract + 
+                    codiceFiscale
+                ).addParameter("practicalReference", "abc")
+                .build();
 
-                OkHttpClient httpClient = httpClientManager.getHttpClient();
-                InadExtractResponse inadExtractResponse = new InadExtractResponse();
-                inadExtractResponse.setCodiceFiscale(clientAssertion);
-                Call call = httpClient.newCall(request);
-                try (Response response = call.execute();) {
-                    int responseCode = response.code();
-                    if (response.isSuccessful()) {
-                        ResponseBody body = response.body();
-                        inadExtractResponse = objectMapper.readValue(body.byteStream(), InadExtractResponse.class);
-                    } else {
-                        LOGGER.error("errore nella extract dei domicili digitali chiamata fallita");
-                    }
+            Request request = new Request.Builder()
+                .get()
+                .url(uri.toString())
+                .addHeader("accept", "application/json")
+                .addHeader("Authorization", "Bearer " + tokenJWT)
+                .build();
+
+            OkHttpClient httpClient = httpClientManager.getHttpClient();
+            InadExtractResponse inadExtractResponse = new InadExtractResponse();
+            inadExtractResponse.setCodiceFiscale(clientAssertion);
+            Call call = httpClient.newCall(request);
+            try (Response response = call.execute();) {
+                int responseCode = response.code();
+                if (response.isSuccessful()) {
+                    ResponseBody body = response.body();
+                    inadExtractResponse = objectMapper.readValue(body.byteStream(), InadExtractResponse.class);
+                } else {
+                    LOGGER.error("errore nella extract dei domicili digitali chiamata fallita");
                 }
-                return inadExtractResponse;
             }
+            return inadExtractResponse;
+            
         } catch (Exception ex) {
             LOGGER.error("errore nella extract dei domicili digitali", ex);
         }
@@ -331,7 +366,7 @@ public class InadManager {
         }
         return inadListDigitalAddressResponse;
     }
-    
+
     /**
      * 
      * @param idInadListDigitalAddressResponse id ritornato dalla requestToExtractDomiciliDigitaliFromCodiciFiscali
