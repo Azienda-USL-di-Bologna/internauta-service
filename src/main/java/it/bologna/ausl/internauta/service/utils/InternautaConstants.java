@@ -98,7 +98,8 @@ public class InternautaConstants {
             FilterBitGOEModifica,
             RemovePassword,
             FilterPerAssegnamentoMassivo,
-            GetUtentiInStrutturaEFiglie
+            GetUtentiInStrutturaEFiglie,
+            FilterTraDocumentiRegistrati
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {

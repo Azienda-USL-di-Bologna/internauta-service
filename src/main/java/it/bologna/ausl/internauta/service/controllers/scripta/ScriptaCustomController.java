@@ -152,6 +152,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocDocRepository;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerInitializationException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
@@ -169,7 +170,9 @@ import it.bologna.ausl.model.entities.logs.MassiveActionLog;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
+import it.bologna.ausl.model.entities.scripta.DocDoc;
 import it.bologna.ausl.model.entities.scripta.QDoc;
+import it.bologna.ausl.model.entities.scripta.projections.generated.DocDocWithPlainFields;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.Versamento;
 import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.ERRORE_RITENTABILE;
@@ -314,6 +317,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     
     @Autowired
     private JobNotifiedRepository jobNotifiedRepository;
+    
+    @Autowired
+    private DocDocRepository docDocRepository;
         
     @Autowired
     private ScriptaGestioneAbilitazioniMassiveArchiviUtils scriptaGestioneAbilitazioniMassiveArchiviUtils;
@@ -2392,5 +2398,24 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Map<String, Object> response = new HashMap();
         
         return ResponseEntity.ok(response);
+    }
+    
+    @RequestMapping(value = "getDocDocByIdDocSorgente/{idDocSorgente}", method = RequestMethod.GET)
+    public ResponseEntity<?> getDocDocByIdDocSorgente(
+        @PathVariable(required = true) Integer idDocSorgente,
+        HttpServletResponse response,
+        HttpServletRequest request) throws BlackBoxPermissionException {
+        List<DocDocWithPlainFields> collect = null;
+        projectionsInterceptorLauncher.setRequestParams(null, request);
+
+        Doc docSorgente = docRepository.getById(idDocSorgente);
+        ArrayList<DocDoc> docListbyIdDocSorgente = docDocRepository.getByIdDocSorgente(docSorgente);
+        
+        if(docListbyIdDocSorgente != null && !docListbyIdDocSorgente.isEmpty()) {
+            collect = docListbyIdDocSorgente.stream().map(docDoc -> projectionFactory.createProjection(DocDocWithPlainFields.class, docDoc)).collect(Collectors.toList());
+        }
+        
+//        res = projectionFactory.createProjection(DocDocWithPlainFields.class, docListbyIdDocSorgente);
+        return new ResponseEntity(collect, HttpStatus.OK);
     }
 }
