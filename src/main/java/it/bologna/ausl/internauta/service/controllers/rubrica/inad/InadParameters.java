@@ -58,6 +58,7 @@ public class InadParameters {
     }
     
     private Boolean enabled;
+    private Boolean simulation;
     private Integer numeroContattiAggiornabili;
 
     
@@ -69,6 +70,14 @@ public class InadParameters {
 
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public Boolean getSimulation() {
+        return simulation;
+    }
+
+    public void setSimulation(Boolean simulation) {
+        this.simulation = simulation;
     }
 
     public Integer getNumeroContattiAggiornabili() {

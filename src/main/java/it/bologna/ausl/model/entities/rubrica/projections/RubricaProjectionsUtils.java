@@ -11,6 +11,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
+import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadException;
 import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadManager;
 import it.bologna.ausl.internauta.service.controllers.rubrica.inad.InadParameters;
 import it.bologna.ausl.internauta.service.repositories.rubrica.DettaglioContattoRepository;
@@ -194,7 +195,7 @@ public class RubricaProjectionsUtils {
         return null;
     }
     
-    public List<DettaglioContattoWithPlainFields> getDettaglioContattoListWithDomicilioDigitale(Contatto contatto) throws AuthorizationUtilsException {
+    public List<DettaglioContattoWithPlainFields> getDettaglioContattoListWithDomicilioDigitale(Contatto contatto) throws AuthorizationUtilsException, InadException {
         AuthenticatedSessionData authenticatedUserProperties = null;
         try{
             authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
