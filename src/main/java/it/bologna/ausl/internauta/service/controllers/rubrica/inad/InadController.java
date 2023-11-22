@@ -1,11 +1,14 @@
 package it.bologna.ausl.internauta.service.controllers.rubrica.inad;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.exceptions.http.ControllerHandledExceptions;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.rubrica.Email;
@@ -49,6 +52,12 @@ public class InadController implements ControllerHandledExceptions{
     private InadManager inadManager;
     
     @Autowired
+    private ObjectMapper objectMapper;
+    
+    @Autowired
+    private ParametriAziendeReader parametriAziendeReader;
+    
+    @Autowired
     private ProjectionFactory projectionFactory;
     
     @Autowired
@@ -66,7 +75,7 @@ public class InadController implements ControllerHandledExceptions{
     @RequestMapping(value = "getAndSaveDomicilioDigitale", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EmailWithIdContattoAndIdDettaglioContatto> getAndSaveDomicilioDigitale(
             @RequestParam("idContatto") Integer idContatto,
-            HttpServletRequest request) throws BlackBoxPermissionException, AuthorizationUtilsException{
+            HttpServletRequest request) throws BlackBoxPermissionException, AuthorizationUtilsException, InadException{
         projectionsInterceptorLauncher.setRequestParams(null, request);
         Email domicilioDigitale = inadManager.getAlwaysAndSaveDomicilioDigitale(idContatto);
         if (domicilioDigitale!= null) {
@@ -82,7 +91,7 @@ public class InadController implements ControllerHandledExceptions{
     @RequestMapping(value = "getDomicilioDigitaleFromCF", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getDomicilioDigitaleFromCF(
             @RequestParam("idContatto") Integer idContatto,
-            HttpServletRequest request) throws BlackBoxPermissionException, AuthorizationUtilsException{
+            HttpServletRequest request) throws BlackBoxPermissionException, AuthorizationUtilsException, InadException{
         
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente utente = authenticatedUserProperties.getUser();
@@ -98,7 +107,8 @@ public class InadController implements ControllerHandledExceptions{
     @RequestMapping(value = "extract", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public InadExtractResponse extract(
         @RequestParam("cf") String cf,
-        @RequestParam("idAzienda") Integer idAzienda) throws AuthorizationUtilsException{
-    return inadManager.extract(idAzienda, cf);
+        @RequestParam("idAzienda") Integer idAzienda) throws AuthorizationUtilsException, JsonProcessingException{
+        InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
+        return inadManager.extract(idAzienda, cf, inadParameters);
     }
 }
