@@ -33,7 +33,6 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.baborg.projections.generated.StrutturaWithPlainFields;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.logs.MassiveActionLog;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
@@ -65,8 +64,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @MasterjobsWorker
 public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<CopiaTrasferisciAbilitazioniArchiviJobWorkerData, JobWorkerResult> {
-    private static final Logger log = LoggerFactory.getLogger(CopiaTrasferisciAbilitazioniArchiviJobWorkerData.class);
-    private final String name = CopiaTrasferisciAbilitazioniArchiviJobWorkerData.class.getSimpleName();
+    private static final Logger log = LoggerFactory.getLogger(CopiaTrasferisciAbilitazioniArchiviJobWorker.class);
+    private final String name = CopiaTrasferisciAbilitazioniArchiviJobWorker.class.getSimpleName();
     
     @Autowired
     private AziendaRepository aziendaRepository;
@@ -125,38 +124,42 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
     protected JobWorkerResult doRealWork() throws MasterjobsWorkerException {
         log.info("Inizio job");
         
-        log.info("Prendo i parametri");
+        log.info("Setto come utente loggato l'utente amministratore gedi che effettua l'operazione");
         CopiaTrasferisciAbilitazioniArchiviJobWorkerData data = getWorkerData();
+        Integer idUtenteOperazione = data.getIdUtenteOperazione();
+        Utente utenteOperazione = utenteRepository.getById(idUtenteOperazione);
+        authorizationUtils.insertInContext(utenteOperazione, 0, null, Applicazione.Applicazioni.scripta.toString(), false);
+        
+        log.info("Prendo i parametri");
         MassiveActionLog.OperationType operationType = data.getOperationType();
         Integer idPersonaSorgente = data.getIdPersonaSorgente();
         Integer idPersonaDestinazione = data.getIdPersonaDestinazione();
         Integer idMassiveActionLog = data.getIdMassiveActionLog();
         Integer idPersonaOperazione = data.getIdPersonaOperazione();
-        Integer idUtenteOperazione = data.getIdUtenteOperazione();
         Integer idAzienda = data.getIdAzienda();
         Integer idUtenteDestinazione = data.getIdUtenteDestinazione();
+        Integer idStrutturaDestinazione = data.getIdStrutturaDestinazione();
         
         log.info("Carico dal db un po' di entità");
         Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
-        Utente utenteOperazione = utenteRepository.getById(idUtenteOperazione);
         Persona personaSorgente = personaRepository.getById(idPersonaSorgente);
         Persona personaDestinazione = personaRepository.getById(idPersonaDestinazione);
         Utente utenteDestinazione = utenteRepository.getById(idUtenteDestinazione);
         Azienda azienda = aziendaRepository.getById(idAzienda);
         Persona personaOperazione = personaRepository.getById(idPersonaOperazione);
         MassiveActionLog m = massiveActionLogRepository.getById(idMassiveActionLog);
+        Struttura strutturaVeicolante = strutturaRepository.getById(idStrutturaDestinazione);
         
-        log.info("Prendo pure la struttura di afferenza diretta/unificata dell'utente destinazione");
-        StrutturaWithPlainFields strutturaVeicolanteWithPlainFields = (StrutturaWithPlainFields)userInfoService.getUtenteStrutturaAfferenzaPrincipaleAttiva(utenteDestinazione.getUtenteStrutturaList().get(0)).getIdStruttura();
-        Struttura strutturaVeicolante = strutturaRepository.getById(strutturaVeicolanteWithPlainFields.getId());
+//        log.info("Prendo pure la struttura di afferenza diretta/unificata dell'utente destinazione");
+//        StrutturaWithPlainFields strutturaVeicolanteWithPlainFields = (StrutturaWithPlainFields)userInfoService.getUtenteStrutturaAfferenzaPrincipaleAttiva(utenteDestinazione.getUtenteStrutturaList().get(0)).getIdStruttura();
+//        Struttura strutturaVeicolante = strutturaRepository.getById(strutturaVeicolanteWithPlainFields.getId());
 
         log.info("Istanzio qualche utilità");
         JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
         QAttoreArchivio qAttoreArchivio = QAttoreArchivio.attoreArchivio;
         QArchivio qArchivio = QArchivio.archivio;
         
-        // Setto come utente loggato l'utente amministratore gedi che effettua l'operazione
-        authorizationUtils.insertInContext(utenteOperazione, 0, null, Applicazione.Applicazioni.scripta.toString(), false);
+        
         
         log.info(String.format("PARAMETRI. idPersonaSorgente: %1$s, idPersonaDestinazione: %2$s, idMassiveActionLog: %3$s, idPersonaOperazione: %4$s", 
                 idPersonaSorgente, idPersonaDestinazione, idMassiveActionLog, idPersonaOperazione));
@@ -170,9 +173,6 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
         // In caso di TRASFERIMENTO va effettuato il cambio di responsabile.
         if (operationType.equals(MassiveActionLog.OperationType.TRASFERISCI_ABILITAZIONI)) {
             log.info("Mi occupo del trasferimento del RESPONSABILE");
-            Integer idStrutturaNuovoResponsabile = data.getIdStrutturaNuovoResponsabille();
-            Struttura strutturaNuovoResponsabile = strutturaRepository.getById(idStrutturaNuovoResponsabile);
-            strutturaVeicolante = strutturaNuovoResponsabile;
             
             List<Tuple> archivi = jpaQueryFactory
                     .select(qAttoreArchivio.idArchivio.id, qArchivio.numerazioneGerarchica)
@@ -183,6 +183,7 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                                     .and(qAttoreArchivio.ruolo.eq(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE.toString()))
                                     .and(qArchivio.idAzienda.id.eq(idAzienda))
                                     .and(qArchivio.livello.eq(1))
+                                    .and(qArchivio.stato.eq(Archivio.StatoArchivio.APERTO.toString()))
                     )
                     .fetch();
             
@@ -191,9 +192,11 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
             for (Tuple archivio : archivi) {
                 Integer idArchivio = archivio.get(qAttoreArchivio.idArchivio.id);
                 idsArchivi.add(idArchivio);
+                List<String> abilitazioniAggiunte = new ArrayList();
+                abilitazioniAggiunte.add(PermessoArchivio.Predicato.RESPONSABILE.toString());
                 archiviInfo.put(idArchivio, new InfoArchivio(
                     archivio.get(qArchivio.numerazioneGerarchica),
-                    Arrays.asList(new String[]{"RESPONSABILE"}),
+                    abilitazioniAggiunte,
                     idArchivio
                 ));
             }
@@ -205,9 +208,9 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
             attoreArchivioRepository.sostituisciResponsabile(
                 idsArchiviArray, 
                 idPersonaDestinazione, 
-                idStrutturaNuovoResponsabile,
+                idStrutturaDestinazione,
                 personaDestinazione.getDescrizione(),
-                strutturaNuovoResponsabile.getNome(),
+                strutturaVeicolante.getNome(),
                 idsArchiviString);
             
             
@@ -227,6 +230,7 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                         .and(qAttoreArchivio.ruolo.eq(AttoreArchivio.RuoloAttoreArchivio.VICARIO.toString()))
                         .and(qArchivio.idAzienda.id.eq(idAzienda))
                         .and(qArchivio.livello.eq(1))
+                        .and(qArchivio.stato.eq(Archivio.StatoArchivio.APERTO.toString()))
                 )
                 .fetch();
         
@@ -273,6 +277,7 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                 .from(qArchivio)
                 .where(qArchivio.id.in(idArchivi)
                         .and(qArchivio.idAzienda.id.eq(idAzienda))
+                        .and(qArchivio.stato.eq(Archivio.StatoArchivio.APERTO.toString()))
                 )
                 .fetch();
         
