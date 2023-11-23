@@ -334,6 +334,32 @@ public class IntimusUtils {
             this.redirectUrl = redirectUrl;
         }
     }
+
+    public class RefreshAttivitaParams implements CommandParams {
+        private Integer id_attivita;
+        private String operation;
+
+        public RefreshAttivitaParams(Integer id_attivita, String operation) {
+            this.id_attivita = id_attivita;
+            this.operation = operation;
+        }
+
+        public Integer getId_attivita() {
+            return id_attivita;
+        }
+
+        public void setId_attivita(Integer id_attivita) {
+            this.id_attivita = id_attivita;
+        }
+        
+        public String getOperation() {
+            return operation;
+        }
+
+        public void setOperation(String operation) {
+            this.operation = operation;
+        }
+    }
         
     public IntimusCommand buildIntimusCommand(List<DestObject> dests, CommandParams params, IntimusCommandNames intimusCommandName) {
         CommandObject commandObject = new CommandObject(params, intimusCommandName);
@@ -399,6 +425,26 @@ public class IntimusUtils {
         IntimusCommand logoutCommand = buildIntimusCommand(Arrays.asList(dest), new LogoutParams(redirectUrl), IntimusCommandNames.Logout);
         
         return logoutCommand;
+    }
+    
+    public IntimusCommand buildRefreshAttivitaCommand(Integer idPersona, Integer idAttivita, String operation) {
+        List<Integer> idAziende = new ArrayList<Integer>();
+        List<String> apps = new ArrayList<String>();
+        
+        apps.add("scrivania");
+        
+        DestObject dest = new DestObject(
+                idPersona, 
+                idAziende.stream().map(a -> a).toArray(Integer[]::new), 
+                apps.stream().map(a -> a).toArray(String[]::new), 
+                false);
+        
+        IntimusCommand RefreshAttivitaCommand = buildIntimusCommand(
+                Arrays.asList(dest), 
+                new RefreshAttivitaParams(idAttivita, operation), 
+                IntimusCommandNames.RefreshAttivita);
+        
+        return RefreshAttivitaCommand;
     }
     
     public void sendCommand(IntimusCommand intimusCommand) throws IntimusSendCommandException {
