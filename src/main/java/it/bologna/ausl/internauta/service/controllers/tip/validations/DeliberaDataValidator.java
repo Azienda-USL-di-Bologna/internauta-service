@@ -90,6 +90,14 @@ public class DeliberaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneDelibera.annoPubblicazione, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: yyyy");
             riga.setErrori(erroriImportazione);
         }
+        if (StringUtils.hasText(riga.getDataEsecutivita()) && !validateData(riga.getDataEsecutivita())) {
+            erroriImportazione.setError(ColonneDelibera.dataEsecutivita, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
+            riga.setErrori(erroriImportazione);
+        }
+        if (StringUtils.hasText(riga.getControlloRegionale()) && !validateBoolean(riga.getControlloRegionale())) {
+            erroriImportazione.setError(ColonneDelibera.controlloRegionale, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: true/false");
+            riga.setErrori(erroriImportazione);
+        }
         if (StringUtils.hasText(riga.getConservato()) && !validateBoolean(riga.getConservato())) {
             erroriImportazione.setError(ColonneDelibera.conservato, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: true/false");
             riga.setErrori(erroriImportazione);

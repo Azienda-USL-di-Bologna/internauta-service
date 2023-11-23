@@ -86,6 +86,10 @@ public class DeterminaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneDetermina.dataFine, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
             riga.setErrori(erroriImportazione);
         }
+        if (StringUtils.hasText(riga.getDataEsecutivita()) && !validateData(riga.getDataEsecutivita())) {
+            erroriImportazione.setError(ColonneDetermina.dataEsecutivita, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
+            riga.setErrori(erroriImportazione);
+        }
         if (StringUtils.hasText(riga.getAnnoPubblicazione()) && !validateAnno(riga.getAnnoPubblicazione())) {
             erroriImportazione.setError(ColonneDetermina.annoPubblicazione, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: yyyy");
             riga.setErrori(erroriImportazione);
