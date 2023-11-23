@@ -74,12 +74,12 @@ public class RitentaVersamentiServiceWorker extends ServiceWorker{
             JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
             QDocDetail qDocDetail = QDocDetail.docDetail;
             QDoc qDoc = QDoc.doc;
-            List<Integer> idDocList = (List<Integer>) jPAQueryFactory.select(qDocDetail.id)
+            List<Integer> idDocList = jPAQueryFactory.select(qDocDetail.id)
                     .from(qDocDetail)
                     .where(qDocDetail.versamentoForzabile.eq(Boolean.TRUE)
                     .and(qDocDetail.dataUltimoVersamento.between(ZonedDateTime.now().minusMonths(3), ZonedDateTime.now()))
                     .and(qDocDetail.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE)))
-                    .fetchAll();
+                    .fetch();
     
             jPAQueryFactory
                 .update(qDoc)
