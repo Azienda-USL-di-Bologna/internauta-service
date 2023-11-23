@@ -2412,8 +2412,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         return new ResponseEntity(collect, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "downloadDatasetLotti/{guidDocumento}", method = RequestMethod.GET)
-    public ResponseEntity<?> downloadDatasetLotti(@PathVariable String guidDocumento)
+    @RequestMapping(value = "downloadStampaLotti/{guidDocumento}", method = RequestMethod.GET)
+    public ResponseEntity<?> downloadStampaLotti(@PathVariable String guidDocumento)
             throws BlackBoxPermissionException, MasterjobsWorkerException, Http404ResponseException {
 
         authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
