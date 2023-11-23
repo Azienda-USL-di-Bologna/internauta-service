@@ -77,7 +77,7 @@ public class IntimusUtils {
     private RedisTemplate redisIntimusTemplate; 
     
     public enum IntimusCommandNames {
-        RefreshAttivita, ShowMessage, Logout
+        RefreshAttivita, ShowMessage, Logout, RefreshMails
     }
     
     public class IntimusCommand {
@@ -336,20 +336,22 @@ public class IntimusUtils {
     }
 
     public class RefreshAttivitaParams implements CommandParams {
-        private Integer id_attivita;
+        @JsonProperty("id_attivita")
+        private Integer idAttivita;
+        @JsonProperty("operation")
         private String operation;
 
-        public RefreshAttivitaParams(Integer id_attivita, String operation) {
-            this.id_attivita = id_attivita;
+        public RefreshAttivitaParams(Integer idAttivita, String operation) {
+            this.idAttivita = idAttivita;
             this.operation = operation;
         }
 
-        public Integer getId_attivita() {
-            return id_attivita;
+        public Integer getIdAttivita() {
+            return idAttivita;
         }
 
-        public void setId_attivita(Integer id_attivita) {
-            this.id_attivita = id_attivita;
+        public void setIdAttivita(Integer idAttivita) {
+            this.idAttivita = idAttivita;
         }
         
         public String getOperation() {
