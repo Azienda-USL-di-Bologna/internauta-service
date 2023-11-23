@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.intimusclientcommands;
 
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.aggiornaattivitaredis.*;
 import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandException;
 import it.bologna.ausl.internauta.service.utils.IntimusUtils;
 import it.bologna.ausl.internauta.service.utils.IntimusUtils.IntimusCommand;
