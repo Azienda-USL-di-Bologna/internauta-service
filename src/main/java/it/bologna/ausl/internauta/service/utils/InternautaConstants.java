@@ -92,6 +92,7 @@ public class InternautaConstants {
             VisualizzaTabFrequenti,
             VisualizzaTabRecenti,
             VisualizzaTabTutti,
+            VisualizzaTabAnomalie,
             UpdateProfiloFirma,
             FilterBitPermessoMinimo,
             FilterForArchiviContent,

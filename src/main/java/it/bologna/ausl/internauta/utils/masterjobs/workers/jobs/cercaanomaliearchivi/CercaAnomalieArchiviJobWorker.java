@@ -286,20 +286,4 @@ public class CercaAnomalieArchiviJobWorker extends JobWorker<JobWorkerData, JobW
         a.setProvenienza("Amministrazione Gedi");
         attivitaRepository.saveAndFlush(a);
     }
-    
-//    private void insertAttivita(Integer idAzienda, Integer idPersona, String oggetto, Applicazione app) {
-//        Attivita a = new Attivita();
-//        Azienda azienda = new Azienda();
-//        azienda.setId(idAzienda);
-//        Persona persona = new Persona();
-//        persona.setId(idPersona);
-//        a.setIdAzienda(azienda);
-//        a.setIdPersona(persona);
-//        a.setIdApplicazione(app);
-//        a.setTipo(Attivita.TipoAttivita.NOTIFICA.toString().toLowerCase());
-//        a.setOggetto(oggetto);
-//        a.setDescrizione("Anomalie su fascicoli");
-//        a.setProvenienza("Amministrazione Gedi");
-//        attivitaRepository.saveAndFlush(a);
-//    }
 }
