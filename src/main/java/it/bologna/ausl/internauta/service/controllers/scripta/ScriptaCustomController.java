@@ -2392,25 +2392,6 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
         return ResponseEntity.ok(response);
     }
-    
-    @RequestMapping(value = "getDocDocByIdDocSorgente/{idDocSorgente}", method = RequestMethod.GET)
-    public ResponseEntity<?> getDocDocByIdDocSorgente(
-        @PathVariable(required = true) Integer idDocSorgente,
-        HttpServletResponse response,
-        HttpServletRequest request) throws BlackBoxPermissionException {
-        List<DocDocWithPlainFields> collect = null;
-        projectionsInterceptorLauncher.setRequestParams(null, request);
-
-        Doc docSorgente = docRepository.getById(idDocSorgente);
-        ArrayList<DocDoc> docListbyIdDocSorgente = docDocRepository.getByIdDocSorgente(docSorgente);
-        
-        if(docListbyIdDocSorgente != null && !docListbyIdDocSorgente.isEmpty()) {
-            collect = docListbyIdDocSorgente.stream().map(docDoc -> projectionFactory.createProjection(DocDocWithPlainFields.class, docDoc)).collect(Collectors.toList());
-        }
-        
-//        res = projectionFactory.createProjection(DocDocWithPlainFields.class, docListbyIdDocSorgente);
-        return new ResponseEntity(collect, HttpStatus.OK);
-    }
 
     @RequestMapping(value = "downloadStampaLotti/{guidDocumento}", method = RequestMethod.GET)
     public ResponseEntity<?> downloadStampaLotti(@PathVariable String guidDocumento)
@@ -2448,5 +2429,24 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         PdfAReporter jobWorker = masterjobsObjectsFactory.getJobWorker(PdfAReporter.class, data, false);
 
         return new ResponseEntity<>((UrlAndUuidResult) jobWorker.doWork(), HttpStatus.OK);
+    }
+    
+    @RequestMapping(value = "getDocDocByIdDocSorgente/{idDocSorgente}", method = RequestMethod.GET)
+    public ResponseEntity<?> getDocDocByIdDocSorgente(
+        @PathVariable(required = true) Integer idDocSorgente,
+        HttpServletResponse response,
+        HttpServletRequest request) throws BlackBoxPermissionException {
+        List<DocDocWithPlainFields> collect = null;
+        projectionsInterceptorLauncher.setRequestParams(null, request);
+
+        Doc docSorgente = docRepository.getById(idDocSorgente);
+        ArrayList<DocDoc> docListbyIdDocSorgente = docDocRepository.getByIdDocSorgente(docSorgente);
+        
+        if(docListbyIdDocSorgente != null && !docListbyIdDocSorgente.isEmpty()) {
+            collect = docListbyIdDocSorgente.stream().map(docDoc -> projectionFactory.createProjection(DocDocWithPlainFields.class, docDoc)).collect(Collectors.toList());
+        }
+        
+//        res = projectionFactory.createProjection(DocDocWithPlainFields.class, docListbyIdDocSorgente);
+        return new ResponseEntity(collect, HttpStatus.OK);
     }
 }
