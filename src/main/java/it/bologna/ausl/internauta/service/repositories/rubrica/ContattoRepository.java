@@ -36,4 +36,13 @@ public interface ContattoRepository extends
     
     @Value("select * from rubrica.contatti where partita_iva = ?1")
     public List<Contatto> findByPartitaIva(String piva);
+    
+    @Procedure("rubrica.aggiorna_contatti_struttura")
+    public void aggiornaContattiStruttura();
+    
+    @Procedure("rubrica.aggiorna_contatti_persona")
+    public void aggiornaContattiPersona();
+    
+    @Procedure("rubrica.elimina_protocontatti")
+    public void eliminaProtocontatti();
 }

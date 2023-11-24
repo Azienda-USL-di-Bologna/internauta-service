@@ -23,12 +23,14 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MultiJobQueueDes
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriacontatti.SanatoriaContattiJobWorker;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.utentestruttura.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.masterjobs.Job;
 import it.bologna.ausl.model.entities.masterjobs.QJob;
@@ -99,6 +101,9 @@ public class BaborgDebugController {
 
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    MasterjobsJobsQueuer masterjobsJobsQueuer;
 
     @Autowired
     UtenteStrutturaRepository utenteStrutturaRepository;
@@ -479,5 +484,22 @@ public class BaborgDebugController {
         Struttura idStrutturaPadre = res.getIdStrutturaPadre();
         System.out.println("idPadre:" + idStrutturaPadre.getId());
         return res;
+    }
+    
+    @RequestMapping(value = "testJob", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
+    public void testJob() throws MasterjobsWorkerException {
+        try {
+            masterjobsJobsQueuer.queue(
+                    new SanatoriaContattiJobWorker(),
+                    null,
+                    null,
+                    Applicazione.Applicazioni.rubrica.toString(),
+                    false,
+                    Set.SetPriority.NORMAL
+            );
+        } catch (MasterjobsQueuingException ex) {
+            throw new MasterjobsWorkerException("errore nell'accodamento del job", ex);
+        }
     }
 }
