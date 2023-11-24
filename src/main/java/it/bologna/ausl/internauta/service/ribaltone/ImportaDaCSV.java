@@ -850,6 +850,7 @@ public class ImportaDaCSV {
                         mS.setDatafi(datafi);
                         datafiString = datafi != null ? UtilityFunctions.getZonedDateTimeString(datafi) : null;
 
+                        // controlla che la casella sia coerente, altrimenti ritorna ""
                         String id_casella = Strutture.checkIdCasella(strutturaMap, mapError, mapReader.getLineNumber(), strutturaCheckDateMap);
                         mS.setIdCasella(id_casella.equals("") ? null : Integer.parseInt(id_casella));
                         bloccante = id_casella.equals("") ? true : bloccante;
@@ -890,7 +891,10 @@ public class ImportaDaCSV {
                         nRigheCSV = mapReader.getRowNumber();
                     }
 
-                    //struttura padre non trovata
+                    /**
+                     * prende la lista di strutture con le loro date di inizio e fine.
+                     * questa lista verrà utilizzata per il controllo dei padri
+                     */                    
                     Map<Integer, List<Map<String, Object>>> listaStrutture = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
 
                     mapWriter.close();
@@ -985,9 +989,13 @@ public class ImportaDaCSV {
                     //Reading with CsvMapReader
                     Map<String, Object> trasformazioniMap;
                     while ((trasformazioniMap = mapReader.read(headers, processors)) != null) {
-                        if (salvaSuMdrSporco && !utente.getUsername().equals("RIBALTONE")){
+                        if (salvaSuMdrSporco && !utente.getUsername().equals("RIBALTONE") && !utente.getUsername().equalsIgnoreCase("bds")){
                             Integer lastProgressivoRiga = mdrTrasformazioniSporcheRepository.getLastProgressivoRiga(idAzienda);
-                            lastProgressivoRiga +=1;
+                            if (lastProgressivoRiga != null) {
+                                lastProgressivoRiga +=1;
+                            } else {
+                                lastProgressivoRiga = 1;
+                            }
                             MdrTrasformazioniSporche mdrTrasfSporca = new MdrTrasformazioniSporche();
                             
                             mdrTrasfSporca.setProgressivoRiga(lastProgressivoRiga);
@@ -1070,9 +1078,13 @@ public class ImportaDaCSV {
     //                      CODICE ENTE
                             String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(trasformazioniMap, mapError, codiceAzienda);
                             mT.setCodiceEnte(codiceEnte);
-                            anomalia = codiceEnte.equals(codiceAzienda) ? true : anomalia;
-                            nRigheAnomale = codiceEnte.equals(codiceAzienda) ? nRigheAnomale++ : nRigheAnomale;
-
+                            String codiceEnteParteIniziale = codiceEnte.substring(0, 3);
+                            if (!codiceEnteParteIniziale.equals(codiceAzienda)) {
+                                anomalia = true;
+                                nRigheAnomale++;
+                                mapError.put("ERRORE", mapError.get("ERRORE") + "codice ente diverso da quello atteso");
+                            } 
+                            
     //                      MOTIVO
                             if (trasformazioniMap.get("motivo") == null
                                     || trasformazioniMap.get("motivo").toString().trim().equals("")

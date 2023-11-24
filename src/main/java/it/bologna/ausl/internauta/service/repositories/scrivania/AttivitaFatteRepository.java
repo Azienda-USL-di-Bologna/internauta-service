@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.scrivania;
 import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
 import it.bologna.ausl.model.entities.scrivania.QAttivitaFatta;
 import it.bologna.ausl.model.entities.scrivania.projections.generated.AttivitaFattaWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;

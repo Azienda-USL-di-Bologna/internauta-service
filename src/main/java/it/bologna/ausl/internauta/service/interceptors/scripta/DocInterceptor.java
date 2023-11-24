@@ -43,7 +43,7 @@ import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.Versamento;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;

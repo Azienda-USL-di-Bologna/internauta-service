@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.tools;
 import it.bologna.ausl.model.entities.tools.QUserAccess;
 import it.bologna.ausl.model.entities.tools.UserAccess;
 import it.bologna.ausl.model.entities.tools.projections.generated.UserAccessWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.math.BigInteger;

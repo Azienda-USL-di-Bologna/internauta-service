@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.logs;
 import it.bologna.ausl.model.entities.logs.Counter;
 import it.bologna.ausl.model.entities.logs.QCounter;
 import it.bologna.ausl.model.entities.logs.projections.generated.CounterWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;

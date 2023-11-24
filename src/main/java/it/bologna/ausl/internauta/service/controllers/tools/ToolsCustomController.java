@@ -103,14 +103,19 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     //per parametri pubblici?
     @Autowired
     private AziendaRepository aziendaRepository;
+    
     @Autowired
     private CachedEntities cachedEntities;
+    
     @Autowired
     private ParametriAziendeReader parametriAziendaReader;
+    
     @Autowired
     private UtenteRepository utenteRepository;
+    
     @Autowired
     private RichiestaSmartWorkingRepository richiestaSmartWorkingRepository;
+    
     @Autowired
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
 
@@ -121,9 +126,10 @@ public class ToolsCustomController implements ControllerHandledExceptions {
     private BaborgUtils baborgUtils;
 
     @Autowired
-    ParametriAziendeReader parametriAziende;
+    private ParametriAziendeReader parametriAziende;
+    
     @Autowired
-    ReporitoryConnectionManager mongoConnectionManager;
+    private ReporitoryConnectionManager mongoConnectionManager;
 
     @Value("${redmine-test-mode}")
     boolean redmineTestMode;

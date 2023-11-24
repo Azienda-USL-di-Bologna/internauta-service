@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component;
 import it.bologna.ausl.model.entities.permessi.PredicatoAmbito;
 import it.bologna.ausl.model.entities.permessi.QPredicatoAmbito;
 import it.bologna.ausl.model.entities.permessi.projections.generated.PredicatoAmbitoWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;

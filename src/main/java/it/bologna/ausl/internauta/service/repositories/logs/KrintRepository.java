@@ -4,7 +4,7 @@ import it.bologna.ausl.model.entities.logs.Krint;
 import it.bologna.ausl.model.entities.logs.QKrint;
 import it.bologna.ausl.model.entities.logs.projections.generated.KrintWithPlainFields;
 
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;

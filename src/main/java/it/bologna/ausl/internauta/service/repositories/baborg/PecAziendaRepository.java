@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.baborg;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.QPecAzienda;
 import it.bologna.ausl.model.entities.baborg.projections.generated.PecAziendaWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.List;

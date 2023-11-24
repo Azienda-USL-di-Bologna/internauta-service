@@ -18,7 +18,7 @@ import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.Menu;
 import it.bologna.ausl.model.entities.scrivania.QMenu;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
 import java.util.ArrayList;

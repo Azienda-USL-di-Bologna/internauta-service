@@ -4,7 +4,7 @@ import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.shpeck.QTag;
 import it.bologna.ausl.model.entities.shpeck.Tag;
 import it.bologna.ausl.model.entities.shpeck.projections.generated.TagWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;

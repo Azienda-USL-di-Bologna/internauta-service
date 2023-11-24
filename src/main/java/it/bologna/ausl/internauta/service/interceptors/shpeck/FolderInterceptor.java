@@ -6,7 +6,7 @@ import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.shpeck.Folder;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
