@@ -64,9 +64,10 @@ public class CalcolaPersoneVedentiDaArchiviRadiceJobWorker extends JobWorker<Cal
         if (idDocsDaArchivi != null) {
             log.info("idDocsDaArchivi non e' null");
             AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-            for (Integer idDoc : idDocsDaArchivi) {
-                accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);
-            }
+            accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDocsDaArchivi);
+//            for (Integer idDoc : idDocsDaArchivi) {
+//                accodatoreVeloce.accodaCalcolaPersoneVedentiDoc(idDoc);
+//            }
         }
         
         return null;

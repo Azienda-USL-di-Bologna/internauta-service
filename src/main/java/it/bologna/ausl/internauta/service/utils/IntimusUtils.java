@@ -77,7 +77,7 @@ public class IntimusUtils {
     private RedisTemplate redisIntimusTemplate; 
     
     public enum IntimusCommandNames {
-        RefreshAttivita, ShowMessage, Logout
+        RefreshAttivita, ShowMessage, Logout, RefreshMails
     }
     
     public class IntimusCommand {
@@ -334,6 +334,34 @@ public class IntimusUtils {
             this.redirectUrl = redirectUrl;
         }
     }
+
+    public class RefreshAttivitaParams implements CommandParams {
+        @JsonProperty("id_attivita")
+        private Integer idAttivita;
+        @JsonProperty("operation")
+        private String operation;
+
+        public RefreshAttivitaParams(Integer idAttivita, String operation) {
+            this.idAttivita = idAttivita;
+            this.operation = operation;
+        }
+
+        public Integer getIdAttivita() {
+            return idAttivita;
+        }
+
+        public void setIdAttivita(Integer idAttivita) {
+            this.idAttivita = idAttivita;
+        }
+        
+        public String getOperation() {
+            return operation;
+        }
+
+        public void setOperation(String operation) {
+            this.operation = operation;
+        }
+    }
         
     public IntimusCommand buildIntimusCommand(List<DestObject> dests, CommandParams params, IntimusCommandNames intimusCommandName) {
         CommandObject commandObject = new CommandObject(params, intimusCommandName);
@@ -399,6 +427,26 @@ public class IntimusUtils {
         IntimusCommand logoutCommand = buildIntimusCommand(Arrays.asList(dest), new LogoutParams(redirectUrl), IntimusCommandNames.Logout);
         
         return logoutCommand;
+    }
+    
+    public IntimusCommand buildRefreshAttivitaCommand(Integer idPersona, Integer idAttivita, String operation) {
+        List<Integer> idAziende = new ArrayList<Integer>();
+        List<String> apps = new ArrayList<String>();
+        
+        apps.add("scrivania");
+        
+        DestObject dest = new DestObject(
+                idPersona, 
+                idAziende.stream().map(a -> a).toArray(Integer[]::new), 
+                apps.stream().map(a -> a).toArray(String[]::new), 
+                false);
+        
+        IntimusCommand RefreshAttivitaCommand = buildIntimusCommand(
+                Arrays.asList(dest), 
+                new RefreshAttivitaParams(idAttivita, operation), 
+                IntimusCommandNames.RefreshAttivita);
+        
+        return RefreshAttivitaCommand;
     }
     
     public void sendCommand(IntimusCommand intimusCommand) throws IntimusSendCommandException {

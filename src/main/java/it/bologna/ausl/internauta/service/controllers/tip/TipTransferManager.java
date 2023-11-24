@@ -727,8 +727,10 @@ public class TipTransferManager {
                         TipDataValidator.dateToISOLocalDateTimeString(TipDataValidator.parseData(importazioneDocumento.getDataRegistrazione())): 
                         TipDataValidator.dateToISOLocalDateTimeString(TipDataValidator.parseData(importazioneDocumento.getDataAdozione()))
                 );
+            if (StringUtils.hasText(importazioneDocumento.getControlloRegionale())) {
+                datiPubblicazione.put("controllo_regionale", importazioneDocumento.getControlloRegionale());
+            }
             doc.getAdditionalData().put("dati_pubblicazione", datiPubblicazione);
-            
         }
         return doc;
     }
