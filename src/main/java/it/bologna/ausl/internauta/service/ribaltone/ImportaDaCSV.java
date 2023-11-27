@@ -1078,8 +1078,8 @@ public class ImportaDaCSV {
     //                      CODICE ENTE
                             String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(trasformazioniMap, mapError, codiceAzienda);
                             mT.setCodiceEnte(codiceEnte);
-                            String codiceEnteParteIniziale = codiceEnte.substring(0, 3);
-                            if (!codiceEnteParteIniziale.equals(codiceAzienda)) {
+//                            String codiceEnteParteIniziale = codiceEnte.substring(0, 3);
+                            if (!codiceEnte.startsWith(codiceAzienda)) {
                                 anomalia = true;
                                 nRigheAnomale++;
                                 mapError.put("ERRORE", mapError.get("ERRORE") + "codice ente diverso da quello atteso");
