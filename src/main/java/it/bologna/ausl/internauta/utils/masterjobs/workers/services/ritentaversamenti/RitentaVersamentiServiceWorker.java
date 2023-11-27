@@ -73,32 +73,35 @@ public class RitentaVersamentiServiceWorker extends ServiceWorker{
                     .and(qDocDetail.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE)))
                     .fetch();
     
-            jPAQueryFactory
-                .update(qDoc)
-                .set(qDoc.statoVersamento, Versamento.StatoVersamento.VERSARE)
-                .where(qDoc.id.in(idDocList))
-                .execute();
+            
             
             AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
             aziendeSuCuiDeveGirare.forEach(a -> {
                 Map<Integer, Map<String, Object>> aziendeAttiveConParametriVersatore = VersatoreServiceUtils.getAziendeAttiveConParametri(parametriAziendaReader, cachedEntities);
                 Map<String, Object> versatoreConfigAziendaValue = aziendeAttiveConParametriVersatore.get(a);
-
-                String hostId = (String) versatoreConfigAziendaValue.get("hostId");
-                Integer threadPoolSize = (Integer) versatoreConfigAziendaValue.get("threadPoolSize");
-                Map<String,Object> params = (Map<String,Object>) versatoreConfigAziendaValue.get("params");
-                try {
-                    accodatoreVeloce.accodaVersatore(
-                            idDocList,
-                            a,
-                            hostId,
-                            SessioneVersamento.TipologiaVersamento.RITENTA,
-                            1,
-                            threadPoolSize,
-                            params
-                    );
-                } catch (MasterjobsWorkerException ex) {
-                    java.util.logging.Logger.getLogger(RitentaVersamentiServiceWorker.class.getName()).log(Level.SEVERE, null, ex);
+                
+                if (versatoreConfigAziendaValue != null) {
+                    jPAQueryFactory
+                        .update(qDoc)
+                        .set(qDoc.statoVersamento, Versamento.StatoVersamento.VERSARE)
+                        .where(qDoc.id.in(idDocList))
+                        .execute();
+                    String hostId = (String) versatoreConfigAziendaValue.get("hostId");
+                    Integer threadPoolSize = (Integer) versatoreConfigAziendaValue.get("threadPoolSize");
+                    Map<String,Object> params = (Map<String,Object>) versatoreConfigAziendaValue.get("params");
+                    try {
+                        accodatoreVeloce.accodaVersatore(
+                                idDocList,
+                                a,
+                                hostId,
+                                SessioneVersamento.TipologiaVersamento.RITENTA,
+                                1,
+                                threadPoolSize,
+                                params
+                        );
+                    } catch (MasterjobsWorkerException ex) {
+                        java.util.logging.Logger.getLogger(RitentaVersamentiServiceWorker.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                 }
             });
 

@@ -8,24 +8,26 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.repositories.lotti.LottoRepository;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.PdfAReporter;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.result.ReporterJobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.result.UrlAndUuidResult;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
-import it.bologna.ausl.model.entities.scripta.Allegato;
-import it.bologna.ausl.model.entities.scripta.Doc;
-import it.bologna.ausl.model.entities.scripta.Related;
+import it.bologna.ausl.model.entities.lotti.Contraente;
+import it.bologna.ausl.model.entities.lotti.Lotto;
+import it.bologna.ausl.model.entities.scripta.*;
+
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -88,11 +90,6 @@ import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
-import it.bologna.ausl.model.entities.scripta.Mezzo;
-import it.bologna.ausl.model.entities.scripta.QAllegato;
-import it.bologna.ausl.model.entities.scripta.Registro;
-import it.bologna.ausl.model.entities.scripta.RegistroDoc;
-import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import java.io.FileNotFoundException;
@@ -101,8 +98,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.Formatter;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -127,17 +122,6 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.generazionezipar
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.generazioneziparchivio.GenerazioneZipArchivioJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
-import it.bologna.ausl.model.entities.scripta.Archivio;
-import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
-import it.bologna.ausl.model.entities.scripta.ArchivioRecente;
-import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
-import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
-import it.bologna.ausl.model.entities.scripta.PersonaVedente;
-import it.bologna.ausl.model.entities.scripta.QArchivio;
-import it.bologna.ausl.model.entities.scripta.QArchivioDetail;
-import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
-import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
-import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
@@ -162,7 +146,6 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.copiatrasferisci
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.GestioneMassivaAbilitazioniArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.result.ReporterJobWorkerResult;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.versatore.VersatoreServiceUtils;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
@@ -175,8 +158,6 @@ import it.bologna.ausl.model.entities.scripta.QDoc;
 import it.bologna.ausl.model.entities.scripta.projections.generated.DocDocWithPlainFields;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.Versamento;
-import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.ERRORE_RITENTABILE;
-import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.FORZARE;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -197,13 +178,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     private static final Logger log = LoggerFactory.getLogger(ScriptaCustomController.class);
 
-//    private MinIOWrapperFileInfo savedFileOnRepository = null;
+    //    private MinIOWrapperFileInfo savedFileOnRepository = null;
     private final List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
 //    private List<Allegato> savedFilesOnInternauta = new ArrayList();
 
     @Autowired
     private ConfigParams configParams;
-    
+
     @Autowired
     private ApplicazioneRepository applicazioneRepository;
 
@@ -221,7 +202,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private MessageRepository messageRepository;
-    
+
     @Autowired
     private StrutturaRepository strutturaRepository;
 
@@ -242,7 +223,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private ParametriAziendeReader parametriAziendaReader;
-    
+
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
 
@@ -263,7 +244,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private PecRepository pecRepository;
-    
+
     @PersistenceContext
     private EntityManager em;
 
@@ -314,7 +295,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private KrintUtils krintUtils;
-    
+
     @Autowired
     private JobNotifiedRepository jobNotifiedRepository;
     
@@ -326,6 +307,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private KrintScriptaService krintScriptaService;
+
+    @Autowired
+    private LottoRepository lottoRepository;
 
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -454,24 +438,24 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                                 case CONVERTITO:
                                     // File convertito ma scaduto, lo converto e lo scarico
                                     try ( InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, idRepository)) {
-                                    response.setHeader("Content-Type", "application/pdf");
-                                    StreamUtils.copy(fileConvertito, response.getOutputStream());
-                                }
-                                break;
+                                        response.setHeader("Content-Type", "application/pdf");
+                                        StreamUtils.copy(fileConvertito, response.getOutputStream());
+                                    }
+                                    break;
                                 case ORIGINALE:
                                     // File scaduto, lo riestraggo e lo scarico
                                     try ( InputStream fileOrginale = scriptaDownloadUtils.downloadOriginalAttachment(allegato)) {
-                                    response.setHeader("Content-Type", allegato.getDettagli().getOriginale().getMimeType());
-                                    StreamUtils.copy(fileOrginale, response.getOutputStream());
-                                }
-                                break;
+                                        response.setHeader("Content-Type", allegato.getDettagli().getOriginale().getMimeType());
+                                        StreamUtils.copy(fileOrginale, response.getOutputStream());
+                                    }
+                                    break;
                                 default:
                                     // Il file riciesto non è ne l'orginale ne il convertito. E' impossibile dunque recuperarlo.
                                     throw new Http404ResponseException("3", "Dettaglio allegato richiesto non tovato");
                             }
                         } else {
                             String mimeType = allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato).getMimeType();
-                            
+
                             if (!StringUtils.hasText(mimeType)) {
                                 // Non ha il mimetype, me lo recupero
                                 try {
@@ -575,13 +559,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 Lists.newArrayList(archivio),
                 Arrays.asList(
                         new String[]{
-                            InternautaConstants.Permessi.Predicati.ELIMINA.toString(),
-                            InternautaConstants.Permessi.Predicati.MODIFICA.toString(),
-                            InternautaConstants.Permessi.Predicati.VISUALIZZA.toString(),
-                            InternautaConstants.Permessi.Predicati.PASSAGGIO.toString(),
-                            InternautaConstants.Permessi.Predicati.VICARIO.toString(),
-                            InternautaConstants.Permessi.Predicati.RESPONSABILE.toString(),
-                            InternautaConstants.Permessi.Predicati.RESPONSABILE_PROPOSTO.toString()
+                                InternautaConstants.Permessi.Predicati.ELIMINA.toString(),
+                                InternautaConstants.Permessi.Predicati.MODIFICA.toString(),
+                                InternautaConstants.Permessi.Predicati.VISUALIZZA.toString(),
+                                InternautaConstants.Permessi.Predicati.PASSAGGIO.toString(),
+                                InternautaConstants.Permessi.Predicati.VICARIO.toString(),
+                                InternautaConstants.Permessi.Predicati.RESPONSABILE.toString(),
+                                InternautaConstants.Permessi.Predicati.RESPONSABILE_PROPOSTO.toString()
                         }),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Ambiti.SCRIPTA.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.ARCHIVIO.toString()}),
@@ -596,7 +580,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             return false;
         }
     }
-    
+
     /**
      * Scarica il frontespizio di un fascicolo dal archivio specificato.
      *
@@ -618,24 +602,24 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
         // Verifica se l'utente ha il permesso di visualizzare l'archivio
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(
-                persona.getId(), 
-                archivio.getId(), 
+                persona.getId(),
+                archivio.getId(),
                 PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
             throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
         }
         // Genera il nome del file da scaricare
         String codiceAziendaArchivio = archivio.getIdAzienda().getCodice();
         String fileName = String.format("Frontespizio - %s.pdf", archivio.getNumerazioneGerarchica());
-        
+
         // Crea i parametri per il template
-        Map<String, Object> creaParametriTemplate = scriptaArchiviUtils.creaParametriTemplate(archivio);       
+        Map<String, Object> creaParametriTemplate = scriptaArchiviUtils.creaParametriTemplate(archivio);
         // Prepara i dati per il worker del reporter
-        ReporterJobWorkerData reporterWorkerData = new ReporterJobWorkerData(codiceAziendaArchivio, codiceAziendaArchivio + "_gd_frontespizio.xhtml", fileName, creaParametriTemplate);       
+        ReporterJobWorkerData reporterWorkerData = new ReporterJobWorkerData(codiceAziendaArchivio, codiceAziendaArchivio + "_gd_frontespizio.xhtml", fileName, creaParametriTemplate);
         // Ottiene il worker del reporter dal factory dei job master
-        ReporterJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(ReporterJobWorker.class, reporterWorkerData, false);      
+        ReporterJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(ReporterJobWorker.class, reporterWorkerData, false);
         // Esegue il lavoro del worker del reporter
         ReporterJobWorkerResult result = (ReporterJobWorkerResult) jobWorker.doWork();
-        
+
         return new ResponseEntity(result, HttpStatus.OK);
     }
     /**
@@ -672,8 +656,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         String scheme = request.getScheme();
         String hostname = CommonUtils.getHostname(request);
         Integer port = request.getServerPort();
-        
-        
+
+
 
         String downloadUrl = this.configParams.getDownloaderUrl(scheme, hostname, port);
         GenerazioneZipArchivioJobWorkerData data = new GenerazioneZipArchivioJobWorkerData(persona.getId(), archivio.getId(), downloadUrl);
@@ -1068,8 +1052,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     @RequestMapping(value = "numeraArchivio", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
     public Object numeraArchivio(@RequestParam("idArchivio") Integer idArchivio,
-            @RequestParam("projection") String projection,
-            HttpServletRequest request) throws HttpInternautaResponseException,
+                                 @RequestParam("projection") String projection,
+                                 HttpServletRequest request) throws HttpInternautaResponseException,
             Throwable {
         log.info("Numerazione archivio: " + idArchivio + "...");
         Integer numeroGenerato = archivioRepository.numeraArchivio(idArchivio);
@@ -1235,7 +1219,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 pv.setPienaVisibilita(Boolean.TRUE);
                 pv.setMioDocumento(Boolean.TRUE);
                 personaVedenteRepository.save(pv);
- 
+
                 CalcolaPersoneVedentiDocJobWorkerData calcolaPersoneVedentiDocJobWorkerData = new CalcolaPersoneVedentiDocJobWorkerData(doc.getId());
 
                 Map calcolaPersoneVedentiDocJobWorkerDataMap = objectMapper.convertValue(calcolaPersoneVedentiDocJobWorkerData, Map.class);
@@ -1244,7 +1228,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 jn.setJobData(calcolaPersoneVedentiDocJobWorkerDataMap);
                 jn.setWaitObject(false);
                 jobNotifiedRepository.save(jn);
-                
+
                 if (krintUtils.doIHaveToKrint(request)) {
                     krintScriptaService.writeArchivioDoc(save, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_LOAD);
                 }
@@ -1432,7 +1416,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
      * @param request
      * @return
      * @throws BlackBoxPermissionException
-     * @throws Http403ResponseException 
+     * @throws Http403ResponseException
      */
     @RequestMapping(value = "deleteArchivio", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
@@ -2091,8 +2075,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
-    
-    
+
+
     @RequestMapping(value = "versaDocMassivo", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> versaDocMassivo(
@@ -2143,7 +2127,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         return new ResponseEntity("", HttpStatus.OK);
     }
-    
+
     @RequestMapping(value = {"sostituisciResponsabileArchivioMassivo"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> sostituisciResponsabileArchivioMassivo(
@@ -2155,11 +2139,11 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam(required = true, name = "idStrutturaNuovoResponsabile") Integer idStrutturaNuovoResponsabile,
             @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento
     ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
-        
+
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
-        
+
         // Controlli di sicurezza
         // Sono AG per l'azienda?
         List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
@@ -2177,7 +2161,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         if (!utenteInAzienda || !strutturaResponsabile.getIdAzienda().getId().equals(idAziendaRiferimento)) {
             throw new Http403ResponseException("3", "responsabile e struttura non fanno parte dell'azienda");
         }
-        
+
         Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
 
         Map<String, Object> parameters = new HashMap();
@@ -2187,18 +2171,18 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         parameters.put("idAziendaRiferimento", idAziendaRiferimento);
         parameters.put("idPersonaNuovoResponsabile", idPersonaNuovoResponsabile);
         parameters.put("idStrutturaNuovoResponsabile", idStrutturaNuovoResponsabile);
-        
+
         Integer idMassiveActionLog = scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_RESPONSABILE);
-        
-        
+
+
         // Inserisco il job per la sosituzione
         SostizioneMassivaResponsabileArchiviJobWorkerData sostizioneMassivaResponsabileArchiviJobWorkerData = new SostizioneMassivaResponsabileArchiviJobWorkerData(
-                idsArchivi, 
-                idPersonaNuovoResponsabile, 
-                idStrutturaNuovoResponsabile, 
-                idMassiveActionLog, 
-                authenticatedUserProperties.getPerson().getId(), 
-                authenticatedUserProperties.getUser().getId(), 
+                idsArchivi,
+                idPersonaNuovoResponsabile,
+                idStrutturaNuovoResponsabile,
+                idMassiveActionLog,
+                authenticatedUserProperties.getPerson().getId(),
+                authenticatedUserProperties.getUser().getId(),
                 idAziendaRiferimento
         );
 
@@ -2211,13 +2195,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         jn.setPriority(Set.SetPriority.NORMAL);
         jn.setSkipIfAlreadyPresent(Boolean.FALSE);
         jobNotifiedRepository.save(jn);
-                
+
         Map<String, Object> response = new HashMap();
         //response.put("idsSize", ids.length);
-        
+
         return ResponseEntity.ok(response);
     }
-    
+
     @RequestMapping(value = {"modificaVicariAndPermessiArchivioMassivo"}, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> modificaVicariAndPermessiArchivioMassivo(
@@ -2229,11 +2213,11 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestBody(required = true) InfoAbilitazioniMassiveArchivi abilitazioniRichieste,
             @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento
     ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
-            
+
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
-        
+
         // Controlli di sicurezza
         // Sono AG per l'azienda?
         List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
@@ -2270,7 +2254,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 }
             }
         }
-        
+
         Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
 
         Map<String, Object> parameters = new HashMap();
@@ -2279,16 +2263,16 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         parameters.put("notIds", notIds);
         parameters.put("idAziendaRiferimento", idAziendaRiferimento);
         parameters.put("abilitazioniRichieste", abilitazioniRichieste);
-        
+
         Integer idMassiveActionLog = scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_VICARI_E_PERMESSI);
-        
+
         // Inserisco il job per dare/togliere le abilitazioni
         GestioneMassivaAbilitazioniArchiviJobWorkerData gestioneMassivaAbilitazioniArchiviJobWorkerData = new GestioneMassivaAbilitazioniArchiviJobWorkerData(
-                idsArchivi, 
+                idsArchivi,
                 abilitazioniRichieste,
-                idMassiveActionLog, 
-                authenticatedUserProperties.getPerson().getId(), 
-                authenticatedUserProperties.getUser().getId(), 
+                idMassiveActionLog,
+                authenticatedUserProperties.getPerson().getId(),
+                authenticatedUserProperties.getUser().getId(),
                 idAziendaRiferimento
         );
 
@@ -2301,12 +2285,12 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         jn.setPriority(Set.SetPriority.NORMAL);
         jn.setSkipIfAlreadyPresent(Boolean.FALSE);
         jobNotifiedRepository.save(jn);
-        
+
         Map<String, Object> response = new HashMap();
-        
+
         return ResponseEntity.ok(response);
     }
-    
+
     @RequestMapping(value = {"copiaTrasferisciAbilitazioniArchiviMassivo"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> copiaTrasferisciAbilitazioniArchiviMassivo(
@@ -2405,8 +2389,46 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 //        jobNotifiedRepository.save(jn);
         
         Map<String, Object> response = new HashMap();
-        
+
         return ResponseEntity.ok(response);
+    }
+
+    @RequestMapping(value = "downloadStampaLotti/{guidDocumento}", method = RequestMethod.GET)
+    public ResponseEntity<?> downloadStampaLotti(@PathVariable String guidDocumento)
+            throws BlackBoxPermissionException, MasterjobsWorkerException, Http404ResponseException {
+
+        authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+
+        List<Lotto> lottiList = lottoRepository.findByGuidDocumento(guidDocumento);
+
+        if (lottiList.isEmpty()) {
+            throw new Http404ResponseException("1", "lotti not found");
+        }
+
+        // getting the contraente with more lotti
+        Contraente contraente = lottiList.stream()
+                .collect(Collectors.groupingBy(Lotto::getIdContraente, Collectors.counting()))
+                .entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
+                .orElseThrow(() -> new Http404ResponseException("2", "contraente not found"));
+
+        Map<String, Object> dataModel = new HashMap<String, Object>() {{
+            put("title", "Dataset of " + contraente.getNome());
+            put("name", "Nome dataset");
+            //put("urlToXmlFile", "address-to-xml"); //TODO tbd
+            put("publicationDate", ZonedDateTime.now());
+            //put("lastEditDate", ZonedDateTime.now()); //TODO tbd
+            put("lottiList", lottiList);
+        }};
+
+        ReporterJobWorkerData data = new ReporterJobWorkerData();
+        data.setCodiceAzienda("AvCp"); // TODO tbd by id_azienda_gru or id, in case every business company wants to use its own implementation
+        data.setFileName("Dataset_" + contraente.getId() + LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME));
+        data.setTemplateName("AvCp_dataset.xhtml");
+        data.setParametriTemplate(dataModel);
+
+        PdfAReporter jobWorker = masterjobsObjectsFactory.getJobWorker(PdfAReporter.class, data, false);
+
+        return new ResponseEntity<>((UrlAndUuidResult) jobWorker.doWork(), HttpStatus.OK);
     }
     
     @RequestMapping(value = "getDocDocByIdDocSorgente/{idDocSorgente}", method = RequestMethod.GET)

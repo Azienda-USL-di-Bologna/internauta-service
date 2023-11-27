@@ -24,3 +24,4 @@ resources/reporter
 downloader/DOWNLOADER_TEST.crt
 downloader/Internauta_Downloader_Encryption_Public_Key_Test.pem
 src/main/resources/application_nuc.properties
+.idea/
