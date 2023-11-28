@@ -40,7 +40,8 @@ public class RicalcoloPermessiArchiviServiceWorker extends ServiceWorker {
                     "scripta", 
                     false, // waitForObject
                     it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST,
-                    true
+                    true,
+                    null
             );
         } catch (MasterjobsQueuingException ex) {
             String errorMessage = String.format("Errore nell'accodamento di %s", RicalcoloPermessiArchiviJobWorker.class.getSimpleName());

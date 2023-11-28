@@ -65,7 +65,7 @@ public class UpdateContattiInadJobWorker extends JobWorker<UpdateContattiInadJob
                 false,
                 120000);
             try {
-                super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.gedi.toString(), false, Set.SetPriority.NORMAL);
+                super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.gedi.toString(), false, Set.SetPriority.NORMAL, null);
             } catch (MasterjobsQueuingException ex) {
                 String errorMessage = "errore nell'accodamento del job di" + getName();
                 log.error(errorMessage);

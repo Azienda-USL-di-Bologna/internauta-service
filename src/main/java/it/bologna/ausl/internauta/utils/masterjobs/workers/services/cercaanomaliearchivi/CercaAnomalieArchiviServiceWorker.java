@@ -37,7 +37,8 @@ public class CercaAnomalieArchiviServiceWorker extends ServiceWorker {
                     null,
                     Applicazione.Applicazioni.scripta.toString(),
                     false,
-                    Set.SetPriority.NORMAL
+                    Set.SetPriority.NORMAL,
+                    null
             );
         } catch (MasterjobsQueuingException ex) {
             throw new MasterjobsWorkerException("errore nell'accodamento del job", ex);

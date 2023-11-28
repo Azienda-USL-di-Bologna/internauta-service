@@ -62,7 +62,7 @@ public class AccodatoreVeloce {
         }
         
         try {
-            masterjobsJobsQueuer.queueMultiJobs(toQueue);
+            masterjobsJobsQueuer.queueMultiJobs(toQueue, null);
         } catch (MasterjobsQueuingException ex) {
             String errorMessage = String.format("Errore nell'accodamento di %s", CalcolaPersoneVedentiDocJobWorker.class.getSimpleName());
             log.error(errorMessage, ex);

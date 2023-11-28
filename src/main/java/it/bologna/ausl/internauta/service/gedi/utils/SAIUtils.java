@@ -165,7 +165,8 @@ public class SAIUtils {
                 Outbox.class.getSimpleName(), 
                 Applicazione.Applicazioni.sai.toString(), 
                 true, 
-                Set.SetPriority.NORMAL);
+                Set.SetPriority.NORMAL,
+                null);
 
         return archivioDestinazione.getNumerazioneGerarchica();
     }
@@ -240,7 +241,8 @@ public class SAIUtils {
                 Outbox.class.getSimpleName(), 
                 Applicazione.Applicazioni.sai.toString(), 
                 false, 
-                Set.SetPriority.NORMAL);
+                Set.SetPriority.NORMAL,
+                null);
 
         return numerazioneFascicoloDestinazione;
     }

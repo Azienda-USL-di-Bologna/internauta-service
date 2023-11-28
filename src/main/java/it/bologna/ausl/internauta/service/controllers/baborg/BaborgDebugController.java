@@ -251,7 +251,7 @@ public class BaborgDebugController {
         );
         
 //        mjQueuer.queue(fooWorker, null, null, null, false, Set.SetPriority.NORMAL, false);
-        mjQueuer.queueMultiJobs(descriptors);
+        mjQueuer.queueMultiJobs(descriptors, null);
         return null;
     }
     
@@ -496,7 +496,8 @@ public class BaborgDebugController {
                     null,
                     Applicazione.Applicazioni.rubrica.toString(),
                     false,
-                    Set.SetPriority.NORMAL
+                    Set.SetPriority.NORMAL,
+                    null
             );
         } catch (MasterjobsQueuingException ex) {
             throw new MasterjobsWorkerException("errore nell'accodamento del job", ex);

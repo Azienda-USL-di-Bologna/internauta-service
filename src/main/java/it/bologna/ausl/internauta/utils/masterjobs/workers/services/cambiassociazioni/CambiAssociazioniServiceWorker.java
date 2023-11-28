@@ -95,7 +95,7 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
         log.info("queueing scheduleManageCambiAssociazioniJob...");
         ManageCambiAssociazioniJobWorker worker = masterjobsObjectsFactory.getJobWorker(
                 ManageCambiAssociazioniJobWorker.class, new ManageCambiAssociazioniJobWorkerData(ZonedDateTime.now()), false);
-        masterjobsJobsQueuer.queue(worker, CAMBIAMENTI_ASSOCIAZIONI_WORKER_ID, null, null, true, Set.SetPriority.HIGH);
+        masterjobsJobsQueuer.queue(worker, CAMBIAMENTI_ASSOCIAZIONI_WORKER_ID, null, null, true, Set.SetPriority.HIGH, null);
         log.info("scheduleManageCambiAssociazioniJob queued");
     }
 }
