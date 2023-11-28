@@ -1064,6 +1064,7 @@ public class TipTransferManager {
                 }
                 docSorgente.getDocsCollegati().add(new DocDoc(docSorgente, doc, DocDoc.TipoCollegamentoDoc.PRECEDENTE, persona));
                 entityManager.persist(docSorgente);
+                queryFactory.delete(qDocumentoDaCollegare).where(qDocumentoDaCollegare.id.eq(documentoDestinazione.getId()));
             }
         }
         
