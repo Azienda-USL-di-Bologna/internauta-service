@@ -7,6 +7,8 @@ import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepositor
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.model.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.InfoArchivio;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.InfoPersona;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.logs.Krint;
@@ -21,7 +23,10 @@ import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -460,5 +465,230 @@ public class KrintScriptaService {
         @SuppressWarnings("unchecked")
         HashMap<String, Object> map = objectMapper.readValue(jsonKrintArchivio, HashMap.class);
         return map;
+    }
+    
+    
+    public void writeSostituzioneResponsabileDaAmministratoreGedi(
+            HashMap<String, Object> sameInfo,
+            Integer idMassiveActionLog,
+            OperazioneKrint.CodiceOperazione operazione
+    ) {
+        try {
+            // Informazioni oggetto contenitore
+            HashMap<String, Object> krintArchivio = new HashMap();
+            krintArchivio.put("id", sameInfo.get("idArchivio"));
+            krintArchivio.put("numerazioneGerarchica", sameInfo.get("numerazioneGerarchica"));
+            krintArchivio.put("idMassiveActionLog", idMassiveActionLog);
+            
+            krintService.writeKrintRow(
+                    sameInfo.get("idAttoreArchivioNewResponsabile").toString(), // idOggetto
+                    Krint.TipoOggettoKrint.SCRIPTA_ATTORE_ARCHIVIO, // tipoOggetto
+                    sameInfo.get("descrizioneNewResponsabile").toString(), // descrizioneOggetto
+                    sameInfo, // informazioniOggetto
+                    sameInfo.get("idArchivio").toString(), // Da qui si ripete ma per il conenitore
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
+                    sameInfo.get("numerazioneGerarchica").toString(),
+                    krintArchivio,
+                    operazione
+            );
+        } catch (Exception ex) {
+            log.error("Errore nella writeSostituzioneResponsabileDaAmministratoreGedi con archivio " + sameInfo.get("idAttoreArchivioNewResponsabile").toString(), ex);
+            krintService.writeKrintError((Integer) sameInfo.get("idAttoreArchivioNewResponsabile"), "writeSostituzioneResponsabileDaAmministratoreGedi", operazione);
+        }
+    }
+    
+    /**
+     * Esempio di frase del log: 
+     * L'amministratore Bingo Bongo ha modificato le abilitazioni del fascicolo.Ha reso vicari gli utenti Cassandra Cassetti, Pel Dicarota.Ha rimosso i vicari Gino Formaggino.Ha dato i permessi VISUALIZZA a Tania Lania, Peppa Pig; 
+ MODIFICA a Santi Numi; 
+ ELIMINA a Trovato Nascosto.Ha tolto i permessi a Fernandello Mio.La frase del log verrà per lo più costruita a mano qui e non sarà quindi usato il metodo standard. 
+     * Questo perché ci sono liste e voci da mostrare o meno in determinate condizioni.
+ Il motore del krint oggi non supporterebbe tale costruzione della frase.
+     * @param idArchivio
+     * @param idMassiveActionLog
+     * @param infoArchivio
+     * @param mappaPersone
+     * @param operazione
+     */
+    public void writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi(
+            Integer idArchivio,
+            Integer idMassiveActionLog,
+            InfoArchivio infoArchivio,
+            Map<Integer, InfoPersona> mappaPersone,
+            OperazioneKrint.CodiceOperazione operazione
+    ) {
+        try {
+            // Informazioni oggetto contenitore
+            HashMap<String, Object> krintArchivio = new HashMap();
+            krintArchivio.put("id", idArchivio);
+            krintArchivio.put("numerazioneGerarchica", infoArchivio.getNumerazioneGerarchica());
+            
+            // Costuisco la frase del log
+            boolean almenoUnCambiamentoAvvenuto = false; // Diventa true se c'è stato almeno una vera modifica
+            String descrizioneAzione = "";
+            // Frase della rimozione vicari
+            List<Integer> vicariEliminati = infoArchivio.getVicariEliminati();
+            if (!vicariEliminati.isEmpty()) {
+                almenoUnCambiamentoAvvenuto = true;
+                descrizioneAzione = descrizioneAzione + "<br>Ha rimosso i vicari: ";
+                for (Integer vicarioRimosso : vicariEliminati) {
+                    InfoPersona vicario = mappaPersone.get(vicarioRimosso);
+                    descrizioneAzione = descrizioneAzione + "<b>" + vicario.getDescrizione() + "</b>, ";
+                }
+                descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ".";
+            }
+            // Frase dell'aggiunta vicari
+            List<Integer> vicariAggiunti = infoArchivio.getVicariAggiunti();
+            if (!vicariAggiunti.isEmpty()) {
+                almenoUnCambiamentoAvvenuto = true;
+                descrizioneAzione = descrizioneAzione + "<br>Ha reso vicari gli utenti: ";
+                for (Integer vicarioAggiunto : vicariAggiunti) {
+                    InfoPersona vicario = mappaPersone.get(vicarioAggiunto);
+                    descrizioneAzione = descrizioneAzione + "<b>" + vicario.getDescrizione() + "</b>, ";
+                }
+                descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ".";
+            }
+            // Frase della rimozione permessi
+            List<Integer> permessiPersonaRimossi = infoArchivio.getPermessiPersonaRimossi();
+            if (!permessiPersonaRimossi.isEmpty()) {
+                almenoUnCambiamentoAvvenuto = true;
+                descrizioneAzione = descrizioneAzione + "<br>Ha rimosso i permessi agli utenti: ";
+                for (Integer idPersona : permessiPersonaRimossi) {
+                    InfoPersona persona = mappaPersone.get(idPersona);
+                    descrizioneAzione = descrizioneAzione + "<b>" + persona.getDescrizione() + "</b>, ";
+                }
+                descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ".";
+            }
+            // Frase dell'aggiunta permessi
+            Map<String, List<Integer>> permessiPersonaAggiunti = infoArchivio.getPermessiPersonaAggiunti();
+            if (permessiPersonaAggiunti != null) {
+                List<Integer> visualizza = permessiPersonaAggiunti.get("VISUALIZZA");
+                List<Integer> modifica = permessiPersonaAggiunti.get("MODIFICA");
+                List<Integer> elimina = permessiPersonaAggiunti.get("ELIMINA");
+                if (!visualizza.isEmpty() || !modifica.isEmpty() || !elimina.isEmpty()) {
+                    almenoUnCambiamentoAvvenuto = true;
+                    descrizioneAzione = descrizioneAzione + "<br>Ha dato i seguenti permessi:";
+                    if (!visualizza.isEmpty()) {
+                        descrizioneAzione = descrizioneAzione + " <b>VISUALIZZA</b> a ";
+                        for (Integer idPersona : visualizza) {
+                            InfoPersona persona = mappaPersone.get(idPersona);
+                            descrizioneAzione = descrizioneAzione + "<b>" + persona.getDescrizione() + "</b>, ";
+                        }
+                        descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ";";
+                    }
+                    if (!modifica.isEmpty()) {
+                        descrizioneAzione = descrizioneAzione + " <b>MODIFICA</b> a ";
+                        for (Integer idPersona : modifica) {
+                            InfoPersona persona = mappaPersone.get(idPersona);
+                            descrizioneAzione = descrizioneAzione + "<b>" + persona.getDescrizione() + "</b>, ";
+                        }
+                        descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ";";
+                    }
+                    if (!elimina.isEmpty()) {
+                        descrizioneAzione = descrizioneAzione + " <b>ELIMINA</b> a ";
+                        for (Integer idPersona : elimina) {
+                            InfoPersona persona = mappaPersone.get(idPersona);
+                            descrizioneAzione = descrizioneAzione + "<b>" + persona.getDescrizione() + "</b>, ";
+                        }
+                        descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 2) + ";";
+                    }
+                    descrizioneAzione = descrizioneAzione.substring(0, descrizioneAzione.length() - 1) + ".";
+                }
+            }
+            
+            if (almenoUnCambiamentoAvvenuto) {
+                HashMap<String, Object> infoOggetto = new HashMap();
+                infoOggetto.put("descrizioneAzione", descrizioneAzione);
+                infoOggetto.put("infoArchivio", infoArchivio);
+                infoOggetto.put("idMassiveActionLog", idMassiveActionLog);
+
+                krintService.writeKrintRow(
+                        idArchivio.toString(), // idOggetto
+                        Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
+                        infoArchivio.getNumerazioneGerarchica(), // descrizioneOggetto
+                        infoOggetto, // informazioniOggetto
+                        idArchivio.toString(), // Da qui si ripete ma per il conenitore
+                        Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
+                        infoArchivio.getNumerazioneGerarchica(),
+                        krintArchivio,
+                        operazione
+                );
+            }
+        } catch (Exception ex) {
+            log.error("Errore nella writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi con archivio " + idArchivio.toString(), ex);
+            krintService.writeKrintError(idArchivio, "writeGestioneMassivaAbilitazioniArchiviDaAmministratoreGedi", operazione);
+        }
+    }
+    
+    
+    /**
+     * Andiamo a loggare l'evento massivo di copia o di trasferimento delle abiltiazioni
+     * negli archivi. Le frasi tipiche saranno ad esempio:
+     * - L'amministratore Bingo Bongo ha copiato le abilitazioni sul fascicolo di Trovato Nascosto dandole a Fernandello Mio. Le abilitazioni ottenute da Fernandello Mio sono: Vicario, Elimina.
+     * - L'amministratore Bingo Bongo ha trasferito le abilitazioni sul fascicolo di Trovato Nascosto dandole a Fernandello Mio. Le abilitazioni ottenute da Fernandello Mio sono: Responsabile, Vicario, Elimina.
+     * In caso di trasferimento dove il destinario aveva già le abilitazioni:
+     * - L'amministratore Bingo Bongo ha trasferito le abilitazioni sul fascicolo di Trovato Nascosto dandole a Fernandello Mio. Fernandello Mio non ha ottenuto ulteriori abilitazioni oltre a quelle già possedute.
+     * @param idArchivio
+     * @param personaSorgente
+     * @param personaDestinazione
+     * @param abilitazioniAggiunte
+     * @param numerazioneGerarchica
+     * @param idMassiveActionLog
+     * @param idArchivioRadice
+     * @param operazione 
+     */
+    public void writeCopiaTrasferimentoAbilitazioniArchivi(
+            Integer idArchivio,
+            Persona personaSorgente,
+            Persona personaDestinazione,
+            List<String> abilitazioniAggiunte,
+            String numerazioneGerarchica,
+            Integer idArchivioRadice,
+            Integer idMassiveActionLog,
+            OperazioneKrint.CodiceOperazione operazione
+    ) {
+        try {
+            String descrizioneAzione = null;
+            if (operazione.equals(OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_TRASFERIMENTO_MASSIVO_ABILITAZIONI)) {
+                if (abilitazioniAggiunte.isEmpty()) {
+                    descrizioneAzione = String.format("<b>%1$s</b> non ha ottenuto ulteriori abilitazioni oltre a quelle già possedute.", personaDestinazione.getDescrizione());
+                } else {
+                    descrizioneAzione = String.format("L'abilitazione ottenuta da <b>%1$s</b> è: <b>" + String.join("</b>, <b>", abilitazioniAggiunte) + "</b>.", personaDestinazione.getDescrizione());
+                }
+            } else {
+                descrizioneAzione = String.format("L'abilitazione ottenuta da <b>%1$s</b> è: <b>" + String.join("</b>, <b>", abilitazioniAggiunte) + "</b>.", personaDestinazione.getDescrizione());
+            }
+            
+            // Informazioni oggetto contenitore
+            HashMap<String, Object> krintArchivio = new HashMap();
+            krintArchivio.put("idArchivio", idArchivio);
+            krintArchivio.put("numerazioneGerarchica", numerazioneGerarchica);
+            krintArchivio.put("idMassiveActionLog", idMassiveActionLog);
+            krintArchivio.put("idPersonaSorgente", personaSorgente.getId());
+            krintArchivio.put("descrizionePersonaSorgente", personaSorgente.getDescrizione());
+            krintArchivio.put("idPersonaDestinazione", personaDestinazione.getId());
+            krintArchivio.put("descrizionePersonaDestinazione", personaDestinazione.getDescrizione());
+            krintArchivio.put("abilitazioniAggiunte", abilitazioniAggiunte);
+            krintArchivio.put("descrizioneAzione", descrizioneAzione);
+            
+            Pattern pattern = Pattern.compile("(\\d+)-?(\\d+)?-?(\\d+)?(\\/)(\\d+)");
+            Matcher matcher = pattern.matcher(numerazioneGerarchica);
+            String numerazioneGerarchicaRadice = matcher.replaceAll("$1/$5");
+            
+            krintService.writeKrintRow(
+                    idArchivio.toString(), // idOggetto
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto
+                    numerazioneGerarchica, // descrizioneOggetto
+                    krintArchivio, // informazioniOggetto
+                    idArchivioRadice.toString(), // Da qui si ripete ma per il conenitore
+                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
+                    numerazioneGerarchicaRadice,
+                    krintArchivio,
+                    operazione
+            );
+        } catch (Exception ex) {
+            log.error("Errore nella writeCopiaTrasferimentoAbilitazioniArchivi con archivio " + idArchivio.toString(), ex);
+            krintService.writeKrintError(idArchivio, "writeCopiaTrasferimentoAbilitazioniArchivi", operazione);
+        }
     }
 }

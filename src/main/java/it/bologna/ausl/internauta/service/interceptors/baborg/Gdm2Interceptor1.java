@@ -6,7 +6,7 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.ribaltoneutils.RibaltoneDaLanciareRepository;
 import it.bologna.ausl.model.entities.baborg.Gdm2;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.util.Map;

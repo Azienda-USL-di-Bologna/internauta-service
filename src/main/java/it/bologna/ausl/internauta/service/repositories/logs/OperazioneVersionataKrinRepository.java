@@ -10,7 +10,7 @@ import it.bologna.ausl.model.entities.logs.projections.generated.CounterWithPlai
 import it.bologna.ausl.model.entities.logs.projections.generated.OperazioneKrintWithPlainFields;
 import it.bologna.ausl.model.entities.logs.projections.generated.OperazioneVersionataKrintWithPlainFields;
 
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.Optional;

@@ -40,6 +40,18 @@ public class Strutture {
         }
     }
 
+    /**
+     * Controlla che id_casella sia presente su CSV.
+     * Man mano che si cicla il CSV va a popolare le date della casella nella variabile 'strutturaCheckDateMap'
+     * e verrà usata successivamente per controllare che lo storico sia coerente 
+     * ovvero che le strtture figlie devono essere contenute all'interno dei padri a (livello temporale); inoltre
+     * controlla che non sia già definita nello stesso arco temporale
+     * @param strutturaMap
+     * @param mapError
+     * @param lineNumber
+     * @param strutturaCheckDateMap
+     * @return 
+     */
     public static String checkIdCasella(Map<String, Object> strutturaMap,
             Map<String, Object> mapError,
             Integer lineNumber,

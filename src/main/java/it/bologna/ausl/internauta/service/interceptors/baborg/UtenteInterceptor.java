@@ -17,7 +17,7 @@ import it.bologna.ausl.model.entities.baborg.QUtente;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.List;
 import java.util.Map;

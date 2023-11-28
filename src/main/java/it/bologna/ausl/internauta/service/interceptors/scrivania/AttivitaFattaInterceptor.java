@@ -9,7 +9,7 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scrivania.AttivitaFatta;
 import it.bologna.ausl.model.entities.scrivania.QAttivitaFatta;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.List;
 import java.util.Map;

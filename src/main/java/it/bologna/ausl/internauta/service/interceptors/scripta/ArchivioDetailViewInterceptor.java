@@ -12,7 +12,7 @@ import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.views.ArchivioDetailView;
 import it.bologna.ausl.model.entities.scripta.views.QArchivioDetailView;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +47,10 @@ public class ArchivioDetailViewInterceptor extends InternautaBaseInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArchivioDetailViewInterceptor.class);
     
     @Autowired
-    UserInfoService userInfoService;
+    private UserInfoService userInfoService;
+    
+    @Autowired
+    private ScriptaInterceptorUtils scriptaInterceptorUtils;
 
     @Override
     public Class getTargetEntityClass() {
@@ -76,7 +79,7 @@ public class ArchivioDetailViewInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
-        
+        initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(ArchivioDetailView.class, "dataCreazioneArchivio", "idAziendaArchivio").and(initialPredicate);
         return initialPredicate;
     }
 

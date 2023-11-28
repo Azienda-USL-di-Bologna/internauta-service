@@ -63,7 +63,7 @@ public class AlboBridgeController implements ControllerHandledExceptions {
     private ObjectMapper objectMapper;
 
     public static enum TipiAllegato {
-        STAMPA_UNICA, RELATA
+        STAMPA_UNICA, RELATA, LEGGE190
     }
 
     /**
@@ -97,6 +97,7 @@ public class AlboBridgeController implements ControllerHandledExceptions {
             //TODO: da fare
         } else {
             switch (tipo) {
+                case LEGGE190:
                 case STAMPA_UNICA:
                     List<Map<String, Object>> sottoDocumenti = null;
                     try {

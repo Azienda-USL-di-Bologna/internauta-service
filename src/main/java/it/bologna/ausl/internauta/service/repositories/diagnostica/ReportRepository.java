@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.diagnostica;
 import it.bologna.ausl.model.entities.diagnostica.QReport;
 import it.bologna.ausl.model.entities.diagnostica.Report;
 import it.bologna.ausl.model.entities.diagnostica.projections.generated.ReportWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;

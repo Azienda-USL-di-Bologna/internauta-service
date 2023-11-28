@@ -3,7 +3,9 @@ package it.bologna.ausl.internauta.service.controllers.logs;
 import com.querydsl.core.types.Predicate;
 import it.bologna.ausl.internauta.service.configuration.nextsdr.RestControllerEngineImpl;
 import it.bologna.ausl.model.entities.logs.Krint;
+import it.bologna.ausl.model.entities.logs.MassiveActionLog;
 import it.bologna.ausl.model.entities.logs.QKrint;
+import it.bologna.ausl.model.entities.logs.QMassiveActionLog;
 import it.nextsw.common.controller.BaseCrudController;
 import it.nextsw.common.controller.RestControllerEngine;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
@@ -43,9 +45,22 @@ public class LogsBaseController extends BaseCrudController {
             @RequestParam(required = false) String projection,
             @PathVariable(required = false) Integer id,
             HttpServletRequest request,
-            @RequestParam(required = false, name = "additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
 
         Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QKrint.krint, Krint.class);
+        return ResponseEntity.ok(resource);
+    }
+    
+    @RequestMapping(value = {"massiveactionlog", "massiveactionlog/{id}"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> massiveactionlog(
+            @QuerydslPredicate(root = MassiveActionLog.class) Predicate predicate,
+            Pageable pageable,
+            @RequestParam(required = false) String projection,
+            @PathVariable(required = false) Integer id,
+            HttpServletRequest request,
+            @RequestParam(required = false, name = "$additionalData") String additionalData) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException {
+
+        Object resource = restControllerEngine.getResources(request, id, projection, predicate, pageable, additionalData, QMassiveActionLog.massiveActionLog, MassiveActionLog.class);
         return ResponseEntity.ok(resource);
     }
 }

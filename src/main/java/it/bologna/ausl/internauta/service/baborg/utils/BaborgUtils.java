@@ -378,7 +378,7 @@ public class BaborgUtils {
 
         try {
             // Update nello storico importazioni. esito: OK e Data Fine: Data.now
-            String csv_error_link = importaDaCSVBeanSave.csvTransactionalReadDeleteInsert(file, tipo, codiceAzienda, idAziendaInt);
+            String csv_error_link = importaDaCSVBeanSave.csvTransactionalReadDeleteInsert(file, tipo, codiceAzienda, idAziendaInt, idUser);
             res = bean.updateEsitoImportazioneOrganigramma(newRowInserted, "Ok", csv_error_link);
         } catch (BaborgCSVBloccanteException e) {
             log.error("errore bloccante", e);

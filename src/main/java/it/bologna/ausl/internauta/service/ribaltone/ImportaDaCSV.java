@@ -20,6 +20,7 @@ import it.bologna.ausl.internauta.service.repositories.gru.MdrTrasformazioniRepo
 import it.bologna.ausl.internauta.service.repositories.mdrsporco.MdrTrasformazioniSporcheRepository;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.gru.MdrAnagrafica;
@@ -48,7 +49,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import org.slf4j.Logger;
@@ -366,7 +366,7 @@ public class ImportaDaCSV {
      * it.bologna.ausl.internauta.service.exceptions.ribaltonecsv.BaborgCSVBloccanteRigheException
      */
     @Transactional(rollbackFor = Throwable.class, noRollbackFor = BaborgCSVAnomaliaException.class, propagation = Propagation.REQUIRES_NEW)
-    public String csvTransactionalReadDeleteInsert(MultipartFile file, String tipo, String codiceAzienda, Integer idAzienda) throws BaborgCSVBloccanteException, BaborgCSVAnomaliaException, MongoWrapperException, BaborgCSVBloccanteRigheException {
+    public String csvTransactionalReadDeleteInsert(MultipartFile file, String tipo, String codiceAzienda, Integer idAzienda, Integer idUtente) throws BaborgCSVBloccanteException, BaborgCSVAnomaliaException, MongoWrapperException, BaborgCSVBloccanteRigheException {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
         String nameCsv = sdf.format(timestamp) + "_Error_" + tipo + ".csv";
@@ -392,7 +392,7 @@ public class ImportaDaCSV {
             //        Reading with CsvMapReader
             //        Reading file with CsvMapReader
 
-            InputStreamReader inputFileStreamReader = new InputStreamReader(file.getInputStream());
+            InputStreamReader inputFileStreamReader = new InputStreamReader(file.getInputStream(), "UTF-8");
             CsvPreference SEMICOLON_DELIMITED = new CsvPreference.Builder('"', ';', "\r\n").build();
             mapReader = new CsvMapReader(inputFileStreamReader, SEMICOLON_DELIMITED);
             mapReader.getHeader(true);
@@ -428,10 +428,10 @@ public class ImportaDaCSV {
                     nRigheAnomale = 0;
                     List<Map<String, Object>> listAppartenentiMap = new ArrayList<>();
                     Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
-                    //integer1 appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
-                    Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti = new HashMap<>();
-                    //integer1 appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
-                    Map<Integer, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali = new HashMap<>();
+                    //String codiceMatricola appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
+                    Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti = new HashMap<>();
+                    //String codiceMatricola appartenenti, integer2 struttura, lista datain,datafi di appartenente in struttura.
+                    Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali = new HashMap<>();
                     // Delete delle righe da sostituire
                     predicateAzienda = QMdrAppartenenti.mdrAppartenenti.idAzienda.id.eq(idAzienda);
                     mdrAppartenentiRepository.deleteByIdAzienda(idAzienda);
@@ -540,11 +540,11 @@ public class ImportaDaCSV {
                     }
                     
                     //se ho il caso in cui non ho appartenenti diretti per qualche appatenente funzionale
-                    List<Integer> codiciMatricoleConAppFunzionaliENonDirette = Appartenenti.codiciMatricoleConAppFunzionaliENonDirette(appartenentiFunzionali, appartenentiDiretti);
+                    List<String> codiciMatricoleConAppFunzionaliENonDirette = Appartenenti.codiciMatricoleConAppFunzionaliENonDirette(appartenentiFunzionali, appartenentiDiretti);
                     riga = 2;
                                       
                     for (Map<String, Object> appMapWithErrorAndAnomalia : listAppartenentiMap) {
-                        if (codiciMatricoleConAppFunzionaliENonDirette.contains(Integer.parseInt(appMapWithErrorAndAnomalia.get("codice_matricola").toString()))) {
+                        if (codiciMatricoleConAppFunzionaliENonDirette.contains(appMapWithErrorAndAnomalia.get("codice_matricola").toString())) {
                             appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con appartenenze funzionali ma senza appartenente dirette");
                             nRigheAnomale++;
                             anomalia = true;
@@ -785,11 +785,10 @@ public class ImportaDaCSV {
 //                        nRigheAnomale = tipoR == null ? nRigheAnomale++ : nRigheAnomale;
 
 //                      CODICE ENTE
-                        String CodiceEnte = ImportaDaCSVUtils.checkCodiceEnte(responsabiliMap, mapError, codiceAzienda);
-                        mR.setCodiceEnte(CodiceEnte);
-                        anomalia = Objects.equals(CodiceEnte, codiceAzienda) ? true : anomalia;
-                        anomaliaRiga = Objects.equals(CodiceEnte, codiceAzienda) ? true : anomaliaRiga;
-                        //nRigheAnomale = Objects.equals(CodiceEnte, codiceAzienda) ? nRigheAnomale++ : nRigheAnomale;
+                        String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(responsabiliMap, mapError, codiceAzienda);
+                        mR.setCodiceEnte(codiceEnte);
+                        anomalia = codiceEnte.startsWith(codiceAzienda) ? anomalia : true;
+                        anomaliaRiga = codiceEnte.startsWith(codiceAzienda) ? anomaliaRiga : true;
 
                         mR.setIdAzienda(azienda);
                         if (!anomaliaRiga) {
@@ -851,6 +850,7 @@ public class ImportaDaCSV {
                         mS.setDatafi(datafi);
                         datafiString = datafi != null ? UtilityFunctions.getZonedDateTimeString(datafi) : null;
 
+                        // controlla che la casella sia coerente, altrimenti ritorna ""
                         String id_casella = Strutture.checkIdCasella(strutturaMap, mapError, mapReader.getLineNumber(), strutturaCheckDateMap);
                         mS.setIdCasella(id_casella.equals("") ? null : Integer.parseInt(id_casella));
                         bloccante = id_casella.equals("") ? true : bloccante;
@@ -891,7 +891,10 @@ public class ImportaDaCSV {
                         nRigheCSV = mapReader.getRowNumber();
                     }
 
-                    //struttura padre non trovata
+                    /**
+                     * prende la lista di strutture con le loro date di inizio e fine.
+                     * questa lista verrà utilizzata per il controllo dei padri
+                     */                    
                     Map<Integer, List<Map<String, Object>>> listaStrutture = mdrStrutturaRepository.selectDateOnStruttureByIdAzienda(idAzienda);
 
                     mapWriter.close();
@@ -960,6 +963,11 @@ public class ImportaDaCSV {
                 break;
 
                 case "TRASFORMAZIONI": {
+                    java.util.Optional<Utente> utenteOpt = utenteRepository.findById(idUtente);
+                    Utente utente = null;
+                    if (utenteOpt.isPresent()) {
+                        utente = utenteOpt.get();
+                    }
                     
                     nRigheDB = mdrTrasformazioniRepository.countRow(idAzienda);
                     anomalia = false;
@@ -981,14 +989,24 @@ public class ImportaDaCSV {
                     //Reading with CsvMapReader
                     Map<String, Object> trasformazioniMap;
                     while ((trasformazioniMap = mapReader.read(headers, processors)) != null) {
-                        if (salvaSuMdrSporco){
+                        if (salvaSuMdrSporco && !utente.getUsername().equals("RIBALTONE") && !utente.getUsername().equalsIgnoreCase("bds")){
                             Integer lastProgressivoRiga = mdrTrasformazioniSporcheRepository.getLastProgressivoRiga(idAzienda);
-                            lastProgressivoRiga +=1;
+                            if (lastProgressivoRiga != null) {
+                                lastProgressivoRiga +=1;
+                            } else {
+                                lastProgressivoRiga = 1;
+                            }
                             MdrTrasformazioniSporche mdrTrasfSporca = new MdrTrasformazioniSporche();
                             
                             mdrTrasfSporca.setProgressivoRiga(lastProgressivoRiga);
                             mdrTrasfSporca.setIdCasellaPartenza(Integer.parseInt(trasformazioniMap.get("id_casella_partenza").toString()));
-                            mdrTrasfSporca.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                            
+                            if (trasformazioniMap.get("id_casella_arrivo") != null && !trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")){
+                                    mdrTrasfSporca.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                            } else {
+                                mdrTrasfSporca.setIdCasellaArrivo(null);
+                            }
+                            
                             mdrTrasfSporca.setDataTrasformazione(ImportaDaCSVUtils.formattattore(trasformazioniMap.get("data_trasformazione")));
                             mdrTrasfSporca.setMotivo(trasformazioniMap.get("motivo").toString());
                             mdrTrasfSporca.setDatainPartenza(ImportaDaCSVUtils.formattattore(trasformazioniMap.get("datain_partenza")));
@@ -999,6 +1017,7 @@ public class ImportaDaCSV {
                             mapWriter.write(trasformazioniMap, headersGenerator(tipo), getProcessors(tipo));
                             
                         } else {
+                            // sono un utente RIBALTONE o sono un utente di azienda con parametro 'salvasuMdrSporco' spento
                             log.info("mapReader.getLineNumber()" + mapReader.getLineNumber());
                             Boolean tempi_ok = true;
                             Boolean dataTrasformazione = true;
@@ -1059,9 +1078,13 @@ public class ImportaDaCSV {
     //                      CODICE ENTE
                             String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(trasformazioniMap, mapError, codiceAzienda);
                             mT.setCodiceEnte(codiceEnte);
-                            anomalia = codiceEnte.equals(codiceAzienda) ? true : anomalia;
-                            nRigheAnomale = codiceEnte.equals(codiceAzienda) ? nRigheAnomale++ : nRigheAnomale;
-
+//                            String codiceEnteParteIniziale = codiceEnte.substring(0, 3);
+                            if (!codiceEnte.startsWith(codiceAzienda)) {
+                                anomalia = true;
+                                nRigheAnomale++;
+                                mapError.put("ERRORE", mapError.get("ERRORE") + "codice ente diverso da quello atteso");
+                            } 
+                            
     //                      MOTIVO
                             if (trasformazioniMap.get("motivo") == null
                                     || trasformazioniMap.get("motivo").toString().trim().equals("")
@@ -1077,7 +1100,12 @@ public class ImportaDaCSV {
                                 bloccante = true;
                                 //non ci sta un motivo copio paripari id casella di arrivo non ho elementi per sapere se ci dovrebbe o meno essere qualcosa
                                 mapError.put("id_casella_arrivo", trasformazioniMap.get("id_casella_arrivo"));
-                                mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                if (trasformazioniMap.get("id_casella_arrivo") != null && !trasformazioniMap.get("id_casella_arrivo").toString().trim().equals("")){
+                                    mT.setIdCasellaArrivo(Integer.parseInt(trasformazioniMap.get("id_casella_arrivo").toString()));
+                                } else {
+                                    mT.setIdCasellaArrivo(null);
+                                }
+                                
                             } else {
                                 mapError.put("motivo", trasformazioniMap.get("motivo"));
                                 mT.setMotivo(trasformazioniMap.get("motivo").toString());

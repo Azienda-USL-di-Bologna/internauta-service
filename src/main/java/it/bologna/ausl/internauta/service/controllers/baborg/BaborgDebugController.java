@@ -17,17 +17,24 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRep
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.utils.jpa.natiquery.NativeQueryTools;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerInitializationException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobReporitory;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MultiJobQueueDescriptor;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriacontatti.SanatoriaContattiJobWorker;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.utentestruttura.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.masterjobs.Job;
 import it.bologna.ausl.model.entities.masterjobs.QJob;
+import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.QArchivioInfo;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import it.nextsw.common.utils.EntityReflectionUtils;
@@ -42,6 +49,7 @@ import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -66,8 +74,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -91,6 +101,9 @@ public class BaborgDebugController {
 
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    MasterjobsJobsQueuer masterjobsJobsQueuer;
 
     @Autowired
     UtenteStrutturaRepository utenteStrutturaRepository;
@@ -118,6 +131,9 @@ public class BaborgDebugController {
 
     @Autowired
     private ArchivioRepository archivioRepository;
+    
+    @Autowired
+    private TransactionTemplate transactionTemplate;
     
     @Autowired
     @Qualifier(value = "redisMaterjobs")
@@ -222,27 +238,20 @@ public class BaborgDebugController {
     }
 
     @RequestMapping(value = "test2", method = RequestMethod.GET)
-    public Object test2(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException {
+    public Object test2(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, MasterjobsWorkerInitializationException, MasterjobsQueuingException {
         
-//        Expression<Integer> value = Expressions.asNumber(16);
-//        NumberTemplate<Integer> numberTemplate = Expressions.numberTemplate(Integer.class, "function('bitand', {0}, {1})", QUtenteStruttura.utenteStruttura.bitRuoli, value);
-//        
-//        BooleanExpression filter = QUtenteStruttura.utenteStruttura.id.eq(28075300).and(numberTemplate.gt(0));
-//        Iterable<UtenteStruttura> res = utenteStrutturaRepository.findAll(filter);
-//        
-//        List<ParametroAziende> parameters1 = parametriAziende.getParameters("FiltraResponsabiliMatrint", new Integer[] {2});
-//        List<ParametroAziende> parameters2 = parametriAziende.getParameters("FiltraResponsabiliMatrint", new Integer[] {3});
-//        
-//        if (parameters1 != null && !parameters1.isEmpty())
-//            System.out.println(parametriAziende.getValue(parameters1.get(0), Boolean.class));
-//        else 
-//            System.out.println("parameters1 empty");
-//        if (parameters2 != null && !parameters2.isEmpty())
-//            System.out.println(parametriAziende.getValue(parameters2.get(0), Boolean.class));
-//        else 
-//            System.out.println("parameters2 empty");
+        FooWorker fooWorker1 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(1, "1", false), false, 5000);
+        FooWorker fooWorker2 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(2, "2", false), false, 5000);
+        FooWorker fooWorker3 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(3, "3", false), false, 5000);
         MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
-        mjQueuer.relaunchJobsInError();
+        
+        List<MultiJobQueueDescriptor> descriptors = Arrays.asList(
+                MultiJobQueueDescriptor.newBuilder().addWorker(fooWorker1).objectId("1").app("aaa").waitForObject(false).build(),
+                MultiJobQueueDescriptor.newBuilder().addWorker(fooWorker2).addWorker(fooWorker3).objectId("1").waitForObject(true).app("aaa").build()
+        );
+        
+//        mjQueuer.queue(fooWorker, null, null, null, false, Set.SetPriority.NORMAL, false);
+        mjQueuer.queueMultiJobs(descriptors);
         return null;
     }
     
@@ -271,42 +280,31 @@ public class BaborgDebugController {
     }
     
     @RequestMapping(value = "test6", method = RequestMethod.GET)
-    @Transactional(rollbackFor = Throwable.class)
+//    @Transactional(rollbackFor = Throwable.class)
     public void test6(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
-        try (
-                Reader csvReader = new FileReader("csvTest.csv");
-//                CSVParser csvParser = new CSVParser(csvReader, CSVFormat.DEFAULT.withDelimiter(';').withHeader())) {
-                CSVParser csvParser = new CSVParser(csvReader,  CSVFormat.DEFAULT.builder()
-                        .setDelimiter(';')
-                        .setQuote('"')
-                        .setQuoteMode(QuoteMode.MINIMAL)
-                        .setRecordSeparator("\r\n")
-                        .setHeader().build())) {
-
-            Map<String, String> map = new HashMap<>();
-            for (CSVRecord csvRecord : csvParser) {
-                for (Map.Entry<String, Integer> entry : csvParser.getHeaderMap().entrySet()) {
-                    String header = entry.getKey();
-                    int columnIndex = entry.getValue();
-                    String value = csvRecord.get(columnIndex);
-                    map.put(header, value);
-                }
-                System.out.println(map.toString());
-            }
-            
-//            CsvPreference SEMICOLON_DELIMITED = new CsvPreference.Builder('"', ';', "\r\n").build();
-//            ICsvMapReader mapReader = new CsvMapReader(csvReader, SEMICOLON_DELIMITED);
-//            String[] headers = new String[] {
-//                "col1",
-//                "col2",
-//                "col3",
-//                "col4",
-//            };
-//            Map<String, String> row;
-//            while ((row = mapReader.read()) != null) {
-//                System.out.println(row.toString());
-//            }
-        }
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
+        transactionTemplate.executeWithoutResult(a2 -> {
+        
+            transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+                transactionTemplate.executeWithoutResult(a1 -> {
+                JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+                Job job = entityManager.find(Job.class, 997140l);
+                System.out.println(job.getState());
+                transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+                transactionTemplate.executeWithoutResult(a -> {
+                    queryFactory
+                            .update(QJob.job)
+                            .set(QJob.job.state, Job.JobState.RUNNING)
+                            .where(QJob.job.name.eq("testgdm"))
+                            .execute();
+                });
+                System.out.println(job.getState());
+                //job = entityManager.find(Job.class, 997140l);
+//                entityManager.refresh(job);
+                job = queryFactory.select(QJob.job).from(QJob.job).where(QJob.job.id.eq(997140l)).fetchOne();
+                System.out.println(job.getState());
+            });
+        });
     }
     
     @RequestMapping(value = "testgus", method = RequestMethod.GET)
@@ -486,5 +484,22 @@ public class BaborgDebugController {
         Struttura idStrutturaPadre = res.getIdStrutturaPadre();
         System.out.println("idPadre:" + idStrutturaPadre.getId());
         return res;
+    }
+    
+    @RequestMapping(value = "testJob", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
+    public void testJob() throws MasterjobsWorkerException {
+        try {
+            masterjobsJobsQueuer.queue(
+                    new SanatoriaContattiJobWorker(),
+                    null,
+                    null,
+                    Applicazione.Applicazioni.rubrica.toString(),
+                    false,
+                    Set.SetPriority.NORMAL
+            );
+        } catch (MasterjobsQueuingException ex) {
+            throw new MasterjobsWorkerException("errore nell'accodamento del job", ex);
+        }
     }
 }

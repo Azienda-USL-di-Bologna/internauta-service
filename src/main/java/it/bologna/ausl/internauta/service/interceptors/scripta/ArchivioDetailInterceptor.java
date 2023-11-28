@@ -16,12 +16,13 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.ArchivioDiInteresse;
 import it.bologna.ausl.model.entities.scripta.QArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.QArchivioDiInteresse;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.NextSdrControllerInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.ArrayList;
@@ -90,7 +91,10 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
         //initialPredicate = safetyFilters().and(initialPredicate);
 
         Boolean safetyFiltersNonNecessari = false; // Ci sono dei casi in cui non voglio aggiungere filtri di sicurezza. Questi casi sono quelli in cui l'utente vuole vedere archivi che ha già usato e sono in archiviDiInteresse
-
+        
+        QArchivioDetail qArchivioDetail = QArchivioDetail.archivioDetail;
+        BooleanExpression noBozze = qArchivioDetail.stato.ne(Archivio.StatoArchivio.BOZZA.toString());
+        BooleanExpression bitAnomalieNotNull = qArchivioDetail.bitAnomalie.isNotNull();
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
@@ -127,6 +131,13 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
                         //Integer[] idArchiviRecenti = archivioDiInteresse.getIdArchiviRecenti();
                         //initialPredicate = getFilterDiInteresse(idArchiviRecenti).and(initialPredicate);
                         //}
+                        break;
+                    case VisualizzaTabTutti:
+                        initialPredicate = noBozze.and(initialPredicate);
+                        break;
+                    case VisualizzaTabAnomalie:
+                        initialPredicate = noBozze.and(initialPredicate);
+                        initialPredicate = bitAnomalieNotNull.and(initialPredicate);
                         break;
                 }
             }

@@ -13,7 +13,7 @@ import it.bologna.ausl.model.entities.baborg.QStrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.StrutturaUnificata;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import java.time.Instant;

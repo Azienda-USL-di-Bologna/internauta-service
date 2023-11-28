@@ -1,6 +1,5 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.SubQueryExpression;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -14,10 +13,10 @@ import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioR
 import it.bologna.ausl.internauta.service.repositories.scripta.PersonaVedenteRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData.OperationsRequested.VisualizzaTabRegistrazioni;
-import it.bologna.ausl.internauta.service.utils.InternautaUtils;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.scripta.DocDetail;
 import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
@@ -26,7 +25,7 @@ import it.bologna.ausl.model.entities.scripta.QDocDetail;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.versatore.Versamento;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -61,25 +60,19 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
     }
 
     @Autowired
-    UserInfoService userInfoService;
-
-    @Autowired
-    PersonaRepository personaRepository;
+    private UserInfoService userInfoService;
     
     @Autowired
-    PersonaVedenteRepository personaVedenteRepository;
+    private PersonaVedenteRepository personaVedenteRepository;
     
     @Autowired
-    PermessoArchivioRepository permessoArchivioRepository;
+    private PermessoArchivioRepository permessoArchivioRepository;
     
     @Autowired
-    InternautaUtils internautaUtils;
+    private DocDetailInterceptorUtils docDetailInterceptorUtils;
     
     @Autowired
-    ObjectMapper objectMapper;
-    
-    @Autowired
-    DocDetailInterceptorUtils docDetailInterceptorUtils;
+    private ScriptaInterceptorUtils scriptaInterceptorUtils;
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
@@ -111,13 +104,18 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
                         break;
                     case VisualizzaTabErroriVersamento:
-                        
-                        List<Integer> codiceAziendaListDoveSonoRV = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.RV);
+                        List<Integer> codiceAziendaListDoveSonoRV = new ArrayList<>();
+                        if(userInfoService.isSD(user)) {
+                            List<CustomAziendaLogin> aziendaListDoveSonoRV = userInfoService.getAllAziendeCustomLogin(user, true);
+                            codiceAziendaListDoveSonoRV = aziendaListDoveSonoRV.stream().map(CustomAziendaLogin::getId).collect(Collectors.toList());
+                        } else {
+                            codiceAziendaListDoveSonoRV = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.RV);
+                        }
                         initialPredicate = qdoclist.idAzienda.id.in(codiceAziendaListDoveSonoRV).and(initialPredicate);
-                        
-                        
                         initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
-                        initialPredicate = (qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE).or(qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE_RITENTABILE))).and(initialPredicate);
+                        initialPredicate = (qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE)
+                                .or(qdoclist.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE_RITENTABILE)))
+                                .and(initialPredicate);
                         break;
                     case VisualizzaTabRegistrazioni:
                         if (!userInfoService.isSD(user)) {
@@ -229,12 +227,13 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
 
     /**
      * Questa funzione si occupa di generare un predicato che contenga tutti i
-     * filtri di sicurezza che riguardano docDetail Essi sono: 1- Se demiurgo vede
-     * tutto 2- Gli altri vedono solo documenti delle aziende su cui sono attivi
-     * 3- Se osservatore vede tutto delle aziende su cui è osservatore tranne i riservati 4- Se
-     * utente generico vede solo le sue proposte 5- Se segretario vede anche
-     * proposte non sue purché dei suoi "superiori" 6- Se utente sta cercando
-     * per campi sensibili e non ha piena visibilità non vede riservati/vis lim
+     * filtri di sicurezza che riguardano docDetail Essi sono: 
+     * 1- Se demiurgo vede tutto 
+     * 2- Gli altri vedono solo documenti delle aziende su cui sono attivi
+     * 3- Se osservatore vede tutto delle aziende su cui è osservatore tranne i riservati 
+     * 4- Se utente generico vede solo le sue proposte 
+     * 5- Se segretario vede anche proposte non sue purché dei suoi "superiori" 
+     * 6- Se utente sta cercando per campi sensibili e non ha piena visibilità non vede riservati/vis lim
      */
     private BooleanExpression safetyFilters() {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
@@ -242,8 +241,11 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
         Persona persona = user.getIdPersona();
         QDocDetail qdoclist = QDocDetail.docDetail;
         BooleanExpression filter = Expressions.TRUE.eq(true);
-
-        if (!userInfoService.isSD(user)) { // Filtro 1
+        List<Integer> listaIdAziendaResponsabileVersamenti = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.RV);
+        List<Integer> listaIdAziendaCA = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.CA);
+        
+        // Filtro 1 - Se demiurgo vede tutto 
+        if (!userInfoService.isSD(user)) {
             String[] visLimFields = {"firmatari", "idArchivi", "tscol"};
             String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "idArchivi"};
             List<Integer> listaIdAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getId()).collect(Collectors.toList());
@@ -260,7 +262,6 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
                         qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
                         qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
-//                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
                     );
             SubQueryExpression<Long> queryPersoneVedenteSenzaObbligoPienaVisbilita = 
                     select(qPersonaVedente.id)
@@ -270,7 +271,6 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
                         qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
                         qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
-//                        docDetailInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
                     );
             BooleanExpression pienaVisibilita = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteConPienaVisibilita);
             BooleanExpression personaVedente = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteSenzaObbligoPienaVisbilita);//idPersona.id.eq(persona.getId());
@@ -284,35 +284,42 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
             } else {
                 sonoSegretario = Expressions.FALSE.eq(true);
             }
-
+            // Filtro 4 Filtro 5
             BooleanExpression filtroStandard = qdoclist.numeroRegistrazione.isNotNull()
-                    .or(personaVedente) // Filtro 4
-                    .or(sonoSegretario); // Filtro 5
-
+                    .or(personaVedente) 
+                    .or(sonoSegretario); 
+            
+            // Filtro 6 Riservato
             filtroStandard = filtroStandard.and(
-                    qdoclist.riservato.eq(Boolean.FALSE) // Filtro 6 Riservato
+                    qdoclist.riservato.eq(Boolean.FALSE) 
                             .or(Expressions.FALSE.eq(docDetailInterceptorUtils.isFilteringSpecialFields(reservedFields)))
                             .or(pienaVisibilita)
             );
-
+            // Filtro 6 Visibilità limitata
             filtroStandard = filtroStandard.and(
-                    qdoclist.visibilitaLimitata.eq(Boolean.FALSE) // Filtro 6 Visibilità limitata
+                    qdoclist.visibilitaLimitata.eq(Boolean.FALSE) 
                             .or(Expressions.FALSE.eq(docDetailInterceptorUtils.isFilteringSpecialFields(visLimFields)))
                             .or(pienaVisibilita)
             );
-            
+             // Filtro 3
             BooleanExpression filtroOsservatore = qdoclist.idAzienda.id.in(listaIdAziendaOsservatore)
-                    .and(qdoclist.riservato.eq(Boolean.FALSE)); // Filtro 3
+                    .and(qdoclist.riservato.eq(Boolean.FALSE));
 
-           
-            filter = qdoclist.idAzienda.id.in(listaIdAziendaUtenteAttivo); // Filtro 2
-            filter = filter.and(filtroOsservatore.or(filtroStandard));
+            // Filtro 7 responsabile versamento vede tutto come l'SD
+            BooleanExpression filtroResponsabileVersamento = qdoclist.idAzienda.id.in(listaIdAziendaResponsabileVersamenti);
             
-            if(!userInfoService.isCA(user) && !userInfoService.isCI(user) ) {
-                filter = qdoclist.tipologia.ne(
-                    DocDetail.TipologiaDoc.DOCUMENT_REGISTRO
-                ).and(filter);
-            }
+            // Filtro 2
+            filter = qdoclist.idAzienda.id.in(listaIdAziendaUtenteAttivo); 
+            filter = filter.and(
+                    filtroResponsabileVersamento
+                         .or(filtroStandard)
+                         .or(filtroOsservatore)
+            );
+            
+            filter = (qdoclist.tipologia.ne(DocDetail.TipologiaDoc.DOCUMENT_REGISTRO)
+                      .or(qdoclist.idAzienda.id.in(listaIdAziendaCA))
+                      .or(filtroResponsabileVersamento)
+                      ).and(filter);
             
             
             

@@ -235,13 +235,13 @@ public class LoginController {
             }
         }
 
-        userInfoService.loadUtenteRemoveCache(userLogin.username, hostname);
-        Utente utente = userInfoService.loadUtente(userLogin.username, hostname);
+        userInfoService.loadUtenteRemoveCache(userLogin.username, hostname, true);
+        Utente utente = userInfoService.loadUtente(userLogin.username, hostname, true);
         if (utente == null) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
 
-        if (utente.getIdAzienda().getCodice().equals("050109")) {
+        if (userLogin.passToken == null && utente.getIdAzienda().getCodice().equals("050109")) {
             String md5DaCalcolare = userLogin.username + "/" + userLogin.password;
             if (!DigestUtils.md5Hex(md5DaCalcolare).toUpperCase().equals(utente.getPasswordHash().toUpperCase())) {
                 return new ResponseEntity(HttpStatus.FORBIDDEN);
@@ -276,8 +276,8 @@ public class LoginController {
         String realUserId = null;
         if (StringUtils.hasText(userLogin.realUser)) {
             // TODO: controllare che l'utente possa fare il cambia utente
-            userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname);
-            Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname);
+            userInfoService.loadUtenteRemoveCache(userLogin.realUser, hostname, false);
+            Utente utenteReale = userInfoService.loadUtente(userLogin.realUser, hostname, false);
             //userInfoService.getRuoliRemoveCache(utenteReale);
             cacheUtilities.cleanCacheRuoliUtente(utenteReale.getId(), utenteReale.getIdPersona().getId());
             cacheUtilities.cleanCachePermessiUtente(utenteReale.getId());

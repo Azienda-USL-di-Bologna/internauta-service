@@ -1,12 +1,9 @@
 package it.bologna.ausl.internauta.service.controllers.tip.validations;
 
-import it.bologna.ausl.model.entities.scripta.Registro;
 import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.ImportazioneOggetto;
 import it.bologna.ausl.model.entities.tip.data.ColonneImportazioneOggettoEnums.ColonneDetermina;
 import it.bologna.ausl.model.entities.tip.data.TipErroriImportazione;
-import java.util.Arrays;
-import org.apache.commons.lang3.EnumUtils;
 import org.springframework.util.StringUtils;
 
 /**
@@ -19,13 +16,13 @@ public class DeterminaDataValidator extends TipDataValidator {
     public TipErroriImportazione validate(ImportazioneOggetto rigaImportazione) {
         TipErroriImportazione erroriImportazione = new TipErroriImportazione();
         ImportazioneDocumento riga = (ImportazioneDocumento) rigaImportazione;
-        if(StringUtils.hasText(riga.getRegistro()) && !EnumUtils.isValidEnumIgnoreCase(Registro.CodiceRegistro.class, riga.getRegistro())) {
-            erroriImportazione.setError(
-                    ColonneDetermina.registro, 
-                    TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
-                    String.format("valore non valido, i valori validi sono: %s", Arrays.asList(Registro.CodiceRegistro.values())));
-            riga.setErrori(erroriImportazione);
-        }
+//        if(StringUtils.hasText(riga.getRegistro()) && !EnumUtils.isValidEnumIgnoreCase(Registro.CodiceRegistro.class, riga.getRegistro())) {
+//            erroriImportazione.setError(
+//                    ColonneDetermina.registro, 
+//                    TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, 
+//                    String.format("valore non valido, i valori validi sono: %s", Arrays.asList(Registro.CodiceRegistro.values())));
+//            riga.setErrori(erroriImportazione);
+//        }
         if (!StringUtils.hasText(riga.getNumero())) {
             erroriImportazione.setError(ColonneDetermina.numero, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Il campo è obbligatorio.");
             riga.setErrori(erroriImportazione);
@@ -87,6 +84,10 @@ public class DeterminaDataValidator extends TipDataValidator {
         }
         if (StringUtils.hasText(riga.getDataFine()) && !validateData(riga.getDataFine())) {
             erroriImportazione.setError(ColonneDetermina.dataFine, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
+            riga.setErrori(erroriImportazione);
+        }
+        if (StringUtils.hasText(riga.getDataEsecutivita()) && !validateData(riga.getDataEsecutivita())) {
+            erroriImportazione.setError(ColonneDetermina.dataEsecutivita, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
             riga.setErrori(erroriImportazione);
         }
         if (StringUtils.hasText(riga.getAnnoPubblicazione()) && !validateAnno(riga.getAnnoPubblicazione())) {

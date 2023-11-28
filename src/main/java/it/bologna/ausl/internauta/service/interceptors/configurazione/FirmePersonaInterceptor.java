@@ -14,11 +14,13 @@ import it.bologna.ausl.internauta.utils.firma.remota.exceptions.FirmaRemotaConfi
 import it.bologna.ausl.internauta.utils.firma.remota.exceptions.http.FirmaRemotaHttpException;
 import it.bologna.ausl.model.entities.configurazione.FirmePersona;
 import it.bologna.ausl.model.entities.firma.DominioAruba;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
+import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
 import it.nextsw.common.interceptors.exceptions.SkipDeleteInterceptorException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -49,6 +51,21 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
         return FirmePersona.class;
     }
 
+    @Override
+    public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        FirmePersona firmaPersona = (FirmePersona)entity;
+        firmaPersona.set$additionalData(firmaPersona.getAdditionalData());
+        return firmaPersona;
+    }
+
+    @Override
+    public Collection<Object> afterSelectQueryInterceptor(Collection<Object> entities, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
+        for (Object entity : entities) {
+            afterSelectQueryInterceptor(entity, additionalData, request, mainEntity, projectionClass);
+        }
+        return entities;
+    }
+    
     /**
      *
      * Ogni volta che viene aggiunta una firma remota bisogna controllare: -
@@ -192,7 +209,8 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
             }
         }
     }
-
+    
+   
     /*
     * Creazione delle informazioni utente per il Provider Aruba
     * prende in input il json con gli additionaldata che vengono dall'oggetto firmapersona

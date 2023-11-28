@@ -43,7 +43,7 @@ import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
@@ -361,9 +361,35 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
             throw new AbortSaveInterceptorException("errore nell'ottenimento di beforeUpdateEntity", ex);
         }
         boolean isEliminata = (!struttura.getAttiva() && (strutturaOld.getAttiva()));
-        boolean isChangedStrutturaPadre = struttura.getIdStrutturaPadre() == null ? strutturaOld.getIdStrutturaPadre() != null : !struttura.getIdStrutturaPadre().equals(strutturaOld.getIdStrutturaPadre());
-        boolean isChangedNome = struttura.getNome() == null ? strutturaOld.getNome() != null : !struttura.getNome().equals(strutturaOld.getNome());
-        boolean isChangedAttributiStruttura = struttura.getAttributiStruttura() == null ? strutturaOld.getAttributiStruttura() != null : !struttura.getAttributiStruttura().equals(strutturaOld.getAttributiStruttura());
+        boolean isChangedStrutturaPadre = true;
+        // controllo se entrambi sono null --> in tal caso sono sicuro non sia cambiata la struttura padre
+        if (strutturaOld.getIdStrutturaPadre() == null && struttura.getIdStrutturaPadre() == null) {
+            isChangedStrutturaPadre = false;
+        }
+        // controllo se entrambi sono !null 
+        // in tal caso controllo se le due strutture sono le stesse in caso contrario sono sicuro non sia cambiata la struttura padre
+        if ((strutturaOld.getIdStrutturaPadre() != null && struttura.getIdStrutturaPadre() != null) && struttura.getIdStrutturaPadre().getId().equals(strutturaOld.getIdStrutturaPadre().getId())) {
+            isChangedStrutturaPadre = false;
+        }
+        // negli altri due casi possibili 
+        // (old == null && new == !null e old == !null && new == null)
+        // sono sicuro sia cambiata la struttura padre
+        
+        boolean isChangedNome = !struttura.getNome().equals(strutturaOld.getNome());
+        boolean isChangedAttributiStruttura = true;
+        // controllo se entrambi sono null --> in tal caso sono sicuro non sia cambiata la tipologia
+        if (strutturaOld.getAttributiStruttura() == null && struttura.getAttributiStruttura() == null) {
+            isChangedAttributiStruttura = false;
+        }
+        // controllo se entrambi sono !null 
+        // in tal caso controllo se le due tipologia sono le stesse in caso contrario sono sicuro non sia cambiata la tipologia
+        if ((strutturaOld.getAttributiStruttura() != null && struttura.getAttributiStruttura() != null) && struttura.getAttributiStruttura().getIdTipologiaStruttura().equals(strutturaOld.getAttributiStruttura().getIdTipologiaStruttura())) {
+            isChangedAttributiStruttura = false;
+        }
+        // negli altri due casi possibili 
+        // (old == null && new == !null e old == !null && new == null)
+        // sono sicuro sia cambiata la tipologia
+        
         if (krintUtils.doIHaveToKrint(request)) {
             if (struttura.getUfficio()) {
                 if (isChangedNome) {
@@ -544,6 +570,7 @@ public class StrutturaInterceptor extends InternautaBaseInterceptor {
                 if (storicoRelazioneVecchia.isPresent()) {
                     if (storicoRelazioneVecchia.get().getAttivaDal().toLocalDate().equals(now.toLocalDate())) {
                         storicoRelazioneRepository.deleteById(storicoRelazioneVecchia.get().getId());
+                        storicoRelazioneRepository.flush();
                         StoricoRelazione storicoRelazione = buildStoricoRelazione(strutturaNuova);
                         storicoRelazioneRepository.save(storicoRelazione);
                     } else {

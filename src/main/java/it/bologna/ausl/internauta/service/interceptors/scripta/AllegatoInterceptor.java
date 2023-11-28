@@ -12,7 +12,7 @@ import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.Allegato;
 import it.bologna.ausl.model.entities.scripta.Doc;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;
@@ -118,12 +118,12 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
 //            }
 //        }
         // controllo se si tratta di un documento con visibilità normale
-        if (!doc.getIdDocDetail().getVisibilitaLimitata() && !doc.getIdDocDetail().getRiservato()){
+        if (doc.getVisibilita() == Doc.VisibilitaDoc.NORMALE){
           // controllo se siamo un attore del documento
           if (pienaVisibilitaUtente) {
             return entity;
           // nel caso in cui si tratti di un documento con visibilità limitata controllo se abbiamo il ruolo di osservatore o di Super Demiurgo
-          } else if (userInfoService.isSD(utente) || userInfoService.isOS(utente) || userInfoService.isMOS(utente)){
+          } else if (userInfoService.isSD(utente) || userInfoService.isOS(utente) || userInfoService.isMOS(utente) || userInfoService.isRV(utente)){
             return entity;
           }else{
             throw new AbortLoadInterceptorException("non posso vedere gli allegati");
@@ -135,7 +135,7 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
           if (pienaVisibilitaUtente) {
             return entity;
           // nel caso in cui si tratti di un documento con visibilità limitata controllo se abbiamo il ruolo di osservatore o di Super Demiurgo
-          } else if (userInfoService.isSD(utente) || userInfoService.isOS(utente)){
+          } else if (userInfoService.isSD(utente) || userInfoService.isOS(utente) || userInfoService.isRV(utente)){
             return entity;
           }else{
             throw new AbortLoadInterceptorException("non posso vedere gli allegati");
@@ -146,7 +146,7 @@ public class AllegatoInterceptor extends InternautaBaseInterceptor {
           // nel caso in cui si tratti di un documento riservato o sono un attore o ho il ruolo SD
           if (pienaVisibilitaUtente) {
             return entity;
-          } else if (userInfoService.isSD(utente)){
+          } else if (userInfoService.isSD(utente) || userInfoService.isRV(utente)){
             return entity;
           } else {
             throw new AbortLoadInterceptorException("non posso vedere gli allegati");

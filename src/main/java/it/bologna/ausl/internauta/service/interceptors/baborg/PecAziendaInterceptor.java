@@ -18,7 +18,7 @@ import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.PecAzienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.shpeck.Message;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.controller.exceptions.BeforeUpdateEntityApplierException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;

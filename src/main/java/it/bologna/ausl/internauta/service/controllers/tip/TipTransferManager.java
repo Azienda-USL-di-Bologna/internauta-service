@@ -727,8 +727,10 @@ public class TipTransferManager {
                         TipDataValidator.dateToISOLocalDateTimeString(TipDataValidator.parseData(importazioneDocumento.getDataRegistrazione())): 
                         TipDataValidator.dateToISOLocalDateTimeString(TipDataValidator.parseData(importazioneDocumento.getDataAdozione()))
                 );
+            if (StringUtils.hasText(importazioneDocumento.getControlloRegionale())) {
+                datiPubblicazione.put("controllo_regionale", importazioneDocumento.getControlloRegionale());
+            }
             doc.getAdditionalData().put("dati_pubblicazione", datiPubblicazione);
-            
         }
         return doc;
     }
@@ -789,7 +791,7 @@ public class TipTransferManager {
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getProponente())) {
-            for (String attoreString : importazioneDocumento.getFirmatario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getProponente().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.FIRMA));
             }
         }
@@ -804,12 +806,12 @@ public class TipTransferManager {
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getDirettoreSanitario())) {
-            for (String attoreString : importazioneDocumento.getFirmatario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getDirettoreSanitario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.DIRETTORE_SANITARIO));
             }
         }
         if (StringUtils.hasText(importazioneDocumento.getDirettoreGenerale())) {
-            for (String attoreString : importazioneDocumento.getFirmatario().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
+            for (String attoreString : importazioneDocumento.getDirettoreGenerale().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {  
                 attoreStringAndRuoloList.add(Pair.of(attoreString, AttoreDoc.RuoloAttoreDoc.DIRETTORE_GENERALE));
             }
         }
@@ -905,6 +907,7 @@ public class TipTransferManager {
             versamento.setDataInserimento(TipDataValidator.parseData(importazioneDocumento.getDataInvioConservazione()).atStartOfDay(ZoneId.systemDefault()));
             versamento.setIgnora(true);
             versamento.setForzabile(false);
+            versamento.setStato(Versamento.StatoVersamento.VERSATO);
             versamento.setForzabileConcordato(false);
             if (doc.getVersamentiList() == null) {
                 doc.setVersamentiList(new ArrayList<>());
@@ -1629,7 +1632,7 @@ public class TipTransferManager {
             .select(qStruttura)
             .from(qStruttura)
             .where(qStruttura.nome.equalsIgnoreCase(nome).and(qStruttura.idAzienda.id.eq(azienda.getId())))
-            .orderBy(qStruttura.attiva.desc(), qStruttura.dataAttivazione.desc())
+            .orderBy(qStruttura.attiva.desc(), qStruttura.dataAttivazione.desc()).limit(1)
             .fetchOne();
         return struttura;
     }

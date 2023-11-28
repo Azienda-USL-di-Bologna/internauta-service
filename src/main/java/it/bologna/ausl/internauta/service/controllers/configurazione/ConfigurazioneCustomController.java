@@ -134,6 +134,7 @@ public class ConfigurazioneCustomController {
             initialPredicate = filter.and(initialPredicate);
         }
         
+        initialPredicate = QParametroAziende.parametroAziende.hideFromApi.eq(false).and(initialPredicate);
         Iterable<ParametroAziende> res = parametroAziendeRepository.findAll(initialPredicate);
         
 //        List<ParametroAziende> res = new ArrayList();

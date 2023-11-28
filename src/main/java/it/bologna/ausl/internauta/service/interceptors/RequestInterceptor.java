@@ -1,20 +1,12 @@
 package it.bologna.ausl.internauta.service.interceptors;
 
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
-import it.bologna.ausl.internauta.service.krint.KrintError;
-import it.bologna.ausl.internauta.service.repositories.diagnostica.ReportRepository;
-import it.bologna.ausl.internauta.service.repositories.logs.KrintRepository;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.MemoryAnalizerService;
+import it.bologna.ausl.internauta.service.krint.KrintUtils;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
-import it.bologna.ausl.model.entities.diagnostica.Report;
-import it.bologna.ausl.model.entities.logs.Krint;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -30,16 +22,18 @@ public class RequestInterceptor implements AsyncHandlerInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestInterceptor.class);
 
     private final MemoryAnalizerService memoryAnalizerService;
+    private final KrintUtils krintUtils;
     private final HttpSessionData httpSessionData;
-    private final KrintRepository krintRepository;
-    private final ReportRepository reportRepository;
+//    private final KrintRepository krintRepository;
+//    private final ReportRepository reportRepository;
     private final ReporitoryConnectionManager reporitoryConnectionManager;
 
-    public RequestInterceptor(HttpSessionData httpSessionData, KrintRepository krintRepository, ReportRepository reportRepository, MemoryAnalizerService memoryAnalizerService, ReporitoryConnectionManager reporitoryConnectionManager) {
+    public RequestInterceptor(HttpSessionData httpSessionData, KrintUtils krintUtils, MemoryAnalizerService memoryAnalizerService, ReporitoryConnectionManager reporitoryConnectionManager) {
         this.memoryAnalizerService = memoryAnalizerService;
+        this.krintUtils = krintUtils;
         this.httpSessionData = httpSessionData;
-        this.krintRepository = krintRepository;
-        this.reportRepository = reportRepository;
+//        this.krintRepository = krintRepository;
+//        this.reportRepository = reportRepository;
         this.reporitoryConnectionManager = reporitoryConnectionManager;
     }
 
@@ -56,57 +50,7 @@ public class RequestInterceptor implements AsyncHandlerInterceptor {
         // Se è arrivato una eccezione non ho fatto niente e quindi non voglio loggare niente
         if (excptn == null) {
 
-            List<Krint> krintList = (List<Krint>) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.KRINT_ROWS);
-
-            if (krintList != null && krintList.size() > 0) {
-                try {
-                    krintList.forEach(k -> krintRepository.save(k));
-                } catch (Exception e) {
-                    Report report = new Report();
-                    report.setTipologia("KRINT_ERROR");
-                    HashMap<String, String> additionalData = new HashMap();
-                    additionalData.put("message", "KRINT ERROR: errore nel salvataggio di una riga di krint");
-                    additionalData.put("errorMessage", e.getMessage());
-                    //String mapAsString = additionalData.keySet().stream().map(key -> "\"" + key + "\":\"" + additionalData.get(key) + "\"").collect(Collectors.joining(", ", "{", "}"));
-                    report.setAdditionalData(additionalData);
-                    reportRepository.save(report);
-                    LOGGER.error("KRINT ERROR: errore nel salvataggio di una riga di krint", e);
-                }
-            }
-
-            List<KrintError> krintErrorList = (List<KrintError>) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.KRINT_ERRORS);
-
-            if (krintErrorList != null && krintErrorList.size() > 0) {
-                try {
-                    krintErrorList.forEach(k -> {
-                        String s = String.format("KRINT ERROR: idUtente: %s, idRealUser: %s, idOggetto: %s, functionName: %s, codiceOperazione: %s",
-                                    k.getIdUtente() == null ? "null" : k.getIdUtente().toString(),
-                                    k.getIdRealUser() == null ? "null" : k.getIdRealUser().toString(),
-                                    k.getIdOggetto() == null ? "null" : k.getIdOggetto().toString(),
-                                    k.getFunctionName() == null ? "null" : k.getFunctionName(),
-                                    k.getCodiceOperazione() == null ? "null" : k.getCodiceOperazione().toString());
-                        LOGGER.error(s);
-                        Report report = new Report();
-                        report.setTipologia("KRINT_ERROR_LOG");
-                        HashMap<String, String> additionalData = new HashMap();
-                        additionalData.put("message", "KRINT ERROR LOG: scrittura del log del krint error");
-                        additionalData.put("errorMessage", s);
-                        //String mapAsString = additionalData.keySet().stream().map(key -> "\"" + key + "\":\"" + additionalData.get(key) + "\"").collect(Collectors.joining(", ", "{", "}"));
-                        report.setAdditionalData(additionalData);
-                        reportRepository.save(report);
-                    });
-                } catch (Exception e) {
-                    Report report = new Report();
-                    report.setTipologia("KRINT_ERROR_LOG_ERROR");
-                    HashMap<String, String> additionalData = new HashMap();
-                    additionalData.put("message", "KRINT ERROR: errore nella scrittura del log del krint error");
-                    additionalData.put("errorMessage", e.getMessage());
-                    //String mapAsString = additionalData.keySet().stream().map(key -> "\"" + key + "\":\"" + additionalData.get(key) + "\"").collect(Collectors.joining(", ", "{", "}"));
-                    report.setAdditionalData(additionalData);
-                    reportRepository.save(report);
-                    LOGGER.error("KRINT ERROR: errore nella scrittura del log del krint error");
-                }
-            }
+            krintUtils.saveAllKrintsInSessionData();
 
         } else {
             LOGGER.error("Rilevata eccezione nel afterCompletion del RequestInterceptor");
