@@ -197,7 +197,7 @@ public abstract class TipDataValidator {
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
     public static boolean validateNumeroDocumentoPrecedente(String stringaNumeroDocumento) {
-        String regex = String.format("^(\\d+)(\\/\\d{4})\\%s?(\\%s(\\d+)(\\/\\d{4}))*$", DEFAULT_STRING_SEPARATOR, DEFAULT_STRING_SEPARATOR);
+        String regex = String.format("^(DELIBERA-|DETERMINA-|PROTOCOLLO-)?(\\d+)(\\/\\d{4})\\%s?(\\%s(\\d+)(\\/\\d{4}))*$", DEFAULT_STRING_SEPARATOR, DEFAULT_STRING_SEPARATOR);
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(stringaNumeroDocumento);
         return matcher.matches();
