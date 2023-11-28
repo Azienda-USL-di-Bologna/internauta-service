@@ -832,11 +832,20 @@ public class TipTransferManager {
                 if (StringUtils.hasText(attoreStringSplitted[0])) {
                     cf = attoreStringSplitted[0];
                 }
-                if (StringUtils.hasText(attoreStringSplitted[1])) {
+                if (attoreStringSplitted.length > 1 && StringUtils.hasText(attoreStringSplitted[1])) {
                     cognome = attoreStringSplitted[1];
                 }
-                if (StringUtils.hasText(attoreStringSplitted[2])) {
+                if (attoreStringSplitted.length > 2 && StringUtils.hasText(attoreStringSplitted[2])) {
                     nome = attoreStringSplitted[2];
+                }
+                /*
+                potrebbe esserci il caso in cui ci viene passato "cognome nome", in questo caso, mi riconduco al caso indefinito, in modo che la funzione
+                findOrCreatePersona, provi prima a cercare per cf(se passato e se presente), altrimenti crei nome e cognome splittando sullo spazio
+                */
+                if (!StringUtils.hasText(cognome) || !StringUtils.hasText(nome)) {
+                    indefinito = StringUtils.hasText(cognome) ? cognome: cf;
+                    cognome = null; // lo setto a null per ricondurmi al caso indefinito
+                    nome = null; // lo setto a null per ricondurmi al caso indefinito
                 }
             } else {
                 indefinito = attoreString;

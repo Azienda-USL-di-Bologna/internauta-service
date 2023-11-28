@@ -131,13 +131,13 @@ public class DeterminaDataValidator extends TipDataValidator {
         if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getRedattore())) {
             erroriImportazione.setError(ColonneDetermina.redattore, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
         }
-        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getPareri())) {
+        if (StringUtils.hasText(riga.getPareri()) && !validaAttori(riga.getPareri())) {
             erroriImportazione.setError(ColonneDetermina.pareri, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
         }
-        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getFirmatario())) {
+        if (StringUtils.hasText(riga.getFirmatario()) && !validaAttori(riga.getFirmatario())) {
             erroriImportazione.setError(ColonneDetermina.firmatario, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
         }
-        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getVisto())) {
+        if (StringUtils.hasText(riga.getVisto()) && !validaAttori(riga.getVisto())) {
             erroriImportazione.setError(ColonneDetermina.visto, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
         }
         return erroriImportazione;

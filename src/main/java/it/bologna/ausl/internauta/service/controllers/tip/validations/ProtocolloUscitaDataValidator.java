@@ -151,10 +151,10 @@ public class ProtocolloUscitaDataValidator extends TipDataValidator {
         if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getRedattore())) {
             erroriImportazione.setError(ColonneProtocolloUscita.redattore, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
         }
-        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getPareri())) {
+        if (StringUtils.hasText(riga.getPareri()) && !validaAttori(riga.getPareri())) {
             erroriImportazione.setError(ColonneProtocolloUscita.pareri, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
         }
-        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getFirmatari())) {
+        if (StringUtils.hasText(riga.getFirmatari()) && !validaAttori(riga.getFirmatari())) {
             erroriImportazione.setError(ColonneProtocolloUscita.firmatari, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
         }
         return erroriImportazione;
