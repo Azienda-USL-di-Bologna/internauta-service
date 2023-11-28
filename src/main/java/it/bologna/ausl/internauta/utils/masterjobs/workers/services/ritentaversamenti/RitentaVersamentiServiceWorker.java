@@ -79,7 +79,7 @@ public class RitentaVersamentiServiceWorker extends ServiceWorker{
             aziendeSuCuiDeveGirare.forEach(a -> {
                 Map<Integer, Map<String, Object>> aziendeAttiveConParametriVersatore = VersatoreServiceUtils.getAziendeAttiveConParametri(parametriAziendaReader, cachedEntities);
                 Map<String, Object> versatoreConfigAziendaValue = aziendeAttiveConParametriVersatore.get(a);
-                
+                log.info("accodo il job versamento per i documnenti da ritentare");
                 if (versatoreConfigAziendaValue != null) {
                     jPAQueryFactory
                         .update(qDoc)
