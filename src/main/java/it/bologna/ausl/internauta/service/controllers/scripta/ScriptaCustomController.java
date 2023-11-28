@@ -153,8 +153,11 @@ import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerInitializationException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.copiatrasferisciabilitazioniarchivi.CopiaTrasferisciAbilitazioniArchiviJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.copiatrasferisciabilitazioniarchivi.CopiaTrasferisciAbilitazioniArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.GestioneMassivaAbilitazioniArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
@@ -1102,6 +1105,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
      * it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException
      */
     @RequestMapping(value = "calcolaPermessiEsplicitiGerarchiaArchivio", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> calcolaPermessiEsplicitiGerarchiaArchivio(
             @RequestParam("idArchivioRadice") Integer idArchivioRadice,
             HttpServletRequest request) throws MasterjobsWorkerException {
@@ -2304,31 +2308,86 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam(required = true, name = "operationType") MassiveActionLog.OperationType operationType,
             @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento,
             @RequestParam(required = true, name = "idPersonaSorgente") Integer idPersonaSorgente,
-            @RequestParam(required = true, name = "idPersonaDestinazione") Integer idPersonaDestinazione
-    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
-            
+            @RequestParam(required = true, name = "idPersonaDestinazione") Integer idPersonaDestinazione,
+            @RequestParam(required = false, name = "idStrutturaNuovoResponsabile") Integer idStrutturaNuovoResponsabile
+    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException, MasterjobsWorkerInitializationException, MasterjobsWorkerException {
+        
+        log.info("Richiesta di copia/trasferimento abilitazioni archvi");
+        
+        log.info(String.format("PARAMETRI. operationType: %1$s, idAziendaRiferimento: %2$s, idPersonaSorgente: %3$s, idPersonaDestinazione: %4$s, idStrutturaNuovoResponsabile %5$s", 
+                operationType, idAziendaRiferimento, idPersonaSorgente, idPersonaDestinazione, idStrutturaNuovoResponsabile));
+        
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
         
-        // Controlli di sicurezza
+        log.info("Eseguo i controlli di sicurezza");
+        // Vedo se l'utente è AG
         List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
         if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAziendaRiferimento)) {
             throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
         }
         
-        // TODO: check operationType sia o COPIA_ABILITAZIONI o TRASFERISCI_ABILITAZIONI
+        // Vedo se l'oprazione richiesta è corretta
+        if (!operationType.equals(MassiveActionLog.OperationType.COPIA_ABILITAZIONI) && !operationType.equals(MassiveActionLog.OperationType.TRASFERISCI_ABILITAZIONI)) {
+            throw new Http403ResponseException("2", "Operazione non prevista");
+        }
         
+        // Controllo che la persona destinaizone sia attiva e abbia l'utente attivo sulla azienda di riferimento
+        Persona personaDestinazione = personaRepository.getById(idPersonaDestinazione);
+        
+        if (!personaDestinazione.getAttiva()) {
+            throw new Http403ResponseException("3", "La persona destinazione non è attiva");
+        }
+        
+        List<Utente> utentelist = personaDestinazione.getUtenteList().stream().filter(u -> u.getAttivo() && u.getIdAzienda().getId().equals(idAziendaRiferimento)).collect(Collectors.toList());
+        
+        if (utentelist.isEmpty()) {
+            throw new Http403ResponseException("4", "L'utente destinazione non è attivo sulla azienda di riferimento");
+        }
+        
+        Utente utenteDestinazione = utentelist.get(0);
+        
+        log.info("Scrivo il massive action log");
         Map<String, Object> parameters = new HashMap();
         parameters.put("idPersonaSorgente", idPersonaSorgente);
         parameters.put("idPersonaDestinazione", idPersonaDestinazione);
         parameters.put("idAzienda", idAziendaRiferimento);
         parameters.put("operationType", operationType);
         
-        scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(null, parameters, operationType);
+        Integer idMassiveActionLog = scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(null, parameters, operationType);
         
+        log.info("Inserisco il job CopiaTrasferisciAbilitazioniArchiviJobWorkerData");
         // Inserisco il job per copiare/trasferire le abilitazioni
-        // TODO..
+        CopiaTrasferisciAbilitazioniArchiviJobWorkerData copiaTrasferisciAbilitazioniArchiviJobWorkerData = new CopiaTrasferisciAbilitazioniArchiviJobWorkerData(
+                operationType, 
+                idPersonaSorgente, 
+                idPersonaDestinazione, 
+                idStrutturaNuovoResponsabile, 
+                idMassiveActionLog, 
+                authenticatedUserProperties.getPerson().getId(), 
+                authenticatedUserProperties.getUser().getId(), 
+                idAziendaRiferimento,
+                utenteDestinazione.getId()
+        );
+         
+        // Esecuzione sincrono per fare delle prove
+//        CopiaTrasferisciAbilitazioniArchiviJobWorker worker = (CopiaTrasferisciAbilitazioniArchiviJobWorker) masterjobsObjectsFactory.getJobWorker(
+//                CopiaTrasferisciAbilitazioniArchiviJobWorker.class,
+//                copiaTrasferisciAbilitazioniArchiviJobWorkerData,
+//                false
+//        );
+//        worker.doWork();
+    
+        Map copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(copiaTrasferisciAbilitazioniArchiviJobWorkerData, Map.class);
+        JobNotified jn = new JobNotified();
+        jn.setJobName("CopiaTrasferisciAbilitazioniArchiviJobWorker");
+        jn.setJobData(copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap);
+        jn.setWaitObject(false);
+        jn.setApp(app.getId());
+        jn.setPriority(Set.SetPriority.NORMAL);
+        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
+        jobNotifiedRepository.save(jn);
         
         Map<String, Object> response = new HashMap();
         

@@ -8,7 +8,7 @@ import it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalDa
 import it.bologna.ausl.model.entities.shpeck.Folder.FolderType;
 import it.bologna.ausl.model.entities.shpeck.views.MessageWithFolderView;
 import it.bologna.ausl.model.entities.shpeck.views.QMessageWithFolderView;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.util.List;
 import java.util.Map;

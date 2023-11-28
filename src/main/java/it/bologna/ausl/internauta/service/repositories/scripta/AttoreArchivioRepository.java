@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.scripta;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AttoreArchivioWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.List;
@@ -90,10 +90,23 @@ public interface AttoreArchivioRepository extends
                 + " aa.id_archivio AS \"idArchivio\", "
                 + " aa.id_persona AS \"idPersona\" ",
         nativeQuery = true)
-    public List<Map<String, Object>> deleteVicari(
+    public List<Map<String, Object>> deleteVicariByIdArchiviAndIdPersone(
             Integer[] idsArchivi,
             Integer[] idVicari
     );
+    
+    @Query(value = 
+        "   DELETE FROM scripta.attori_archivi aa "
+        + " USING scripta.archivi a "
+        + " WHERE aa.id_persona IN (?1) "
+        + " AND aa.ruolo = 'VICARIO'\\:\\:scripta.ruolo_attore_archivio "
+        + " AND a.id_azienda = ?2 "
+        + " AND livello = 1 "
+        + " AND a.id = aa.id_archivio "
+        + " RETURNING "
+                + " aa.id_archivio AS \"idArchivio\" ",
+        nativeQuery = true)
+    public List<Integer> deleteVicariByIdPersonaAndIdAzienda(Integer idPersona, Integer idAzienda);
     
     @Query(value = 
         "   INSERT INTO scripta.attori_archivi (id_archivio, id_persona, ruolo)"

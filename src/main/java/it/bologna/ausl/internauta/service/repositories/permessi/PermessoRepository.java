@@ -4,7 +4,7 @@ import it.bologna.ausl.model.entities.permessi.Permesso;
 import it.bologna.ausl.model.entities.permessi.QPermesso;
 import org.springframework.stereotype.Component;
 import it.bologna.ausl.model.entities.permessi.projections.generated.PermessoWithPlainFields;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import java.util.List;

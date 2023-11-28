@@ -16,6 +16,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.versatore.Versat
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.versatore.VersatoreJobWorkerData;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
+import it.bologna.ausl.model.entities.masterjobs.Set.SetPriority;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,13 +51,13 @@ public class AccodatoreVeloce {
         try {
             String app = null;
             if (applicazione != null) app = applicazione.getId();
-            masterjobsJobsQueuer.queue(
+            masterjobsJobsQueuer.queueInJobsNotified(
                     jobWorker,
                     objectId, // ObjectID 
                     objectType, 
                     app, 
                     false, // waitForObject
-                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST,
+                    SetPriority.HIGHEST,
                     true
             );
         } catch (MasterjobsQueuingException ex) {
@@ -75,13 +76,13 @@ public class AccodatoreVeloce {
         try {
             String app = null;
             if (applicazione != null) app = applicazione.getId();
-            masterjobsJobsQueuer.queue(
+            masterjobsJobsQueuer.queueInJobsNotified(
                     worker, 
                     objectId, 
                     objectType, 
                     app, 
                     true, 
-                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST,
+                    SetPriority.HIGHEST,
                     true
             );
         } catch (MasterjobsQueuingException ex) {
@@ -105,14 +106,14 @@ public class AccodatoreVeloce {
                     false
         );
         try {
-            masterjobsJobsQueuer.queue(
-                    worker, 
-                    objectId, 
-                    objectType, 
-                    app, 
-                    false, 
-                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST,
-                    true
+            masterjobsJobsQueuer.queueInJobsNotified(
+                worker, 
+                objectId, 
+                objectType, 
+                app, 
+                false, 
+                SetPriority.HIGHEST,
+                true
             );
         } catch (MasterjobsQueuingException ex) {
             String errorMessage = "Errore nell'accodamento del job CalcoloPermessiArchivio";
@@ -131,13 +132,13 @@ public class AccodatoreVeloce {
         try {
             String app = null;
             if (applicazione != null) app = applicazione.getId();
-            masterjobsJobsQueuer.queue(
+            masterjobsJobsQueuer.queueInJobsNotified(
                     jobWorker,
                     objectId, 
                     objectType, 
                     app, 
                     true, // waitForObject
-                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST,
+                    SetPriority.HIGHEST,
                     true
             );
         } catch (MasterjobsQueuingException ex) {
@@ -164,7 +165,7 @@ public class AccodatoreVeloce {
             log.error(errorMessage, ex);
         }
         try {
-            masterjobsJobsQueuer.queue(jobWorker, "versatore_" + idAzienda, "Versatore", null, true, it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL);
+            masterjobsJobsQueuer.queueInJobsNotified(jobWorker, "versatore_" + idAzienda, "Versatore", null, true, SetPriority.NORMAL, false);
         } catch (Exception ex) {
             String errorMessage = "errore nell'accodamento del job Versatore";
             log.error(errorMessage, ex);

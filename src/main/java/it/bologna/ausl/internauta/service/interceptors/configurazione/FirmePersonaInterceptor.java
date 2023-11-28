@@ -14,7 +14,7 @@ import it.bologna.ausl.internauta.utils.firma.remota.exceptions.FirmaRemotaConfi
 import it.bologna.ausl.internauta.utils.firma.remota.exceptions.http.FirmaRemotaHttpException;
 import it.bologna.ausl.model.entities.configurazione.FirmePersona;
 import it.bologna.ausl.model.entities.firma.DominioAruba;
-import it.nextsw.common.annotations.NextSdrInterceptor;
+import it.nextsw.common.data.annotations.NextSdrInterceptor;
 import it.nextsw.common.controller.BeforeUpdateEntityApplier;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.interceptors.exceptions.AbortSaveInterceptorException;

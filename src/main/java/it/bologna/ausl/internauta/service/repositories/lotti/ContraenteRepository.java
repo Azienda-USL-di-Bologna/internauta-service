@@ -3,7 +3,7 @@ package it.bologna.ausl.internauta.service.repositories.lotti;
 import it.bologna.ausl.model.entities.lotti.projections.generated.ContraenteWithPlainFields;
 import it.bologna.ausl.model.entities.lotti.Contraente;
 import it.bologna.ausl.model.entities.lotti.QContraente;
-import it.nextsw.common.annotations.NextSdrRepository;
+import it.nextsw.common.data.annotations.NextSdrRepository;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
