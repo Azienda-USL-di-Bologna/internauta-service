@@ -172,16 +172,26 @@ public class InadManager {
                 throw new InadException(message, ex);
             }
             InadExtractResponse inadExtractResponse = null;
-            if (inadParameters.getEnabled()) {
-                if (inadParameters.getSimulation()) {
-                    inadExtractResponse = extractTemp(azienda.getId(),contattoDaVerificare.getCodiceFiscale());
-                } else {
-                    inadExtractResponse = extract(azienda.getId(),contattoDaVerificare.getCodiceFiscale(), inadParameters);
-                }
+            /*Controllo che sia necessario un controllo, ovvero che è stato controllato più di n ore fa, dove n è il numero parametrico di ore*/
+            Integer hoursAfterLastCheck = inadParameters.getMaxHoursAfterLastCheck();
+            ZonedDateTime lastCheckPlusParametricHours;
+            if (contattoDaVerificare.getDataUltimoAggiornamentoDomicilioDigitale() != null) {
+                lastCheckPlusParametricHours = contattoDaVerificare.getDataUltimoAggiornamentoDomicilioDigitale().plusHours(hoursAfterLastCheck);
+            } else {
+                lastCheckPlusParametricHours = ZonedDateTime.now().minusHours(2);
             }
-            
-            updateOrCreateDettaglioContattoFromInadExtractResponse(inadExtractResponse);
+            if (lastCheckPlusParametricHours.isBefore(ZonedDateTime.now())) {
+                if (inadParameters.getEnabled()) {
+                    if (inadParameters.getSimulation()) {
+                        inadExtractResponse = extractTemp(azienda.getId(),contattoDaVerificare.getCodiceFiscale());
+                    } else {
+                        inadExtractResponse = extract(azienda.getId(),contattoDaVerificare.getCodiceFiscale(), inadParameters);
+                    }
+                }
+                updateOrCreateDettaglioContattoFromInadExtractResponse(inadExtractResponse);
+            }
             Contatto contattoVerificato = contattoRepository.findById(contattoDaVerificare.getId()).get();
+
             return contattoVerificato.getEmailList();
         
     }
@@ -430,7 +440,7 @@ public class InadManager {
             List<Email> emailContattoDaRitornare = new ArrayList<>();
 
             Contatto contatto = contattoRepository.findByCodiceFiscale(inadExtractResponse.getCodiceFiscale()).get(0);
-
+            
             //se trovo dei domini digitali li metto dentro una lista di indirizzi che poi confronto
             //con i dettagli contatto già presenti sulla rubrica
             //se l'indirizzo esiste già, controllo che sia già segnato come contatto digitale
@@ -505,7 +515,8 @@ public class InadManager {
                 }
 
             }
-
+            contatto.setDataUltimoAggiornamentoDomicilioDigitale(ZonedDateTime.now());
+            contattoRepository.save(contatto);
         }
     }
 
