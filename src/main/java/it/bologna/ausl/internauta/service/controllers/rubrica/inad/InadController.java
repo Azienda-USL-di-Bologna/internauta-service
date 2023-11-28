@@ -11,6 +11,7 @@ import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.Authorizat
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.EmailWithIdContattoAndIdDettaglioContatto;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
@@ -111,4 +112,8 @@ public class InadController implements ControllerHandledExceptions{
         InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
         return inadManager.extract(idAzienda, cf, inadParameters);
     }
+    
+    
+    
+   
 }

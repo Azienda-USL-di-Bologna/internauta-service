@@ -60,6 +60,7 @@ public class InadParameters {
     private Boolean enabled;
     private Boolean simulation;
     private Integer numeroContattiAggiornabili;
+    private Integer maxHoursAfterLastCheck;
 
     
     private Connection connection;
@@ -87,6 +88,16 @@ public class InadParameters {
     public void setNumeroContattiAggiornabili(Integer numeroContattiAggiornabili) {
         this.numeroContattiAggiornabili = numeroContattiAggiornabili;
     }
+
+    public Integer getMaxHoursAfterLastCheck() {
+        return maxHoursAfterLastCheck;
+    }
+
+    public void setMaxHoursAfterLastCheck(Integer maxHoursAfterLastCheck) {
+        this.maxHoursAfterLastCheck = maxHoursAfterLastCheck;
+    }
+    
+    
 
     public Connection getConnection() {
         return connection;
