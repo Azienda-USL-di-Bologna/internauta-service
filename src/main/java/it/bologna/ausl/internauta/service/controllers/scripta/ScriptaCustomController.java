@@ -2376,7 +2376,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     Set.SetPriority.NORMAL,
                     false
             );
-//        worker.doWork();
+//        jobWorker.doWork();
     
 //        Map copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(copiaTrasferisciAbilitazioniArchiviJobWorkerData, Map.class);
 //        JobNotified jn = new JobNotified();

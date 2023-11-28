@@ -33,7 +33,7 @@ public class ScriptaInterceptorUtils {
      * @param dataCreazioneNameField
      * @return
      */
-    public BooleanExpression duplicateFiltersPerPartition(Class entityClass, String dataCreazioneNameField) {
+    public BooleanExpression duplicateFiltersPerPartition(Class entityClass, String dataCreazioneNameField, String idAziendaNameField) {
         BooleanExpression filter = Expressions.TRUE.eq(true);
         Map<Path<?>, List<Object>> filterDescriptorMap = NextSdrControllerInterceptor.filterDescriptor.get();
         PathBuilder<?> qEntity = new PathBuilder(entityClass, CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_CAMEL, entityClass.getSimpleName()));
@@ -46,10 +46,13 @@ public class ScriptaInterceptorUtils {
                 String fieldName = matcher.group(1);
                 if (fieldName.equals("idAzienda")) {
                     List<Object> ids = filterDescriptorMap.get(path);
+                    BooleanExpression filterAziende = Expressions.TRUE.eq(false);
                     for (Object id : ids) {
-                        PathBuilder<Azienda> qAzienda = qEntity.get("idAzienda", Azienda.class);
-                        filter = filter.and(qAzienda.get("id").eq((Integer) id)); //ATTENZIONE QUI DOVREBBE ESSERE IN OR E NON IN AND
+                        PathBuilder<Azienda> qAzienda = qEntity.get(idAziendaNameField, Azienda.class);
+                        filterAziende = filterAziende.or(qAzienda.get("id").eq((Integer) id));
+//                        filter = filter.and(qAzienda.get("id").eq((Integer) id)); //ATTENZIONE QUI DOVREBBE ESSERE IN OR E NON IN AND
                     }
+                    filter = filter.and(filterAziende);
                 } else if (fieldName.equals("dataCreazione")) {
 //                     if (List.class.isAssignableFrom(filterDescriptorMap.get(path).getClass())) {
                     DateTimePath<ZonedDateTime> dataCreazionePath = qEntity.getDateTime(dataCreazioneNameField, ZonedDateTime.class);

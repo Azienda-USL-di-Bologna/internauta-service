@@ -434,7 +434,7 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
 //                    oggettoneSorgente.getCategorie().get(0).setPermessi(Arrays.asList(new PermessoStoredProcedure[]{
 //                        createPermessoStoredProcedure(
 //                                predicatoPiuAltoSorgente,
-//                                predicatoSorgentePropagato,
+//                                predicatoSorgentePropagato,\\
 //                                strutturaVeicolante
 //                        )
 //                    }));
@@ -442,12 +442,11 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                 }
                 
                 permessiDaSalvare.add(nuovoOggettone);
-                
-                // Altra cosa che devo fare in caso di TRASFERIMENTO, è spegnere i permessi della sorgente
-                if (operationType.equals(MassiveActionLog.OperationType.TRASFERISCI_ABILITAZIONI)) {
-                    oggettoneSorgente.getCategorie().get(0).setPermessi(new ArrayList());
-                    permessiDaSalvare.add(oggettoneSorgente);
-                }
+            }
+            // Altra cosa che devo fare in caso di TRASFERIMENTO, è spegnere i permessi della sorgente
+            if (operationType.equals(MassiveActionLog.OperationType.TRASFERISCI_ABILITAZIONI)) {
+                oggettoneSorgente.getCategorie().get(0).setPermessi(new ArrayList());
+                permessiDaSalvare.add(oggettoneSorgente);
             }
         }
         
