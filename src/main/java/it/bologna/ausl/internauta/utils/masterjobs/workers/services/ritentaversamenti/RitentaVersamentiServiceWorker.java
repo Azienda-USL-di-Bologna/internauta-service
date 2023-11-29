@@ -85,7 +85,7 @@ public class RitentaVersamentiServiceWorker extends ServiceWorker{
                             .fetch();
                     jPAQueryFactory
                         .update(qDoc)
-                        .set(qDoc.statoVersamento, Versamento.StatoVersamento.VERSARE)
+                        .set(qDoc.statoVersamento, Versamento.StatoVersamento.ERRORE_RITENTABILE)
                         .where(qDoc.id.in(idDocList))
                         .execute();
                     String hostId = (String) versatoreConfigAziendaValue.get("hostId");
