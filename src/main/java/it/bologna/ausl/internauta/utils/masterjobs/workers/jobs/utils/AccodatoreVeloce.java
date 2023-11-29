@@ -145,7 +145,7 @@ public class AccodatoreVeloce {
                 objectType, 
                 app, 
                 false, 
-                SetPriority.HIGHEST,
+                SetPriority.NORMAL,
                 true
             );
         } catch (MasterjobsQueuingException ex) {
@@ -171,7 +171,7 @@ public class AccodatoreVeloce {
                     objectType, 
                     app, 
                     true, // waitForObject
-                    SetPriority.HIGHEST,
+                    SetPriority.NORMAL,
                     true
             );
         } catch (MasterjobsQueuingException ex) {

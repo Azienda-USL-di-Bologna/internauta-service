@@ -39,7 +39,7 @@ public class RicalcoloPermessiArchiviServiceWorker extends ServiceWorker {
                     null, 
                     "scripta", 
                     false, // waitForObject
-                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.HIGHEST,
+                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL,
                     true,
                     null
             );
