@@ -41,7 +41,8 @@ public class IntimusClientCommandsWorker extends JobWorker<IntimusClientCommands
                         data.getParams().get("operation").toString());
                 break;
             case RefreshMails:
-                
+                buildedCommand = intimusUtils.buildRefreshMailsCommand(
+                        data.getParams());
                 break;
         }
         if (buildedCommand != null) {
