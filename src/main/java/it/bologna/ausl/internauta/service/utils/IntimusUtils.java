@@ -608,7 +608,7 @@ public class IntimusUtils {
         
         
         RefreshMailsParams paramsObj;
-        if (params.get("newRow") != null && params.get("oldRow") != null){
+        if (params.get("newRow") != null || params.get("oldRow") != null){
             paramsObj = new RefreshMailsParams(
                 params.get("entity").toString(),
                 params.get("operation").toString(),
