@@ -47,6 +47,7 @@ import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.scripta.Spedizione.IndirizzoSpedizione;
 import it.bologna.ausl.model.entities.tip.DocumentoDaCollegare;
 import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
+import static it.bologna.ausl.model.entities.tip.ImportazioneDocumento.DEFAULT_STRING_SEPARATOR;
 import it.bologna.ausl.model.entities.tip.QDocumentoDaCollegare;
 import it.bologna.ausl.model.entities.tip.QImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.QSessioneImportazione;
@@ -367,7 +368,8 @@ public class TipTransferManager {
                 log.error("errore nel trasferimento delle fascicolazioni", ex);
                 errori.setError(ColonneProtocolloEntrata.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
-            addInAdditionalData(doc, ColonneProtocolloEntrata.classificazione, importazioneDoc.getClassificazione());
+            //addInAdditionalData(doc, ColonneProtocolloEntrata.classificazione, importazioneDoc.getClassificazione());
+            transferClassificazione(ColonneProtocolloEntrata.classificazione, doc, importazioneDoc);
             transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona, sessioneImportazione.getIdAzienda());
             transferAnnullamento(doc, importazioneDoc, persona);
@@ -466,7 +468,8 @@ public class TipTransferManager {
                 log.error("errore nel trasferimento delle fascicolazioni", ex);
                 errori.setError(ColonneProtocolloUscita.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
-            addInAdditionalData(doc, ColonneProtocolloUscita.classificazione, importazioneDoc.getClassificazione());
+            //addInAdditionalData(doc, ColonneProtocolloUscita.classificazione, importazioneDoc.getClassificazione());
+            transferClassificazione(ColonneProtocolloUscita.classificazione, doc, importazioneDoc);
             transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona, sessioneImportazione.getIdAzienda());
             transferAnnullamento(doc, importazioneDoc, persona);
@@ -574,7 +577,8 @@ public class TipTransferManager {
                 log.error("errore nel trasferimento delle fascicolazioni", ex);
                 errori.setError(ColonneDetermina.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
-            addInAdditionalData(doc, ColonneDetermina.classificazione, importazioneDoc.getClassificazione());
+            //addInAdditionalData(doc, ColonneDetermina.classificazione, importazioneDoc.getClassificazione());
+            transferClassificazione(ColonneDetermina.classificazione, doc, importazioneDoc);
             transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona, sessioneImportazione.getIdAzienda());
             transferAnnullamento(doc, importazioneDoc, persona);
@@ -682,7 +686,8 @@ public class TipTransferManager {
                 log.error("errore nel trasferimento delle fascicolazioni", ex);
                 errori.setError(ColonneDelibera.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
-            addInAdditionalData(doc, ColonneDelibera.classificazione, importazioneDoc.getClassificazione());
+            //addInAdditionalData(doc, ColonneDelibera.classificazione, importazioneDoc.getClassificazione());
+            transferClassificazione(ColonneDelibera.classificazione, doc, importazioneDoc);
             transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
             transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona, sessioneImportazione.getIdAzienda());
             transferAnnullamento(doc, importazioneDoc, persona);
@@ -1621,7 +1626,44 @@ public class TipTransferManager {
             }
             additionalData.put(nomeColonna.name(), valore);
         }
+        
+            
         return additionalData;
+    }
+    
+    
+    /**
+     * setta la classificazione negli additionadata del doc
+     * @param nomeColonna nome della chiave che sarà aggiunta negli additionaldata
+     * @param doc il doc
+     * @param importazioneDocumento l'oggetto contente i campi da trasferire (quello che è stato popolato dal CSV)
+     * @return lo stesso doc in input, utile per poter concatenare il metodo a qualcos altro
+     */
+    private <E extends Enum<E> & ColonneImportazioneOggetto> Doc transferClassificazione(Enum<E> nomeColonna, Doc doc, ImportazioneDocumento importazioneDoc) {
+        String valore = importazioneDoc.getClassificazione();
+        if (StringUtils.hasText(valore)) {
+            ArrayList<String> vals = new ArrayList();
+            HashMap<String, Object> additionalData = doc.getAdditionalData();
+
+            if (valore.contains(DEFAULT_STRING_SEPARATOR)) {                
+                String[] valoreSplitted = valore.split(DEFAULT_STRING_SEPARATOR);
+                for (String val : valoreSplitted) {
+                    if (StringUtils.hasText(val)) {
+                        vals.add(val);
+                    }
+                }        
+            } else {
+                vals.add(valore);
+            }
+            if (!vals.isEmpty()) {
+                if (additionalData == null) {
+                    additionalData = new HashMap<>();
+                    doc.setAdditionalData(additionalData);
+                }
+                additionalData.put(nomeColonna.name(), vals);
+            }
+        }
+        return doc;
     }
     
     /**
