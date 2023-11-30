@@ -385,6 +385,11 @@ public class IntimusUtils {
         private Integer id_message;
         @JsonProperty("operation")
         private String operation;
+        
+        @JsonProperty("oldRow")
+        private Map<String, Object> oldRow;
+        @JsonProperty("newRow")
+        private Map<String, Object> newRow;
 
         public RefreshMailsParams(String entity, Integer id, Integer id_utente, String persona, String folder_description, String folder_name, String tag_description, String tag_name, Integer id_message, String operation) {
             this.entity = entity;
@@ -397,6 +402,29 @@ public class IntimusUtils {
             this.tag_name = tag_name;
             this.id_message = id_message;
             this.operation = operation;
+        }
+
+        public RefreshMailsParams(String entity, String operation, Map<String, Object> oldRow, Map<String, Object> newRow) {
+            this.entity = entity;
+            this.operation = operation;
+            this.oldRow = oldRow;
+            this.newRow = newRow;
+        }
+
+        public Map<String, Object> getOldRow() {
+            return oldRow;
+        }
+
+        public void setOldRow(Map<String, Object> oldRow) {
+            this.oldRow = oldRow;
+        }
+
+        public Map<String, Object> getNewRow() {
+            return newRow;
+        }
+
+        public void setNewRow(Map<String, Object> newRow) {
+            this.newRow = newRow;
         }
 
         public String getEntity() {
@@ -578,7 +606,16 @@ public class IntimusUtils {
                 apps.stream().map(a -> a).toArray(String[]::new), 
                 false);
         
-        RefreshMailsParams paramsObj = new RefreshMailsParams(
+        
+        RefreshMailsParams paramsObj;
+        if (params.get("newRow") != null && params.get("oldRow") != null){
+            paramsObj = new RefreshMailsParams(
+                params.get("entity").toString(),
+                params.get("operation").toString(),
+                (Map<String, Object>) params.get("oldRow"),
+                (Map<String, Object>) params.get("newRow"));
+        } else {
+            paramsObj = new RefreshMailsParams(
                 params.get("entity").toString(), 
                 (Integer) params.get("id"), 
                 (Integer) params.get("id_utente"), 
@@ -589,6 +626,7 @@ public class IntimusUtils {
                 params.get("tag_name") != null ? params.get("tag_name").toString() : null, 
                 (Integer) params.get("id_message"), 
                 params.get("operation").toString());
+        }
         
         IntimusCommand refreshMailsCommand = buildIntimusCommand(
                 Arrays.asList(dest), 
