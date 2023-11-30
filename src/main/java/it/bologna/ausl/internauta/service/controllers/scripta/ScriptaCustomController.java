@@ -673,7 +673,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     null,
                     Applicazione.Applicazioni.scripta.toString(),
                     false,
-                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL
+                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL,
+                    null
             );
         } catch (MasterjobsQueuingException ex) {
             String errorMessage = "Errore nell'accodamento del job CalcoloPermessiGerarchiaArchivio";

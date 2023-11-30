@@ -64,14 +64,7 @@ public class RitentaVersamentiServiceWorker extends ServiceWorker{
             
             
             JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
-            QDocDetail qDocDetail = QDocDetail.docDetail;
-            QDoc qDoc = QDoc.doc;
-            List<Integer> idDocList = jPAQueryFactory.select(qDocDetail.id)
-                    .from(qDocDetail)
-                    .where(qDocDetail.versamentoForzabile.eq(Boolean.TRUE)
-                    .and(qDocDetail.dataUltimoVersamento.between(ZonedDateTime.now().minusMonths(3), ZonedDateTime.now()))
-                    .and(qDocDetail.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE)))
-                    .fetch();
+            
     
             
             
@@ -81,9 +74,18 @@ public class RitentaVersamentiServiceWorker extends ServiceWorker{
                 Map<String, Object> versatoreConfigAziendaValue = aziendeAttiveConParametriVersatore.get(a);
                 log.info("accodo il job versamento per i documnenti da ritentare");
                 if (versatoreConfigAziendaValue != null) {
+                    QDocDetail qDocDetail = QDocDetail.docDetail;
+                    QDoc qDoc = QDoc.doc;
+                    List<Integer> idDocList = jPAQueryFactory.select(qDocDetail.id)
+                            .from(qDocDetail)
+                            .where(qDocDetail.versamentoForzabile.eq(Boolean.TRUE)
+                            .and(qDocDetail.dataUltimoVersamento.between(ZonedDateTime.now().minusMonths(3), ZonedDateTime.now()))
+                            .and(qDocDetail.statoUltimoVersamento.eq(Versamento.StatoVersamento.ERRORE))
+                            .and(qDocDetail.idAzienda.id.eq(a)))
+                            .fetch();
                     jPAQueryFactory
                         .update(qDoc)
-                        .set(qDoc.statoVersamento, Versamento.StatoVersamento.VERSARE)
+                        .set(qDoc.statoVersamento, Versamento.StatoVersamento.ERRORE_RITENTABILE)
                         .where(qDoc.id.in(idDocList))
                         .execute();
                     String hostId = (String) versatoreConfigAziendaValue.get("hostId");

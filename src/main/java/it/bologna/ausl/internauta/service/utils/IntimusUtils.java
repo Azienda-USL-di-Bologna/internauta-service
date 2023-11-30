@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import javax.persistence.EntityManager;
 import org.slf4j.Logger;
@@ -362,6 +363,122 @@ public class IntimusUtils {
             this.operation = operation;
         }
     }
+
+    public class RefreshMailsParams implements CommandParams {
+        @JsonProperty("entity")
+        private String entity;
+        @JsonProperty("id")
+        private Integer id;
+        @JsonProperty("id_utente")
+        private Integer id_utente;
+        @JsonProperty("persona")
+        private String persona;
+        @JsonProperty("folder_description")
+        private String folder_description;
+        @JsonProperty("folder_name")
+        private String folder_name;
+        @JsonProperty("tag_description")
+        private String tag_description;
+        @JsonProperty("tag_name")
+        private String tag_name;
+        @JsonProperty("id_message")
+        private Integer id_message;
+        @JsonProperty("operation")
+        private String operation;
+
+        public RefreshMailsParams(String entity, Integer id, Integer id_utente, String persona, String folder_description, String folder_name, String tag_description, String tag_name, Integer id_message, String operation) {
+            this.entity = entity;
+            this.id = id;
+            this.id_utente = id_utente;
+            this.persona = persona;
+            this.folder_description = folder_description;
+            this.folder_name = folder_name;
+            this.tag_description = tag_description;
+            this.tag_name = tag_name;
+            this.id_message = id_message;
+            this.operation = operation;
+        }
+
+        public String getEntity() {
+            return entity;
+        }
+
+        public void setEntity(String entity) {
+            this.entity = entity;
+        }
+
+        public Integer getId() {
+            return id;
+        }
+
+        public void setId(Integer id) {
+            this.id = id;
+        }
+
+        public Integer getId_utente() {
+            return id_utente;
+        }
+
+        public void setId_utente(Integer id_utente) {
+            this.id_utente = id_utente;
+        }
+
+        public String getPersona() {
+            return persona;
+        }
+
+        public void setPersona(String persona) {
+            this.persona = persona;
+        }
+
+        public String getFolder_description() {
+            return folder_description;
+        }
+
+        public void setFolder_description(String folder_description) {
+            this.folder_description = folder_description;
+        }
+
+        public String getFolder_name() {
+            return folder_name;
+        }
+
+        public void setFolder_name(String folder_name) {
+            this.folder_name = folder_name;
+        }
+
+        public String getTag_description() {
+            return tag_description;
+        }
+
+        public void setTag_description(String tag_description) {
+            this.tag_description = tag_description;
+        }
+
+        public String getTag_name() {
+            return tag_name;
+        }
+
+        public void setTag_name(String tag_name) {
+            this.tag_name = tag_name;
+        }
+
+        public Integer getId_message() {
+            return id_message;
+        }
+
+        public void setId_message(Integer id_message) {
+            this.id_message = id_message;
+        }
+
+        public String getOperation() {
+            return operation;
+        }
+
+        public void setOperation(String operation) {
+            this.operation = operation;
+        }
+    }
         
     public IntimusCommand buildIntimusCommand(List<DestObject> dests, CommandParams params, IntimusCommandNames intimusCommandName) {
         CommandObject commandObject = new CommandObject(params, intimusCommandName);
@@ -441,12 +558,44 @@ public class IntimusUtils {
                 apps.stream().map(a -> a).toArray(String[]::new), 
                 false);
         
-        IntimusCommand RefreshAttivitaCommand = buildIntimusCommand(
+        IntimusCommand refreshAttivitaCommand = buildIntimusCommand(
                 Arrays.asList(dest), 
                 new RefreshAttivitaParams(idAttivita, operation), 
                 IntimusCommandNames.RefreshAttivita);
         
-        return RefreshAttivitaCommand;
+        return refreshAttivitaCommand;
+    }
+    
+    public IntimusCommand buildRefreshMailsCommand(Map<String, Object> params) {
+        List<Integer> idAziende = new ArrayList<Integer>();
+        List<String> apps = new ArrayList<String>();
+        
+        apps.add("shpeck");
+        
+        DestObject dest = new DestObject(
+                null, 
+                idAziende.stream().map(a -> a).toArray(Integer[]::new), 
+                apps.stream().map(a -> a).toArray(String[]::new), 
+                false);
+        
+        RefreshMailsParams paramsObj = new RefreshMailsParams(
+                params.get("entity").toString(), 
+                (Integer) params.get("id"), 
+                (Integer) params.get("id_utente"), 
+                params.get("persona").toString(), 
+                params.get("folder_description") != null ? params.get("folder_description").toString() : null, 
+                params.get("folder_name") != null ? params.get("folder_name").toString() : null, 
+                params.get("tag_description") != null ? params.get("tag_description").toString() : null, 
+                params.get("tag_name") != null ? params.get("tag_name").toString() : null, 
+                (Integer) params.get("id_message"), 
+                params.get("operation").toString());
+        
+        IntimusCommand refreshMailsCommand = buildIntimusCommand(
+                Arrays.asList(dest), 
+                paramsObj, 
+                IntimusCommandNames.RefreshMails);
+        
+        return refreshMailsCommand;
     }
     
     public void sendCommand(IntimusCommand intimusCommand) throws IntimusSendCommandException {
