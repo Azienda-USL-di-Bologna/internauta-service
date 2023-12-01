@@ -74,7 +74,7 @@ public class LanciaTrasformatoreServiceWorker extends ServiceWorker {
             LanciaTrasformatoreJobWorkerData lanciaTrasformatoreJobWorkerData = new LanciaTrasformatoreJobWorkerData(azienda.getId(),azienda.getRibaltaArgo(),azienda.getRibaltaInternauta(),email,fonteRibaltone,trasformaPrimaDiRibaltare,user.getId(), "servizio Notturno");
             LanciaTrasformatoreJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(LanciaTrasformatoreJobWorker.class, lanciaTrasformatoreJobWorkerData, false);
             try {
-                super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.trasformatore.toString(), false, Set.SetPriority.NORMAL);
+                super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.trasformatore.toString(), false, Set.SetPriority.NORMAL, null);
                 
             } catch (MasterjobsQueuingException ex) {
                 String errorMessage = "errore nell'accodamento del job di trasformazione";

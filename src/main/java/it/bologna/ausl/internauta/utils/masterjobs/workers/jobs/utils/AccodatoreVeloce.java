@@ -4,6 +4,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MultiJobQueueDescriptor;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi.CalcolaPersoneVedentiDaArchiviRadiceJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi.CalcolaPersoneVedentiDaArchiviRadiceJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorker;
@@ -17,9 +18,12 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.versatore.Versat
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import it.bologna.ausl.model.entities.masterjobs.Set.SetPriority;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +39,35 @@ public class AccodatoreVeloce {
     public AccodatoreVeloce(MasterjobsJobsQueuer masterjobsJobsQueuer, MasterjobsObjectsFactory masterjobsObjectsFactory) {
         this.masterjobsJobsQueuer = masterjobsJobsQueuer;
         this.masterjobsObjectsFactory = masterjobsObjectsFactory;
+    }
+    
+    public void accodaCalcolaPersoneVedentiDoc(List<Integer> idDocs) throws MasterjobsWorkerException {
+        List<MultiJobQueueDescriptor> toQueue = new ArrayList<>();
+        for (Integer idDoc : idDocs) {
+            CalcolaPersoneVedentiDocJobWorkerData workerData = new CalcolaPersoneVedentiDocJobWorkerData(idDoc);
+            CalcolaPersoneVedentiDocJobWorker worker = masterjobsObjectsFactory.getJobWorker(
+                CalcolaPersoneVedentiDocJobWorker.class, 
+                workerData, 
+                false
+            );
+            toQueue.add(
+                MultiJobQueueDescriptor
+                    .newBuilder()
+                    .addWorker(worker)
+                    .waitForObject(false)
+                    .skipIfAlreadyPresent(true)
+                    .priority(SetPriority.NORMAL)
+                    .build()
+            );
+        }
+        
+        try {
+            masterjobsJobsQueuer.queueMultiJobs(toQueue, null);
+        } catch (MasterjobsQueuingException ex) {
+            String errorMessage = String.format("Errore nell'accodamento di %s", CalcolaPersoneVedentiDocJobWorker.class.getSimpleName());
+            log.error(errorMessage, ex);
+            throw new MasterjobsWorkerException(errorMessage, ex);
+        }
     }
     
     public void accodaCalcolaPersoneVedentiDoc(Integer idDoc) throws MasterjobsWorkerException {
@@ -112,7 +145,7 @@ public class AccodatoreVeloce {
                 objectType, 
                 app, 
                 false, 
-                SetPriority.HIGHEST,
+                SetPriority.NORMAL,
                 true
             );
         } catch (MasterjobsQueuingException ex) {
@@ -138,7 +171,7 @@ public class AccodatoreVeloce {
                     objectType, 
                     app, 
                     true, // waitForObject
-                    SetPriority.HIGHEST,
+                    SetPriority.NORMAL,
                     true
             );
         } catch (MasterjobsQueuingException ex) {

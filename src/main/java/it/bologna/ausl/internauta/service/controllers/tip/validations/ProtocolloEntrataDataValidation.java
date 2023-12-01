@@ -153,7 +153,7 @@ public class ProtocolloEntrataDataValidation extends TipDataValidator {
             riga.setErrori(erroriImportazione);
         }
         if (StringUtils.hasText(riga.getCollegamentoPrecedente()) && !validateNumeroDocumentoPrecedente(riga.getCollegamentoPrecedente())) {
-            erroriImportazione.setError(ColonneProtocolloEntrata.collegamentoPrecedente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: numero/yyyy");
+            erroriImportazione.setError(ColonneProtocolloEntrata.collegamentoPrecedente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: [DELIBERA/DETERMINA/PROTOCOLLO-]numero/yyyy");
             riga.setErrori(erroriImportazione);
         }
         if (StringUtils.hasText(riga.getAllegati()) && !validaAllegati(riga.getAllegati())) {

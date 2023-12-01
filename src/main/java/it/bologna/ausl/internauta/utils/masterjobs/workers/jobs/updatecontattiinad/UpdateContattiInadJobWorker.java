@@ -10,6 +10,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.masterjobs.Set;
+import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.QContatto;
 import it.bologna.ausl.model.entities.rubrica.QDettaglioContatto;
 import java.util.List;
@@ -45,10 +46,13 @@ public class UpdateContattiInadJobWorker extends JobWorker<UpdateContattiInadJob
         QContatto qContatto = QContatto.contatto;
         List<String> cfDaAggiornare = jPAQueryFactory
             .select(qContatto.codiceFiscale)
-            .from(qDettaglioContatto)
-            .join(qContatto)
-            .where(qDettaglioContatto.domicilioDigitale)
-            .orderBy(qDettaglioContatto.dataUltimoAggiornamentoDomicilioDigitale.asc())
+            .from(qContatto)
+//            .from(qDettaglioContatto)
+//            .join(qContatto)
+//            .where(qDettaglioContatto.domicilioDigitale)
+             .where(qContatto.categoria.eq(Contatto.CategoriaContatto.ESTERNO.toString())
+                     .and(qContatto.codiceFiscale.isNotNull()))
+            .orderBy(qContatto.dataUltimoAggiornamentoDomicilioDigitale.asc())
             .limit(workerData.getNumeroContattiDaAggiornare())
             .fetch();
         
@@ -61,7 +65,7 @@ public class UpdateContattiInadJobWorker extends JobWorker<UpdateContattiInadJob
                 false,
                 120000);
             try {
-                super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.gedi.toString(), false, Set.SetPriority.NORMAL);
+                super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.gedi.toString(), false, Set.SetPriority.NORMAL, null);
             } catch (MasterjobsQueuingException ex) {
                 String errorMessage = "errore nell'accodamento del job di" + getName();
                 log.error(errorMessage);
