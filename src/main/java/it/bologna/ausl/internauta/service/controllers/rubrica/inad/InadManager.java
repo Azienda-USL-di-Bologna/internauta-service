@@ -134,15 +134,16 @@ public class InadManager {
     }
 
     public Email getAlwaysAndSaveDomicilioDigitale(Integer idContatto) throws BlackBoxPermissionException, AuthorizationUtilsException, InadException {
-        QEmail qEmail = QEmail.email1;
-        QDettaglioContatto qDettaglioContatto = QDettaglioContatto.dettaglioContatto;
-        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
-        Email domicilioDigitale = jPAQueryFactory
-                .select(qEmail)
-                .from(qEmail).join(qDettaglioContatto).on(qEmail.idDettaglioContatto.id.eq(qDettaglioContatto.id))
-                .where(qEmail.idContatto.id.eq(idContatto).and(qDettaglioContatto.domicilioDigitale.eq(true)))
-                .fetchOne();
-        if (domicilioDigitale == null) {
+//        QEmail qEmail = QEmail.email1;
+//        QDettaglioContatto qDettaglioContatto = QDettaglioContatto.dettaglioContatto;
+//        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
+        Email domicilioDigitale = null;
+//        Email domicilioDigitale = jPAQueryFactory
+//                .select(qEmail)
+//                .from(qEmail).join(qDettaglioContatto).on(qEmail.idDettaglioContatto.id.eq(qDettaglioContatto.id))
+//                .where(qEmail.idContatto.id.eq(idContatto).and(qDettaglioContatto.domicilioDigitale.eq(true)))
+//                .fetchOne();
+//        if (domicilioDigitale == null) {
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
             Utente utente = authenticatedUserProperties.getUser();
             Azienda azienda = cachedEntities.getAzienda(utente.getIdAzienda().getId());
@@ -153,7 +154,7 @@ public class InadManager {
                     domicilioDigitale = domicilioDigitaleOp.get();
                 }
             }
-        }
+//        }
         return domicilioDigitale;
     }
 
