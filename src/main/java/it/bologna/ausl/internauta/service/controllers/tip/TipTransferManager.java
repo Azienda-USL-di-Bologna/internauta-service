@@ -1419,6 +1419,7 @@ public class TipTransferManager {
             registroDoc.setIdStrutturaRegistrante(findOrCreateStruttura(nomeStrutturaRegistrazione, azienda, dataRegistrazione));
         registroDoc.setIdDoc(doc);
         doc.setRegistroDocList(Arrays.asList(registroDoc));
+        doc.setDataCreazione(dataRegistrazione);
 //        entityManager.persist(registroDoc);
         return doc;
     }

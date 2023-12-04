@@ -55,7 +55,7 @@ public class AccodatoreVeloce {
                     .newBuilder()
                     .addWorker(worker)
                     .waitForObject(false)
-                    .skipIfAlreadyPresent(true)
+                    .skipIfAlreadyPresent(false)
                     .priority(SetPriority.NORMAL)
                     .build()
             );
