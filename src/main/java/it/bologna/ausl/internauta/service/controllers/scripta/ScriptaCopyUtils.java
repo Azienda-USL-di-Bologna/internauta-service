@@ -126,7 +126,11 @@ public class ScriptaCopyUtils {
         detail.setIdPersonaResponsabile(utente.getIdPersona());
         detail.setIdPersonaCreazione(utente.getIdPersona());
         Integer idStruttura = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utente.getId());
+        if (idStruttura == null) {
+            idStruttura = utenteStrutturaRepository.getIdStrutturaAfferenzaUnificataAttivaByIdUtente(utente.getId());
+        }
         detail.setIdStruttura(strutturaRepository.getById(idStruttura));
+        
         
         if (archivioDestinazione == null){
             detail.setDataCreazionePadre(null);
@@ -170,6 +174,9 @@ public class ScriptaCopyUtils {
     
     public void setNewAttoriArchivio(Archivio arch, Archivio archDes, Utente utenteCreatore, EntityManager em){
         Integer idStruttura = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utenteCreatore.getId());
+        if (idStruttura == null) {
+            idStruttura = utenteStrutturaRepository.getIdStrutturaAfferenzaUnificataAttivaByIdUtente(utenteCreatore.getId());
+        }
         setNewAttoriArchivio(arch, archDes, utenteCreatore.getIdPersona(), strutturaRepository.getById(idStruttura), em);
     }
     
