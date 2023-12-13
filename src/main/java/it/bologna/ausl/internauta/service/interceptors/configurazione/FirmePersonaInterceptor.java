@@ -54,7 +54,7 @@ public class FirmePersonaInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object afterSelectQueryInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
         FirmePersona firmaPersona = (FirmePersona)entity;
-        firmaPersona.set$additionalData(firmaPersona.getAdditionalData());
+//        firmaPersona.set$additionalData(firmaPersona.getAdditionalData());
         return firmaPersona;
     }
 
