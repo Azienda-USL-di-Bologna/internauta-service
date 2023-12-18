@@ -17,8 +17,8 @@ public interface StrutturaWithReplicheCustom extends StrutturaWithAttributiStrut
     public StrutturaWithIdAzienda getIdStrutturaReplicata();
     
     @Override
-    @Value("#{@projectionsInterceptorLauncher.lanciaInterceptorCollection(target, 'getStruttureReplicheList', 'StrutturaWithIdAzienda')}")
-    public List<StrutturaWithIdAzienda> getStruttureReplicheList();
+    @Value("#{@strutturaProjectionUtils.getStruttureReplicheList(target)}")
+    public Object getStruttureReplicheList();
     
     @Value("#{@strutturaProjectionUtils.getFusioni(target)}")
     public Object getFusioni();
