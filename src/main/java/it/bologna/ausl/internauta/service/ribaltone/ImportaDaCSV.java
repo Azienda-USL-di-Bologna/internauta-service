@@ -994,6 +994,7 @@ public class ImportaDaCSV {
                     while ((trasformazioniMap = mapReader.read(headers, processors)) != null) {
 
                         if (salvaSuMdrSporco && !utente.getUsername().equals("RIBALTONE") && !utente.getUsername().equalsIgnoreCase("bds")) {
+                            mdrTrasformazioniSporcheRepository.deleteByIdAzienda(idAzienda);
                             Integer lastProgressivoRiga = mdrTrasformazioniSporcheRepository.getLastProgressivoRiga(idAzienda);
                             if (lastProgressivoRiga != null) {
                                 lastProgressivoRiga += 1;
