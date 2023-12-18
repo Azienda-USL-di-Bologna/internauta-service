@@ -1,5 +1,7 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.services.automatismifineanno;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
@@ -43,6 +45,9 @@ public class AutomatismiFineAnnoServiceWorker extends ServiceWorker {
     @Autowired
     private ArchivioRepository archivioRepository;
     
+    @Autowired
+    private ObjectMapper objectMapper;
+    
     @Override
     public String getName() {
         return getClass().getSimpleName();
@@ -52,32 +57,44 @@ public class AutomatismiFineAnnoServiceWorker extends ServiceWorker {
     public WorkerResult doWork() throws MasterjobsWorkerException {
         log.info("starting {}...", getName());
         List<Azienda> allAziende = cachedEntities.getAllAziende();
+        //TODO: deve avere usa gedi internauta a true
         // ciclio tutte le aziende per ottenerne i dati dei fascicoli speciali e, se non esistono già, crearli
         for (Azienda azienda : allAziende) {
+            
             List<ParametroAziende> parametersDatiFascicoloSpeciale = parametriAziende.getParameters("datiFascicoloSpeciale", new Integer[]{azienda.getId()});
             if (parametersDatiFascicoloSpeciale != null && !parametersDatiFascicoloSpeciale.isEmpty()) {
                 // ottengo il json contenente i dati per creare i fascicoli speciali
-                JSONObject datiFascicoloSpeciale = new JSONObject(parametersDatiFascicoloSpeciale.get(0).getValore());
+                Map<String, Object> parametriCreazioneFascicoliSpeciali = parametriAziende.getValue(parametersDatiFascicoloSpeciale.get(0), new TypeReference<Map<String, Object>>(){});
+               // JSONObject datiFascicoloSpeciale = new JSONObject(parametersDatiFascicoloSpeciale.get(0).getValore());
                 // mi assicuro che non esista già il fascicolo speciale per l'azienda che sto ciclando (con numerazione gerarchica 1/anno)
-                Integer anno = ZonedDateTime.now().getYear();
-//                Integer anno = 2029;
+                //Integer anno = ZonedDateTime.now().getYear();
+                Integer anno = 2024;
                 Archivio archivioSpeciale = archivioRepository.findByNumerazioneGerarchicaAndIdAzienda( "1/" + anno.toString(), azienda.getId());
                 if (archivioSpeciale == null ){
                     // ottengo la lista di nomi dei fascicoli e la converto in una Map<String, String> da passare poi al JobWorkerData
-                    JSONObject nomeFascicoliSpeciali = datiFascicoloSpeciale.getJSONObject("nomeFascicoliSpeciali");
-                    Map<String, String> nomeFascicoliSpecialiMap = new HashMap<>();
-                    Map<String, Object> toMap = nomeFascicoliSpeciali.toMap();
-                    toMap.forEach((key, item) -> {
-                        nomeFascicoliSpecialiMap.put(key, item.toString());
-                    });
+                    Map<String, String> nomeFascicoliSpecialiMap = objectMapper.convertValue(parametriCreazioneFascicoliSpeciali.get("nomeFascicoliSpeciali"),new TypeReference<Map<String,String>>(){});
+                    
+//                    JSONObject nomeFascicoliSpeciali = datiFascicoloSpeciale.getJSONObject("nomeFascicoliSpeciali");
+//                    Map<String, String> nomeFascicoliSpecialiMap = new HashMap<>();
+//                    Map<String, Object> toMap = nomeFascicoliSpeciali.toMap();
+//                    toMap.forEach((key, item) -> {
+//                        nomeFascicoliSpecialiMap.put(key, item.toString());
+//                    });
                     // qui sono sicuro che il faqscicolo speciale non esiste quindi procedo ad accodare il job per crearlo
                     AutomatismiFineAnnoJobWorkerData automatismiFineAnnoJobWorkerData = new AutomatismiFineAnnoJobWorkerData(
                             azienda.getId(),
-                            datiFascicoloSpeciale.getInt("idUtenteResponsabileFascicoloSpeciale"),
-                            datiFascicoloSpeciale.getInt("idVicarioFascicoloSpeciale"),
-                            datiFascicoloSpeciale.getInt("idClassificazioneFascSpeciale"),
+                            Integer.valueOf(parametriCreazioneFascicoliSpeciali.get("idUtenteResponsabileFascicoloSpeciale").toString()),
+                            Integer.valueOf(parametriCreazioneFascicoliSpeciali.get("idVicarioFascicoloSpeciale").toString()),
+                            Integer.valueOf(parametriCreazioneFascicoliSpeciali.get("idClassificazioneFascSpeciale").toString()),
                             nomeFascicoliSpecialiMap
                     );
+//                    AutomatismiFineAnnoJobWorkerData automatismiFineAnnoJobWorkerData = new AutomatismiFineAnnoJobWorkerData(
+//                            azienda.getId(),
+//                            datiFascicoloSpeciale.getInt("idUtenteResponsabileFascicoloSpeciale"),
+//                            datiFascicoloSpeciale.getInt("idVicarioFascicoloSpeciale"),
+//                            datiFascicoloSpeciale.getInt("idClassificazioneFascSpeciale"),
+//                            nomeFascicoliSpecialiMap
+//                    );
                     
                     AutomatismiFineAnnoJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(
                             AutomatismiFineAnnoJobWorker.class,
@@ -85,7 +102,7 @@ public class AutomatismiFineAnnoServiceWorker extends ServiceWorker {
                             false
                     );
                     try {
-                        super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.scripta.toString(), false, Set.SetPriority.NORMAL);
+                        super.masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.scripta.toString(), false, Set.SetPriority.NORMAL, true,null);
                         log.info("ho accodato un job per l'azienda {}", azienda.getId());
                     } catch (MasterjobsQueuingException ex) {
                         String errorMessage = "errore nell'accodamento del job delle automazioni di fine anno";

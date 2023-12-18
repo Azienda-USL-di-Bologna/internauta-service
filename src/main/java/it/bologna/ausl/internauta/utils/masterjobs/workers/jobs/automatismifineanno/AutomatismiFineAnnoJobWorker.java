@@ -43,7 +43,9 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
     private static final Logger log = LoggerFactory.getLogger(AutomatismiFineAnnoJobWorker.class);
     private final String name = AutomatismiFineAnnoJobWorker.class.getSimpleName();
     
-    private Integer anno = ZonedDateTime.now().getYear();
+    private Integer anno = 2024;
+//    private Integer anno = ZonedDateTime.now().getYear();
+    
     private Azienda azienda;
     private Utente utenteResponsabileFascicoloSpeciale;
     private Utente vicarioFascicoloSpeciale;
@@ -104,46 +106,46 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
         // apro le danze
         
         // parto creando gli archivi speciali
-        try{
-            if (alreadyExistArchiviThisYear()) {
-                throw new Exception("Sono già presenti degli archivi, perciò mi blocco!!!");
-            }
-            
-            // Fascicolo: Atti dell'azienda
-            Archivio fascicoloSpecialeAtti = createArchivioSpeciale(1, nomeFascicoliSpeciali.get("fascicoloSpecialeAtti"), null);
-
-            if (fascicoloSpecialeAtti != null){
-                log.info("creato correttamente il fascicolo {} dell'azienda {}", fascicoloSpecialeAtti.getId(), azienda.getId());
-
-                // Sottofascicoli: Registri, Determinazioni, Deliberazioni
-                Archivio fascicoloRegistro = createArchivioSpeciale(1, nomeFascicoliSpeciali.get("fascicoloSpecialeRegistri"), fascicoloSpecialeAtti);
-                createArchivioSpeciale(2, nomeFascicoliSpeciali.get("fascicoloSpecialeDete"), fascicoloSpecialeAtti);
-                createArchivioSpeciale(3, nomeFascicoliSpeciali.get("fascicoloSpecialeDeli"), fascicoloSpecialeAtti);
-                createArchivioSpeciale(4, nomeFascicoliSpeciali.get("fascicoloSpecialeRaccoltaSemplice"), fascicoloSpecialeAtti);
-                log.info("ho finito di creare i Sottofascicoli: Registri, Determinazioni, Deliberazioni dell'azienda {}", azienda.getId());
-
-                if (fascicoloRegistro != null){
-                    // Inserti: Registro giornaliero di protocollo, Registro giornaliero delle determinazioni, Registro giornaliero delle deliberazioni, Registri annuali
-                    createArchivioSpeciale(1, nomeFascicoliSpeciali.get("registroGgProtocollo"), fascicoloRegistro);
-                    createArchivioSpeciale(2, nomeFascicoliSpeciali.get("registroGgDeterminazioni"), fascicoloRegistro);
-                    createArchivioSpeciale(3, nomeFascicoliSpeciali.get("registroGgDeliberazioni"), fascicoloRegistro);
-                    createArchivioSpeciale(4, nomeFascicoliSpeciali.get("registriAnnuali"), fascicoloRegistro);
-                    log.info("ho finito di creare i Inserti: Registro giornaliero di protocollo, Registro giornaliero delle determinazioni, Registro giornaliero delle deliberazioni, Registri annuali dell'azienda {}", azienda.getId());
-                } else {
-                    throw new Exception("il fascicoloRegistro è null");
-                }
-            }
-        } catch (Exception ex) {
-           String errore = "Errore nel creare un archivio speciale";
-           log.error(errore, ex);
-           throw new MasterjobsWorkerException(errore, ex);
-        }
+//        try{
+//            if (alreadyExistArchiviThisYear()) {
+//                throw new Exception("Sono già presenti degli archivi, perciò mi blocco!!!");
+//            }
+//            
+//            // Fascicolo: Atti dell'azienda
+//            Archivio fascicoloSpecialeAtti = createArchivioSpeciale(1, nomeFascicoliSpeciali.get("fascicoloSpecialeAtti"), null);
+//
+//            if (fascicoloSpecialeAtti != null){
+//                log.info("creato correttamente il fascicolo {} dell'azienda {}", fascicoloSpecialeAtti.getId(), azienda.getId());
+//
+//                // Sottofascicoli: Registri, Determinazioni, Deliberazioni
+//                Archivio fascicoloRegistro = createArchivioSpeciale(1, nomeFascicoliSpeciali.get("fascicoloSpecialeRegistri"), fascicoloSpecialeAtti);
+//                createArchivioSpeciale(2, nomeFascicoliSpeciali.get("fascicoloSpecialeDete"), fascicoloSpecialeAtti);
+//                createArchivioSpeciale(3, nomeFascicoliSpeciali.get("fascicoloSpecialeDeli"), fascicoloSpecialeAtti);
+//                createArchivioSpeciale(4, nomeFascicoliSpeciali.get("fascicoloSpecialeRaccoltaSemplice"), fascicoloSpecialeAtti);
+//                log.info("ho finito di creare i Sottofascicoli: Registri, Determinazioni, Deliberazioni dell'azienda {}", azienda.getId());
+//
+//                if (fascicoloRegistro != null){
+//                    // Inserti: Registro giornaliero di protocollo, Registro giornaliero delle determinazioni, Registro giornaliero delle deliberazioni, Registri annuali
+//                    createArchivioSpeciale(1, nomeFascicoliSpeciali.get("registroGgProtocollo"), fascicoloRegistro);
+//                    createArchivioSpeciale(2, nomeFascicoliSpeciali.get("registroGgDeterminazioni"), fascicoloRegistro);
+//                    createArchivioSpeciale(3, nomeFascicoliSpeciali.get("registroGgDeliberazioni"), fascicoloRegistro);
+//                    createArchivioSpeciale(4, nomeFascicoliSpeciali.get("registriAnnuali"), fascicoloRegistro);
+//                    log.info("ho finito di creare i Inserti: Registro giornaliero di protocollo, Registro giornaliero delle determinazioni, Registro giornaliero delle deliberazioni, Registri annuali dell'azienda {}", azienda.getId());
+//                } else {
+//                    throw new Exception("il fascicoloRegistro è null");
+//                }
+//            }
+//        } catch (Exception ex) {
+//           String errore = "Errore nel creare un archivio speciale";
+//           log.error(errore, ex);
+//           throw new MasterjobsWorkerException(errore, ex);
+//        }
         
         // ho finito di creare i fascicoli speciali
         // ora procedo a duplicare i fascicoli atti
         try {
             if (!alreadyExistArchiviAttivitaThisYear()){
-                duplicaFascicoliAtti();
+                duplicaFascicoliAttivita();
             } else {
                 // assicurarsi dell'utilità di questo controllo
                 throw new Exception("Sono già stati trovati degli archivi attività per quest'anno. MI BLOCCO!");
@@ -176,7 +178,7 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
         if (fascicoloPadre == null) {
             newArchivio.setNumero(0);
             newArchivio.setNumerazioneGerarchica("x/" + anno);
-            newArchivio.setStato(Archivio.StatoArchivio.BOZZA);
+            newArchivio.setStato(Archivio.StatoArchivio.APERTO);
             
         } else {
             newArchivio.setNumero(numeroArchivio);
@@ -200,6 +202,7 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
         newArchivio.setVersion(ZonedDateTime.now());
         // salvo e refresho l'archio per modificarlo ancora
         entityManager.persist(newArchivio);
+        entityManager.flush();
         entityManager.refresh(newArchivio);
         
         // ne setto anche alcuni parametri dell'archivio detail 
@@ -211,14 +214,24 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
         
         
         if (fascicoloPadre == null) {
-            archivioRepository.numeraArchivio(newArchivio.getId());
+//            archivioRepository.numeraArchivio(newArchivio.getId());
+//            entityManager.refresh(newArchivio); 
+            //da commentare dopo i test
+            newArchivio.setNumero(1);
+            newArchivio.setAnno(anno);
+            newArchivio.setNumerazioneGerarchica("1/" + anno);
+            entityManager.persist(newArchivio);
+            entityManager.flush();
+            entityManager.refresh(newArchivio);  
+            
         }
         
         // ne setto gli attori (creatore, responsabile e vicario)
         setNewAttoriArchivioSpeciale(newArchivio);
         
         log.info("finito di creare e numerare il fascicolo speciale \"{}\"({}) dell'azienda {}", newArchivio.getOggetto(), newArchivio.getId(), azienda.getId());
-        entityManager.refresh(newArchivio);
+        entityManager.flush();
+        entityManager.refresh(newArchivio);   
         return newArchivio;
     }
     
@@ -236,6 +249,7 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
                 strutturaUtenteResponsabile, 
                 AttoreArchivio.RuoloAttoreArchivio.CREATORE);
         entityManager.persist(newAttoreCreatore);
+        entityManager.flush();
         entityManager.refresh(newAttoreCreatore);
         // aggiungo l'attore creatore appena refreshato dentro l'array
         attoriList.add(newAttoreCreatore);
@@ -247,6 +261,7 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
                 strutturaUtenteResponsabile, 
                 AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE);
         entityManager.persist(newAttoreResponsabile);
+        entityManager.flush();
         entityManager.refresh(newAttoreResponsabile);
         // aggiungo l'attore responsabile appena refreshato dentro l'array        
         attoriList.add(newAttoreResponsabile);
@@ -312,7 +327,7 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
      * Pesco e ciclo gli archivi da duplicare e per ognuno di essi chiamo la funzione apposta.
      * @throws Exception 
      */
-    private void duplicaFascicoliAtti() throws Exception{
+    private void duplicaFascicoliAttivita() throws Exception{
         // pool di archivi da duplicare di livello 1 (non mi serve tirar su nessun'altro archivio poiché userò getArchiviFigliList()
         // per tirar su i figli poi i figli dei figli comunemente detti nipoti)
         Predicate predicatoArchiviAttivitaLivello1 = QArchivio.archivio.idAzienda.id.eq(azienda.getId())
@@ -399,6 +414,7 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
         
         // salvo e ricarico per aver l'id del nuovo archivio 
         entityManager.persist(newArchivio);
+        entityManager.flush();
         entityManager.refresh(newArchivio);
         
         
@@ -415,6 +431,7 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
         
         // ricarico prima di ritornare newArchivio così da avere i dati compilati correttamente 
         // (tipo la numerazione gerarchica che viene generata lato db dalla funzione apposta e quindi non la ho lato be)
+        entityManager.flush();
         entityManager.refresh(newArchivio);
         return newArchivio;
     }

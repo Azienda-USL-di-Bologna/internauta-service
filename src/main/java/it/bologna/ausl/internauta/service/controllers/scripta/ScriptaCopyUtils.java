@@ -12,7 +12,6 @@ import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepositor
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
-import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
@@ -76,6 +75,10 @@ public class ScriptaCopyUtils {
     }
     
     public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Utente utente, EntityManager em, Boolean numera, Boolean rinomina) throws JsonProcessingException, EntityReflectionException{
+        return copiaArchivio(archDaCopiare, archivioDestinazione, utente, em, numera, rinomina, null);
+    }
+    
+    public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Utente utente, EntityManager em, Boolean numera, Boolean rinomina, Integer anno) throws JsonProcessingException, EntityReflectionException{
         String numerazioneGerarchicaDaEreditare;
         Archivio idArchivioRadiceDaEreditare;
         Titolo idTitoloDaEreditare;
@@ -96,6 +99,7 @@ public class ScriptaCopyUtils {
         }
         
         Archivio newArchivio = (Archivio) objectMapper.readValue(objectMapper.writeValueAsString(archDaCopiare), EntityReflectionUtils.getEntityFromProxyObject(archDaCopiare));
+        
         newArchivio.setId(null);
         if(numera){
             newArchivio.setNumero(0);
