@@ -994,6 +994,7 @@ public class ImportaDaCSV {
                     while ((trasformazioniMap = mapReader.read(headers, processors)) != null) {
 
                         if (salvaSuMdrSporco && !utente.getUsername().equals("RIBALTONE") && !utente.getUsername().equalsIgnoreCase("bds")) {
+                            mdrTrasformazioniSporcheRepository.deleteByIdAzienda(idAzienda);
                             Integer lastProgressivoRiga = mdrTrasformazioniSporcheRepository.getLastProgressivoRiga(idAzienda);
                             if (lastProgressivoRiga != null) {
                                 lastProgressivoRiga += 1;
@@ -1014,7 +1015,7 @@ public class ImportaDaCSV {
                             mdrTrasfSporca.setDataTrasformazione(ImportaDaCSVUtils.formattattore(trasformazioniMap.get("data_trasformazione")));
                             mdrTrasfSporca.setMotivo(trasformazioniMap.get("motivo").toString());
                             mdrTrasfSporca.setDatainPartenza(ImportaDaCSVUtils.formattattore(trasformazioniMap.get("datain_partenza")));
-                            mdrTrasfSporca.setDatainPartenza(ImportaDaCSVUtils.formattattore(trasformazioniMap.get("dataora_oper")));
+                            mdrTrasfSporca.setDataoraOper(ImportaDaCSVUtils.formattattore(trasformazioniMap.get("dataora_oper")));
                             mdrTrasfSporca.setCodiceEnte(azienda.getCodice());
                             mdrTrasfSporca.setIdAzienda(azienda);
                             mdrTrasformazioniSporcheRepository.save(mdrTrasfSporca);

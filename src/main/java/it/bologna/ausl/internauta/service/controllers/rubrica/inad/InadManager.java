@@ -122,7 +122,7 @@ public class InadManager {
                 && !contattoDaVerificare.getProvenienza().equals("ribaltorg_strutture")
                 && !contattoDaVerificare.getProvenienza().equals("ribaltorg_persone")) {
 
-            List<Email> emailContattoDaRitornare = getDomicilioDigitaleFromCF(
+            List<Email> emailContattoDaRitornare = updateDomicilioDigitaleAndGetUpdatedEmailList(
                     azienda,
                     contattoDaVerificare,
                     dettaglioContattoRepository,
@@ -158,7 +158,8 @@ public class InadManager {
         return domicilioDigitale;
     }
 
-    public List<Email> getDomicilioDigitaleFromCF(
+    /*Quando necessario aggiorna il domicilio digitale di un contatto (in base alla data dell'ultimo aggiornamento) e ritorna la lista aggiornata di tutte le email del contatto presenti su db*/
+    public List<Email> updateDomicilioDigitaleAndGetUpdatedEmailList(
             Azienda azienda,
             Contatto contattoDaVerificare,
             DettaglioContattoRepository dettaglioContattoRepository,
@@ -173,7 +174,7 @@ public class InadManager {
                 throw new InadException(message, ex);
             }
             InadExtractResponse inadExtractResponse = null;
-            /*Controllo che sia necessario un controllo, ovvero che è stato controllato più di n ore fa, dove n è il numero parametrico di ore*/
+            /*Controllo che sia necessario aggiornare il domicilio digitale, ovvero che è stato aggiornato più di n ore fa, dove n è il numero parametrico di ore*/
             Integer hoursAfterLastCheck = inadParameters.getMaxHoursAfterLastCheck();
             ZonedDateTime lastCheckPlusParametricHours;
             if (contattoDaVerificare.getDataUltimoAggiornamentoDomicilioDigitale() != null) {
@@ -521,4 +522,17 @@ public class InadManager {
         }
     }
 
+    /**
+     * Funzione che data una lista di idContattiInternauti ritorna una mappa contenente anche i relativi domicili digitali aggiornati (salvando a db gli eventuali aggiornamenti)
+     * @param idContactsList 
+     */
+    public HashMap<Integer, Email> getAndSaveDomicilioDigitaleMultiConctats(List<Integer> idContactsList) throws BlackBoxPermissionException, InadException, AuthorizationUtilsException{
+        HashMap<Integer, Email> emailsMap = new HashMap<Integer, Email>();
+        for(Integer y : idContactsList){
+            Email email = getAlwaysAndSaveDomicilioDigitale( y);
+            emailsMap.put(y, email);
+        }
+        
+        return emailsMap;
+    }
 }

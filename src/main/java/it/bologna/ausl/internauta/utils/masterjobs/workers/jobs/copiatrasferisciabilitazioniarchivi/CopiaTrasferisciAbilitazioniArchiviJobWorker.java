@@ -572,14 +572,14 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                     personaDestinazione.getDescrizione(), 
                     dataFormattata, 
                     orarioFormattato);
-            insertAttivita(azienda, personaOperazione, "Copia abilitazioni", oggettoAttivita, app);
+            insertAttivita(azienda, personaOperazione, "Trasferimento abilitazioni", oggettoAttivita, app);
         } else {
             oggettoAttivita = String.format("La copia delle abilitazioni sui fascicoli di %1$s a %2$s, che hai richiesto il %3$s alle %4$s, è avvenuta con successo.",  
                     personaSorgente.getDescrizione(), 
                     personaDestinazione.getDescrizione(), 
                     dataFormattata, 
                     orarioFormattato);
-            insertAttivita(azienda, personaOperazione, "Trasferimento abilitazioni", oggettoAttivita, app);
+            insertAttivita(azienda, personaOperazione,"Copia abilitazioni", oggettoAttivita, app);
         }
         
         log.info(String.format("Aggiorno la massiveActionLog"));
