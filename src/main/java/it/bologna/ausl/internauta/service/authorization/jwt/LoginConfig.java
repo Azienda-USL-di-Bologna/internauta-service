@@ -25,7 +25,7 @@ public class LoginConfig {
         APPLICATION_PROPERTIES, PARAMETRI_AZIENDE
     }
     
-    @Value("${jwt.saml.config-source=APPLICATION_PROPERTIES}")
+    @Value("${jwt.saml.config-source:APPLICATION_PROPERTIES}")
     private ConfigSource configSource;
     
     @Value("${jwt.saml.enabled:false}")
@@ -155,12 +155,12 @@ public class LoginConfig {
                         log.warn(String.format("parametro \"%s\" non trovato, verrà usato quello dell'application.properties", "jwt.cognito.domain"));
                     }
                     try {
-                        cognitoClientID = (String) loginConfig.get("wt.cognito.client_id");
+                        cognitoClientID = (String) loginConfig.get("jwt.cognito.client_id");
                         if (!StringUtils.hasText(cognitoClientID)) {
                             throw new LoginConfigException("parametro vuoto o nullo");
                         }
                     } catch (Exception e) {
-                        log.warn(String.format("parametro \"%s\" non trovato, verrà usato quello dell'application.properties", "wt.cognito.client_id"));
+                        log.warn(String.format("parametro \"%s\" non trovato, verrà usato quello dell'application.properties", "jwt.cognito.client_id"));
                     }
                     try {
                         cognitoRedirectURI = (String) loginConfig.get("jwt.cognito.redirect_uri");
