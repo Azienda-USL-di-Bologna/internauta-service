@@ -18,10 +18,8 @@ import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.Archivio;
 import java.time.ZonedDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,19 +65,12 @@ public class AutomatismiFineAnnoServiceWorker extends ServiceWorker {
                 Map<String, Object> parametriCreazioneFascicoliSpeciali = parametriAziende.getValue(parametersDatiFascicoloSpeciale.get(0), new TypeReference<Map<String, Object>>(){});
                // JSONObject datiFascicoloSpeciale = new JSONObject(parametersDatiFascicoloSpeciale.get(0).getValore());
                 // mi assicuro che non esista già il fascicolo speciale per l'azienda che sto ciclando (con numerazione gerarchica 1/anno)
-                //Integer anno = ZonedDateTime.now().getYear();
-                Integer anno = 2024;
+                Integer anno = ZonedDateTime.now().getYear();
                 Archivio archivioSpeciale = archivioRepository.findByNumerazioneGerarchicaAndIdAzienda( "1/" + anno.toString(), azienda.getId());
-                if (archivioSpeciale == null ){
+                if (archivioSpeciale != null ){
                     // ottengo la lista di nomi dei fascicoli e la converto in una Map<String, String> da passare poi al JobWorkerData
                     Map<String, String> nomeFascicoliSpecialiMap = objectMapper.convertValue(parametriCreazioneFascicoliSpeciali.get("nomeFascicoliSpeciali"),new TypeReference<Map<String,String>>(){});
                     
-//                    JSONObject nomeFascicoliSpeciali = datiFascicoloSpeciale.getJSONObject("nomeFascicoliSpeciali");
-//                    Map<String, String> nomeFascicoliSpecialiMap = new HashMap<>();
-//                    Map<String, Object> toMap = nomeFascicoliSpeciali.toMap();
-//                    toMap.forEach((key, item) -> {
-//                        nomeFascicoliSpecialiMap.put(key, item.toString());
-//                    });
                     // qui sono sicuro che il faqscicolo speciale non esiste quindi procedo ad accodare il job per crearlo
                     AutomatismiFineAnnoJobWorkerData automatismiFineAnnoJobWorkerData = new AutomatismiFineAnnoJobWorkerData(
                             azienda.getId(),
@@ -88,13 +79,6 @@ public class AutomatismiFineAnnoServiceWorker extends ServiceWorker {
                             Integer.valueOf(parametriCreazioneFascicoliSpeciali.get("idClassificazioneFascSpeciale").toString()),
                             nomeFascicoliSpecialiMap
                     );
-//                    AutomatismiFineAnnoJobWorkerData automatismiFineAnnoJobWorkerData = new AutomatismiFineAnnoJobWorkerData(
-//                            azienda.getId(),
-//                            datiFascicoloSpeciale.getInt("idUtenteResponsabileFascicoloSpeciale"),
-//                            datiFascicoloSpeciale.getInt("idVicarioFascicoloSpeciale"),
-//                            datiFascicoloSpeciale.getInt("idClassificazioneFascSpeciale"),
-//                            nomeFascicoliSpecialiMap
-//                    );
                     
                     AutomatismiFineAnnoJobWorker jobWorker = super.masterjobsObjectsFactory.getJobWorker(
                             AutomatismiFineAnnoJobWorker.class,

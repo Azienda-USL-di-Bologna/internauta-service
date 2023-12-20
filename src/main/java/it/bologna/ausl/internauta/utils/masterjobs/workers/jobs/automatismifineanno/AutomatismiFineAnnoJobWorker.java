@@ -3,6 +3,7 @@ package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.automatismifine
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
+import it.bologna.ausl.internauta.service.controllers.scripta.ScriptaCopyUtils;
 import it.bologna.ausl.internauta.service.repositories.baborg.AziendaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
@@ -43,8 +44,8 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
     private static final Logger log = LoggerFactory.getLogger(AutomatismiFineAnnoJobWorker.class);
     private final String name = AutomatismiFineAnnoJobWorker.class.getSimpleName();
     
-    private Integer anno = 2024;
-//    private Integer anno = ZonedDateTime.now().getYear();
+    private Integer anno = ZonedDateTime.now().getYear();
+//    private Integer anno = 2024;
     
     private Azienda azienda;
     private Utente utenteResponsabileFascicoloSpeciale;
@@ -77,6 +78,9 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
     @Autowired
     private ObjectMapper objectMapper;
     
+    @Autowired
+    private ScriptaCopyUtils scriptaCopyUtils;
+    
     @Override
     public String getName() {
         return this.name;
@@ -106,49 +110,50 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
         // apro le danze
         
         // parto creando gli archivi speciali
-//        try{
-//            if (alreadyExistArchiviThisYear()) {
-//                throw new Exception("Sono già presenti degli archivi, perciò mi blocco!!!");
-//            }
-//            
-//            // Fascicolo: Atti dell'azienda
-//            Archivio fascicoloSpecialeAtti = createArchivioSpeciale(1, nomeFascicoliSpeciali.get("fascicoloSpecialeAtti"), null);
-//
-//            if (fascicoloSpecialeAtti != null){
-//                log.info("creato correttamente il fascicolo {} dell'azienda {}", fascicoloSpecialeAtti.getId(), azienda.getId());
-//
-//                // Sottofascicoli: Registri, Determinazioni, Deliberazioni
-//                Archivio fascicoloRegistro = createArchivioSpeciale(1, nomeFascicoliSpeciali.get("fascicoloSpecialeRegistri"), fascicoloSpecialeAtti);
-//                createArchivioSpeciale(2, nomeFascicoliSpeciali.get("fascicoloSpecialeDete"), fascicoloSpecialeAtti);
-//                createArchivioSpeciale(3, nomeFascicoliSpeciali.get("fascicoloSpecialeDeli"), fascicoloSpecialeAtti);
-//                createArchivioSpeciale(4, nomeFascicoliSpeciali.get("fascicoloSpecialeRaccoltaSemplice"), fascicoloSpecialeAtti);
-//                log.info("ho finito di creare i Sottofascicoli: Registri, Determinazioni, Deliberazioni dell'azienda {}", azienda.getId());
-//
-//                if (fascicoloRegistro != null){
-//                    // Inserti: Registro giornaliero di protocollo, Registro giornaliero delle determinazioni, Registro giornaliero delle deliberazioni, Registri annuali
-//                    createArchivioSpeciale(1, nomeFascicoliSpeciali.get("registroGgProtocollo"), fascicoloRegistro);
-//                    createArchivioSpeciale(2, nomeFascicoliSpeciali.get("registroGgDeterminazioni"), fascicoloRegistro);
-//                    createArchivioSpeciale(3, nomeFascicoliSpeciali.get("registroGgDeliberazioni"), fascicoloRegistro);
-//                    createArchivioSpeciale(4, nomeFascicoliSpeciali.get("registriAnnuali"), fascicoloRegistro);
-//                    log.info("ho finito di creare i Inserti: Registro giornaliero di protocollo, Registro giornaliero delle determinazioni, Registro giornaliero delle deliberazioni, Registri annuali dell'azienda {}", azienda.getId());
-//                } else {
-//                    throw new Exception("il fascicoloRegistro è null");
-//                }
-//            }
-//        } catch (Exception ex) {
-//           String errore = "Errore nel creare un archivio speciale";
-//           log.error(errore, ex);
-//           throw new MasterjobsWorkerException(errore, ex);
-//        }
+        try{
+            if (alreadyExistArchiviSpecialiThisYear(idAzienda)) {
+                throw new MasterjobsWorkerException("Sono già presenti degli archivi, perciò mi blocco!!!");
+                
+            }
+            
+            // Fascicolo: Atti dell'azienda
+            Archivio fascicoloSpecialeAtti = createArchivioSpeciale(1, nomeFascicoliSpeciali.get("fascicoloSpecialeAtti"), null);
+
+            if (fascicoloSpecialeAtti != null){
+                log.info("creato correttamente il fascicolo {} dell'azienda {}", fascicoloSpecialeAtti.getId(), azienda.getId());
+
+                // Sottofascicoli: Registri, Determinazioni, Deliberazioni
+                Archivio fascicoloRegistro = createArchivioSpeciale(1, nomeFascicoliSpeciali.get("fascicoloSpecialeRegistri"), fascicoloSpecialeAtti);
+                createArchivioSpeciale(2, nomeFascicoliSpeciali.get("fascicoloSpecialeDete"), fascicoloSpecialeAtti);
+                createArchivioSpeciale(3, nomeFascicoliSpeciali.get("fascicoloSpecialeDeli"), fascicoloSpecialeAtti);
+                createArchivioSpeciale(4, nomeFascicoliSpeciali.get("fascicoloSpecialeRaccoltaSemplice"), fascicoloSpecialeAtti);
+                log.info("ho finito di creare i Sottofascicoli: Registri, Determinazioni, Deliberazioni dell'azienda {}", azienda.getId());
+
+                if (fascicoloRegistro != null){
+                    // Inserti: Registro giornaliero di protocollo, Registro giornaliero delle determinazioni, Registro giornaliero delle deliberazioni, Registri annuali
+                    createArchivioSpeciale(1, nomeFascicoliSpeciali.get("registroGgProtocollo"), fascicoloRegistro);
+                    createArchivioSpeciale(2, nomeFascicoliSpeciali.get("registroGgDeterminazioni"), fascicoloRegistro);
+                    createArchivioSpeciale(3, nomeFascicoliSpeciali.get("registroGgDeliberazioni"), fascicoloRegistro);
+                    createArchivioSpeciale(4, nomeFascicoliSpeciali.get("registriAnnuali"), fascicoloRegistro);
+                    log.info("ho finito di creare i Inserti: Registro giornaliero di protocollo, Registro giornaliero delle determinazioni, Registro giornaliero delle deliberazioni, Registri annuali dell'azienda {}", azienda.getId());
+                } else {
+                    throw new MasterjobsWorkerException("il fascicoloRegistro è null");
+                }
+            }
+        } catch (Exception ex) {
+           String errore = "Errore nel creare un archivio speciale";
+           log.error(errore, ex);
+           throw new MasterjobsWorkerException(errore, ex);
+        }
         
         // ho finito di creare i fascicoli speciali
         // ora procedo a duplicare i fascicoli atti
         try {
-            if (!alreadyExistArchiviAttivitaThisYear()){
+            if (!alreadyExistArchiviAttivitaThisYear(idAzienda)){
                 duplicaFascicoliAttivita();
             } else {
                 // assicurarsi dell'utilità di questo controllo
-                throw new Exception("Sono già stati trovati degli archivi attività per quest'anno. MI BLOCCO!");
+                throw new MasterjobsWorkerException("Sono già stati trovati degli archivi attività per quest'anno. MI BLOCCO!");
             }
         } catch (Exception ex) {
            String errore = "Errore nel duplicare un archivio atti";
@@ -291,9 +296,11 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
      * (Do per scontato che sono la prima cosa a partire ad inizio anno quindi se ne trovo almeno uno c'è un problema.)
      * @return true se ne trovo false altrimenti
      */
-    private boolean alreadyExistArchiviAttivitaThisYear(){
-        Predicate predicatoTrovaArchiviAttivita = QArchivio.archivio.tipo.eq(TipoArchivio.ATTIVITA.toString())
-                .and(QArchivio.archivio.anno.goe(anno));
+    private boolean alreadyExistArchiviAttivitaThisYear(Integer idAzienda){
+        QArchivio archivio = QArchivio.archivio;
+        Predicate predicatoTrovaArchiviAttivita = archivio.tipo.eq(TipoArchivio.ATTIVITA.toString())
+                .and(archivio.anno.goe(anno))
+                .and(archivio.idAzienda.id.eq(idAzienda));
         
         Iterable<Archivio> archiviTrovaArchiviAttivita = archivioRepository.findAll(predicatoTrovaArchiviAttivita);
         Iterator<Archivio> archiviTrovaArchiviAttivitaIterator = archiviTrovaArchiviAttivita.iterator();
@@ -310,8 +317,11 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
      * (Do per scontato che sono la prima cosa a partire ad inizio anno quindi se ne trovo almeno uno c'è un problema.)
      * @return true se ne trovo false altrimenti
      */
-    private boolean alreadyExistArchiviThisYear(){
-        Predicate predicatoTrovaArchiviAttivita = QArchivio.archivio.anno.goe(anno);
+    private boolean alreadyExistArchiviSpecialiThisYear(Integer idAzienda){
+        QArchivio archivio = QArchivio.archivio;
+        Predicate predicatoTrovaArchiviAttivita = archivio.anno.goe(anno)
+                .and(archivio.tipo.eq(TipoArchivio.SPECIALE.toString()))
+                .and(archivio.idAzienda.id.eq(idAzienda));
         
         Iterable<Archivio> archiviTrovaArchiviAttivita = archivioRepository.findAll(predicatoTrovaArchiviAttivita);
         Iterator<Archivio> archiviTrovaArchiviAttivitaIterator = archiviTrovaArchiviAttivita.iterator();
@@ -341,27 +351,29 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
         
         // controllo di averne dirato su almeno uno
         if (!iteratorArchiviAttivitaLivello1.hasNext()){
-            throw new Exception(String.format("Non ho trovato archivi attività da duplicare per l'anno %d", anno - 1));
+            throw new MasterjobsWorkerException(String.format("Non ho trovato archivi attività da duplicare per l'anno %d", anno - 1));
         }
         
         log.info("inizio a duplicare gli archivi attività dell'azienda {}", azienda.getId());
         
         // li duplico in ordine di livello poiché quando dovrò duplicare quelli di livello 2 mi serviranno gli id dei padri (quelli di livello 1)
         // e stessa cosa per quelli di livello 3 che mi serviranno i padri (quelli di livello 2)
-        for (Archivio archivioAttivitaLivello1 : archiviAttivitaLivello1){
-            Archivio archivioAttivitaLivello1Duplicato = duplicatoreArchivi(archivioAttivitaLivello1, archivioAttivitaLivello1.getIdArchivioPadre());
-            for (Archivio archivioAttivitaLivello2 : archivioAttivitaLivello1.getArchiviFigliList()){
-                // non mi interessano le bozze figlie quindi le evito
-                if (!archivioAttivitaLivello2.getStato().equals(Archivio.StatoArchivio.BOZZA)) {
-                    Archivio archivioAttivitaLivello2Duplicato = duplicatoreArchivi(archivioAttivitaLivello2, archivioAttivitaLivello1Duplicato);
-                    for (Archivio archivioAttivitaLivello3 : archivioAttivitaLivello2.getArchiviFigliList()){
-                        // non mi interessano le bozze nipoti quindi le evito
-                        if (!archivioAttivitaLivello3.getStato().equals(Archivio.StatoArchivio.BOZZA)) {
-                            duplicatoreArchivi(archivioAttivitaLivello3, archivioAttivitaLivello2Duplicato);
-                        }
-                    }
-                }
-            }
+        
+        for (Archivio archivioAttivitaDaCopiare : archiviAttivitaLivello1){
+               scriptaCopyUtils.duplicaArchivio(archivioAttivitaDaCopiare, null, false, true, false, true);
+//            Archivio archivioAttivitaLivello1Duplicato = duplicatoreArchivi(archivioAttivitaLivello1, archivioAttivitaLivello1.getIdArchivioPadre());
+//            for (Archivio archivioAttivitaLivello2 : archivioAttivitaLivello1.getArchiviFigliList()){
+//                // non mi interessano le bozze figlie quindi le evito
+//                if (!archivioAttivitaLivello2.getStato().equals(Archivio.StatoArchivio.BOZZA)) {
+//                    Archivio archivioAttivitaLivello2Duplicato = duplicatoreArchivi(archivioAttivitaLivello2, archivioAttivitaLivello1Duplicato);
+//                    for (Archivio archivioAttivitaLivello3 : archivioAttivitaLivello2.getArchiviFigliList()){
+//                        // non mi interessano le bozze nipoti quindi le evito
+//                        if (!archivioAttivitaLivello3.getStato().equals(Archivio.StatoArchivio.BOZZA)) {
+//                            duplicatoreArchivi(archivioAttivitaLivello3, archivioAttivitaLivello2Duplicato);
+//                        }
+//                    }
+//                }
+//            }
         }
         
         log.info("finito di duplicare gli archivi attività dell'azienda {}", azienda.getId());
