@@ -199,7 +199,8 @@ public class ScriptaCopyUtils {
         }
         // TODOMido: inserire gli attori archivi
         log.info(String.format("Inizio a duplicare il fascicolo con id %s", archivio.getId()));
-        Archivio savedArchivio = copiaArchivioConDoc(archivio, 
+        Archivio savedArchivio = copiaArchivioConDoc(
+                archivio, 
                 archivio.getIdArchivioPadre(), 
                 utente, 
                 entityManager, 
@@ -299,22 +300,22 @@ public class ScriptaCopyUtils {
                 attoriList.add(new AttoreArchivio(archivioDestinazione, attoreArchivioDaCopiare.getIdPersona(), attoreArchivioDaCopiare.getIdStruttura(), attoreArchivioDaCopiare.getRuolo()));
             }
         } else {
-            AttoreArchivio newAttoreCreatore = new AttoreArchivio(archivioSorgente, personaCreatore, strutturaUtenteCreatore, AttoreArchivio.RuoloAttoreArchivio.CREATORE);
+            AttoreArchivio newAttoreCreatore = new AttoreArchivio(archivioDestinazione, personaCreatore, strutturaUtenteCreatore, AttoreArchivio.RuoloAttoreArchivio.CREATORE);
             em.persist(newAttoreCreatore);
             em.flush();
             em.refresh(newAttoreCreatore);
             attoriList.add(newAttoreCreatore);
             //creazione e salvataggio dell'attore responsabile
-            AttoreArchivio newAttoreResponsabile = new AttoreArchivio(archivioSorgente, personaCreatore, strutturaUtenteCreatore, AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE);
+            AttoreArchivio newAttoreResponsabile = new AttoreArchivio(archivioDestinazione, personaCreatore, strutturaUtenteCreatore, AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE);
             em.persist(newAttoreResponsabile);
             em.flush();
             em.refresh(newAttoreResponsabile);
             attoriList.add(newAttoreResponsabile);
-            for (AttoreArchivio attore : archivioDestinazione.getIdArchivioRadice().getAttoriList()) {
+            for (AttoreArchivio attore : archivioSorgente.getIdArchivioRadice().getAttoriList()) {
                 if (attore.getIdPersona().getId().equals(personaCreatore.getId())) {
                     if (attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.VICARIO)
                             || attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO)) {
-                        AttoreArchivio newAttore = new AttoreArchivio(archivioSorgente, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
+                        AttoreArchivio newAttore = new AttoreArchivio(archivioDestinazione, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
                         em.persist(newAttore);
                         em.flush();
                         em.refresh(newAttore);
