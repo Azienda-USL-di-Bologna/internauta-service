@@ -110,25 +110,28 @@ public class InadManager {
     
     public List<Email> getAndSaveEmailDomicilioDigitale(Integer idContatto, Azienda azienda) throws AuthorizationUtilsException, InadException {
 
-        Contatto contattoDaVerificare = contattoRepository.getById(idContatto);
-        String codiceFiscaleContatto = contattoDaVerificare.getCodiceFiscale();
+        Optional<Contatto> findById = contattoRepository.findById(idContatto);
+        if (findById.isPresent()) {
+            Contatto contattoDaVerificare = findById.get();
+            String codiceFiscaleContatto = contattoDaVerificare.getCodiceFiscale();
 
-        if (codiceFiscaleContatto != null
-                && !"".equals(codiceFiscaleContatto)
-                && !contattoDaVerificare.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)
-                && !contattoDaVerificare.getProvenienza().equals("INTERNO")
-                && (contattoDaVerificare.getTipo() == null || Arrays.asList(new Contatto.TipoContatto[]{TipoContatto.PERSONA_FISICA, TipoContatto.FORNITORE, TipoContatto.VARIO}).contains(contattoDaVerificare.getTipo()))
-                && !contattoDaVerificare.getProvenienza().equals("trigger_contatto_from_struttura")
-                && !contattoDaVerificare.getProvenienza().equals("ribaltorg_strutture")
-                && !contattoDaVerificare.getProvenienza().equals("ribaltorg_persone")) {
+            if (codiceFiscaleContatto != null
+                    && !"".equals(codiceFiscaleContatto)
+                    && !contattoDaVerificare.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)
+                    && !contattoDaVerificare.getProvenienza().equals("INTERNO")
+                    && (contattoDaVerificare.getTipo() == null || Arrays.asList(new Contatto.TipoContatto[]{TipoContatto.PERSONA_FISICA, TipoContatto.FORNITORE, TipoContatto.VARIO}).contains(contattoDaVerificare.getTipo()))
+                    && !contattoDaVerificare.getProvenienza().equals("trigger_contatto_from_struttura")
+                    && !contattoDaVerificare.getProvenienza().equals("ribaltorg_strutture")
+                    && !contattoDaVerificare.getProvenienza().equals("ribaltorg_persone")) {
 
-            List<Email> emailContattoDaRitornare = updateDomicilioDigitaleAndGetUpdatedEmailList(
-                    azienda,
-                    contattoDaVerificare,
-                    dettaglioContattoRepository,
-                    emailRepository);
+                List<Email> emailContattoDaRitornare = updateDomicilioDigitaleAndGetUpdatedEmailList(
+                        azienda,
+                        contattoDaVerificare,
+                        dettaglioContattoRepository,
+                        emailRepository);
 
-            return emailContattoDaRitornare;
+                return emailContattoDaRitornare;
+            }
         }
         return null;
     }
