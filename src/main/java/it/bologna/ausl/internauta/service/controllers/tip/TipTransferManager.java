@@ -47,6 +47,7 @@ import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.scripta.Spedizione.IndirizzoSpedizione;
 import it.bologna.ausl.model.entities.tip.DocumentoDaCollegare;
 import it.bologna.ausl.model.entities.tip.ImportazioneDocumento;
+import static it.bologna.ausl.model.entities.tip.ImportazioneDocumento.DEFAULT_STRING_SEPARATOR;
 import it.bologna.ausl.model.entities.tip.QDocumentoDaCollegare;
 import it.bologna.ausl.model.entities.tip.QImportazioneDocumento;
 import it.bologna.ausl.model.entities.tip.QSessioneImportazione;
@@ -367,9 +368,10 @@ public class TipTransferManager {
                 log.error("errore nel trasferimento delle fascicolazioni", ex);
                 errori.setError(ColonneProtocolloEntrata.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
-            addInAdditionalData(doc, ColonneProtocolloEntrata.classificazione, importazioneDoc.getClassificazione());
+            //addInAdditionalData(doc, ColonneProtocolloEntrata.classificazione, importazioneDoc.getClassificazione());
+            transferClassificazione(ColonneProtocolloEntrata.classificazione, doc, importazioneDoc);
             transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
-            transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
+            transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona, sessioneImportazione.getIdAzienda());
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
             transferNoteDocumento(doc, importazioneDoc, persona);
@@ -466,9 +468,10 @@ public class TipTransferManager {
                 log.error("errore nel trasferimento delle fascicolazioni", ex);
                 errori.setError(ColonneProtocolloUscita.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
-            addInAdditionalData(doc, ColonneProtocolloUscita.classificazione, importazioneDoc.getClassificazione());
+            //addInAdditionalData(doc, ColonneProtocolloUscita.classificazione, importazioneDoc.getClassificazione());
+            transferClassificazione(ColonneProtocolloUscita.classificazione, doc, importazioneDoc);
             transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
-            transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
+            transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona, sessioneImportazione.getIdAzienda());
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
             transferNoteDocumento(doc, importazioneDoc, persona);
@@ -574,9 +577,10 @@ public class TipTransferManager {
                 log.error("errore nel trasferimento delle fascicolazioni", ex);
                 errori.setError(ColonneDetermina.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
-            addInAdditionalData(doc, ColonneDetermina.classificazione, importazioneDoc.getClassificazione());
+            //addInAdditionalData(doc, ColonneDetermina.classificazione, importazioneDoc.getClassificazione());
+            transferClassificazione(ColonneDetermina.classificazione, doc, importazioneDoc);
             transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
-            transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
+            transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona, sessioneImportazione.getIdAzienda());
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
             transferNoteDocumento(doc, importazioneDoc, persona);
@@ -682,9 +686,10 @@ public class TipTransferManager {
                 log.error("errore nel trasferimento delle fascicolazioni", ex);
                 errori.setError(ColonneDelibera.fascicolazione, TipErroriImportazione.Flusso.TipoFlusso.IMPORTAZIONE, ex.getMessage());
             }
-            addInAdditionalData(doc, ColonneDelibera.classificazione, importazioneDoc.getClassificazione());
+            //addInAdditionalData(doc, ColonneDelibera.classificazione, importazioneDoc.getClassificazione());
+            transferClassificazione(ColonneDelibera.classificazione, doc, importazioneDoc);
             transferAllegati(doc, importazioneDoc, sessioneImportazione.getIdAzienda(), codiceRegistro);
-            transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona);
+            transferPrecedente(doc, sessioneImportazione, importazioneDoc, persona, sessioneImportazione.getIdAzienda());
             transferAnnullamento(doc, importazioneDoc, persona);
             transferVersamento(doc, importazioneDoc, sessioneImportazione.getIdAzienda());
             transferNoteDocumento(doc, importazioneDoc, persona);
@@ -832,11 +837,20 @@ public class TipTransferManager {
                 if (StringUtils.hasText(attoreStringSplitted[0])) {
                     cf = attoreStringSplitted[0];
                 }
-                if (StringUtils.hasText(attoreStringSplitted[1])) {
+                if (attoreStringSplitted.length > 1 && StringUtils.hasText(attoreStringSplitted[1])) {
                     cognome = attoreStringSplitted[1];
                 }
-                if (StringUtils.hasText(attoreStringSplitted[2])) {
+                if (attoreStringSplitted.length > 2 && StringUtils.hasText(attoreStringSplitted[2])) {
                     nome = attoreStringSplitted[2];
+                }
+                /*
+                potrebbe esserci il caso in cui ci viene passato "cognome nome", in questo caso, mi riconduco al caso indefinito, in modo che la funzione
+                findOrCreatePersona, provi prima a cercare per cf(se passato e se presente), altrimenti crei nome e cognome splittando sullo spazio
+                */
+                if (!StringUtils.hasText(cognome) || !StringUtils.hasText(nome)) {
+                    indefinito = StringUtils.hasText(cognome) ? cognome: cf;
+                    cognome = null; // lo setto a null per ricondurmi al caso indefinito
+                    nome = null; // lo setto a null per ricondurmi al caso indefinito
                 }
             } else {
                 indefinito = attoreString;
@@ -990,11 +1004,18 @@ public class TipTransferManager {
      * @param sessioneImportazione
      * @param importazioneDocumento l'oggetto contente i campi da trasferire (quello che è stato popolato dal CSV)
      * @param persona la persona da inserire come persona che ha collegato
+     * @param azienda l'azienda sulla quale si sta eseguendo l'importazione
      * @return il doc che è lo stesso in input, utile per poter concatenare il metodo a qualcos altro
      *  devo tornare anche il DocumentoDaCollegare perché nel caso l'importazione è andata a buon fine devo fare il persist
      * @throws TipTransferBadDataException se c'è qualche errore da segnalare all'utente
      */
-    private Doc transferPrecedente(Doc doc, SessioneImportazione sessioneImportazione, ImportazioneDocumento importazioneDocumento, Persona persona) throws TipTransferUnexpectedException {
+    private Doc transferPrecedente(Doc doc, SessioneImportazione sessioneImportazione, ImportazioneDocumento importazioneDocumento, Persona persona, Azienda azienda) throws TipTransferUnexpectedException {
+        /*
+        devo fare subito un persist altrimenti potrei ottenere un errore nel caso devo aggiungere questo doc alla lista di doc collegati di un altro doc.
+        questo perché se non è stato ancora fatto il persist il doc non ha l'id
+        */
+        entityManager.persist(doc);        
+
         // per poter settare il precedente il doc deve avere la riga in registri_docs con il numero, se non c'è devo dare errore
         if (StringUtils.hasText(importazioneDocumento.getCollegamentoPrecedente()) && (doc.getRegistroDocList() == null || doc.getRegistroDocList().isEmpty())) {
             String errorMessage = "impossibile inserire il precedente perché c'è un errore nell'importazione del registro";
@@ -1009,7 +1030,7 @@ public class TipTransferManager {
         
         /*
         per prima cosa controllo se il doc era un precedente di un doc precedentemente importato, ma che non poteva collegare perché ancora non c'era ancora.
-        Per farlo cerco il doc (per registro numero e anno) nella tabella Documenti_da_collegare, usando le colonne destinazione 
+        Per farlo cerco il doc (per registro numero e anno) nella tabella documenti_da_collegare, usando le colonne destinazione 
         (id_registro_destinazione, numero_destinazione, anno_destinazione)
         */
         JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
@@ -1047,22 +1068,36 @@ public class TipTransferManager {
                     docSorgente.setDocsCollegati(docsCollegati);
                 }
                 docSorgente.getDocsCollegati().add(new DocDoc(docSorgente, doc, DocDoc.TipoCollegamentoDoc.PRECEDENTE, persona));
+                entityManager.persist(docSorgente);
+                queryFactory.delete(qDocumentoDaCollegare).where(qDocumentoDaCollegare.id.eq(documentoDestinazione.getId()));
             }
-            // salvare?
         }
         
         if (StringUtils.hasText(importazioneDocumento.getCollegamentoPrecedente())) {
             for (String precedente: importazioneDocumento.getCollegamentoPrecedente().split(ImportazioneDocumento.DEFAULT_STRING_SEPARATOR)) {
                 // Poi passo a cercare e collegare a questo doc il suo precedente
-                String[] precedenteSplitted = precedente.split("/");
-                Integer numeroPrecedente = Integer.valueOf(precedenteSplitted[0]);
-                Integer annoPrecedente = Integer.valueOf(precedenteSplitted[1]);
+                Registro registroDestinazioneEntity;
+                String precedenteNumeroAnno;
+                if (precedente.contains("-")) {
+                    String[] precedenteTipoNumeroAnnoSplitted = precedente.split("-");
+                    DocumentoDaCollegare.TipologiaDocumentoDaCollegare tipoDocumentoDaCollegare = DocumentoDaCollegare.TipologiaDocumentoDaCollegare.valueOf(precedenteTipoNumeroAnnoSplitted[0]);
+                    precedenteNumeroAnno = precedenteTipoNumeroAnnoSplitted[1];
+                    Registro.CodiceRegistro codiceRegistro = getCodiceRegistroFromTipologiaDocumentoDaCollegare(tipoDocumentoDaCollegare);
+                    registroDestinazioneEntity = nonCachedEntities.getRegistro(azienda.getId(), codiceRegistro);
+                } else {
+                    precedenteNumeroAnno = precedente;
+                    registroDestinazioneEntity = registroDoc.getIdRegistro();
+                }
+                
+                String[] precedenteNumeroAnnoSplitted = precedenteNumeroAnno.split("/");
+                Integer numeroPrecedente = Integer.valueOf(precedenteNumeroAnnoSplitted[0]);
+                Integer annoPrecedente = Integer.valueOf(precedenteNumeroAnnoSplitted[1]);
                 // lo cerco nel db
                 Doc docDestinazione = queryFactory
                     .select(qRegistroDoc.idDoc)
                     .from(qRegistroDoc)
                     .join(qDoc).on(qRegistroDoc.idDoc.id.eq(qDoc.id))
-                    .where( qRegistroDoc.idRegistro.id.eq(registroDoc.getIdRegistro().getId())
+                    .where( qRegistroDoc.idRegistro.id.eq(registroDestinazioneEntity.getId())
                         .and(
                             qRegistroDoc.numero.eq(numeroPrecedente))
                         .and(
@@ -1090,7 +1125,7 @@ public class TipTransferManager {
                     documentoDaCollegare.setIdRegistroSorgente(registroDoc.getIdRegistro());
                     documentoDaCollegare.setNumeroSorgente(registroDoc.getNumero());
                     documentoDaCollegare.setAnnoSorgente(registroDoc.getAnno());
-                    documentoDaCollegare.setIdRegistroDestinazione(registroDoc.getIdRegistro());
+                    documentoDaCollegare.setIdRegistroDestinazione(registroDestinazioneEntity);
                     documentoDaCollegare.setNumeroDestinazione(numeroPrecedente);
                     documentoDaCollegare.setAnnoDestinazione(annoPrecedente);
                     documentoDaCollegare.setTipoCollegamento(DocDoc.TipoCollegamentoDoc.PRECEDENTE);
@@ -1384,6 +1419,7 @@ public class TipTransferManager {
             registroDoc.setIdStrutturaRegistrante(findOrCreateStruttura(nomeStrutturaRegistrazione, azienda, dataRegistrazione));
         registroDoc.setIdDoc(doc);
         doc.setRegistroDocList(Arrays.asList(registroDoc));
+        doc.setDataCreazione(dataRegistrazione);
 //        entityManager.persist(registroDoc);
         return doc;
     }
@@ -1591,7 +1627,44 @@ public class TipTransferManager {
             }
             additionalData.put(nomeColonna.name(), valore);
         }
+        
+            
         return additionalData;
+    }
+    
+    
+    /**
+     * setta la classificazione negli additionadata del doc
+     * @param nomeColonna nome della chiave che sarà aggiunta negli additionaldata
+     * @param doc il doc
+     * @param importazioneDocumento l'oggetto contente i campi da trasferire (quello che è stato popolato dal CSV)
+     * @return lo stesso doc in input, utile per poter concatenare il metodo a qualcos altro
+     */
+    private <E extends Enum<E> & ColonneImportazioneOggetto> Doc transferClassificazione(Enum<E> nomeColonna, Doc doc, ImportazioneDocumento importazioneDoc) {
+        String valore = importazioneDoc.getClassificazione();
+        if (StringUtils.hasText(valore)) {
+            ArrayList<String> vals = new ArrayList();
+            HashMap<String, Object> additionalData = doc.getAdditionalData();
+
+            if (valore.contains(DEFAULT_STRING_SEPARATOR)) {                
+                String[] valoreSplitted = valore.split(DEFAULT_STRING_SEPARATOR);
+                for (String val : valoreSplitted) {
+                    if (StringUtils.hasText(val)) {
+                        vals.add(val);
+                    }
+                }        
+            } else {
+                vals.add(valore);
+            }
+            if (!vals.isEmpty()) {
+                if (additionalData == null) {
+                    additionalData = new HashMap<>();
+                    doc.setAdditionalData(additionalData);
+                }
+                additionalData.put(nomeColonna.name(), vals);
+            }
+        }
+        return doc;
     }
     
     /**
@@ -1779,6 +1852,32 @@ public class TipTransferManager {
                 break;
             default:
                 throw new AssertionError(String.format("registro per la tipologia %s non trovato", tipologia.toString()));
+        }
+        return res;
+    }
+    
+    /**
+     * Torna il codice registro per la tipologia di documento da collegare passata.
+     * @param tipologiaDocumentoDaCollegare
+     * @return il codice registro per la tipologia di documento da collegare passata.
+     */
+    private Registro.CodiceRegistro getCodiceRegistroFromTipologiaDocumentoDaCollegare(DocumentoDaCollegare.TipologiaDocumentoDaCollegare tipologiaDocumentoDaCollegare) {
+        Registro.CodiceRegistro res;
+        switch (tipologiaDocumentoDaCollegare) {
+            case DELIBERA:
+                res = Registro.CodiceRegistro.DELI;
+                break;
+            case DETERMINA:
+                res = Registro.CodiceRegistro.DETE;
+                break;
+            case PROTOCOLLO:
+                res = Registro.CodiceRegistro.PG;
+                break;
+            case FASCICOLO:
+                res = Registro.CodiceRegistro.FASCICOLO;
+                break;
+            default:
+                throw new AssertionError(String.format("registro per la tipologia documento da collegare %s non trovato", tipologiaDocumentoDaCollegare.toString()));
         }
         return res;
     }

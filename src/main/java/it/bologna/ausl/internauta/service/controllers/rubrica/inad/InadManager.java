@@ -110,39 +110,43 @@ public class InadManager {
     
     public List<Email> getAndSaveEmailDomicilioDigitale(Integer idContatto, Azienda azienda) throws AuthorizationUtilsException, InadException {
 
-        Contatto contattoDaVerificare = contattoRepository.getById(idContatto);
-        String codiceFiscaleContatto = contattoDaVerificare.getCodiceFiscale();
+        Optional<Contatto> findById = contattoRepository.findById(idContatto);
+        if (findById.isPresent()) {
+            Contatto contattoDaVerificare = findById.get();
+            String codiceFiscaleContatto = contattoDaVerificare.getCodiceFiscale();
 
-        if (codiceFiscaleContatto != null
-                && !"".equals(codiceFiscaleContatto)
-                && !contattoDaVerificare.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)
-                && !contattoDaVerificare.getProvenienza().equals("INTERNO")
-                && (contattoDaVerificare.getTipo() == null || Arrays.asList(new Contatto.TipoContatto[]{TipoContatto.PERSONA_FISICA, TipoContatto.FORNITORE, TipoContatto.VARIO}).contains(contattoDaVerificare.getTipo()))
-                && !contattoDaVerificare.getProvenienza().equals("trigger_contatto_from_struttura")
-                && !contattoDaVerificare.getProvenienza().equals("ribaltorg_strutture")
-                && !contattoDaVerificare.getProvenienza().equals("ribaltorg_persone")) {
+            if (codiceFiscaleContatto != null
+                    && !"".equals(codiceFiscaleContatto)
+                    && !contattoDaVerificare.getCategoria().equals(Contatto.CategoriaContatto.GRUPPO)
+                    && !contattoDaVerificare.getProvenienza().equals("INTERNO")
+                    && (contattoDaVerificare.getTipo() == null || Arrays.asList(new Contatto.TipoContatto[]{TipoContatto.PERSONA_FISICA, TipoContatto.FORNITORE, TipoContatto.VARIO}).contains(contattoDaVerificare.getTipo()))
+                    && !contattoDaVerificare.getProvenienza().equals("trigger_contatto_from_struttura")
+                    && !contattoDaVerificare.getProvenienza().equals("ribaltorg_strutture")
+                    && !contattoDaVerificare.getProvenienza().equals("ribaltorg_persone")) {
 
-            List<Email> emailContattoDaRitornare = getDomicilioDigitaleFromCF(
-                    azienda,
-                    contattoDaVerificare,
-                    dettaglioContattoRepository,
-                    emailRepository);
+                List<Email> emailContattoDaRitornare = updateDomicilioDigitaleAndGetUpdatedEmailList(
+                        azienda,
+                        contattoDaVerificare,
+                        dettaglioContattoRepository,
+                        emailRepository);
 
-            return emailContattoDaRitornare;
+                return emailContattoDaRitornare;
+            }
         }
         return null;
     }
 
     public Email getAlwaysAndSaveDomicilioDigitale(Integer idContatto) throws BlackBoxPermissionException, AuthorizationUtilsException, InadException {
-        QEmail qEmail = QEmail.email1;
-        QDettaglioContatto qDettaglioContatto = QDettaglioContatto.dettaglioContatto;
-        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
-        Email domicilioDigitale = jPAQueryFactory
-                .select(qEmail)
-                .from(qEmail).join(qDettaglioContatto).on(qEmail.idDettaglioContatto.id.eq(qDettaglioContatto.id))
-                .where(qEmail.idContatto.id.eq(idContatto).and(qDettaglioContatto.domicilioDigitale.eq(true)))
-                .fetchOne();
-        if (domicilioDigitale == null) {
+//        QEmail qEmail = QEmail.email1;
+//        QDettaglioContatto qDettaglioContatto = QDettaglioContatto.dettaglioContatto;
+//        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
+        Email domicilioDigitale = null;
+//        Email domicilioDigitale = jPAQueryFactory
+//                .select(qEmail)
+//                .from(qEmail).join(qDettaglioContatto).on(qEmail.idDettaglioContatto.id.eq(qDettaglioContatto.id))
+//                .where(qEmail.idContatto.id.eq(idContatto).and(qDettaglioContatto.domicilioDigitale.eq(true)))
+//                .fetchOne();
+//        if (domicilioDigitale == null) {
             AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
             Utente utente = authenticatedUserProperties.getUser();
             Azienda azienda = cachedEntities.getAzienda(utente.getIdAzienda().getId());
@@ -153,11 +157,12 @@ public class InadManager {
                     domicilioDigitale = domicilioDigitaleOp.get();
                 }
             }
-        }
+//        }
         return domicilioDigitale;
     }
 
-    public List<Email> getDomicilioDigitaleFromCF(
+    /*Quando necessario aggiorna il domicilio digitale di un contatto (in base alla data dell'ultimo aggiornamento) e ritorna la lista aggiornata di tutte le email del contatto presenti su db*/
+    public List<Email> updateDomicilioDigitaleAndGetUpdatedEmailList(
             Azienda azienda,
             Contatto contattoDaVerificare,
             DettaglioContattoRepository dettaglioContattoRepository,
@@ -172,16 +177,26 @@ public class InadManager {
                 throw new InadException(message, ex);
             }
             InadExtractResponse inadExtractResponse = null;
-            if (inadParameters.getEnabled()) {
-                if (inadParameters.getSimulation()) {
-                    inadExtractResponse = extractTemp(azienda.getId(),contattoDaVerificare.getCodiceFiscale());
-                } else {
-                    inadExtractResponse = extract(azienda.getId(),contattoDaVerificare.getCodiceFiscale(), inadParameters);
-                }
+            /*Controllo che sia necessario aggiornare il domicilio digitale, ovvero che è stato aggiornato più di n ore fa, dove n è il numero parametrico di ore*/
+            Integer hoursAfterLastCheck = inadParameters.getMaxHoursAfterLastCheck();
+            ZonedDateTime lastCheckPlusParametricHours;
+            if (contattoDaVerificare.getDataUltimoAggiornamentoDomicilioDigitale() != null) {
+                lastCheckPlusParametricHours = contattoDaVerificare.getDataUltimoAggiornamentoDomicilioDigitale().plusHours(hoursAfterLastCheck);
+            } else {
+                lastCheckPlusParametricHours = ZonedDateTime.now().minusHours(2);
             }
-            
-            updateOrCreateDettaglioContattoFromInadExtractResponse(inadExtractResponse);
+            if (lastCheckPlusParametricHours.isBefore(ZonedDateTime.now())) {
+                if (inadParameters.getEnabled()) {
+                    if (inadParameters.getSimulation()) {
+                        inadExtractResponse = extractTemp(azienda.getId(),contattoDaVerificare.getCodiceFiscale());
+                    } else {
+                        inadExtractResponse = extract(azienda.getId(),contattoDaVerificare.getCodiceFiscale(), inadParameters);
+                    }
+                }
+                updateOrCreateDettaglioContattoFromInadExtractResponse(inadExtractResponse);
+            }
             Contatto contattoVerificato = contattoRepository.findById(contattoDaVerificare.getId()).get();
+
             return contattoVerificato.getEmailList();
         
     }
@@ -430,7 +445,7 @@ public class InadManager {
             List<Email> emailContattoDaRitornare = new ArrayList<>();
 
             Contatto contatto = contattoRepository.findByCodiceFiscale(inadExtractResponse.getCodiceFiscale()).get(0);
-
+            
             //se trovo dei domini digitali li metto dentro una lista di indirizzi che poi confronto
             //con i dettagli contatto già presenti sulla rubrica
             //se l'indirizzo esiste già, controllo che sia già segnato come contatto digitale
@@ -505,8 +520,22 @@ public class InadManager {
                 }
 
             }
-
+            contatto.setDataUltimoAggiornamentoDomicilioDigitale(ZonedDateTime.now());
+            contattoRepository.save(contatto);
         }
     }
 
+    /**
+     * Funzione che data una lista di idContattiInternauti ritorna una mappa contenente anche i relativi domicili digitali aggiornati (salvando a db gli eventuali aggiornamenti)
+     * @param idContactsList 
+     */
+    public HashMap<Integer, Email> getAndSaveDomicilioDigitaleMultiConctats(List<Integer> idContactsList) throws BlackBoxPermissionException, InadException, AuthorizationUtilsException{
+        HashMap<Integer, Email> emailsMap = new HashMap<Integer, Email>();
+        for(Integer y : idContactsList){
+            Email email = getAlwaysAndSaveDomicilioDigitale( y);
+            emailsMap.put(y, email);
+        }
+        
+        return emailsMap;
+    }
 }

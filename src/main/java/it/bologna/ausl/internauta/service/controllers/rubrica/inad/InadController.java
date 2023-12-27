@@ -11,9 +11,11 @@ import it.bologna.ausl.internauta.utils.authorizationutils.exceptions.Authorizat
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.rubrica.Contatto;
 import it.bologna.ausl.model.entities.rubrica.Email;
 import it.bologna.ausl.model.entities.rubrica.projections.generated.EmailWithIdContattoAndIdDettaglioContatto;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
+import java.util.HashMap;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -23,6 +25,7 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -64,8 +67,7 @@ public class InadController implements ControllerHandledExceptions{
     private ProjectionsInterceptorLauncher projectionsInterceptorLauncher;
     
     /**
-     * Questa funzione torna sempre il domicilio giditale.Se già presente lo torna, se non presente, richiama la funzione getAndSaveDomicilioDigitale 
- che lo chiede all'inad e lo salva
+     * Questa funzione torna sempre il domicilio digtale aggiornato; se già presente a db, lo aggiorna da INAD e lo ritorna, altrimenti lo chiede a INAD, lo salva a db e lo ritorna.
      * @param idContatto
      * @param request
      * @return
@@ -80,6 +82,27 @@ public class InadController implements ControllerHandledExceptions{
         Email domicilioDigitale = inadManager.getAlwaysAndSaveDomicilioDigitale(idContatto);
         if (domicilioDigitale!= null) {
             return new ResponseEntity(projectionFactory.createProjection(EmailWithIdContattoAndIdDettaglioContatto.class, domicilioDigitale),  HttpStatus.OK);
+        } else {
+            return null;
+        }
+    }
+    
+    /**
+     * Questa funzione torna sempre i domicili digtali aggiornato di una lista di contatti; se già presenti a db, li aggiorna da INAD e lo ritorna, altrimenti li chiede a INAD, li salva a db e li ritorna.
+     * @param idContattiList
+     * @param request
+     * @return
+     * @throws BlackBoxPermissionException 
+     * @throws it.bologna.ausl.internauta.utils.authorizationutils.exceptions.AuthorizationUtilsException 
+     */
+    @RequestMapping(value = "getAndSaveMultiDomicilioDigitale", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<HashMap<Integer, Email>> getAndSaveMultiDomicilioDigitale(
+            @RequestBody List<Integer> idContattiList,
+            HttpServletRequest request) throws BlackBoxPermissionException, AuthorizationUtilsException, InadException{
+        projectionsInterceptorLauncher.setRequestParams(null, request);
+        HashMap<Integer, Email> domiciliDigitaliMap = inadManager.getAndSaveDomicilioDigitaleMultiConctats(idContattiList);
+        if (domiciliDigitaliMap!= null && !domiciliDigitaliMap.isEmpty()) {
+            return new ResponseEntity(domiciliDigitaliMap,  HttpStatus.OK);
         } else {
             return null;
         }
@@ -111,4 +134,8 @@ public class InadController implements ControllerHandledExceptions{
         InadParameters inadParameters = InadParameters.buildParameters(idAzienda, parametriAziendeReader, objectMapper);
         return inadManager.extract(idAzienda, cf, inadParameters);
     }
+    
+    
+    
+   
 }

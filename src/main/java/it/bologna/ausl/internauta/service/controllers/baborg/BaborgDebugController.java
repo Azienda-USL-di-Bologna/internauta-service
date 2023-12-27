@@ -23,13 +23,16 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MultiJobQueueDes
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriacontatti.SanatoriaContattiJobWorker;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.baborg.projections.utentestruttura.UtenteStrutturaWithIdAfferenzaStrutturaAndUtenteAndIdPersonaAndPermessiCustom;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
+import it.bologna.ausl.model.entities.masterjobs.DebuggingOption;
 import it.bologna.ausl.model.entities.masterjobs.Job;
 import it.bologna.ausl.model.entities.masterjobs.QJob;
 import it.bologna.ausl.model.entities.masterjobs.Set;
@@ -75,6 +78,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -99,6 +104,9 @@ public class BaborgDebugController {
 
     @Autowired
     PersonaRepository personaRepository;
+    
+    @Autowired
+    MasterjobsJobsQueuer masterjobsJobsQueuer;
 
     @Autowired
     UtenteStrutturaRepository utenteStrutturaRepository;
@@ -244,9 +252,11 @@ public class BaborgDebugController {
                 MultiJobQueueDescriptor.newBuilder().addWorker(fooWorker1).objectId("1").app("aaa").waitForObject(false).build(),
                 MultiJobQueueDescriptor.newBuilder().addWorker(fooWorker2).addWorker(fooWorker3).objectId("1").waitForObject(true).app("aaa").build()
         );
-        
+        transactionTemplate.executeWithoutResult(action -> {
 //        mjQueuer.queue(fooWorker, null, null, null, false, Set.SetPriority.NORMAL, false);
-        mjQueuer.queueMultiJobs(descriptors);
+//        mjQueuer.queueMultiJobs(descriptors, null);
+            mjQueuer.queueOnCommit(Arrays.asList(fooWorker1), null, null, null, false, Set.SetPriority.NORMAL, null);
+        });
         return null;
     }
     
@@ -270,8 +280,54 @@ public class BaborgDebugController {
     @RequestMapping(value = "test5", method = RequestMethod.GET)
     @Transactional(rollbackFor = Throwable.class)
     public void test5(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
-        MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
-        mjQueuer.stopThreads();
+//        MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
+//        mjQueuer.stopThreads();
+        DebuggingOption debuggingOption = new DebuggingOption();
+        debuggingOption.setKey("test");
+//        debuggingOption.setValue("value1");
+        entityManager.persist(debuggingOption);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization(){
+            @Override
+            public void afterCommit() {
+                TransactionSynchronization.super.afterCommit();
+                System.out.println("after commit");
+            }
+        });
+    }
+    
+    @RequestMapping(value = "test51", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
+    public void test51(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
+//        MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
+//        mjQueuer.stopThreads();
+        DebuggingOption debuggingOption = new DebuggingOption();
+        debuggingOption.setKey("test1");
+//        debuggingOption.setValue("value1");
+        entityManager.persist(debuggingOption);
+    }
+    
+    @RequestMapping(value = "test52", method = RequestMethod.GET)
+//    @Transactional(rollbackFor = Throwable.class)
+    public void test52(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, ClassNotFoundException, MasterjobsQueuingException, MasterjobsWorkerException {
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
+        transactionTemplate.executeWithoutResult(a2 -> {
+            DebuggingOption debuggingOption = new DebuggingOption();
+            debuggingOption.setKey("test1");
+            entityManager.persist(debuggingOption);
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization(){
+                @Override
+                public void afterCommit() {
+                    TransactionSynchronization.super.afterCommit();
+                    System.out.println("after commit");
+                }
+            });
+        });
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
+        transactionTemplate.executeWithoutResult(a2 -> {
+            DebuggingOption debuggingOption = new DebuggingOption();
+            debuggingOption.setKey("test2");
+            entityManager.persist(debuggingOption);
+        });
     }
     
     @RequestMapping(value = "test6", method = RequestMethod.GET)
@@ -479,5 +535,23 @@ public class BaborgDebugController {
         Struttura idStrutturaPadre = res.getIdStrutturaPadre();
         System.out.println("idPadre:" + idStrutturaPadre.getId());
         return res;
+    }
+    
+    @RequestMapping(value = "testJob", method = RequestMethod.GET)
+    @Transactional(rollbackFor = Throwable.class)
+    public void testJob() throws MasterjobsWorkerException {
+        try {
+            masterjobsJobsQueuer.queue(
+                    new SanatoriaContattiJobWorker(),
+                    null,
+                    null,
+                    Applicazione.Applicazioni.rubrica.toString(),
+                    false,
+                    Set.SetPriority.NORMAL,
+                    null
+            );
+        } catch (MasterjobsQueuingException ex) {
+            throw new MasterjobsWorkerException("errore nell'accodamento del job", ex);
+        }
     }
 }

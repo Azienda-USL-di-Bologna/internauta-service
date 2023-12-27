@@ -27,10 +27,13 @@ public class InternautaUtils {
     private static final Logger log = LoggerFactory.getLogger(InternautaUtils.class);
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     @Autowired
-    CachedEntities cachedEntities;
+    private CachedEntities cachedEntities;
+
+    @Autowired    
+    private NonCachedEntities nonCachedEntities;
 
     /**
      * Ottiene URL dell'azienda passata come parametro. Questo perchè ci possono
@@ -65,21 +68,41 @@ public class InternautaUtils {
 
         AziendaParametriJson parametriAziendaLogin = aziendaLogin.getParametri();
         AziendaParametriJson parametriAziendaTarget = aziendaTarget.getParametri();
+
+        if (parametriAziendaTarget.getLoginPath() == null) {
+            log.info("ci sono dei campi null che non dovrebbe essere null, provo a ricaricare l'azienda");
+            aziendaTarget = nonCachedEntities.getAzienda(aziendaTarget.getId());
+            parametriAziendaTarget = aziendaTarget.getParametri();
+        }
+        
+        String targetLoginPath = parametriAziendaTarget.getLoginPath();
         String crossLoginUrlTemplate = parametriAziendaTarget.getCrossLoginUrlTemplate();
         String simpleCrossLoginUrlTemplate = parametriAziendaTarget.getSimpleCrossLoginUrlTemplate();
         String entityId = parametriAziendaLogin.getEntityId();
 
-        String targetLoginPath = parametriAziendaTarget.getLoginPath();
+//        log.info(String.format("parametriAziendaLogin: %s", objectMapper.writeValueAsString(parametriAziendaLogin)));
+//        log.info(String.format("parametriAziendaTarget: %s", objectMapper.writeValueAsString(parametriAziendaTarget)));
+        
+      
+        
         String targetBasePath = parametriAziendaTarget.getBasePath();
-
+        
 //        log.info("getUrl authenticatedSessionData.isFromInternet(): " + authenticatedSessionData.isFromInternet());
         if (authenticatedSessionData.isFromInternet()) {
             targetBasePath = parametriAziendaTarget.getInternetBasePath();
         }
+        
+//        log.info(String.format("targetLoginPath: %s", targetLoginPath));
+//        log.info(String.format("targetBasePath: %s", targetBasePath));
 
         String encodedParamsWithContextInformation = URLEncoder.encode(paramsWithContextInformation, "UTF-8");
         String encodedParamsWithoutContextInformation = URLEncoder.encode(paramsWithoutContextInformation, "UTF-8");
 
+//        log.info(String.format("paramsWithContextInformation: %s", paramsWithContextInformation));
+//        log.info(String.format("paramsWithoutContextInformation: %s", paramsWithoutContextInformation));
+//        log.info(String.format("encodedParamsWithContextInformation: %s", encodedParamsWithContextInformation));
+//        log.info(String.format("encodedParamsWithoutContextInformation: %s", encodedParamsWithoutContextInformation));
+        
         Applicazione app = cachedEntities.getApplicazione(idApplicazione);
         String applicationURL = app.getBaseUrl();
         if (applicationURL != null) {
@@ -91,6 +114,10 @@ public class InternautaUtils {
             applicationURL = "";
         }
 
+//         log.info(String.format("simpleCrossLoginUrlTemplate: %s", simpleCrossLoginUrlTemplate));
+//         log.info(String.format("targetBasePath: %s", targetBasePath));
+//         log.info(String.format("applicationURL: %s", applicationURL));
+        
         String assembledURL = null;
         switch (app.getUrlGenerationStrategy()) {
             case TRUSTED_URL_WITH_CONTEXT_INFORMATION:

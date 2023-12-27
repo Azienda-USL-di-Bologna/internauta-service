@@ -1,10 +1,10 @@
-package it.bologna.ausl.internauta.utils.masterjobs.workers.services.cercaanomaliearchivi;
+package it.bologna.ausl.internauta.utils.masterjobs.workers.services.sanatorienotturne;
 
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.WorkerResult;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.cercaanomaliearchivi.CercaAnomalieArchiviJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriacontatti.SanatoriaContattiJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.ServiceWorker;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.masterjobs.Set;
@@ -16,10 +16,10 @@ import org.slf4j.LoggerFactory;
  * @author gusgus
  */
 @MasterjobsWorker
-public class CercaAnomalieArchiviServiceWorker extends ServiceWorker {
-    private static Logger log = LoggerFactory.getLogger(CercaAnomalieArchiviServiceWorker.class);
+public class SanatorieNotturneServiceWorker extends ServiceWorker {
+    private static Logger log = LoggerFactory.getLogger(SanatorieNotturneServiceWorker.class);
     
-    private String name = CercaAnomalieArchiviServiceWorker.class.getSimpleName();
+    private String name = SanatorieNotturneServiceWorker.class.getSimpleName();
     
     @Override
     public String getName() {
@@ -32,10 +32,10 @@ public class CercaAnomalieArchiviServiceWorker extends ServiceWorker {
         
         try {
             masterjobsJobsQueuer.queue(
-                    new CercaAnomalieArchiviJobWorker(),
+                    new SanatoriaContattiJobWorker(),
                     null,
                     null,
-                    Applicazione.Applicazioni.scripta.toString(),
+                    Applicazione.Applicazioni.rubrica.toString(),
                     false,
                     Set.SetPriority.NORMAL,
                     null

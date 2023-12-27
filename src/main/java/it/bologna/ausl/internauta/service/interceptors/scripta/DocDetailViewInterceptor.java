@@ -71,7 +71,7 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
                     break;}
             }
         }
-        initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc").and(initialPredicate);
+        initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc", "idAziendaDoc").and(initialPredicate);
 
 //        InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
 

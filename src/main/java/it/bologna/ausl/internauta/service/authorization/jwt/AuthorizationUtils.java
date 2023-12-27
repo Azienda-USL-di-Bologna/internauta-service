@@ -255,9 +255,9 @@ public class AuthorizationUtils {
                 : cachedEntities.getAzienda(Integer.parseInt(idAzienda)));
 
         logger.info("aziendaRealUser: " + aziendaRealUser.getCodice());
-        logger.info("parametri: " + aziendaRealUser.getParametri());
-        //userInfoService.loadAziendaByPathRemoveCache(path);
         AziendaParametriJson aziendaRealUserParams = aziendaRealUser.getParametri();
+        logger.info("parametri: " + objectMapper.writeValueAsString(aziendaRealUserParams));
+        //userInfoService.loadAziendaByPathRemoveCache(path);
         //AziendaParametriJson aziendaImpersonatedUserParams = AziendaParametriJson.parse(objectMapper, aziendaImpersonatedUser.getParametri());
 
         if (ssoFieldValue == null) {

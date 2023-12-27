@@ -29,11 +29,13 @@ import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedReposit
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessigerarchiaarchivio.CalcoloPermessiGerarchiaArchivioJobWorkerData;
+import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
+import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
 import it.bologna.ausl.model.entities.logs.MassiveActionLog;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
@@ -115,6 +117,9 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
     @Autowired
     private HttpSessionData httpSessionData;
     
+    @Autowired
+    private ParametriAziendeReader parametriAziende;
+    
     @Override
     public String getName() {
         return this.name;
@@ -159,7 +164,22 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
         QAttoreArchivio qAttoreArchivio = QAttoreArchivio.attoreArchivio;
         QArchivio qArchivio = QArchivio.archivio;
         
+        log.info("controllo se per questa azienda devo escludere i fascicoli chiusi/prechiusi");
+        Boolean escludiArchiviChiusiFromAbilitazioniMassiveGedi = false;
+
+//        Boolean escludiArchiviChiusiFromAbilitazioniMassiveGedi;
+
+        List<ParametroAziende> escludiArchiviChiusiFromAbilitazioniMassiveGediParams = parametriAziende.getParameters(ParametriAziendeReader.ParametriAzienda.escludiArchiviChiusiFromAbilitazioniMassiveGedi);
+        if (escludiArchiviChiusiFromAbilitazioniMassiveGediParams != null && !escludiArchiviChiusiFromAbilitazioniMassiveGediParams.isEmpty() ) {
+            escludiArchiviChiusiFromAbilitazioniMassiveGedi = escludiArchiviChiusiFromAbilitazioniMassiveGediParams.stream()
+                .anyMatch(param -> Arrays.stream(param.getIdAziende()).anyMatch(idAzienda::equals) && parametriAziende.getValue(param, Boolean.class));
+        }
         
+        
+//        List<ParametroAziende> escludiArchiviChiusiFromAbilitazioniMassiveGediParams = parametriAziende.getParameters(ParametriAziendeReader.ParametriAzienda.escludiArchiviChiusiFromAbilitazioniMassiveGedi);
+//        if (escludiArchiviChiusiFromAbilitazioniMassiveGediParams != null && !escludiArchiviChiusiFromAbilitazioniMassiveGediParams.isEmpty()) {
+//            escludiArchiviChiusiFromAbilitazioniMassiveGedi = parametriAziende.getValue(escludiArchiviChiusiFromAbilitazioniMassiveGediParams.get(0), Boolean.class);
+//        }
         
         log.info(String.format("PARAMETRI. idPersonaSorgente: %1$s, idPersonaDestinazione: %2$s, idMassiveActionLog: %3$s, idPersonaOperazione: %4$s", 
                 idPersonaSorgente, idPersonaDestinazione, idMassiveActionLog, idPersonaOperazione));
@@ -174,7 +194,9 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
         if (operationType.equals(MassiveActionLog.OperationType.TRASFERISCI_ABILITAZIONI)) {
             log.info("Mi occupo del trasferimento del RESPONSABILE");
             
-            List<Tuple> archivi = jpaQueryFactory
+            List<Tuple> archivi = null;
+            if (escludiArchiviChiusiFromAbilitazioniMassiveGedi) {
+                archivi = jpaQueryFactory
                     .select(qAttoreArchivio.idArchivio.id, qArchivio.numerazioneGerarchica)
                     .from(qAttoreArchivio)
                     .join(qArchivio).on(qArchivio.id.eq(qAttoreArchivio.idArchivio.id))
@@ -186,6 +208,20 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                                     .and(qArchivio.stato.eq(Archivio.StatoArchivio.APERTO.toString()))
                     )
                     .fetch();
+            } else {
+                archivi = jpaQueryFactory
+                    .select(qAttoreArchivio.idArchivio.id, qArchivio.numerazioneGerarchica)
+                    .from(qAttoreArchivio)
+                    .join(qArchivio).on(qArchivio.id.eq(qAttoreArchivio.idArchivio.id))
+                    .where(
+                            qAttoreArchivio.idPersona.id.eq(idPersonaSorgente)
+                                    .and(qAttoreArchivio.ruolo.eq(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE.toString()))
+                                    .and(qArchivio.idAzienda.id.eq(idAzienda))
+                                    .and(qArchivio.livello.eq(1))
+                    )
+                    .fetch();
+            }
+            
             
             List<Integer> idsArchivi = new ArrayList();
             
@@ -222,7 +258,22 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
         // Ora mi occupo dei vicari, in caso di trasferimento devo togliere il vicariato al vecchio utente
         //List<Integer> idArchiviSuCuiInserireVicario = null;
         // Faccio la select degli archivi
-        List<Tuple> archivi = jpaQueryFactory
+        List<Tuple> archivi = null;
+        if (escludiArchiviChiusiFromAbilitazioniMassiveGedi) {
+
+            archivi = jpaQueryFactory
+                    .select(qAttoreArchivio.idArchivio.id, qArchivio.numerazioneGerarchica)
+                    .from(qAttoreArchivio)
+                    .join(qArchivio).on(qArchivio.id.eq(qAttoreArchivio.idArchivio.id))
+                    .where(qAttoreArchivio.idPersona.id.eq(idPersonaSorgente)
+                            .and(qAttoreArchivio.ruolo.eq(AttoreArchivio.RuoloAttoreArchivio.VICARIO.toString()))
+                            .and(qArchivio.idAzienda.id.eq(idAzienda))
+                            .and(qArchivio.livello.eq(1))
+                            .and(qArchivio.stato.eq(Archivio.StatoArchivio.APERTO.toString()))
+                    )
+                    .fetch();
+        } else {
+                archivi = jpaQueryFactory
                 .select(qAttoreArchivio.idArchivio.id, qArchivio.numerazioneGerarchica)
                 .from(qAttoreArchivio)
                 .join(qArchivio).on(qArchivio.id.eq(qAttoreArchivio.idArchivio.id))
@@ -230,10 +281,9 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                         .and(qAttoreArchivio.ruolo.eq(AttoreArchivio.RuoloAttoreArchivio.VICARIO.toString()))
                         .and(qArchivio.idAzienda.id.eq(idAzienda))
                         .and(qArchivio.livello.eq(1))
-                        .and(qArchivio.stato.eq(Archivio.StatoArchivio.APERTO.toString()))
                 )
                 .fetch();
-        
+            }
         if (operationType.equals(MassiveActionLog.OperationType.TRASFERISCI_ABILITAZIONI)) {
             // Faccio una delete che mi torni gli id archivi
             attoreArchivioRepository.deleteVicariByIdPersonaAndIdAzienda(idPersonaSorgente, idAzienda);
@@ -272,15 +322,25 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
         // Di questi permessi devo tenere solo quelli che appartengono alla azienda su cui sto lavorando
         // Quindi ora, recupero questa info e poi faccio un filtro.
         List<Integer> idArchivi = permessiBlackBoxPersonaSorgente.stream().map(p -> p.getOggetto().getIdProvenienza()).collect(Collectors.toList());
-        archivi = jpaQueryFactory
-                .select(qArchivio.id, qArchivio.livello, qArchivio.idArchivioRadice.id, qArchivio.numerazioneGerarchica)
-                .from(qArchivio)
-                .where(qArchivio.id.in(idArchivi)
-                        .and(qArchivio.idAzienda.id.eq(idAzienda))
-                        .and(qArchivio.stato.eq(Archivio.StatoArchivio.APERTO.toString()))
-                )
-                .fetch();
         
+        if (escludiArchiviChiusiFromAbilitazioniMassiveGedi) {
+            archivi = jpaQueryFactory
+                    .select(qArchivio.id, qArchivio.livello, qArchivio.idArchivioRadice.id, qArchivio.numerazioneGerarchica)
+                    .from(qArchivio)
+                    .where(qArchivio.id.in(idArchivi)
+                            .and(qArchivio.idAzienda.id.eq(idAzienda))
+                            .and(qArchivio.stato.eq(Archivio.StatoArchivio.APERTO.toString()))
+                    )
+                    .fetch();
+        } else {
+            archivi = jpaQueryFactory
+                    .select(qArchivio.id, qArchivio.livello, qArchivio.idArchivioRadice.id, qArchivio.numerazioneGerarchica)
+                    .from(qArchivio)
+                    .where(qArchivio.id.in(idArchivi)
+                            .and(qArchivio.idAzienda.id.eq(idAzienda))
+                    )
+                    .fetch();
+        }
         // Questa lista conterrà gli id degli archivi che davvero mi interessano
         List<Integer> idArchiviFiltrati = new ArrayList();
         // Questa lista conterrà gli Archivi che mi interessano con popolato il campo id, mi servirà poi per usare la blackbox
@@ -434,7 +494,7 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
 //                    oggettoneSorgente.getCategorie().get(0).setPermessi(Arrays.asList(new PermessoStoredProcedure[]{
 //                        createPermessoStoredProcedure(
 //                                predicatoPiuAltoSorgente,
-//                                predicatoSorgentePropagato,
+//                                predicatoSorgentePropagato,\\
 //                                strutturaVeicolante
 //                        )
 //                    }));
@@ -442,12 +502,11 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                 }
                 
                 permessiDaSalvare.add(nuovoOggettone);
-                
-                // Altra cosa che devo fare in caso di TRASFERIMENTO, è spegnere i permessi della sorgente
-                if (operationType.equals(MassiveActionLog.OperationType.TRASFERISCI_ABILITAZIONI)) {
-                    oggettoneSorgente.getCategorie().get(0).setPermessi(new ArrayList());
-                    permessiDaSalvare.add(oggettoneSorgente);
-                }
+            }
+            // Altra cosa che devo fare in caso di TRASFERIMENTO, è spegnere i permessi della sorgente
+            if (operationType.equals(MassiveActionLog.OperationType.TRASFERISCI_ABILITAZIONI)) {
+                oggettoneSorgente.getCategorie().get(0).setPermessi(new ArrayList());
+                permessiDaSalvare.add(oggettoneSorgente);
             }
         }
         
@@ -513,14 +572,14 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                     personaDestinazione.getDescrizione(), 
                     dataFormattata, 
                     orarioFormattato);
-            insertAttivita(azienda, personaOperazione, "Copia abilitazioni", oggettoAttivita, app);
+            insertAttivita(azienda, personaOperazione, "Trasferimento abilitazioni", oggettoAttivita, app);
         } else {
             oggettoAttivita = String.format("La copia delle abilitazioni sui fascicoli di %1$s a %2$s, che hai richiesto il %3$s alle %4$s, è avvenuta con successo.",  
                     personaSorgente.getDescrizione(), 
                     personaDestinazione.getDescrizione(), 
                     dataFormattata, 
                     orarioFormattato);
-            insertAttivita(azienda, personaOperazione, "Trasferimento abilitazioni", oggettoAttivita, app);
+            insertAttivita(azienda, personaOperazione,"Copia abilitazioni", oggettoAttivita, app);
         }
         
         log.info(String.format("Aggiorno la massiveActionLog"));
