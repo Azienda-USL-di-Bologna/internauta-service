@@ -89,7 +89,6 @@ public class ScriptaCopyUtils {
 //    public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Utente utente, EntityManager em, Boolean numera, Boolean rinomina, boolean copiaTuttiGliAttori) throws JsonProcessingException, EntityReflectionException {
 //        return copiaArchivio(archDaCopiare, archivioDestinazione, utente, em, numera, rinomina, copiaTuttiGliAttori);
 //    }
-
     public Archivio copiaArchivio(Archivio archDaCopiare, Archivio archivioDestinazione, Utente utente, EntityManager em, Boolean numera, Boolean rinomina, boolean copiaTuttiGliAttori) throws JsonProcessingException, EntityReflectionException {
         String numerazioneGerarchicaDaEreditare;
         Archivio idArchivioRadiceDaEreditare;
@@ -141,8 +140,10 @@ public class ScriptaCopyUtils {
 
         //numero il nuovo archivio
         ArchivioDetail detail = archivioDetailRepository.getById(newArchivio.getId());
+
         detail.setIdPersonaResponsabile(utente.getIdPersona());
         detail.setIdPersonaCreazione(utente.getIdPersona());
+
         Integer idStruttura = utenteStrutturaRepository.getIdStrutturaAfferenzaDirettaAttivaByIdUtente(utente.getId());
         if (idStruttura == null) {
             idStruttura = utenteStrutturaRepository.getIdStrutturaAfferenzaUnificataAttivaByIdUtente(utente.getId());
@@ -155,7 +156,7 @@ public class ScriptaCopyUtils {
         }
         detail.setLivello(livelloDaEreditare);
 
-        setNewAttoriArchivio(archDaCopiare,newArchivio , utente, em, copiaTuttiGliAttori);
+        setNewAttoriArchivio(archDaCopiare, newArchivio, utente, em, copiaTuttiGliAttori);
 //        
 //        List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
 //        for (AttoreArchivio attore: archDaCopiare.getAttoriList()){
@@ -190,29 +191,26 @@ public class ScriptaCopyUtils {
             if (responsabili != null && !responsabili.isEmpty()) {
                 List<Utente> utenti = responsabili.get(0).getIdPersona().getUtenteList().stream().filter(
                         u -> {
-                            return u.getAttivo() && u.getIdAzienda().getId().equals(archivio.getIdAzienda().getId());
+                            return u.getIdAzienda().getId().equals(archivio.getIdAzienda().getId());
                         }).collect(Collectors.toList());
                 if (utenti != null && !utenti.isEmpty()) {
                     utente = utenti.get(0);
                 }
             }
         }
-        // TODOMido: inserire gli attori archivi
+        // TODO Mido: inserire gli attori archivi
         log.info(String.format("Inizio a duplicare il fascicolo con id %s", archivio.getId()));
         Archivio savedArchivio = copiaArchivioConDoc(
-                archivio, 
-                archivio.getIdArchivioPadre(), 
-                utente, 
-                entityManager, 
-                Boolean.TRUE, 
-                !meccanismoDiFineAnno, 
+                archivio,
+                archivio.getIdArchivioPadre(),
+                utente,
+                entityManager,
+                Boolean.TRUE,
+                !meccanismoDiFineAnno,
                 duplicaDocumenti,
                 meccanismoDiFineAnno);
-        if (meccanismoDiFineAnno) {
-            //copiaAttoriArchivio(archivio,savedArchivio,entityManager);
-            archivioRepository.copiaPermessiArchivi(archivio.getId(), savedArchivio.getId());
-        }
-        
+        archivioRepository.copiaPermessiArchivi(archivio.getId(), savedArchivio.getId());
+
         log.info(String.format("finito di duplicare %s con i suoi documenti", archivio.getId()));
         if (haFigli) {
             log.info(String.format("procedo a duplicare i figli e nipoti di %s", archivio.getId()));
@@ -220,10 +218,10 @@ public class ScriptaCopyUtils {
                 if (!archFiglio.getStato().equals(Archivio.StatoArchivio.BOZZA)) {
                     log.info(String.format("inzio a duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));
                     Archivio savedFiglioArchivio = copiaArchivioConDoc(archFiglio, savedArchivio, utente, entityManager, Boolean.TRUE, duplicaDocumenti, meccanismoDiFineAnno);
-                    if (meccanismoDiFineAnno) {
-                        //copiaAttoriArchivio(archFiglio,savedFiglioArchivio,entityManager);
-                        archivioRepository.copiaPermessiArchivi(archFiglio.getId(), savedFiglioArchivio.getId());
-                    }
+//                    if (meccanismoDiFineAnno) {
+                    //copiaAttoriArchivio(archFiglio,savedFiglioArchivio,entityManager);
+                    archivioRepository.copiaPermessiArchivi(archFiglio.getId(), savedFiglioArchivio.getId());
+//                    }
 
                     log.info(String.format("finito di duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));
                     if (iHaveToKrint) {
@@ -233,10 +231,10 @@ public class ScriptaCopyUtils {
                         if (!archNipote.getStato().equals(Archivio.StatoArchivio.BOZZA)) {
                             log.info(String.format("inzio a duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));
                             Archivio savedInsArchivio = copiaArchivioConDoc(archNipote, savedFiglioArchivio, utente, entityManager, Boolean.TRUE, duplicaDocumenti, meccanismoDiFineAnno);
-                            if (meccanismoDiFineAnno) {
-                                //copiaAttoriArchivio(archNipote,savedInsArchivio, entityManager);
-                                archivioRepository.copiaPermessiArchivi(archNipote.getId(), savedInsArchivio.getId());
-                            }
+//                            if (meccanismoDiFineAnno) {
+                            //copiaAttoriArchivio(archNipote,savedInsArchivio, entityManager);
+                            archivioRepository.copiaPermessiArchivi(archNipote.getId(), savedInsArchivio.getId());
+//                            }
                             log.info(String.format("finito di duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));
                             if (iHaveToKrint) {
                                 krintScriptaService.writeArchivioUpdate(savedInsArchivio, archNipote, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
@@ -247,12 +245,12 @@ public class ScriptaCopyUtils {
             }
             log.info(String.format("finito le duplicare i figli e nipoti di %s", archivio.getId()));
         }
+//        archivioRepository.calcolaPermessiEsplicitiGerarchia(savedArchivio.getId());
+
+        archivioRepository.calcolaGerarchiaArchivio(savedArchivio.getId());
         archivioRepository.calcolaPermessiEsplicitiGerarchia(savedArchivio.getId());
         entityManager.flush();
         entityManager.refresh(savedArchivio);
-
-        archivioRepository.copiaPermessiArchivi(archivio.getId(), savedArchivio.getId());
-        archivioRepository.calcolaPermessiEsplicitiGerarchia(savedArchivio.getId());
         if (iHaveToKrint) {
             krintScriptaService.writeArchivioUpdate(archivio, savedArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DUPLICA);
             krintScriptaService.writeArchivioUpdate(savedArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
@@ -282,20 +280,20 @@ public class ScriptaCopyUtils {
         }
         setNewAttoriArchivio(archivioSorgente, archivioDestinazione, utenteCreatore.getIdPersona(), strutturaRepository.getById(idStruttura), em, copiaTuttiGliAttori);
     }
-    
+
     /**
-     * 
+     *
      * @param archivioSorgente
      * @param archivioDestinazione
      * @param personaCreatore
      * @param strutturaUtenteCreatore
      * @param em
-     * @param copiaTuttiGliAttori 
+     * @param copiaTuttiGliAttori
      */
     private void setNewAttoriArchivio(Archivio archivioSorgente, Archivio archivioDestinazione, Persona personaCreatore, Struttura strutturaUtenteCreatore, EntityManager em, boolean copiaTuttiGliAttori) {
         List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
         //creazione e salvataggio dell'attore creatore
-        if (copiaTuttiGliAttori){
+        if (copiaTuttiGliAttori) {
             for (AttoreArchivio attoreArchivioDaCopiare : archivioSorgente.getAttoriList()) {
                 attoriList.add(new AttoreArchivio(archivioDestinazione, attoreArchivioDaCopiare.getIdPersona(), attoreArchivioDaCopiare.getIdStruttura(), attoreArchivioDaCopiare.getRuolo()));
             }
@@ -399,20 +397,22 @@ public class ScriptaCopyUtils {
         infoArchiviNonCopiati.put(MotivazioneEsclusione.SENZA_PERMESSO.toString(), archiviSenzaPermesso);
         return infoArchiviNonCopiati;
     }
-    
+
     /**
-     * Clono gli attori dell'archivio che sto duplicando e li metto a quello appena creato.
+     * Clono gli attori dell'archivio che sto duplicando e li metto a quello
+     * appena creato.
+     *
      * @param archivioDestinazione Il nuovo archivio che riceverà gli attori.
      * @param archivioSorgente Il vecchio archivio da cui clonerò gli attori.
      */
-    private void copiaAttoriArchivio(Archivio archivioSorgente, Archivio archivioDestinazione, EntityManager entityManager){
+    private void copiaAttoriArchivio(Archivio archivioSorgente, Archivio archivioDestinazione, EntityManager entityManager) {
         // preparo la lista che riemperò con tutti gli attori
         List<AttoreArchivio> attoriList = new ArrayList<AttoreArchivio>();
 
-        for (AttoreArchivio attore: archivioSorgente.getAttoriList()){
+        for (AttoreArchivio attore : archivioSorgente.getAttoriList()) {
             // creo un nuovo attore basndomi su quelli che sto ciclando
             AttoreArchivio newAttore = new AttoreArchivio(archivioDestinazione, attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo());
-            
+
             entityManager.persist(newAttore);
             entityManager.flush();
             entityManager.refresh(newAttore);
