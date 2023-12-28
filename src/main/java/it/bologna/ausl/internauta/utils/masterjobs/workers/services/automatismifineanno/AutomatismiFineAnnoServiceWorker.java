@@ -67,7 +67,7 @@ public class AutomatismiFineAnnoServiceWorker extends ServiceWorker {
                 // mi assicuro che non esista già il fascicolo speciale per l'azienda che sto ciclando (con numerazione gerarchica 1/anno)
                 Integer anno = ZonedDateTime.now().getYear();
                 Archivio archivioSpeciale = archivioRepository.findByNumerazioneGerarchicaAndIdAzienda( "1/" + anno.toString(), azienda.getId());
-                if (archivioSpeciale != null ){
+                if (archivioSpeciale == null ){
                     // ottengo la lista di nomi dei fascicoli e la converto in una Map<String, String> da passare poi al JobWorkerData
                     Map<String, String> nomeFascicoliSpecialiMap = objectMapper.convertValue(parametriCreazioneFascicoliSpeciali.get("nomeFascicoliSpeciali"),new TypeReference<Map<String,String>>(){});
                     
