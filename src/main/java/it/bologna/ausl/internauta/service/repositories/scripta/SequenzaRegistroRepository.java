@@ -12,8 +12,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso
  * nome tutto in minuscolo
  */
-@NextSdrRepository(repositoryPath = "${scripta.mapping.url.root}/sequenzeragistro", defaultProjection = SequenzaRegistro.class)
-@RepositoryRestResource(collectionResourceRel = "sequenzeregistri", path = "sequenzeregistri", exported = false, excerptProjection = SequenzaRegistro.class)
+@NextSdrRepository(repositoryPath = "${scripta.mapping.url.root}/sequenzaragistro", defaultProjection = SequenzaRegistro.class)
+@RepositoryRestResource(collectionResourceRel = "sequenzaregistro", path = "sequenzaregistro", exported = false, excerptProjection = SequenzaRegistro.class)
 public interface SequenzaRegistroRepository extends
         NextSdrQueryDslRepository<SequenzaRegistro, Integer, QRegistro>,
         JpaRepository<Registro, Integer> {

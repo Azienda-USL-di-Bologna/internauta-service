@@ -430,115 +430,115 @@ public class ImportaDaCSV {
 
                     while ((appartenentiMap = mapReader.read(headers, processors)) != null) {
 
-                        if (!(personeValide != null && !personeValide.isEmpty() && personeValide.contains(appartenentiMap.get("codice_fiscale").toString()))) {
-                            boolean anomali;
-                            mapError = new HashMap<>();
-                            // Inserisco la riga
-                            MdrAppartenenti mA = new MdrAppartenenti();
-                            //                      preparo la mappa di errore
-                            mapError.put("ERRORE", "");
-                            mapError.put("Anomalia", "");
+                        Boolean whiteListato = !(personeValide != null && !personeValide.isEmpty() && personeValide.contains(appartenentiMap.get("codice_fiscale").toString()));
+                        boolean anomali;
+                        mapError = new HashMap<>();
+                        // Inserisco la riga
+                        MdrAppartenenti mA = new MdrAppartenenti();
+                        //                      preparo la mappa di errore
+                        mapError.put("ERRORE", "");
+                        mapError.put("Anomalia", "");
 
-                            //                      CODICE_MATRICOLA bloccante
-                            anomali = Appartenenti.checkCodiceMatricola(appartenentiMap, mapError);
-                            anomalia = anomalia ? anomalia : anomali;
+                        //                      CODICE_MATRICOLA bloccante
+                        anomali = Appartenenti.checkCodiceMatricola(appartenentiMap, mapError, whiteListato);
+                        anomalia = anomalia ? anomalia : anomali;
 
-                            //                      COGNOME bloccante
-                            anomali = Appartenenti.checkCognome(appartenentiMap, mapError);
-                            anomalia = anomalia ? anomalia : anomali;
+                        //                      COGNOME bloccante
+                        anomali = Appartenenti.checkCognome(appartenentiMap, mapError, whiteListato);
+                        anomalia = anomalia ? anomalia : anomali;
 
-                            //                      NOME bloccante
-                            anomali = Appartenenti.checkNome(appartenentiMap, mapError);
-                            anomalia = anomalia ? anomalia : anomali;
+                        //                      NOME bloccante
+                        anomali = Appartenenti.checkNome(appartenentiMap, mapError, whiteListato);
+                        anomalia = anomalia ? anomalia : anomali;
 
-                            //                      CODICE_FISCALE bloccante
-                            anomali = Appartenenti.checkCodiceFiscale(appartenentiMap, mapError);
-                            anomalia = anomalia ? anomalia : anomali;
+                        //                      CODICE_FISCALE bloccante
+                        anomali = Appartenenti.checkCodiceFiscale(appartenentiMap, mapError, whiteListato);
+                        anomalia = anomalia ? anomalia : anomali;
 
-                            String idCasella = Appartenenti.checkIdCasella(appartenentiMap, mapError, selectDateOnStruttureByIdAzienda);
-                            anomalia = anomalia ? anomalia : idCasella.equals("");
-                            if (appartenentiMap.get("id_casella") != null && appartenentiMap.get("id_casella") != "") {
-                                if (!appartenentiMap.get("id_casella").toString().equals(idCasella)) {
-                                    idCasella = appartenentiMap.get("id_casella").toString();
-                                }
-
+                        String idCasella = Appartenenti.checkIdCasella(appartenentiMap, mapError, selectDateOnStruttureByIdAzienda, whiteListato);
+                        anomalia = anomalia ? anomalia : idCasella.equals("");
+                        if (appartenentiMap.get("id_casella") != null && appartenentiMap.get("id_casella") != "") {
+                            if (!appartenentiMap.get("id_casella").toString().equals(idCasella)) {
+                                idCasella = appartenentiMap.get("id_casella").toString();
                             }
 
-                            //                      DATAIN bloccante
-                            anomali = !ImportaDaCSVUtils.checkDatain(appartenentiMap, mapError, "A");
-                            anomalia = anomalia ? anomalia : anomali;
-
-                            ZonedDateTime datafi = null;
-                            ZonedDateTime datain = null;
-                            String datafiString;
-                            String datainString;
-                            //basta vedere anomali perche se ci sono problemi li ho gia controllati col checkDatainA
-                            if (!anomali) {
-                                datain = ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain"));
-                                datainString = UtilityFunctions.getZonedDateTimeString(datain);
-                            }
-                            if (appartenentiMap.get("datafi") != null && (!appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") != "")) {
-                                datafi = ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi"));
-                                datafiString = UtilityFunctions.getZonedDateTimeString(datafi);
-                            }
-
-                            if (appartenentiMap.get("datafi") == null || appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") == "") {
-                                mapError.put("datafi", "");
-                            } else {
-                                mapError.put("datafi", appartenentiMap.get("datafi"));
-                            }
-
-                            if (ImportaDaCSVUtils.checkDateFinisconoDopoInizio(datain, datafi)) {
-                                anomalia = true;
-                                if (mapError.get("ERRORE") != null) {
-                                    mapError.put("ERRORE", mapError.get("ERRORE") + " questa riga non Ã¨ valida perche la data di fine Ã¨ precedente alla data di fine, ");
-                                } else {
-                                    mapError.put("ERRORE", "questa riga non Ã¨ valida perche la data di fine Ã¨ precedente alla data di fine,");
-                                }
-                            }
-
-                            //Codice Ente 
-                            String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(appartenentiMap, mapError, codiceAzienda);
-                            anomalia = anomalia ? anomalia : codiceEnte.equals("");
-                            mA.setCodiceEnte(codiceEnte);
-
-                            //                      TIPO_APPARTENENZA bloccante
-                            anomali = Appartenenti.checkErroreInTipoAppatenenza(
-                                    appartenentiMap,
-                                    mapError,
-                                    idCasella,
-                                    datain,
-                                    datafi,
-                                    appartenentiDirettiPerControlloSovrapposizioneConDiretta,
-                                    appartenentiDirettiPerControlloSovrapposizioneConFunzionale,
-                                    appartenentiFunzionaliPerControlloSovrapposizioneConFunzionale,
-                                    mapReader,
-                                    righeAnomaleFunzionali,
-                                    righeAnomaleDirette,
-                                    codiciMatricolaAnomaliaDiretta);
-                            anomalia = anomalia ? anomalia : anomali;
-
-                            //                      DataAssunzione bloccante
-                            anomali = Appartenenti.checkDataAssunzione(appartenentiMap, mapError);
-                            anomalia = anomalia ? anomalia : anomali;
-
-                            //                      USERNAME lo copio
-                            if (appartenentiMap.get("username") == null || appartenentiMap.get("username").toString().trim().equals("") || appartenentiMap.get("username") == "") {
-                                mapError.put("username", "");
-                            } else {
-                                mapError.put("username", appartenentiMap.get("username"));
-                            }
-
-                            //                      DATA_DIMISSIONE
-                            if (appartenentiMap.get("data_dimissione") == null || appartenentiMap.get("data_dimissione").toString().trim().equals("") || appartenentiMap.get("data_dimissione") == "") {
-                                mapError.put("data_dimissione", "");
-                            } else {
-                                mapError.put("data_dimissione", appartenentiMap.get("data_dimissione"));
-                            }
-
-                            listAppartenentiMap.add(mapError);
-                            nRigheCSV = mapReader.getRowNumber();
                         }
+
+                        //                      DATAIN bloccante
+                        anomali = !ImportaDaCSVUtils.checkDatain(appartenentiMap, mapError, "A", whiteListato);
+                        anomalia = anomalia ? anomalia : anomali;
+
+                        ZonedDateTime datafi = null;
+                        ZonedDateTime datain = null;
+                        String datafiString;
+                        String datainString;
+                        //basta vedere anomali perche se ci sono problemi li ho gia controllati col checkDatainA
+                        if (!anomali) {
+                            datain = ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain"));
+                            datainString = UtilityFunctions.getZonedDateTimeString(datain);
+                        }
+                        if (appartenentiMap.get("datafi") != null && (!appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") != "")) {
+                            datafi = ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi"));
+                            datafiString = UtilityFunctions.getZonedDateTimeString(datafi);
+                        }
+
+                        if (appartenentiMap.get("datafi") == null || appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") == "") {
+                            mapError.put("datafi", "");
+                        } else {
+                            mapError.put("datafi", appartenentiMap.get("datafi"));
+                        }
+
+                        if (ImportaDaCSVUtils.checkDateFinisconoDopoInizio(datain, datafi)) {
+                            anomalia = true;
+                            if (mapError.get("ERRORE") != null) {
+                                mapError.put("ERRORE", mapError.get("ERRORE") + " questa riga non Ã¨ valida perche la data di fine Ã¨ precedente alla data di fine, ");
+                            } else {
+                                mapError.put("ERRORE", "questa riga non Ã¨ valida perche la data di fine Ã¨ precedente alla data di fine,");
+                            }
+                        }
+
+                        //Codice Ente 
+                        String codiceEnte = ImportaDaCSVUtils.checkCodiceEnte(appartenentiMap, mapError, codiceAzienda);
+                        anomalia = anomalia ? anomalia : codiceEnte.equals("");
+                        mA.setCodiceEnte(codiceEnte);
+
+                        //                      TIPO_APPARTENENZA bloccante
+                        anomali = Appartenenti.checkErroreInTipoAppatenenza(
+                                appartenentiMap,
+                                mapError,
+                                idCasella,
+                                datain,
+                                datafi,
+                                appartenentiDirettiPerControlloSovrapposizioneConDiretta,
+                                appartenentiDirettiPerControlloSovrapposizioneConFunzionale,
+                                appartenentiFunzionaliPerControlloSovrapposizioneConFunzionale,
+                                mapReader,
+                                righeAnomaleFunzionali,
+                                righeAnomaleDirette,
+                                codiciMatricolaAnomaliaDiretta, whiteListato);
+                        anomalia = anomalia ? anomalia : anomali;
+
+                        //                      DataAssunzione bloccante
+                        anomali = Appartenenti.checkDataAssunzione(appartenentiMap, mapError, whiteListato);
+                        anomalia = anomalia ? anomalia : anomali;
+
+                        //                      USERNAME lo copio
+                        if (appartenentiMap.get("username") == null || appartenentiMap.get("username").toString().trim().equals("") || appartenentiMap.get("username") == "") {
+                            mapError.put("username", "");
+                        } else {
+                            mapError.put("username", appartenentiMap.get("username"));
+                        }
+
+                        //                      DATA_DIMISSIONE
+                        if (appartenentiMap.get("data_dimissione") == null || appartenentiMap.get("data_dimissione").toString().trim().equals("") || appartenentiMap.get("data_dimissione") == "") {
+                            mapError.put("data_dimissione", "");
+                        } else {
+                            mapError.put("data_dimissione", appartenentiMap.get("data_dimissione"));
+                        }
+
+                        listAppartenentiMap.add(mapError);
+                        nRigheCSV = mapReader.getRowNumber();
+
                     }
 
                     //se ho il caso in cui non ho appartenenti diretti per qualche appatenente funzionale
@@ -600,6 +600,7 @@ public class ImportaDaCSV {
                             em.persist(mA);
                         } else {
                             log.info("anomalia sulla riga: " + riga);
+                            log.info("anomalia per cf: " + appMapWithErrorAndAnomalia.get("codice_fiscale").toString());
                             nRigheAnomale++;
                             anomalia = true;
                         }
@@ -615,6 +616,12 @@ public class ImportaDaCSV {
                     if (parameters != null && !parameters.isEmpty()) {
                         tolleranza = parametriAziende.getValue(parameters.get(0), Integer.class);
                     }
+                    List<String> personeValide = null;
+                    parameters = parametriAziende.getParameters("personeValide", new Integer[]{idAzienda}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
+                    if (parameters != null && !parameters.isEmpty()) {
+                        personeValide = parametriAziende.getValue(parameters.get(0), new TypeReference<List<String>>() {
+                        });
+                    }
                     nRigheDB = mdrAnagraficaRepository.countRow(idAzienda);
                     nRigheCSV = 0;
                     nRigheAnomale = 0;
@@ -627,6 +634,7 @@ public class ImportaDaCSV {
                     Integer riga;
                     Boolean anomaliaRiga = false;
                     while ((anagraficaMap = mapReader.read(headers, processors)) != null) {
+                        Boolean whiteListato = !(personeValide != null && !personeValide.isEmpty() && personeValide.contains(anagraficaMap.get("codice_fiscale").toString()));
                         boolean anomali = false;
                         mapError = new HashMap<>();
                         riga = mapReader.getLineNumber();
@@ -638,7 +646,7 @@ public class ImportaDaCSV {
                         mapError.put("Anomalia", "");
 
 //                      CODICE_MATRICOLA bloccante
-                        anomali = Appartenenti.checkCodiceMatricola(anagraficaMap, mapError);
+                        anomali = Appartenenti.checkCodiceMatricola(anagraficaMap, mapError, whiteListato);
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
                         mAn.setCodiceMatricola(mapError.get("codice_matricola").toString());
 
@@ -649,16 +657,16 @@ public class ImportaDaCSV {
                             mAn.setEmail("");
                         }
 //                      COGNOME bloccante
-                        anomali = Appartenenti.checkCognome(anagraficaMap, mapError);
+                        anomali = Appartenenti.checkCognome(anagraficaMap, mapError, whiteListato);
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
                         mAn.setCognome(mapError.get("cognome").toString());
 //                      NOME bloccante
-                        anomali = Appartenenti.checkNome(anagraficaMap, mapError);
+                        anomali = Appartenenti.checkNome(anagraficaMap, mapError, whiteListato);
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
                         mAn.setNome(mapError.get("nome").toString());
 
 //                      CODICE_FISCALE bloccante
-                        anomali = Appartenenti.checkCodiceFiscale(anagraficaMap, mapError);
+                        anomali = Appartenenti.checkCodiceFiscale(anagraficaMap, mapError, whiteListato);
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
                         mAn.setCodiceFiscale(mapError.get("codice_fiscale").toString());
 
@@ -687,6 +695,12 @@ public class ImportaDaCSV {
                     if (parameters != null && !parameters.isEmpty()) {
                         tolleranza = parametriAziende.getValue(parameters.get(0), Integer.class);
                     }
+                    List<String> personeValide = null;
+                    parameters = parametriAziende.getParameters("personeValide", new Integer[]{idAzienda}, new String[]{Applicazione.Applicazioni.trasformatore.toString()});
+                    if (parameters != null && !parameters.isEmpty()) {
+                        personeValide = parametriAziende.getValue(parameters.get(0), new TypeReference<List<String>>() {
+                        });
+                    }
                     nRigheDB = mdrResponsabiliRepository.countRow(idAzienda);
                     // Delete delle righe da sostituire
                     QMdrResponsabili.mdrResponsabili.idAzienda.id.eq(idAzienda);
@@ -699,6 +713,7 @@ public class ImportaDaCSV {
                     Boolean anomali = false;
                     Boolean anomaliaRiga = false;
                     while ((responsabiliMap = mapReader.read(headers, processors)) != null) {
+                        Boolean whiteListato = !(personeValide != null && !personeValide.isEmpty() && personeValide.contains(responsabiliMap.get("codice_fiscale").toString()));
 //                      preparo mappa di errore
                         mapError.put("ERRORE", "");
                         // Inserisco la riga
@@ -718,7 +733,7 @@ public class ImportaDaCSV {
                         }
 
 //                      DATAIN bloccante
-                        anomali = !ImportaDaCSVUtils.checkDatain(responsabiliMap, mapError, "R");
+                        anomali = !ImportaDaCSVUtils.checkDatain(responsabiliMap, mapError, "R", whiteListato);
                         anomalia = anomalia ? anomalia : anomali;
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
                         //nRigheAnomale = anomali ? nRigheAnomale++ : nRigheAnomale;
@@ -830,7 +845,7 @@ public class ImportaDaCSV {
                         String datafiString;
                         String datainString;
 
-                        boolean anomali = !ImportaDaCSVUtils.checkDatain(strutturaMap, mapError, "S");
+                        boolean anomali = !ImportaDaCSVUtils.checkDatain(strutturaMap, mapError, "S",false);
                         if (anomali) {
                             mS.setDatain(null);
                             bloccante = true;
