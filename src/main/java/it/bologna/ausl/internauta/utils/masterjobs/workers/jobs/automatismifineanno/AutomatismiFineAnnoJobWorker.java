@@ -501,7 +501,10 @@ public class AutomatismiFineAnnoJobWorker extends JobWorker<AutomatismiFineAnnoJ
 
     private void creaSequenzaDelFascicoloPerAzienda(Integer idAzienda) throws MasterjobsWorkerException {
         QRegistro qRegistro = QRegistro.registro;
-        BooleanExpression filtroRegistro = qRegistro.idAzienda.id.eq(idAzienda).and(qRegistro.attivo).and(qRegistro.codice.eq(Registro.CodiceRegistro.FASCICOLO));
+        BooleanExpression filtroRegistro = 
+                qRegistro.idAzienda.id.eq(idAzienda)
+                .and(qRegistro.attivo.eq(true))
+                .and(qRegistro.codice.eq(Registro.CodiceRegistro.FASCICOLO));
         Optional<Registro> registroOpt = registroRepository.findOne(filtroRegistro);
         if (!registroOpt.isPresent()) {
             throw new MasterjobsWorkerException("registro non presente!!!");
