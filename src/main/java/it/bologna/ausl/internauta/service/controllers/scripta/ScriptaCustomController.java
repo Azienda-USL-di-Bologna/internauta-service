@@ -2391,4 +2391,47 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 //        res = projectionFactory.createProjection(DocDocWithPlainFields.class, docListbyIdDocSorgente);
         return new ResponseEntity(collect, HttpStatus.OK);
     }
+    
+     /**
+     * Dato l'idEsterno di un Doc, la funzione torna una lista contentente gli
+     * idPersona di tutti coloro che hanno un permesso con bit >= di minBit
+     * negli archivi in cui il doc è archiviato
+     *
+     * @param idAzienda
+     * @param response
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "getGuidPESenzaFascicolazione", method = RequestMethod.GET)
+    public ResponseEntity<?> getGuidPESenzaFascicolazione(
+            @RequestParam(required = true, name = "idAzienda") String idAzienda,
+            HttpServletResponse response,
+            HttpServletRequest request) {
+        QDoc qDoc = QDoc.doc;
+        QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
+        QDocAnnullato qDocAnnullato = QDocAnnullato.docAnnullato;
+        QRegistroDoc qRegistroDoc = QRegistroDoc.registroDoc;
+        JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
+        
+        List<ParametroAziende> giorniPESenzaFascicolazioneSollecito = cachedEntities.getParameters("giorniPESenzaFascicolazioneSollecito", Integer.parseInt(idAzienda));
+
+        Integer giorniSenzaFascicolazione = parametriAziende.getValue(giorniPESenzaFascicolazioneSollecito.get(0), Integer.class);
+        ZonedDateTime dataMaxFascicolazioneMancante = ZonedDateTime.now().minusDays(giorniSenzaFascicolazione);
+
+        List<String> arrayGuidPe = jpaQueryFactory
+                .select(qDoc.idEsterno)
+                .from(qDoc)
+                .leftJoin(qDocAnnullato).on(qDocAnnullato.idDoc.id.eq(qDoc.id))
+                .leftJoin(qArchivioDoc).on(qArchivioDoc.idDoc.id.eq(qDoc.id))
+                .leftJoin(qRegistroDoc).on(qRegistroDoc.idDoc.id.eq(qDoc.id))
+                .where(qDoc.tipologia.eq(DocDetailInterface.TipologiaDoc.PROTOCOLLO_IN_ENTRATA)
+                        .and(qArchivioDoc.idArchivio.isNull())
+                        .and(qDocAnnullato.id.isNull())
+                        .and(qRegistroDoc.dataRegistrazione.isNotNull())
+                        .and(qRegistroDoc.dataRegistrazione.before(dataMaxFascicolazioneMancante))
+                        .and(qDoc.idAzienda.id.eq(Integer.parseInt(idAzienda))))    
+                .fetch();
+        return new ResponseEntity(arrayGuidPe, HttpStatus.OK);
+    }
+    
 }
