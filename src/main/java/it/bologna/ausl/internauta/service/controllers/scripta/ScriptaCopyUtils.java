@@ -148,8 +148,10 @@ public class ScriptaCopyUtils {
         if (idStruttura == null) {
             idStruttura = utenteStrutturaRepository.getIdStrutturaAfferenzaUnificataAttivaByIdUtente(utente.getId());
         }
-        detail.setIdStruttura(strutturaRepository.getById(idStruttura));
-
+        if (idStruttura != null) {
+            detail.setIdStruttura(strutturaRepository.getById(idStruttura));
+        }
+        
         if (archivioDestinazione == null) {
             detail.setDataCreazionePadre(null);
             newArchivio.setIdArchivioRadice(newArchivio);
@@ -278,7 +280,11 @@ public class ScriptaCopyUtils {
         if (idStruttura == null) {
             idStruttura = utenteStrutturaRepository.getIdStrutturaAfferenzaUnificataAttivaByIdUtente(utenteCreatore.getId());
         }
-        setNewAttoriArchivio(archivioSorgente, archivioDestinazione, utenteCreatore.getIdPersona(), strutturaRepository.getById(idStruttura), em, copiaTuttiGliAttori);
+        Struttura struttura = null;
+        if (idStruttura != null) {
+            struttura = strutturaRepository.getById(idStruttura);
+        }
+        setNewAttoriArchivio(archivioSorgente, archivioDestinazione, utenteCreatore.getIdPersona(), struttura, em, copiaTuttiGliAttori);
     }
 
     /**
