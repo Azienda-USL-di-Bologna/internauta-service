@@ -2429,7 +2429,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                         .and(qDocAnnullato.id.isNull())
                         .and(qRegistroDoc.dataRegistrazione.isNotNull())
                         .and(qRegistroDoc.dataRegistrazione.before(dataMaxFascicolazioneMancante))
-                        .and(qDoc.idAzienda.id.eq(Integer.parseInt(idAzienda))))    
+                        .and(qDoc.idAzienda.id.eq(Integer.parseInt(idAzienda)))
+                        .and(qDoc.idEsterno.isNotNull()))
                 .fetch();
         return new ResponseEntity(arrayGuidPe, HttpStatus.OK);
     }
