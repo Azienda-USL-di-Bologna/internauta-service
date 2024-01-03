@@ -2419,7 +2419,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         ZonedDateTime dataMaxFascicolazioneMancante = ZonedDateTime.now().minusDays(giorniSenzaFascicolazione);
 
         List<String> arrayGuidPe = jpaQueryFactory
-                .select(qDoc.idEsterno)
+                .selectDistinct(qDoc.idEsterno)
                 .from(qDoc)
                 .leftJoin(qDocAnnullato).on(qDocAnnullato.idDoc.id.eq(qDoc.id))
                 .leftJoin(qArchivioDoc).on(qArchivioDoc.idDoc.id.eq(qDoc.id))
@@ -2431,6 +2431,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                         .and(qRegistroDoc.dataRegistrazione.before(dataMaxFascicolazioneMancante))
                         .and(qDoc.idAzienda.id.eq(Integer.parseInt(idAzienda)))
                         .and(qDoc.idEsterno.isNotNull()))
+                .groupBy(qDoc.idEsterno)
                 .fetch();
         return new ResponseEntity(arrayGuidPe, HttpStatus.OK);
     }
