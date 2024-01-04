@@ -3,7 +3,11 @@ package it.bologna.ausl.internauta.service.controllers.scripta;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
+import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
+import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioDetailRepository;
@@ -18,6 +22,7 @@ import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
 import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
 import it.bologna.ausl.model.entities.scripta.AttoreArchivio;
 import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.FrequenzaUtilizzoArchivio;
 import it.bologna.ausl.model.entities.scripta.Massimario;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
@@ -57,6 +62,12 @@ public class ScriptaCopyUtils {
 
     @Autowired
     private ScriptaArchiviUtils scriptaArchiviUtils;
+    
+    @Autowired
+    private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
+    
+    @Autowired
+    private PersonaRepository personaRepository;
 
     @Autowired
     private ArchivioDocRepository archivioDocRepository;
@@ -260,19 +271,39 @@ public class ScriptaCopyUtils {
         return savedArchivio;
     }
 
-    public void setNewAttoriArchivio(Archivio arch, Archivio archDes, EntityManager em, boolean copiaTuttiGliAttori) {
-        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
-        for (AttoreArchivio attore : arch.getIdArchivioRadice().getAttoriList()) {
-            if (attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.CREATORE)) {
-                Persona p = attore.getIdPersona();
-                Struttura s = attore.getIdStruttura();
-                jPAQueryFactory
-                        .delete(QAttoreArchivio.attoreArchivio)
-                        .where(QAttoreArchivio.attoreArchivio.idArchivio.id.eq(arch.getId()))
-                        .execute();
-                setNewAttoriArchivio(arch, archDes, p, s, em, copiaTuttiGliAttori);
+    /**
+     * Voglio ottenere che in archvioSpostato ci siano gli stessi attori del padre, 
+     * fatto salvo per l'utente creatore che sarà l'utente che sta effettuando l'operazione
+     * @param archivioSpostato
+     * @param archivioSpostatoPadre
+     * @param copiaTuttiGliAttori 
+     */
+    public void sistemaAttoriArchivioSpostato(Archivio archivioSpostato, Archivio archivioSpostatoPadre, boolean copiaTuttiGliAttori) throws BlackBoxPermissionException {
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Persona personaOperazione = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
+        
+        List<AttoreArchivio> attoriList = new ArrayList();
+        
+        // Cancello gli attori attuali
+        QAttoreArchivio qAttoreArchivio = QAttoreArchivio.attoreArchivio;
+        jPAQueryFactory
+            .delete(qAttoreArchivio)
+            .where(qAttoreArchivio.idArchivio.id.eq(archivioSpostato.getId()))
+                    //.and(qAttoreArchivio.ruolo.eq(AttoreArchivio.RuoloAttoreArchivio.CREATORE.toString()))
+            .execute();
+        
+        // Inserisco il creatore
+        attoriList.add(new AttoreArchivio(personaOperazione, null, AttoreArchivio.RuoloAttoreArchivio.CREATORE.toString()));
+        
+        // Ciclo gli attori del padre e li inserisco nel figlio (tranne il creatore)
+        for (AttoreArchivio attore : archivioSpostatoPadre.getIdArchivioRadice().getAttoriList()) {
+            if (!attore.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.CREATORE)) {
+                attoriList.add(new AttoreArchivio(attore.getIdPersona(), attore.getIdStruttura(), attore.getRuolo().toString()));
             }
         }
+        
+        archivioSpostato.setAttoriList(attoriList);
     }
 
     public void setNewAttoriArchivio(Archivio archivioSorgente, Archivio archivioDestinazione, Utente utenteCreatore, EntityManager em, boolean copiaTuttiGliAttori) {
