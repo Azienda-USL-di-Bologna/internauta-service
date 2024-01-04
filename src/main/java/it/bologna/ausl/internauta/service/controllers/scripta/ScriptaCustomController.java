@@ -137,6 +137,7 @@ import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDocRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.TitoloRepository;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerInitializationException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
@@ -308,6 +309,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private KrintScriptaService krintScriptaService;
+    
+    @Autowired
+    private TitoloRepository titoloRepository;
     
     @Autowired
     private LottoRepository lottoRepository;
@@ -2393,9 +2397,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     }
     
      /**
-     * Dato l'idEsterno di un Doc, la funzione torna una lista contentente gli
-     * idPersona di tutti coloro che hanno un permesso con bit >= di minBit
-     * negli archivi in cui il doc è archiviato
+     * Pico chiama questa funzione per sapere i guid dei pe che non sono stati fascicolati da più di
+     * un numero di giorni definito nel parametro aziendale giorniPESenzaFascicolazioneSollecito.
      *
      * @param idAzienda
      * @param response
@@ -2436,4 +2439,5 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         return new ResponseEntity(arrayGuidPe, HttpStatus.OK);
     }
     
+   
 }
