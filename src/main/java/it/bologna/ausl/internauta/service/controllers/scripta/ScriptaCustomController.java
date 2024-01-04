@@ -1532,10 +1532,10 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Archivio finalArchivio = null;
         //controllo l'effettiva presenza dell'archivio da spostare
         if (a.isPresent()) {
-            Archivio archivio = a.get();
+            Archivio archivioDaSpostare = a.get();
             boolean haFigli = false;
             //controllo se l'archivio da spostare ha figli
-            if (!archivio.getArchiviFigliList().isEmpty()) {
+            if (!archivioDaSpostare.getArchiviFigliList().isEmpty()) {
                 haFigli = true;
             }
             //procedo a tirare su tutto ciò che mi serve sull'archivio destinazione
@@ -1543,106 +1543,113 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             Optional<Archivio> aDestinazione = archivioRepository.findById(idArchivioIntDestinazione);
             //controllo l'effettiva presenza dell'archivio destinazione
             if (aDestinazione.isPresent()) {
-                Archivio archivioDestinazione = aDestinazione.get();
+                Archivio archivioSuCuiSpostare = aDestinazione.get();
                 JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
                 Archivio archivioRif = null;
                 boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
                 //controllo se è stato selezionato il target fascicolo e agisco spostando l'archivio con figli e documenti
                 //NB: i documenti sono legati all'archivio con una tabella di cross ergo seguiranno l'archivio ovunque
                 if (fascicolo) {
-                    if (archivioDestinazione.getLivello() == 3) {
+                    if (archivioSuCuiSpostare.getLivello() == 3) {
                         throw new Http500ResponseException("3", "L'azione sposta di un archivio non si può fare verso un archivio di livello 3");
                     }
-                    if (3 - scriptaArchiviUtils.getProfonditaArchivio(archivio) < archivioDestinazione.getLivello()) {
+                    if (3 - scriptaArchiviUtils.getProfonditaArchivio(archivioDaSpostare) < archivioSuCuiSpostare.getLivello()) {
                         throw new Http500ResponseException("4", "L'azione sposta non può essere eseguita perché andrebbe a creare almeno un archivio di livello 4");
                     }
                     try {
                         // copia del fascicolo per il log nel krint
-                        archivioRif = objectMapper.readValue(objectMapper.writeValueAsString(archivio), Archivio.class);
-                        archivioRif.setIdArchivioPadre(archivio.getIdArchivioPadre());
+                        archivioRif = objectMapper.readValue(objectMapper.writeValueAsString(archivioDaSpostare), Archivio.class);
+                        archivioRif.setIdArchivioPadre(archivioDaSpostare.getIdArchivioPadre());
                     } catch (JsonProcessingException ex) {
                         log.error("errore nella copia dell'archivio per il krint");
                     }
-                    log.info(String.format("procedo a spostare l'archivio %s", archivio.getId()));
+                    log.info(String.format("procedo a spostare l'archivio %s", archivioDaSpostare.getId()));
 
                     //update con cui "sposto" l'archivio da spostare
                     jPAQueryFactory
                             .update(QArchivio.archivio)
                             .set(QArchivio.archivio.numero, 0)
-                            .set(QArchivio.archivio.numerazioneGerarchica, archivioDestinazione.getNumerazioneGerarchica().replace("/", "-x/"))
-                            .set(QArchivio.archivio.idArchivioPadre, archivioDestinazione)
-                            .set(QArchivio.archivio.idArchivioRadice, archivioDestinazione.getIdArchivioRadice())
-                            .set(QArchivio.archivio.idTitolo, archivioDestinazione.getIdTitolo())
-                            .set(QArchivio.archivio.idMassimario, archivioDestinazione.getIdMassimario())
-                            .set(QArchivio.archivio.livello, archivioDestinazione.getLivello() + 1)
+                            .set(QArchivio.archivio.numerazioneGerarchica, archivioSuCuiSpostare.getNumerazioneGerarchica().replace("/", "-x/"))
+                            .set(QArchivio.archivio.idArchivioPadre, archivioSuCuiSpostare)
+                            .set(QArchivio.archivio.idArchivioRadice, archivioSuCuiSpostare.getIdArchivioRadice())
+                            .set(QArchivio.archivio.idTitolo, archivioSuCuiSpostare.getIdTitolo())
+                            .set(QArchivio.archivio.idMassimario, archivioSuCuiSpostare.getIdMassimario())
+                            .set(QArchivio.archivio.livello, archivioSuCuiSpostare.getLivello() + 1)
                             .set(QArchivio.archivio.numeroSottoarchivi, 0)
-                            .where(QArchivio.archivio.id.eq(archivio.getId()))
+                            .where(QArchivio.archivio.id.eq(archivioDaSpostare.getId()))
                             .execute();
-                    log.info(String.format("Ho spostato l'archivio %s in %s", archivio.getId(), archivioDestinazione.getId()));
-                    entityManager.refresh(archivio);
+                    log.info(String.format("Ho spostato l'archivio %s in %s", archivioDaSpostare.getId(), archivioSuCuiSpostare.getId()));
+                    entityManager.refresh(archivioDaSpostare);
                     //numero il nuovo archivio
-                    archivioRepository.numeraArchivio(archivio.getId());
-                    log.info(String.format("ho numerato l'archivio di %s", archivio.getId()));
-                    scriptaCopyUtils.setNewAttoriArchivio(archivio, archivio.getIdArchivioPadre(), entityManager, false);
+                    archivioRepository.numeraArchivio(archivioDaSpostare.getId());
+                    log.info(String.format("ho numerato l'archivio di %s", archivioDaSpostare.getId()));
+                    scriptaCopyUtils.sistemaAttoriArchivioSpostato(
+                            archivioDaSpostare, 
+                            archivioDaSpostare.getIdArchivioPadre(), 
+                            false
+                    );
 
                     //grazie al controllo sulla presenza dei figli fatto in precedenza agisco di conseguenza
                     if (haFigli) {
-                        log.info(String.format("procedo a modificare i figli di %s", archivio.getId()));
-                        entityManager.refresh(archivio);
+                        log.info(String.format("procedo a modificare i figli di %s", archivioDaSpostare.getId()));
+                        entityManager.refresh(archivioDaSpostare);
                         //update con cui fixo alcuni dati sugli archivi figli di quello spostato
                         jPAQueryFactory
                                 .update(QArchivio.archivio)
-                                .set(QArchivio.archivio.numerazioneGerarchica, Expressions.asString(archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/")).concat("-")).append(QArchivio.archivio.numero.stringValue().append(QArchivio.archivio.numerazioneGerarchica.substring(QArchivio.archivio.numerazioneGerarchica.indexOf("/")))))
-                                .set(QArchivio.archivio.idArchivioRadice, archivio.getIdArchivioRadice())
-                                .set(QArchivio.archivio.idArchivioPadre, archivio)
-                                .set(QArchivio.archivio.idTitolo, archivio.getIdTitolo())
-                                .set(QArchivio.archivio.idMassimario, archivioDestinazione.getIdMassimario())
-                                .set(QArchivio.archivio.livello, archivio.getLivello() + 1)
+                                .set(QArchivio.archivio.numerazioneGerarchica, Expressions.asString(archivioDaSpostare.getNumerazioneGerarchica().substring(0, archivioDaSpostare.getNumerazioneGerarchica().indexOf("/")).concat("-")).append(QArchivio.archivio.numero.stringValue().append(QArchivio.archivio.numerazioneGerarchica.substring(QArchivio.archivio.numerazioneGerarchica.indexOf("/")))))
+                                .set(QArchivio.archivio.idArchivioRadice, archivioDaSpostare.getIdArchivioRadice())
+                                .set(QArchivio.archivio.idArchivioPadre, archivioDaSpostare)
+                                .set(QArchivio.archivio.idTitolo, archivioDaSpostare.getIdTitolo())
+                                .set(QArchivio.archivio.idMassimario, archivioSuCuiSpostare.getIdMassimario())
+                                .set(QArchivio.archivio.livello, archivioDaSpostare.getLivello() + 1)
                                 .set(QArchivio.archivio.numeroSottoarchivi, 0)
-                                .where(QArchivio.archivio.idArchivioPadre.eq(archivio))
+                                .where(QArchivio.archivio.idArchivioPadre.eq(archivioDaSpostare))
                                 .execute();
-                        log.info(String.format("finito le modifiche ai figli di %s", archivio.getId()));
+                        log.info(String.format("finito le modifiche ai figli di %s", archivioDaSpostare.getId()));
                     }
-                    entityManager.refresh(archivio);
-                    for (Archivio archFiglio : archivio.getArchiviFigliList()) {
-                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, archivio.getIdArchivioPadre(), entityManager, false);
+                    entityManager.refresh(archivioDaSpostare);
+                    for (Archivio archivioFiglioDelloSpostato : archivioDaSpostare.getArchiviFigliList()) {
+                        scriptaCopyUtils.sistemaAttoriArchivioSpostato(
+                                archivioFiglioDelloSpostato, 
+                                archivioDaSpostare.getIdArchivioPadre(), 
+                                false);
                     }
                     //ricalcolo i permessi per l'achivio spostato e figli
-                    archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
-                    finalArchivio = archivio;
+                    archivioRepository.calcolaPermessiEsplicitiGerarchia(archivioDaSpostare.getId());
+                    finalArchivio = archivioDaSpostare;
                 } else if (contenuto) {
                     //è stato selezionato il target contenuto e agisco spostando solo i documenti dell'archivio selezionato
-                    log.info(String.format("procedo a spostare i documenti di %s", archivio.getId()));
+                    log.info(String.format("procedo a spostare i documenti di %s", archivioDaSpostare.getId()));
 
                     List<Integer> idDocsDaSpostare = jPAQueryFactory
                             .select(QArchivioDoc.archivioDoc.idDoc.id)
                             .from(QArchivioDoc.archivioDoc)
-                            .where(QArchivioDoc.archivioDoc.idArchivio.eq(archivio))
+                            .where(QArchivioDoc.archivioDoc.idArchivio.eq(archivioDaSpostare))
                             .fetch();
                     List<Integer> idDocsDaSpostareCheCiSonoGia = jPAQueryFactory
                             .select(QArchivioDoc.archivioDoc.idDoc.id)
                             .from(QArchivioDoc.archivioDoc)
                             .where(QArchivioDoc.archivioDoc.idDoc.id.in(idDocsDaSpostare)
-                                    .and(QArchivioDoc.archivioDoc.idArchivio.eq(archivioDestinazione)))
+                                    .and(QArchivioDoc.archivioDoc.idArchivio.eq(archivioSuCuiSpostare)))
                             .fetch();
 
                     jPAQueryFactory
                             .update(QArchivioDoc.archivioDoc)
-                            .set(QArchivioDoc.archivioDoc.idArchivio, archivioDestinazione)
+                            .set(QArchivioDoc.archivioDoc.idArchivio, archivioSuCuiSpostare)
                             .set(QArchivioDoc.archivioDoc.dataInserimentoRiga, ZonedDateTime.now())
-                            .where(QArchivioDoc.archivioDoc.idArchivio.eq(archivio)
+                            .where(QArchivioDoc.archivioDoc.idArchivio.eq(archivioDaSpostare)
                                     .and(QArchivioDoc.archivioDoc.idDoc.id.notIn(idDocsDaSpostareCheCiSonoGia)))
                             .execute();
-                    finalArchivio = archivioDestinazione;
+                    finalArchivio = archivioSuCuiSpostare;
                 }
                 if (iHaveToKrint) {
                     if (contenuto) {
-                        krintScriptaService.writeArchivioUpdate(archivio, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO);
-                        krintScriptaService.writeArchivioUpdate(finalArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO_DESTINAZIONE);
+                        krintScriptaService.writeArchivioUpdate(archivioDaSpostare, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio, archivioDaSpostare, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO_DESTINAZIONE);
                     } else {
-                        krintScriptaService.writeArchivioUpdate(archivio, archivioRif, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA, true);
+                        krintScriptaService.writeArchivioUpdate(archivioDaSpostare, archivioRif, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA, true);
                         if (haFigli) {
-                            archivio.getArchiviFigliList().stream().
+                            archivioDaSpostare.getArchiviFigliList().stream().
                                     forEach(archFiglio -> krintScriptaService.writeArchivioUpdate(archFiglio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA));
                         }
                     }
