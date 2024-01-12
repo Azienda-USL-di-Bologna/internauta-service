@@ -84,10 +84,9 @@ public class AttoreArchivioInterceptor extends InternautaBaseInterceptor {
     public void beforeDeleteEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException, SkipDeleteInterceptorException {
         AttoreArchivio attoreArchivio = (AttoreArchivio) entity;
         if (krintUtils.doIHaveToKrint(request)) {
-            
             QAttoreArchivio qAttoreArchivio = QAttoreArchivio.attoreArchivio;
             Optional<AttoreArchivio> findOne = attoreArchivioRepository.findOne(qAttoreArchivio.idArchivio.id.eq(attoreArchivio.getIdArchivio().getId()).and(qAttoreArchivio.id.ne(attoreArchivio.getId()))
-                    .and(qAttoreArchivio.idPersona.id.eq(attoreArchivio.getIdPersona().getId())));
+                    .and(qAttoreArchivio.idPersona.id.eq(attoreArchivio.getIdPersona().getId())).and(qAttoreArchivio.ruolo.eq("RESPONSABILE")));
             if (findOne.isPresent() && attoreArchivio.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.VICARIO)) {
                 //qui sto sostuendo un vicario con un nuovo responsabile e non lo voglio krintare
             }   
@@ -96,6 +95,8 @@ public class AttoreArchivioInterceptor extends InternautaBaseInterceptor {
                     || attoreArchivio.getRuolo().equals(AttoreArchivio.RuoloAttoreArchivio.RESPONSABILE_PROPOSTO)) {
                 krintScriptaService.writeAttoreArchivioDelete(attoreArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ATTORE_ARCHIVIO_DELETE);
             }
+            
+            
         }
         
         
