@@ -31,7 +31,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 },
 //        repositoryBaseClass = NextQuerydslJpaPredicateExecutorImpl.class
         repositoryFactoryBeanClass = CustomJpaRepositoryFactoryBean.class
-)
+) 
+
 
 @EntityScan("it.bologna.ausl.model.entities")
 @EnableCaching
