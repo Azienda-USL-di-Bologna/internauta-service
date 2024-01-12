@@ -320,43 +320,6 @@ public class KrintScriptaService {
         }
     }
 
-    
-    
-    /**Questo serve per loggare quando un utente accetta la responsabilità di un archivio
-     * @param attoreArchivio
-     * @param responsabileOld
-     * @param codiceOperazione
-     */
-    public void writeAttoreArchivioAccetataResp(AttoreArchivio attoreArchivio,Persona responsabileOld, OperazioneKrint.CodiceOperazione codiceOperazione) {
-        try {
-            // Informazioni oggetto
-            KrintScriptaAttoreArchivio krintScriptaAttoreArchivio = factory.createProjection(KrintScriptaAttoreArchivio.class, attoreArchivio);
-//            String jsonKrintAttore = objectMapper.writeValueAsString(krintScriptaAttoreArchivio);
-
-            // Informazioni oggetto contenitore
-            KrintScriptaArchivio krintScriptaArchivio = factory.createProjection(KrintScriptaArchivio.class, attoreArchivio.getIdArchivio());
-//            String jsonKrintArchivio = objectMapper.writeValueAsString(krintScriptaArchivio);
-            HashMap<String, Object> krintArchivio = objectMapper.convertValue(krintScriptaArchivio, new TypeReference<HashMap<String, Object>>(){});
-            HashMap<String, Object> krintAttore = objectMapper.convertValue(krintScriptaAttoreArchivio, new TypeReference<HashMap<String, Object>>(){});
-            String descrizionePersonaDestinazione =  "in sostituzione di " + responsabileOld.getDescrizione();
-            HashMap<String, Object> infoOggetto = new HashMap();
-                infoOggetto.put("krintAttore", krintAttore);
-                infoOggetto.put("descrizionePersonaDestinazione", descrizionePersonaDestinazione);
-            krintService.writeKrintRow(
-                    attoreArchivio.getId().toString(), // idOggetto
-                    Krint.TipoOggettoKrint.SCRIPTA_ATTORE_ARCHIVIO, // tipoOggetto
-                    attoreArchivio.getIdPersona().getDescrizione(), // descrizioneOggetto
-                    infoOggetto, // informazioniOggetto
-                    attoreArchivio.getIdArchivio().getId().toString(), // Da qui si ripete ma per il conenitore
-                    Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO,
-                    attoreArchivio.getIdArchivio().getNumerazioneGerarchica(),
-                    krintArchivio,
-                    codiceOperazione);
-        } catch (Exception ex) {
-            log.error("Errore nella writeAttoreArchivioAccetataResp con archivio " + attoreArchivio.getId().toString(), ex);
-            krintService.writeKrintError(attoreArchivio.getId(), "writeAttoreArchivioAccetataResp", codiceOperazione);
-        }
-    }
     /**
      * Scrive il krint (log) della modifica dei permessi.
      * @param idArchivio L'id dell'archivio a cui si riferisce il log.

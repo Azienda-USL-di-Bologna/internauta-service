@@ -149,7 +149,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         );
                         Optional<PermessoArchivio> findOne = permessoArchivioRepository.findOne(filterUserhasPermission);
                         
-                        if (!findOne.isPresent() && !userInfoService.isCA(user) && !userInfoService.isAG(user) && !userInfoService.isSD(user) && !userInfoService.isOS(user) ) {
+                        if (!findOne.isPresent()) {
                             throw new AbortLoadInterceptorException("Persona senza permesso su Archivio");
                         }
                         
@@ -162,9 +162,9 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                             })).or(qdoclist.numeroRegistrazione.isNotNull()).and(initialPredicate);
                         Integer[] idArchivi = new Integer[]{idArchivio};
                         BooleanExpression archivioFilter = Expressions.booleanTemplate(
-                        String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idArchivi, ","), "integer[]", "&&"),
-                        qdoclist.idArchivi
-                            );  
+                    String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idArchivi, ","), "integer[]", "&&"),
+                    qdoclist.idArchivi
+            );  
                         
                         initialPredicate =  archivioFilter.and(initialPredicate);
                         

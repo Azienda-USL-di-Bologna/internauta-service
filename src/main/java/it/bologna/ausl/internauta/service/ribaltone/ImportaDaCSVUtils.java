@@ -215,11 +215,7 @@ public class ImportaDaCSVUtils {
         }
     }
 
-    public static boolean checkDatain(Map<String, Object> appartenentiMap, Map<String, Object> mapError, String tipo, Boolean whiteListato) {
-        if (tipo.equals("A") && whiteListato) { 
-            mapError.put("datain", appartenentiMap.get("datain"));
-            return true;
-        }
+    public static boolean checkDatain(Map<String, Object> appartenentiMap, Map<String, Object> mapError, String tipo) {
         if (appartenentiMap.get("datain") == null || appartenentiMap.get("datain").toString().trim().equals("") || appartenentiMap.get("datain") == "") {
             mapError.put("ERRORE", mapError.get("ERRORE") + " datain non presente,");
             mapError.put("datain", "");

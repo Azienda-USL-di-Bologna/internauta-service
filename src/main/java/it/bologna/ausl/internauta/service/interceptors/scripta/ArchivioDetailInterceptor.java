@@ -177,7 +177,7 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
         QArchivioDetail archivioDetail = QArchivioDetail.archivioDetail;
         QPermessoArchivio permessoArchivio = QPermessoArchivio.permessoArchivio;
 
-        if (!userInfoService.isSD(user) && !userInfoService.isCA(user) && !userInfoService.isAG(user) && !userInfoService.isOS(user)) {
+        if (!userInfoService.isSD(user)) {
 
             // Se nel filtro c'è una azienda parlante devo lanciare eccezione
             List<ParametroAziende> fascicoliParlanti = cachedEntities.getParameters("fascicoliParlanti");

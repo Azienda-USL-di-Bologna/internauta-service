@@ -1265,27 +1265,7 @@ public class UserInfoService {
     }
     
    
-    /**
-     * Torna "true" se l'utente è AG di almeno un'azienda.
-     * 
-     * @param user L'Utente su cui effettuare il controllo.
-     * @return true o false.
-     */
-    @Cacheable(value = "getRuoliIsAG__ribaltorg__", key = "{#user.getId()}")
-    public boolean isAG(Utente user) {
-        if (user.getRuoliUtentiPersona() == null) {
-            user.setRuoliUtentiPersona(getRuoliUtentiPersona(user, true));
-        }
-        Map<String, Map<String, List<String>>> ruoliUtentiPersona = user.getRuoliUtentiPersona();
-        boolean containsKey = ruoliUtentiPersona.containsKey(Ruolo.CodiciRuolo.AG.toString());
-        if (containsKey) {
-            List<String> get = ruoliUtentiPersona.get(Ruolo.CodiciRuolo.AG.toString()).get(Ruolo.ModuliRuolo.GENERALE.toString());
-            if (get != null) {
-                return get.contains(user.getIdAzienda().getCodice());
-            }
-        }
-        return false;
-    }
+    
 
     /**
      * Controlla se l'utente è Super Demiurgo (SD).

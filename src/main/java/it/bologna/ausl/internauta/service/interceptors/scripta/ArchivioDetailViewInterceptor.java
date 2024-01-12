@@ -99,7 +99,7 @@ public class ArchivioDetailViewInterceptor extends InternautaBaseInterceptor {
         BooleanExpression filter = Expressions.TRUE.eq(true);
         QArchivioDetailView archivioDetailView = QArchivioDetailView.archivioDetailView;
         
-        if (!userInfoService.isSD(user) && !userInfoService.isCA(user) && !userInfoService.isAG(user) && !userInfoService.isOS(user)) {
+        if (!userInfoService.isSD(user)) {
             List<Integer> listaIdAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getId()).collect(Collectors.toList());
             BooleanExpression personaConPermesso = 
                     archivioDetailView.idPersona.id.eq(persona.getId());

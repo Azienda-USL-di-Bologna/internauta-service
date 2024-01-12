@@ -4,8 +4,6 @@ import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.bitwalker.useragentutils.UserAgent;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
@@ -101,21 +99,6 @@ public class AuthorizationUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizationUtils.class);
 
-    public Integer getIdAziendaFromPassTken(String passToken) {
-        int lastDot = passToken.lastIndexOf('.');
-        Jwt<Header, Claims> parsedClaimsJwt = Jwts.parser().parseClaimsJwt(passToken.substring(0, lastDot + 1));
-        Claims claims = parsedClaimsJwt.getBody();
-        Integer idAzienda;
-        if (claims.containsKey(AuthorizationUtils.TokenClaims.REAL_USER.name())) {
-            Integer idUtente = Integer.valueOf((String) claims.get(AuthorizationUtils.TokenClaims.REAL_USER.name()));
-            idAzienda = cachedEntities.getUtente(idUtente).getIdAzienda().getId();
-        } else {
-            Integer idUtente = Integer.valueOf(claims.getSubject());
-            idAzienda = cachedEntities.getUtente(idUtente).getIdAzienda().getId();
-        }
-        return idAzienda;
-    }
-    
     /**
      * inserisce nel securityContext l'utente inserito nel token al momento del
      * login
@@ -213,7 +196,6 @@ public class AuthorizationUtils {
      * @param applicazione
      * @param fromInternetLogin
      * @param writeUserAccess
-     * @param readAziendaFromPersona
      * @return
      * @throws IOException
      * @throws ClassNotFoundException
@@ -474,7 +456,7 @@ public class AuthorizationUtils {
         userAccessRepository.save(userAccess);
     }
 
-    public boolean fromInternet(HttpServletRequest request) {
+    private boolean fromInternet(HttpServletRequest request) {
         try {
             String internet = request.getAttribute("internet").toString();
 //            logger.info("letto dalla sessione request.getAttribute(\"internet\"): " + request.getAttribute("internet"));

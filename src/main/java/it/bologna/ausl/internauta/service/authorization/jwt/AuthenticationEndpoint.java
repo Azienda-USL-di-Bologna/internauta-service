@@ -38,6 +38,9 @@ public class AuthenticationEndpoint {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationEndpoint.class);
 
+    @Value("${jwt.secret}")
+    private String secretKey;
+
     @Value("${internauta.mode}")
     private String mode;
 
@@ -55,9 +58,6 @@ public class AuthenticationEndpoint {
 
     @Autowired
     private CommonUtils commonUtils;
-    
-    @Autowired
-    private LoginConfig loginConfig;
 
     @RequestMapping(value = "${security.login.endpoint.path}", method = RequestMethod.POST)
     public ResponseEntity<LoginController.LoginResponse> loginInterApplication(@RequestBody final EndpointObject endpointObject, javax.servlet.http.HttpServletRequest request) throws ServletException, CertificateException, IOException, InvalidJwtException, MalformedClaimException, ClassNotFoundException, ObjectNotFoundException, BlackBoxPermissionException, SSOException {
@@ -113,7 +113,7 @@ public class AuthenticationEndpoint {
 
             //  valida il JWT e processa i claims
             JwtClaims jwtClaims = jwtConsumer.processToClaims(endpointObject.jws);
-            String impersonatedUser = jwtClaims.getSubject();
+            String impersonatedUser = jwtClaims.getSubject();;
             String realUser = impersonatedUser;
             String idAzienda = null;
             Boolean fromInternetLogin = null;
@@ -136,18 +136,10 @@ public class AuthenticationEndpoint {
             if (jwtClaims.hasClaim(AuthorizationUtils.TokenClaims.FROM_INTERNET.toString())) {
                 fromInternetLogin = jwtClaims.getClaimValue(AuthorizationUtils.TokenClaims.FROM_INTERNET.toString(), Boolean.class);
             }
-            
-            /*
-            se nel pretoken mi viene passata l'azienda (dovrebbe sempre esserlo) leggo i parametri relativi all'azienda passata,
-            se non ci fosse saranno letti i parametri dall'application.properties
-            */
-            if (StringUtils.hasText(idAzienda)) {
-                loginConfig.readConfig(Integer.valueOf(idAzienda));
-            }
-            
+
             String hostname = commonUtils.getHostname(request);
             logger.info("fromInternetLogin: " + fromInternetLogin);
-            return authorizationUtils.generateResponseEntityFromSAML(idAzienda, hostname, loginConfig.getJwtSecret(), request, realUser, impersonatedUser, endpointObject.applicazione, fromInternetLogin, false, false);
+            return authorizationUtils.generateResponseEntityFromSAML(idAzienda, hostname, secretKey, request, realUser, impersonatedUser, endpointObject.applicazione, fromInternetLogin, false, false);
         }
     }
 

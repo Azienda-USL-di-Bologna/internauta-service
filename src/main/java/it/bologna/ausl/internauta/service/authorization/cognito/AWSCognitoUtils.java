@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.jwt.AuthorizationUtils;
-import it.bologna.ausl.internauta.service.authorization.jwt.LoginConfig;
 import it.bologna.ausl.internauta.service.authorization.jwt.LoginController;
 import it.bologna.ausl.internauta.service.exceptions.ObjectNotFoundException;
 import it.bologna.ausl.internauta.service.exceptions.SSOException;
@@ -18,6 +17,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,34 +35,45 @@ import org.springframework.stereotype.Component;
 @Component
 public class AWSCognitoUtils {
 
-    private final AuthorizationUtils authorizationUtils;
+    @Autowired
+    private AuthorizationUtils authorizationUtils;
+
+    @Value("${jwt.cognito.domain}")
+    private String cognitoDomain;
+
+    @Value("${jwt.cognito.client_id}")
+    private String clientID;
+
+    @Value("${jwt.cognito.redirect_uri}")
+    private String redirectURI;
+
+    @Value("${jwt.cognito.secret_id}")
+    private String secretID;
+
+    @Value("${jwt.cognito.oauth2}")
+    private String urlOauthToken;
+
+    @Autowired
     private ObjectMapper objectMapper;
-    private final LoginConfig loginConfig;
 
     private final String GRANT_TYPE = "authorization_code";
 
     private static final Logger log = LoggerFactory.getLogger(AWSCognitoUtils.class);
 
-    public AWSCognitoUtils(AuthorizationUtils authorizationUtils, ObjectMapper objectMapper, LoginConfig loginConfig) {
-        this.authorizationUtils = authorizationUtils;
-        this.objectMapper = objectMapper;
-        this.loginConfig = loginConfig;
-    }
-
     public ResponseEntity callCognitoUI() {
-        String uri = String.format("%s/login?response_type=code&client_id=%s&redirect_uri=%s", loginConfig.getCognitoDomain(), loginConfig.getCognitoClientID(), loginConfig.getCognitoRedirectURI());
+        String uri = String.format("%s/login?response_type=code&client_id=%s&redirect_uri=%s", cognitoDomain, clientID, redirectURI);
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set("Content-Type", "application/x-www-form-urlencoded");
         responseHeaders.set("redirect-url", URI.create(uri).toString());
         return ResponseEntity.status(HttpStatus.CREATED)
-            .headers(responseHeaders)
-            .location(URI.create(uri))
-            .build();
+                .headers(responseHeaders)
+                .location(URI.create(uri))
+                .build();
     }
 
     public CognitoJWT getCognitoJWT(String cognitoCode) throws Exception {
 
-        String clearAuth = String.format("%s:%s", loginConfig.getCognitoClientID(), loginConfig.getCognitoSecretID());
+        String clearAuth = String.format("%s:%s", clientID, secretID);
         log.info("clearAuth: " + clearAuth);
         String encodedAuth = Base64.getEncoder().encodeToString(clearAuth.getBytes());
         log.info("encodedAuth: " + encodedAuth);
@@ -70,18 +82,18 @@ public class AWSCognitoUtils {
 
         OkHttpClient client = new OkHttpClient();
         RequestBody formBody = new FormBody.Builder()
-            .add("grant_type", GRANT_TYPE)
-            .add("client_id", loginConfig.getCognitoClientID())
-            .add("redirect_uri", loginConfig.getCognitoRedirectURI())
-            .add("code", cognitoCode)
-            .build();
+                .add("grant_type", GRANT_TYPE)
+                .add("client_id", clientID)
+                .add("redirect_uri", redirectURI)
+                .add("code", cognitoCode)
+                .build();
 
         Request request = new Request.Builder()
-            .addHeader("Authorization", auth)
-            .addHeader("Content-Type", "application/x-www-form-urlencoded")
-            .url(loginConfig.getCognitoUrlOauthToken())
-            .post(formBody)
-            .build();
+                .addHeader("Authorization", auth)
+                .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                .url(urlOauthToken)
+                .post(formBody)
+                .build();
 
         try {
             Response response = client.newCall(request).execute();
