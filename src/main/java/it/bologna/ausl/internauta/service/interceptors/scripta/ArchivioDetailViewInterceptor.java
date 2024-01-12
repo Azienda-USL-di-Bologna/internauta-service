@@ -79,7 +79,7 @@ public class ArchivioDetailViewInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
-        initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(ArchivioDetailView.class, "dataCreazioneArchivio").and(initialPredicate);
+        initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(ArchivioDetailView.class, "dataCreazioneArchivio", "idAziendaArchivio").and(initialPredicate);
         return initialPredicate;
     }
 

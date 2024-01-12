@@ -1,23 +1,17 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.copiatrasferisciabilitazioniarchivi;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerData;
 import it.bologna.ausl.model.entities.logs.MassiveActionLog;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author gusgus
  */
 public class CopiaTrasferisciAbilitazioniArchiviJobWorkerData extends JobWorkerData {
-    @JsonIgnore
-    private static final Logger log = LoggerFactory.getLogger(CopiaTrasferisciAbilitazioniArchiviJobWorkerData.class);
-    
     private MassiveActionLog.OperationType operationType;
     private Integer idPersonaSorgente;
     private Integer idPersonaDestinazione;
-    private Integer idStrutturaNuovoResponsabille;
+    private Integer idStrutturaDestinazione;
     private Integer idMassiveActionLog;
     private Integer idPersonaOperazione;
     private Integer idUtenteOperazione;
@@ -27,11 +21,11 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorkerData extends JobWorkerD
     public CopiaTrasferisciAbilitazioniArchiviJobWorkerData() {
     }
 
-    public CopiaTrasferisciAbilitazioniArchiviJobWorkerData(MassiveActionLog.OperationType operationType, Integer idPersonaSorgente, Integer idPersonaDestinazione, Integer idStrutturaNuovoResponsabille, Integer idMassiveActionLog, Integer idPersonaOperazione, Integer idUtenteOperazione, Integer idAzienda, Integer idUtenteDestinazione) {
+    public CopiaTrasferisciAbilitazioniArchiviJobWorkerData(MassiveActionLog.OperationType operationType, Integer idPersonaSorgente, Integer idPersonaDestinazione, Integer idStrutturaDestinazione, Integer idMassiveActionLog, Integer idPersonaOperazione, Integer idUtenteOperazione, Integer idAzienda, Integer idUtenteDestinazione) {
         this.operationType = operationType;
         this.idPersonaSorgente = idPersonaSorgente;
         this.idPersonaDestinazione = idPersonaDestinazione;
-        this.idStrutturaNuovoResponsabille = idStrutturaNuovoResponsabille;
+        this.idStrutturaDestinazione = idStrutturaDestinazione;
         this.idMassiveActionLog = idMassiveActionLog;
         this.idPersonaOperazione = idPersonaOperazione;
         this.idUtenteOperazione = idUtenteOperazione;
@@ -63,12 +57,12 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorkerData extends JobWorkerD
         this.idPersonaDestinazione = idPersonaDestinazione;
     }
 
-    public Integer getIdStrutturaNuovoResponsabille() {
-        return idStrutturaNuovoResponsabille;
+    public Integer getIdStrutturaDestinazione() {
+        return idStrutturaDestinazione;
     }
 
-    public void setIdStrutturaNuovoResponsabille(Integer idStrutturaNuovoResponsabille) {
-        this.idStrutturaNuovoResponsabille = idStrutturaNuovoResponsabille;
+    public void setIdStrutturaDestinazione(Integer idStrutturaDestinazione) {
+        this.idStrutturaDestinazione = idStrutturaDestinazione;
     }
 
     public Integer getIdMassiveActionLog() {

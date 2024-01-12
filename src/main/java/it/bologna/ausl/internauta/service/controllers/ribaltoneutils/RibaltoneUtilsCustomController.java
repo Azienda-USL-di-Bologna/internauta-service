@@ -58,7 +58,7 @@ public class RibaltoneUtilsCustomController {
                 ribaltoneDaLanciare.getNote()
         );
         LanciaTrasformatoreJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(LanciaTrasformatoreJobWorker.class, lanciaTrasformatoreJobWorkerData, false);
-        masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.trasformatore.toString(), false, Set.SetPriority.NORMAL);
+        masterjobsJobsQueuer.queue(jobWorker, null, null, Applicazione.Applicazioni.trasformatore.toString(), false, Set.SetPriority.NORMAL, null);
         
         return new ResponseEntity("", HttpStatus.OK);
     }

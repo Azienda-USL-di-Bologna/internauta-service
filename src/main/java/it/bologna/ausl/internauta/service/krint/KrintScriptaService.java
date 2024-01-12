@@ -653,10 +653,10 @@ public class KrintScriptaService {
                 if (abilitazioniAggiunte.isEmpty()) {
                     descrizioneAzione = String.format("<b>%1$s</b> non ha ottenuto ulteriori abilitazioni oltre a quelle già possedute.", personaDestinazione.getDescrizione());
                 } else {
-                    descrizioneAzione = String.format("L'abilitazione ottenuta da <b>%1$s</b> è: <b>" + String.join("</b>, ", abilitazioniAggiunte) + "</b>.", personaDestinazione.getDescrizione());
+                    descrizioneAzione = String.format("L'abilitazione ottenuta da <b>%1$s</b> è: <b>" + String.join("</b>, <b>", abilitazioniAggiunte) + "</b>.", personaDestinazione.getDescrizione());
                 }
             } else {
-                descrizioneAzione = String.format("L'abilitazione ottenuta da <b>%1$s</b> è: <b>" + String.join("</b>, ", abilitazioniAggiunte) + "</b>.", personaDestinazione.getDescrizione());
+                descrizioneAzione = String.format("L'abilitazione ottenuta da <b>%1$s</b> è: <b>" + String.join("</b>, <b>", abilitazioniAggiunte) + "</b>.", personaDestinazione.getDescrizione());
             }
             
             // Informazioni oggetto contenitore

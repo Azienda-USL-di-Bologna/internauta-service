@@ -110,4 +110,17 @@ public class StrutturaProjectionUtils {
         
         return baborgUtils.getUnificazione(struttura, dataRiferimento, "FUSIONE");
     }
+    
+    /**
+     * Metodo da chiamare per riempire il campo replice di una struttura.
+     * E' necessario che in additionalData ci sia la data per fargli prendere le
+     * replice attive in una certa data.
+     * @param struttura
+     * @return 
+     */
+    public List<Struttura> getStruttureReplicheList(Struttura struttura) {
+        ZonedDateTime dataRiferimento = additionalDataParamsExtractor.getDataRiferimentoZoned().truncatedTo(ChronoUnit.DAYS);
+        
+        return baborgUtils.getStruttureUnificate(struttura, dataRiferimento, "REPLICA");
+    }
 }

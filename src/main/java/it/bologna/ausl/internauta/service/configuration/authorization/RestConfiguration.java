@@ -68,11 +68,25 @@ public class RestConfiguration {
         configFirma.addAllowedMethod(HttpMethod.POST);
 //        configFirma.addAllowedMethod(HttpMethod.DELETE);
 
+
+        CorsConfiguration configMasterjobs = new CorsConfiguration();
+        configMasterjobs.setAllowCredentials(true);
+        configMasterjobs.setAllowedOrigins(allowedOriginList);
+        configMasterjobs.addAllowedHeader("application");
+        configMasterjobs.addAllowedHeader("authorization");
+        configMasterjobs.addAllowedHeader("content-type");
+        configMasterjobs.addAllowedMethod(HttpMethod.OPTIONS);
+        configMasterjobs.addAllowedMethod(HttpMethod.GET);
+        configMasterjobs.addAllowedMethod(HttpMethod.PATCH);
+        configMasterjobs.addAllowedMethod(HttpMethod.POST);
+        configMasterjobs.addAllowedMethod(HttpMethod.DELETE);
+
         source.registerCorsConfiguration("/internauta-api/login/**", configLogin);
         source.registerCorsConfiguration("/internauta-api/logout", configLogin);
         source.registerCorsConfiguration("/internauta-api/endpoint/login", configLogin);
         source.registerCorsConfiguration("/internauta-api/resources/**", configResources);
         source.registerCorsConfiguration("/firma-api/**", configFirma);
+        source.registerCorsConfiguration("/masterjobs-api/resources/**", configMasterjobs);
         
         return new CorsFilter(source);
     }

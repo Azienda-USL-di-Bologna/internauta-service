@@ -126,10 +126,12 @@ public abstract class TipDataValidator {
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
     public static boolean validateClassificazione(String stringaClassificazioni) {
-        String regex = String.format("^(\\d+)(\\/\\d+){0,2}(\\%s(\\d+)(\\/\\d+){0,2})*$", DEFAULT_STRING_SEPARATOR);
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(stringaClassificazioni);
-        return matcher.matches();
+//        String regex = String.format("^(\\d+)(\\/\\d+){0,2}(\\%s(\\d+)(\\/\\d+){0,2})*$", DEFAULT_STRING_SEPARATOR);
+//        Pattern pattern = Pattern.compile(regex);
+//        Matcher matcher = pattern.matcher(stringaClassificazioni);
+//        return matcher.matches();
+        // accettiamo quello che passando tanto non dobbiamo collegarlo al nostro titolario
+        return true;
     }
     
     /**
@@ -197,7 +199,7 @@ public abstract class TipDataValidator {
      * @return true se la stringa è nel formato corretto, false altrimenti
      */
     public static boolean validateNumeroDocumentoPrecedente(String stringaNumeroDocumento) {
-        String regex = String.format("^(\\d+)(\\/\\d{4})\\%s?(\\%s(\\d+)(\\/\\d{4}))*$", DEFAULT_STRING_SEPARATOR, DEFAULT_STRING_SEPARATOR);
+        String regex = String.format("^(DELIBERA-|DETERMINA-|PROTOCOLLO-)?(\\d+)(\\/\\d{4})(\\%s(DELIBERA-|DETERMINA-|PROTOCOLLO-)?(\\d+)(\\/\\d{4}))*$", DEFAULT_STRING_SEPARATOR, DEFAULT_STRING_SEPARATOR);
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(stringaNumeroDocumento);
         return matcher.matches();

@@ -1,6 +1,9 @@
 package it.bologna.ausl.internauta.service.ribaltone;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +17,56 @@ public class Trasformazioni {
 
     private static final Logger log = LoggerFactory.getLogger(Trasformazioni.class);
 
+    /**
+     * 
+     * @param trasformazioniMap
+     * @param trasformazioniPassateMap
+     * @param mapError
+     * @param mapReader
+     * @return true se la trasformazione è doppia false altrimenti
+     */
+    public static Boolean checkDoppiaTrasformazione(Map<String, Object> trasformazioniMap, Map<Integer, Map<String, List<ZonedDateTime>>> trasformazioniPassateMap, Map<String, Object> mapError, ICsvMapReader mapReader) {
+        Boolean doppia = false;
+        Integer idCasellaPartenza = Integer.valueOf(trasformazioniMap.get("id_casella_partenza").toString());
+        String motivo = trasformazioniMap.get("motivo").toString();
+        ZonedDateTime dataTrasformazioneCsv = ImportaDaCSVUtils.formattattore(trasformazioniMap.get("data_trasformazione"));
+        Map<String, List<ZonedDateTime>> mapIdCasellaPartenza = trasformazioniPassateMap.get(idCasellaPartenza);
+        
+        if (!trasformazioniPassateMap.isEmpty()){
+            if ( mapIdCasellaPartenza != null){
+                List<ZonedDateTime> dateTrasformazione = mapIdCasellaPartenza.get(motivo);
+                if (dateTrasformazione != null){
+                    for (ZonedDateTime dataTrasformazione : dateTrasformazione) {
+                        //riga doppia per id casella e motivo se data uguale
+                        if (dataTrasformazione.equals(dataTrasformazioneCsv)){
+                            doppia = true;
+                            log.error("Importa CSV --Trasformazioni-- errore alla righa:" + mapReader.getLineNumber() + " trasformazione doppia");
+                            mapError.put("ERRORE", mapError.get("ERRORE") + " trasformazione doppia,");
+                        }
+                    }
+                    dateTrasformazione.add(dataTrasformazioneCsv);
+                } else {
+                    dateTrasformazione = new ArrayList<ZonedDateTime>();
+                    dateTrasformazione.add(dataTrasformazioneCsv);
+                    mapIdCasellaPartenza.put(motivo,dateTrasformazione);
+                } 
+            } else {
+                List<ZonedDateTime> dateTrasformazione = new ArrayList<ZonedDateTime>();
+                dateTrasformazione.add(dataTrasformazioneCsv);   
+                mapIdCasellaPartenza = new HashMap<String, List<ZonedDateTime>>();
+                mapIdCasellaPartenza.put(motivo,dateTrasformazione);
+            } 
+        
+        } else {
+            List<ZonedDateTime> dateTrasformazione = new ArrayList<ZonedDateTime>();
+            dateTrasformazione.add(dataTrasformazioneCsv);   
+            mapIdCasellaPartenza = new HashMap<String, List<ZonedDateTime>>();
+            mapIdCasellaPartenza.put(motivo,dateTrasformazione);
+            trasformazioniPassateMap.put(idCasellaPartenza, mapIdCasellaPartenza);
+        }
+        return doppia;
+    }
+
     public static Integer checkProgressivoRiga(Map<String, Object> trasformazioniMap, Map<String, Object> mapError, ICsvMapReader mapReader) {
         if (trasformazioniMap.get("progressivo_riga") == null || trasformazioniMap.get("progressivo_riga").toString().trim().equals("") || trasformazioniMap.get("progressivo_riga") == "") {
             mapError.put("ERRORE", mapError.get("ERRORE") + " progressivo_riga,");
@@ -22,7 +75,7 @@ public class Trasformazioni {
             return null;
         } else {
             mapError.put("progressivo_riga", trasformazioniMap.get("progressivo_riga"));
-            return Integer.parseInt(trasformazioniMap.get("progressivo_riga").toString());
+            return Integer.valueOf(trasformazioniMap.get("progressivo_riga").toString());
         }
     }
 

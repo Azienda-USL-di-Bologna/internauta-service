@@ -94,6 +94,8 @@ import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistr
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.data.AdditionalDataShpeck;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.scripta.MessageDoc;
+import it.bologna.ausl.model.entities.scripta.MessageDoc.ScopeMessageDoc;
 import it.bologna.ausl.model.entities.shpeck.Draft;
 import it.bologna.ausl.model.entities.shpeck.QDraft;
 import it.bologna.ausl.model.entities.shpeck.QMessage;
@@ -716,10 +718,14 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
      * @param idMessage L'id del messaggio di cui recuperare il MessageTag
      * @return String Un json di risposta
      */
-//    @RequestMapping(value = "fixMessageTagInRegistration/{idMessage}", method = RequestMethod.GET)
-//    public String fixMessageTagInRegistration(@PathVariable(required = true) Integer idMessage) throws Throwable {
-//        LOG.info("Ho chiamato la funzione per aggiustare il MessageTag di "
-//                + "message con id {} ...", idMessage);
+    @RequestMapping(value = "fixMessageTagInRegistration/{idMessage}", method = RequestMethod.GET)
+    public void fixMessageTagInRegistration(
+            @PathVariable(required = true) Integer idMessage
+    ) throws BlackBoxPermissionException {
+        LOG.info("Ho chiamato la funzione per aggiustare il MessageTag di message con id {} ...", idMessage);
+        
+        manageMessageRegistrationUtils.buildRegistrationTagsExNovo(idMessage);
+        // Questo di seguito è il vecchio codice si sal.
 //        JSONObject risposta = new JSONObject();
 //        try {
 //            Message message = messageRepository.findById(idMessage).get();
@@ -739,7 +745,7 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
 //            risposta.put("Response", "PROBLEMI: " + t.getMessage());
 //        }
 //        return risposta.toString();
-//    }
+    }
 
     @Transactional(rollbackFor = Throwable.class)
     @RequestMapping(value = "manageMessageRegistration", method = RequestMethod.POST)

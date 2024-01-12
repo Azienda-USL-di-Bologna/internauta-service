@@ -1,7 +1,6 @@
 package it.bologna.ausl.internauta.service.shpeck.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
@@ -12,10 +11,16 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageTagRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.Azienda;
+import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.data.AdditionalDataShpeck;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
+import it.bologna.ausl.model.entities.scripta.Doc;
+import it.bologna.ausl.model.entities.scripta.DocDetail;
+import it.bologna.ausl.model.entities.scripta.MessageDoc;
+import it.bologna.ausl.model.entities.scripta.MessageDoc.ScopeMessageDoc;
+import it.bologna.ausl.model.entities.scripta.Registro.CodiceRegistro;
 import it.bologna.ausl.model.entities.shpeck.Folder;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.bologna.ausl.model.entities.shpeck.MessageFolder;
@@ -24,13 +29,14 @@ import it.bologna.ausl.model.entities.shpeck.Tag;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataRegistration;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.bouncycastle.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -446,6 +452,137 @@ public class ManageMessageRegistrationUtils {
                 currentMessageFolder.setIdUtente(authenticatedUserProperties.getUser());
                 currentMessageFolder.setIdFolder(currentMessageFolder.getIdPreviousFolder());
                 messageFolderRespository.save(currentMessageFolder);
+            }
+        }
+    }
+    
+    public void buildRegistrationTagsExNovo(Integer idMessage) throws BlackBoxPermissionException {
+        
+        AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+        Utente user = authenticatedUserProperties.getUser();
+        
+        Message messajo = messageRepository.findById(idMessage).get();
+        LOG.info("Trovato messagggio: uuidMessage {}", messajo.getUuidMessage());
+        
+        // recupero tutti i messaggi con l'uuid passato, li aggiusto tutti
+        List<Message> messages = messageRepository.findByUuidMessage(StringUtils.trimWhitespace(messajo.getUuidMessage()));
+
+        Boolean isInRegistrationAtLeastOneTime = false;
+        Boolean isRegisteredAtLeastOneTime = false;
+        List<AdditionalDataRegistration> additionalDataArray = new ArrayList<>();
+        
+        /*  Ciclo sui messaggi trovati e skippo quelli che non sono di tipo MAIL
+            Per ogni messaggio vado a vedere i messageDoc di protocollazione, da li vedo quali documenti sono
+            protocollati e quali sono in proposta, così raccolgo le info e creo gli additionalData.
+            Quando avrò costruito gli additionalData allora ciclerò nuovamente tutti i message e setterò i messageTag
+        */
+        for (Message message : messages) {
+            if (message.getMessageType() != Message.MessageType.MAIL) {
+                continue;
+            }
+
+            LOG.info("processo messaggio con uuidMessage: " + message.getUuidMessage() + " e id: " + message.getId());
+            Pec idPec = message.getIdPec();
+        
+            // Prendo i doc relativi ai processi di protocollazione
+            List<MessageDoc> messageDocList = message.getMessageDocList();
+            List<MessageDoc> messageDocListProtocollazione = messageDocList.stream().filter(md -> 
+                    md.getScope().equals(ScopeMessageDoc.PROTOCOLLAZIONE)
+            ).collect(Collectors.toList());
+
+            // Ora per ogni doc mi creo i corretti additionalData
+            for (MessageDoc md : messageDocListProtocollazione) {
+                Doc doc = md.getIdDoc();
+                DocDetail docDetail = doc.getIdDocDetail();
+                Boolean registered = docDetail.getNumeroRegistrazione() != null;
+                if (registered) {
+                    isRegisteredAtLeastOneTime = true;
+                } else {
+                    isInRegistrationAtLeastOneTime = true;
+                }
+                Azienda idAzienda = docDetail.getIdAzienda();
+                Persona idPersonaRedattrice = docDetail.getIdPersonaRedattrice();
+                Utente idUtente = idPersonaRedattrice.getUtenteList().stream().filter(u -> u.getIdAzienda().getId().equals(idAzienda.getId())).collect(Collectors.toList()).get(0);
+                
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                
+                ZonedDateTime dataCreazione = docDetail.getDataCreazione();
+                int anno = dataCreazione.getYear();
+                String annoString = String.valueOf(anno);
+                Integer numeroProposta = docDetail.getNumeroProposta();
+                String numeroPropostaString = numeroProposta == null ? "" : numeroProposta.toString();
+                String dataCreazioneString = dataCreazione.format(formatter);
+                Integer numeroRegistrazione = docDetail.getNumeroRegistrazione();
+                String numeroRegistrazioneString = numeroRegistrazione == null ? null : String.format("%07d", numeroRegistrazione);
+                ZonedDateTime dataRegistrazione = docDetail.getDataRegistrazione();
+                String dataRegistrazioneString =  dataRegistrazione == null ? null : dataRegistrazione.format(formatter);
+                
+                AdditionalDataRegistration add = new AdditionalDataRegistration(idPec, idUtente, idAzienda, idPec.getIndirizzo());
+                
+                AdditionalDataTagComponent.idDocumento documento = new AdditionalDataTagComponent.idDocumento(
+                        docDetail.getOggetto(), 
+                        CodiceRegistro.PG.toString(), 
+                        annoString + "-" + numeroPropostaString, 
+                        dataCreazioneString, 
+                        dataRegistrazioneString, 
+                        numeroRegistrazioneString, 
+                        annoString
+                );
+                //Cercando di fare now().getYear.toString() mi dice int cannot be dereferenced cosa devo fare?
+                add.setIdDocumento(documento);
+                additionalDataArray.add(add);
+            }
+        }
+        
+        for (Message message : messages) {
+            Pec idPec = message.getIdPec();
+            List<Tag> tagList = idPec.getTagList();
+            
+            if (isInRegistrationAtLeastOneTime) {
+                Tag tagInRegistration = tagList.stream().filter(t -> Tag.SystemTagName.in_registration.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
+                List<MessageTag> messageTagInRegistrationList = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
+                MessageTag mt;
+                if (messageTagInRegistrationList.isEmpty()) {
+                    // lo creo exnovo
+                    mt = new MessageTag(
+                            message, 
+                            tagInRegistration, 
+                            user, 
+                            (List<AdditionalDataShpeck>) (List<?>) additionalDataArray
+                    );
+                } else {
+                    // Lo aggiorno
+                    mt = messageTagInRegistrationList.get(0);
+                    mt.setAdditionalData((List<AdditionalDataShpeck>) (List<?>) additionalDataArray);
+                }
+                messageTagRespository.save(mt);
+            } else {
+                // vedo se c'è il messagetag che nel caso lo cancello
+                Tag tagInRegistration = tagList.stream().filter(t -> Tag.SystemTagName.in_registration.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
+                List<MessageTag> messageTagInRegistrationList = messageTagRespository.findByIdMessageAndIdTag(message, tagInRegistration);
+                if (!messageTagInRegistrationList.isEmpty()) {
+                    messageTagRespository.delete(messageTagInRegistrationList.get(0));
+                }
+            }
+            
+            if (isRegisteredAtLeastOneTime) {
+                Tag tagRegistered = tagList.stream().filter(t -> Tag.SystemTagName.registered.toString().equals(StringUtils.trimWhitespace(t.getName()))).collect(Collectors.toList()).get(0);
+                List<MessageTag> messageTagRegisteredList = messageTagRespository.findByIdMessageAndIdTag(message, tagRegistered);
+                MessageTag mt;
+                if (messageTagRegisteredList.isEmpty()) {
+                    // lo creo exnovo
+                    mt = new MessageTag(
+                            message, 
+                            tagRegistered, 
+                            user, 
+                            (List<AdditionalDataShpeck>) (List<?>) additionalDataArray
+                    );
+                } else {
+                    // Lo aggiorno
+                    mt = messageTagRegisteredList.get(0);
+                    mt.setAdditionalData((List<AdditionalDataShpeck>) (List<?>) additionalDataArray);
+                }
+                messageTagRespository.save(mt);
             }
         }
     }

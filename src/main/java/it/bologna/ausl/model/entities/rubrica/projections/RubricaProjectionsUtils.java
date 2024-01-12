@@ -216,7 +216,7 @@ public class RubricaProjectionsUtils {
             }
             
             if (controllaDomiciliDigitali){
-                inadManager.getDomicilioDigitaleFromCF(
+                inadManager.updateDomicilioDigitaleAndGetUpdatedEmailList(
                         authenticatedUserProperties.getUser().getIdAzienda(),
                         contatto, 
                         dettaglioContattoRepository, 

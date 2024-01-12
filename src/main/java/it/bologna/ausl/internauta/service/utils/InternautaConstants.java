@@ -92,13 +92,15 @@ public class InternautaConstants {
             VisualizzaTabFrequenti,
             VisualizzaTabRecenti,
             VisualizzaTabTutti,
+            VisualizzaTabAnomalie,
             UpdateProfiloFirma,
             FilterBitPermessoMinimo,
             FilterForArchiviContent,
             FilterBitGOEModifica,
             RemovePassword,
             FilterPerAssegnamentoMassivo,
-            GetUtentiInStrutturaEFiglie
+            GetUtentiInStrutturaEFiglie,
+            FilterTraDocumentiRegistrati
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {

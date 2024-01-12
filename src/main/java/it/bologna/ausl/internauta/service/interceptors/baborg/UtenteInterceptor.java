@@ -99,7 +99,7 @@ public class UtenteInterceptor extends InternautaBaseInterceptor {
                                 throw new AbortLoadInterceptorException(ex);
                             }
                             break;
-                        } else if (userInfoService.isCA(utente)) {
+                        } else if (!userInfoService.isSD(utente) && !userInfoService.isCI(utente) && userInfoService.isCA(utente)) {
                             // qui entro se non sono SD o CI, ma sono CA di almeno un'azienda
                             
                             /* 
