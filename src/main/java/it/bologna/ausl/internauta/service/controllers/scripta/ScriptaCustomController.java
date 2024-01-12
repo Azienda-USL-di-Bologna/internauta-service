@@ -8,24 +8,26 @@ import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
 import it.bologna.ausl.internauta.service.configuration.utils.ReporitoryConnectionManager;
 import it.bologna.ausl.internauta.service.exceptions.http.Http500ResponseException;
+import it.bologna.ausl.internauta.service.repositories.lotti.LottoRepository;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.PdfAReporter;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.result.ReporterJobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.result.UrlAndUuidResult;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.minio.manager.MinIOWrapper;
 import it.bologna.ausl.minio.manager.MinIOWrapperFileInfo;
 import it.bologna.ausl.minio.manager.exceptions.MinIOWrapperException;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.configurazione.ParametroAziende;
-import it.bologna.ausl.model.entities.scripta.Allegato;
-import it.bologna.ausl.model.entities.scripta.Doc;
-import it.bologna.ausl.model.entities.scripta.Related;
+import it.bologna.ausl.model.entities.lotti.Contraente;
+import it.bologna.ausl.model.entities.lotti.Lotto;
+import it.bologna.ausl.model.entities.scripta.*;
+
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -88,11 +90,6 @@ import it.bologna.ausl.model.entities.baborg.Pec;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
-import it.bologna.ausl.model.entities.scripta.Mezzo;
-import it.bologna.ausl.model.entities.scripta.QAllegato;
-import it.bologna.ausl.model.entities.scripta.Registro;
-import it.bologna.ausl.model.entities.scripta.RegistroDoc;
-import it.bologna.ausl.model.entities.scripta.Spedizione;
 import it.bologna.ausl.model.entities.shpeck.Message;
 import it.nextsw.common.projections.ProjectionsInterceptorLauncher;
 import java.io.FileNotFoundException;
@@ -101,8 +98,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.Formatter;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -127,17 +122,6 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.generazionezipar
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.generazioneziparchivio.GenerazioneZipArchivioJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
-import it.bologna.ausl.model.entities.scripta.Archivio;
-import it.bologna.ausl.model.entities.scripta.ArchivioDoc;
-import it.bologna.ausl.model.entities.scripta.ArchivioRecente;
-import it.bologna.ausl.model.entities.scripta.DocDetailInterface;
-import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
-import it.bologna.ausl.model.entities.scripta.PersonaVedente;
-import it.bologna.ausl.model.entities.scripta.QArchivio;
-import it.bologna.ausl.model.entities.scripta.QArchivioDetail;
-import it.bologna.ausl.model.entities.scripta.QArchivioDoc;
-import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
-import it.bologna.ausl.model.entities.scripta.QPersonaVedente;
 import it.bologna.ausl.model.entities.scripta.projections.generated.AllegatoWithIdAllegatoPadre;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
@@ -152,6 +136,8 @@ import org.springframework.web.bind.annotation.RequestPart;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.DocDocRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.TitoloRepository;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerInitializationException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
@@ -161,7 +147,6 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.copiatrasferisci
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.GestioneMassivaAbilitazioniArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerResult;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.versatore.VersatoreServiceUtils;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
@@ -169,11 +154,12 @@ import it.bologna.ausl.model.entities.logs.MassiveActionLog;
 import it.bologna.ausl.model.entities.masterjobs.JobNotified;
 import it.bologna.ausl.model.entities.masterjobs.Set;
 import it.bologna.ausl.model.entities.scripta.ArchivioDetail;
+import it.bologna.ausl.model.entities.scripta.DocDoc;
 import it.bologna.ausl.model.entities.scripta.QDoc;
+import it.bologna.ausl.model.entities.scripta.projections.archivio.CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo;
+import it.bologna.ausl.model.entities.scripta.projections.generated.DocDocWithPlainFields;
 import it.bologna.ausl.model.entities.versatore.SessioneVersamento;
 import it.bologna.ausl.model.entities.versatore.Versamento;
-import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.ERRORE_RITENTABILE;
-import static it.bologna.ausl.model.entities.versatore.Versamento.StatoVersamento.FORZARE;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -194,13 +180,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     private static final Logger log = LoggerFactory.getLogger(ScriptaCustomController.class);
 
-//    private MinIOWrapperFileInfo savedFileOnRepository = null;
+    //    private MinIOWrapperFileInfo savedFileOnRepository = null;
     private final List<MinIOWrapperFileInfo> savedFilesOnRepository = new ArrayList();
 //    private List<Allegato> savedFilesOnInternauta = new ArrayList();
 
     @Autowired
     private ConfigParams configParams;
-    
+
     @Autowired
     private ApplicazioneRepository applicazioneRepository;
 
@@ -218,7 +204,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private MessageRepository messageRepository;
-    
+
     @Autowired
     private StrutturaRepository strutturaRepository;
 
@@ -239,7 +225,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private ParametriAziendeReader parametriAziendaReader;
-    
+
     @Autowired
     private PermessoArchivioRepository permessoArchivioRepository;
 
@@ -260,9 +246,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private PecRepository pecRepository;
-    
+
     @PersistenceContext
-    private EntityManager em;
+    private EntityManager entityManager;
 
     @Autowired
     private PersonaVedenteRepository personaVedenteRepository;
@@ -311,15 +297,24 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private KrintUtils krintUtils;
-    
+
     @Autowired
     private JobNotifiedRepository jobNotifiedRepository;
-        
+
+    @Autowired
+    private DocDocRepository docDocRepository;
+
     @Autowired
     private ScriptaGestioneAbilitazioniMassiveArchiviUtils scriptaGestioneAbilitazioniMassiveArchiviUtils;
 
     @Autowired
     private KrintScriptaService krintScriptaService;
+    
+    @Autowired
+    private TitoloRepository titoloRepository;
+    
+    @Autowired
+    private LottoRepository lottoRepository;
 
     @Value("${babelsuite.webapi.eliminapropostadaedi.url}")
     private String EliminaPropostaDaEdiUrl;
@@ -429,11 +424,11 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 response.setHeader("X-Frame-Options", "sameorigin");
                 String nomeAllegato = allegato.getNome().replaceAll("([^\\wàèìùòé\\-. \\n]+)", "_");
                 response.setHeader("Content-Disposition", ";filename=" + nomeAllegato + ".pdf");
-                
+
                 if (dettaglioAllegato == null) {
                     if (tipoDettaglioAllegato.equals(Allegato.DettagliAllegato.TipoDettaglioAllegato.CONVERTITO)) {
                         // File mai convertito, lo converto e lo scarico
-                        try ( InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, null)) {
+                        try (InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, null)) {
                             response.setHeader("Content-Type", "application/pdf");
                             StreamUtils.copy(fileConvertito, response.getOutputStream());
                         }
@@ -443,19 +438,19 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 } else {
                     String idRepository = dettaglioAllegato.getIdRepository();
                     MinIOWrapper minIOWrapper = aziendeConnectionManager.getMinIOWrapper();
-                    try ( InputStream fileRichiesto = minIOWrapper.getByFileId(idRepository)) {
+                    try (InputStream fileRichiesto = minIOWrapper.getByFileId(idRepository)) {
                         if (fileRichiesto == null) {
                             switch (tipoDettaglioAllegato) {
                                 case CONVERTITO:
                                     // File convertito ma scaduto, lo converto e lo scarico
-                                    try ( InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, idRepository)) {
+                                    try (InputStream fileConvertito = scriptaDownloadUtils.downloadOriginalAndConvertToPdf(allegato, idRepository)) {
                                     response.setHeader("Content-Type", "application/pdf");
                                     StreamUtils.copy(fileConvertito, response.getOutputStream());
                                 }
                                 break;
                                 case ORIGINALE:
                                     // File scaduto, lo riestraggo e lo scarico
-                                    try ( InputStream fileOrginale = scriptaDownloadUtils.downloadOriginalAttachment(allegato)) {
+                                    try (InputStream fileOrginale = scriptaDownloadUtils.downloadOriginalAttachment(allegato)) {
                                     response.setHeader("Content-Type", allegato.getDettagli().getOriginale().getMimeType());
                                     StreamUtils.copy(fileOrginale, response.getOutputStream());
                                 }
@@ -466,7 +461,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                             }
                         } else {
                             String mimeType = allegato.getDettagli().getDettaglioAllegato(tipoDettaglioAllegato).getMimeType();
-                            
+
                             if (!StringUtils.hasText(mimeType)) {
                                 // Non ha il mimetype, me lo recupero
                                 try {
@@ -591,15 +586,18 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             return false;
         }
     }
-    
+
     /**
      * Scarica il frontespizio di un fascicolo dal archivio specificato.
      *
      * @param idArchivio L'ID del archivio da cui scaricare il frontespizio.
      * @return L'URL del file frontespizio scaricato.
-     * @throws BlackBoxPermissionException  Se si verifica un errore sui permessi.
-     * @throws Http403ResponseException     Se l'utente non ha il permesso di visualizzare l'archivio.
-     * @throws MasterjobsWorkerException    Se si verifica un errore con il masterjobs worker.
+     * @throws BlackBoxPermissionException Se si verifica un errore sui
+     * permessi.
+     * @throws Http403ResponseException Se l'utente non ha il permesso di
+     * visualizzare l'archivio.
+     * @throws MasterjobsWorkerException Se si verifica un errore con il
+     * masterjobs worker.
      */
     @RequestMapping(value = "downloadFrontespizioFascicolo/{idArchivio}", method = RequestMethod.GET)
     public ResponseEntity<?> downloadFrontespizioFascicolo(
@@ -613,36 +611,39 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
         // Verifica se l'utente ha il permesso di visualizzare l'archivio
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(
-                persona.getId(), 
-                archivio.getId(), 
+                persona.getId(),
+                archivio.getId(),
                 PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
             throw new Http403ResponseException("1", "Utente senza permesso di visualizzare l'archivio");
         }
         // Genera il nome del file da scaricare
         String codiceAziendaArchivio = archivio.getIdAzienda().getCodice();
         String fileName = String.format("Frontespizio - %s.pdf", archivio.getNumerazioneGerarchica());
-        
+
         // Crea i parametri per il template
-        Map<String, Object> creaParametriTemplate = scriptaArchiviUtils.creaParametriTemplate(archivio);       
+        Map<String, Object> creaParametriTemplate = scriptaArchiviUtils.creaParametriTemplate(archivio);
         // Prepara i dati per il worker del reporter
-        ReporterJobWorkerData reporterWorkerData = new ReporterJobWorkerData(codiceAziendaArchivio, codiceAziendaArchivio + "_gd_frontespizio.xhtml", fileName, creaParametriTemplate);       
+        ReporterJobWorkerData reporterWorkerData = new ReporterJobWorkerData(codiceAziendaArchivio, codiceAziendaArchivio + "_gd_frontespizio.xhtml", fileName, creaParametriTemplate);
         // Ottiene il worker del reporter dal factory dei job master
-        ReporterJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(ReporterJobWorker.class, reporterWorkerData, false);      
+        ReporterJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(ReporterJobWorker.class, reporterWorkerData, false);
         // Esegue il lavoro del worker del reporter
         ReporterJobWorkerResult result = (ReporterJobWorkerResult) jobWorker.doWork();
-        
+
         return new ResponseEntity(result, HttpStatus.OK);
     }
+
     /**
      * Api per il download di un archivio con tutto il suo contenuto.
      *
      * @param idArchivio L'id dell'archivio da scaricare.
      * @param response Http Response.
      * @param request Http request.
-     * @throws Http403ResponseException Eccezioni in caso di mancanza di permessi.
+     * @throws Http403ResponseException Eccezioni in caso di mancanza di
+     * permessi.
      * @throws Http404ResponseException Eccezione lanciata quando il fascicolo
      * da scaricare non ha nè documenti nè figli.
-     * @throws Http500ResponseException Eccezioni in caso di errori nella generazione del file zip.
+     * @throws Http500ResponseException Eccezioni in caso di errori nella
+     * generazione del file zip.
      * @throws BlackBoxPermissionException Errori della blackbox.
      */
     @RequestMapping(value = "downloadArchivioZip/{idArchivio}", method = RequestMethod.GET, produces = "application/zip")
@@ -667,8 +668,6 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         String scheme = request.getScheme();
         String hostname = CommonUtils.getHostname(request);
         Integer port = request.getServerPort();
-        
-        
 
         String downloadUrl = this.configParams.getDownloaderUrl(scheme, hostname, port);
         GenerazioneZipArchivioJobWorkerData data = new GenerazioneZipArchivioJobWorkerData(persona.getId(), archivio.getId(), downloadUrl);
@@ -684,7 +683,8 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     null,
                     Applicazione.Applicazioni.scripta.toString(),
                     false,
-                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL
+                    it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL,
+                    null
             );
         } catch (MasterjobsQueuingException ex) {
             String errorMessage = "Errore nell'accodamento del job CalcoloPermessiGerarchiaArchivio";
@@ -1041,7 +1041,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
         Call call = client.newCall(request);
         HashMap readValue = null;
-        try ( Response response = call.execute();) {
+        try (Response response = call.execute();) {
             int responseCode = response.code();
             if (response.isSuccessful()) {
                 readValue = objectMapper.readValue(response.body().string(), HashMap.class);
@@ -1129,6 +1129,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
      * it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException
      */
     @RequestMapping(value = "calcolaPermessiEsplicitiArchivio", method = RequestMethod.POST)
+    @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> calcolaPermessiEsplicitiArchivio(
             @RequestParam("idArchivio") Integer idArchivio,
             HttpServletRequest request) throws MasterjobsWorkerException {
@@ -1138,7 +1139,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, idArchivio.toString(), "scripta_archivio", applicazione.getId());
 //        accodatoreVeloce.accodaCalcolaPersoneVedenti(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
         QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
-        JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(em);
+        JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
         List<Integer> idDocsDaArchivio = jpaQueryFactory
                 .select(qArchivioDoc.idDoc.id)
                 .from(qArchivioDoc)
@@ -1213,7 +1214,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             for (MultipartFile file : files) {
                 Doc doc = new Doc(file.getOriginalFilename(), authenticatedUserProperties.getPerson(), archivio.getIdAzienda(), DocDetailInterface.TipologiaDoc.DOCUMENT_UTENTE);
                 doc = docRepository.save(doc);
-                em.refresh(doc);
+                entityManager.refresh(doc);
                 idDocList.add(doc.getId());
                 scriptaUtils.creaAndAllegaAllegati(doc, file.getInputStream(), file.getOriginalFilename(), true);
 
@@ -1230,7 +1231,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 pv.setPienaVisibilita(Boolean.TRUE);
                 pv.setMioDocumento(Boolean.TRUE);
                 personaVedenteRepository.save(pv);
- 
+
                 CalcolaPersoneVedentiDocJobWorkerData calcolaPersoneVedentiDocJobWorkerData = new CalcolaPersoneVedentiDocJobWorkerData(doc.getId());
 
                 Map calcolaPersoneVedentiDocJobWorkerDataMap = objectMapper.convertValue(calcolaPersoneVedentiDocJobWorkerData, Map.class);
@@ -1239,7 +1240,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 jn.setJobData(calcolaPersoneVedentiDocJobWorkerDataMap);
                 jn.setWaitObject(false);
                 jobNotifiedRepository.save(jn);
-                
+
                 if (krintUtils.doIHaveToKrint(request)) {
                     krintScriptaService.writeArchivioDoc(save, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DOC_LOAD);
                 }
@@ -1419,15 +1420,17 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     }
 
     /**
-     * La delete dell'archivio viene fatta custom così anzichè usare il framework e gli interceptor
-     * perché passando dal framework oltre la delete dell'archivio verrebbero lanciare le delete
-     * di ogni attoreArchivio e dell'archivioDetail. Vogliamo che sia il DB a uccuparsi di queste CASCADE
+     * La delete dell'archivio viene fatta custom così anzichè usare il
+     * framework e gli interceptor perché passando dal framework oltre la delete
+     * dell'archivio verrebbero lanciare le delete di ogni attoreArchivio e
+     * dell'archivioDetail. Vogliamo che sia il DB a uccuparsi di queste CASCADE
      * in quanto lo farà in maniera più performante
+     *
      * @param idArchivio
      * @param request
      * @return
      * @throws BlackBoxPermissionException
-     * @throws Http403ResponseException 
+     * @throws Http403ResponseException
      */
     @RequestMapping(value = "deleteArchivio", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
@@ -1448,7 +1451,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             if (iHaveToKrint) {
                 krintScriptaService.writeArchivioDelete(entity, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DELETE);
             }
-            JPAQueryFactory j = new JPAQueryFactory(em);
+            JPAQueryFactory j = new JPAQueryFactory(entityManager);
             j.delete(QArchivio.archivio).where(QArchivio.archivio.id.eq(idArchivio)).execute();
             return new ResponseEntity("", HttpStatus.OK);
         }
@@ -1534,10 +1537,10 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Archivio finalArchivio = null;
         //controllo l'effettiva presenza dell'archivio da spostare
         if (a.isPresent()) {
-            Archivio archivio = a.get();
+            Archivio archivioDaSpostare = a.get();
             boolean haFigli = false;
             //controllo se l'archivio da spostare ha figli
-            if (!archivio.getArchiviFigliList().isEmpty()) {
+            if (!archivioDaSpostare.getArchiviFigliList().isEmpty()) {
                 haFigli = true;
             }
             //procedo a tirare su tutto ciò che mi serve sull'archivio destinazione
@@ -1545,106 +1548,113 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             Optional<Archivio> aDestinazione = archivioRepository.findById(idArchivioIntDestinazione);
             //controllo l'effettiva presenza dell'archivio destinazione
             if (aDestinazione.isPresent()) {
-                Archivio archivioDestinazione = aDestinazione.get();
-                JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+                Archivio archivioSuCuiSpostare = aDestinazione.get();
+                JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
                 Archivio archivioRif = null;
                 boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
                 //controllo se è stato selezionato il target fascicolo e agisco spostando l'archivio con figli e documenti
                 //NB: i documenti sono legati all'archivio con una tabella di cross ergo seguiranno l'archivio ovunque
                 if (fascicolo) {
-                    if (archivioDestinazione.getLivello() == 3) {
+                    if (archivioSuCuiSpostare.getLivello() == 3) {
                         throw new Http500ResponseException("3", "L'azione sposta di un archivio non si può fare verso un archivio di livello 3");
                     }
-                    if (3 - scriptaArchiviUtils.getProfonditaArchivio(archivio) < archivioDestinazione.getLivello()) {
+                    if (3 - scriptaArchiviUtils.getProfonditaArchivio(archivioDaSpostare) < archivioSuCuiSpostare.getLivello()) {
                         throw new Http500ResponseException("4", "L'azione sposta non può essere eseguita perché andrebbe a creare almeno un archivio di livello 4");
                     }
                     try {
                         // copia del fascicolo per il log nel krint
-                        archivioRif = objectMapper.readValue(objectMapper.writeValueAsString(archivio), Archivio.class);
-                        archivioRif.setIdArchivioPadre(archivio.getIdArchivioPadre());
+                        archivioRif = objectMapper.readValue(objectMapper.writeValueAsString(archivioDaSpostare), Archivio.class);
+                        archivioRif.setIdArchivioPadre(archivioDaSpostare.getIdArchivioPadre());
                     } catch (JsonProcessingException ex) {
                         log.error("errore nella copia dell'archivio per il krint");
                     }
-                    log.info(String.format("procedo a spostare l'archivio %s", archivio.getId()));
+                    log.info(String.format("procedo a spostare l'archivio %s", archivioDaSpostare.getId()));
 
                     //update con cui "sposto" l'archivio da spostare
                     jPAQueryFactory
                             .update(QArchivio.archivio)
                             .set(QArchivio.archivio.numero, 0)
-                            .set(QArchivio.archivio.numerazioneGerarchica, archivioDestinazione.getNumerazioneGerarchica().replace("/", "-x/"))
-                            .set(QArchivio.archivio.idArchivioPadre, archivioDestinazione)
-                            .set(QArchivio.archivio.idArchivioRadice, archivioDestinazione.getIdArchivioRadice())
-                            .set(QArchivio.archivio.idTitolo, archivioDestinazione.getIdTitolo())
-                            .set(QArchivio.archivio.idMassimario, archivioDestinazione.getIdMassimario())
-                            .set(QArchivio.archivio.livello, archivioDestinazione.getLivello() + 1)
+                            .set(QArchivio.archivio.numerazioneGerarchica, archivioSuCuiSpostare.getNumerazioneGerarchica().replace("/", "-x/"))
+                            .set(QArchivio.archivio.idArchivioPadre, archivioSuCuiSpostare)
+                            .set(QArchivio.archivio.idArchivioRadice, archivioSuCuiSpostare.getIdArchivioRadice())
+                            .set(QArchivio.archivio.idTitolo, archivioSuCuiSpostare.getIdTitolo())
+                            .set(QArchivio.archivio.idMassimario, archivioSuCuiSpostare.getIdMassimario())
+                            .set(QArchivio.archivio.livello, archivioSuCuiSpostare.getLivello() + 1)
                             .set(QArchivio.archivio.numeroSottoarchivi, 0)
-                            .where(QArchivio.archivio.id.eq(archivio.getId()))
+                            .where(QArchivio.archivio.id.eq(archivioDaSpostare.getId()))
                             .execute();
-                    log.info(String.format("Ho spostato l'archivio %s in %s", archivio.getId(), archivioDestinazione.getId()));
-                    em.refresh(archivio);
+                    log.info(String.format("Ho spostato l'archivio %s in %s", archivioDaSpostare.getId(), archivioSuCuiSpostare.getId()));
+                    entityManager.refresh(archivioDaSpostare);
                     //numero il nuovo archivio
-                    archivioRepository.numeraArchivio(archivio.getId());
-                    log.info(String.format("ho numerato l'archivio di %s", archivio.getId()));
-                    scriptaCopyUtils.setNewAttoriArchivio(archivio, archivio.getIdArchivioPadre(), em);
+                    archivioRepository.numeraArchivio(archivioDaSpostare.getId());
+                    log.info(String.format("ho numerato l'archivio di %s", archivioDaSpostare.getId()));
+                    scriptaCopyUtils.sistemaAttoriArchivioSpostato(
+                            archivioDaSpostare, 
+                            archivioDaSpostare.getIdArchivioPadre(), 
+                            false
+                    );
 
                     //grazie al controllo sulla presenza dei figli fatto in precedenza agisco di conseguenza
                     if (haFigli) {
-                        log.info(String.format("procedo a modificare i figli di %s", archivio.getId()));
-                        em.refresh(archivio);
+                        log.info(String.format("procedo a modificare i figli di %s", archivioDaSpostare.getId()));
+                        entityManager.refresh(archivioDaSpostare);
                         //update con cui fixo alcuni dati sugli archivi figli di quello spostato
                         jPAQueryFactory
                                 .update(QArchivio.archivio)
-                                .set(QArchivio.archivio.numerazioneGerarchica, Expressions.asString(archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/")).concat("-")).append(QArchivio.archivio.numero.stringValue().append(QArchivio.archivio.numerazioneGerarchica.substring(QArchivio.archivio.numerazioneGerarchica.indexOf("/")))))
-                                .set(QArchivio.archivio.idArchivioRadice, archivio.getIdArchivioRadice())
-                                .set(QArchivio.archivio.idArchivioPadre, archivio)
-                                .set(QArchivio.archivio.idTitolo, archivio.getIdTitolo())
-                                .set(QArchivio.archivio.idMassimario, archivioDestinazione.getIdMassimario())
-                                .set(QArchivio.archivio.livello, archivio.getLivello() + 1)
+                                .set(QArchivio.archivio.numerazioneGerarchica, Expressions.asString(archivioDaSpostare.getNumerazioneGerarchica().substring(0, archivioDaSpostare.getNumerazioneGerarchica().indexOf("/")).concat("-")).append(QArchivio.archivio.numero.stringValue().append(QArchivio.archivio.numerazioneGerarchica.substring(QArchivio.archivio.numerazioneGerarchica.indexOf("/")))))
+                                .set(QArchivio.archivio.idArchivioRadice, archivioDaSpostare.getIdArchivioRadice())
+                                .set(QArchivio.archivio.idArchivioPadre, archivioDaSpostare)
+                                .set(QArchivio.archivio.idTitolo, archivioDaSpostare.getIdTitolo())
+                                .set(QArchivio.archivio.idMassimario, archivioSuCuiSpostare.getIdMassimario())
+                                .set(QArchivio.archivio.livello, archivioDaSpostare.getLivello() + 1)
                                 .set(QArchivio.archivio.numeroSottoarchivi, 0)
-                                .where(QArchivio.archivio.idArchivioPadre.eq(archivio))
+                                .where(QArchivio.archivio.idArchivioPadre.eq(archivioDaSpostare))
                                 .execute();
-                        log.info(String.format("finito le modifiche ai figli di %s", archivio.getId()));
+                        log.info(String.format("finito le modifiche ai figli di %s", archivioDaSpostare.getId()));
                     }
-                    em.refresh(archivio);
-                    for (Archivio archFiglio : archivio.getArchiviFigliList()) {
-                        scriptaCopyUtils.setNewAttoriArchivio(archFiglio, archivio.getIdArchivioPadre(), em);
+                    entityManager.refresh(archivioDaSpostare);
+                    for (Archivio archivioFiglioDelloSpostato : archivioDaSpostare.getArchiviFigliList()) {
+                        scriptaCopyUtils.sistemaAttoriArchivioSpostato(
+                                archivioFiglioDelloSpostato, 
+                                archivioDaSpostare.getIdArchivioPadre(), 
+                                false);
                     }
                     //ricalcolo i permessi per l'achivio spostato e figli
-                    archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
-                    finalArchivio = archivio;
+                    archivioRepository.calcolaPermessiEsplicitiGerarchia(archivioDaSpostare.getId());
+                    finalArchivio = archivioDaSpostare;
                 } else if (contenuto) {
                     //è stato selezionato il target contenuto e agisco spostando solo i documenti dell'archivio selezionato
-                    log.info(String.format("procedo a spostare i documenti di %s", archivio.getId()));
+                    log.info(String.format("procedo a spostare i documenti di %s", archivioDaSpostare.getId()));
 
                     List<Integer> idDocsDaSpostare = jPAQueryFactory
                             .select(QArchivioDoc.archivioDoc.idDoc.id)
                             .from(QArchivioDoc.archivioDoc)
-                            .where(QArchivioDoc.archivioDoc.idArchivio.eq(archivio))
+                            .where(QArchivioDoc.archivioDoc.idArchivio.eq(archivioDaSpostare))
                             .fetch();
                     List<Integer> idDocsDaSpostareCheCiSonoGia = jPAQueryFactory
                             .select(QArchivioDoc.archivioDoc.idDoc.id)
                             .from(QArchivioDoc.archivioDoc)
                             .where(QArchivioDoc.archivioDoc.idDoc.id.in(idDocsDaSpostare)
-                                    .and(QArchivioDoc.archivioDoc.idArchivio.eq(archivioDestinazione)))
+                                    .and(QArchivioDoc.archivioDoc.idArchivio.eq(archivioSuCuiSpostare)))
                             .fetch();
 
                     jPAQueryFactory
                             .update(QArchivioDoc.archivioDoc)
-                            .set(QArchivioDoc.archivioDoc.idArchivio, archivioDestinazione)
+                            .set(QArchivioDoc.archivioDoc.idArchivio, archivioSuCuiSpostare)
                             .set(QArchivioDoc.archivioDoc.dataInserimentoRiga, ZonedDateTime.now())
-                            .where(QArchivioDoc.archivioDoc.idArchivio.eq(archivio)
+                            .where(QArchivioDoc.archivioDoc.idArchivio.eq(archivioDaSpostare)
                                     .and(QArchivioDoc.archivioDoc.idDoc.id.notIn(idDocsDaSpostareCheCiSonoGia)))
                             .execute();
-                    finalArchivio = archivioDestinazione;
+                    finalArchivio = archivioSuCuiSpostare;
                 }
                 if (iHaveToKrint) {
                     if (contenuto) {
-                        krintScriptaService.writeArchivioUpdate(archivio, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO);
-                        krintScriptaService.writeArchivioUpdate(finalArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO_DESTINAZIONE);
+                        krintScriptaService.writeArchivioUpdate(archivioDaSpostare, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO);
+                        krintScriptaService.writeArchivioUpdate(finalArchivio, archivioDaSpostare, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA_CONTENUTO_DESTINAZIONE);
                     } else {
-                        krintScriptaService.writeArchivioUpdate(archivio, archivioRif, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA, true);
+                        krintScriptaService.writeArchivioUpdate(archivioDaSpostare, archivioRif, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA, true);
                         if (haFigli) {
-                            archivio.getArchiviFigliList().stream().
+                            archivioDaSpostare.getArchiviFigliList().stream().
                                     forEach(archFiglio -> krintScriptaService.writeArchivioUpdate(archFiglio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA));
                         }
                     }
@@ -1712,15 +1722,15 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 //procedo con le modifiche
                 if (fascicolo) {
                     log.info(String.format("inzio a copiare %s con i suoi documenti", archivio.getId()));
-                    Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivioDestinazione, utente, em, Boolean.TRUE, Boolean.TRUE, contenuto);
+                    Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivioDestinazione, utente, entityManager, Boolean.TRUE, Boolean.TRUE, contenuto);
                     log.info(String.format("finito di copiare %s con i suoi documenti", archivio.getId()));
                     if (haFigli) {
                         log.info(String.format("procedo a copiare i figli di %s", archivio.getId()));
                         for (Archivio arch : archivio.getArchiviFigliList()) {
-                            em.refresh(savedArchivio);
+                            entityManager.refresh(savedArchivio);
 
                             log.info(String.format("inzio a copiare %s, figlio di %s, con i suoi documenti", arch.getId(), archivio.getId()));
-                            Archivio newArch = scriptaCopyUtils.copiaArchivioConDoc(arch, savedArchivio, utente, em, Boolean.FALSE, contenuto);
+                            Archivio newArch = scriptaCopyUtils.copiaArchivioConDoc(arch, savedArchivio, utente, entityManager, Boolean.FALSE, contenuto,false);
                             log.info(String.format("finito di copiare %s, figlio di %s, con i suoi documenti", arch.getId(), archivio.getId()));
                             if (iHaveToKrint) // Log nel fascicolo che è stato creato da una copia
                             {
@@ -1734,11 +1744,11 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                     archivioRepository.calcolaPermessiEsplicitiGerarchia(finalArchivio.getId());
                 } else if (contenuto) {
                     log.info(String.format("procedo a copiare i documenti di %s", archivio.getId()));
-                    scriptaCopyUtils.copiaArchivioDoc(archivio, archivioDestinazione, utente, em);
+                    scriptaCopyUtils.copiaArchivioDoc(archivio, archivioDestinazione, utente, entityManager);
                     log.info(String.format("I documenti sono stati copiati correttamente dall'archivio: " + archivio.getId() + " all'archivio: " + archivioDestinazione.getId()));
                     finalArchivio = archivioDestinazione;
                 }
-                em.refresh(finalArchivio);
+                entityManager.refresh(finalArchivio);
                 if (iHaveToKrint) {
                     if (fascicolo && contenuto) {
                         krintScriptaService.writeArchivioUpdate(finalArchivio.getIdArchivioCopiato(), finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_COPIA);
@@ -1786,87 +1796,21 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO)) {
             throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
         }
+        
         Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
         //controllo l'effettiva presenza dell'archivio da spostare
         if (a.isPresent()) {
             Archivio archivio = a.get();
-            boolean haFigli = false;
             boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
-            //controllo se l'archivio da copiare ha figli
-            if (archivio.getArchiviFigliList().size() > 0) {
-                haFigli = true;
-            }
-            log.info(String.format("inzio a duplicare %s con i suoi documenti", archivio.getId()));
-            Archivio savedArchivio = scriptaCopyUtils.copiaArchivioConDoc(archivio, archivio.getIdArchivioPadre(), utente, em, Boolean.TRUE, Boolean.TRUE, contenuto);
-            log.info(String.format("finito di duplicare %s con i suoi documenti", archivio.getId()));
-//
-//            log.info(String.format("inizio a duplicare l'archivio %s", archivio.getId()));
-//            Archivio savedArchivio = scriptaCopyUtils.copiaArchivio(archivio, archivio.getIdArchivioPadre(), persona, em);
-//            log.info(String.format("finito di duplicare l'archivio %s", archivio.getId()));
-//
-//            if(contenuto){
-//                em.refresh(savedArchivio);
-//                log.info(String.format("procedo a copiare i documenti di %s", archivio.getId()));
-//                scriptaCopyUtils.copiaArchivioDoc(archivio, savedArchivio, persona, em);
-//                log.info(String.format("I documenti sono stati copiati correttamente dall'archivio: " + archivio.getId() + " all'archivio: " + savedArchivio.getId()));
-//            }
-
-            if (haFigli) {
-
-                log.info(String.format("procedo a duplicare i figli e nipoti di %s", archivio.getId()));
-                for (Archivio archFiglio : archivio.getArchiviFigliList()) {
-                    if (!archFiglio.getStato().equals(Archivio.StatoArchivio.BOZZA)) {
-                        log.info(String.format("inzio a duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));
-                        Archivio savedFiglioArchivio = scriptaCopyUtils.copiaArchivioConDoc(archFiglio, savedArchivio, utente, em, Boolean.TRUE, contenuto);
-                        log.info(String.format("finito di duplicare %s, figlio di %s, con i suoi documenti", archFiglio.getId(), archivio.getId()));
-                        if (iHaveToKrint) {
-                            krintScriptaService.writeArchivioUpdate(savedFiglioArchivio, archFiglio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
-                        }
-                        //                    Archivio savedFiglioArchivio = scriptaCopyUtils.copiaArchivio(archFiglio, savedArchivio, persona, em);
-                        //                    if(contenuto){
-                        //                        log.info(String.format("procedo a duplicare i documenti di %s", archFiglio.getId()));
-                        //                        scriptaCopyUtils.copiaArchivioDoc(archFiglio, savedFiglioArchivio, persona, em);
-                        //                        log.info(String.format("I documenti sono stati duplicati correttamente dall'archivio: " + archFiglio.getId() + " all'archivio: " + savedFiglioArchivio.getId()));
-                        //                    }
-                        //                    em.refresh(savedFiglioArchivio);
-                        for (Archivio archNipote : archFiglio.getArchiviFigliList()) {
-                            if (!archNipote.getStato().equals(Archivio.StatoArchivio.BOZZA)) {
-                                log.info(String.format("inzio a duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));
-                                Archivio savedInsArchivio = scriptaCopyUtils.copiaArchivioConDoc(archNipote, savedFiglioArchivio, utente, em, Boolean.TRUE, contenuto);
-                                log.info(String.format("finito di duplicare %s, nipote di %s, con i suoi documenti", archNipote.getId(), archivio.getId()));
-                                if (iHaveToKrint) {
-                                    krintScriptaService.writeArchivioUpdate(savedInsArchivio, archNipote, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
-                                }
-                                //                        Archivio savedInsArchivio = scriptaCopyUtils.copiaArchivio(archNipote, savedFiglioArchivio, persona, em);
-                                //                        if(contenuto){
-                                //                            log.info(String.format("procedo a duplicare i documenti di %s", archNipote.getId()));
-                                //                            scriptaCopyUtils.copiaArchivioDoc(archNipote, savedInsArchivio, persona, em);
-                                //                            log.info(String.format("I documenti sono stati duplicati correttamente dall'archivio: " + archNipote.getId() + " all'archivio: " + savedInsArchivio.getId()));
-                                //                        }
-                            }
-                        }
-                    }
-                }
-                log.info(String.format("finito le duplicare i figli e nipoti di %s", archivio.getId()));
-            }
-            em.refresh(savedArchivio);
-            archivioRepository.copiaPermessiArchivi(archivio.getId(), savedArchivio.getId());
-            archivioRepository.calcolaPermessiEsplicitiGerarchia(savedArchivio.getId());
-            String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
-            log.info("Recupero projection by name " + projection);
-            Class<?> projectionClass = restControllerEngine.getProjectionClass(projection, archivioRepository);
+            
+            Archivio savedArchivio = scriptaCopyUtils.duplicaArchivio(archivio, utente, contenuto, true, iHaveToKrint, false);
+            
             projectionsInterceptorLauncher.setRequestParams(null, request);
-            log.info("Chiamo la facrtory della projection...");
-            Object projectedObject = projectionFactory.createProjection(
-                    projectionClass, savedArchivio
+            return projectionFactory.createProjection(
+                    CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo.class, savedArchivio
             );
-            if (iHaveToKrint) {
-                krintScriptaService.writeArchivioUpdate(archivio, savedArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_DUPLICA);
-                krintScriptaService.writeArchivioUpdate(savedArchivio, archivio, OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_CREATION_DA_DUPLICA);
-            }
-            log.info("Ritorno la projectionCreata");
-            return projectedObject;
         }
+
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
 
@@ -1878,12 +1822,12 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         //procedo a tirare su tutto ciò che mi serve
-        Integer idArchivioInt = Integer.parseInt(idArchivio);
+        Integer idArchivioInt = Integer.valueOf(idArchivio);
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), idArchivioInt, PermessoArchivio.DecimalePredicato.VICARIO)) {
             throw new Http403ResponseException("1", "Utente non ha il permesso per fare questa operazione.");
         }
         Optional<Archivio> a = archivioRepository.findById(idArchivioInt);
-        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
         //controllo l'effettiva presenza dell'archivio da spostare
         if (a.isPresent()) {
             Archivio archivio = a.get();
@@ -1905,12 +1849,12 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             log.info(String.format("Ho reso fascicolo l'archivio %s", archivio.getId()));
             //numero il nuovo archivio
             archivioRepository.numeraArchivio(archivio.getId());
-            em.refresh(archivio);
+            entityManager.refresh(archivio);
             log.info(String.format("ho numerato e calcolato i permessi di %s", archivio.getId()));
 
             if (haFigli) {
                 log.info(String.format("procedo a modificare i figli di %s", archivio.getId()));
-                em.refresh(archivio);
+                entityManager.refresh(archivio);
                 jPAQueryFactory
                         .update(QArchivioDetail.archivioDetail)
                         .setNull(QArchivioDetail.archivioDetail.idPersonaCreazione)
@@ -1944,7 +1888,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 }
                 log.info(String.format("ho numerato e calcolato permessi le modifiche ai figli di %s", archivio.getId()));
             }
-            em.refresh(archivio);
+            entityManager.refresh(archivio);
 //            archivioRepository.copiaPermessiArchivi(archivio.getId());
             archivioRepository.calcolaPermessiEsplicitiGerarchia(archivio.getId());
             String projection = "CustomArchivioWithIdAziendaAndIdMassimarioAndIdTitolo";
@@ -2000,7 +1944,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 log.info(String.format("Il documento è stato copiato correttamente all'archivio: " + archivioDestinazione.getId()));
                 finalArchivio = archivioDestinazione;
 
-                em.refresh(finalArchivio);
+                entityManager.refresh(finalArchivio);
                 if (iHaveToKrint) {
                     krintScriptaService.writeActionDoc(doc, finalArchivio, OperazioneKrint.CodiceOperazione.SCRIPTA_DOC_COPIA);
                 }
@@ -2047,7 +1991,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 //controllo l'effettiva presenza dell'archivio destinazione
                 if (aDestinazione.isPresent()) {
                     Archivio archivioDestinazione = aDestinazione.get();
-                    JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+                    JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
                     boolean iHaveToKrint = krintUtils.doIHaveToKrint(request);
                     log.info(String.format("procedo a spostare il documento %s", doc.getId()));
                     List<ArchivioDoc> archivioDestinazioneDocs = archivioDocRepository.findByIdArchivio(archivioDestinazione);
@@ -2086,8 +2030,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         throw new Http500ResponseException("5", "Non ho trovato nessun archivio con l'id passato");
     }
-    
-    
+
     @RequestMapping(value = "versaDocMassivo", method = RequestMethod.POST)
     @Transactional(rollbackFor = Throwable.class)
     public ResponseEntity<?> versaDocMassivo(
@@ -2098,7 +2041,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
     ) throws MasterjobsWorkerException, BlackBoxPermissionException {
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
-        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(em);
+        JPAQueryFactory jPAQueryFactory = new JPAQueryFactory(entityManager);
         QDoc qDoc = QDoc.doc;
         jPAQueryFactory
                 .update(qDoc)
@@ -2110,7 +2053,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         Map<String, Object> versatoreConfigAziendaValue = aziendeAttiveConParametri.get(idAzienda);
         String hostId = (String) versatoreConfigAziendaValue.get("hostId");
         Integer threadPoolSize = (Integer) versatoreConfigAziendaValue.get("threadPoolSize");
-        Map<String,Object> params = (Map<String,Object>) versatoreConfigAziendaValue.get("params");
+        Map<String, Object> params = (Map<String, Object>) versatoreConfigAziendaValue.get("params");
         switch (operazione) {
             case FORZARE:
                 accodatoreVeloce.accodaVersatore(
@@ -2138,7 +2081,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         }
         return new ResponseEntity("", HttpStatus.OK);
     }
-    
+
     @RequestMapping(value = {"sostituisciResponsabileArchivioMassivo"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> sostituisciResponsabileArchivioMassivo(
@@ -2150,11 +2093,11 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam(required = true, name = "idStrutturaNuovoResponsabile") Integer idStrutturaNuovoResponsabile,
             @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento
     ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
-        
+
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
-        
+
         // Controlli di sicurezza
         // Sono AG per l'azienda?
         List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
@@ -2172,7 +2115,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         if (!utenteInAzienda || !strutturaResponsabile.getIdAzienda().getId().equals(idAziendaRiferimento)) {
             throw new Http403ResponseException("3", "responsabile e struttura non fanno parte dell'azienda");
         }
-        
+
         Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
 
         Map<String, Object> parameters = new HashMap();
@@ -2182,18 +2125,17 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         parameters.put("idAziendaRiferimento", idAziendaRiferimento);
         parameters.put("idPersonaNuovoResponsabile", idPersonaNuovoResponsabile);
         parameters.put("idStrutturaNuovoResponsabile", idStrutturaNuovoResponsabile);
-        
+
         Integer idMassiveActionLog = scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_RESPONSABILE);
-        
-        
+
         // Inserisco il job per la sosituzione
         SostizioneMassivaResponsabileArchiviJobWorkerData sostizioneMassivaResponsabileArchiviJobWorkerData = new SostizioneMassivaResponsabileArchiviJobWorkerData(
-                idsArchivi, 
-                idPersonaNuovoResponsabile, 
-                idStrutturaNuovoResponsabile, 
-                idMassiveActionLog, 
-                authenticatedUserProperties.getPerson().getId(), 
-                authenticatedUserProperties.getUser().getId(), 
+                idsArchivi,
+                idPersonaNuovoResponsabile,
+                idStrutturaNuovoResponsabile,
+                idMassiveActionLog,
+                authenticatedUserProperties.getPerson().getId(),
+                authenticatedUserProperties.getUser().getId(),
                 idAziendaRiferimento
         );
 
@@ -2206,13 +2148,13 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         jn.setPriority(Set.SetPriority.NORMAL);
         jn.setSkipIfAlreadyPresent(Boolean.FALSE);
         jobNotifiedRepository.save(jn);
-                
+
         Map<String, Object> response = new HashMap();
         //response.put("idsSize", ids.length);
-        
+
         return ResponseEntity.ok(response);
     }
-    
+
     @RequestMapping(value = {"modificaVicariAndPermessiArchivioMassivo"}, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> modificaVicariAndPermessiArchivioMassivo(
@@ -2224,11 +2166,11 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestBody(required = true) InfoAbilitazioniMassiveArchivi abilitazioniRichieste,
             @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento
     ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
-            
+
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
-        
+
         // Controlli di sicurezza
         // Sono AG per l'azienda?
         List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
@@ -2265,7 +2207,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 }
             }
         }
-        
+
         Integer[] idsArchivi = scriptaGestioneAbilitazioniMassiveArchiviUtils.getFilteredIdsArchivi(idAziendaRiferimento, predicate, ids, notIds);
 
         Map<String, Object> parameters = new HashMap();
@@ -2274,16 +2216,16 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         parameters.put("notIds", notIds);
         parameters.put("idAziendaRiferimento", idAziendaRiferimento);
         parameters.put("abilitazioniRichieste", abilitazioniRichieste);
-        
+
         Integer idMassiveActionLog = scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(idsArchivi, parameters, MassiveActionLog.OperationType.MODIFICA_VICARI_E_PERMESSI);
-        
+
         // Inserisco il job per dare/togliere le abilitazioni
         GestioneMassivaAbilitazioniArchiviJobWorkerData gestioneMassivaAbilitazioniArchiviJobWorkerData = new GestioneMassivaAbilitazioniArchiviJobWorkerData(
-                idsArchivi, 
+                idsArchivi,
                 abilitazioniRichieste,
-                idMassiveActionLog, 
-                authenticatedUserProperties.getPerson().getId(), 
-                authenticatedUserProperties.getUser().getId(), 
+                idMassiveActionLog,
+                authenticatedUserProperties.getPerson().getId(),
+                authenticatedUserProperties.getUser().getId(),
                 idAziendaRiferimento
         );
 
@@ -2296,12 +2238,12 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         jn.setPriority(Set.SetPriority.NORMAL);
         jn.setSkipIfAlreadyPresent(Boolean.FALSE);
         jobNotifiedRepository.save(jn);
-        
+
         Map<String, Object> response = new HashMap();
-        
+
         return ResponseEntity.ok(response);
     }
-    
+
     @RequestMapping(value = {"copiaTrasferisciAbilitazioniArchiviMassivo"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {Error.class})
     public ResponseEntity<?> copiaTrasferisciAbilitazioniArchiviMassivo(
@@ -2310,88 +2252,200 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento,
             @RequestParam(required = true, name = "idPersonaSorgente") Integer idPersonaSorgente,
             @RequestParam(required = true, name = "idPersonaDestinazione") Integer idPersonaDestinazione,
-            @RequestParam(required = false, name = "idStrutturaNuovoResponsabile") Integer idStrutturaNuovoResponsabile
-    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException, MasterjobsWorkerInitializationException, MasterjobsWorkerException {
-        
+            @RequestParam(required = true, name = "idStrutturaDestinazione") Integer idStrutturaDestinazione
+    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException, MasterjobsWorkerInitializationException, MasterjobsWorkerException, MasterjobsQueuingException {
+
         log.info("Richiesta di copia/trasferimento abilitazioni archvi");
-        
-        log.info(String.format("PARAMETRI. operationType: %1$s, idAziendaRiferimento: %2$s, idPersonaSorgente: %3$s, idPersonaDestinazione: %4$s, idStrutturaNuovoResponsabile %5$s", 
-                operationType, idAziendaRiferimento, idPersonaSorgente, idPersonaDestinazione, idStrutturaNuovoResponsabile));
-        
+
+        log.info(String.format("PARAMETRI. operationType: %1$s, idAziendaRiferimento: %2$s, idPersonaSorgente: %3$s, idPersonaDestinazione: %4$s, idStrutturaDestinazione %5$s",
+                operationType, idAziendaRiferimento, idPersonaSorgente, idPersonaDestinazione, idStrutturaDestinazione));
+
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
         Applicazione app = applicazioneRepository.findById(Applicazione.Applicazioni.scripta.name()).get();
-        
+
         log.info("Eseguo i controlli di sicurezza");
         // Vedo se l'utente è AG
         List<Integer> idAziendaListDoveAG = userInfoService.getIdAziendaListDovePersonaHaRuolo(persona, Ruolo.CodiciRuolo.AG);
         if (idAziendaListDoveAG.isEmpty() || !idAziendaListDoveAG.contains(idAziendaRiferimento)) {
             throw new Http403ResponseException("1", "Utente non è AG dell'azienda");
         }
-        
+
         // Vedo se l'oprazione richiesta è corretta
         if (!operationType.equals(MassiveActionLog.OperationType.COPIA_ABILITAZIONI) && !operationType.equals(MassiveActionLog.OperationType.TRASFERISCI_ABILITAZIONI)) {
             throw new Http403ResponseException("2", "Operazione non prevista");
         }
-        
+
         // Controllo che la persona destinaizone sia attiva e abbia l'utente attivo sulla azienda di riferimento
         Persona personaDestinazione = personaRepository.getById(idPersonaDestinazione);
-        
+
         if (!personaDestinazione.getAttiva()) {
             throw new Http403ResponseException("3", "La persona destinazione non è attiva");
         }
-        
+
         List<Utente> utentelist = personaDestinazione.getUtenteList().stream().filter(u -> u.getAttivo() && u.getIdAzienda().getId().equals(idAziendaRiferimento)).collect(Collectors.toList());
-        
+
         if (utentelist.isEmpty()) {
             throw new Http403ResponseException("4", "L'utente destinazione non è attivo sulla azienda di riferimento");
         }
-        
+
         Utente utenteDestinazione = utentelist.get(0);
-        
+
         log.info("Scrivo il massive action log");
         Map<String, Object> parameters = new HashMap();
         parameters.put("idPersonaSorgente", idPersonaSorgente);
         parameters.put("idPersonaDestinazione", idPersonaDestinazione);
         parameters.put("idAzienda", idAziendaRiferimento);
         parameters.put("operationType", operationType);
-        
+
         Integer idMassiveActionLog = scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(null, parameters, operationType);
-        
+
         log.info("Inserisco il job CopiaTrasferisciAbilitazioniArchiviJobWorkerData");
         // Inserisco il job per copiare/trasferire le abilitazioni
         CopiaTrasferisciAbilitazioniArchiviJobWorkerData copiaTrasferisciAbilitazioniArchiviJobWorkerData = new CopiaTrasferisciAbilitazioniArchiviJobWorkerData(
-                operationType, 
-                idPersonaSorgente, 
-                idPersonaDestinazione, 
-                idStrutturaNuovoResponsabile, 
-                idMassiveActionLog, 
-                authenticatedUserProperties.getPerson().getId(), 
-                authenticatedUserProperties.getUser().getId(), 
+                operationType,
+                idPersonaSorgente,
+                idPersonaDestinazione,
+                idStrutturaDestinazione,
+                idMassiveActionLog,
+                authenticatedUserProperties.getPerson().getId(),
+                authenticatedUserProperties.getUser().getId(),
                 idAziendaRiferimento,
                 utenteDestinazione.getId()
         );
-         
+
         // Esecuzione sincrono per fare delle prove
-//        CopiaTrasferisciAbilitazioniArchiviJobWorker worker = (CopiaTrasferisciAbilitazioniArchiviJobWorker) masterjobsObjectsFactory.getJobWorker(
-//                CopiaTrasferisciAbilitazioniArchiviJobWorker.class,
-//                copiaTrasferisciAbilitazioniArchiviJobWorkerData,
-//                false
-//        );
-//        worker.doWork();
-    
-        Map copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(copiaTrasferisciAbilitazioniArchiviJobWorkerData, Map.class);
-        JobNotified jn = new JobNotified();
-        jn.setJobName("CopiaTrasferisciAbilitazioniArchiviJobWorker");
-        jn.setJobData(copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap);
-        jn.setWaitObject(false);
-        jn.setApp(app.getId());
-        jn.setPriority(Set.SetPriority.NORMAL);
-        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
-        jobNotifiedRepository.save(jn);
-        
+        CopiaTrasferisciAbilitazioniArchiviJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
+                CopiaTrasferisciAbilitazioniArchiviJobWorker.class,
+                copiaTrasferisciAbilitazioniArchiviJobWorkerData,
+                false
+        );
+        masterjobsJobsQueuer.queueInJobsNotified(
+                jobWorker,
+                null, // ObjectID 
+                null,
+                app.getId(),
+                false, // waitForObject
+                Set.SetPriority.NORMAL,
+                false
+        );
+//        jobWorker.doWork();
+
+//        Map copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(copiaTrasferisciAbilitazioniArchiviJobWorkerData, Map.class);
+//        JobNotified jn = new JobNotified();
+//        jn.setJobName("CopiaTrasferisciAbilitazioniArchiviJobWorker");
+//        jn.setJobData(copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap);
+//        jn.setWaitObject(false);
+//        jn.setApp(app.getId());
+//        jn.setPriority(Set.SetPriority.NORMAL);
+//        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
+//        jobNotifiedRepository.save(jn);
         Map<String, Object> response = new HashMap();
-        
+
         return ResponseEntity.ok(response);
     }
+
+    @RequestMapping(value = "downloadStampaLotti/{guidDocumento}", method = RequestMethod.GET)
+    public ResponseEntity<?> downloadStampaLotti(@PathVariable String guidDocumento)
+            throws BlackBoxPermissionException, MasterjobsWorkerException, Http404ResponseException {
+
+        authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
+
+        List<Lotto> lottiList = lottoRepository.findByGuidDocumento(guidDocumento);
+
+        if (lottiList.isEmpty()) {
+            throw new Http404ResponseException("1", "lotti not found");
+        }
+
+        // getting the contraente with more lotti
+        Contraente contraente = lottiList.stream()
+                .collect(Collectors.groupingBy(Lotto::getIdContraente, Collectors.counting()))
+                .entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
+                .orElseThrow(() -> new Http404ResponseException("2", "contraente not found"));
+
+        Map<String, Object> dataModel = new HashMap<String, Object>() {
+            {
+                put("title", "Dataset of " + contraente.getNome());
+                put("name", "Nome dataset");
+                //put("urlToXmlFile", "address-to-xml"); //TODO tbd
+                put("publicationDate", ZonedDateTime.now());
+                //put("lastEditDate", ZonedDateTime.now()); //TODO tbd
+                put("lottiList", lottiList);
+            }
+        };
+
+        ReporterJobWorkerData data = new ReporterJobWorkerData();
+        data.setCodiceAzienda("AvCp"); // TODO tbd by id_azienda_gru or id, in case every business company wants to use its own implementation
+        data.setFileName("Dataset_" + contraente.getId() + LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME));
+        data.setTemplateName("AvCp_dataset.xhtml");
+        data.setParametriTemplate(dataModel);
+
+        PdfAReporter jobWorker = masterjobsObjectsFactory.getJobWorker(PdfAReporter.class, data, false);
+
+        return new ResponseEntity<>((UrlAndUuidResult) jobWorker.doWork(), HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "getDocDocByIdDocSorgente/{idDocSorgente}", method = RequestMethod.GET)
+    public ResponseEntity<?> getDocDocByIdDocSorgente(
+            @PathVariable(required = true) Integer idDocSorgente,
+            HttpServletResponse response,
+            HttpServletRequest request) throws BlackBoxPermissionException {
+        List<DocDocWithPlainFields> collect = null;
+        projectionsInterceptorLauncher.setRequestParams(null, request);
+
+        Doc docSorgente = docRepository.getById(idDocSorgente);
+        ArrayList<DocDoc> docListbyIdDocSorgente = docDocRepository.getByIdDocSorgente(docSorgente);
+
+        if (docListbyIdDocSorgente != null && !docListbyIdDocSorgente.isEmpty()) {
+            collect = docListbyIdDocSorgente.stream().map(docDoc -> projectionFactory.createProjection(DocDocWithPlainFields.class, docDoc)).collect(Collectors.toList());
+        }
+
+//        res = projectionFactory.createProjection(DocDocWithPlainFields.class, docListbyIdDocSorgente);
+        return new ResponseEntity(collect, HttpStatus.OK);
+    }
+    
+     /**
+     * Pico chiama questa funzione per sapere i guid dei pe che non sono stati fascicolati da più di
+     * un numero di giorni definito nel parametro aziendale giorniPESenzaFascicolazioneSollecito.
+     *
+     * @param idAzienda
+     * @param response
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "getGuidPESenzaFascicolazione", method = RequestMethod.GET)
+    public ResponseEntity<?> getGuidPESenzaFascicolazione(
+            @RequestParam(required = true, name = "idAzienda") String idAzienda,
+            HttpServletResponse response,
+            HttpServletRequest request) {
+        QDoc qDoc = QDoc.doc;
+        QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
+        QDocAnnullato qDocAnnullato = QDocAnnullato.docAnnullato;
+        QRegistroDoc qRegistroDoc = QRegistroDoc.registroDoc;
+        JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
+        
+        List<ParametroAziende> giorniPESenzaFascicolazioneSollecito = cachedEntities.getParameters("giorniPESenzaFascicolazioneSollecito", Integer.parseInt(idAzienda));
+
+        Integer giorniSenzaFascicolazione = parametriAziende.getValue(giorniPESenzaFascicolazioneSollecito.get(0), Integer.class);
+        ZonedDateTime dataMaxFascicolazioneMancante = ZonedDateTime.now().minusDays(giorniSenzaFascicolazione);
+
+        List<String> arrayGuidPe = jpaQueryFactory
+                .selectDistinct(qDoc.idEsterno)
+                .from(qDoc)
+                .leftJoin(qDocAnnullato).on(qDocAnnullato.idDoc.id.eq(qDoc.id))
+                .leftJoin(qArchivioDoc).on(qArchivioDoc.idDoc.id.eq(qDoc.id))
+                .leftJoin(qRegistroDoc).on(qRegistroDoc.idDoc.id.eq(qDoc.id))
+                .where(qDoc.tipologia.eq(DocDetailInterface.TipologiaDoc.PROTOCOLLO_IN_ENTRATA)
+                        .and(qArchivioDoc.idArchivio.isNull())
+                        .and(qDocAnnullato.id.isNull())
+                        .and(qRegistroDoc.dataRegistrazione.isNotNull())
+                        .and(qRegistroDoc.dataRegistrazione.before(dataMaxFascicolazioneMancante))
+                        .and(qDoc.idAzienda.id.eq(Integer.parseInt(idAzienda)))
+                        .and(qDoc.idEsterno.isNotNull()))
+                .groupBy(qDoc.idEsterno)
+                .fetch();
+        return new ResponseEntity(arrayGuidPe, HttpStatus.OK);
+    }
+    
+   
 }

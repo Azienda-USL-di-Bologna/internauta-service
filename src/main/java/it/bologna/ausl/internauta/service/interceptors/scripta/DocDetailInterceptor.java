@@ -149,7 +149,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         );
                         Optional<PermessoArchivio> findOne = permessoArchivioRepository.findOne(filterUserhasPermission);
                         
-                        if (!findOne.isPresent()) {
+                        if (!findOne.isPresent() && !userInfoService.isCA(user) && !userInfoService.isAG(user) && !userInfoService.isSD(user) && !userInfoService.isOS(user) ) {
                             throw new AbortLoadInterceptorException("Persona senza permesso su Archivio");
                         }
                         
@@ -162,9 +162,9 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                             })).or(qdoclist.numeroRegistrazione.isNotNull()).and(initialPredicate);
                         Integer[] idArchivi = new Integer[]{idArchivio};
                         BooleanExpression archivioFilter = Expressions.booleanTemplate(
-                    String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idArchivi, ","), "integer[]", "&&"),
-                    qdoclist.idArchivi
-            );  
+                        String.format("FUNCTION('array_operation', '%s', '%s', {0}, '%s')= true", StringUtils.join(idArchivi, ","), "integer[]", "&&"),
+                        qdoclist.idArchivi
+                            );  
                         
                         initialPredicate =  archivioFilter.and(initialPredicate);
                         
@@ -261,8 +261,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         qPersonaVedente.pienaVisibilita.eq(Expressions.TRUE),
                         qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
                         qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
-                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione),
-                        scriptaInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
                     );
             SubQueryExpression<Long> queryPersoneVedenteSenzaObbligoPienaVisbilita = 
                     select(qPersonaVedente.id)
@@ -271,8 +270,7 @@ public class DocDetailInterceptor extends InternautaBaseInterceptor {
                         qPersonaVedente.idPersona.id.eq(persona.getId()),
                         qdoclist.id.eq(qPersonaVedente.idDocDetail.id),
                         qdoclist.idAzienda.id.eq(qPersonaVedente.idAzienda.id),
-                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione),
-                        scriptaInterceptorUtils.duplicateFiltersPerPartition(PersonaVedente.class, "dataCreazione")
+                        qdoclist.dataCreazione.eq(qPersonaVedente.dataCreazione)
                     );
             BooleanExpression pienaVisibilita = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteConPienaVisibilita);
             BooleanExpression personaVedente = qdoclist.personeVedentiList.any().id.eq(queryPersoneVedenteSenzaObbligoPienaVisbilita);//idPersona.id.eq(persona.getId());

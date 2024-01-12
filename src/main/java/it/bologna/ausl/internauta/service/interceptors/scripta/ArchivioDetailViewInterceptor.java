@@ -79,7 +79,7 @@ public class ArchivioDetailViewInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
-        initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(ArchivioDetailView.class, "dataCreazioneArchivio").and(initialPredicate);
+        initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(ArchivioDetailView.class, "dataCreazioneArchivio", "idAziendaArchivio").and(initialPredicate);
         return initialPredicate;
     }
 
@@ -99,7 +99,7 @@ public class ArchivioDetailViewInterceptor extends InternautaBaseInterceptor {
         BooleanExpression filter = Expressions.TRUE.eq(true);
         QArchivioDetailView archivioDetailView = QArchivioDetailView.archivioDetailView;
         
-        if (!userInfoService.isSD(user)) {
+        if (!userInfoService.isSD(user) && !userInfoService.isCA(user) && !userInfoService.isAG(user) && !userInfoService.isOS(user)) {
             List<Integer> listaIdAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getId()).collect(Collectors.toList());
             BooleanExpression personaConPermesso = 
                     archivioDetailView.idPersona.id.eq(persona.getId());

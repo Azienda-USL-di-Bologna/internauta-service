@@ -406,23 +406,36 @@ public class BaborgUtils {
     public List<StrutturaUnificataCustom> getUnificazione(Struttura struttura, ZonedDateTime dataRiferimento, String tipoUnificazione) {
         if (dataRiferimento == null) {
             dataRiferimento = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS);
-        }else{
+        } else {
             dataRiferimento = dataRiferimento.truncatedTo(ChronoUnit.DAYS);
         }
+        
         QStrutturaUnificata qStrutturaUnificata = QStrutturaUnificata.strutturaUnificata;
-        BooleanExpression filtraFusioni = 
+        
+        BooleanExpression filtroSorgenteDestinazione;
+        if (tipoUnificazione.equals("FUSIONE")) {
+            filtroSorgenteDestinazione =
+                    qStrutturaUnificata.idStrutturaSorgente.id.eq(struttura.getId())
+                        .or(qStrutturaUnificata.idStrutturaDestinazione.id.eq(struttura.getId()));
+        } else {
+            filtroSorgenteDestinazione =
+                    qStrutturaUnificata.idStrutturaSorgente.id.eq(struttura.getId());
+        }
+        
+        
+        BooleanExpression filtraUnificazioni = 
                 qStrutturaUnificata.dataAttivazione.loe(dataRiferimento)
                 .and((qStrutturaUnificata.dataDisattivazione.isNull()).or(qStrutturaUnificata.dataDisattivazione.goe(dataRiferimento)))
                 .and(qStrutturaUnificata.dataAccensioneAttivazione.isNotNull())
                 .and(qStrutturaUnificata.tipoOperazione.eq(tipoUnificazione))
-                .and(qStrutturaUnificata.idStrutturaSorgente.id.eq(struttura.getId())
-                        .or(qStrutturaUnificata.idStrutturaDestinazione.id.eq(struttura.getId())));
-        Iterable<StrutturaUnificata> fusioniStruttura = strutturaUnificataRepository.findAll(filtraFusioni);
+                .and(filtroSorgenteDestinazione);
+        
+        Iterable<StrutturaUnificata> unificazioniStruttura = strutturaUnificataRepository.findAll(filtraUnificazioni);
         
         List<StrutturaUnificataCustom> fusioniStrutturaCustom = new ArrayList();
         
-        if (fusioniStruttura != null) {
-            for (StrutturaUnificata s : fusioniStruttura) {
+        if (unificazioniStruttura != null) {
+            for (StrutturaUnificata s : unificazioniStruttura) {
                 fusioniStrutturaCustom.add(projectionFactory.createProjection(StrutturaUnificataCustom.class, s));
             }
         }
@@ -447,8 +460,7 @@ public class BaborgUtils {
             Struttura toAdd = null;
             if (des.getId().equals(struttura.getId())){
                 toAdd = strutturaRepository.getById(sor.getId());
-                
-            }else if (sor.getId().equals(struttura.getId())){
+            } else if (sor.getId().equals(struttura.getId())){
                 toAdd = strutturaRepository.getById(des.getId());
             }
             if (toAdd != null){

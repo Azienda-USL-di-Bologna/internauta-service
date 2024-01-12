@@ -91,7 +91,10 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
         //initialPredicate = safetyFilters().and(initialPredicate);
 
         Boolean safetyFiltersNonNecessari = false; // Ci sono dei casi in cui non voglio aggiungere filtri di sicurezza. Questi casi sono quelli in cui l'utente vuole vedere archivi che ha già usato e sono in archiviDiInteresse
-
+        
+        QArchivioDetail qArchivioDetail = QArchivioDetail.archivioDetail;
+        BooleanExpression noBozze = qArchivioDetail.stato.ne(Archivio.StatoArchivio.BOZZA.toString());
+        BooleanExpression bitAnomalieNotNull = qArchivioDetail.bitAnomalie.isNotNull();
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
@@ -130,9 +133,11 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
                         //}
                         break;
                     case VisualizzaTabTutti:
-                        QArchivioDetail qArchivioDetail = QArchivioDetail.archivioDetail;
-                        BooleanExpression noBozze = qArchivioDetail.stato.ne(Archivio.StatoArchivio.BOZZA.toString());
                         initialPredicate = noBozze.and(initialPredicate);
+                        break;
+                    case VisualizzaTabAnomalie:
+                        initialPredicate = noBozze.and(initialPredicate);
+                        initialPredicate = bitAnomalieNotNull.and(initialPredicate);
                         break;
                 }
             }
@@ -172,7 +177,7 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
         QArchivioDetail archivioDetail = QArchivioDetail.archivioDetail;
         QPermessoArchivio permessoArchivio = QPermessoArchivio.permessoArchivio;
 
-        if (!userInfoService.isSD(user)) {
+        if (!userInfoService.isSD(user) && !userInfoService.isCA(user) && !userInfoService.isAG(user) && !userInfoService.isOS(user)) {
 
             // Se nel filtro c'è una azienda parlante devo lanciare eccezione
             List<ParametroAziende> fascicoliParlanti = cachedEntities.getParameters("fascicoliParlanti");

@@ -126,16 +126,17 @@ public class AziendaProjectionUtils {
         Utente utente = (Utente) httpSessionData.getData(InternautaConstants.HttpSessionData.Keys.UtenteLogin);
 
         AziendaParametriJson parametri = utente.getIdAzienda().getParametri();
+        String logoutUrl = parametri.getLogoutUrl();
         if (authenticatedSessionData.isFromInternet()) {
             try {
-                parametri.setBasePath(parametri.getInternetBasePath());
-                parametri.setLogoutUrl(parametri.getInternetLogoutUrl());
+                //parametri.setBasePath(parametri.getInternetBasePath());
+                logoutUrl = parametri.getInternetLogoutUrl();
             } catch (Exception ex) {
                 LOGGER.error("errore nel reperimento di isFromInternet", ex);
             }
         }
 
-        result.put(LOGOUT_URL_KEY, parametri.getLogoutUrl());
+        result.put(LOGOUT_URL_KEY, logoutUrl);
 
         return result;
     }

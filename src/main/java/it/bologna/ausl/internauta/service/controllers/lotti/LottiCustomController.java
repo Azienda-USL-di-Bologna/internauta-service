@@ -12,10 +12,16 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.lotti.Lotto;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
 import it.nextsw.common.interceptors.exceptions.AbortLoadInterceptorException;
 import it.nextsw.common.utils.exceptions.EntityReflectionException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -96,9 +102,10 @@ public class LottiCustomController {
     }
     
     /**
-     * Controller usato per sapere se un certo doc (identificato da un guid) ha o no dei lotti
+     * Controller usato per sapere se un certo doc (identificato da un guid) ha o no dei lotti, e se necessita di una nuova stampa dato il ts dell'ultima stampa
      * @param guid il guid del Doc da prendere in esame
-     * @return ritorna true se è stato trovato almeno un lotto, altrimenti false
+     * @param ts il timestamp dell'ultima stampa se presente
+     * @return ritorna "false" se non sono stati trovati lotti, "true" se ci sono, "stampa" se ci sono ed è necessario produrre una nuova stampa
      * @throws ClassNotFoundException
      * @throws EntityReflectionException
      * @throws IllegalArgumentException
@@ -109,16 +116,34 @@ public class LottiCustomController {
      */
     @RequestMapping(value = {"hasLottiByGuid"}, method = RequestMethod.GET)
     public ResponseEntity<?> hasLottiByGuid(
-            @RequestParam(name = "guid", required = true) String guid) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException, BlackBoxPermissionException {
-        // ottengo il doc e in caso non esista ritorno errore 500
-        Doc docFindByIdEsterno = docRepository.findByIdEsterno(guid);
-        if (docFindByIdEsterno == null)
+            @RequestParam(name = "guid", required = true) String guid,
+            @RequestParam(name = "ts", required = false) String ts) throws ClassNotFoundException, EntityReflectionException, IllegalArgumentException, IllegalAccessException, RestControllerEngineException, AbortLoadInterceptorException, BlackBoxPermissionException {
+        Doc doc = docRepository.findByIdEsterno(guid);
+        if (doc == null)
             return new ResponseEntity<>("Documento non trovato", HttpStatus.INTERNAL_SERVER_ERROR);        
+
+        List<Lotto> lottiList = doc.getLottiList();
+        if (lottiList.isEmpty()) {
+            // se non ho lotti rispondo false a prescindere dal resto
+            return ResponseEntity.ok(false);
+        }
         
-        // cerco almeno un lotto legato al doc che ho in esame e torno true se l'ho trovato, altrimenti false
-        boolean existsByGuid = !docFindByIdEsterno.getLottiList().isEmpty();
-        log.info(existsByGuid ? "true" : "false");
-        return ResponseEntity.ok(existsByGuid);
+        // se ho dei lotti ma non ho un ts utlima stampa dico di produrne una
+        if (ts == null) {
+            return ResponseEntity.ok("stampa");
+        }
+        
+        // altrimenti la produco solo se ho dei lotti successivi alla data di creazione dell'ultima stampa
+        DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        ZonedDateTime tsUltimaStampa = LocalDateTime.parse(ts, format).atZone(ZoneId.systemDefault());
+        for(Lotto lotto : lottiList) {
+            if (lotto.getVersion().isAfter(tsUltimaStampa)) {
+                return ResponseEntity.ok("stampa");
+            }
+        }
+        
+        // se arrivo qui non devo produrre una stampa ma con i lotti sto ok
+        return ResponseEntity.ok(true);
     }
     
     

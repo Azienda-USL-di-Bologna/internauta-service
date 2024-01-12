@@ -86,19 +86,16 @@ public class DeterminaDataValidator extends TipDataValidator {
             erroriImportazione.setError(ColonneDetermina.dataFine, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
             riga.setErrori(erroriImportazione);
         }
+        if (StringUtils.hasText(riga.getDataEsecutivita()) && !validateData(riga.getDataEsecutivita())) {
+            erroriImportazione.setError(ColonneDetermina.dataEsecutivita, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: dd/MM/yyyy.");
+            riga.setErrori(erroriImportazione);
+        }
         if (StringUtils.hasText(riga.getAnnoPubblicazione()) && !validateAnno(riga.getAnnoPubblicazione())) {
             erroriImportazione.setError(ColonneDetermina.annoPubblicazione, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: yyyy");
             riga.setErrori(erroriImportazione);
         }
-        if (StringUtils.hasText(riga.getConservato()) && !validateBoolean(riga.getConservato())) {
-            erroriImportazione.setError(ColonneDetermina.conservato, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato, il formato corretto è: true/false");
-            riga.setErrori(erroriImportazione);
-        } else if (Boolean.parseBoolean(riga.getConservato()) && !StringUtils.hasText(riga.getDataInvioConservazione())) {
-            erroriImportazione.setError(ColonneDetermina.conservato, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Se si indica che il documento è conservato è necessario inserire la data di conservazione");
-            riga.setErrori(erroriImportazione);
-        }
         if (StringUtils.hasText(riga.getCollegamentoPrecedente()) && !validateNumeroDocumentoPrecedente(riga.getCollegamentoPrecedente())) {
-            erroriImportazione.setError(ColonneDetermina.collegamentoPrecedente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: numero/yyyy");
+            erroriImportazione.setError(ColonneDetermina.collegamentoPrecedente, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "Formato errato. Il formato corretto è: [DELIBERA/DETERMINA/PROTOCOLLO-]numero/yyyy");
             riga.setErrori(erroriImportazione);
         }
         if (StringUtils.hasText(riga.getAnnullato()) && !validateBoolean(riga.getAnnullato())) {
@@ -127,13 +124,13 @@ public class DeterminaDataValidator extends TipDataValidator {
         if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getRedattore())) {
             erroriImportazione.setError(ColonneDetermina.redattore, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
         }
-        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getPareri())) {
+        if (StringUtils.hasText(riga.getPareri()) && !validaAttori(riga.getPareri())) {
             erroriImportazione.setError(ColonneDetermina.pareri, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
         }
-        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getFirmatario())) {
+        if (StringUtils.hasText(riga.getFirmatario()) && !validaAttori(riga.getFirmatario())) {
             erroriImportazione.setError(ColonneDetermina.firmatario, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
         }
-        if (StringUtils.hasText(riga.getRedattore()) && !validaAttori(riga.getVisto())) {
+        if (StringUtils.hasText(riga.getVisto()) && !validaAttori(riga.getVisto())) {
             erroriImportazione.setError(ColonneDetermina.visto, TipErroriImportazione.Flusso.TipoFlusso.VALIDAZIONE, "la stringa attori non è nel formato CodiceFiscale:Cognome:Nome#CodiceFiscale:Cognome:Nome#...");
         }
         return erroriImportazione;

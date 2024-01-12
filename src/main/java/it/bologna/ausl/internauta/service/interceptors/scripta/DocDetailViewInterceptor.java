@@ -5,6 +5,9 @@ import com.querydsl.core.types.dsl.Expressions;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
+import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import static it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData.OperationsRequested.FilterTraDocumentiRegistrati;
+import static it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData.OperationsRequested.VisualizzaTabRegistrazioni;
 import it.bologna.ausl.model.entities.baborg.Persona; 
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -53,11 +56,22 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortLoadInterceptorException {
-
+        QDocDetailView qdoclist = QDocDetailView.docDetailView;
 //        QDocDetailView qdoclistView = QDocDetailView.docDetailView;
+        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
         
         initialPredicate = safetyFilters().and(initialPredicate);
-        initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc").and(initialPredicate);
+        
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+           
+            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                switch (operationRequested) {
+                case FilterTraDocumentiRegistrati:
+                    initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
+                    break;}
+            }
+        }
+        initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc", "idAziendaDoc").and(initialPredicate);
 
 //        InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
 
