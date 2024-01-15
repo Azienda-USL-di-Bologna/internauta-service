@@ -71,9 +71,6 @@ public class IntimusUtils {
     private StrutturaRepository strutturaRepository;
     
     @Autowired
-    private EntityManager em;
-    
-    @Autowired
     @Qualifier(value = "redisIntimus")
     private RedisTemplate redisIntimusTemplate; 
     
@@ -88,6 +85,9 @@ public class IntimusUtils {
         @JsonProperty("command")
         private CommandObject command;
 
+        public IntimusCommand() {
+        }
+        
         public IntimusCommand(List<DestObject> dest, CommandObject command) {
             this.dest = dest;
             this.command = command;
@@ -114,7 +114,8 @@ public class IntimusUtils {
             return objectMapper.writeValueAsString(this);
         }
     }
-    public class DestObject {
+    
+    public static class DestObject {
         @JsonProperty("id_persona")
         private Integer idPersona;
         
@@ -127,6 +128,9 @@ public class IntimusUtils {
         @JsonProperty("all_aziende")
         private Boolean allAziende;
 
+        public DestObject() {
+        }
+        
         public DestObject(Integer idPersona, Integer[] idAziende, String[] apps, Boolean allAziende) {
             this.idPersona = idPersona;
             this.idAziende = idAziende;
@@ -197,13 +201,16 @@ public class IntimusUtils {
         }
     }
     
-    public class CommandObject {
+    public static class CommandObject {
         @JsonProperty("params")
         @JsonInclude(value=Include.NON_EMPTY, content=Include.NON_NULL)
         private CommandParams params;
 
         @JsonProperty("command")
         private IntimusCommandNames command;
+
+        public CommandObject() {
+        }
 
         public CommandObject(CommandParams params, IntimusCommandNames command) {
             this.params = params;
@@ -229,7 +236,7 @@ public class IntimusUtils {
 
     public interface CommandParams{};
 
-    public class ShowMessageParams implements CommandParams {
+    public static class ShowMessageParams implements CommandParams {
 
         private Integer messageId;
         private String title;
@@ -239,6 +246,9 @@ public class IntimusUtils {
         private AmministrazioneMessaggio.TipologiaEnum type;
         private AmministrazioneMessaggio.InvasivitaEnum invasivity;
         private Boolean disabled;
+
+        public ShowMessageParams() {
+        }
 
         public ShowMessageParams(Integer messageId, String title, String body, AmministrazioneMessaggio.SeveritaEnum severity, Integer rescheduleInterval, AmministrazioneMessaggio.TipologiaEnum type, AmministrazioneMessaggio.InvasivitaEnum invasivity) {
             this(messageId, title, body, severity, rescheduleInterval, type, invasivity, false);
@@ -320,8 +330,11 @@ public class IntimusUtils {
         }
     }
 
-    public class LogoutParams implements CommandParams {
+    public static class LogoutParams implements CommandParams {
         private String redirectUrl;
+
+        public LogoutParams() {
+        }
 
         public LogoutParams(String redirectUrl) {
             this.redirectUrl = redirectUrl;
@@ -336,12 +349,15 @@ public class IntimusUtils {
         }
     }
 
-    public class RefreshAttivitaParams implements CommandParams {
+    public static class RefreshAttivitaParams implements CommandParams {
         @JsonProperty("id_attivita")
         private Integer idAttivita;
         @JsonProperty("operation")
         private String operation;
 
+        public RefreshAttivitaParams(){
+        }
+        
         public RefreshAttivitaParams(Integer idAttivita, String operation) {
             this.idAttivita = idAttivita;
             this.operation = operation;
@@ -364,7 +380,7 @@ public class IntimusUtils {
         }
     }
 
-    public class RefreshMailsParams implements CommandParams {
+    public static class RefreshMailsParams implements CommandParams {
         @JsonProperty("entity")
         private String entity;
         @JsonProperty("id")
@@ -391,6 +407,9 @@ public class IntimusUtils {
         @JsonProperty("newRow")
         private Map<String, Object> newRow;
 
+        public RefreshMailsParams() {
+        }
+        
         public RefreshMailsParams(String entity, Integer id, Integer id_utente, String persona, String folder_description, String folder_name, String tag_description, String tag_name, Integer id_message, String operation) {
             this.entity = entity;
             this.id = id;
