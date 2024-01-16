@@ -190,7 +190,7 @@ public class IntimusCommandServiceWorker extends ServiceWorker {
                 .select(qIntimusCommand)
                 .from(qIntimusCommand)
                 .orderBy(qIntimusCommand.id.asc())
-                .limit(10000)
+                .limit(1000)
                 .fetch();
             if (intimusCommands != null && !intimusCommands.isEmpty()) {
                 for (IntimusCommand intimusCommand : intimusCommands) {
