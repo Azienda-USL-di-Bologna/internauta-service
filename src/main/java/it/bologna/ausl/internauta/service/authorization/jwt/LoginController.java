@@ -1,8 +1,11 @@
 package it.bologna.ausl.internauta.service.authorization.jwt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
+import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
@@ -17,8 +20,10 @@ import it.bologna.ausl.internauta.service.exceptions.SSOException;
 import it.bologna.ausl.internauta.service.exceptions.intimus.IntimusSendCommandException;
 import it.bologna.ausl.internauta.service.utils.CacheUtilities;
 import it.bologna.ausl.internauta.service.schedulers.workers.logoutmanager.LogoutManagerWorker;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.service.utils.HttpSessionData;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
+import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -67,20 +72,20 @@ public class LoginController {
     private final String NEW_USER_ACCESS = "newUserAccess";
     private final String COGNITO_CODE = "code";
 
-    @Value("${jwt.secret}")
-    private String secretKey;
-
-    @Value("${jwt.expires-seconds}")
-    private Integer tokenExpireSeconds;
-
-    @Value("${jwt.passtoken-expires-seconds}")
-    private Integer passTokenExpireSeconds;
-
-    @Value("${jwt.saml.enabled:false}")
-    private boolean samlEnabled;
-
-    @Value("${jwt.cognito.enabled:false}")
-    private boolean cognitoEnabled;
+//    @Value("${jwt.secret}")
+//    private String secretKey;
+//
+//    @Value("${jwt.expires-seconds}")
+//    private Integer tokenExpireSeconds;
+//
+//    @Value("${jwt.passtoken-expires-seconds}")
+//    private Integer passTokenExpireSeconds;
+//
+//    @Value("${jwt.saml.enabled:false}")
+//    private boolean samlEnabled;
+//
+//    @Value("${jwt.cognito.enabled:false}")
+//    private boolean cognitoEnabled;
 
     @Autowired
     private AuthorizationUtils authorizationUtils;
@@ -93,6 +98,9 @@ public class LoginController {
 
     @Autowired
     private CacheUtilities cacheUtilities;
+    
+    @Autowired
+    private CachedEntities cachedEntities;
 
     @Autowired
     private ProjectionFactory factory;
@@ -107,23 +115,17 @@ public class LoginController {
     private AuthenticatedSessionDataBuilder authenticatedSessionDataBuilder;
 
     @Autowired
-    private AWSCognitoUtils cognitoUtils;
-
-    @Autowired
     private AwsCognitoJwtParserUtils cognitoJwtParserUtils;
-
-    @Value("${jwt.cognito.domain}")
-    private String cognitoDomain;
-
-    @Value("${jwt.cognito.client_id}")
-    private String clientID;
-
-    @Value("${jwt.cognito.redirect_uri}")
-    private String redirectURI;
+    
+    @Autowired
+    private LoginConfig loginConfig;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @RequestMapping(value = "${internauta.security.passtoken-path}", method = RequestMethod.GET)
     public ResponseEntity<String> passTokenGenerator() throws BlackBoxPermissionException {
-
+        
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Utente user = authenticatedUserProperties.getUser();
         Utente realUser = authenticatedUserProperties.getRealUser();
@@ -139,7 +141,9 @@ public class LoginController {
         if (realUser != null) {
             realUserSSOFieldValue = String.valueOf(realUser.getIdPersona().getCodiceFiscale());
         }
-
+        Integer idAzienda = realUser != null ? realUser.getIdAzienda().getId():  user.getIdAzienda().getId();
+        loginConfig.readConfig(idAzienda);
+        
         ZonedDateTime currentDateTime = ZonedDateTime.now();
         String token = Jwts.builder()
                 .setSubject(String.valueOf(user.getId()))
@@ -150,8 +154,8 @@ public class LoginController {
                 .claim(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name(), realUserSSOFieldValue)
                 .claim(AuthorizationUtils.TokenClaims.FROM_INTERNET.name(), authenticatedUserProperties.isFromInternet())
                 .setIssuedAt(Date.from(currentDateTime.toInstant()))
-                .setExpiration(tokenExpireSeconds > 0 ? Date.from(currentDateTime.plusSeconds(passTokenExpireSeconds).toInstant()) : null)
-                .signWith(SIGNATURE_ALGORITHM, secretKey).compact();
+                .setExpiration(loginConfig.getJwtExpiresSeconds()> 0 ? Date.from(currentDateTime.plusSeconds(loginConfig.getPasstokenExpiresSeconds()).toInstant()) : null)
+                .signWith(SIGNATURE_ALGORITHM, loginConfig.getJwtSecret()).compact();
         return new ResponseEntity(token, HttpStatus.OK);
     }
 
@@ -215,14 +219,22 @@ public class LoginController {
         logger.info("login applicazione: " + userLogin.application);
         logger.info("passToken: " + userLogin.passToken);
         logger.info("login, is a new user access ?: " + userLogin.newUserAccess);
+        logger.info("hostname: " + hostname);
 
-        if (userLogin.passToken != null) {
+        if (StringUtils.hasText(userLogin.passToken)) {
             logger.info("c'è il passToken, agisco di conseguenza...");
             try {
+                /* 
+                devo estrarre l'azienda dal passtoken per leggere i parametri dai parametri_azienda,
+                per farlo devo leggere l'utente dai claims per poter poi estrarre l'azienda.
+                Una volta letti i parametri potrò leggere il jwtSecret per poter controllare la firma del passtoken
+                */
+                Integer idAzienda = authorizationUtils.getIdAziendaFromPassTken(userLogin.passToken);
+                loginConfig.readConfig(idAzienda);
                 Claims claims = Jwts.parser().
-                        setSigningKey(secretKey).
-                        parseClaimsJws(userLogin.passToken).
-                        getBody();
+                    setSigningKey(loginConfig.getJwtSecret()).
+                    parseClaimsJws(userLogin.passToken).
+                    getBody();
 
                 Object usernameObj = claims.get(AuthorizationUtils.TokenClaims.USERNAME.name());
                 Object realUserUsernameObj = claims.get(AuthorizationUtils.TokenClaims.REAL_USER_USERNAME.name());
@@ -233,6 +245,20 @@ public class LoginController {
             } catch (Exception ex) {
                 return new ResponseEntity("passToken non valido", HttpStatus.FORBIDDEN);
             }
+        } else if (StringUtils.hasText(hostname)) {
+            /* 
+            se non c'è il passtoken recupero l'azienda dall'hostname, 
+            il caso in cui l'applicazione è accessibile sia da internet che non e faccio il login post non è gestito e non saprei neanche come farlo
+            */
+            Integer idAzienda = null;
+            Azienda aziendaFromPath = cachedEntities.getAziendaFromPath(hostname);
+            if (aziendaFromPath != null) {
+                idAzienda = aziendaFromPath.getId();
+            }
+            // se non riesco a leggere l'azienda, la lettura dei parametri non verrà effettuata e saranno usati quelli dell'application.properties
+            if (idAzienda != null) {
+                loginConfig.readConfig(idAzienda);
+            }
         }
 
         userInfoService.loadUtenteRemoveCache(userLogin.username, hostname, true);
@@ -241,14 +267,14 @@ public class LoginController {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
 
-        if (userLogin.passToken == null && utente.getIdAzienda().getCodice().equals("050109")) {
+        // caso particolare solo per verona
+        if (!StringUtils.hasText(userLogin.passToken) && utente.getIdAzienda().getCodice().equals("050109")) {
             String md5DaCalcolare = userLogin.username + "/" + userLogin.password;
             if (!DigestUtils.md5Hex(md5DaCalcolare).toUpperCase().equals(utente.getPasswordHash().toUpperCase())) {
                 return new ResponseEntity(HttpStatus.FORBIDDEN);
             }
-
         } else {
-            if (userLogin.passToken == null) {
+            if (!StringUtils.hasText(userLogin.passToken)) {
                 if (!PasswordHashUtils.validatePassword(userLogin.password, utente.getPasswordHash())) {
                     return new ResponseEntity(HttpStatus.FORBIDDEN);
                 }
@@ -327,8 +353,8 @@ public class LoginController {
                 .claim(AuthorizationUtils.TokenClaims.COMPANY.name(), utente.getIdAzienda().getId())
                 .claim(AuthorizationUtils.TokenClaims.ID_SESSION_LOG.name(), idSessionLogString)
                 .setIssuedAt(currentDateTime.toDate())
-                .setExpiration(tokenExpireSeconds > 0 ? currentDateTime.plusSeconds(tokenExpireSeconds).toDate() : null)
-                .signWith(SIGNATURE_ALGORITHM, secretKey)
+                .setExpiration(loginConfig.getJwtExpiresSeconds() > 0 ? currentDateTime.plusSeconds(loginConfig.getJwtExpiresSeconds()).toDate() : null)
+                .signWith(SIGNATURE_ALGORITHM, loginConfig.getJwtSecret())
                 .compact();
 
         authorizationUtils.insertInContext(utente.getUtenteReale(), utente, idSessionLog, token, userLogin.application, false);
@@ -361,35 +387,23 @@ public class LoginController {
         logger.info("azienda: " + azienda);
         logger.info("passToken: " + passToken);
         logger.info("is a new user access ?" + newUserAccessString);
-
-        //LOGIN SAML
-        if (!samlEnabled && !StringUtils.hasText(passToken)) {
-            if (cognitoEnabled) {
-                if (cognitoCode != null && !cognitoCode.equals("")) {
-                    logger.info("cognito_code: " + cognitoCode);
-                    // TODO: validate JWT
-                    CognitoJWT cognitoJWT = cognitoUtils.getCognitoJWT(cognitoCode);
-                    String codiceFiscaleRealUser = cognitoJwtParserUtils.getClaim(cognitoJWT.getIdToken(), "custom:codice_fiscale");
-                    logger.info("codice_fiscale_utente_richiesto: " + codiceFiscaleRealUser);
-                    return cognitoUtils.login(azienda, hostname, secretKey, request, applicazione, codiceFiscaleRealUser);
-                } else {
-                    return cognitoUtils.callCognitoUI();
-
-                }
-            }
-            return new ResponseEntity("SAML and COGNITO authentication not enabled", HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        logger.debug("SAML Authentication is enabled");
+        logger.info("hostname: " + hostname);
 
         String ssoFieldValue = null;
-        Boolean fromInternet = null;
+        Boolean fromInternet = authorizationUtils.fromInternet(request);
         if (StringUtils.hasText(passToken)) {
             logger.info("c'è il passToken, agisco di conseguenza...");
             try {
-                Claims claims = Jwts.parser().
-                        setSigningKey(secretKey).
-                        parseClaimsJws(passToken).
-                        getBody();
+                /* 
+                devo estrarre l'azienda dal passtoken per leggere i parametri dai parametri_azienda,
+                per farlo devo leggere l'utente dai claims per poter poi estrarre l'azienda.
+                Una volta letti i parametri potrò leggere il jwtSecret per poter controllare la firma del passtoken
+                */
+                Integer idAzienda = authorizationUtils.getIdAziendaFromPassTken(passToken);
+                loginConfig.readConfig(idAzienda);
+                
+                // controlla la firma, se non è valida da eccozione
+                Claims claims = Jwts.parser().setSigningKey(loginConfig.getJwtSecret()).parseClaimsJws(passToken).getBody();
 
                 Object userSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.USER_SSO_FIELD_VALUE.name());
                 Object realUserSSOFieldValueObj = claims.get(AuthorizationUtils.TokenClaims.REAL_USER_SSO_FIELD_VALUE.name());
@@ -411,15 +425,57 @@ public class LoginController {
                 logger.error("passToken non valido", ex);
                 return new ResponseEntity("passToken non valido", HttpStatus.FORBIDDEN);
             }
+        } else if (StringUtils.hasText(hostname)) { 
+            /* 
+            se non c'è il passtoken recupero l'azienda dall'hostname, ma nel caso mi trovi su internet l'hostname è lo stesso per tutte le aziende,
+            per cui in quel caso prendo l'azienda di default della persona
+            */
+            Integer idAzienda = null;
+            Azienda aziendaFromPath = cachedEntities.getAziendaFromPath(hostname);
+            if (aziendaFromPath != null) {
+                idAzienda = aziendaFromPath.getId();
+            } else if (fromInternet) {
+                ssoFieldValue = request.getAttribute("CodiceFiscale").toString();
+                Persona person = cachedEntities.getPersonaFromCodiceFiscale(ssoFieldValue);
+                if (person != null) {
+                    idAzienda = person.getIdAziendaDefault().getId();
+                }
+            }
+            // se non riesco a leggere l'azienda, la lettura dei parametri non verrà effettuata e saranno usati quelli dell'application.properties
+            if (idAzienda != null) {
+                loginConfig.readConfig(idAzienda);
+            }
         }
+        
+        //LOGIN SAML
+        if (!loginConfig.isSamlEnabled() && !StringUtils.hasText(passToken)) {
+            if (loginConfig.isCognitoEnabled()) {
+                AWSCognitoUtils cognitoUtils = new AWSCognitoUtils(authorizationUtils, objectMapper, loginConfig);
+                if (cognitoCode != null && !cognitoCode.equals("")) {
+                    logger.info("cognito_code: " + cognitoCode);
+                    // TODO: validate JWT
+                    CognitoJWT cognitoJWT = cognitoUtils.getCognitoJWT(cognitoCode);
+                    String codiceFiscaleRealUser = cognitoJwtParserUtils.getClaim(cognitoJWT.getIdToken(), "custom:codice_fiscale");
+                    logger.info("codice_fiscale_utente_richiesto: " + codiceFiscaleRealUser);
+                    return cognitoUtils.login(azienda, hostname, loginConfig.getJwtSecret(), request, applicazione, codiceFiscaleRealUser);
+                } else {
+                    return cognitoUtils.callCognitoUI();
+
+                }
+            }
+            return new ResponseEntity("SAML and COGNITO authentication not enabled", HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        logger.debug("SAML Authentication is enabled");
+
+        
 
         ResponseEntity res;
 //      Create a boolean to manage writes to DB of real new LOG IN
-        Boolean writeUserAccess = false;
+        Boolean writeUserAccess;
         try {
-            writeUserAccess = Boolean.valueOf(newUserAccessString) && applicazione.equals(Applicazioni.scrivania.toString()) && StringUtils.isEmpty(impersonateUser);
+            writeUserAccess = Boolean.parseBoolean(newUserAccessString) && applicazione.equals(Applicazioni.scrivania.toString()) && !StringUtils.hasText(impersonateUser);
             logger.info("writeUserAccess: " + writeUserAccess);
-            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, secretKey, request, ssoFieldValue, impersonateUser, applicazione, fromInternet, writeUserAccess, false);
+            res = authorizationUtils.generateResponseEntityFromSAML(azienda, hostname, loginConfig.getJwtSecret(), request, ssoFieldValue, impersonateUser, applicazione, fromInternet, writeUserAccess, false);
         } catch (ObjectNotFoundException | BlackBoxPermissionException ex) {
             logger.error("errore nel login", ex);
             res = new ResponseEntity(HttpStatus.FORBIDDEN);

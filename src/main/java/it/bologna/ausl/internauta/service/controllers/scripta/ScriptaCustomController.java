@@ -137,6 +137,7 @@ import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.configurazione.ApplicazioneRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.DocDocRepository;
+import it.bologna.ausl.internauta.service.repositories.scripta.TitoloRepository;
 import it.bologna.ausl.internauta.service.utils.FileUtilities;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerInitializationException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedRepository;
@@ -308,6 +309,9 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
     @Autowired
     private KrintScriptaService krintScriptaService;
+    
+    @Autowired
+    private TitoloRepository titoloRepository;
     
     @Autowired
     private LottoRepository lottoRepository;
@@ -2399,4 +2403,49 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 //        res = projectionFactory.createProjection(DocDocWithPlainFields.class, docListbyIdDocSorgente);
         return new ResponseEntity(collect, HttpStatus.OK);
     }
+    
+     /**
+     * Pico chiama questa funzione per sapere i guid dei pe che non sono stati fascicolati da più di
+     * un numero di giorni definito nel parametro aziendale giorniPESenzaFascicolazioneSollecito.
+     *
+     * @param idAzienda
+     * @param response
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "getGuidPESenzaFascicolazione", method = RequestMethod.GET)
+    public ResponseEntity<?> getGuidPESenzaFascicolazione(
+            @RequestParam(required = true, name = "idAzienda") String idAzienda,
+            HttpServletResponse response,
+            HttpServletRequest request) {
+        QDoc qDoc = QDoc.doc;
+        QArchivioDoc qArchivioDoc = QArchivioDoc.archivioDoc;
+        QDocAnnullato qDocAnnullato = QDocAnnullato.docAnnullato;
+        QRegistroDoc qRegistroDoc = QRegistroDoc.registroDoc;
+        JPAQueryFactory jpaQueryFactory = new JPAQueryFactory(entityManager);
+        
+        List<ParametroAziende> giorniPESenzaFascicolazioneSollecito = cachedEntities.getParameters("giorniPESenzaFascicolazioneSollecito", Integer.parseInt(idAzienda));
+
+        Integer giorniSenzaFascicolazione = parametriAziende.getValue(giorniPESenzaFascicolazioneSollecito.get(0), Integer.class);
+        ZonedDateTime dataMaxFascicolazioneMancante = ZonedDateTime.now().minusDays(giorniSenzaFascicolazione);
+
+        List<String> arrayGuidPe = jpaQueryFactory
+                .selectDistinct(qDoc.idEsterno)
+                .from(qDoc)
+                .leftJoin(qDocAnnullato).on(qDocAnnullato.idDoc.id.eq(qDoc.id))
+                .leftJoin(qArchivioDoc).on(qArchivioDoc.idDoc.id.eq(qDoc.id))
+                .leftJoin(qRegistroDoc).on(qRegistroDoc.idDoc.id.eq(qDoc.id))
+                .where(qDoc.tipologia.eq(DocDetailInterface.TipologiaDoc.PROTOCOLLO_IN_ENTRATA)
+                        .and(qArchivioDoc.idArchivio.isNull())
+                        .and(qDocAnnullato.id.isNull())
+                        .and(qRegistroDoc.dataRegistrazione.isNotNull())
+                        .and(qRegistroDoc.dataRegistrazione.before(dataMaxFascicolazioneMancante))
+                        .and(qDoc.idAzienda.id.eq(Integer.parseInt(idAzienda)))
+                        .and(qDoc.idEsterno.isNotNull()))
+                .groupBy(qDoc.idEsterno)
+                .fetch();
+        return new ResponseEntity(arrayGuidPe, HttpStatus.OK);
+    }
+    
+   
 }

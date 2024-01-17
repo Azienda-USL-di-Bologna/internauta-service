@@ -25,40 +25,56 @@ public class Appartenenti {
 
     @Autowired
     private AziendaRepository aziendaRepository;
-    
+
+    /**
+     * 
+     * @param listaPeriodiAfferenzaDiretta
+     * @param datain
+     * @param datafi
+     * @param mapError
+     * @param mapReader
+     * @param righeAnomaleDirette
+     * @param codiciMatricolaAnomaliaDiretta
+     * @param codiceMatricola
+     * @param whiteListato
+     * @return 
+     * mi serve per mettere l'afferenza funzionale al posto della N-esima diretta
+     */
     public static Boolean checkDiretto(
-            List<Map<String,Object>> listaPeriodiAfferenzaDiretta,
+            List<Map<String, Object>> listaPeriodiAfferenzaDiretta,
             ZonedDateTime datain,
             ZonedDateTime datafi,
             Map<String, Object> mapError,
             ICsvMapReader mapReader,
             List<Integer> righeAnomaleDirette,
             List<String> codiciMatricolaAnomaliaDiretta,
-            String codiceMatricola){
-    if (ImportaDaCSVUtils.isPeriodiSovrapposti(listaPeriodiAfferenzaDiretta,datain,datafi)){
-        //mapError.put("ERRORE", mapError.get("ERRORE") + " doppia afferenza diretta per questo utente,");
-        mapError.put("Anomalia", "true");
-        if (!righeAnomaleDirette.contains(mapReader.getLineNumber())) {
-            righeAnomaleDirette.add(mapReader.getLineNumber());
+            String codiceMatricola,
+            Boolean whiteListato) {
+        if (!whiteListato && (ImportaDaCSVUtils.isPeriodiSovrapposti(listaPeriodiAfferenzaDiretta, datain, datafi))) {
+            //mapError.put("ERRORE", mapError.get("ERRORE") + " doppia afferenza diretta per questo utente,");
+            //mapError.put("Anomalia", "true");
+            mapError.put("tipo_appartenenza","F");
+//            if (!righeAnomaleDirette.contains(mapReader.getLineNumber())) {
+//                righeAnomaleDirette.add(mapReader.getLineNumber());
+//            }
+//            if (!codiciMatricolaAnomaliaDiretta.contains(codiceMatricola)) {
+//                codiciMatricolaAnomaliaDiretta.add(codiceMatricola);
+//            }
+            return true;
         }
-        if (!codiciMatricolaAnomaliaDiretta.contains(codiceMatricola)){
-            codiciMatricolaAnomaliaDiretta.add(codiceMatricola);
-        }
-        return true;
-    }
-    return false;
+        return false;
     }
 
-    public static Boolean checkCodiceFiscale(Map<String, Object> appartenentiMap, Map<String, Object> mapError) {
-        if (appartenentiMap.get("codice_fiscale") == null || appartenentiMap.get("codice_fiscale").toString().trim().equals("") || appartenentiMap.get("codice_fiscale") == "") {
+    public static Boolean checkCodiceFiscale(Map<String, Object> appartenentiMap, Map<String, Object> mapError, Boolean whiteListato) {
+        if (!whiteListato && (appartenentiMap.get("codice_fiscale") == null || appartenentiMap.get("codice_fiscale").toString().trim().equals("") || appartenentiMap.get("codice_fiscale") == "")) {
             mapError.put("ERRORE", mapError.get("ERRORE") + " CODICE FISCALE,");
             mapError.put("Anomalia", "true");
             mapError.put("codice_fiscale", "");
             return true;
 
         } else {
-            if (appartenentiMap.get("nome") != null && appartenentiMap.get("cognome") != null) {
-                if (appartenentiMap.get("codice_fiscale").toString().startsWith(partialCF(appartenentiMap.get("nome").toString(), appartenentiMap.get("cognome").toString()))) {
+            if (whiteListato || (appartenentiMap.get("nome") != null && appartenentiMap.get("cognome") != null)) {
+                if (whiteListato || (appartenentiMap.get("codice_fiscale").toString().startsWith(partialCF(appartenentiMap.get("nome").toString(), appartenentiMap.get("cognome").toString())))) {
                     mapError.put("codice_fiscale", appartenentiMap.get("codice_fiscale"));
                 } else {
                     mapError.put("ERRORE", mapError.get("ERRORE") + " CODICE FISCALE errato,");
@@ -155,8 +171,8 @@ public class Appartenenti {
 
     }
 
-    public static Boolean checkCodiceMatricola(Map<String, Object> appartenentiMap, Map<String, Object> mapError) {
-        if (appartenentiMap.get("codice_matricola") == null || appartenentiMap.get("codice_matricola").toString().trim().equals("") || appartenentiMap.get("codice_matricola") == "") {
+    public static Boolean checkCodiceMatricola(Map<String, Object> appartenentiMap, Map<String, Object> mapError, Boolean whiteListato) {
+        if (!whiteListato && (appartenentiMap.get("codice_matricola") == null || appartenentiMap.get("codice_matricola").toString().trim().equals("") || appartenentiMap.get("codice_matricola") == "")) {
             mapError.put("Anomalia", "true");
             mapError.put("ERRORE", mapError.get("ERRORE") + " codice_matricola,");
             mapError.put("codice_matricola", "");
@@ -167,8 +183,8 @@ public class Appartenenti {
         return false;
     }
 
-    public static String checkIdCasella(Map<String, Object> appartenentiMap, Map<String, Object> mapError, Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda) {
-        if (appartenentiMap.get("id_casella") == null || appartenentiMap.get("id_casella").toString().trim().equals("") || appartenentiMap.get("id_casella") == "") {
+    public static String checkIdCasella(Map<String, Object> appartenentiMap, Map<String, Object> mapError, Map<Integer, List<Map<String, Object>>> selectDateOnStruttureByIdAzienda, Boolean whiteListato) {
+        if (!whiteListato && (appartenentiMap.get("id_casella") == null || appartenentiMap.get("id_casella").toString().trim().equals("") || appartenentiMap.get("id_casella") == "")) {
 
             mapError.put("Anomalia", "true");
             mapError.put("ERRORE", mapError.get("ERRORE") + " IDCASELLA,");
@@ -177,21 +193,21 @@ public class Appartenenti {
 
         } else {
             mapError.put("id_casella", appartenentiMap.get("id_casella").toString());
-            if (!selectDateOnStruttureByIdAzienda.containsKey(Integer.parseInt(appartenentiMap.get("id_casella").toString()))) {
+            if (!whiteListato && (!selectDateOnStruttureByIdAzienda.containsKey(Integer.valueOf(appartenentiMap.get("id_casella").toString())))) {
                 mapError.put("ERRORE", " manca la struttura nella tabella struttura,");
                 mapError.put("Anomalia", "true");
 
                 return "";
             } else {
-                if (!ImportaDaCSVUtils.isPeriodiSovrapposti(selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString())), ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain")), ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi")))) {
+                if (!whiteListato && (!ImportaDaCSVUtils.isPeriodiSovrapposti(selectDateOnStruttureByIdAzienda.get(Integer.valueOf(appartenentiMap.get("id_casella").toString())), ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain")), ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi"))))) {
                     mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l arco temporale della struttura,");
                     mapError.put("Anomalia", "true");
 
                     return "";
                 } else {
-                    List<Map<String, Object>> elementi = selectDateOnStruttureByIdAzienda.get(Integer.parseInt(appartenentiMap.get("id_casella").toString()));
+                    List<Map<String, Object>> elementi = selectDateOnStruttureByIdAzienda.get(Integer.valueOf(appartenentiMap.get("id_casella").toString()));
                     Map<String, ZonedDateTime> maxMin = ImportaDaCSVUtils.maxMin(elementi);
-                    if (!ImportaDaCSVUtils.controllaEstremi(maxMin.get("min"), maxMin.get("max"), ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain")), ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi")))) {
+                    if (!whiteListato && (!ImportaDaCSVUtils.controllaEstremi(maxMin.get("min"), maxMin.get("max"), ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain")), ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi"))))) {
                         mapError.put("ERRORE", mapError.get("ERRORE") + " non rispetta l'arco temporale della struttura, ");
                         mapError.put("Anomalia", "true");
 
@@ -204,8 +220,9 @@ public class Appartenenti {
         }
     }
 
-    public static Boolean checkNome(Map<String, Object> appartenentiMap, Map<String, Object> mapError) {
-        if (appartenentiMap.get("nome") == null || appartenentiMap.get("nome").toString().trim().equals("") || appartenentiMap.get("nome") == "") {
+    public static Boolean checkNome(Map<String, Object> appartenentiMap, Map<String, Object> mapError, Boolean whiteListato) {
+        
+        if (!whiteListato && (appartenentiMap.get("nome") == null || appartenentiMap.get("nome").toString().trim().equals("") || appartenentiMap.get("nome") == "")) {
             mapError.put("ERRORE", mapError.get("ERRORE") + " nome,");
             mapError.put("Anomalia", "true");
             mapError.put("nome", "");
@@ -216,8 +233,8 @@ public class Appartenenti {
         return false;
     }
 
-    public static Boolean checkDataAssunzione(Map<String, Object> appartenentiMap, Map<String, Object> mapError) {
-        if (appartenentiMap.get("data_assunzione") == null || appartenentiMap.get("data_assunzione").toString().trim().equals("") || appartenentiMap.get("data_assunzione") == "") {
+    public static Boolean checkDataAssunzione(Map<String, Object> appartenentiMap, Map<String, Object> mapError, Boolean whiteListato) {
+        if (!whiteListato && (appartenentiMap.get("data_assunzione") == null || appartenentiMap.get("data_assunzione").toString().trim().equals("") || appartenentiMap.get("data_assunzione") == "")) {
             mapError.put("ERRORE", mapError.get("ERRORE") + " data_assunzione,");
             mapError.put("data_assunzione", "");
             mapError.put("Anomalia", "true");
@@ -228,8 +245,9 @@ public class Appartenenti {
         return false;
     }
 
-    public static Boolean checkCognome(Map<String, Object> appartenentiMap, Map<String, Object> mapError) {
-        if (appartenentiMap.get("cognome") == null || appartenentiMap.get("cognome").toString().trim().equals("") || appartenentiMap.get("cognome") == "") {
+    public static Boolean checkCognome(Map<String, Object> appartenentiMap, Map<String, Object> mapError, Boolean whiteListato) {
+
+        if (!whiteListato && (appartenentiMap.get("cognome") == null || appartenentiMap.get("cognome").toString().trim().equals("") || appartenentiMap.get("cognome") == "")) {
             mapError.put("ERRORE", mapError.get("ERRORE") + " cognome,");
             mapError.put("Anomalia", "true");
             mapError.put("cognome", "");
@@ -243,40 +261,39 @@ public class Appartenenti {
     public static List<String> codiciMatricoleConAppFunzionaliENonDirette(Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionali, Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiDiretti) {
         List<String> codiciMatricoleConAppFunzionaliENonDirette = new ArrayList<>();
         for (String codiceMatricola : appartenentiFunzionali.keySet()) {
-            
+
             if (!appartenentiDiretti.containsKey(codiceMatricola)) {
-                if (!codiciMatricoleConAppFunzionaliENonDirette.contains(codiceMatricola)){
+                if (!codiciMatricoleConAppFunzionaliENonDirette.contains(codiceMatricola)) {
                     codiciMatricoleConAppFunzionaliENonDirette.add(codiceMatricola);
                 }
             }
             //devo valutare anche l'arco temporale
-            if (appartenentiDiretti.containsKey(codiceMatricola)){
+            if (appartenentiDiretti.containsKey(codiceMatricola)) {
                 Map<Integer, List<Map<String, Object>>> struttureConAfferenzaDirettaDiX = appartenentiDiretti.get(codiceMatricola);
 //                ciclo tutte le afferenze funzionali
 //                per ogni afferenza controllo che sia nell'arco temporale di una diretta
                 Map<Integer, List<Map<String, Object>>> struttureConAfferenzaFunzionaleDiX = appartenentiFunzionali.get(codiceMatricola);
-                List<Map<String,Object>> resultConPeriodiUniti = new ArrayList();
-                for (Integer idCasellaDiretta : struttureConAfferenzaDirettaDiX.keySet()){
+                List<Map<String, Object>> resultConPeriodiUniti = new ArrayList();
+                for (Integer idCasellaDiretta : struttureConAfferenzaDirettaDiX.keySet()) {
                     resultConPeriodiUniti.addAll(struttureConAfferenzaDirettaDiX.get(idCasellaDiretta));
                 }
                 resultConPeriodiUniti = ImportaDaCSVUtils.mergeTimePeriods(resultConPeriodiUniti);
                 for (Integer idCasella : struttureConAfferenzaFunzionaleDiX.keySet()) {
                     Boolean periodoFunzionaleIsOk = false;
                     List<Map<String, Object>> periodiTemporaliAfferenzaFunzionale = struttureConAfferenzaFunzionaleDiX.get(idCasella);
-                    
-                    for (Map<String, Object> periodoTemporale : periodiTemporaliAfferenzaFunzionale){
+
+                    for (Map<String, Object> periodoTemporale : periodiTemporaliAfferenzaFunzionale) {
                         if (ImportaDaCSVUtils.isPeriodoContenuto(
-                                    resultConPeriodiUniti,
-                                    ImportaDaCSVUtils.formattattore(periodoTemporale.get("datain")),
-                                    ImportaDaCSVUtils.formattattore(periodoTemporale.get("datafi")))){
-                                periodoFunzionaleIsOk = true;
+                                resultConPeriodiUniti,
+                                ImportaDaCSVUtils.formattattore(periodoTemporale.get("datain")),
+                                ImportaDaCSVUtils.formattattore(periodoTemporale.get("datafi")))) {
+                            periodoFunzionaleIsOk = true;
                         }
                     }
-                    if (!periodoFunzionaleIsOk && !codiciMatricoleConAppFunzionaliENonDirette.contains(codiceMatricola)){
+                    if (!periodoFunzionaleIsOk && !codiciMatricoleConAppFunzionaliENonDirette.contains(codiceMatricola)) {
                         codiciMatricoleConAppFunzionaliENonDirette.add(codiceMatricola);
-                    } 
-                    
-                    
+                    }
+
                 }
             }
         }
@@ -284,7 +301,7 @@ public class Appartenenti {
     }
 
     /**
-     * 
+     *
      * @param appartenentiMap
      * @param mapError
      * @param idCasella
@@ -296,12 +313,13 @@ public class Appartenenti {
      * @param mapReader
      * @param righeAnomaleFunzionali
      * @param righeAnomaleDirette
-     * @return true se 
-     *  - appartenenza di tipo T multiple (sono una per utente per periodo temporale valida)
-     *  - appartenenza di tipo F su stessa casella casella con tipo T periodo sovrapposto
-     *  - piu afferenze di tipo F su stessa casella con periodo sovrapposto
-     *  - tipo appartenenza assente o non riconosciuta
-     * altrimenti ritorno false
+     * @param codiciMatricolaAnomaliaDiretta
+     * @param whiteListato
+     * @return true se - appartenenza di tipo T multiple (sono una per utente
+     * per periodo temporale valida) - appartenenza di tipo F su stessa casella
+     * casella con tipo T periodo sovrapposto - piu afferenze di tipo F su
+     * stessa casella con periodo sovrapposto - tipo appartenenza assente o non
+     * riconosciuta altrimenti ritorno false
      */
     public static boolean checkErroreInTipoAppatenenza(
             Map<String, Object> appartenentiMap,
@@ -309,38 +327,37 @@ public class Appartenenti {
             String idCasella,
             ZonedDateTime datain,
             ZonedDateTime datafi,
-            Map<String, List<Map<String,Object>>> appartenentiDirettiPerControlloSovrapposizioneConDiretta,
+            Map<String, List<Map<String, Object>>> appartenentiDirettiPerControlloSovrapposizioneConDiretta,
             Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiDirettiPerControlloSovrapposizioneConFunzionale,
             Map<String, Map<Integer, List<Map<String, Object>>>> appartenentiFunzionaliPerControlloSovrapposizioneConFunzionale,
             ICsvMapReader mapReader,
             List<Integer> righeAnomaleFunzionali,
             List<Integer> righeAnomaleDirette,
-            List<String> codiciMatricolaAnomaliaDiretta) {
+            List<String> codiciMatricolaAnomaliaDiretta,
+            Boolean whiteListato) {
 
         Boolean anomalia = false;
         Integer idCasellaInt = Integer.valueOf(idCasella);
         String codiceMatricola = appartenentiMap.get("codice_matricola").toString();
         Boolean checkDiretto = false;
-        if (
-            appartenentiMap.get("tipo_appartenenza") == null || 
-            appartenentiMap.get("tipo_appartenenza").toString().trim().equals("") || 
-            appartenentiMap.get("tipo_appartenenza") == "" || idCasella.equals("")
-            ) {
-                mapError.put("ERRORE", mapError.get("ERRORE") + " tipo appartenenza assente,");
-                mapError.put("tipo_appartenenza", "");
-                mapError.put("Anomalia", "true");
-                return true;
-                
+        if (appartenentiMap.get("tipo_appartenenza") == null
+                || appartenentiMap.get("tipo_appartenenza").toString().trim().equals("")
+                || appartenentiMap.get("tipo_appartenenza") == "" || idCasella.equals("")) {
+            mapError.put("ERRORE", mapError.get("ERRORE") + " tipo appartenenza assente,");
+            mapError.put("tipo_appartenenza", "");
+            mapError.put("Anomalia", "true");
+            return true;
+
         } else if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")) {
-            
+
             mapError.put("tipo_appartenenza", appartenentiMap.get("tipo_appartenenza"));
-            Map<Integer, List<Map<String, Object>>> appartenenteDirettoConCasella = 
-                appartenentiDirettiPerControlloSovrapposizioneConFunzionale.get(codiceMatricola);
+            Map<Integer, List<Map<String, Object>>> appartenenteDirettoConCasella
+                    = appartenentiDirettiPerControlloSovrapposizioneConFunzionale.get(codiceMatricola);
             List<Map<String, Object>> listaPeriodiAfferenzaDiretta = appartenentiDirettiPerControlloSovrapposizioneConDiretta.get(codiceMatricola);
-            
+
             if (appartenenteDirettoConCasella == null && listaPeriodiAfferenzaDiretta == null) {
                 //non ho quella matricola nelle mappe quindi creo tutti i contenuti e li assegno
-                
+
                 //aggiungo il periodo alla mappa appartenentiDirettiPerControlloSovrapposizioneConFunzionale
                 appartenenteDirettoConCasella = new HashMap();
                 List<Map<String, Object>> periodoCasellato = new ArrayList<>();
@@ -351,7 +368,7 @@ public class Appartenenti {
                 periodoCasellato.add(periodoDaCasellare);
                 appartenenteDirettoConCasella.put(idCasellaInt, periodoCasellato);
                 appartenentiDirettiPerControlloSovrapposizioneConFunzionale.put(codiceMatricola, appartenenteDirettoConCasella);
-                
+
                 //aggiungo il periodo alla mappa appartenentiDirettiPerControlloSovrapposizioneConDiretta
                 listaPeriodiAfferenzaDiretta = new ArrayList<>();
                 Map<String, Object> periodoPerControlloDiretteMap = new HashMap();
@@ -359,9 +376,9 @@ public class Appartenenti {
                 periodoPerControlloDiretteMap.put("datafi", appartenentiMap.get("datafi"));
                 listaPeriodiAfferenzaDiretta.add(periodoPerControlloDiretteMap);
                 appartenentiDirettiPerControlloSovrapposizioneConDiretta.put(codiceMatricola, listaPeriodiAfferenzaDiretta);
-                
+
             } else if (appartenenteDirettoConCasella == null && listaPeriodiAfferenzaDiretta != null) {
-                 //aggiungo il periodo alla mappa appartenentiDirettiPerControlloSovrapposizioneConFunzionale
+                //aggiungo il periodo alla mappa appartenentiDirettiPerControlloSovrapposizioneConFunzionale
                 appartenenteDirettoConCasella = new HashMap();
                 List<Map<String, Object>> periodoCasellato = new ArrayList<>();
                 Map<String, Object> periodoDaCasellare = new HashMap();
@@ -371,37 +388,37 @@ public class Appartenenti {
                 periodoCasellato.add(periodoDaCasellare);
                 appartenenteDirettoConCasella.put(idCasellaInt, periodoCasellato);
                 appartenentiDirettiPerControlloSovrapposizioneConFunzionale.put(codiceMatricola, appartenenteDirettoConCasella);
-                
+
                 //controllo che la nuova afferenza non sia coincidente con quelle preesistenti
-                anomalia = checkDiretto(listaPeriodiAfferenzaDiretta, datain, datafi, mapError, mapReader, righeAnomaleDirette,codiciMatricolaAnomaliaDiretta, codiceMatricola);
-                
+                anomalia = checkDiretto(listaPeriodiAfferenzaDiretta, datain, datafi, mapError, mapReader, righeAnomaleDirette, codiciMatricolaAnomaliaDiretta, codiceMatricola, whiteListato);
+
                 //aggiungo il periodo alla mappa appartenentiDirettiPerControlloSovrapposizioneConDiretta
                 Map<String, Object> periodoPerControlloDiretteMap = new HashMap();
                 periodoPerControlloDiretteMap.put("datain", appartenentiMap.get("datain"));
                 periodoPerControlloDiretteMap.put("datafi", appartenentiMap.get("datafi"));
                 listaPeriodiAfferenzaDiretta.add(periodoPerControlloDiretteMap);
                 appartenentiDirettiPerControlloSovrapposizioneConDiretta.put(codiceMatricola, listaPeriodiAfferenzaDiretta);
-                
+
             } else {
                 //ho trovato la matricola in tutte e due le mappe quindi esiste almeno un periodo e una casella gia presente nella mappa
                 //appartenentiDirettiPerControlloSovrapposizioneConFunzionale 
                 //un periodo è presente nella mappa appartenentiDirettiPerControlloSovrapposizioneConDiretta
-                
+
                 //controllo che la nuova afferenza non sia coincidente con quelle preesistenti
-                anomalia = checkDiretto(listaPeriodiAfferenzaDiretta, datain, datafi, mapError, mapReader, righeAnomaleDirette,codiciMatricolaAnomaliaDiretta,codiceMatricola);
-                
+                anomalia = checkDiretto(listaPeriodiAfferenzaDiretta, datain, datafi, mapError, mapReader, righeAnomaleDirette, codiciMatricolaAnomaliaDiretta, codiceMatricola, whiteListato);
+
                 //aggiungo il periodo alla mappa appartenentiDirettiPerControlloSovrapposizioneConDiretta
                 Map<String, Object> periodoPerControlloDiretteMap = new HashMap();
                 periodoPerControlloDiretteMap.put("datain", appartenentiMap.get("datain"));
                 periodoPerControlloDiretteMap.put("datafi", appartenentiMap.get("datafi"));
                 listaPeriodiAfferenzaDiretta.add(periodoPerControlloDiretteMap);
                 appartenentiDirettiPerControlloSovrapposizioneConDiretta.put(codiceMatricola, listaPeriodiAfferenzaDiretta);
-                
+
                 //aggiungo il periodo alla mappa appartenentiDirettiPerControlloSovrapposizioneConFunzionale
                 //due casi 1)la casella non c'è 2)la casella c'è
-                List<Map<String, Object>> periodoCasellatoPerMapAppartenentiDirettiPerControlloSovrapposizioneConFunzionale = 
-                        appartenenteDirettoConCasella.get(idCasellaInt);
-                
+                List<Map<String, Object>> periodoCasellatoPerMapAppartenentiDirettiPerControlloSovrapposizioneConFunzionale
+                        = appartenenteDirettoConCasella.get(idCasellaInt);
+
                 if (periodoCasellatoPerMapAppartenentiDirettiPerControlloSovrapposizioneConFunzionale == null) {
                     //caso 1 mi manca ancora la casella e devo aggiungere il nuovo periodo temporale
                     periodoCasellatoPerMapAppartenentiDirettiPerControlloSovrapposizioneConFunzionale = new ArrayList();
@@ -410,7 +427,7 @@ public class Appartenenti {
                     periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
                     periodoDaCasellare.put("riga", mapReader.getLineNumber());
                     periodoCasellatoPerMapAppartenentiDirettiPerControlloSovrapposizioneConFunzionale.add(periodoDaCasellare);
-                    
+
                 } else {
                     //caso 2 aggiungo solo il periodo alla lista
                     Map<String, Object> periodoDaCasellare = new HashMap();
@@ -421,11 +438,11 @@ public class Appartenenti {
                 }
                 appartenenteDirettoConCasella.put(idCasellaInt, periodoCasellatoPerMapAppartenentiDirettiPerControlloSovrapposizioneConFunzionale);
             }
-            
-        } else if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("F")){
+
+        } else if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("F")) {
             mapError.put("tipo_appartenenza", appartenentiMap.get("tipo_appartenenza"));
             Map<Integer, List<Map<String, Object>>> appFunzionale = appartenentiFunzionaliPerControlloSovrapposizioneConFunzionale.get(appartenentiMap.get("codice_matricola").toString());
-            
+
             if (appFunzionale == null) {
                 //non ho quella matricola nella mapppa
                 //creo tutto
@@ -438,7 +455,7 @@ public class Appartenenti {
                 periodoDaCasellare.put("riga", mapReader.getLineNumber());
                 periodoCasellato.add(periodoDaCasellare);
                 appartenentiFunzionaliPerControlloSovrapposizioneConFunzionale.put(appartenentiMap.get("codice_matricola").toString(), appFunzionale);
-                
+
             } else {
                 //ho quella matricola 
                 //adesso posso avere la casella oppure no
@@ -479,12 +496,11 @@ public class Appartenenti {
             mapError.put("Anomalia", "true");
             return true;
         }
-    
+
         //adesso controllo che le mie afferenze funzionali non si sovrappongano alle dirette
-        
         if (appartenentiMap.get("tipo_appartenenza").toString().trim().equalsIgnoreCase("T")) {
             if (appartenentiMap.get("codice_matricola") != null && !appartenentiMap.get("codice_matricola").toString().trim().equals("")) {
-                
+
                 if (appartenentiFunzionaliPerControlloSovrapposizioneConFunzionale.containsKey(codiceMatricola)) {
                     if (appartenentiMap.get("id_casella") != null && !appartenentiMap.get("id_casella").toString().trim().equals("")) {
                         Integer idCasellaApp = Integer.valueOf(appartenentiMap.get("id_casella").toString());
@@ -492,8 +508,7 @@ public class Appartenenti {
                             if (ImportaDaCSVUtils.isPeriodiSovrapposti(
                                     appartenentiFunzionaliPerControlloSovrapposizioneConFunzionale.get(codiceMatricola).get(idCasellaApp),
                                     ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain")),
-                                    ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi")))
-                                    ) {
+                                    ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi")))) {
                                 anomalia = true;
                                 mapError.put("Anomalia", "true");
                                 mapError.put("ERRORE", "apparteneza diretta che si sovrappone ad una funzionale");
@@ -508,7 +523,7 @@ public class Appartenenti {
                 if (appartenentiDirettiPerControlloSovrapposizioneConFunzionale.containsKey(codiceMatricola)) {
                     if (appartenentiMap.get("id_casella") != null && !appartenentiMap.get("id_casella").toString().trim().equals("")) {
                         Integer idCasellaApp = Integer.valueOf(appartenentiMap.get("id_casella").toString());
-                        if (appartenentiDirettiPerControlloSovrapposizioneConFunzionale.get(codiceMatricola).containsKey(idCasellaApp)) {                           
+                        if (appartenentiDirettiPerControlloSovrapposizioneConFunzionale.get(codiceMatricola).containsKey(idCasellaApp)) {
                             if (ImportaDaCSVUtils.isPeriodiSovrapposti(
                                     appartenentiDirettiPerControlloSovrapposizioneConFunzionale.get(codiceMatricola).get(idCasellaApp),
                                     ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain")),
