@@ -26,6 +26,20 @@ public class Appartenenti {
     @Autowired
     private AziendaRepository aziendaRepository;
 
+    /**
+     * 
+     * @param listaPeriodiAfferenzaDiretta
+     * @param datain
+     * @param datafi
+     * @param mapError
+     * @param mapReader
+     * @param righeAnomaleDirette
+     * @param codiciMatricolaAnomaliaDiretta
+     * @param codiceMatricola
+     * @param whiteListato
+     * @return 
+     * mi serve per mettere l'afferenza funzionale al posto della N-esima diretta
+     */
     public static Boolean checkDiretto(
             List<Map<String, Object>> listaPeriodiAfferenzaDiretta,
             ZonedDateTime datain,
@@ -38,13 +52,14 @@ public class Appartenenti {
             Boolean whiteListato) {
         if (!whiteListato && (ImportaDaCSVUtils.isPeriodiSovrapposti(listaPeriodiAfferenzaDiretta, datain, datafi))) {
             //mapError.put("ERRORE", mapError.get("ERRORE") + " doppia afferenza diretta per questo utente,");
-            mapError.put("Anomalia", "true");
-            if (!righeAnomaleDirette.contains(mapReader.getLineNumber())) {
-                righeAnomaleDirette.add(mapReader.getLineNumber());
-            }
-            if (!codiciMatricolaAnomaliaDiretta.contains(codiceMatricola)) {
-                codiciMatricolaAnomaliaDiretta.add(codiceMatricola);
-            }
+            //mapError.put("Anomalia", "true");
+            mapError.put("tipo_appartenenza","F");
+//            if (!righeAnomaleDirette.contains(mapReader.getLineNumber())) {
+//                righeAnomaleDirette.add(mapReader.getLineNumber());
+//            }
+//            if (!codiciMatricolaAnomaliaDiretta.contains(codiceMatricola)) {
+//                codiciMatricolaAnomaliaDiretta.add(codiceMatricola);
+//            }
             return true;
         }
         return false;
