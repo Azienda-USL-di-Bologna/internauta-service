@@ -16,6 +16,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.repositories.scripta.ArchivioRepository;
 import it.bologna.ausl.internauta.utils.jpa.natiquery.NativeQueryTools;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsWorkingObject;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerInitializationException;
 import it.bologna.ausl.internauta.utils.masterjobs.repository.JobReporitory;
@@ -243,9 +244,21 @@ public class BaborgDebugController {
     @RequestMapping(value = "test2", method = RequestMethod.GET)
     public Object test2(HttpServletRequest request) throws EmlHandlerException, UnsupportedEncodingException, SQLException, IOException, MasterjobsWorkerInitializationException, MasterjobsQueuingException {
         
-        FooWorker fooWorker1 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(1, "1", false), false, 5000);
+        FooWorker fooWorker1 = masterjobsObjectsFactory.getJobWorker(
+                FooWorker.class, 
+                new FooWorkerData(1, "1", false), 
+                false, 
+                5000,
+                Arrays.asList(new MasterjobsWorkingObject("23", "Persona"))
+        );
         FooWorker fooWorker2 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(2, "2", false), false, 5000);
-        FooWorker fooWorker3 = masterjobsObjectsFactory.getJobWorker(FooWorker.class, new FooWorkerData(3, "3", false), false, 5000);
+        FooWorker fooWorker3 = masterjobsObjectsFactory.getJobWorker(
+                FooWorker.class, 
+                new FooWorkerData(3, "3", false), 
+                false, 
+                5000,
+                Arrays.asList(new MasterjobsWorkingObject("28", "Utente"), new MasterjobsWorkingObject("30", "Utente"))
+                );
         MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
         
         List<MultiJobQueueDescriptor> descriptors = Arrays.asList(
@@ -255,7 +268,7 @@ public class BaborgDebugController {
         transactionTemplate.executeWithoutResult(action -> {
 //        mjQueuer.queue(fooWorker, null, null, null, false, Set.SetPriority.NORMAL, false);
 //        mjQueuer.queueMultiJobs(descriptors, null);
-            mjQueuer.queueOnCommit(Arrays.asList(fooWorker1), null, null, null, false, Set.SetPriority.NORMAL, null);
+            mjQueuer.queueOnCommit(Arrays.asList(fooWorker1, fooWorker2, fooWorker3), null, null, null, false, Set.SetPriority.NORMAL, null);
         });
         return null;
     }
