@@ -9,16 +9,10 @@ import it.bologna.ausl.internauta.service.utils.IntimusUtils;
 import static it.bologna.ausl.internauta.service.utils.IntimusUtils.IntimusCommandNames.RefreshAttivita;
 import static it.bologna.ausl.internauta.service.utils.IntimusUtils.IntimusCommandNames.RefreshMails;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsParsingException;
-import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsRuntimeExceptionWrapper;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
-import it.bologna.ausl.internauta.utils.masterjobs.executors.jobs.MasterjobsQueueData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.WorkerResult;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerDataInterface;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.ServiceWorker;
-import it.bologna.ausl.model.entities.masterjobs.JobNotified;
 import it.bologna.ausl.model.entities.tools.IntimusCommand;
 import it.bologna.ausl.model.entities.tools.QIntimusCommand;
 import java.sql.Connection;
@@ -143,9 +137,8 @@ public class IntimusCommandServiceWorker extends ServiceWorker {
                             notifyMillis = waitNotifyMillis;
                             stopLoop = true;
                         }
-                        PGConnection pgc;
                         if (connection.isWrapperFor(PGConnection.class)) {
-                            pgc = (PGConnection) connection.unwrap(PGConnection.class);
+                            PGConnection pgc = (PGConnection) connection.unwrap(PGConnection.class);
 
                             // attendo una notifica per waitNotifyMillis poi termino e sarò rilanciato dal pool secondo le specifiche del servizio
                             PGNotification notifications[] = pgc.getNotifications(notifyMillis);
