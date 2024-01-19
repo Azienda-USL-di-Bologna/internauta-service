@@ -2437,7 +2437,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 .leftJoin(qRegistroDoc).on(qRegistroDoc.idDoc.id.eq(qDoc.id))
                 .where(qDoc.tipologia.eq(DocDetailInterface.TipologiaDoc.PROTOCOLLO_IN_ENTRATA)
                         .and(qArchivioDoc.idArchivio.isNull())
-                        .and(qDocAnnullato.id.isNull())
+                        .and(qDocAnnullato.idDoc.id.isNull())
                         .and(qRegistroDoc.dataRegistrazione.isNotNull())
                         .and(qRegistroDoc.dataRegistrazione.before(dataMaxFascicolazioneMancante))
                         .and(qDoc.idAzienda.id.eq(Integer.parseInt(idAzienda)))

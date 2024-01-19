@@ -477,12 +477,15 @@ public class ImportaDaCSV {
                             datain = ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain"));
                             datainString = UtilityFunctions.getZonedDateTimeString(datain);
                         }
-                        if (appartenentiMap.get("datafi") != null && (!appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") != "")) {
+                        if (appartenentiMap.get("datafi") != null
+                                && (!appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") != "")) {
                             datafi = ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi"));
                             datafiString = UtilityFunctions.getZonedDateTimeString(datafi);
                         }
 
-                        if (appartenentiMap.get("datafi") == null || appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") == "") {
+                        if (appartenentiMap.get("datafi") == null
+                                || appartenentiMap.get("datafi").toString().trim().equals("")
+                                || appartenentiMap.get("datafi") == "") {
                             mapError.put("datafi", "");
                         } else {
                             mapError.put("datafi", appartenentiMap.get("datafi"));
@@ -845,7 +848,7 @@ public class ImportaDaCSV {
                         String datafiString;
                         String datainString;
 
-                        boolean anomali = !ImportaDaCSVUtils.checkDatain(strutturaMap, mapError, "S",false);
+                        boolean anomali = !ImportaDaCSVUtils.checkDatain(strutturaMap, mapError, "S", false);
                         if (anomali) {
                             mS.setDatain(null);
                             bloccante = true;
