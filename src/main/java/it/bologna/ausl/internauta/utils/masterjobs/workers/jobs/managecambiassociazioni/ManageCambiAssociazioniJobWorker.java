@@ -81,7 +81,7 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
             List<Integer> idCambiamentiAssociazioni = new ArrayList<>();
             Set<Integer> idArchiviRadiceDaPermessizzare = new HashSet<>();
 
-            /**
+            /*
              * Ciclando sui cambaimenti associazione vado a recuperare un set di archivi che hanno bisogno del ricalcolo dei permessi
              */
             for (CambiamentiAssociazione cambiamentiAssociazione : cambiamentiAssociazioni) {

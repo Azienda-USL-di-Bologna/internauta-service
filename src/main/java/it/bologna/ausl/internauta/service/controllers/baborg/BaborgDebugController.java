@@ -24,6 +24,8 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MultiJobQueueDes
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.foo.FooWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.fooexternal.FooExternalWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestorepermessi.GestorePermessiJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestorepermessi.GestorePermessiJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriacontatti.SanatoriaContattiJobWorker;
 import it.bologna.ausl.internauta.utils.parameters.manager.ParametriAziendeReader;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -259,16 +261,33 @@ public class BaborgDebugController {
                 5000,
                 Arrays.asList(new MasterjobsWorkingObject("28", "Utente"), new MasterjobsWorkingObject("30", "Utente"))
                 );
+        
+        GestorePermessiJobWorkerData.EntitaPermesso soggetto = new GestorePermessiJobWorkerData.EntitaPermesso(302704, "baborg", "persone");
+        GestorePermessiJobWorkerData.EntitaPermesso entitaVeicolante = new GestorePermessiJobWorkerData.EntitaPermesso(1063106, "baborg", "strutture");
+        GestorePermessiJobWorkerData gestorePermessiJobWorkerData = new GestorePermessiJobWorkerData(
+                soggetto, 
+                entitaVeicolante, 
+                GestorePermessiJobWorkerData.Operazione.RIACCENDI, 
+                Arrays.asList("SCRIPTA"), 
+                Arrays.asList("ARCHIVIO"));
+        GestorePermessiJobWorker gestorePermessiJobWorker = masterjobsObjectsFactory.getJobWorker(
+                GestorePermessiJobWorker.class, 
+                gestorePermessiJobWorkerData,
+                false,
+                100,
+                Arrays.asList(new MasterjobsWorkingObject(soggetto.getIdProvenienza().toString(), "Persona"))
+        );
         MasterjobsJobsQueuer mjQueuer = beanFactory.getBean(MasterjobsJobsQueuer.class);
         
         List<MultiJobQueueDescriptor> descriptors = Arrays.asList(
-                MultiJobQueueDescriptor.newBuilder().addWorker(fooWorker1).objectId("1").app("aaa").waitForObject(false).build(),
-                MultiJobQueueDescriptor.newBuilder().addWorker(fooWorker2).addWorker(fooWorker3).objectId("1").waitForObject(true).app("aaa").build()
+//                MultiJobQueueDescriptor.newBuilder().addWorker(fooWorker1).objectId("1").app("aaa").waitForObject(false).build(),
+//                MultiJobQueueDescriptor.newBuilder().addWorker(fooWorker2).addWorker(fooWorker3).objectId("1").waitForObject(true).app("aaa").build()
+                MultiJobQueueDescriptor.newBuilder().addWorker(gestorePermessiJobWorker).objectId("1").waitForObject(true).app("aaa").build()
         );
         transactionTemplate.executeWithoutResult(action -> {
 //        mjQueuer.queue(fooWorker, null, null, null, false, Set.SetPriority.NORMAL, false);
 //        mjQueuer.queueMultiJobs(descriptors, null);
-            mjQueuer.queueOnCommit(Arrays.asList(fooWorker1, fooWorker2, fooWorker3), null, null, null, false, Set.SetPriority.NORMAL, null);
+            mjQueuer.queueOnCommit(Arrays.asList(gestorePermessiJobWorker), null, null, null, false, Set.SetPriority.NORMAL, null);
         });
         return null;
     }

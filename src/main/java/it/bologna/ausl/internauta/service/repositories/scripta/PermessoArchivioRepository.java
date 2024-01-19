@@ -1,25 +1,14 @@
 package it.bologna.ausl.internauta.service.repositories.scripta;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import it.bologna.ausl.internauta.utils.jpa.natiquery.NativeQueryTools;
 import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QPermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.projections.generated.PermessoArchivioWithPlainFields;
 import it.nextsw.common.data.annotations.NextSdrRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import it.nextsw.common.repositories.NextSdrQueryDslRepository;
-import java.sql.SQLException;
 import java.util.List;
-import javax.persistence.EntityManager;
-
-import javax.persistence.PersistenceContext;
-import org.hibernate.jpa.TypedParameterValue;
-import org.hibernate.type.IntegerType;
-import org.hibernate.type.LocalDateTimeType;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.query.Procedure;
 
 /**
  * per convenzione nostra, collectionResourceRel e path devono avere lo stesso

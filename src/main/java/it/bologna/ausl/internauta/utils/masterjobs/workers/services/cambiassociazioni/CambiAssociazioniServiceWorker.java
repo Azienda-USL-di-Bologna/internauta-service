@@ -73,7 +73,7 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
         log.info(String.format("starting %s...", getName()));
         Integer waitNotifyMillis = serviceEntity.getWaitNotifyMillis();
         if (waitNotifyMillis != null) {
-             /*
+            /*
             Se sono in modalità notify mi metto in attesa di notify per wait_notify_millis millisecondi.
             se wait_notify_millis è 0, allora vuol dire che voglio che questo servizio non termini mai restando sempre in listen
             in ogni caso faccio una getNotifications ogni 10 secondi per far si che se è stato fermato il masterjobs (isStopped == true) 
@@ -132,7 +132,7 @@ public class CambiAssociazioniServiceWorker extends ServiceWorker {
         log.info("queueing scheduleManageCambiAssociazioniJob...");
         ManageCambiAssociazioniJobWorker worker = masterjobsObjectsFactory.getJobWorker(
                 ManageCambiAssociazioniJobWorker.class, new ManageCambiAssociazioniJobWorkerData(ZonedDateTime.now()), false);
-        masterjobsJobsQueuer.queue(worker, CAMBIAMENTI_ASSOCIAZIONI_WORKER_ID, null, null, true, Set.SetPriority.NORMAL, null);
+        masterjobsJobsQueuer.queue(worker, CAMBIAMENTI_ASSOCIAZIONI_WORKER_ID, null, null, true, Set.SetPriority.NORMAL, true, null);
         log.info("scheduleManageCambiAssociazioniJob queued");
     }
 }

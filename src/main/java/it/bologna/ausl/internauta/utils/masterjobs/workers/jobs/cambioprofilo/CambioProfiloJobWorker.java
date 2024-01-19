@@ -157,8 +157,11 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
                             switch (ppr.getTipoOggetto()) {
                                 case STRUTTURE:
                                     for (UtenteStruttura us : utente.getUtenteStrutturaList()) {
-                                        if (us.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.DIRETTA) {
+                                        if (
+                                            us.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.DIRETTA &&
+                                            us.getAttivo()) {
                                             oggetto = us.getIdStruttura();
+                                            break;
                                         }
                                     }
                                     break;
@@ -174,7 +177,7 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
                         }
 
                         try {
-                            permissionManager.insertSimplePermission(soggetto, oggetto, ppr.getPredicato(), null, false, false, ppr.getTipoAmbito().toString(), ppr.getTipoPermesso().toString());
+                            permissionManager.insertSimplePermission(soggetto, oggetto, ppr.getPredicato(), name, false, false, ppr.getTipoAmbito().toString(), ppr.getTipoPermesso().toString());
                         } catch (BlackBoxPermissionException ex) {
                             String errorMsg = "Errore nell'inserimento del permesso qualcosa è andato storto";
                             log.error(errorMsg, ex);
