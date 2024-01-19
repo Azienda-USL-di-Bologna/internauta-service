@@ -26,6 +26,20 @@ public class Appartenenti {
     @Autowired
     private AziendaRepository aziendaRepository;
 
+    /**
+     * 
+     * @param listaPeriodiAfferenzaDiretta
+     * @param datain
+     * @param datafi
+     * @param mapError
+     * @param mapReader
+     * @param righeAnomaleDirette
+     * @param codiciMatricolaAnomaliaDiretta
+     * @param codiceMatricola
+     * @param whiteListato
+     * @return 
+     * mi serve per mettere l'afferenza funzionale al posto della N-esima diretta
+     */
     public static Boolean checkDiretto(
             List<Map<String, Object>> listaPeriodiAfferenzaDiretta,
             ZonedDateTime datain,
@@ -38,13 +52,14 @@ public class Appartenenti {
             Boolean whiteListato) {
         if (!whiteListato && (ImportaDaCSVUtils.isPeriodiSovrapposti(listaPeriodiAfferenzaDiretta, datain, datafi))) {
             //mapError.put("ERRORE", mapError.get("ERRORE") + " doppia afferenza diretta per questo utente,");
-            mapError.put("Anomalia", "true");
-            if (!righeAnomaleDirette.contains(mapReader.getLineNumber())) {
-                righeAnomaleDirette.add(mapReader.getLineNumber());
-            }
-            if (!codiciMatricolaAnomaliaDiretta.contains(codiceMatricola)) {
-                codiciMatricolaAnomaliaDiretta.add(codiceMatricola);
-            }
+            //mapError.put("Anomalia", "true");
+            mapError.put("tipo_appartenenza","F");
+//            if (!righeAnomaleDirette.contains(mapReader.getLineNumber())) {
+//                righeAnomaleDirette.add(mapReader.getLineNumber());
+//            }
+//            if (!codiciMatricolaAnomaliaDiretta.contains(codiceMatricola)) {
+//                codiciMatricolaAnomaliaDiretta.add(codiceMatricola);
+//            }
             return true;
         }
         return false;
@@ -347,6 +362,7 @@ public class Appartenenti {
                 appartenenteDirettoConCasella = new HashMap();
                 List<Map<String, Object>> periodoCasellato = new ArrayList<>();
                 Map<String, Object> periodoDaCasellare = new HashMap();
+                
                 periodoDaCasellare.put("datain", appartenentiMap.get("datain"));
                 periodoDaCasellare.put("datafi", appartenentiMap.get("datafi"));
                 periodoDaCasellare.put("riga", mapReader.getLineNumber());
@@ -378,12 +394,14 @@ public class Appartenenti {
                 anomalia = checkDiretto(listaPeriodiAfferenzaDiretta, datain, datafi, mapError, mapReader, righeAnomaleDirette, codiciMatricolaAnomaliaDiretta, codiceMatricola, whiteListato);
 
                 //aggiungo il periodo alla mappa appartenentiDirettiPerControlloSovrapposizioneConDiretta
-                Map<String, Object> periodoPerControlloDiretteMap = new HashMap();
-                periodoPerControlloDiretteMap.put("datain", appartenentiMap.get("datain"));
-                periodoPerControlloDiretteMap.put("datafi", appartenentiMap.get("datafi"));
-                listaPeriodiAfferenzaDiretta.add(periodoPerControlloDiretteMap);
-                appartenentiDirettiPerControlloSovrapposizioneConDiretta.put(codiceMatricola, listaPeriodiAfferenzaDiretta);
-
+                if (appartenentiMap.get("datafi") == null ||   
+                    ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi")).isAfter(ZonedDateTime.now())){
+                    Map<String, Object> periodoPerControlloDiretteMap = new HashMap();
+                    periodoPerControlloDiretteMap.put("datain", appartenentiMap.get("datain"));
+                    periodoPerControlloDiretteMap.put("datafi", appartenentiMap.get("datafi"));
+                    listaPeriodiAfferenzaDiretta.add(periodoPerControlloDiretteMap);
+                    appartenentiDirettiPerControlloSovrapposizioneConDiretta.put(codiceMatricola, listaPeriodiAfferenzaDiretta);
+                }
             } else {
                 //ho trovato la matricola in tutte e due le mappe quindi esiste almeno un periodo e una casella gia presente nella mappa
                 //appartenentiDirettiPerControlloSovrapposizioneConFunzionale 
@@ -393,12 +411,14 @@ public class Appartenenti {
                 anomalia = checkDiretto(listaPeriodiAfferenzaDiretta, datain, datafi, mapError, mapReader, righeAnomaleDirette, codiciMatricolaAnomaliaDiretta, codiceMatricola, whiteListato);
 
                 //aggiungo il periodo alla mappa appartenentiDirettiPerControlloSovrapposizioneConDiretta
-                Map<String, Object> periodoPerControlloDiretteMap = new HashMap();
-                periodoPerControlloDiretteMap.put("datain", appartenentiMap.get("datain"));
-                periodoPerControlloDiretteMap.put("datafi", appartenentiMap.get("datafi"));
-                listaPeriodiAfferenzaDiretta.add(periodoPerControlloDiretteMap);
-                appartenentiDirettiPerControlloSovrapposizioneConDiretta.put(codiceMatricola, listaPeriodiAfferenzaDiretta);
-
+                if (appartenentiMap.get("datafi") == null ||   
+                    ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi")).isAfter(ZonedDateTime.now())){
+                    Map<String, Object> periodoPerControlloDiretteMap = new HashMap();
+                    periodoPerControlloDiretteMap.put("datain", appartenentiMap.get("datain"));
+                    periodoPerControlloDiretteMap.put("datafi", appartenentiMap.get("datafi"));
+                    listaPeriodiAfferenzaDiretta.add(periodoPerControlloDiretteMap);
+                    appartenentiDirettiPerControlloSovrapposizioneConDiretta.put(codiceMatricola, listaPeriodiAfferenzaDiretta);
+                }
                 //aggiungo il periodo alla mappa appartenentiDirettiPerControlloSovrapposizioneConFunzionale
                 //due casi 1)la casella non c'è 2)la casella c'è
                 List<Map<String, Object>> periodoCasellatoPerMapAppartenentiDirettiPerControlloSovrapposizioneConFunzionale

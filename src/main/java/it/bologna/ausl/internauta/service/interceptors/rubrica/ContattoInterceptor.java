@@ -131,16 +131,16 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
                 }
             }
         }
-
+// commento questo pezzo perche le chiamate risultano molto lente per questo motivo
         // Setto il flag da verificare a true se il contatto che sto creando ha dei simili. 
         // Anche i simili li setto da verificare dato che lo sono diventati.
-        if (contatto.getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
-            try {
-                manageFlagDaVerificarePerCreate(contatto, idAzienda);
-            } catch (JsonProcessingException ex) {
-                throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
-            }
-        }
+//        if (contatto.getCategoria().equals(Contatto.CategoriaContatto.ESTERNO)) {
+//            try {
+//                manageFlagDaVerificarePerCreate(contatto, idAzienda);
+//            } catch (JsonProcessingException ex) {
+//                throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
+//            }
+//        }
 
         return super.afterCreateEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
@@ -276,12 +276,13 @@ public class ContattoInterceptor extends InternautaBaseInterceptor {
 
         Integer idAzienda = authenticatedUserProperties.getUser().getIdAzienda().getId();
         Azienda azienda = aziendaRepository.findById(idAzienda).get();
-        
-        try {
-            manageFlagDaVerificarePerUpdate(contatto, beforeUpdateEntityApplier, idAzienda);
-        } catch (JsonProcessingException | BeforeUpdateEntityApplierException ex) {
-            throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
-        }
+
+// commento questo pezzo perche le chiamate risultano molto lente per questo motivo        
+//        try {
+//            manageFlagDaVerificarePerUpdate(contatto, beforeUpdateEntityApplier, idAzienda);
+//        } catch (JsonProcessingException | BeforeUpdateEntityApplierException ex) {
+//            throw new AbortSaveInterceptorException("Errore nella gestione del flag da verificare", ex);
+//        }
         //inserisco i dettagli domicilio digitale dove possibile
         if (recuperaDomicilioDigitaleInad){
             try {

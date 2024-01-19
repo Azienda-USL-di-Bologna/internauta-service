@@ -430,7 +430,7 @@ public class ImportaDaCSV {
 
                     while ((appartenentiMap = mapReader.read(headers, processors)) != null) {
 
-                        Boolean whiteListato = !(personeValide != null && !personeValide.isEmpty() && personeValide.contains(appartenentiMap.get("codice_fiscale").toString()));
+                        Boolean whiteListato = personeValide != null && !personeValide.isEmpty() && personeValide.contains(appartenentiMap.get("codice_fiscale").toString());
                         boolean anomali;
                         mapError = new HashMap<>();
                         // Inserisco la riga
@@ -451,7 +451,7 @@ public class ImportaDaCSV {
                         anomali = Appartenenti.checkNome(appartenentiMap, mapError, whiteListato);
                         anomalia = anomalia ? anomalia : anomali;
 
-                        //                      CODICE_FISCALE bloccante
+                        //CODICE_FISCALE bloccante
                         anomali = Appartenenti.checkCodiceFiscale(appartenentiMap, mapError, whiteListato);
                         anomalia = anomalia ? anomalia : anomali;
 
@@ -477,12 +477,15 @@ public class ImportaDaCSV {
                             datain = ImportaDaCSVUtils.formattattore(appartenentiMap.get("datain"));
                             datainString = UtilityFunctions.getZonedDateTimeString(datain);
                         }
-                        if (appartenentiMap.get("datafi") != null && (!appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") != "")) {
+                        if (appartenentiMap.get("datafi") != null
+                                && (!appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") != "")) {
                             datafi = ImportaDaCSVUtils.formattattore(appartenentiMap.get("datafi"));
                             datafiString = UtilityFunctions.getZonedDateTimeString(datafi);
                         }
 
-                        if (appartenentiMap.get("datafi") == null || appartenentiMap.get("datafi").toString().trim().equals("") || appartenentiMap.get("datafi") == "") {
+                        if (appartenentiMap.get("datafi") == null
+                                || appartenentiMap.get("datafi").toString().trim().equals("")
+                                || appartenentiMap.get("datafi") == "") {
                             mapError.put("datafi", "");
                         } else {
                             mapError.put("datafi", appartenentiMap.get("datafi"));
@@ -502,7 +505,7 @@ public class ImportaDaCSV {
                         anomalia = anomalia ? anomalia : codiceEnte.equals("");
                         mA.setCodiceEnte(codiceEnte);
 
-                        //                      TIPO_APPARTENENZA bloccante
+                        // TIPO_APPARTENENZA bloccante
                         anomali = Appartenenti.checkErroreInTipoAppatenenza(
                                 appartenentiMap,
                                 mapError,
@@ -541,34 +544,34 @@ public class ImportaDaCSV {
 
                     }
 
-                    //se ho il caso in cui non ho appartenenti diretti per qualche appatenente funzionale
-                    List<String> codiciMatricoleConAppFunzionaliENonDirette = Appartenenti.codiciMatricoleConAppFunzionaliENonDirette(appartenentiFunzionaliPerControlloSovrapposizioneConFunzionale, appartenentiDirettiPerControlloSovrapposizioneConFunzionale);
+                    //se ho il caso in cui non ho appartenenti diretti per qualche appatenente funzionale 
+//                    List<String> codiciMatricoleConAppFunzionaliENonDirette = Appartenenti.codiciMatricoleConAppFunzionaliENonDirette(appartenentiFunzionaliPerControlloSovrapposizioneConFunzionale, appartenentiDirettiPerControlloSovrapposizioneConFunzionale);
                     riga = 2;
 
                     for (Map<String, Object> appMapWithErrorAndAnomalia : listAppartenentiMap) {
 
                         String codiceMatricola = appMapWithErrorAndAnomalia.get("codice_matricola").toString();
-                        if (codiciMatricoleConAppFunzionaliENonDirette.contains(codiceMatricola)) {
-                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con appartenenze funzionali ma senza appartenente dirette");
-                            nRigheAnomale++;
-                            anomalia = true;
-                            appMapWithErrorAndAnomalia.put("Anomalia", "true");
-                        }
-                        if (codiciMatricolaAnomaliaDiretta.contains(codiceMatricola)) {
-                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze Dirette per lo stesso periodo,");
-                            nRigheAnomale++;
-                            anomalia = true;
-                            appMapWithErrorAndAnomalia.put("Anomalia", "true");
-                        }
+//                        if (codiciMatricoleConAppFunzionaliENonDirette.contains(codiceMatricola)) {
+//                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con appartenenze funzionali ma senza appartenente dirette");
+//                            nRigheAnomale++;
+//                            anomalia = true;
+//                            appMapWithErrorAndAnomalia.put("Anomalia", "true");
+//                        }
+//                        if (codiciMatricolaAnomaliaDiretta.contains(codiceMatricola)) {
+//                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze Dirette per lo stesso periodo,");
+//                            nRigheAnomale++;
+//                            anomalia = true;
+//                            appMapWithErrorAndAnomalia.put("Anomalia", "true");
+//                        }
 //                        if (righeAnomaleDirette.contains(riga)) {
 //                        }
 
-                        if (righeAnomaleFunzionali.contains(riga)) {
-                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura");
-                            nRigheAnomale++;
-                            anomalia = true;
-                            appMapWithErrorAndAnomalia.put("Anomalia", "true");
-                        }
+//                        if (righeAnomaleFunzionali.contains(riga)) {
+//                            appMapWithErrorAndAnomalia.put("ERRORE", appMapWithErrorAndAnomalia.get("ERRORE") + " appartenente con piu afferenze funzionali per lo stesso periodo e nella stessa struttura");
+//                            nRigheAnomale++;
+//                            anomalia = true;
+//                            appMapWithErrorAndAnomalia.put("Anomalia", "true");
+//                        }
                         if (!appMapWithErrorAndAnomalia.get("Anomalia").toString().equalsIgnoreCase("true")) {
                             MdrAppartenenti mA = new MdrAppartenenti();
                             mA.setIdAzienda(azienda);
@@ -634,7 +637,7 @@ public class ImportaDaCSV {
                     Integer riga;
                     Boolean anomaliaRiga = false;
                     while ((anagraficaMap = mapReader.read(headers, processors)) != null) {
-                        Boolean whiteListato = !(personeValide != null && !personeValide.isEmpty() && personeValide.contains(anagraficaMap.get("codice_fiscale").toString()));
+                        Boolean whiteListato = personeValide != null && !personeValide.isEmpty() && personeValide.contains(anagraficaMap.get("codice_fiscale").toString());
                         boolean anomali = false;
                         mapError = new HashMap<>();
                         riga = mapReader.getLineNumber();
@@ -713,7 +716,7 @@ public class ImportaDaCSV {
                     Boolean anomali = false;
                     Boolean anomaliaRiga = false;
                     while ((responsabiliMap = mapReader.read(headers, processors)) != null) {
-                        Boolean whiteListato = !(personeValide != null && !personeValide.isEmpty() && personeValide.contains(responsabiliMap.get("codice_fiscale").toString()));
+//                        Boolean whiteListato = personeValide != null && !personeValide.isEmpty() && personeValide.contains(responsabiliMap.get("codice_fiscale").toString());
 //                      preparo mappa di errore
                         mapError.put("ERRORE", "");
                         // Inserisco la riga
@@ -733,7 +736,7 @@ public class ImportaDaCSV {
                         }
 
 //                      DATAIN bloccante
-                        anomali = !ImportaDaCSVUtils.checkDatain(responsabiliMap, mapError, "R", whiteListato);
+                        anomali = !ImportaDaCSVUtils.checkDatain(responsabiliMap, mapError, "R", false);
                         anomalia = anomalia ? anomalia : anomali;
                         anomaliaRiga = anomaliaRiga ? anomaliaRiga : anomali;
                         //nRigheAnomale = anomali ? nRigheAnomale++ : nRigheAnomale;
@@ -845,7 +848,7 @@ public class ImportaDaCSV {
                         String datafiString;
                         String datainString;
 
-                        boolean anomali = !ImportaDaCSVUtils.checkDatain(strutturaMap, mapError, "S",false);
+                        boolean anomali = !ImportaDaCSVUtils.checkDatain(strutturaMap, mapError, "S", false);
                         if (anomali) {
                             mS.setDatain(null);
                             bloccante = true;
