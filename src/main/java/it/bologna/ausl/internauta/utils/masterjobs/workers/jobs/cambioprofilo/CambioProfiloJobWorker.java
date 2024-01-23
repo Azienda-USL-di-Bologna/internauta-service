@@ -11,9 +11,12 @@ import it.bologna.ausl.internauta.service.repositories.baborg.ProfiliPredicatiRu
 import it.bologna.ausl.internauta.service.repositories.baborg.ProfiliRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.lanciatrasformatore.LanciaTrasformatoreJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.lanciatrasformatore.LanciaTrasformatoreJobWorkerData;
 import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -69,6 +72,8 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
     @Autowired
     @Qualifier(value = "redisCache")
     private RedisTemplate<String, Object> redisTemplate;
+    
+    private final String jobSetId = "CambiamentiAssociazioniId";
 
     @Override
     protected JobWorkerResult doRealWork() throws MasterjobsWorkerException {
@@ -202,6 +207,24 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
                 personaRepository.save(persona);
                 utenteRepository.save(utente);
             }            
+        }
+        
+        // lancio del ribaltone locale per apportare le modifiche su argo
+        LanciaTrasformatoreJobWorkerData lanciaTrasformatoreJobWorkerData = new LanciaTrasformatoreJobWorkerData(
+                idAzienda, 
+                true,
+                false, 
+                "sistema@babel.it",
+                "gru", 
+               false,
+                utente.getId(),
+                "ribaltone lanciato da CambiaProfilo"
+        );
+        LanciaTrasformatoreJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(LanciaTrasformatoreJobWorker.class, lanciaTrasformatoreJobWorkerData, false);
+        try {
+            masterjobsJobsQueuer.queue(jobWorker, jobSetId, jobSetId, "baborg", true, it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL, true,null);
+        } catch (MasterjobsQueuingException ex) {
+            log.error("errore lancio job del ribaltone",ex);
         }
 
         // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
