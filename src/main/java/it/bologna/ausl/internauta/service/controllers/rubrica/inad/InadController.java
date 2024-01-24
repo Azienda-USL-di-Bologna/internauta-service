@@ -88,7 +88,7 @@ public class InadController implements ControllerHandledExceptions{
     }
     
     /**
-     * Questa funzione torna sempre i domicili digtali aggiornato di una lista di contatti; se già presenti a db, li aggiorna da INAD e lo ritorna, altrimenti li chiede a INAD, li salva a db e li ritorna.
+     * Questa funzione torna sempre i domicili digtali aggiornati di una lista di contatti; se già presenti a db, li aggiorna da INAD e li ritorna, altrimenti li chiede a INAD, li salva a db e li ritorna.
      * @param idContattiList
      * @param request
      * @return

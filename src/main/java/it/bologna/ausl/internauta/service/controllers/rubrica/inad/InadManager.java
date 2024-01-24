@@ -531,9 +531,9 @@ public class InadManager {
      */
     public HashMap<Integer, Email> getAndSaveDomicilioDigitaleMultiConctats(List<Integer> idContactsList) throws BlackBoxPermissionException, InadException, AuthorizationUtilsException{
         HashMap<Integer, Email> emailsMap = new HashMap<Integer, Email>();
-        for(Integer y : idContactsList){
-            Email email = getAlwaysAndSaveDomicilioDigitale( y);
-            emailsMap.put(y, email);
+        for(Integer idContatto : idContactsList){
+            Email email = getAlwaysAndSaveDomicilioDigitale(idContatto);
+            emailsMap.put(idContatto, email);
         }
         
         return emailsMap;
