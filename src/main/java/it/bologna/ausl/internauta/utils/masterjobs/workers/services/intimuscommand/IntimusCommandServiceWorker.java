@@ -203,6 +203,7 @@ public class IntimusCommandServiceWorker extends ServiceWorker {
                         }
                         
                         switch (command) {
+                            // attualmente viengono accodati comandi solo di questo tipo
                             case RefreshAttivita:
                                 IntimusUtils.RefreshAttivitaParams refreshAttivitaParams = objectMapper.convertValue(intimusCommand.getParams(), IntimusUtils.RefreshAttivitaParams.class);
                                 if (destObjects != null && !destObjects.isEmpty()) {
@@ -232,7 +233,10 @@ public class IntimusCommandServiceWorker extends ServiceWorker {
                                 }
                                 break;
                             case ShowMessage:
-                                // TODO: da implementare prima o poi, anche se difficilmente la ShowMessage è accodata con questo meccanismo
+                                /*
+                                TODO: da implementare prima o poi, anche se difficilmente la ShowMessage è accodata con questo meccanismo in quanto attualmntete viene fatto
+                                da internauta
+                                */
                                 throw new NotImplementedException("non è possibile eseguire la Showmessage con questo meccasismo");
                         }
                         if (!buildedCommands.isEmpty()) {
@@ -265,6 +269,10 @@ public class IntimusCommandServiceWorker extends ServiceWorker {
         } while (!done);
     }
     
+    /**
+     * elimina i comandi di intimus gia eseguiti
+     * @param id 
+     */
     private void deleteIntimusCommand(Integer id) {
 //        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 //        transactionTemplate.executeWithoutResult( a -> {

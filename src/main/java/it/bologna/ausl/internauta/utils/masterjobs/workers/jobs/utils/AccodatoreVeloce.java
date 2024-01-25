@@ -1,6 +1,7 @@
 package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils;
 
 import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsObjectsFactory;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsWorkingObject;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
@@ -100,11 +101,12 @@ public class AccodatoreVeloce {
         }
     }
     
-    public void accodaCalcolaPermessiGerarchiaArchivio(Integer idArchivioRadice, String objectId, String objectType, Applicazione applicazione) throws MasterjobsWorkerException {
+    public void accodaCalcolaPermessiGerarchiaArchivio(Integer idArchivioRadice, String objectId, String objectType, Applicazione applicazione, List<MasterjobsWorkingObject> masterjobsWorkingObjects) throws MasterjobsWorkerException {
         CalcoloPermessiGerarchiaArchivioJobWorker worker = masterjobsObjectsFactory.getJobWorker(
                     CalcoloPermessiGerarchiaArchivioJobWorker.class,
                     new CalcoloPermessiGerarchiaArchivioJobWorkerData(idArchivioRadice),
-                    false
+                    false,
+                    masterjobsWorkingObjects
         );
         try {
             String app = null;
