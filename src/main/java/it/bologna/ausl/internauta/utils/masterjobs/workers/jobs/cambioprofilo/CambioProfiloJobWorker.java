@@ -10,6 +10,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ProfiliPredicatiRuoliRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ProfiliRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
@@ -72,6 +73,9 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
     @Autowired
     @Qualifier(value = "redisCache")
     private RedisTemplate<String, Object> redisTemplate;
+    
+    @Autowired
+    private CachedEntities cachedEntities;
     
     private final String jobSetId = "CambiamentiAssociazioniId";
 
@@ -217,7 +221,7 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
                 "sistema@babel.it",
                 "gru", 
                false,
-                utente.getId(),
+                cachedEntities.getUtenteFromCFAndIdAzienda("BABELBDS", idAzienda).getId(),
                 "ribaltone lanciato da CambiaProfilo"
         );
         LanciaTrasformatoreJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(LanciaTrasformatoreJobWorker.class, lanciaTrasformatoreJobWorkerData, false);
