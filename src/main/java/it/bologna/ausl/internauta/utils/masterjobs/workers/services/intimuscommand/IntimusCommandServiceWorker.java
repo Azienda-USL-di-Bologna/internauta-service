@@ -17,6 +17,9 @@ import it.bologna.ausl.model.entities.tools.IntimusCommand;
 import it.bologna.ausl.model.entities.tools.QIntimusCommand;
 import java.sql.Connection;
 import java.sql.Statement;
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang.NotImplementedException;
@@ -193,65 +196,69 @@ public class IntimusCommandServiceWorker extends ServiceWorker {
                         Ogni riga della tabella potrebbe comportare l'accodamento di più comandi a seconda della colonna dests_objects
                         */
                         List<IntimusUtils.IntimusCommand> buildedCommands = new ArrayList<>();
-                        
+
                         String commandString = intimusCommand.getCommand();
                         IntimusUtils.IntimusCommandNames command = IntimusUtils.IntimusCommandNames.valueOf(commandString);
-                        
-                        List<IntimusUtils.DestObject> destObjects = null;
-                        if (intimusCommand.getDestObjects() != null && !intimusCommand.getDestObjects().isEmpty()) {
-                            destObjects = objectMapper.convertValue(intimusCommand.getDestObjects(), new TypeReference<List<IntimusUtils.DestObject>>(){});
-                        }
-                        
-                        switch (command) {
-                            // attualmente viengono accodati comandi solo di questo tipo
-                            case RefreshAttivita:
-                                IntimusUtils.RefreshAttivitaParams refreshAttivitaParams = objectMapper.convertValue(intimusCommand.getParams(), IntimusUtils.RefreshAttivitaParams.class);
-                                if (destObjects != null && !destObjects.isEmpty()) {
-                                    // per ogni destinatario del comando, creo un comando
-                                    for (IntimusUtils.DestObject destObject : destObjects) {
-                                        buildedCommands.add(intimusUtils.buildRefreshAttivitaCommand(
-                                            destObject.getIdPersona(),
-                                            refreshAttivitaParams.getIdAttivita(),
-                                            refreshAttivitaParams.getOperation())
-                                        );
+
+                        // se il comando da eseguire è un refresh ed è stato inserito più di 1 minuto fa non lo eseguo perché non avrebbe senso
+                        if ((command == RefreshAttivita || command == RefreshMails) && 
+                                Duration.between(ZonedDateTime.now(), intimusCommand.getInsertTs()).getSeconds() <= 60) {
+                            List<IntimusUtils.DestObject> destObjects = null;
+                            if (intimusCommand.getDestObjects() != null && !intimusCommand.getDestObjects().isEmpty()) {
+                                destObjects = objectMapper.convertValue(intimusCommand.getDestObjects(), new TypeReference<List<IntimusUtils.DestObject>>(){});
+                            }
+
+                            switch (command) {
+                                case RefreshAttivita:
+                                    IntimusUtils.RefreshAttivitaParams refreshAttivitaParams = objectMapper.convertValue(intimusCommand.getParams(), IntimusUtils.RefreshAttivitaParams.class);
+                                    if (destObjects != null && !destObjects.isEmpty()) {
+                                        // per ogni destinatario del comando, creo un comando
+                                        for (IntimusUtils.DestObject destObject : destObjects) {
+                                            buildedCommands.add(intimusUtils.buildRefreshAttivitaCommand(
+                                                destObject.getIdPersona(),
+                                                refreshAttivitaParams.getIdAttivita(),
+                                                refreshAttivitaParams.getOperation())
+                                            );
+                                        }
                                     }
-                                }
-                                break;
-                            case RefreshMails:
-//                                IntimusUtils.RefreshMailsParams refreshMailsParams = objectMapper.convertValue(intimusCommand.getParams(), IntimusUtils.RefreshMailsParams.class);
-                                buildedCommands.add(intimusUtils.buildRefreshMailsCommand(
-                                    intimusCommand.getParams())
-                                );
-                                break;
-                            case Logout:
-                                IntimusUtils.LogoutParams logoutParams = objectMapper.convertValue(intimusCommand.getParams(), IntimusUtils.LogoutParams.class);
-                                if (destObjects != null && !destObjects.isEmpty()) {
-                                    for (IntimusUtils.DestObject destObject : destObjects) {    
-                                        buildedCommands.add(intimusUtils.buildLogoutCommand(
-                                            cachedEntities.getPersona(destObject.getIdPersona()), destObject.getApps(), logoutParams.getRedirectUrl()));
+                                    break;
+                                case RefreshMails:
+    //                                IntimusUtils.RefreshMailsParams refreshMailsParams = objectMapper.convertValue(intimusCommand.getParams(), IntimusUtils.RefreshMailsParams.class);
+                                    buildedCommands.add(intimusUtils.buildRefreshMailsCommand(
+                                        intimusCommand.getParams())
+                                    );
+                                    break;
+                                case Logout:
+                                    IntimusUtils.LogoutParams logoutParams = objectMapper.convertValue(intimusCommand.getParams(), IntimusUtils.LogoutParams.class);
+                                    if (destObjects != null && !destObjects.isEmpty()) {
+                                        for (IntimusUtils.DestObject destObject : destObjects) {    
+                                            buildedCommands.add(intimusUtils.buildLogoutCommand(
+                                                cachedEntities.getPersona(destObject.getIdPersona()), destObject.getApps(), logoutParams.getRedirectUrl()));
+                                        }
                                     }
-                                }
-                                break;
-                            case ShowMessage:
-                                /*
-                                TODO: da implementare prima o poi, anche se difficilmente la ShowMessage è accodata con questo meccanismo in quanto attualmntete viene fatto
-                                da internauta
-                                */
-                                throw new NotImplementedException("non è possibile eseguire la Showmessage con questo meccasismo");
-                        }
-                        if (!buildedCommands.isEmpty()) {
-                            for (IntimusUtils.IntimusCommand buildedCommand : buildedCommands) {
-                                if (buildedCommand != null) {
-                                    try {
-                                        // accodamento effettivo a intimus del comando
-                                        intimusUtils.sendCommand(buildedCommand);
-                                    } catch (IntimusSendCommandException ex) {
-                                        log.info(ex.getMessage());
+                                    break;
+                                case ShowMessage:
+                                    /*
+                                    TODO: da implementare prima o poi, anche se difficilmente la ShowMessage è accodata con questo meccanismo in quanto attualmntete viene fatto
+                                    da internauta
+                                    */
+                                    throw new NotImplementedException("non è possibile eseguire la Showmessage con questo meccasismo");
+                            }
+                            if (!buildedCommands.isEmpty()) {
+                                for (IntimusUtils.IntimusCommand buildedCommand : buildedCommands) {
+                                    if (buildedCommand != null) {
+                                        try {
+                                            // accodamento effettivo a intimus del comando
+                                            intimusUtils.sendCommand(buildedCommand);
+                                        } catch (IntimusSendCommandException ex) {
+                                            log.info(ex.getMessage());
+                                        }
                                     }
                                 }
                             }
+                        } else {
+                            log.warn("il comando è troppo vecchio, non lo eseguo");
                         }
-                        
                         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
                         transactionTemplate.executeWithoutResult(a -> {
                             // cancellazione della riga dalla tabella tools.intimus_commands
