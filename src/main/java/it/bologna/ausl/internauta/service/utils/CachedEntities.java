@@ -20,6 +20,7 @@ import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.QAzienda;
 import it.bologna.ausl.model.entities.baborg.QPersona;
 import it.bologna.ausl.model.entities.baborg.QRuolo;
+import it.bologna.ausl.model.entities.baborg.QUtente;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.Utente;
@@ -231,6 +232,19 @@ public class CachedEntities {
             return null;
         }
     }
+    
+    
+    @Cacheable(value = "utenteFromCFAndIdAzienda__ribaltorg__", key = "{#codiceFiscale, #idAzienda}")
+    public Utente getUtenteFromCFAndIdAzienda(String codiceFiscale, Integer idAzienda) {
+        QUtente qUtente = QUtente.utente;
+        Optional<Utente> utente = utenteRepository.findOne(qUtente.idPersona.codiceFiscale.eq(codiceFiscale).and(qUtente.idAzienda.id.eq(idAzienda)));
+        if (utente.isPresent()) {
+            return utente.get();
+        } else {
+            return null;
+        }
+    }
+    
 
     @Cacheable(value = "operazioneKrint__ribaltorg__", key = "{#codiceOperazione}")
     public OperazioneKrint getOperazioneKrint(OperazioneKrint.CodiceOperazione codiceOperazione) {

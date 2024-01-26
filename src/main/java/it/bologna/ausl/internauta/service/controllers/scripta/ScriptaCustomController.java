@@ -1113,7 +1113,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
         Applicazione applicazione = cachedEntities.getApplicazione("scripta");
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
-        accodatoreVeloce.accodaCalcolaPermessiGerarchiaArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione);
+        accodatoreVeloce.accodaCalcolaPermessiGerarchiaArchivio(idArchivioRadice, idArchivioRadice.toString(), "scripta_archivio", applicazione, null);
 //        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(idArchivioRadice)), idArchivioRadice.toString(), "scripta_archivio", applicazione);
 
         return new ResponseEntity("", HttpStatus.OK);

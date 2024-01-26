@@ -161,8 +161,8 @@ public class KrintScriptaService {
                     null,
                     null,
                     codiceOperazione); 
-                        if (canLogOnPadre && archivio.getIdArchivioPadre() != null && 
-                                OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA.equals(codiceOperazione)) 
+            if (canLogOnPadre && archivio.getIdArchivioPadre() != null && 
+                    OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_SPOSTA.equals(codiceOperazione)) 
                 krintService.writeKrintRow(
                     archivio.getIdArchivioPadre().getId().toString(), // idOggetto
                     Krint.TipoOggettoKrint.SCRIPTA_ARCHIVIO, // tipoOggetto

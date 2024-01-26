@@ -99,11 +99,18 @@ public class GenerazioneZipArchivioJobWorker extends JobWorker<GenerazioneZipArc
         String numerazioneGerarchicaFascicolo = archivio.getNumerazioneGerarchica().substring(0, archivio.getNumerazioneGerarchica().indexOf("/"));
         String archivioZipNameUnivoco = String.format("%s$%s-%d-%s.zip", UUID.randomUUID().toString(), numerazioneGerarchicaFascicolo, archivio.getAnno(), archivio.getOggetto().trim());
         
-        archivioZipNameUnivoco = archivioZipNameUnivoco.replace("/", "-");
+        Integer archivioZipNameUnivocoLength = archivioZipNameUnivoco.length();
+        System.out.println(archivioZipNameUnivocoLength);
+        if(archivioZipNameUnivocoLength >= 200){
+            String primaParte = archivioZipNameUnivoco.substring(0,150);
+            String secondaParte = archivioZipNameUnivoco.substring(archivioZipNameUnivocoLength - 14);
+            archivioZipNameUnivoco = primaParte.concat("...".concat(secondaParte));
+        }
         
+        archivioZipNameUnivoco = archivioZipNameUnivoco.replace("/", "-");
         // tolgo l'uuid dal nome dell'allegato 
         String archivioZipName = archivioZipNameUnivoco.substring(archivioZipNameUnivoco.lastIndexOf("$") + 1);
-        
+
         if (!scriptaArchiviUtils.personHasAtLeastThisPermissionOnTheArchive(persona.getId(), archivio.getId(), PermessoArchivio.DecimalePredicato.VISUALIZZA)) {
             return null;
         }

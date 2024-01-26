@@ -2,6 +2,7 @@ package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.managecambiasso
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import it.bologna.ausl.blackbox.PermissionManager;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
@@ -12,6 +13,8 @@ import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRep
 import it.bologna.ausl.internauta.service.repositories.scripta.PermessoArchivioRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
+import it.bologna.ausl.internauta.utils.masterjobs.MasterjobsWorkingObject;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
@@ -19,10 +22,13 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
 import it.bologna.ausl.model.entities.baborg.CambiamentiAssociazione;
 import it.bologna.ausl.model.entities.baborg.QCambiamentiAssociazione;
+import it.bologna.ausl.model.entities.baborg.QPersona;
+import it.bologna.ausl.model.entities.baborg.QUtente;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -58,6 +64,9 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
     private PermessoArchivioRepository permessoArchivioRepository;
     
     @Autowired
+    private CachedEntities cachedEntities;
+    
+    @Autowired
     private ObjectMapper objectMapper;
    
     @Override
@@ -77,11 +86,11 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
                 Sort.by(Sort.Direction.ASC, QCambiamentiAssociazione.cambiamentiAssociazione.id.getAnnotatedElement().getDeclaredAnnotation(Column.class).name()));
         
         if (cambiamentiAssociazioni != null) {
-            Set<Integer> idUtenteSet = new HashSet();
+            Set<Integer> idPersonaSet = new HashSet();
             List<Integer> idCambiamentiAssociazioni = new ArrayList<>();
             Set<Integer> idArchiviRadiceDaPermessizzare = new HashSet<>();
-
-            /**
+            List<MasterjobsWorkingObject> masterjobsWorkingObjects = new ArrayList<>();
+            /*
              * Ciclando sui cambaimenti associazione vado a recuperare un set di archivi che hanno bisogno del ricalcolo dei permessi
              */
             for (CambiamentiAssociazione cambiamentiAssociazione : cambiamentiAssociazioni) {
@@ -89,9 +98,11 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
                 Utente utente = cambiamentiAssociazione.getIdUtente();
                 
                 // if utente non già presente nel set altrimenti lo conto come già fatto, non voglio far calcoli sullo stesso utente. 
-                if (!idUtenteSet.contains(utente.getId())) {
-                    idUtenteSet.add(utente.getIdPersona().getId());
-
+                if (!idPersonaSet.contains(utente.getIdPersona().getId())) {
+                    idPersonaSet.add(utente.getIdPersona().getId());
+                    MasterjobsWorkingObject masterjobsWorkingObject = new MasterjobsWorkingObject(utente.getIdPersona().getId().toString(), "Persona");
+                    addWorkingObjects(Arrays.asList(masterjobsWorkingObject));
+                    masterjobsWorkingObjects.add(masterjobsWorkingObject);
                     /*Mi costruisco il soggetto per la richiesta alla BB*/
                     List<PermessoEntitaStoredProcedure> permessiPersonaSuArchivi = null ;
                     List<Integer> listIdPermessiSuArchivi = new ArrayList<>();
@@ -190,7 +201,19 @@ public class ManageCambiAssociazioniJobWorker extends JobWorker<ManageCambiAssoc
                     * lo si vuole effettuare solo dopo aver calcolato i permessi arhcivi allora l'unico modo che ho trovato è stato mettere l'accodamento di CalcolaPersoneVedentiDaArchiviRadice
                     * solo dopo aver accdoato il calcolo permessi archvi di ogni archivio (tutti avranno l'object id che sarà l'id arhdivio radice)
                     */
-                    accodatoreVeloce.accodaCalcolaPermessiGerarchiaArchivio(idArchivioRadice, OBJECT_ID_JOB, TYPE_JOB, null);
+//                    JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+//                    QUtente qUtente = QUtente.utente; 
+//                    JPAQuery<Integer> persone = queryFactory
+//                        .select(qUtente.idPersona.id)
+//                        .from(qUtente)
+//                        .where(qUtente.id.in(idUPersonaSet))
+//                        .fetchAll();
+//                    List<MasterjobsWorkingObject> workingObjects = new ArrayList<>();
+//                    for (Iterator<Integer> iterator = persone.iterate(); iterator.hasNext();) {
+//                        Integer idPersona = iterator.next();
+//                        workingObjects.add(new MasterjobsWorkingObject(idPersona.toString(), "Persona"));
+//                    }
+                    accodatoreVeloce.accodaCalcolaPermessiGerarchiaArchivio(idArchivioRadice, OBJECT_ID_JOB, TYPE_JOB, null, masterjobsWorkingObjects);
                 }
                 
 //                log.info("Inserisco il job CalcolaPersoneVedentiDaArchiviRadice");

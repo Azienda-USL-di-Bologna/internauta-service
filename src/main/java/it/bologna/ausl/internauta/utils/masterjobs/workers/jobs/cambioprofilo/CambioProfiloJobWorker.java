@@ -10,10 +10,14 @@ import it.bologna.ausl.internauta.service.repositories.baborg.PersonaRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ProfiliPredicatiRuoliRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.ProfiliRepository;
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteRepository;
+import it.bologna.ausl.internauta.service.utils.CachedEntities;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.lanciatrasformatore.LanciaTrasformatoreJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.lanciatrasformatore.LanciaTrasformatoreJobWorkerData;
 import it.bologna.ausl.model.entities.baborg.AfferenzaStruttura;
 import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.Persona;
@@ -69,6 +73,11 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
     @Autowired
     @Qualifier(value = "redisCache")
     private RedisTemplate<String, Object> redisTemplate;
+    
+    @Autowired
+    private CachedEntities cachedEntities;
+    
+    private final String jobSetId = "CambiamentiAssociazioniId";
 
     @Override
     protected JobWorkerResult doRealWork() throws MasterjobsWorkerException {
@@ -157,8 +166,11 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
                             switch (ppr.getTipoOggetto()) {
                                 case STRUTTURE:
                                     for (UtenteStruttura us : utente.getUtenteStrutturaList()) {
-                                        if (us.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.DIRETTA) {
+                                        if (
+                                            us.getIdAfferenzaStruttura().getCodice() == AfferenzaStruttura.CodiciAfferenzaStruttura.DIRETTA &&
+                                            us.getAttivo()) {
                                             oggetto = us.getIdStruttura();
+                                            break;
                                         }
                                     }
                                     break;
@@ -174,7 +186,7 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
                         }
 
                         try {
-                            permissionManager.insertSimplePermission(soggetto, oggetto, ppr.getPredicato(), null, false, false, ppr.getTipoAmbito().toString(), ppr.getTipoPermesso().toString());
+                            permissionManager.insertSimplePermission(soggetto, oggetto, ppr.getPredicato(), name, false, false, ppr.getTipoAmbito().toString(), ppr.getTipoPermesso().toString());
                         } catch (BlackBoxPermissionException ex) {
                             String errorMsg = "Errore nell'inserimento del permesso qualcosa è andato storto";
                             log.error(errorMsg, ex);
@@ -199,6 +211,24 @@ public class CambioProfiloJobWorker extends JobWorker<CambioProfiloJobWorkerData
                 personaRepository.save(persona);
                 utenteRepository.save(utente);
             }            
+        }
+        
+        // lancio del ribaltone locale per apportare le modifiche su argo
+        LanciaTrasformatoreJobWorkerData lanciaTrasformatoreJobWorkerData = new LanciaTrasformatoreJobWorkerData(
+                idAzienda, 
+                true,
+                false, 
+                "sistema@babel.it",
+                "gru", 
+               false,
+                cachedEntities.getUtenteFromCFAndIdAzienda("BABELBDS", idAzienda).getId(),
+                "ribaltone lanciato da CambiaProfilo"
+        );
+        LanciaTrasformatoreJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(LanciaTrasformatoreJobWorker.class, lanciaTrasformatoreJobWorkerData, false);
+        try {
+            masterjobsJobsQueuer.queue(jobWorker, jobSetId, jobSetId, "baborg", true, it.bologna.ausl.model.entities.masterjobs.Set.SetPriority.NORMAL, true,null);
+        } catch (MasterjobsQueuingException ex) {
+            log.error("errore lancio job del ribaltone",ex);
         }
 
         // cancello le chiavi cache che interessano perchè sono cambiati i permessi e in matrice non si vedono
