@@ -46,11 +46,13 @@ import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
+import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -520,6 +522,8 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
             }
         }
         
+        HashSet<Integer> idArchiviRadiceSuCuiAggiungereJob = new HashSet();
+        
         // Mo loggo, mi serve una mappa dove per ogni archivio ho una lista della abilitazioni che la destinazione ha ricevuto.
         // La lista di abilitazioni può essere vuota nel caso in cui la destinazione già aveva l'abilitazione, ma la sorgente l'ha persa. Info utile in caso di trasferimento.
         log.info(String.format("Eseguo il krint e accodo il calcolo permessi su ogni archivio"));
@@ -535,6 +539,8 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
             } else {
                 operazioneKrint = OperazioneKrint.CodiceOperazione.SCRIPTA_ARCHIVIO_TRASFERIMENTO_MASSIVO_ABILITAZIONI;
             }
+            
+            
             if (operationType.equals(MassiveActionLog.OperationType.TRASFERISCI_ABILITAZIONI) || !info.getAbilitazioniAggiunte().isEmpty()) {
                 krintScriptaService.writeCopiaTrasferimentoAbilitazioniArchivi(
                         idArchivio,
@@ -546,10 +552,16 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                         idMassiveActionLog,
                         operazioneKrint
                 );
-
+                
+                idArchiviRadiceSuCuiAggiungereJob.add(info.getIdArchivioRadice());
+            }
+        }
+        
+        if (!idArchiviRadiceSuCuiAggiungereJob.isEmpty()) {
+            for (Integer idArchivioRadice : idArchiviRadiceSuCuiAggiungereJob) {
                 JobNotified jn = new JobNotified();
                 jn.setJobName("CalcoloPermessiGerarchiaArchivioJobWorker");
-                jn.setJobData(objectMapper.convertValue(new CalcoloPermessiGerarchiaArchivioJobWorkerData(info.getIdArchivioRadice()), Map.class));
+                jn.setJobData(objectMapper.convertValue(new CalcoloPermessiGerarchiaArchivioJobWorkerData(idArchivioRadice), Map.class));
                 jn.setWaitObject(false);
                 jn.setApp(app.getId());
                 jn.setPriority(Set.SetPriority.NORMAL);
@@ -597,13 +609,13 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
     
     @Override
     public boolean isExecutable() {
-        return true; // Per il momento lo eseguiamo subito perché dobbiamo fare la presentazione.
+//        return true; // Per il momento lo eseguiamo subito perché dobbiamo fare la presentazione.
         // Controllo se now è tra le 7 e le 18, se si torno false se no torno true
-//        ZonedDateTime now = ZonedDateTime.now();
-//        LocalTime oraCorrente = now.toLocalTime();
-//        LocalTime inizioOrario = LocalTime.of(7, 0);   // 7:00
-//        LocalTime fineOrario = LocalTime.of(18, 0);    // 18:00
-//        return !(oraCorrente.isAfter(inizioOrario) && oraCorrente.isBefore(fineOrario));
+        ZonedDateTime now = ZonedDateTime.now();
+        LocalTime oraCorrente = now.toLocalTime();
+        LocalTime inizioOrario = LocalTime.of(7, 0);   // 7:00
+        LocalTime fineOrario = LocalTime.of(18, 0);    // 18:00
+        return !(oraCorrente.isAfter(inizioOrario) && oraCorrente.isBefore(fineOrario));
     }
     
     /**
