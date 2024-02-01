@@ -85,7 +85,7 @@ public class LoginConfig {
     public void readConfig(Integer idAzienda) {
         if (idAzienda != null && configSource == ConfigSource.PARAMETRI_AZIENDE) {
             List<ParametroAziende> parameters = parametriAziendeReader.getParameters(ParametriAziendeReader.ParametriAzienda.loginConfig, new Integer[]{idAzienda});
-            if (parameters != null)  {
+            if (parameters != null && !parameters.isEmpty())  {
                 Map<String, Object> loginConfig = parametriAziendeReader.getValue(parameters.get(0), new TypeReference<Map<String, Object>>(){});
                 if (loginConfig != null && !loginConfig.isEmpty()) {
                     try {
