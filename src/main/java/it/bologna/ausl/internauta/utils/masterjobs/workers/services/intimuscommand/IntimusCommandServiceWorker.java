@@ -89,14 +89,6 @@ public class IntimusCommandServiceWorker extends ServiceWorker {
         questo mi permette di accodare i comandi che sono stati inseriti mentre non ero in listen
         */
         if (serviceEntity.getWaitNotifyMillis() != null) {
-            // all'avvio schedulo il job per recuperare il pregresso
-            transactionTemplate.executeWithoutResult(a -> {
-                try {
-                    extractAndSendCommandsToIntimus();
-                } catch (MasterjobsWorkerException ex) {
-                    throw new MasterjobsRuntimeExceptionWrapper(ex);
-                }
-            });
             
             // mi metto in listen
             Session session = entityManager.unwrap(Session.class);
@@ -111,6 +103,14 @@ public class IntimusCommandServiceWorker extends ServiceWorker {
                     String errorMessage = String.format("error executing LISTEN %s", NEW_INTIMUS_COMMAND_NOTIFY);
                     log.error(errorMessage, ex);
                     throw new MasterjobsRuntimeExceptionWrapper(errorMessage, ex);
+                }
+            });
+            // all'avvio schedulo il job per recuperare il pregresso
+            transactionTemplate.executeWithoutResult(a -> {
+                try {
+                    extractAndSendCommandsToIntimus();
+                } catch (MasterjobsWorkerException ex) {
+                    throw new MasterjobsRuntimeExceptionWrapper(ex);
                 }
             });
         }
