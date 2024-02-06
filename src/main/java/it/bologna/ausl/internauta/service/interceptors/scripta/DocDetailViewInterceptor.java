@@ -1,4 +1,5 @@
 package it.bologna.ausl.internauta.service.interceptors.scripta;
+
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -8,7 +9,7 @@ import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData.OperationsRequested.FilterTraDocumentiRegistrati;
 import static it.bologna.ausl.internauta.service.utils.InternautaConstants.AdditionalData.OperationsRequested.VisualizzaTabRegistrazioni;
-import it.bologna.ausl.model.entities.baborg.Persona; 
+import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
 import it.bologna.ausl.model.entities.baborg.Utente;
 import it.bologna.ausl.model.entities.scripta.DocDetail;
@@ -22,7 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors; 
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +51,7 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     private DocDetailInterceptorUtils docDetailInterceptorUtils;
-    
+
     @Autowired
     private ScriptaInterceptorUtils scriptaInterceptorUtils;
 
@@ -59,22 +60,41 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
         QDocDetailView qdoclist = QDocDetailView.docDetailView;
 //        QDocDetailView qdoclistView = QDocDetailView.docDetailView;
         List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
-        
+
         initialPredicate = safetyFilters().and(initialPredicate);
-        
+
+        String stringDaCercare;
         if (operationsRequested != null && !operationsRequested.isEmpty()) {
-           
+
             for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
                 switch (operationRequested) {
-                case FilterTraDocumentiRegistrati:
-                    initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
-                    break;}
+                    case FilterTraDocumentiRegistrati:
+                        initialPredicate = qdoclist.dataRegistrazione.isNotNull().and(initialPredicate);
+                    case CercaAncheNelTesto: {
+                        LOGGER.info("sono dentro CercaNelTesto");
+                        //in questo caso cerco anche nella tscol del testo dei documenti
+                        stringDaCercare = additionalData.get(InternautaConstants.AdditionalData.Keys.stringaDaCercare.toString());
+                        BooleanExpression booleanTemplateTestoTscol = Expressions.booleanTemplate(
+                                String.format("FUNCTION('fts_match', italian, {0}, '%s')= true", stringDaCercare.replace("'", "''")),
+                                QDocDetailView.docDetailView.testoTscol
+                        );
+                        BooleanExpression booleanTemplateTscol = Expressions.booleanTemplate(
+                                String.format("FUNCTION('fts_match', italian, {0}, '%s')= true", stringDaCercare.replace("'", "''")),
+                                QDocDetailView.docDetailView.tscol
+                        );
+                        
+                        initialPredicate = (booleanTemplateTestoTscol.or(booleanTemplateTscol)).and(initialPredicate);
+                        
+                        System.err.println("Predicato: " + initialPredicate);
+
+                    }
+                    break;
+                }
             }
         }
         initialPredicate = scriptaInterceptorUtils.duplicateFiltersPerPartition(DocDetailView.class, "dataCreazioneDoc", "idAziendaDoc").and(initialPredicate);
 
 //        InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
-
 //        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
 //        if (operationsRequested != null && !operationsRequested.isEmpty()) {
 //            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
@@ -83,7 +103,6 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
 //                }
 //            }
 //        }
-        
         return super.beforeSelectQueryInterceptor(initialPredicate, additionalData, request, mainEntity, projectionClass); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -126,15 +145,13 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
 
     /**
      * Questa funzione si occupa di generare un predicato che contenga tutti i
-     * filtri di sicurezza che riguardano docDetailView Essi sono: 
-     *  1- Se demiurgo vede tutto 
-     *  2- Gli altri vedono solo documenti delle aziende su cui sono attivi 
-     *  3- Se osservatore vede tutto delle aziende su cui è osservatore tranne i 
-     *     riservati 
-     *  4- Se utente generico vede solo le sue proposte 
-     *  5- Se segretario vede anche proposte non sue purché dei suoi "superiori"
-     *  6- Se utente sta cercando per campi sensibili e non ha piena
-     *     visibilità non vede riservati/vis lim
+     * filtri di sicurezza che riguardano docDetailView Essi sono: 1- Se
+     * demiurgo vede tutto 2- Gli altri vedono solo documenti delle aziende su
+     * cui sono attivi 3- Se osservatore vede tutto delle aziende su cui è
+     * osservatore tranne i riservati 4- Se utente generico vede solo le sue
+     * proposte 5- Se segretario vede anche proposte non sue purché dei suoi
+     * "superiori" 6- Se utente sta cercando per campi sensibili e non ha piena
+     * visibilità non vede riservati/vis lim
      */
     private BooleanExpression safetyFilters() {
         AuthenticatedSessionData authenticatedSessionData = getAuthenticatedUserProperties();
@@ -143,10 +160,10 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
         Persona persona = user.getIdPersona();
         QDocDetailView qdocdetailview = QDocDetailView.docDetailView;
         BooleanExpression filter = Expressions.TRUE.eq(true);
-        
+
         // Filtro 1 -  Se demiurgo vede tutto 
-        if (!userInfoService.isSD(user)) { 
-            
+        if (!userInfoService.isSD(user)) {
+
             String[] visLimFields = {"firmatari", "idArchivi", "tscol"};
             String[] reservedFields = {"oggetto", "oggettoTscol", "destinatari", "destinatariTscol", "tscol", "firmatari", "idPersonaRedattrice", "idArchivi"};
             List<Integer> listaIdAziendaUtenteAttivo = userInfoService.getAziendePersona(persona).stream().map(aziendaPersona -> aziendaPersona.getId()).collect(Collectors.toList());
@@ -166,16 +183,15 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
             } else {
                 sonoSegretario = Expressions.FALSE.eq(true);
             }
-            
+
             /* Filtro 4 Se utente generico vede solo le sue proposte
                Filtro 5 Se segretario vede anche proposte non sue purché dei suoi "superiori"
-            */
+             */
             BooleanExpression filtroStandard = qdocdetailview.numeroRegistrazione.isNotNull()
-                    .or(personaVedente) 
+                    .or(personaVedente)
                     .or(sonoSegretario);
-                    
-            
-             // Filtro 6 Riservato
+
+            // Filtro 6 Riservato
             filtroStandard = filtroStandard.and(
                     qdocdetailview.riservato.eq(Boolean.FALSE)
                             .or(Expressions.FALSE.eq(docDetailInterceptorUtils.isFilteringSpecialFields(reservedFields)))
@@ -184,37 +200,33 @@ public class DocDetailViewInterceptor extends InternautaBaseInterceptor {
 
             //Filtro 6 Visibilità limitata
             filtroStandard = filtroStandard.and(
-                    qdocdetailview.visibilitaLimitata.eq(Boolean.FALSE) 
+                    qdocdetailview.visibilitaLimitata.eq(Boolean.FALSE)
                             .or(Expressions.FALSE.eq(docDetailInterceptorUtils.isFilteringSpecialFields(visLimFields)))
                             .or(pienaVisibilita)
             );
-            
-            
-          
-            BooleanExpression filtroResponsabileVersamento = qdocdetailview.idAzienda.id.in(listaIdAziendaResponsabileVersamenti)
-                .and(qdocdetailview.idAziendaDoc.id.in(listaIdAziendaResponsabileVersamenti));
 
+            BooleanExpression filtroResponsabileVersamento = qdocdetailview.idAzienda.id.in(listaIdAziendaResponsabileVersamenti)
+                    .and(qdocdetailview.idAziendaDoc.id.in(listaIdAziendaResponsabileVersamenti));
 
             // Filtro 3 - Se osservatore vede tutto delle aziende su cui è osservatore tranne i riservati 
             BooleanExpression filtroOsservatore = qdocdetailview.idAzienda.id.in(listaIdAziendaOsservatore)
                     .and(qdocdetailview.idAziendaDoc.id.in(listaIdAziendaOsservatore))
-                    .and(qdocdetailview.riservato.eq(Boolean.FALSE)); 
+                    .and(qdocdetailview.riservato.eq(Boolean.FALSE));
 
-             // Filtro 2 - Gli altri vedono solo documenti delle aziende su cui sono attivi
+            // Filtro 2 - Gli altri vedono solo documenti delle aziende su cui sono attivi
             filter = qdocdetailview.idAzienda.id.in(listaIdAziendaUtenteAttivo)
                     .and(qdocdetailview.idAziendaDoc.id.in(listaIdAziendaUtenteAttivo));
-            
+
             //filtri sui ruoli
             filter = filter.and(
                     filtroOsservatore
-                        .or(filtroStandard)
-                        .or(filtroResponsabileVersamento)
-                    );
-            
+                            .or(filtroStandard)
+                            .or(filtroResponsabileVersamento)
+            );
+
             filter = (qdocdetailview.tipologia.ne(DocDetail.TipologiaDoc.DOCUMENT_REGISTRO)
-                      .or(qdocdetailview.idAzienda.id.in(listaIdAziendaCA))
-                      .or(filtroResponsabileVersamento)
-                    ).and(filter);
+                    .or(qdocdetailview.idAzienda.id.in(listaIdAziendaCA))
+                    .or(filtroResponsabileVersamento)).and(filter);
         }
 
         return filter;

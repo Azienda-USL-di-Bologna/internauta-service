@@ -53,7 +53,8 @@ public class InternautaConstants {
             BitPermessoMinimo,
             idArchivio,
             doNotInclude,
-            predicati
+            predicati,
+            stringaDaCercare
         }
 
         public enum OperationsRequested {
@@ -100,7 +101,8 @@ public class InternautaConstants {
             RemovePassword,
             FilterPerAssegnamentoMassivo,
             GetUtentiInStrutturaEFiglie,
-            FilterTraDocumentiRegistrati
+            FilterTraDocumentiRegistrati,
+            CercaAncheNelTesto
         }
 
         public static List<OperationsRequested> getOperationRequested(Keys key, Map<String, String> additionalData) {
