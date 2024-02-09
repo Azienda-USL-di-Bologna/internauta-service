@@ -12,6 +12,8 @@ import it.bologna.ausl.model.entities.baborg.Azienda;
 import it.bologna.ausl.model.entities.baborg.AziendaParametriJson;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.baborg.Utente;
+import it.bologna.ausl.model.entities.lotti.Componente;
+import it.bologna.ausl.model.entities.lotti.GruppoLotto;
 import it.bologna.ausl.model.entities.lotti.Lotto;
 import it.bologna.ausl.model.entities.scripta.Doc;
 import it.nextsw.common.controller.exceptions.RestControllerEngineException;
@@ -139,6 +141,21 @@ public class LottiCustomController {
         for(Lotto lotto : lottiList) {
             if (lotto.getVersion().isAfter(tsUltimaStampa)) {
                 return ResponseEntity.ok("stampa");
+            }
+        }
+        for(Lotto lotto : lottiList) {
+            if (lotto.getVersion().isAfter(tsUltimaStampa)) {
+                return ResponseEntity.ok("stampa");
+            }
+            
+            List<GruppoLotto> gruppiList = lotto.getGruppiList();
+            for (GruppoLotto gruppoLotto : gruppiList) {
+                List<Componente> componentiList = gruppoLotto.getComponentiList();
+                for (Componente componente : componentiList) {
+                    if( componente.getVersion().isAfter(tsUltimaStampa)){
+                        return ResponseEntity.ok("stampa");
+                    }
+                }
             }
         }
         
