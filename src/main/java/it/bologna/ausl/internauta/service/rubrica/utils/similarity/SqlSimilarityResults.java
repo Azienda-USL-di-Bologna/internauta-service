@@ -8,6 +8,7 @@ import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -91,7 +92,7 @@ public class SqlSimilarityResults {
             Map<String, Map<Integer, PermessoStoredProcedure>> mapOfPermissionsOfSubjectAdvanced = permissionManager.getMapOfPermissionsOfSubjectAdvanced(persona, contatti,
                     Arrays.asList("ACCESSO"), InternautaConstants.Permessi.Ambiti.RUBRICA.toString(),
                     InternautaConstants.Permessi.Tipi.CONTATTO.toString(), false,
-                    LocalDate.now(), null, BlackBoxConstants.Direzione.PRESENTE);
+                    ZonedDateTime.now(), null, BlackBoxConstants.Direzione.PRESENTE);
             if (mapOfPermissionsOfSubjectAdvanced != null) {
                 mappa = mapOfPermissionsOfSubjectAdvanced.get("ACCESSO");
             }

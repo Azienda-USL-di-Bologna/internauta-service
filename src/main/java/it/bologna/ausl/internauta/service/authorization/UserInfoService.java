@@ -64,6 +64,7 @@ import java.util.stream.Stream;
 import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgUtenteStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniPersona;
+import java.time.ZoneId;
 import org.json.JSONObject;
 import org.springframework.beans.factory.BeanFactory;
 
@@ -769,7 +770,7 @@ public class UserInfoService {
             InternautaConstants.Permessi.Ambiti.DETE.toString(),
             InternautaConstants.Permessi.Ambiti.DELI.toString()}),
                 Arrays.asList(new String[]{InternautaConstants.Permessi.Tipi.FLUSSO.toString()}),
-                false, dataPermesso != null ? dataPermesso.toLocalDate() : null, null, direzione);
+                false, dataPermesso != null ? dataPermesso.atZone(ZoneId.systemDefault()) : null, null, direzione);
     }
 
     @Cacheable(value = "getPermessiFilteredByAdditionalData__ribaltorg__",
@@ -813,7 +814,7 @@ public class UserInfoService {
                 ambitiPermesso != null ? ambitiPermesso.stream().map(ambito -> ambito.toString()).collect(Collectors.toList()) : null,
                 tipiPermesso != null ? tipiPermesso.stream().map(tipo -> tipo.toString()).collect(Collectors.toList()) : null,
                 dammiPermessiVirtuali,
-                dataPermesso != null ? dataPermesso.toLocalDate() : null,
+                dataPermesso != null ? dataPermesso.atZone(ZoneId.systemDefault()) : null,
                 null,
                 direzione);
     }

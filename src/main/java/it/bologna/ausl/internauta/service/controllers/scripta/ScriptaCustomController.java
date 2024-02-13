@@ -2300,7 +2300,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
         Integer idMassiveActionLog = scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(null, parameters, operationType);
 
-        log.info("Inserisco il job CopiaTrasferisciAbilitazioniArchiviJobWorkerData");
+        log.info("Inserisco il job CopiaTrasferisciAbilitazioniArchiviJobWorker");
         // Inserisco il job per copiare/trasferire le abilitazioni
         CopiaTrasferisciAbilitazioniArchiviJobWorkerData copiaTrasferisciAbilitazioniArchiviJobWorkerData = new CopiaTrasferisciAbilitazioniArchiviJobWorkerData(
                 operationType,
@@ -2320,15 +2320,25 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 copiaTrasferisciAbilitazioniArchiviJobWorkerData,
                 false
         );
-        masterjobsJobsQueuer.queueInJobsNotified(
-                jobWorker,
-                null, // ObjectID 
-                null,
-                app.getId(),
-                false, // waitForObject
-                Set.SetPriority.NORMAL,
-                false
-        );
+//        masterjobsJobsQueuer.queueInJobsNotified(
+//                jobWorker,
+//                null, // ObjectID 
+//                null,
+//                app.getId(),
+//                false, // waitForObject
+//                Set.SetPriority.NORMAL,
+//                false
+//        );
+        ArrayList arrayList = new ArrayList();
+        arrayList.add(jobWorker);
+        masterjobsJobsQueuer.queueOnCommit(
+                arrayList, 
+                null, 
+                null, 
+                app.getId(), 
+                Boolean.FALSE, 
+                Set.SetPriority.NORMAL, 
+                null);
 //        jobWorker.doWork();
 
 //        Map copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(copiaTrasferisciAbilitazioniArchiviJobWorkerData, Map.class);

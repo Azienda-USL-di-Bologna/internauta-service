@@ -74,17 +74,20 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) {
-        System.out.println("in: beforeSelectQueryInterceptor di UtenteStruttura");
-
+        //System.out.println("in: beforeSelectQueryInterceptor di UtenteStruttura");
         String filterComboValue = null;
         ZonedDateTime dataRiferimento = null;
         List<Integer> doNotInclude = new ArrayList<Integer>();
         if (additionalData != null && additionalData.containsKey(FILTER_COMBO)) {
             filterComboValue = additionalData.get(FILTER_COMBO);
         }
-        String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
-        if (additionalData != null && additionalData.containsKey(key)) {
-            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS);
+        String dataRiferimentokey = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
+        boolean soloAccesi = true;
+        if (additionalData!=null && additionalData.containsKey(InternautaConstants.AdditionalData.Keys.soloAccesi.toString())){
+            soloAccesi = Boolean.parseBoolean(additionalData.get(InternautaConstants.AdditionalData.Keys.soloAccesi.toString()));
+        } 
+        if (additionalData != null && additionalData.containsKey(dataRiferimentokey)) {
+            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(dataRiferimentokey))).atZone(ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS);
         }
         String keyToDoNotInclude = InternautaConstants.AdditionalData.Keys.doNotInclude.toString();
         if (additionalData != null && additionalData.containsKey(keyToDoNotInclude)) {
@@ -117,27 +120,27 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
             * si cerchino le righe con campo attivo = true
             * NB: il front-end a volte lo mette già nei filtri dell'initialPredicate
              */
-            BooleanExpression customFilterUtenteStrutturaAttivo = QUtenteStruttura.utenteStruttura.attivo.eq(true);
-            customFilterUtenteStrutturaAttivo = customFilterUtenteStrutturaAttivo.and(QUtenteStruttura.utenteStruttura.idStruttura.attiva.eq(true));
-            initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
+            if (soloAccesi){
+                BooleanExpression customFilterUtenteStrutturaAttivo = QUtenteStruttura.utenteStruttura.attivo.eq(true);
+                customFilterUtenteStrutturaAttivo = customFilterUtenteStrutturaAttivo.and(QUtenteStruttura.utenteStruttura.idStruttura.attiva.eq(true));
+                initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
+            }
         }
-        
-            List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
-            if (operationsRequested != null && !operationsRequested.isEmpty()) {
-                for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
-                    switch (operationRequested) {
-                        case GetUtentiInStrutturaEFiglie:
-                            Integer idStruttura = Integer.parseInt(additionalData.get("idStruttura")) ;
-                            List<Integer> idStrutturaEfiglie = strutturaRepository.getStruttureFiglie(idStruttura);
-                            idStrutturaEfiglie.add(idStruttura);
-                            BooleanExpression filterUtentiStruttura = QUtenteStruttura.utenteStruttura.attivo.eq(Boolean.TRUE)
-                                                                        .and(QUtenteStruttura.utenteStruttura.idStruttura.id.in(idStrutturaEfiglie));
-                            initialPredicate = filterUtentiStruttura.and(initialPredicate);
-                        break;
-                    }
+        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                switch (operationRequested) {
+                    case GetUtentiInStrutturaEFiglie:
+                        Integer idStruttura = Integer.parseInt(additionalData.get("idStruttura")) ;
+                        List<Integer> idStrutturaEfiglie = strutturaRepository.getStruttureFiglie(idStruttura);
+                        idStrutturaEfiglie.add(idStruttura);
+                        BooleanExpression filterUtentiStruttura = QUtenteStruttura.utenteStruttura.attivo.eq(Boolean.TRUE)
+                                                                    .and(QUtenteStruttura.utenteStruttura.idStruttura.id.in(idStrutturaEfiglie));
+                        initialPredicate = filterUtentiStruttura.and(initialPredicate);
+                    break;
                 }
             }
-
+        }
         return initialPredicate;
     }
 
@@ -173,22 +176,22 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
                                 throw new AbortLoadInterceptorException("errore nell'estrazione dei sotto resposabili", ex);
                             }
 //                            System.out.println("aaaaaaaaaa");
-                            try {
-                                System.out.println(objectMapper.writeValueAsString(utentiStrutturaSottoResponsabili));
-                            } catch (JsonProcessingException ex) {
-                                Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-                            }
+//                            try {
+//                                System.out.println(objectMapper.writeValueAsString(utentiStrutturaSottoResponsabili));
+//                            } catch (JsonProcessingException ex) {
+//                                Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+//                            }
                             List<Object> res = utentiStrutturaSottoResponsabili.stream().map(utenteStrutturaMap -> {
                                 Object utenteStruttura = this.getUtenteStruttura(utenteStrutturaMap, projectionClass);
                                 //return factory.createProjection(UtenteStrutturaWithIdUtente.class, utenteStruttura);
                                 return utenteStruttura;
                             }).collect(Collectors.toList());
-                            System.out.println("res");
-                            try {
-                                System.out.println(objectMapper.writeValueAsString(res));
-                            } catch (JsonProcessingException ex) {
-                                Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-                            }
+                            //System.out.println("res");
+//                            try {
+//                                System.out.println(objectMapper.writeValueAsString(res));
+//                            } catch (JsonProcessingException ex) {
+//                                Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+//                            }
                             entities.addAll(res);
 //                            List entitiesList = new ArrayList(entities);
 //                            Collections.sort(entitiesList, (UtenteStrutturaWithIdUtente us1, UtenteStrutturaWithIdUtente us2) -> {

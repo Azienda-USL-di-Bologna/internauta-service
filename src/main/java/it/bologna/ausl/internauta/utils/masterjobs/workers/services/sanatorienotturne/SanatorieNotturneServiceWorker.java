@@ -5,6 +5,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingE
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.WorkerResult;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriacontatti.SanatoriaContattiJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriapermessiveicolati.SanatoriaPermessiVeicolatiJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.ServiceWorker;
 import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.masterjobs.Set;
@@ -41,9 +42,21 @@ public class SanatorieNotturneServiceWorker extends ServiceWorker {
                     null
             );
         } catch (MasterjobsQueuingException ex) {
-            throw new MasterjobsWorkerException("errore nell'accodamento del job", ex);
+            throw new MasterjobsWorkerException("errore nell'accodamento del SanatoriaContattiJobWorker", ex);
         }
-        
+        try {
+            masterjobsJobsQueuer.queue(
+                    new SanatoriaPermessiVeicolatiJobWorker(),
+                    null,
+                    null,
+                    Applicazione.Applicazioni.gediInt.toString(),
+                    false,
+                    Set.SetPriority.NORMAL,
+                    null
+            );
+        } catch (MasterjobsQueuingException ex) {
+            throw new MasterjobsWorkerException("errore nell'accodamento del SanatoriaPermessiVeicolatiJobWorker", ex);
+        }
         return null;
     }
 }
