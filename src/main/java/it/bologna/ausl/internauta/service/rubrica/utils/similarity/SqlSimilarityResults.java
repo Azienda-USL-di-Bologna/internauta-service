@@ -8,6 +8,7 @@ import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
 import it.bologna.ausl.model.entities.baborg.Persona;
 import it.bologna.ausl.model.entities.rubrica.Contatto;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

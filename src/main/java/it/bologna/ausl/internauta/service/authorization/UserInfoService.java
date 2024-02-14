@@ -64,6 +64,7 @@ import java.util.stream.Stream;
 import it.bologna.ausl.model.entities.baborg.projections.azienda.CustomAziendaLogin;
 import it.bologna.ausl.model.entities.logs.projections.KrintBaborgUtenteStruttura;
 import it.bologna.ausl.model.entities.logs.projections.KrintInformazioniPersona;
+import java.time.ZoneId;
 import org.json.JSONObject;
 import org.springframework.beans.factory.BeanFactory;
 

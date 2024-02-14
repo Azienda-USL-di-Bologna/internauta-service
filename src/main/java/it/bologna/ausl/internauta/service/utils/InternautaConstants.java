@@ -54,7 +54,8 @@ public class InternautaConstants {
             idArchivio,
             doNotInclude,
             predicati,
-            stringaDaCercare
+            stringaDaCercare,
+            soloAccesi
         }
 
         public enum OperationsRequested {

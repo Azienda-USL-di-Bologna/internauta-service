@@ -144,9 +144,11 @@ import it.bologna.ausl.internauta.utils.masterjobs.repository.JobNotifiedReposit
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.copiatrasferisciabilitazioniarchivi.CopiaTrasferisciAbilitazioniArchiviJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.copiatrasferisciabilitazioniarchivi.CopiaTrasferisciAbilitazioniArchiviJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.GestioneMassivaAbilitazioniArchiviJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.gestionemassivaabilitazioniarchivi.GestioneMassivaAbilitazioniArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.pdfgeneratorfromtemplate.ReporterJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sostizionemassivaresponsabilearchivi.SostizioneMassivaResponsabileArchiviJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.versatore.VersatoreServiceUtils;
 import it.bologna.ausl.model.entities.baborg.Ruolo;
@@ -2092,7 +2094,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam(required = true, name = "idPersonaNuovoResponsabile") Integer idPersonaNuovoResponsabile,
             @RequestParam(required = true, name = "idStrutturaNuovoResponsabile") Integer idStrutturaNuovoResponsabile,
             @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento
-    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
+    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException, MasterjobsWorkerInitializationException {
 
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
@@ -2139,16 +2141,34 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 idAziendaRiferimento
         );
 
-        Map sostizioneMassivaResponsabileArchiviJobWorkerDataMap = objectMapper.convertValue(sostizioneMassivaResponsabileArchiviJobWorkerData, Map.class);
-        JobNotified jn = new JobNotified();
-        jn.setJobName("SostizioneMassivaResponsabileArchiviJobWorker");
-        jn.setJobData(sostizioneMassivaResponsabileArchiviJobWorkerDataMap);
-        jn.setWaitObject(false);
-        jn.setApp(app.getId());
-        jn.setPriority(Set.SetPriority.NORMAL);
-        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
-        jobNotifiedRepository.save(jn);
-
+//        Map sostizioneMassivaResponsabileArchiviJobWorkerDataMap = objectMapper.convertValue(sostizioneMassivaResponsabileArchiviJobWorkerData, Map.class);
+        
+//        JobNotified jn = new JobNotified();
+//        jn.setJobName("SostizioneMassivaResponsabileArchiviJobWorker");
+//        jn.setJobData(sostizioneMassivaResponsabileArchiviJobWorkerDataMap);
+//        jn.setWaitObject(false);
+//        jn.setApp(app.getId());
+//        jn.setPriority(Set.SetPriority.NORMAL);
+//        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
+//        jobNotifiedRepository.save(jn);
+//        
+        SostizioneMassivaResponsabileArchiviJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
+                SostizioneMassivaResponsabileArchiviJobWorker.class,
+                sostizioneMassivaResponsabileArchiviJobWorkerData, 
+                false,
+                36000000);
+        
+        ArrayList arrayList = new ArrayList();
+        arrayList.add(jobWorker);
+        masterjobsJobsQueuer.queueOnCommit(
+                arrayList, 
+                null, 
+                null, 
+                app.getId(), 
+                Boolean.FALSE, 
+                Set.SetPriority.NORMAL, 
+                null);
+        
         Map<String, Object> response = new HashMap();
         //response.put("idsSize", ids.length);
 
@@ -2165,7 +2185,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
             @RequestParam(required = false, name = "ids") Integer[] ids,
             @RequestBody(required = true) InfoAbilitazioniMassiveArchivi abilitazioniRichieste,
             @RequestParam(required = true, name = "idAziendaRiferimento") Integer idAziendaRiferimento
-    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException {
+    ) throws RestControllerEngineException, RestControllerEngineException, AbortLoadInterceptorException, AbortLoadInterceptorException, BlackBoxPermissionException, Http403ResponseException, MasterjobsWorkerInitializationException {
 
         AuthenticatedSessionData authenticatedUserProperties = authenticatedSessionDataBuilder.getAuthenticatedUserProperties();
         Persona persona = personaRepository.findById(authenticatedUserProperties.getPerson().getId()).get();
@@ -2229,15 +2249,30 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 idAziendaRiferimento
         );
 
-        Map gestioneMassivaAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(gestioneMassivaAbilitazioniArchiviJobWorkerData, Map.class);
-        JobNotified jn = new JobNotified();
-        jn.setJobName("GestioneMassivaAbilitazioniArchiviJobWorker");
-        jn.setJobData(gestioneMassivaAbilitazioniArchiviJobWorkerDataMap);
-        jn.setWaitObject(false);
-        jn.setApp(app.getId());
-        jn.setPriority(Set.SetPriority.NORMAL);
-        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
-        jobNotifiedRepository.save(jn);
+//        Map gestioneMassivaAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(gestioneMassivaAbilitazioniArchiviJobWorkerData, Map.class);
+//        JobNotified jn = new JobNotified();
+//        jn.setJobName("GestioneMassivaAbilitazioniArchiviJobWorker");
+//        jn.setJobData(gestioneMassivaAbilitazioniArchiviJobWorkerDataMap);
+//        jn.setWaitObject(false);
+//        jn.setApp(app.getId());
+//        jn.setPriority(Set.SetPriority.NORMAL);
+//        jn.setSkipIfAlreadyPresent(Boolean.FALSE);
+//        jobNotifiedRepository.save(jn);
+        GestioneMassivaAbilitazioniArchiviJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
+                GestioneMassivaAbilitazioniArchiviJobWorker.class,
+                gestioneMassivaAbilitazioniArchiviJobWorkerData, 
+                false,
+                36000000);
+        ArrayList arrayList = new ArrayList();
+        arrayList.add(jobWorker);
+        masterjobsJobsQueuer.queueOnCommit(
+                arrayList, 
+                null, 
+                null, 
+                app.getId(), 
+                Boolean.FALSE, 
+                Set.SetPriority.NORMAL, 
+                null);
 
         Map<String, Object> response = new HashMap();
 
@@ -2300,7 +2335,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
 
         Integer idMassiveActionLog = scriptaGestioneAbilitazioniMassiveArchiviUtils.writeMassiveActionLog(null, parameters, operationType);
 
-        log.info("Inserisco il job CopiaTrasferisciAbilitazioniArchiviJobWorkerData");
+        log.info("Inserisco il job CopiaTrasferisciAbilitazioniArchiviJobWorker");
         // Inserisco il job per copiare/trasferire le abilitazioni
         CopiaTrasferisciAbilitazioniArchiviJobWorkerData copiaTrasferisciAbilitazioniArchiviJobWorkerData = new CopiaTrasferisciAbilitazioniArchiviJobWorkerData(
                 operationType,
@@ -2318,17 +2353,29 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
         CopiaTrasferisciAbilitazioniArchiviJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
                 CopiaTrasferisciAbilitazioniArchiviJobWorker.class,
                 copiaTrasferisciAbilitazioniArchiviJobWorkerData,
-                false
+                false,
+                36000000
         );
-        masterjobsJobsQueuer.queueInJobsNotified(
-                jobWorker,
-                null, // ObjectID 
-                null,
-                app.getId(),
-                false, // waitForObject
-                Set.SetPriority.NORMAL,
-                false
-        );
+        ArrayList arrayList = new ArrayList();
+        arrayList.add(jobWorker);
+        masterjobsJobsQueuer.queueOnCommit(
+                arrayList, 
+                null, 
+                null, 
+                app.getId(), 
+                Boolean.FALSE, 
+                Set.SetPriority.NORMAL, 
+                null);
+//        masterjobsJobsQueuer.queueInJobsNotified(
+//                jobWorker,
+//                null, // ObjectID 
+//                null,
+//                app.getId(),
+//                false, // waitForObject
+//                Set.SetPriority.NORMAL,
+//                false
+//        );
+        
 //        jobWorker.doWork();
 
 //        Map copiaTrasferisciAbilitazioniArchiviJobWorkerDataMap = objectMapper.convertValue(copiaTrasferisciAbilitazioniArchiviJobWorkerData, Map.class);

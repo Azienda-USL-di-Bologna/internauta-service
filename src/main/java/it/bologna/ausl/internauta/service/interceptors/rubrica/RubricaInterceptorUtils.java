@@ -208,7 +208,7 @@ public class RubricaInterceptorUtils {
                 }
             }
         }
-        LOGGER.info("query: " + initialPredicate.toString());
+        //LOGGER.info("query: " + initialPredicate.toString());
         return initialPredicate;
     }
 
