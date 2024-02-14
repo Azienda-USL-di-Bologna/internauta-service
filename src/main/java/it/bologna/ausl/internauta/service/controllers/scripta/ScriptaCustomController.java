@@ -2156,7 +2156,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 SostizioneMassivaResponsabileArchiviJobWorker.class,
                 sostizioneMassivaResponsabileArchiviJobWorkerData, 
                 false,
-                36000000);
+                3600000);
         
         ArrayList arrayList = new ArrayList();
         arrayList.add(jobWorker);
@@ -2262,7 +2262,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 GestioneMassivaAbilitazioniArchiviJobWorker.class,
                 gestioneMassivaAbilitazioniArchiviJobWorkerData, 
                 false,
-                36000000);
+                3600000);
         ArrayList arrayList = new ArrayList();
         arrayList.add(jobWorker);
         masterjobsJobsQueuer.queueOnCommit(
@@ -2354,7 +2354,7 @@ public class ScriptaCustomController implements ControllerHandledExceptions {
                 CopiaTrasferisciAbilitazioniArchiviJobWorker.class,
                 copiaTrasferisciAbilitazioniArchiviJobWorkerData,
                 false,
-                36000000
+                3600000
         );
         ArrayList arrayList = new ArrayList();
         arrayList.add(jobWorker);
