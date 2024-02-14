@@ -11,7 +11,6 @@ import it.bologna.ausl.internauta.model.bds.types.CategoriaPermessiStoredProcedu
 import it.bologna.ausl.internauta.model.bds.types.EntitaStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.PermessoEntitaStoredProcedure;
 import it.bologna.ausl.internauta.model.bds.types.PermessoStoredProcedure;
-import it.bologna.ausl.internauta.service.authorization.UserInfoService;
 import it.bologna.ausl.internauta.service.authorization.jwt.AuthorizationUtils;
 import it.bologna.ausl.internauta.service.krint.KrintScriptaService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
@@ -47,9 +46,6 @@ import it.bologna.ausl.model.entities.scripta.PermessoArchivio;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
 import it.bologna.ausl.model.entities.scripta.QAttoreArchivio;
 import it.bologna.ausl.model.entities.scrivania.Attivita;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -647,7 +643,7 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
         ambiti.add("SCRIPTA");
         List<String> tipi = new ArrayList<>();
         tipi.add("ARCHIVIO");
-        List<PermessoEntitaStoredProcedure> permissionsOfSubjectActualFromDate;
+        List<PermessoEntitaStoredProcedure> permissionsOfSubjectActualFromDate;      
         try {
             permissionsOfSubjectActualFromDate = permissionManager.getPermissionsOfSubjectActualFromDate(
                     persona,
@@ -656,7 +652,7 @@ public class CopiaTrasferisciAbilitazioniArchiviJobWorker extends JobWorker<Copi
                     ambiti,
                     tipi,
                     false,
-                    dataInizio
+                    dataInizio != null ? dataInizio.toLocalDate() : null
             );
         } catch (BlackBoxPermissionException ex) {
             log.error("Errore nel recupero permessi da blackbox", ex);

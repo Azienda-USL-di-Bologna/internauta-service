@@ -498,8 +498,8 @@ public class PermessiCustomController implements ControllerHandledExceptions {
                                 Lists.newArrayList(categoriaPermessiStoredProcedure.getAmbito()),
                                 Lists.newArrayList(categoriaPermessiStoredProcedure.getTipo()),
                                 true,
-                                permessoStoredProcedure.getAttivoDal() != null ? permessoStoredProcedure.getAttivoDal().atZone(ZoneId.systemDefault()) : null,
-                                permessoStoredProcedure.getAttivoAl() != null ? permessoStoredProcedure.getAttivoAl().atZone(ZoneId.systemDefault()) : null);
+                                permessoStoredProcedure.getAttivoDal() != null ? permessoStoredProcedure.getAttivoDal().toLocalDate() : null,
+                                permessoStoredProcedure.getAttivoAl() != null ? permessoStoredProcedure.getAttivoAl().toLocalDate() : null);
 
                         if (risposte != null && !risposte.isEmpty()) {
                             for (PermessoEntitaStoredProcedure risposta : risposte) {

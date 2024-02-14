@@ -92,7 +92,7 @@ public class SqlSimilarityResults {
             Map<String, Map<Integer, PermessoStoredProcedure>> mapOfPermissionsOfSubjectAdvanced = permissionManager.getMapOfPermissionsOfSubjectAdvanced(persona, contatti,
                     Arrays.asList("ACCESSO"), InternautaConstants.Permessi.Ambiti.RUBRICA.toString(),
                     InternautaConstants.Permessi.Tipi.CONTATTO.toString(), false,
-                    ZonedDateTime.now(), null, BlackBoxConstants.Direzione.PRESENTE);
+                    LocalDate.now(), null, BlackBoxConstants.Direzione.PRESENTE);
             if (mapOfPermissionsOfSubjectAdvanced != null) {
                 mappa = mapOfPermissionsOfSubjectAdvanced.get("ACCESSO");
             }
