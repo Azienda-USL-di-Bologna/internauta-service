@@ -178,8 +178,6 @@ public class ArchivioDetailInterceptor extends InternautaBaseInterceptor {
         QPermessoArchivio permessoArchivio = QPermessoArchivio.permessoArchivio;
 
         if (!userInfoService.isSD(user) 
-                && !userInfoService.isSD(realUser) 
-                && !userInfoService.isCA(realUser)
                 && !userInfoService.isCA(user) 
                 && !userInfoService.isAG(user) 
                 && !userInfoService.isOS(user)) {
