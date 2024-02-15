@@ -88,6 +88,7 @@ import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepos
 import it.bologna.ausl.internauta.service.repositories.shpeck.OutboxLiteRepository;
 import it.bologna.ausl.internauta.service.shpeck.utils.EmlData;
 import it.bologna.ausl.internauta.service.shpeck.utils.ManageMessageRegistrationUtils;
+import it.bologna.ausl.internauta.service.shpeck.utils.ManageMessageRegistrationUtils.BadParamsExcepionReasons;
 import it.bologna.ausl.model.entities.shpeck.data.AdditionalDataTagComponent;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.internauta.service.utils.aggiustatori.messagetaginregistrationfixer.managers.MessagesTagsProtocollazioneFixManager;
@@ -767,9 +768,17 @@ public class ShpeckCustomController implements ControllerHandledExceptions {
             azienda = aziendaRepository.findByCodice(codiceAzienda);
         }
 
-        manageMessageRegistrationUtils.manageMessageRegistration(
-                uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, azienda
-        );
+        try {
+            manageMessageRegistrationUtils.manageMessageRegistration(
+                    uuidMessage, operation, idMessage, additionalData, doIHaveToKrint, azienda
+            );
+        } catch (Throwable ex) {
+            if (BadParamsException.class.isAssignableFrom(ex.getClass()) && ((BadParamsException)ex).getReason().equals(BadParamsExcepionReasons.TAG_ALREADY_PRESENT.toString())) {
+                LOG.warn("il tag era già presente, non faccio nulla", ex);
+            } else {
+                throw new Http500ResponseException("errore nella gestione del tag", ex);
+            }
+        }
     }
 
     /**

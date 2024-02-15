@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.bologna.ausl.blackbox.exceptions.BlackBoxPermissionException;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionData;
 import it.bologna.ausl.internauta.service.authorization.AuthenticatedSessionDataBuilder;
+import it.bologna.ausl.internauta.service.exceptions.BadParamsException;
 import it.bologna.ausl.internauta.service.krint.KrintShpeckService;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageFolderRepository;
 import it.bologna.ausl.internauta.service.repositories.shpeck.MessageRepository;
@@ -49,6 +50,10 @@ import org.springframework.util.StringUtils;
  */
 @Component
 public class ManageMessageRegistrationUtils {
+    
+    public static enum BadParamsExcepionReasons {
+        TAG_ALREADY_PRESENT
+    }
 
     private static final Logger LOG = LoggerFactory.getLogger(ManageMessageRegistrationUtils.class);
 
@@ -203,7 +208,7 @@ public class ManageMessageRegistrationUtils {
                 }
             }
         } catch (Throwable ex) {
-            LOG.error(ex.getMessage(), ex);
+            LOG.error("errore nella gestione dei tag", ex);
             throw ex;
         }
     }
@@ -282,7 +287,7 @@ public class ManageMessageRegistrationUtils {
             Integer idAziendaInitialData = initialData.getIdAzienda().getId();
             if (idAziendaInitialData.equals(idAziendaAdditionalData)) {
                 LOG.info("errore, tag su azienda " + idAziendaAdditionalData + " gia presente");
-                throw new Exception("errore, tag su azienda " + idAziendaAdditionalData + " gia presente");
+                throw new BadParamsException(String.format("errore, tag su azienda %s gia presente", idAziendaAdditionalData), BadParamsExcepionReasons.TAG_ALREADY_PRESENT.toString());
             }
         }
     }
