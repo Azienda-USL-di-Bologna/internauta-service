@@ -6,9 +6,8 @@ import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerEx
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.utils.AccodatoreVeloce;
+import it.bologna.ausl.model.entities.configurazione.Applicazione;
 import it.bologna.ausl.model.entities.scripta.QArchivio;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +20,7 @@ import org.slf4j.LoggerFactory;
 public class CalcoloPermessiGerarchiaArchivioJobWorker extends JobWorker<CalcoloPermessiGerarchiaArchivioJobWorkerData, JobWorkerResult>{
     private static final Logger log = LoggerFactory.getLogger(CalcoloPermessiGerarchiaArchivioJobWorker.class);
     private final String name = CalcoloPermessiGerarchiaArchivioJobWorker.class.getSimpleName();
-
+        
     @Override
     public String getName() {
         return this.name;
@@ -50,16 +49,20 @@ public class CalcoloPermessiGerarchiaArchivioJobWorker extends JobWorker<Calcolo
            log.error(errore, ex);
            throw new MasterjobsWorkerException(errore, ex);
         }
-        
         log.info("Ora accodo il job per il calcolo di ogni singolo archivio");
         AccodatoreVeloce accodatoreVeloce = new AccodatoreVeloce(masterjobsJobsQueuer, masterjobsObjectsFactory);
         for (Integer idArchivio : idArchivi) {
             // Come object id uso idArchivioRadice perché voglio che CalcolaPersoneVedentiDaArchiviRadice abbia il wait for object rispetto a tutti questi job
-            accodatoreVeloce.accodaCalcolaPermessiArchivio(idArchivio, data.getIdArchivioRadice().toString(), "scripta_archivio");
+            accodatoreVeloce.accodaCalcolaPermessiArchivioERicalcolaPersoneVedenti(
+                    idArchivio, 
+                    data.getIdArchivioRadice().toString(), 
+                    "scripta_archivio",
+                    Applicazione.Applicazioni.scripta.toString()
+                );
         }
         
-        log.info("Ora accodo il ricalcolo persone vedenti");
-        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(data.getIdArchivioRadice())), data.getIdArchivioRadice().toString(), "scripta_archivio", null);
+//        log.info("Ora accodo il ricalcolo persone vedenti");
+//        accodatoreVeloce.accodaCalcolaPersoneVedentiDaArchiviRadice(new HashSet(Arrays.asList(data.getIdArchivioRadice())), data.getIdArchivioRadice().toString(), "scripta_archivio", null);
         return null;
     }
 }
