@@ -6,8 +6,8 @@ import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingE
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MasterjobsJobsQueuer;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.MultiJobQueueDescriptor;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi.CalcolaPersoneVedentiDaArchiviRadiceJobWorker;
-import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi.CalcolaPersoneVedentiDaArchiviRadiceJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchiviradice.CalcolaPersoneVedentiDaArchiviRadiceJobWorker;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchiviradice.CalcolaPersoneVedentiDaArchiviRadiceJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidoc.CalcolaPersoneVedentiDocJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolopermessiarchivio.CalcoloPermessiArchivioJobWorker;

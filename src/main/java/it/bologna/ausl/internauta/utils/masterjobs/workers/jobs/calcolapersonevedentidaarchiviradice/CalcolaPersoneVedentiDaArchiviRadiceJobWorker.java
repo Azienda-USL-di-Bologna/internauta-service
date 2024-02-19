@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi;
+package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchiviradice;
 
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
