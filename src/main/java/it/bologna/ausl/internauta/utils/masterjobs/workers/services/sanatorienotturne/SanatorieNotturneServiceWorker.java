@@ -5,6 +5,7 @@ import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerEx
 import it.bologna.ausl.internauta.utils.masterjobs.workers.WorkerResult;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.copiatrasferisciabilitazioniarchivi.CopiaTrasferisciAbilitazioniArchiviJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriacontatti.SanatoiaContattiJobWorkerData;
+import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriacontatti.SanatoriaContattiJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriapermessiveicolati.SanatoriaPermessiVeicolatiJobWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriapermessiveicolati.SanatoriaPermessiVeicolatiJobWorkerData;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.services.ServiceWorker;
@@ -38,8 +39,8 @@ public class SanatorieNotturneServiceWorker extends ServiceWorker {
         
         SanatoiaContattiJobWorkerData sanatoiaContattiJobWorkerData = new SanatoiaContattiJobWorkerData();
         sanatoiaContattiJobWorkerData.setAspettaRibaltone(true);
-        CopiaTrasferisciAbilitazioniArchiviJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
-                CopiaTrasferisciAbilitazioniArchiviJobWorker.class,
+        SanatoriaContattiJobWorker jobWorker = masterjobsObjectsFactory.getJobWorker(
+                SanatoriaContattiJobWorker.class,
                 sanatoiaContattiJobWorkerData,
                 false
         );
