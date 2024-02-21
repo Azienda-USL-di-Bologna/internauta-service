@@ -16,7 +16,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
-import it.bologna.ausl.model.entities.baborg.QUtentiStrutturaWithLastAfferenza;
+import it.bologna.ausl.model.entities.baborg.QUtenteStrutturaWithLastAfferenza;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
@@ -133,7 +133,7 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
                 initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
             } else {
                 //utente attivo or id=(select id from baborg.utenti_Strutture where id_utente=id_utente order by attivo_al limit 1)
-                QUtentiStrutturaWithLastAfferenza u2 = QUtentiStrutturaWithLastAfferenza.utentiStrutturaWithLastAfferenza;
+                QUtenteStrutturaWithLastAfferenza u2 = QUtenteStrutturaWithLastAfferenza.utenteStrutturaWithLastAfferenza;
                 BooleanExpression existsExpression = JPAExpressions.selectOne()
                     .from(u2)
                     .where(u2.id.eq(qUtenteStruttura.id))
