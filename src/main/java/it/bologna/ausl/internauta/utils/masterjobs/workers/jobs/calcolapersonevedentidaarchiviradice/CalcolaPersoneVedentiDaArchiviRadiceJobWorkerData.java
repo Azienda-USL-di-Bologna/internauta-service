@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchivi;
+package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.calcolapersonevedentidaarchiviradice;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerData;
