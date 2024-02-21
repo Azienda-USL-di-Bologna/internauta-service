@@ -1,4 +1,4 @@
-package it.bologna.ausl.internauta.utils.masterjobs.workers.services.foo.ricalcolopermessiarchivi;
+package it.bologna.ausl.internauta.utils.masterjobs.workers.services.ricalcolopermessiarchivi;
 
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsQueuingException;
