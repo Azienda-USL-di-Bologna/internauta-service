@@ -3,7 +3,12 @@ package it.bologna.ausl.internauta.service.interceptors.baborg;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.SubQueryExpression;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
+import static com.querydsl.jpa.JPAExpressions.select;
+import com.querydsl.jpa.JPQLQuery;
+import it.bologna.ausl.internauta.service.argo.raccolta.Raccolta;
 import it.bologna.ausl.internauta.service.interceptors.InternautaBaseInterceptor;
 import it.bologna.ausl.internauta.service.krint.KrintBaborgService;
 import it.bologna.ausl.internauta.service.krint.KrintUtils;
@@ -11,6 +16,7 @@ import it.bologna.ausl.internauta.service.repositories.baborg.StrutturaRepositor
 import it.bologna.ausl.internauta.service.repositories.baborg.UtenteStrutturaRepository;
 import it.bologna.ausl.internauta.service.utils.InternautaConstants;
 import it.bologna.ausl.model.entities.baborg.QUtenteStruttura;
+import it.bologna.ausl.model.entities.baborg.QUtenteStrutturaWithLastAfferenza;
 import it.bologna.ausl.model.entities.baborg.Struttura;
 import it.bologna.ausl.model.entities.baborg.UtenteStruttura;
 import it.bologna.ausl.model.entities.logs.OperazioneKrint;
@@ -58,10 +64,10 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
 
     @Autowired
     ProjectionFactory projectionFactory;
-    
+
     @Autowired
     private KrintBaborgService krintBaborgService;
-    
+
     @Autowired
     private KrintUtils krintUtils;
 
@@ -74,22 +80,26 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
 
     @Override
     public Predicate beforeSelectQueryInterceptor(Predicate initialPredicate, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) {
-        System.out.println("in: beforeSelectQueryInterceptor di UtenteStruttura");
-
+        //System.out.println("in: beforeSelectQueryInterceptor di UtenteStruttura");
         String filterComboValue = null;
         ZonedDateTime dataRiferimento = null;
         List<Integer> doNotInclude = new ArrayList<Integer>();
+        QUtenteStruttura qUtenteStruttura = QUtenteStruttura.utenteStruttura;
         if (additionalData != null && additionalData.containsKey(FILTER_COMBO)) {
             filterComboValue = additionalData.get(FILTER_COMBO);
         }
-        String key = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
-        if (additionalData != null && additionalData.containsKey(key)) {
-            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(key))).atZone(ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS);
+        String dataRiferimentokey = InternautaConstants.AdditionalData.Keys.dataRiferimento.toString();
+        boolean soloAccesi = true;
+        if (additionalData != null && additionalData.containsKey(InternautaConstants.AdditionalData.Keys.soloAccesi.toString())) {
+            soloAccesi = Boolean.parseBoolean(additionalData.get(InternautaConstants.AdditionalData.Keys.soloAccesi.toString()));
+        }
+        if (additionalData != null && additionalData.containsKey(dataRiferimentokey)) {
+            dataRiferimento = Instant.ofEpochMilli(Long.parseLong(additionalData.get(dataRiferimentokey))).atZone(ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS);
         }
         String keyToDoNotInclude = InternautaConstants.AdditionalData.Keys.doNotInclude.toString();
         if (additionalData != null && additionalData.containsKey(keyToDoNotInclude)) {
 //            String [] doNotIncludeString = additionalData.get(keyToDoNotInclude).toString().split(";");
-            for (String field : additionalData.get(keyToDoNotInclude).toString().split(";")){
+            for (String field : additionalData.get(keyToDoNotInclude).toString().split(";")) {
                 doNotInclude.add(Integer.parseInt(field));
             }
         }
@@ -106,7 +116,7 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
             initialPredicate = customFilter.and(initialPredicate);
         }
         if (dataRiferimento != null && !dataRiferimento.toLocalDate().isEqual(LocalDate.now())) {
-            QUtenteStruttura qUtenteStruttura = QUtenteStruttura.utenteStruttura;
+
             BooleanExpression filter = qUtenteStruttura.attivoDal.loe(dataRiferimento)
                     .and((qUtenteStruttura.attivoAl.isNull()).or(qUtenteStruttura.attivoAl.goe(dataRiferimento)));
             filter = filter.and(qUtenteStruttura.idStruttura.dataAttivazione.loe(dataRiferimento)
@@ -117,27 +127,37 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
             * si cerchino le righe con campo attivo = true
             * NB: il front-end a volte lo mette già nei filtri dell'initialPredicate
              */
-            BooleanExpression customFilterUtenteStrutturaAttivo = QUtenteStruttura.utenteStruttura.attivo.eq(true);
-            customFilterUtenteStrutturaAttivo = customFilterUtenteStrutturaAttivo.and(QUtenteStruttura.utenteStruttura.idStruttura.attiva.eq(true));
-            initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
+            if (soloAccesi) {
+                BooleanExpression customFilterUtenteStrutturaAttivo = QUtenteStruttura.utenteStruttura.attivo.eq(true);
+                customFilterUtenteStrutturaAttivo = customFilterUtenteStrutturaAttivo.and(QUtenteStruttura.utenteStruttura.idStruttura.attiva.eq(true));
+                initialPredicate = customFilterUtenteStrutturaAttivo.and(initialPredicate);
+            } else {
+                //utente attivo or id=(select id from baborg.utenti_Strutture where id_utente=id_utente order by attivo_al limit 1)
+                QUtenteStrutturaWithLastAfferenza u2 = QUtenteStrutturaWithLastAfferenza.utenteStrutturaWithLastAfferenza;
+                BooleanExpression existsExpression = JPAExpressions.selectOne()
+                    .from(u2)
+                    .where(u2.id.eq(qUtenteStruttura.id))
+                    .exists();
+                
+                
+                initialPredicate = existsExpression.and(initialPredicate);
+            }
         }
-        
-            List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
-            if (operationsRequested != null && !operationsRequested.isEmpty()) {
-                for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
-                    switch (operationRequested) {
-                        case GetUtentiInStrutturaEFiglie:
-                            Integer idStruttura = Integer.parseInt(additionalData.get("idStruttura")) ;
-                            List<Integer> idStrutturaEfiglie = strutturaRepository.getStruttureFiglie(idStruttura);
-                            idStrutturaEfiglie.add(idStruttura);
-                            BooleanExpression filterUtentiStruttura = QUtenteStruttura.utenteStruttura.attivo.eq(Boolean.TRUE)
-                                                                        .and(QUtenteStruttura.utenteStruttura.idStruttura.id.in(idStrutturaEfiglie));
-                            initialPredicate = filterUtentiStruttura.and(initialPredicate);
+        List<InternautaConstants.AdditionalData.OperationsRequested> operationsRequested = InternautaConstants.AdditionalData.getOperationRequested(InternautaConstants.AdditionalData.Keys.OperationRequested, additionalData);
+        if (operationsRequested != null && !operationsRequested.isEmpty()) {
+            for (InternautaConstants.AdditionalData.OperationsRequested operationRequested : operationsRequested) {
+                switch (operationRequested) {
+                    case GetUtentiInStrutturaEFiglie:
+                        Integer idStruttura = Integer.parseInt(additionalData.get("idStruttura"));
+                        List<Integer> idStrutturaEfiglie = strutturaRepository.getStruttureFiglie(idStruttura);
+                        idStrutturaEfiglie.add(idStruttura);
+                        BooleanExpression filterUtentiStruttura = QUtenteStruttura.utenteStruttura.attivo.eq(Boolean.TRUE)
+                                .and(QUtenteStruttura.utenteStruttura.idStruttura.id.in(idStrutturaEfiglie));
+                        initialPredicate = filterUtentiStruttura.and(initialPredicate);
                         break;
-                    }
                 }
             }
-
+        }
         return initialPredicate;
     }
 
@@ -173,22 +193,22 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
                                 throw new AbortLoadInterceptorException("errore nell'estrazione dei sotto resposabili", ex);
                             }
 //                            System.out.println("aaaaaaaaaa");
-                            try {
-                                System.out.println(objectMapper.writeValueAsString(utentiStrutturaSottoResponsabili));
-                            } catch (JsonProcessingException ex) {
-                                Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-                            }
+//                            try {
+//                                System.out.println(objectMapper.writeValueAsString(utentiStrutturaSottoResponsabili));
+//                            } catch (JsonProcessingException ex) {
+//                                Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+//                            }
                             List<Object> res = utentiStrutturaSottoResponsabili.stream().map(utenteStrutturaMap -> {
                                 Object utenteStruttura = this.getUtenteStruttura(utenteStrutturaMap, projectionClass);
                                 //return factory.createProjection(UtenteStrutturaWithIdUtente.class, utenteStruttura);
                                 return utenteStruttura;
                             }).collect(Collectors.toList());
-                            System.out.println("res");
-                            try {
-                                System.out.println(objectMapper.writeValueAsString(res));
-                            } catch (JsonProcessingException ex) {
-                                Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
-                            }
+                            //System.out.println("res");
+//                            try {
+//                                System.out.println(objectMapper.writeValueAsString(res));
+//                            } catch (JsonProcessingException ex) {
+//                                Logger.getLogger(UtenteStrutturaInterceptor.class.getName()).log(Level.SEVERE, null, ex);
+//                            }
                             entities.addAll(res);
 //                            List entitiesList = new ArrayList(entities);
 //                            Collections.sort(entitiesList, (UtenteStrutturaWithIdUtente us1, UtenteStrutturaWithIdUtente us2) -> {
@@ -212,13 +232,13 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
     @Override
     public Object afterCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
         UtenteStruttura utenteStruttura = (UtenteStruttura) entity;
-        
+
         if (krintUtils.doIHaveToKrint(request)) {
             if (utenteStruttura.getIdStruttura().getUfficio()) {
                 krintBaborgService.writeUfficioUpdate(utenteStruttura.getIdStruttura(), OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_UTENTE_STRUTTURA_LIST_ADD, utenteStruttura);
             }
         }
-        
+
         return entity; //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -232,7 +252,6 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
         }
         super.afterDeleteEntityInterceptor(entity, additionalData, request, mainEntity, projectionClass); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
     }
-
 
 //    @Override
 //    public Object beforeCreateEntityInterceptor(Object entity, Map<String, String> additionalData, HttpServletRequest request, boolean mainEntity, Class projectionClass) throws AbortSaveInterceptorException {
@@ -255,9 +274,9 @@ public class UtenteStrutturaInterceptor extends InternautaBaseInterceptor {
         }
         if (utenteStrutturaVecchioList.get(0) != null && utenteStrutturaVecchioList.get(0).getAttivo() && !utenteStrutturaNuovo.getAttivo()) {
             if (krintUtils.doIHaveToKrint(request)) {
-               if (utenteStrutturaNuovo.getIdStruttura().getUfficio()) {
-                   krintBaborgService.writeUfficioUpdate(utenteStrutturaNuovo.getIdStruttura(), OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_UTENTE_STRUTTURA_LIST_REMOVE, utenteStrutturaNuovo);
-               }
+                if (utenteStrutturaNuovo.getIdStruttura().getUfficio()) {
+                    krintBaborgService.writeUfficioUpdate(utenteStrutturaNuovo.getIdStruttura(), OperazioneKrint.CodiceOperazione.BABORG_UFFICIO_UTENTE_STRUTTURA_LIST_REMOVE, utenteStrutturaNuovo);
+                }
             }
             utenteStrutturaNuovo.setAttivoAl(ZonedDateTime.now());
         }

@@ -1,7 +1,7 @@
-package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriacontatti;
+package it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.sanatoriapermessiveicolati;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import it.bologna.ausl.internauta.service.repositories.rubrica.ContattoRepository;
+import it.bologna.ausl.blackbox.repositories.PermessoRepository;
 import it.bologna.ausl.internauta.utils.masterjobs.annotations.MasterjobsWorker;
 import it.bologna.ausl.internauta.utils.masterjobs.exceptions.MasterjobsWorkerException;
 import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorker;
@@ -9,26 +9,20 @@ import it.bologna.ausl.internauta.utils.masterjobs.workers.jobs.JobWorkerResult;
 import it.bologna.ausl.model.entities.ribaltoneutils.QRibaltoneDaLanciare;
 import it.bologna.ausl.model.entities.ribaltoneutils.RibaltoneDaLanciare;
 import java.util.List;
-import javax.persistence.EntityManager;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  *
- * @author gusgus
- */
-@MasterjobsWorker
-public class SanatoriaContattiJobWorker extends JobWorker<SanatoiaContattiJobWorkerData, JobWorkerResult> {
-    private static final Logger log = LoggerFactory.getLogger(SanatoriaContattiJobWorker.class);
-    private final String name = SanatoriaContattiJobWorker.class.getSimpleName();
+ * @author Michele D'Onza
+ */@MasterjobsWorker
+public class SanatoriaPermessiVeicolatiJobWorker extends JobWorker<SanatoriaPermessiVeicolatiJobWorkerData, JobWorkerResult>{
+    private static final Logger log = LoggerFactory.getLogger(SanatoriaPermessiVeicolatiJobWorker.class);
+    private final String name = SanatoriaPermessiVeicolatiJobWorker.class.getSimpleName();
     
     @Autowired
-    private ContattoRepository contattoRespository;
-    
-    @Autowired
-    private EntityManager entityManager;
+    private PermessoRepository permessoRepository;
     
     @Override
     public String getName() {
@@ -37,7 +31,7 @@ public class SanatoriaContattiJobWorker extends JobWorker<SanatoiaContattiJobWor
     
     @Override
     public boolean isExecutable() {
-        SanatoiaContattiJobWorkerData workerData = getWorkerData();
+        SanatoriaPermessiVeicolatiJobWorkerData workerData = getWorkerData();
         if (!workerData.isAspettaRibaltone()){
             return true;
         } else {
@@ -48,19 +42,11 @@ public class SanatoriaContattiJobWorker extends JobWorker<SanatoiaContattiJobWor
         }
     }
     
+    
     @Override
     protected JobWorkerResult doRealWork() throws MasterjobsWorkerException {
-        log.info("Inizia il job");
-        
-        log.info("Aggiorno i contatti struttura");
-        contattoRespository.aggiornaContattiStruttura();
-        
-        log.info("Aggiorno i contatti persona");
-        contattoRespository.aggiornaContattiPersona();
-        
-        log.info("Elimino i protocontatti");
-        contattoRespository.eliminaProtocontatti();
-        
+        log.info("sono il " + getName() + " e sto funzionando...");
+        permessoRepository.spegniPermessiVeicolatiInvalidi();
         return null;
     }
 }
